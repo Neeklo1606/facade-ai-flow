@@ -11,6 +11,10 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AppProvider } from "@/lib/app-context";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 
 function NotFoundComponent() {
   return (
