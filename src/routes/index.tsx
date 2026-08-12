@@ -1,24 +1,271 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ArrowRight, ImageIcon, Inbox, Mic, ShieldCheck } from "lucide-react";
+import { PageHeader } from "@/components/common/PageHeader";
+import { MetricTile } from "@/components/common/MetricTile";
+import { Panel } from "@/components/common/Panel";
+import { EmptyState } from "@/components/common/EmptyState";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { AgentSourceBadge } from "@/components/common/AgentSourceBadge";
+import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
+import { ProjectCards } from "@/components/dashboard/ProjectCards";
+import { PlanFactChart } from "@/components/dashboard/PlanFactChart";
+import { Button } from "@/components/ui/button";
+import { attentionItems, attentionMeta, dashboardMetrics } from "@/mock/dashboard";
+import { reports } from "@/mock/reports";
+import { projects } from "@/mock/projects";
+import { ALL_PROJECTS, inScope, useApp } from "@/lib/app-context";
+import { fmtAgo, fmtNum, fmtPct, fmtTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Дашборд — ФАСАД-РП" },
+      {
+        name: "description",
+        content:
+          "Что горит по фасадным объектам прямо сейчас: просрочки, поставки под угрозой, отчеты прорабов и план-факт.",
+      },
+      { property: "og:title", content: "Дашборд — ФАСАД-РП" },
+      {
+        property: "og:description",
+        content: "Оперативная картина по всем фасадным объектам за 15 секунд.",
+      },
+    ],
+  }),
+  component: Dashboard,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+const severityTone = { danger: "danger", warn: "warn", info: "info" } as const;
+
+function Dashboard() {
+  const { projectId, scopedProjects } = useApp();
+  const events = inScope(attentionItems, projectId);
+  const feed = inScope(reports, projectId);
+  const scopeLabel =
+    projectId === ALL_PROJECTS
+      ? `${projects.length} активных объекта`
+      : (projects.find((p) => p.id === projectId)?.name ?? "");
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
+    <>
+      <PageHeader
+        title="Дашборд"
+        description={`Утренняя сводка на 12 августа · ${scopeLabel}`}
+        actions={
+          <>
+            <Button variant="outline" size="sm">
+              Экспорт сводки
+            </Button>
+            <Button size="sm" className="gap-2">
+              Собрать отчет за неделю
+              <ArrowRight className="size-4" />
+            </Button>
+          </>
+        }
       />
-    </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricTile label="Активных объектов" value={scopedProjects.length} delta={dashboardMetrics.activeProjects.delta} />
+        <MetricTile
+          label="Задач просрочено"
+          value={dashboardMetrics.overdueTasks.value}
+          delta={dashboardMetrics.overdueTasks.delta}
+          invert
+          tone="danger"
+        />
+        <MetricTile
+          label="Отчетов не сдано вчера"
+          value={dashboardMetrics.missingReports.value}
+          delta={dashboardMetrics.missingReports.delta}
+          invert
+          tone="warn"
+        />
+        <MetricTile
+          label="Заявок без ответа"
+          value={dashboardMetrics.awaitingSuppliers.value}
+          delta={dashboardMetrics.awaitingSuppliers.delta}
+          invert
+          tone="warn"
+        />
+        <MetricTile
+          label="Отклонение план-факт"
+          value={fmtPct(dashboardMetrics.planFactDeviation.value)}
+          delta={dashboardMetrics.planFactDeviation.delta}
+          invert
+          tone="danger"
+        />
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-4">
+          <Panel
+            title="Требует внимания"
+            bodyClassName="p-0"
+            action={
+              <span className="text-caption text-text-muted">
+                {events.length} событий, по критичности
+              </span>
+            }
+          >
+            {events.length === 0 ? (
+              <EmptyState
+                icon={ShieldCheck}
+                title="Ничего не горит"
+                description="По выбранному объекту нет просрочек, рисков поставки и пропущенных отчетов."
+                actionLabel="Посмотреть график работ"
+              />
+            ) : (
+              <ul>
+                {events.map((e) => {
+                  const meta = attentionMeta[e.kind];
+                  const project = projects.find((p) => p.id === e.projectId);
+                  return (
+                    <li
+                      key={e.id}
+                      className="flex items-start gap-3 border-b border-border px-5 py-3 last:border-0 transition-fast hover:bg-subtle"
+                    >
+                      <meta.icon
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0",
+                          e.severity === "danger"
+                            ? "text-danger"
+                            : e.severity === "warn"
+                              ? "text-warn"
+                              : "text-info",
+                        )}
+                        strokeWidth={1.75}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge tone={severityTone[e.severity]}>{meta.label}</StatusBadge>
+                          <span className="truncate text-caption text-text-muted">
+                            {project?.shortName}
+                          </span>
+                          <span className="tnum text-caption text-text-muted">{fmtAgo(e.time)}</span>
+                        </div>
+                        <p className="mt-1 text-table text-text-primary">{e.text}</p>
+                      </div>
+                      <Button variant="outline" size="sm" className="shrink-0 text-table">
+                        {e.actionLabel}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
+
+          <div>
+            <h2 className="mb-3 text-section-title">Объекты</h2>
+            <ProjectCards items={scopedProjects} />
+          </div>
+
+          <Panel
+            title="План-факт по объемам, 30 дней"
+            action={
+              <div className="flex items-center gap-4 text-caption text-text-secondary">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-4 bg-info" /> План
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-4 bg-accent" /> Факт
+                </span>
+              </div>
+            }
+          >
+            <PlanFactChart />
+          </Panel>
+        </div>
+
+        <Panel
+          title="Последние отчеты"
+          bodyClassName="p-0"
+          action={<span className="text-caption text-text-muted">из Telegram</span>}
+          footer={
+            <Button variant="ghost" size="sm" className="w-full justify-center text-table">
+              Все отчеты
+            </Button>
+          }
+        >
+          {feed.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              title="Отчетов пока нет"
+              description="Прорабы отправляют отчеты в Telegram-боте. Как только придет первый, он появится здесь."
+              actionLabel="Напомнить прорабам"
+            />
+          ) : (
+            <ul>
+              {feed.map((r) => {
+                const project = projects.find((p) => p.id === r.projectId);
+                return (
+                  <li key={r.id} className="border-b border-border px-5 py-3 last:border-0 transition-fast hover:bg-subtle">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-subtle text-caption font-medium">
+                        {r.authorInitials}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-table font-medium">{r.author}</div>
+                        <div className="truncate text-caption text-text-muted">{project?.shortName}</div>
+                      </div>
+                      <span className="tnum shrink-0 text-caption text-text-muted">
+                        {fmtTime(r.createdAt)}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-1.5 text-table">
+                      <span className="truncate text-text-secondary">{r.workType},</span>
+                      <span className="tnum font-medium">
+                        {fmtNum(r.volume)} {r.unit}
+                      </span>
+                      {r.source === "voice" && (
+                        <>
+                          <AgentSourceBadge
+                            agent="Обработчик отчетов"
+                            at={fmtTime(r.createdAt)}
+                            source="голосовое сообщение в Telegram"
+                          />
+                          <ConfidenceIndicator level={r.fields?.some((f) => f.confidence === "low") ? "low" : "medium"} />
+                        </>
+                      )}
+                    </div>
+                    <div className="mt-1 truncate text-caption text-text-muted">
+                      {r.zone} · {r.floors}
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {Array.from({ length: Math.min(r.photos, 4) }).map((_, i) => (
+                        <span
+                          key={i}
+                          className="flex size-10 items-center justify-center rounded-md border border-border bg-subtle"
+                        >
+                          <ImageIcon className="size-3.5 text-text-muted" strokeWidth={1.5} />
+                        </span>
+                      ))}
+                      {r.photos > 4 && (
+                        <span className="tnum text-caption text-text-muted">+{r.photos - 4}</span>
+                      )}
+                      {r.source === "voice" && (
+                        <span className="ml-auto inline-flex items-center gap-1 text-caption text-accent">
+                          <Mic className="size-3.5" />
+                          {r.voiceDurationSec}с
+                        </span>
+                      )}
+                    </div>
+
+                    {r.issues.length > 0 && (
+                      <div className="mt-2 rounded-md bg-warn-bg px-2 py-1.5 text-caption text-warn">
+                        {r.issues[0]}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      </div>
+    </>
   );
 }
