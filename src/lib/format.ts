@@ -4,7 +4,9 @@ import { ru } from "date-fns/locale";
 export const fmtDate = (d: string | Date) => format(new Date(d), "d MMM yyyy", { locale: ru });
 export const fmtDateShort = (d: string | Date) => format(new Date(d), "d MMM", { locale: ru });
 export const fmtDateTime = (d: string | Date) => format(new Date(d), "d MMM, HH:mm", { locale: ru });
-export const fmtTime = (d: string | Date) => format(new Date(d), "HH:mm", { locale: ru });
+// Даты приходят со смещением +03:00 (Москва) — показываем время объекта, не браузера.
+export const fmtTime = (d: string | Date) =>
+  typeof d === "string" && d.includes("T") ? d.slice(11, 16) : format(new Date(d), "HH:mm", { locale: ru });
 export const fmtAgo = (d: string | Date) =>
   formatDistanceToNow(new Date(d), { locale: ru, addSuffix: true });
 export const daysLeft = (d: string | Date, from: Date = new Date("2026-08-12")) =>

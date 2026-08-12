@@ -40,7 +40,7 @@ export function MetricTile({
         </span>
         {suffix && <span className="text-caption text-text-muted">{suffix}</span>}
       </div>
-      <div className="mt-3 flex items-center gap-1.5">
+      <div className="mt-3 flex items-center gap-1.5 whitespace-nowrap">
         <DeltaIcon
           className={cn(
             "size-3.5",
