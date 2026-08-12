@@ -36,12 +36,12 @@ export function StatusBadge({
   );
 }
 
-export const projectStatusTone: Record<string, StatusTone> = {
+export const projectStatusTone = {
   ok: "ok",
   warn: "warn",
   danger: "danger",
   done: "info",
-};
+} satisfies Record<string, StatusTone> as Record<string, StatusTone>;
 
 export const projectStatusLabel: Record<string, string> = {
   ok: "В графике",
