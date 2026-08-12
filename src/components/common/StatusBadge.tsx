@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import type { ProjectStatus } from "@/mock/projects";
 
 export type StatusTone = "ok" | "warn" | "danger" | "info" | "neutral" | "accent";
 
@@ -36,14 +37,14 @@ export function StatusBadge({
   );
 }
 
-export const projectStatusTone = {
+export const projectStatusTone: Record<ProjectStatus, StatusTone> = {
   ok: "ok",
   warn: "warn",
   danger: "danger",
   done: "info",
-} satisfies Record<string, StatusTone> as Record<string, StatusTone>;
+};
 
-export const projectStatusLabel: Record<string, string> = {
+export const projectStatusLabel: Record<ProjectStatus, string> = {
   ok: "В графике",
   warn: "Риск срыва",
   danger: "Отставание",
