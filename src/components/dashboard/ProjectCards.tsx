@@ -23,7 +23,7 @@ export function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       to="/objects"
-      className="card-surface block p-5 transition-fast hover:bg-subtle"
+      className="card-surface flex h-full flex-col p-5 transition-fast hover:bg-subtle"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -45,7 +45,7 @@ export function ProjectCard({ project }: { project: Project }) {
         <Bar value={project.progress} tone={project.status} />
       </div>
 
-      <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-3">
+      <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-border pt-3 pt-4">
         <div>
           <dt className="text-caption text-text-muted">Объем</dt>
           <dd className="tnum text-table font-medium">
@@ -78,7 +78,7 @@ export function ProjectCard({ project }: { project: Project }) {
 
 export function ProjectCards({ items = projects }: { items?: Project[] }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid auto-rows-fr gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {items.map((p) => (
         <ProjectCard key={p.id} project={p} />
       ))}

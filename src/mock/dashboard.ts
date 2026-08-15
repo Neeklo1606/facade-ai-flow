@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CalendarClock,
   HardHat,
+  Mail,
   PackageX,
   Truck,
 } from "lucide-react";
@@ -12,7 +13,8 @@ export type AttentionKind =
   | "delivery_risk"
   | "report_missing"
   | "contract_deadline"
-  | "material_shortage";
+  | "material_shortage"
+  | "customer_letter";
 
 export interface AttentionItem {
   id: string;
@@ -30,6 +32,7 @@ export const attentionMeta: Record<AttentionKind, { icon: LucideIcon; label: str
   report_missing: { icon: HardHat, label: "Нет отчета" },
   contract_deadline: { icon: CalendarClock, label: "Договорной срок" },
   material_shortage: { icon: PackageX, label: "Дефицит материала" },
+  customer_letter: { icon: Mail, label: "Письмо заказчику" },
 };
 
 export const attentionItems: AttentionItem[] = [
@@ -50,6 +53,15 @@ export const attentionItems: AttentionItem[] = [
     projectId: "obj-meridian",
     time: "2026-08-12T08:30:00+03:00",
     actionLabel: "Дожать поставщиков",
+  },
+  {
+    id: "a-8",
+    kind: "customer_letter",
+    severity: "warn",
+    text: "Агент подготовил письмо заказчику ГК «Стройинвест» о переносе срока по захватке 2 — ожидает подтверждения",
+    projectId: "obj-severnaya-korona",
+    time: "2026-08-12T08:05:00+03:00",
+    actionLabel: "Проверить и отправить",
   },
   {
     id: "a-3",
