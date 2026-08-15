@@ -189,7 +189,7 @@ function ReportsPage() {
           <EmptyState icon={HardHat} title="Отчётов нет" description="Под выбранные фильтры отчёты не нашлись." />
         </Panel>
       ) : (
-        <div className="grid gap-3 xl:grid-cols-2">
+        <div className="columns-1 gap-3 xl:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid">
           {rows.map((r) => (
             <ReportCard key={r.id} report={r} readOnly={isForeman} />
           ))}
@@ -209,7 +209,7 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
   const [comment, setComment] = useState("");
 
   return (
-    <article className="card-surface flex flex-col p-4">
+    <article className="card-surface inline-flex w-full flex-col p-4">
       <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-subtle text-caption font-medium">
           {r.authorInitials}
