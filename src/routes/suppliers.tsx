@@ -40,7 +40,7 @@ export const Route = createFileRoute("/suppliers")({
       { property: "og:description", content: "Реестр поставщиков: категории, сроки ответа и поставки, рейтинг надёжности." },
     ],
   }),
-  component: SuppliersPage;
+  component: SuppliersPage,
 });
 
 const ratingTone = (r: number): StatusTone => (r >= 4.5 ? "ok" : r >= 3.5 ? "info" : r >= 3 ? "warn" : "danger");
