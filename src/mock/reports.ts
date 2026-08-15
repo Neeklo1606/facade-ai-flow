@@ -26,6 +26,7 @@ export interface SiteReport {
   voiceDurationSec?: number;
   transcript?: string;
   fields?: ReportField[];
+  returnComment?: string;
 }
 
 export const reports: SiteReport[] = [
@@ -128,4 +129,74 @@ export const reports: SiteReport[] = [
     status: "accepted",
     source: "text",
   },
+  {
+    id: "R-3372",
+    projectId: "obj-severnaya-korona",
+    author: "Гареев Р.М.",
+    authorInitials: "ГР",
+    zone: "Захватка 2, оси Г-К",
+    floors: "9–10 этажи",
+    workType: "Монтаж направляющих",
+    volume: 148,
+    unit: "пог. м",
+    photos: 4,
+    issues: [],
+    createdAt: "2026-08-09T18:02:00+03:00",
+    status: "accepted",
+    source: "photo",
+  },
+  {
+    id: "R-3368",
+    projectId: "obj-school-1547",
+    author: "Гареев Р.М.",
+    authorInitials: "ГР",
+    zone: "Дворовый фасад",
+    floors: "1–2 этажи",
+    workType: "Базовый штукатурный слой",
+    volume: 128,
+    unit: "м²",
+    photos: 5,
+    issues: ["Сетка щелочестойкая — остаток на 3 дня"],
+    createdAt: "2026-08-09T17:38:00+03:00",
+    status: "accepted",
+    source: "text",
+  },
+  {
+    id: "R-3364",
+    projectId: "obj-meridian",
+    author: "Ким А.В.",
+    authorInitials: "КА",
+    zone: "Захватка 2, оси Г-Л",
+    floors: "3–4 этажи",
+    workType: "Монтаж стоечно-ригельной системы",
+    volume: 76,
+    unit: "пог. м",
+    photos: 6,
+    issues: ["Технадзор просит фото узла крепления"],
+    createdAt: "2026-08-08T19:11:00+03:00",
+    status: "accepted",
+    source: "photo",
+  },
 ];
+
+export const reportStatusLabels: Record<ReportStatus, string> = {
+  pending: "Не проверен",
+  accepted: "Принят",
+  returned: "Возвращен",
+};
+
+/** Дисциплина прорабов: сдано отчётов из ожидаемых за последние 14 дней. */
+export interface ForemanDiscipline {
+  name: string;
+  initials: string;
+  submitted: number;
+  expected: number;
+}
+
+export const foremanDiscipline: ForemanDiscipline[] = [
+  { name: "Гареев Р.М.", initials: "ГР", submitted: 13, expected: 14 },
+  { name: "Ким А.В.", initials: "КА", submitted: 11, expected: 14 },
+];
+
+/** Вчера ожидалось отчётов / сдано. */
+export const yesterdaySubmission = { submitted: 3, expected: 5 };
