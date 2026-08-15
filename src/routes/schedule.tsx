@@ -370,8 +370,7 @@ function SchedulePage() {
 
           <Panel
             className="mt-3"
-            title="План-факт по неделям, м²"
-            description="Факт считается по принятым отчётам прорабов."
+            title="План-факт по неделям, м² (факт — по принятым отчётам)"
           >
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -410,7 +409,7 @@ function SchedulePage() {
             <p className="mt-3 flex items-start gap-1.5 text-caption text-text-muted">
               <Info className="mt-0.5 size-3.5 shrink-0" />
               План — из договора №{" "}
-              {projects.find((p) => p.id === projectId)?.contractNumber ?? "—"}; факт — из принятых отчётов.
+              {projects.find((p) => p.id === projectId)?.contractNo ?? "—"}; факт — из принятых отчётов.
             </p>
           </Panel>
         </>
