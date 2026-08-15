@@ -17,6 +17,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MailingsRouteImport } from './routes/mailings'
 import { Route as ObjectsRouteImport } from './routes/objects'
 import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -65,6 +66,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MailingsRoute = MailingsRouteImport.update({
+  id: '/mailings',
+  path: '/mailings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ObjectsRoute = ObjectsRouteImport.update({
   id: '/objects',
   path: '/objects',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
+  '/mailings': typeof MailingsRoute
   '/objects': typeof ObjectsRoute
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
+  '/mailings': typeof MailingsRoute
   '/objects': typeof ObjectsRoute
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
+  '/mailings': typeof MailingsRoute
   '/objects': typeof ObjectsRoute
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/integrations'
     | '/login'
+    | '/mailings'
     | '/objects'
     | '/procurement'
     | '/reports'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/integrations'
     | '/login'
+    | '/mailings'
     | '/objects'
     | '/procurement'
     | '/reports'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/integrations'
     | '/login'
+    | '/mailings'
     | '/objects'
     | '/procurement'
     | '/reports'
@@ -216,6 +228,7 @@ export interface RootRouteChildren {
   DocumentsRoute: typeof DocumentsRoute
   IntegrationsRoute: typeof IntegrationsRoute
   LoginRoute: typeof LoginRoute
+  MailingsRoute: typeof MailingsRoute
   ObjectsRoute: typeof ObjectsRoute
   ProcurementRoute: typeof ProcurementRoute
   ReportsRoute: typeof ReportsRoute
@@ -283,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mailings': {
+      id: '/mailings'
+      path: '/mailings'
+      fullPath: '/mailings'
+      preLoaderRoute: typeof MailingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/objects': {
       id: '/objects'
       path: '/objects'
@@ -344,6 +364,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocumentsRoute: DocumentsRoute,
   IntegrationsRoute: IntegrationsRoute,
   LoginRoute: LoginRoute,
+  MailingsRoute: MailingsRoute,
   ObjectsRoute: ObjectsRoute,
   ProcurementRoute: ProcurementRoute,
   ReportsRoute: ReportsRoute,
