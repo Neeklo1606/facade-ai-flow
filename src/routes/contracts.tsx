@@ -8,7 +8,6 @@ import {
   Loader2,
   Pencil,
   Sparkles,
-  X,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Panel } from "@/components/common/Panel";
@@ -446,4 +445,3 @@ function ContractDetail({ contract, onBack }: { contract: ContractDoc; onBack: (
   );
 }
 
-export const _unusedIcon = X;
