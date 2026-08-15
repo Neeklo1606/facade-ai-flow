@@ -15,6 +15,8 @@ import { AppProvider } from "@/lib/app-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
+import { DataProvider } from "@/lib/data-context";
 
 
 function NotFoundComponent() {
@@ -144,12 +146,15 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AppProvider>
+        <DataProvider>
         <TooltipProvider delayDuration={200}>
           <AppLayout>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             <Outlet />
           </AppLayout>
+          <Toaster position="bottom-right" />
         </TooltipProvider>
+        </DataProvider>
         </AppProvider>
       </AuthProvider>
     </QueryClientProvider>

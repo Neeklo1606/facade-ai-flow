@@ -25,6 +25,8 @@ import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
+import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -106,6 +108,16 @@ const UsersRoute = UsersRouteImport.update({
   path: '/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ObjectsRoute,
+} as any)
+const ObjectsIdRoute = ObjectsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ObjectsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,13 +129,15 @@ export interface FileRoutesByFullPath {
   '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/mailings': typeof MailingsRoute
-  '/objects': typeof ObjectsRoute
+  '/objects': typeof ObjectsRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
+  '/objects/$id': typeof ObjectsIdRoute
+  '/objects/': typeof ObjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -135,13 +149,14 @@ export interface FileRoutesByTo {
   '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/mailings': typeof MailingsRoute
-  '/objects': typeof ObjectsRoute
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
+  '/objects/$id': typeof ObjectsIdRoute
+  '/objects': typeof ObjectsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -154,13 +169,15 @@ export interface FileRoutesById {
   '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/mailings': typeof MailingsRoute
-  '/objects': typeof ObjectsRoute
+  '/objects': typeof ObjectsRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
+  '/objects/$id': typeof ObjectsIdRoute
+  '/objects/': typeof ObjectsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +198,8 @@ export interface FileRouteTypes {
     | '/suppliers'
     | '/tasks'
     | '/users'
+    | '/objects/$id'
+    | '/objects/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -192,13 +211,14 @@ export interface FileRouteTypes {
     | '/integrations'
     | '/login'
     | '/mailings'
-    | '/objects'
     | '/procurement'
     | '/reports'
     | '/schedule'
     | '/suppliers'
     | '/tasks'
     | '/users'
+    | '/objects/$id'
+    | '/objects'
   id:
     | '__root__'
     | '/'
@@ -217,6 +237,8 @@ export interface FileRouteTypes {
     | '/suppliers'
     | '/tasks'
     | '/users'
+    | '/objects/$id'
+    | '/objects/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -229,7 +251,7 @@ export interface RootRouteChildren {
   IntegrationsRoute: typeof IntegrationsRoute
   LoginRoute: typeof LoginRoute
   MailingsRoute: typeof MailingsRoute
-  ObjectsRoute: typeof ObjectsRoute
+  ObjectsRoute: typeof ObjectsRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
   ReportsRoute: typeof ReportsRoute
   ScheduleRoute: typeof ScheduleRoute
@@ -352,8 +374,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/objects/': {
+      id: '/objects/'
+      path: '/'
+      fullPath: '/objects/'
+      preLoaderRoute: typeof ObjectsIndexRouteImport
+      parentRoute: typeof ObjectsRoute
+    }
+    '/objects/$id': {
+      id: '/objects/$id'
+      path: '/$id'
+      fullPath: '/objects/$id'
+      preLoaderRoute: typeof ObjectsIdRouteImport
+      parentRoute: typeof ObjectsRoute
+    }
   }
 }
+
+interface ObjectsRouteChildren {
+  ObjectsIdRoute: typeof ObjectsIdRoute
+  ObjectsIndexRoute: typeof ObjectsIndexRoute
+}
+
+const ObjectsRouteChildren: ObjectsRouteChildren = {
+  ObjectsIdRoute: ObjectsIdRoute,
+  ObjectsIndexRoute: ObjectsIndexRoute,
+}
+
+const ObjectsRouteWithChildren =
+  ObjectsRoute._addFileChildren(ObjectsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -365,7 +414,7 @@ const rootRouteChildren: RootRouteChildren = {
   IntegrationsRoute: IntegrationsRoute,
   LoginRoute: LoginRoute,
   MailingsRoute: MailingsRoute,
-  ObjectsRoute: ObjectsRoute,
+  ObjectsRoute: ObjectsRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
   ReportsRoute: ReportsRoute,
   ScheduleRoute: ScheduleRoute,
