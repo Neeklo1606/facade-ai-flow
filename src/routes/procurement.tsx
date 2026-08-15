@@ -115,7 +115,7 @@ function ProcurementPage() {
     return (
       <RequestDetail
         request={open}
-        onBack={() => navigate({ to: "/procurement", search: {} })}
+        onBack={() => navigate({ to: "/procurement", search: { req: undefined } })}
         onChoose={(supplierId) =>
           setList((p) =>
             p.map((r) => (r.id === open.id ? { ...r, chosenSupplierId: supplierId, status: "chosen" } : r)),
@@ -230,7 +230,7 @@ function ProcurementPage() {
           rows={rows}
           rowKey={(r) => r.id}
           onRowClick={(r) => navigate({ to: "/procurement", search: { req: r.id } })}
-          empty={<EmptyState title="Заявок нет" description="Измените фильтры или создайте новую заявку." />}
+          empty={<EmptyState icon={ShoppingCart} title="Заявок нет" description="Измените фильтры или создайте новую заявку." />}
         />
       </Panel>
 
@@ -291,7 +291,7 @@ function RequestDetail({
 
       <Panel title="Сравнение ответов" bodyClassName="p-0">
         {request.quotes.length === 0 ? (
-          <EmptyState title="Заявка ещё не разослана" description="Черновик: отправьте письма поставщикам, чтобы собрать предложения." />
+          <EmptyState icon={Mail} title="Заявка ещё не разослана" description="Черновик: отправьте письма поставщикам, чтобы собрать предложения." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse">
