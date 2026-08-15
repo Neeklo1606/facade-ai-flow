@@ -139,6 +139,7 @@ function DocumentsPage() {
     {
       key: "name",
       header: "Название",
+      width: "34%",
       cell: (d) => (
         <span className="flex min-w-0 items-center gap-2">
           <FileText className="size-4 shrink-0 text-text-muted" strokeWidth={1.5} />
@@ -149,7 +150,7 @@ function DocumentsPage() {
     { key: "type", header: "Тип", cell: (d) => <span className="whitespace-nowrap">{d.type}</span> },
     { key: "project", header: "Объект", cell: (d) => projectName(d.projectId) },
     { key: "by", header: "Загрузил", cell: (d) => <span className="whitespace-nowrap">{d.uploadedBy}</span> },
-    { key: "at", header: "Дата", cell: (d) => <span className="tnum whitespace-nowrap">{fmtDateTime(d.uploadedAt)}</span> },
+    { key: "at", header: "Дата", width: "12%", cell: (d) => <span className="tnum whitespace-nowrap">{fmtDateTime(d.uploadedAt)}</span> },
     {
       key: "status",
       header: "Обработка агентом",
