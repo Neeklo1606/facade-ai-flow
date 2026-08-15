@@ -39,7 +39,7 @@ export const Route = createFileRoute("/dashboard")({
 
 const severityTone = { danger: "danger", warn: "warn", info: "info" } as const;
 
-function PhotoThumb({ caption }: { caption?: string }) {
+function PhotoThumb({ caption }: { caption?: string | undefined }) {
   return (
     <span className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-subtle">
       <ImageIcon className="size-4 text-text-muted" strokeWidth={1.5} />

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentLogRouteImport } from './routes/agent-log'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as ContractsRouteImport } from './routes/contracts'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as ObjectsRouteImport } from './routes/objects'
@@ -41,6 +42,11 @@ const AgentsRoute = AgentsRouteImport.update({
 const ContractsRoute = ContractsRouteImport.update({
   id: '/contracts',
   path: '/contracts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/agent-log': typeof AgentLogRoute
   '/agents': typeof AgentsRoute
   '/contracts': typeof ContractsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
   '/objects': typeof ObjectsRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/agent-log': typeof AgentLogRoute
   '/agents': typeof AgentsRoute
   '/contracts': typeof ContractsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
   '/objects': typeof ObjectsRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/agent-log': typeof AgentLogRoute
   '/agents': typeof AgentsRoute
   '/contracts': typeof ContractsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
   '/objects': typeof ObjectsRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/agent-log'
     | '/agents'
     | '/contracts'
+    | '/dashboard'
     | '/documents'
     | '/integrations'
     | '/objects'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/agent-log'
     | '/agents'
     | '/contracts'
+    | '/dashboard'
     | '/documents'
     | '/integrations'
     | '/objects'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/agent-log'
     | '/agents'
     | '/contracts'
+    | '/dashboard'
     | '/documents'
     | '/integrations'
     | '/objects'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   AgentLogRoute: typeof AgentLogRoute
   AgentsRoute: typeof AgentsRoute
   ContractsRoute: typeof ContractsRoute
+  DashboardRoute: typeof DashboardRoute
   DocumentsRoute: typeof DocumentsRoute
   IntegrationsRoute: typeof IntegrationsRoute
   ObjectsRoute: typeof ObjectsRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/contracts'
       fullPath: '/contracts'
       preLoaderRoute: typeof ContractsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -300,6 +320,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentLogRoute: AgentLogRoute,
   AgentsRoute: AgentsRoute,
   ContractsRoute: ContractsRoute,
+  DashboardRoute: DashboardRoute,
   DocumentsRoute: DocumentsRoute,
   IntegrationsRoute: IntegrationsRoute,
   ObjectsRoute: ObjectsRoute,
