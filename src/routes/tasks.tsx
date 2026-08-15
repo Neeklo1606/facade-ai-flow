@@ -118,13 +118,13 @@ function TasksPage() {
         </span>
       ),
     },
-    { key: "project", header: "Объект", cell: (t) => projectName(t.projectId) },
-    { key: "assignee", header: "Ответственный", cell: (t) => t.assignee },
+    { key: "project", header: "Объект", cell: (t) => <span className="whitespace-nowrap">{projectName(t.projectId)}</span> },
+    { key: "assignee", header: "Ответственный", cell: (t) => <span className="whitespace-nowrap">{t.assignee}</span> },
     {
       key: "due",
       header: "Срок",
       cell: (t) => (
-        <span className={cn("tnum", isOverdue(t) && "font-medium text-danger")}>{fmtDate(t.dueDate)}</span>
+        <span className={cn("tnum whitespace-nowrap", isOverdue(t) && "font-medium text-danger")}>{fmtDate(t.dueDate)}</span>
       ),
     },
     { key: "status", header: "Статус", cell: (t) => <StatusBadge tone={statusTone(t)}>{statusLabel(t)}</StatusBadge> },
@@ -279,7 +279,7 @@ function SourceCell({ task }: { task: Task }) {
       </span>
     );
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5">
+    <span className="inline-flex min-w-0 max-w-[240px] items-center gap-1.5">
       <AgentSourceBadge
         agent={task.agentName ?? "Агент"}
         at={fmtDateTime(task.createdAt)}
