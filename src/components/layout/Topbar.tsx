@@ -169,7 +169,6 @@ export function Topbar() {
 
       <Dialog open={search} onOpenChange={setSearch}>
         <DialogContent
-          showCloseButton={false}
           className="top-0 left-0 h-dvh w-screen max-w-none translate-x-0 translate-y-0 rounded-none p-0 sm:top-[10%] sm:left-1/2 sm:h-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:rounded-lg"
         >
           <DialogTitle className="sr-only">Поиск</DialogTitle>
