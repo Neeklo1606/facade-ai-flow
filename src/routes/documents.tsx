@@ -98,7 +98,7 @@ function DocumentsPage() {
           id,
           name,
           type: name.toLowerCase().includes("догов") ? "Договор" : "Акт",
-          projectId: projects[0].id,
+          projectId: projects[0]!.id,
           uploadedBy: "Соколов И.П.",
           uploadedAt: new Date().toISOString(),
           processing: "ready",
@@ -238,7 +238,7 @@ function DocumentsPage() {
               </div>
               <div className="mt-2 flex items-center gap-1.5 text-caption text-text-secondary">
                 <Loader2 className="size-3.5 animate-spin text-accent" />
-                Шаг {u.step + 1} из 4 · {docProcessingLabels[steps[u.step]]}
+                Шаг {u.step + 1} из 4 · {docProcessingLabels[steps[u.step]!]}
               </div>
             </Panel>
           ))}
