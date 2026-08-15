@@ -16,7 +16,6 @@ import { Panel } from "@/components/common/Panel";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge, type StatusTone } from "@/components/common/StatusBadge";
 import { ProgressBar } from "@/components/common/ProgressBar";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -415,9 +414,6 @@ function SchedulePage() {
         </>
       )}
 
-      <div className="mt-3 lg:hidden">
-        <Button variant="outline" size="sm" className="w-full">Данные синтетические</Button>
-      </div>
     </>
   );
 }
