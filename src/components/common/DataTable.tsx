@@ -30,8 +30,40 @@ export function DataTable<T>({
   if (!loading && rows.length === 0 && empty) return <>{empty}</>;
 
   return (
-    <div className={cn("w-full overflow-x-auto", className)}>
+    <>
+      {/* Мобильные: таблица превращается в карточки в одну колонку */}
+      <div className={cn("grid grid-cols-1 gap-3 p-4 lg:hidden", className)}>
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card-surface space-y-2 p-4">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))
+          : rows.map((row) => (
+              <div
+                key={rowKey(row)}
+                onClick={() => onRowClick?.(row)}
+                className={cn(
+                  "card-surface p-4 transition-fast",
+                  onRowClick && "cursor-pointer hover:bg-subtle",
+                )}
+              >
+                <dl className="space-y-1.5">
+                  {columns.map((c) => (
+                    <div key={c.key} className="flex min-h-6 items-start justify-between gap-3">
+                      <dt className="shrink-0 text-caption text-text-muted">{c.header}</dt>
+                      <dd className="tnum min-w-0 text-right text-table">{c.cell(row)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+      </div>
+
+      <div className={cn("hidden w-full overflow-x-auto lg:block", className)}>
       <table className="w-full border-collapse text-table">
+
         <thead>
           <tr className="border-b border-border-strong">
             {columns.map((c) => (
