@@ -12,18 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentLogRouteImport } from './routes/agent-log'
 import { Route as AgentsRouteImport } from './routes/agents'
-import { Route as AnalyticsRouteImport } from './routes/analytics'
-import { Route as AuditRouteImport } from './routes/audit'
-import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as ContractsRouteImport } from './routes/contracts'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
-import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MailingsRouteImport } from './routes/mailings'
 import { Route as ObjectsRouteImport } from './routes/objects'
 import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ScheduleRouteImport } from './routes/schedule'
-import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as UsersRouteImport } from './routes/users'
@@ -43,24 +41,14 @@ const AgentsRoute = AgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnalyticsRoute = AnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuditRoute = AuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CatalogsRoute = CatalogsRouteImport.update({
-  id: '/catalogs',
-  path: '/catalogs',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ContractsRoute = ContractsRouteImport.update({
   id: '/contracts',
   path: '/contracts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -73,9 +61,14 @@ const IntegrationsRoute = IntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
-const KnowledgeRoute = KnowledgeRouteImport.update({
-  id: '/knowledge',
-  path: '/knowledge',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MailingsRoute = MailingsRouteImport.update({
+  id: '/mailings',
+  path: '/mailings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ObjectsRoute = ObjectsRouteImport.update({
@@ -98,11 +91,6 @@ const ScheduleRoute = ScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SuppliersRoute = SuppliersRouteImport.update({
   id: '/suppliers',
   path: '/suppliers',
@@ -123,18 +111,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-log': typeof AgentLogRoute
   '/agents': typeof AgentsRoute
-  '/analytics': typeof AnalyticsRoute
-  '/audit': typeof AuditRoute
-  '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
-  '/knowledge': typeof KnowledgeRoute
+  '/login': typeof LoginRoute
+  '/mailings': typeof MailingsRoute
   '/objects': typeof ObjectsRoute
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
-  '/settings': typeof SettingsRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
@@ -143,18 +129,16 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agent-log': typeof AgentLogRoute
   '/agents': typeof AgentsRoute
-  '/analytics': typeof AnalyticsRoute
-  '/audit': typeof AuditRoute
-  '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
-  '/knowledge': typeof KnowledgeRoute
+  '/login': typeof LoginRoute
+  '/mailings': typeof MailingsRoute
   '/objects': typeof ObjectsRoute
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
-  '/settings': typeof SettingsRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
@@ -164,18 +148,16 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/agent-log': typeof AgentLogRoute
   '/agents': typeof AgentsRoute
-  '/analytics': typeof AnalyticsRoute
-  '/audit': typeof AuditRoute
-  '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
+  '/dashboard': typeof DashboardRoute
   '/documents': typeof DocumentsRoute
   '/integrations': typeof IntegrationsRoute
-  '/knowledge': typeof KnowledgeRoute
+  '/login': typeof LoginRoute
+  '/mailings': typeof MailingsRoute
   '/objects': typeof ObjectsRoute
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
-  '/settings': typeof SettingsRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
@@ -186,18 +168,16 @@ export interface FileRouteTypes {
     | '/'
     | '/agent-log'
     | '/agents'
-    | '/analytics'
-    | '/audit'
-    | '/catalogs'
     | '/contracts'
+    | '/dashboard'
     | '/documents'
     | '/integrations'
-    | '/knowledge'
+    | '/login'
+    | '/mailings'
     | '/objects'
     | '/procurement'
     | '/reports'
     | '/schedule'
-    | '/settings'
     | '/suppliers'
     | '/tasks'
     | '/users'
@@ -206,18 +186,16 @@ export interface FileRouteTypes {
     | '/'
     | '/agent-log'
     | '/agents'
-    | '/analytics'
-    | '/audit'
-    | '/catalogs'
     | '/contracts'
+    | '/dashboard'
     | '/documents'
     | '/integrations'
-    | '/knowledge'
+    | '/login'
+    | '/mailings'
     | '/objects'
     | '/procurement'
     | '/reports'
     | '/schedule'
-    | '/settings'
     | '/suppliers'
     | '/tasks'
     | '/users'
@@ -226,18 +204,16 @@ export interface FileRouteTypes {
     | '/'
     | '/agent-log'
     | '/agents'
-    | '/analytics'
-    | '/audit'
-    | '/catalogs'
     | '/contracts'
+    | '/dashboard'
     | '/documents'
     | '/integrations'
-    | '/knowledge'
+    | '/login'
+    | '/mailings'
     | '/objects'
     | '/procurement'
     | '/reports'
     | '/schedule'
-    | '/settings'
     | '/suppliers'
     | '/tasks'
     | '/users'
@@ -247,18 +223,16 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentLogRoute: typeof AgentLogRoute
   AgentsRoute: typeof AgentsRoute
-  AnalyticsRoute: typeof AnalyticsRoute
-  AuditRoute: typeof AuditRoute
-  CatalogsRoute: typeof CatalogsRoute
   ContractsRoute: typeof ContractsRoute
+  DashboardRoute: typeof DashboardRoute
   DocumentsRoute: typeof DocumentsRoute
   IntegrationsRoute: typeof IntegrationsRoute
-  KnowledgeRoute: typeof KnowledgeRoute
+  LoginRoute: typeof LoginRoute
+  MailingsRoute: typeof MailingsRoute
   ObjectsRoute: typeof ObjectsRoute
   ProcurementRoute: typeof ProcurementRoute
   ReportsRoute: typeof ReportsRoute
   ScheduleRoute: typeof ScheduleRoute
-  SettingsRoute: typeof SettingsRoute
   SuppliersRoute: typeof SuppliersRoute
   TasksRoute: typeof TasksRoute
   UsersRoute: typeof UsersRoute
@@ -287,32 +261,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/analytics': {
-      id: '/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/audit': {
-      id: '/audit'
-      path: '/audit'
-      fullPath: '/audit'
-      preLoaderRoute: typeof AuditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/catalogs': {
-      id: '/catalogs'
-      path: '/catalogs'
-      fullPath: '/catalogs'
-      preLoaderRoute: typeof CatalogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/contracts': {
       id: '/contracts'
       path: '/contracts'
       fullPath: '/contracts'
       preLoaderRoute: typeof ContractsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -329,11 +289,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/knowledge': {
-      id: '/knowledge'
-      path: '/knowledge'
-      fullPath: '/knowledge'
-      preLoaderRoute: typeof KnowledgeRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mailings': {
+      id: '/mailings'
+      path: '/mailings'
+      fullPath: '/mailings'
+      preLoaderRoute: typeof MailingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/objects': {
@@ -364,13 +331,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/suppliers': {
       id: '/suppliers'
       path: '/suppliers'
@@ -399,18 +359,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentLogRoute: AgentLogRoute,
   AgentsRoute: AgentsRoute,
-  AnalyticsRoute: AnalyticsRoute,
-  AuditRoute: AuditRoute,
-  CatalogsRoute: CatalogsRoute,
   ContractsRoute: ContractsRoute,
+  DashboardRoute: DashboardRoute,
   DocumentsRoute: DocumentsRoute,
   IntegrationsRoute: IntegrationsRoute,
-  KnowledgeRoute: KnowledgeRoute,
+  LoginRoute: LoginRoute,
+  MailingsRoute: MailingsRoute,
   ObjectsRoute: ObjectsRoute,
   ProcurementRoute: ProcurementRoute,
   ReportsRoute: ReportsRoute,
   ScheduleRoute: ScheduleRoute,
-  SettingsRoute: SettingsRoute,
   SuppliersRoute: SuppliersRoute,
   TasksRoute: TasksRoute,
   UsersRoute: UsersRoute,
