@@ -94,7 +94,7 @@ export const documents: Doc[] = [
     projectId: "obj-school-1547",
     uploadedBy: "Волкова Е.С.",
     uploadedAt: "2026-08-03T16:48:00+03:00",
-    processing: "recognizing",
+    processing: "ready",
     sizeKb: 940,
     pages: 5,
   },
