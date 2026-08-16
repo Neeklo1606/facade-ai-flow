@@ -164,7 +164,7 @@ export function AgentPanel() {
       )}
 
       <Sheet open={agentPanelOpen} onOpenChange={setAgentPanelOpen}>
-        <SheetContent side="right" className="w-full p-0 xl:hidden" hideClose>
+        <SheetContent side="right" className="w-full p-0 xl:hidden">
           <SheetTitle className="sr-only">Агент-помощник</SheetTitle>
           <Thread onClose={() => setAgentPanelOpen(false)} />
         </SheetContent>
