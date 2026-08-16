@@ -1,40 +1,87 @@
+import { useState } from "react";
 import { FileText, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { useApp } from "@/lib/app-context";
 
-const thread = [
-  {
-    role: "user" as const,
-    text: "Что горит по БЦ «Меридиан»?",
-  },
-  {
-    role: "agent" as const,
-    text: "Отставание 11,2% по объемам. Критично: заявка З-2026-118 на подконструкцию — ответил 1 поставщик из 3, потребность через 12 дней. Контрольная точка «Завершение монтажа подконструкции» наступает 21 августа.",
-    sources: [
-      { label: "Договор ПС-2025/067-СПК, с. 12", to: "/contracts" },
-      { label: "Заявка З-2026-118", to: "/procurement" },
-    ],
-  },
+interface Msg {
+  role: "user" | "agent";
+  text: string;
+  sources?: { label: string }[];
+  lowConfidence?: boolean;
+}
+
+const chips = [
+  "Что горит на ЖК «Северная Корона»?",
+  "Когда приедет керамогранит?",
+  "Сравни поставщиков по кронштейнам",
 ];
 
-export function AgentPanel() {
-  const { agentPanelOpen, setAgentPanelOpen } = useApp();
-  if (!agentPanelOpen) return null;
+const answers: Record<string, Msg> = {
+  [chips[0]!]: {
+    role: "agent",
+    text: "Отставание 4,8% по облицовке. Критично: не хватает кронштейнов КР-150 (~200 шт.), заявка З-2026-121 разослана 3 поставщикам, ответов пока нет. Контрольная точка «Завершение захватки 2» — 21 августа.",
+    sources: [
+      { label: "Отчёт Р-2026-341 от 12.08" },
+      { label: "Заявка З-2026-121" },
+      { label: "Договор СИ-2025/114-НВФ, с. 8" },
+    ],
+  },
+  [chips[1]!]: {
+    role: "agent",
+    text: "По заявке З-2026-114 (керамогранит, 2 400 м²) лучшее предложение — «Керамика Трейд», срок поставки 12 рабочих дней, ориентировочно 27 августа. Поставщик пока не выбран, дата ориентировочная.",
+    sources: [{ label: "Заявка З-2026-114" }, { label: "Поставщик «Керамика Трейд»" }],
+    lowConfidence: true,
+  },
+  [chips[2]!]: {
+    role: "agent",
+    text: "По кронштейнам отвечали трое: МеталлПрофиль-Юг — 1 780 ₽/шт., 7 дней, рейтинг 4,6; СтройКомплект — 1 690 ₽/шт., 12 дней, рейтинг 4,1 (2 срыва поставки); Фасад-Снаб — 1 845 ₽/шт., 5 дней, рейтинг 4,8. По цене выгоднее СтройКомплект, по надёжности — Фасад-Снаб.",
+    sources: [{ label: "Сравнение по заявке З-2026-121" }, { label: "Реестр поставщиков" }],
+  },
+};
+
+const fallback: Msg = {
+  role: "agent",
+  text: "В демо-режиме помощник отвечает на подготовленные вопросы и не обращается к языковой модели. Попробуйте один из вариантов ниже.",
+  lowConfidence: true,
+};
+
+function useThread() {
+  const [thread, setThread] = useState<Msg[]>([
+    {
+      role: "agent",
+      text: "Отвечаю по данным системы: отчёты, задачи, договоры и заявки. Выберите вопрос или спросите своими словами.",
+    },
+  ]);
+  const [draft, setDraft] = useState("");
+
+  const ask = (text: string) => {
+    const answer = answers[text] ?? fallback;
+    setThread((t) => [...t, { role: "user", text }, answer]);
+    setDraft("");
+  };
+
+  return { thread, draft, setDraft, ask };
+}
+
+function Thread({ onClose }: { onClose: () => void }) {
+  const { thread, draft, setDraft, ask } = useThread();
 
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-56px)] w-[420px] shrink-0 flex-col border-l border-border bg-surface xl:flex">
-      <div className="flex h-14 items-center justify-between border-b border-border px-5">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5">
         <div>
           <div className="text-card-title">Агент-помощник</div>
           <div className="text-caption text-text-muted">Отвечает по данным системы</div>
         </div>
-        <Button variant="ghost" size="icon" aria-label="Закрыть" onClick={() => setAgentPanelOpen(false)}>
+        <Button variant="ghost" size="icon" aria-label="Закрыть" onClick={onClose}>
           <X className="size-4" />
         </Button>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
         {thread.map((m, i) => (
           <div key={i} className={m.role === "user" ? "flex justify-end" : ""}>
             <div
@@ -45,13 +92,20 @@ export function AgentPanel() {
               }
             >
               {m.text}
-              {"sources" in m && m.sources && (
+              {m.lowConfidence && (
+                <div className="mt-2">
+                  <StatusBadge tone="warn" dot>
+                    Сгенерировано агентом, требует проверки
+                  </StatusBadge>
+                </div>
+              )}
+              {m.sources && (
                 <div className="mt-3 space-y-1 border-t border-border pt-2">
                   <div className="text-overline text-text-muted">Источники</div>
                   {m.sources.map((s) => (
                     <button
                       key={s.label}
-                      className="flex w-full items-center gap-1.5 rounded-sm px-1 py-0.5 text-left text-caption text-info transition-fast hover:bg-info-bg"
+                      className="flex w-full items-center gap-1.5 rounded-sm px-1 py-1 text-left text-caption text-info transition-fast hover:bg-info-bg"
                     >
                       <FileText className="size-3.5 shrink-0" />
                       <span className="truncate">{s.label}</span>
@@ -64,12 +118,57 @@ export function AgentPanel() {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border p-4">
-        <Input placeholder="Спросите про объект, сроки, поставки…" className="text-table" />
-        <Button size="icon" aria-label="Отправить">
-          <Send className="size-4" />
-        </Button>
+      <div className="shrink-0 border-t border-border p-4">
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {chips.map((c) => (
+            <button
+              key={c}
+              onClick={() => ask(c)}
+              className="rounded-full border border-border px-2.5 py-1.5 text-caption text-text-secondary transition-fast hover:bg-subtle"
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (draft.trim()) ask(draft.trim());
+          }}
+        >
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Спросите про объект, сроки, поставки…"
+            className="h-11 text-table"
+          />
+          <Button size="icon" type="submit" className="size-11 shrink-0" aria-label="Отправить">
+            <Send className="size-4" />
+          </Button>
+        </form>
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export function AgentPanel() {
+  const { agentPanelOpen, setAgentPanelOpen } = useApp();
+
+  return (
+    <>
+      {agentPanelOpen && (
+        <aside className="sticky top-14 hidden h-[calc(100vh-56px)] w-[420px] shrink-0 border-l border-border bg-surface xl:block">
+          <Thread onClose={() => setAgentPanelOpen(false)} />
+        </aside>
+      )}
+
+      <Sheet open={agentPanelOpen} onOpenChange={setAgentPanelOpen}>
+        <SheetContent side="right" className="w-full p-0 xl:hidden">
+          <SheetTitle className="sr-only">Агент-помощник</SheetTitle>
+          <Thread onClose={() => setAgentPanelOpen(false)} />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

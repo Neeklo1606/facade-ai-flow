@@ -85,6 +85,29 @@ export const users: User[] = [
     active: true,
     email: "lebedev@fasad-rp.ru",
   },
+  {
+    id: "u-nazarova",
+    name: "Назарова М.И.",
+    initials: "НМ",
+    role: "Финансы",
+    projects: ["obj-severnaya-korona", "obj-meridian", "obj-galaktika"],
+    telegram: false,
+    lastActive: "2026-08-12T09:15:00+03:00",
+    active: true,
+    email: "nazarova@fasad-rp.ru",
+  },
+  {
+    id: "u-tarasov",
+    name: "Тарасов В.Б.",
+    initials: "ТВ",
+    role: "Прораб",
+    projects: ["obj-primorskiy"],
+    telegram: true,
+    lastActive: "2026-07-28T16:40:00+03:00",
+    active: false,
+    email: "tarasov@fasad-rp.ru",
+  },
 ];
 
 export const currentUser: User = users[0]!;
+
