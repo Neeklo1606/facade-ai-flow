@@ -35,76 +35,88 @@ function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen bg-background text-text-primary lg:grid-cols-2">
-      <div className="flex flex-col justify-between bg-[color:var(--sidebar-bg)] px-6 py-10 lg:px-12">
+    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-6 text-text-primary lg:px-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-24 -z-10 mx-auto h-[520px] max-w-4xl rounded-[50%] opacity-70 blur-3xl"
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--text-primary) 14%, transparent), transparent)",
+        }}
+      />
+
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-[color:var(--sidebar-active-bar)] text-table font-semibold text-white">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-caption font-semibold text-accent-foreground">
             ФР
           </div>
-          <div className="min-w-0">
-            <div className="text-card-title text-[color:var(--sidebar-active-text)]">ФАСАД-РП</div>
-            <div className="text-caption text-[color:var(--sidebar-item)]">СК «Фасадные системы»</div>
-          </div>
+          <span className="text-card-title">ФАСАД-РП</span>
         </div>
-
-        <div className="my-10 max-w-md">
-          <h1 className="text-page-title text-[color:var(--sidebar-active-text)]">
-            Управление фасадными проектами с AI-агентами
-          </h1>
-          <p className="mt-3 text-base text-[color:var(--sidebar-item)]">
-            Объекты, задачи, отчёты прорабов из Telegram, снабжение и договорной контроль в одном
-            рабочем месте. Агенты готовят данные — решения принимает человек.
-          </p>
+        <div className="hidden items-center gap-2 rounded-full border border-[color:var(--glass-border)] bg-[color:var(--glass-bg)] px-2 py-1.5 backdrop-blur-xl md:flex">
+          <span className="rounded-full bg-accent px-3.5 py-1.5 text-caption font-medium text-accent-foreground">
+            Демо
+          </span>
+          <span className="px-3 text-caption text-text-secondary">
+            • Прототип с AI-агентами
+          </span>
         </div>
-
-        <p className="inline-flex items-center gap-2 text-caption text-[color:var(--sidebar-item)]">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--glass-border)] bg-[color:var(--glass-bg)] px-3.5 py-2 text-caption text-text-secondary backdrop-blur-xl">
           <ShieldCheck className="size-4 shrink-0" />
-          Демо-прототип. Все данные синтетические
+          <span className="hidden sm:inline">Синтетические данные</span>
+        </span>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl pt-16 pb-10 lg:pt-24">
+        <h1 className="text-center text-[clamp(44px,9vw,116px)] leading-[0.92] font-semibold tracking-[-0.05em]">
+          ФАСАД-РП
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-center text-base text-text-secondary">
+          Объекты, задачи, отчёты прорабов из Telegram, снабжение и договорной контроль в одном
+          рабочем месте. Агенты готовят данные — решения принимает человек.
         </p>
-      </div>
 
-      <div className="flex items-center justify-center px-4 py-10 lg:px-12">
-        <div className="card-surface w-full max-w-md p-6">
-          <h2 className="text-section-title">Демо-вход</h2>
-          <p className="mt-1 text-table text-text-secondary">
-            Паролей нет: выберите роль, чтобы увидеть свой набор разделов и прав.
-          </p>
-
-          <div className="mt-6 space-y-3">
-            {demoAccounts.map((a) => {
-              const Icon = roleIcon[a.role];
-              return (
-                <button
-                  key={a.role}
-                  onClick={() => enter(a.role)}
-                  className="flex min-h-14 w-full items-center gap-3 rounded-md border border-border bg-surface px-4 py-3 text-left transition-fast hover:border-accent hover:bg-subtle"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-accent-subtle text-accent">
-                    <Icon className="size-5" strokeWidth={1.75} />
+        <div className="mt-14 grid gap-4 md:grid-cols-2">
+          {demoAccounts.map((a) => {
+            const Icon = roleIcon[a.role];
+            return (
+              <button
+                key={a.role}
+                onClick={() => enter(a.role)}
+                className="glass-panel group flex flex-col items-start gap-6 p-7 text-left transition-fast hover:-translate-y-1"
+              >
+                <span className="rounded-full bg-accent-subtle px-3 py-1 text-caption text-text-secondary">
+                  {a.roleLabel}
+                </span>
+                <span className="flex size-14 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                  <Icon className="size-6" strokeWidth={1.75} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-section-title">Войти как {a.roleLabel}</span>
+                  <span className="mt-1 block text-table text-text-secondary">
+                    {a.user.name} ·{" "}
+                    {a.role === "pm" ? "полный доступ ко всем разделам" : "свои объекты, задачи и отчёты"}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-table font-medium">
-                      Войти как {a.roleLabel} — {a.user.name}
-                    </span>
-                    <span className="block truncate text-caption text-text-muted">
-                      {a.role === "pm" ? "полный доступ ко всем разделам" : "свои объекты, задачи и отчёты"}
-                    </span>
-                  </span>
-                  <ArrowRight className="size-4 shrink-0 text-text-muted" />
-                </button>
-              );
-            })}
-          </div>
+                </span>
+                <span className="mt-auto inline-flex items-center gap-2 text-table font-medium">
+                  Продолжить
+                  <ArrowRight className="size-4 transition-fast group-hover:translate-x-1" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-          <p className="mt-6 text-caption text-text-muted">
+        <div className="mt-10 flex flex-col items-center gap-3">
+          <Button size="lg" onClick={() => enter("pm")}>
+            Быстрый старт
+          </Button>
+          <p className="max-w-md text-center text-caption text-text-muted">
             Любые «отправки» в прототипе — демо-имитация с пометкой, реальные письма и сообщения не
             уходят.
           </p>
-          <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => enter("pm")}>
-            Быстрый старт
-          </Button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
+
