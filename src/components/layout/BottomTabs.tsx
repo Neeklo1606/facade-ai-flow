@@ -21,7 +21,7 @@ export function BottomTabs() {
 
   return (
     <>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--glass-border)] bg-[color:var(--glass-bg)] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <ul className="grid grid-cols-5">
           {tabs.map((item) => {
             const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
@@ -63,7 +63,7 @@ export function BottomTabs() {
                 <Link
                   to={item.to}
                   onClick={() => setMore(false)}
-                  className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2.5 text-table transition-fast hover:bg-subtle"
+                  className="flex min-h-11 items-center gap-3 rounded-full px-3 py-2.5 text-table transition-fast hover:bg-subtle"
                 >
                   <item.icon className="size-4 shrink-0 text-text-muted" strokeWidth={1.75} />
                   <span className="truncate">{item.label}</span>

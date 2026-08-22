@@ -44,7 +44,7 @@ function ObjectSelector({ collapsed }: { collapsed: boolean }) {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex min-h-11 w-full items-center gap-2 rounded-md border border-[color:var(--sidebar-border)] bg-white/5 px-3 py-2 text-left transition-fast hover:bg-white/10",
+            "flex min-h-11 w-full items-center gap-2 rounded-md border border-[color:var(--sidebar-border)] bg-[color:var(--sidebar-hover-bg)] px-3 py-2 text-left transition-fast hover:bg-[color:var(--bg-subtle)]",
             collapsed && "justify-center px-0",
           )}
         >
@@ -99,9 +99,9 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   };
 
   return (
-    <div className="flex h-full flex-col bg-[color:var(--sidebar-bg)]">
+    <div className="flex h-full flex-col bg-[color:var(--sidebar-bg)] backdrop-blur-xl border-r border-[color:var(--sidebar-border)]">
       <div className={cn("flex items-center gap-2.5 px-4 py-4", collapsed && "justify-center px-0")}>
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[color:var(--sidebar-active-bar)] text-caption font-semibold text-white">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--sidebar-active-bg)] text-caption font-semibold text-[color:var(--sidebar-active-on)]">
           ФР
         </div>
         {!collapsed && (
@@ -138,20 +138,17 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     to={item.to}
                     onClick={onNavigate}
                     className={cn(
-                      "relative flex min-h-11 items-center gap-2.5 rounded-md px-2 py-2 text-table transition-fast lg:min-h-0",
+                      "relative flex min-h-11 items-center gap-2.5 rounded-md px-2 py-2 text-table transition-fast lg:min-h-0 rounded-full",
                       collapsed && "justify-center px-0",
                       isActive
-                        ? "bg-[color:var(--sidebar-active-bg)] font-medium text-[color:var(--sidebar-active-text)]"
-                        : "text-[color:var(--sidebar-item)] hover:bg-white/5 hover:text-[color:var(--sidebar-item-hover)]",
+                        ? "bg-[color:var(--sidebar-active-bg)] font-medium text-[color:var(--sidebar-active-on)]"
+                        : "text-[color:var(--sidebar-item)] hover:bg-[color:var(--sidebar-hover-bg)] hover:text-[color:var(--sidebar-item-hover)]",
                     )}
                   >
-                    {isActive && (
-                      <span className="absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-r bg-[color:var(--sidebar-active-bar)]" />
-                    )}
                     <item.icon className="size-4 shrink-0" strokeWidth={1.75} />
                     {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                     {!collapsed && badge > 0 && (
-                      <span className="tnum rounded-sm bg-[color:var(--sidebar-active-bar)] px-1.5 text-[11px] leading-[18px] font-medium text-white">
+                      <span className="tnum rounded-sm bg-[color:var(--sidebar-active-on)] px-1.5 text-[11px] leading-[18px] font-medium text-[color:var(--sidebar-active-bg)]">
                         {badge}
                       </span>
                     )}
@@ -180,7 +177,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-[color:var(--sidebar-border)] p-3">
         <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10 text-caption font-medium text-[color:var(--sidebar-active-text)]">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[color:var(--sidebar-hover-bg)] text-caption font-medium text-[color:var(--sidebar-active-text)]">
             {account?.user.initials ?? "—"}
           </div>
           {!collapsed && (
@@ -199,7 +196,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           variant="ghost"
           size="sm"
           onClick={switchRole}
-          className="mt-2 min-h-11 w-full justify-start gap-2 text-[color:var(--sidebar-item)] hover:bg-white/5 hover:text-[color:var(--sidebar-item-hover)] lg:min-h-9"
+          className="mt-2 min-h-11 w-full justify-start gap-2 text-[color:var(--sidebar-item)] hover:bg-[color:var(--sidebar-hover-bg)] hover:text-[color:var(--sidebar-item-hover)] lg:min-h-9"
         >
           <UserCog className="size-4 shrink-0" />
           {!collapsed && <span className="text-table">Сменить демо-роль</span>}
@@ -210,7 +207,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             variant="ghost"
             size="sm"
             onClick={toggleTheme}
-            className="min-h-11 flex-1 justify-start gap-2 text-[color:var(--sidebar-item)] hover:bg-white/5 hover:text-[color:var(--sidebar-item-hover)] lg:min-h-9"
+            className="min-h-11 flex-1 justify-start gap-2 text-[color:var(--sidebar-item)] hover:bg-[color:var(--sidebar-hover-bg)] hover:text-[color:var(--sidebar-item-hover)] lg:min-h-9"
           >
             {theme === "light" ? <Moon className="size-4" /> : <Sun className="size-4" />}
             {!collapsed && (
@@ -222,7 +219,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             size="icon"
             aria-label="Выход"
             onClick={switchRole}
-            className="text-[color:var(--sidebar-item)] hover:bg-white/5 hover:text-[color:var(--sidebar-item-hover)]"
+            className="text-[color:var(--sidebar-item)] hover:bg-[color:var(--sidebar-hover-bg)] hover:text-[color:var(--sidebar-item-hover)]"
           >
             <LogOut className="size-4" />
           </Button>
@@ -232,7 +229,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className="mt-1 hidden w-full justify-start gap-2 text-[color:var(--sidebar-item)] hover:bg-white/5 hover:text-[color:var(--sidebar-item-hover)] lg:flex"
+          className="mt-1 hidden w-full justify-start gap-2 text-[color:var(--sidebar-item)] hover:bg-[color:var(--sidebar-hover-bg)] hover:text-[color:var(--sidebar-item-hover)] lg:flex"
         >
           {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
           {!collapsed && <span className="text-table">Свернуть</span>}
