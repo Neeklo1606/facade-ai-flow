@@ -41,7 +41,7 @@ export function Topbar() {
   const unread = notifications.flatMap((g) => g.items).filter((i) => i.unread).length;
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 lg:gap-3 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-[color:var(--glass-border)] bg-[color:var(--glass-bg)] px-3 backdrop-blur-xl lg:gap-3 lg:px-6">
       <Sheet open={mobileNav} onOpenChange={setMobileNav}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="size-11 lg:hidden" aria-label="Меню">
@@ -75,11 +75,11 @@ export function Topbar() {
       <div className="mx-auto hidden w-full max-w-md md:block">
         <button
           onClick={() => setSearch(true)}
-          className="flex w-full items-center gap-2 rounded-md border border-border bg-subtle px-3 py-1.5 text-left text-table text-text-muted transition-fast hover:bg-background"
+          className="flex w-full items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--bg-subtle)] px-4 py-2 text-left text-table text-text-muted transition-fast hover:border-[color:var(--border-strong)]"
         >
           <Search className="size-4 shrink-0" />
           <span className="flex-1 truncate">Поиск по объектам, задачам, документам…</span>
-          <kbd className="rounded-sm border border-border bg-surface px-1.5 py-0.5 text-[11px] text-text-muted">
+          <kbd className="rounded-full border border-border bg-[color:var(--bg-surface)] px-2 py-0.5 text-[11px] text-text-muted">
             Ctrl+K
           </kbd>
         </button>
@@ -116,7 +116,7 @@ export function Topbar() {
             >
               <Bell className="size-5 lg:size-4" />
               {unread > 0 && (
-                <span className="tnum absolute top-1 right-0.5 min-w-4 rounded-sm bg-accent px-1 text-[10px] leading-4 font-medium text-white">
+                <span className="tnum absolute top-1 right-0.5 min-w-4 rounded-full bg-accent px-1 text-[10px] leading-4 font-medium text-accent-foreground">
                   {unread}
                 </span>
               )}
@@ -159,7 +159,7 @@ export function Topbar() {
         </Popover>
 
         <div
-          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-subtle text-caption font-medium"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-caption font-medium text-accent-foreground"
           title={`${account?.user.name} · ${account?.roleLabel}`}
         >
           {account?.user.initials ?? "—"}
