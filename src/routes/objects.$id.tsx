@@ -369,7 +369,7 @@ function ObjectPage() {
                   key={c.id}
                   className="flex min-h-16 flex-col justify-between rounded-xl border border-border p-2"
                   style={{
-                    background: `color-mix(in srgb, var(--accent) ${Math.max(6, c.progress)}%, var(--bg-surface))`,
+                    background: `color-mix(in srgb, var(--accent) ${Math.max(6, c.progress)}%, var(--bg-elevated))`,
                   }}
                 >
                   <span className="text-caption text-text-secondary">{c.label}</span>

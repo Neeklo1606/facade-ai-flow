@@ -379,7 +379,7 @@ function SchedulePage() {
                   <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
                   <Tooltip
                     contentStyle={{
-                      background: "var(--bg-surface)",
+                      background: "var(--bg-elevated)",
                       border: "1px solid var(--border)",
                       borderRadius: 6,
                       fontSize: 13,
