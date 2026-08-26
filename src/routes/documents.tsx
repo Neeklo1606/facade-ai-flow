@@ -200,7 +200,7 @@ function DocumentsPage() {
         }}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "mb-4 flex min-h-[88px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed px-4 py-5 text-center transition-fast",
+          "mb-4 flex min-h-[88px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed px-4 py-5 text-center transition-fast",
           dragging ? "border-accent bg-accent-subtle" : "border-border hover:border-accent",
         )}
       >

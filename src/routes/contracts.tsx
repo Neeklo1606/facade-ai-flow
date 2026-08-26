@@ -71,7 +71,7 @@ const statusTone: Record<ContractStatus, StatusTone> = {
 const projectName = (id: string) => projects.find((p) => p.id === id)?.shortName ?? id;
 
 const DemoBadge = () => (
-  <span className="inline-flex items-center gap-1.5 rounded-sm bg-accent-subtle px-2 py-1 text-caption text-accent">
+  <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-2 py-1 text-caption text-accent">
     <Sparkles className="size-3.5" /> Парсинг: демо-имитация
   </span>
 );
@@ -209,7 +209,7 @@ function ContractDetail({ contract, onBack }: { contract: ContractDoc; onBack: (
     >
       <div className="space-y-4">
         {contract.pages.map((pg) => (
-          <div key={pg.page} className="rounded-md border border-border bg-[color:var(--bg-surface)] p-4">
+          <div key={pg.page} className="rounded-xl border border-border bg-[color:var(--bg-[color:var(--bg-elevated)])] p-4">
             <div className="mb-2 flex items-baseline justify-between gap-2">
               <span className="text-caption font-medium">{pg.title}</span>
               <span className="tnum text-caption text-text-muted">стр. {pg.page}</span>
@@ -222,7 +222,7 @@ function ContractDetail({ contract, onBack }: { contract: ContractDoc; onBack: (
                     pageRefs.current[b.id] = el;
                   }}
                   className={cn(
-                    "rounded-sm px-2 py-1.5 text-table leading-6 transition-fast",
+                    "rounded-full px-2 py-1.5 text-table leading-6 transition-fast",
                     highlight === b.id ? "bg-warn-bg text-text-primary ring-1 ring-warn" : "text-text-secondary",
                   )}
                 >
@@ -259,7 +259,7 @@ function ContractDetail({ contract, onBack }: { contract: ContractDoc; onBack: (
             <span className="block h-full w-[43%] rounded-full bg-accent" />
           </div>
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="space-y-1.5 rounded-md border border-border p-3">
+            <div key={i} className="space-y-1.5 rounded-xl border border-border p-3">
               <Skeleton className="h-3 w-24" />
               <Skeleton className="h-4 w-3/4" />
             </div>
@@ -272,7 +272,7 @@ function ContractDetail({ contract, onBack }: { contract: ContractDoc; onBack: (
             const isEdited = f.key in edited;
             const isConfirmed = confirmed[f.key];
             return (
-              <li key={f.key} className="rounded-md border border-border p-3">
+              <li key={f.key} className="rounded-xl border border-border p-3">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
                   <span className="flex min-w-0 items-center gap-1.5 text-caption text-text-muted">
                     {f.label}
@@ -397,7 +397,7 @@ function ContractDetail({ contract, onBack }: { contract: ContractDoc; onBack: (
           </DialogHeader>
           <ul className="space-y-2">
             {contract.milestones.map((m) => (
-              <li key={m.id} className="flex items-start gap-2.5 rounded-md border border-border p-3">
+              <li key={m.id} className="flex items-start gap-2.5 rounded-xl border border-border p-3">
                 <Checkbox
                   id={m.id}
                   checked={picked[m.id] ?? false}

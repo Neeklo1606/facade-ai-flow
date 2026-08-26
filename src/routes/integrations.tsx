@@ -123,7 +123,7 @@ function IntegrationsPage() {
         {connected.map((i) => (
           <article key={i.name} className="card-surface flex flex-col p-4">
             <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-accent-subtle text-accent">
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent">
                 <i.icon className="size-4" />
               </span>
               <div className="min-w-0">
@@ -159,7 +159,7 @@ function IntegrationsPage() {
         {planned.map((i) => (
           <article key={i.name} className="card-surface flex flex-col p-4 opacity-60">
             <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-subtle text-text-muted">
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-subtle text-text-muted">
                 <i.icon className="size-4" />
               </span>
               <div className="min-w-0">

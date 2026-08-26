@@ -367,7 +367,7 @@ function ObjectPage() {
               {detail.facade.map((c) => (
                 <div
                   key={c.id}
-                  className="flex min-h-16 flex-col justify-between rounded-md border border-border p-2"
+                  className="flex min-h-16 flex-col justify-between rounded-xl border border-border p-2"
                   style={{
                     background: `color-mix(in srgb, var(--accent) ${Math.max(6, c.progress)}%, var(--bg-surface))`,
                   }}
@@ -443,7 +443,7 @@ function Key({
   tone?: "ok" | "danger";
 }) {
   return (
-    <div className="min-w-0 rounded-md border border-border p-3">
+    <div className="min-w-0 rounded-xl border border-border p-3">
       <div className="text-caption text-text-secondary">{label}</div>
       <div
         className={cn(

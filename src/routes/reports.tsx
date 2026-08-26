@@ -211,7 +211,7 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
   return (
     <article className="card-surface inline-flex w-full flex-col p-4">
       <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-subtle text-caption font-medium">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-subtle text-caption font-medium">
           {r.authorInitials}
         </span>
         <div className="min-w-0">
@@ -238,10 +238,10 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
         {Array.from({ length: r.photos }).map((_, i) => (
           <span
             key={i}
-            className="relative flex h-20 w-28 shrink-0 snap-start items-center justify-center overflow-hidden rounded-md border border-border bg-subtle"
+            className="relative flex h-20 w-28 shrink-0 snap-start items-center justify-center overflow-hidden rounded-xl border border-border bg-subtle"
           >
             <ImageIcon className="size-4 text-text-muted" strokeWidth={1.5} />
-            <span className="absolute inset-x-0 bottom-0 truncate bg-[color:var(--bg-surface)]/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
+            <span className="absolute inset-x-0 bottom-0 truncate bg-[color:var(--bg-[color:var(--bg-elevated)])]/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
               {r.workType}
             </span>
           </span>
@@ -249,7 +249,7 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
       </div>
 
       {r.source === "voice" && (
-        <div className="mt-3 rounded-md border border-border p-3">
+        <div className="mt-3 rounded-xl border border-border p-3">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -312,7 +312,7 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
       {r.issues.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {r.issues.map((issue) => (
-            <li key={issue} className="rounded-md bg-warn-bg px-2.5 py-1.5 text-caption text-text-primary">
+            <li key={issue} className="rounded-xl bg-warn-bg px-2.5 py-1.5 text-caption text-text-primary">
               {issue}
             </li>
           ))}
@@ -320,7 +320,7 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
       )}
 
       {r.returnComment && (
-        <p className="mt-3 rounded-md bg-subtle px-2.5 py-1.5 text-caption text-text-secondary">
+        <p className="mt-3 rounded-xl bg-subtle px-2.5 py-1.5 text-caption text-text-secondary">
           Возвращен прорабу: {r.returnComment}
         </p>
       )}
@@ -386,9 +386,9 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
             onChange={(e) => setComment(e.target.value)}
             placeholder="Что исправить в отчёте"
           />
-          <div className="rounded-md border border-border bg-subtle p-3">
+          <div className="rounded-xl border border-border bg-subtle p-3">
             <div className="text-overline text-text-muted">Превью Telegram</div>
-            <div className="mt-1.5 rounded-md bg-[color:var(--bg-surface)] p-2.5 text-caption">
+            <div className="mt-1.5 rounded-xl bg-[color:var(--bg-[color:var(--bg-elevated)])] p-2.5 text-caption">
               <div className="font-medium">ФАСАД-РП</div>
               <div className="text-text-secondary">
                 {r.author}, отчёт {r.id} возвращен на доработку. {comment || "…"}

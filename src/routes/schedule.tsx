@@ -239,7 +239,7 @@ function SchedulePage() {
                     )}
                     <span className="truncate">{r.name}</span>
                     {r.kind === "work" && r.work.critical && (
-                      <span className="ml-1 shrink-0 rounded-sm bg-danger-bg px-1 text-[11px] leading-4 text-text-primary">
+                      <span className="ml-1 shrink-0 rounded-full bg-danger-bg px-1 text-[11px] leading-4 text-text-primary">
                         крит. путь
                       </span>
                     )}
@@ -263,7 +263,7 @@ function SchedulePage() {
                   className="pointer-events-none absolute bottom-0 top-9 z-10 w-px bg-accent"
                   style={{ left: `${todayLeft}%` }}
                 >
-                  <span className="absolute -top-0.5 left-1 rounded-sm bg-accent px-1 text-[11px] leading-4 text-[color:var(--accent-fg)]">
+                  <span className="absolute -top-0.5 left-1 rounded-full bg-accent px-1 text-[11px] leading-4 text-[color:var(--accent-fg)]">
                     сегодня
                   </span>
                 </div>
@@ -331,7 +331,7 @@ function SchedulePage() {
                       <div className="mb-1 truncate text-caption" style={{ paddingLeft: r.depth * 12 }}>
                         {r.name}
                       </div>
-                      <div className="relative h-4 rounded-sm bg-subtle">
+                      <div className="relative h-4 rounded-full bg-subtle">
                         <span
                           className="absolute top-0.5 h-1.5 rounded-full bg-[color:var(--text-muted)]/45"
                           style={{ left: `${pct(r.start)}%`, width: `${Math.max(pct(r.end) - pct(r.start), 0.8)}%` }}
@@ -398,7 +398,7 @@ function SchedulePage() {
               {allWorks.map((w) => {
                 const st = workStatus(w);
                 return (
-                  <li key={w.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md bg-subtle px-2.5 py-2">
+                  <li key={w.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl bg-subtle px-2.5 py-2">
                     <span className="truncate text-caption">{w.name}</span>
                     <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
                   </li>

@@ -86,7 +86,7 @@ const quoteTone: Record<QuoteStatus, StatusTone> = {
 const projectName = (id: string) => projects.find((p) => p.id === id)?.shortName ?? id;
 
 const DemoBadge = () => (
-  <span className="inline-flex items-center gap-1.5 rounded-sm bg-accent-subtle px-2 py-1 text-caption text-accent">
+  <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-2 py-1 text-caption text-accent">
     <Sparkles className="size-3.5" /> Рассылка: демо-имитация
   </span>
 );
@@ -282,7 +282,7 @@ function RequestDetail({
       />
 
       {request.chosenSupplierId && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md bg-ok-bg px-4 py-3 text-table text-ok">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-ok-bg px-4 py-3 text-table text-ok">
           <Check className="size-4" />
           Выбран поставщик: {getSupplier(request.chosenSupplierId)?.name}. Заявка переведена в статус «
           {requestStatusLabels[request.status]}».
@@ -322,7 +322,7 @@ function RequestDetail({
                   const bu = bestUnit(it.nomId);
                   return (
                     <tr key={it.nomId} className="border-b border-border">
-                      <td className="sticky left-0 z-10 bg-surface px-4 py-2.5 text-table">
+                      <td className="sticky left-0 z-10 bg-[color:var(--bg-elevated)] px-4 py-2.5 text-table">
                         <p className="text-text-primary">{nom?.name}</p>
                         <p className="text-caption text-text-muted">
                           {fmtNum(it.qty)} {nom?.unit}
@@ -532,7 +532,7 @@ function Wizard({
         )}
 
         {step === 1 && (
-          <div className="divide-y divide-border rounded-md border border-border">
+          <div className="divide-y divide-border rounded-xl border border-border">
             {nomenclature.map((n) => (
               <div key={n.id} className="flex min-h-11 items-center gap-3 px-3 py-2">
                 <div className="min-w-0 flex-1">
@@ -561,7 +561,7 @@ function Wizard({
             {matched.map(({ s, hits }) => (
               <label
                 key={s.id}
-                className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border p-3 hover:bg-subtle"
+                className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-border p-3 hover:bg-subtle"
               >
                 <Checkbox
                   checked={picked[s.id] !== false}

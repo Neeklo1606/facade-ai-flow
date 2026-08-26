@@ -44,7 +44,7 @@ function ObjectSelector({ collapsed }: { collapsed: boolean }) {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex min-h-11 w-full items-center gap-2 rounded-md border border-[color:var(--sidebar-border)] bg-[color:var(--sidebar-hover-bg)] px-3 py-2 text-left transition-fast hover:bg-[color:var(--bg-subtle)]",
+            "flex min-h-11 w-full items-center gap-2 rounded-xl border border-[color:var(--sidebar-border)] bg-[color:var(--sidebar-hover-bg)] px-3 py-2 text-left transition-fast hover:bg-[color:var(--bg-subtle)]",
             collapsed && "justify-center px-0",
           )}
         >
@@ -138,7 +138,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     to={item.to}
                     onClick={onNavigate}
                     className={cn(
-                      "relative flex min-h-11 items-center gap-2.5 rounded-md px-2 py-2 text-table transition-fast lg:min-h-0 rounded-full",
+                      "relative flex min-h-11 items-center gap-2.5 rounded-xl px-2 py-2 text-table transition-fast lg:min-h-0 rounded-full",
                       collapsed && "justify-center px-0",
                       isActive
                         ? "bg-[color:var(--sidebar-active-bg)] font-medium text-[color:var(--sidebar-active-on)]"
@@ -148,7 +148,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     <item.icon className="size-4 shrink-0" strokeWidth={1.75} />
                     {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                     {!collapsed && badge > 0 && (
-                      <span className="tnum rounded-sm bg-[color:var(--sidebar-active-on)] px-1.5 text-[11px] leading-[18px] font-medium text-[color:var(--sidebar-active-bg)]">
+                      <span className="tnum rounded-full bg-[color:var(--sidebar-active-on)] px-1.5 text-[11px] leading-[18px] font-medium text-[color:var(--sidebar-active-bg)]">
                         {badge}
                       </span>
                     )}
@@ -177,7 +177,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-[color:var(--sidebar-border)] p-3">
         <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[color:var(--sidebar-hover-bg)] text-caption font-medium text-[color:var(--sidebar-active-text)]">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color:var(--sidebar-hover-bg)] text-caption font-medium text-[color:var(--sidebar-active-text)]">
             {account?.user.initials ?? "—"}
           </div>
           {!collapsed && (

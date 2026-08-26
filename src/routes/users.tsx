@@ -144,7 +144,7 @@ function UsersPage() {
               <table className="w-full min-w-[860px] border-collapse text-table">
                 <thead>
                   <tr className="border-b border-border-strong">
-                    <th className="sticky left-0 z-10 bg-surface px-4 py-2.5 text-left text-caption font-medium text-text-secondary">
+                    <th className="sticky left-0 z-10 bg-[color:var(--bg-elevated)] px-4 py-2.5 text-left text-caption font-medium text-text-secondary">
                       Раздел
                     </th>
                     {permissionRoles.map((r) => (
@@ -157,7 +157,7 @@ function UsersPage() {
                 <tbody>
                   {permissionMatrix.map((row, i) => (
                     <tr key={row.section} className={cn("border-b border-border", i % 2 === 1 && "bg-subtle/60")}>
-                      <td className={cn("sticky left-0 z-10 px-4 py-2.5", i % 2 === 1 ? "bg-subtle" : "bg-surface")}>
+                      <td className={cn("sticky left-0 z-10 px-4 py-2.5", i % 2 === 1 ? "bg-subtle" : "bg-[color:var(--bg-elevated)]")}>
                         <div className="font-medium whitespace-nowrap">{row.section}</div>
                         {row.note && <div className="text-caption text-text-muted">{row.note}</div>}
                       </td>
@@ -193,7 +193,7 @@ function Cell({ access }: { access: Access }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <span
-          className={cn("inline-flex size-6 items-center justify-center rounded-md", cls[access])}
+          className={cn("inline-flex size-6 items-center justify-center rounded-xl", cls[access])}
           aria-label={accessLabel[access]}
         >
           {access === "write" ? (
