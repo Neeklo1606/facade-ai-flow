@@ -41,10 +41,10 @@ const severityTone = { danger: "danger", warn: "warn", info: "info" } as const;
 
 function PhotoThumb({ caption }: { caption?: string | undefined }) {
   return (
-    <span className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-subtle">
+    <span className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-subtle">
       <ImageIcon className="size-4 text-text-muted" strokeWidth={1.5} />
       {caption && (
-        <span className="absolute inset-x-0 bottom-0 truncate bg-[color:var(--bg-surface)]/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
+        <span className="absolute inset-x-0 bottom-0 truncate bg-elevated/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
           {caption}
         </span>
       )}
@@ -144,8 +144,8 @@ function Dashboard() {
         )}
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-4">
+      <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-4">
           <Panel
             title="Требует внимания"
             bodyClassName="p-0"
@@ -264,7 +264,7 @@ function Dashboard() {
                     className="border-b border-border px-4 py-3 last:border-0 transition-fast hover:bg-subtle sm:px-5"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-subtle text-caption font-medium">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-subtle text-caption font-medium">
                         {r.authorInitials}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -314,7 +314,7 @@ function Dashboard() {
                     </div>
 
                     {r.issues.length > 0 && (
-                      <div className="mt-2 rounded-md bg-warn-bg px-2 py-1.5 text-caption text-text-primary">
+                      <div className="mt-2 rounded-xl bg-warn-bg px-2 py-1.5 text-caption text-text-primary">
                         {r.issues[0]}
                       </div>
                     )}

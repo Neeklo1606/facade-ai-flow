@@ -14,7 +14,7 @@ export function AgentSourceBadge({ agent, at, source, className }: AgentSource &
       <TooltipTrigger asChild>
         <span
           className={cn(
-            "inline-flex size-4 shrink-0 items-center justify-center rounded-sm text-accent transition-fast hover:bg-accent-subtle",
+            "inline-flex size-4 shrink-0 items-center justify-center rounded-full text-accent transition-fast hover:bg-accent-subtle",
             className,
           )}
           aria-label={`Заполнено агентом «${agent}»`}

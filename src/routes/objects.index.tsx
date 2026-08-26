@@ -140,7 +140,7 @@ function ObjectsPage() {
         description="Реестр фасадных объектов компании. Данные синтетические."
         actions={
           <>
-            <div className="hidden items-center rounded-md border border-border p-0.5 lg:flex">
+            <div className="hidden items-center rounded-xl border border-border p-0.5 lg:flex">
               <Button
                 variant={view === "table" ? "secondary" : "ghost"}
                 size="sm"

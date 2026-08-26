@@ -24,7 +24,7 @@ export function PlanFactChart() {
           />
           <Tooltip
             contentStyle={{
-              background: "var(--bg-surface)",
+              background: "var(--bg-elevated)",
               border: "1px solid var(--border)",
               borderRadius: 10,
               boxShadow: "var(--shadow-overlay)",

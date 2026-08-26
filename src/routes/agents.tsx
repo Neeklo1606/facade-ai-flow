@@ -58,7 +58,7 @@ function AgentsPage() {
             <article key={a.id} className="card-surface flex flex-col p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-2.5">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-accent-subtle text-accent">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent">
                     <Bot className="size-4" />
                   </span>
                   <div className="min-w-0">
@@ -159,7 +159,7 @@ function AgentDialog({
         </TabsList>
 
         <TabsContent value="settings" className="space-y-2 pt-3">
-          <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5">
             <div>
               <div className="text-table font-medium">Агент включён</div>
               <div className="text-caption text-text-muted">Отключение останавливает автозапуски</div>
@@ -167,7 +167,7 @@ function AgentDialog({
             <Switch checked={enabled} onCheckedChange={onToggle} aria-label="Агент включён" />
           </div>
           {settings.map((s) => (
-            <div key={s.key} className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5">
+            <div key={s.key} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5">
               <div className="min-w-0">
                 <div className="text-table">{s.label}</div>
                 <div className="text-caption text-text-muted">{s.hint}</div>
@@ -185,14 +185,14 @@ function AgentDialog({
 
         <TabsContent value="prompt" className="pt-3">
           <div className="mb-2 text-caption text-text-muted">Системный промпт, только для чтения</div>
-          <pre className="max-h-72 overflow-auto rounded-md border border-border bg-subtle p-3 text-caption leading-relaxed whitespace-pre-wrap">
+          <pre className="max-h-72 overflow-auto rounded-xl border border-border bg-subtle p-3 text-caption leading-relaxed whitespace-pre-wrap">
             {agent.prompt}
           </pre>
         </TabsContent>
 
         <TabsContent value="tools" className="space-y-2 pt-3">
           {agent.tools.map((t) => (
-            <div key={t.name} className="rounded-md border border-border px-3 py-2.5">
+            <div key={t.name} className="rounded-xl border border-border px-3 py-2.5">
               <div className="font-mono text-caption text-accent">{t.name}</div>
               <div className="text-table text-text-secondary">{t.description}</div>
             </div>
@@ -200,7 +200,7 @@ function AgentDialog({
         </TabsContent>
 
         <TabsContent value="history" className="pt-3">
-          <ul className="divide-y divide-border rounded-md border border-border">
+          <ul className="divide-y divide-border rounded-xl border border-border">
             {runs.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
                 <div className="min-w-0">
@@ -223,7 +223,7 @@ function AgentDialog({
         </TabsContent>
 
         <TabsContent value="test" className="space-y-3 pt-3">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-subtle px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-subtle px-3 py-2.5">
             <div className="min-w-0">
               <div className="text-overline text-text-muted">Тестовый файл</div>
               <div className="truncate text-table">{agent.testFileName}</div>
@@ -239,7 +239,7 @@ function AgentDialog({
           </div>
 
           {testState === "idle" && (
-            <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-center">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-4 py-8 text-center">
               <FlaskConical className="size-5 text-text-muted" strokeWidth={1.5} />
               <div className="text-table text-text-secondary">
                 Демо-прогон без обращения к языковой модели
@@ -248,13 +248,13 @@ function AgentDialog({
           )}
 
           {testState === "running" && (
-            <div className="rounded-md border border-border px-3 py-6 text-center text-table text-text-muted">
+            <div className="rounded-xl border border-border px-3 py-6 text-center text-table text-text-muted">
               Обработка тестового файла…
             </div>
           )}
 
           {testState === "done" && (
-            <div className="rounded-md border border-border">
+            <div className="rounded-xl border border-border">
               <div className="border-b border-border px-3 py-2 text-overline text-text-muted">
                 Результат демо-прогона
               </div>

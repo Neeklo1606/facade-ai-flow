@@ -123,12 +123,12 @@ function MailingsPage() {
                 <p className="mt-2.5 text-caption text-text-muted">Тема</p>
                 <p className="text-table">{t.subject}</p>
                 <p className="mt-2.5 text-caption text-text-muted">Превью</p>
-                <pre className="mt-1 max-h-52 overflow-y-auto whitespace-pre-wrap rounded-md bg-subtle p-3 text-caption leading-5 text-text-secondary">
+                <pre className="mt-1 max-h-52 overflow-y-auto whitespace-pre-wrap rounded-xl bg-subtle p-3 text-caption leading-5 text-text-secondary">
                   {t.body}
                 </pre>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {["{{Заказчик}}", "{{Объект}}", "{{Дата}}", "{{СтатусыЭтапов}}"].map((v) => (
-                    <span key={v} className="rounded-sm bg-subtle px-1.5 py-0.5 text-caption text-text-muted">{v}</span>
+                    <span key={v} className="rounded-full bg-subtle px-1.5 py-0.5 text-caption text-text-muted">{v}</span>
                   ))}
                 </div>
               </Panel>
@@ -307,7 +307,7 @@ function MailingsPage() {
               Кому: {preview?.to} · {preview && fmtDateTime(preview.createdAt)}
             </DialogDescription>
           </DialogHeader>
-          <pre className="whitespace-pre-wrap rounded-md bg-subtle p-4 text-table leading-6">{preview?.body}</pre>
+          <pre className="whitespace-pre-wrap rounded-xl bg-subtle p-4 text-table leading-6">{preview?.body}</pre>
           {preview?.status === "pending" && (
             <DialogFooter>
               <Button variant="ghost" className="text-danger" onClick={() => setMailStatus(preview.id, "rejected")}>

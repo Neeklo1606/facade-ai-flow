@@ -87,8 +87,8 @@ function Thread({ onClose }: { onClose: () => void }) {
             <div
               className={
                 m.role === "user"
-                  ? "max-w-[85%] rounded-lg bg-accent-subtle px-3 py-2 text-table"
-                  : "w-full rounded-lg border border-border bg-subtle px-3 py-2.5 text-table"
+                  ? "max-w-[85%] rounded-2xl bg-accent-subtle px-3 py-2 text-table"
+                  : "w-full rounded-2xl border border-border bg-subtle px-3 py-2.5 text-table"
               }
             >
               {m.text}
@@ -105,7 +105,7 @@ function Thread({ onClose }: { onClose: () => void }) {
                   {m.sources.map((s) => (
                     <button
                       key={s.label}
-                      className="flex w-full items-center gap-1.5 rounded-sm px-1 py-1 text-left text-caption text-info transition-fast hover:bg-info-bg"
+                      className="flex w-full items-center gap-1.5 rounded-full px-1 py-1 text-left text-caption text-info transition-fast hover:bg-info-bg"
                     >
                       <FileText className="size-3.5 shrink-0" />
                       <span className="truncate">{s.label}</span>
@@ -158,7 +158,7 @@ export function AgentPanel() {
   return (
     <>
       {agentPanelOpen && (
-        <aside className="sticky top-14 hidden h-[calc(100vh-56px)] w-[420px] shrink-0 border-l border-border bg-surface xl:block">
+        <aside className="sticky top-14 hidden h-[calc(100vh-56px)] w-[420px] shrink-0 border-l border-border bg-elevated xl:block">
           <Thread onClose={() => setAgentPanelOpen(false)} />
         </aside>
       )}

@@ -6,7 +6,7 @@ export function AccessDenied({ role }: { role: string }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="card-surface max-w-md p-8 text-center">
-        <span className="mx-auto flex size-12 items-center justify-center rounded-md bg-subtle text-text-muted">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-subtle text-text-muted">
           <Lock className="size-5" strokeWidth={1.75} />
         </span>
         <h1 className="mt-4 text-section-title">Доступ ограничен</h1>

@@ -145,7 +145,7 @@ function TasksPage() {
         }
         actions={
           <>
-            <div className="hidden items-center rounded-md border border-border p-0.5 lg:flex">
+            <div className="hidden items-center rounded-xl border border-border p-0.5 lg:flex">
               <Button variant={view === "table" ? "secondary" : "ghost"} size="sm" className="gap-1.5" onClick={() => setView("table")}>
                 <Rows3 className="size-4" /> Таблица
               </Button>
@@ -235,7 +235,7 @@ function TasksPage() {
                       ? rows.filter((t) => isOverdue(t))
                       : rows.filter((t) => t.status === col && !isOverdue(t));
                   return (
-                    <div key={col} className="min-w-0 rounded-md bg-subtle p-2">
+                    <div key={col} className="min-w-0 rounded-xl bg-subtle p-2">
                       <div className="mb-2 flex items-center justify-between px-1">
                         <span className="text-caption font-medium">
                           {col === "overdue" ? "Просрочено" : taskStatusLabels[col as TaskStatus]}
@@ -369,7 +369,7 @@ function TaskDialog({ task, onClose }: { task: Task | null; onClose: () => void 
                 <div className="mb-2 text-overline text-text-muted">Комментарии</div>
                 <ul className="space-y-2">
                   {(live.comments ?? []).map((c) => (
-                    <li key={c.id} className="rounded-md bg-subtle p-2.5">
+                    <li key={c.id} className="rounded-xl bg-subtle p-2.5">
                       <div className="text-caption text-text-muted">
                         {c.author}
                         {c.isAgent ? " · агент" : ""} · {fmtDateTime(c.at)}

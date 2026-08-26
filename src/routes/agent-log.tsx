@@ -130,7 +130,7 @@ function AgentLogPage() {
                     <Block title="Вызванные инструменты">
                       <div className="flex flex-wrap gap-1.5">
                         {r.tools.map((t) => (
-                          <span key={t} className="rounded-md bg-accent-subtle px-2 py-0.5 font-mono text-caption text-accent">
+                          <span key={t} className="rounded-xl bg-accent-subtle px-2 py-0.5 font-mono text-caption text-accent">
                             {t}
                           </span>
                         ))}
@@ -148,7 +148,7 @@ function AgentLogPage() {
                     </Block>
                     <Block title="Выход">{r.output}</Block>
                     {r.failReason && (
-                      <div className="rounded-md border border-danger/40 bg-danger-bg px-3 py-2 lg:col-span-2">
+                      <div className="rounded-xl border border-danger/40 bg-danger-bg px-3 py-2 lg:col-span-2">
                         <div className="text-overline text-danger">Причина неуспеха</div>
                         <div className="text-table text-danger">{r.failReason}</div>
                       </div>
@@ -177,7 +177,7 @@ function Block({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-md border border-border bg-surface px-3 py-2", className)}>
+    <div className={cn("rounded-xl border border-border bg-elevated px-3 py-2", className)}>
       <div className="text-overline text-text-muted">{title}</div>
       <div className="mt-0.5 text-table">{children}</div>
     </div>

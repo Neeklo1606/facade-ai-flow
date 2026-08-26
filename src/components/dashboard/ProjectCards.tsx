@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 
 function Bar({ value, tone }: { value: number; tone: Project["status"] }) {
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-sm bg-subtle">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle">
       <div
         className={cn(
-          "h-full rounded-sm",
+          "h-full rounded-full",
           tone === "danger" ? "bg-danger" : tone === "warn" ? "bg-warn" : "bg-accent",
         )}
         style={{ width: `${value}%` }}

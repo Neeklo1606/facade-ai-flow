@@ -79,7 +79,7 @@ export function Topbar() {
         >
           <Search className="size-4 shrink-0" />
           <span className="flex-1 truncate">Поиск по объектам, задачам, документам…</span>
-          <kbd className="rounded-full border border-border bg-[color:var(--bg-surface)] px-2 py-0.5 text-[11px] text-text-muted">
+          <kbd className="rounded-full border border-border bg-elevated px-2 py-0.5 text-[11px] text-text-muted">
             Ctrl+K
           </kbd>
         </button>
@@ -169,7 +169,7 @@ export function Topbar() {
 
       <Dialog open={search} onOpenChange={setSearch}>
         <DialogContent
-          className="top-0 left-0 h-dvh w-screen max-w-none translate-x-0 translate-y-0 rounded-none p-0 sm:top-[10%] sm:left-1/2 sm:h-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:rounded-lg"
+          className="top-0 left-0 h-dvh w-screen max-w-none translate-x-0 translate-y-0 rounded-none p-0 sm:top-[10%] sm:left-1/2 sm:h-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:rounded-2xl"
         >
           <DialogTitle className="sr-only">Поиск</DialogTitle>
           <div className="flex items-center gap-2 border-b border-border px-3 py-2">
