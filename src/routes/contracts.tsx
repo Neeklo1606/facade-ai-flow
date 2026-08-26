@@ -209,7 +209,7 @@ function ContractDetail({ contract, onBack }: { contract: ContractDoc; onBack: (
     >
       <div className="space-y-4">
         {contract.pages.map((pg) => (
-          <div key={pg.page} className="rounded-xl border border-border bg-[color:var(--bg-elevated)] p-4">
+          <div key={pg.page} className="rounded-xl border border-border bg-elevated p-4">
             <div className="mb-2 flex items-baseline justify-between gap-2">
               <span className="text-caption font-medium">{pg.title}</span>
               <span className="tnum text-caption text-text-muted">стр. {pg.page}</span>

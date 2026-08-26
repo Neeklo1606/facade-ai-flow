@@ -44,7 +44,7 @@ function PhotoThumb({ caption }: { caption?: string | undefined }) {
     <span className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-subtle">
       <ImageIcon className="size-4 text-text-muted" strokeWidth={1.5} />
       {caption && (
-        <span className="absolute inset-x-0 bottom-0 truncate bg-[color:var(--bg-elevated)]/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
+        <span className="absolute inset-x-0 bottom-0 truncate bg-elevated/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
           {caption}
         </span>
       )}

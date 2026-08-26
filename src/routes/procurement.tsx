@@ -322,7 +322,7 @@ function RequestDetail({
                   const bu = bestUnit(it.nomId);
                   return (
                     <tr key={it.nomId} className="border-b border-border">
-                      <td className="sticky left-0 z-10 bg-[color:var(--bg-elevated)] px-4 py-2.5 text-table">
+                      <td className="sticky left-0 z-10 bg-elevated px-4 py-2.5 text-table">
                         <p className="text-text-primary">{nom?.name}</p>
                         <p className="text-caption text-text-muted">
                           {fmtNum(it.qty)} {nom?.unit}

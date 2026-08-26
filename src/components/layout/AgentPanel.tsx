@@ -158,7 +158,7 @@ export function AgentPanel() {
   return (
     <>
       {agentPanelOpen && (
-        <aside className="sticky top-14 hidden h-[calc(100vh-56px)] w-[420px] shrink-0 border-l border-border bg-[color:var(--bg-elevated)] xl:block">
+        <aside className="sticky top-14 hidden h-[calc(100vh-56px)] w-[420px] shrink-0 border-l border-border bg-elevated xl:block">
           <Thread onClose={() => setAgentPanelOpen(false)} />
         </aside>
       )}

@@ -177,7 +177,7 @@ function Block({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-[color:var(--bg-elevated)] px-3 py-2", className)}>
+    <div className={cn("rounded-xl border border-border bg-elevated px-3 py-2", className)}>
       <div className="text-overline text-text-muted">{title}</div>
       <div className="mt-0.5 text-table">{children}</div>
     </div>
