@@ -241,7 +241,7 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
             className="relative flex h-20 w-28 shrink-0 snap-start items-center justify-center overflow-hidden rounded-xl border border-border bg-subtle"
           >
             <ImageIcon className="size-4 text-text-muted" strokeWidth={1.5} />
-            <span className="absolute inset-x-0 bottom-0 truncate bg-[color:var(--bg-[color:var(--bg-elevated)])]/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
+            <span className="absolute inset-x-0 bottom-0 truncate bg-[color:var(--bg-elevated)]/85 px-1 py-0.5 text-[11px] leading-[14px] text-text-secondary">
               {r.workType}
             </span>
           </span>
@@ -388,7 +388,7 @@ function ReportCard({ report: r, readOnly }: { report: SiteReport; readOnly: boo
           />
           <div className="rounded-xl border border-border bg-subtle p-3">
             <div className="text-overline text-text-muted">Превью Telegram</div>
-            <div className="mt-1.5 rounded-xl bg-[color:var(--bg-[color:var(--bg-elevated)])] p-2.5 text-caption">
+            <div className="mt-1.5 rounded-xl bg-[color:var(--bg-elevated)] p-2.5 text-caption">
               <div className="font-medium">ФАСАД-РП</div>
               <div className="text-text-secondary">
                 {r.author}, отчёт {r.id} возвращен на доработку. {comment || "…"}

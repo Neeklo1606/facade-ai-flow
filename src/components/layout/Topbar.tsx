@@ -79,7 +79,7 @@ export function Topbar() {
         >
           <Search className="size-4 shrink-0" />
           <span className="flex-1 truncate">Поиск по объектам, задачам, документам…</span>
-          <kbd className="rounded-full border border-border bg-[color:var(--bg-[color:var(--bg-elevated)])] px-2 py-0.5 text-[11px] text-text-muted">
+          <kbd className="rounded-full border border-border bg-[color:var(--bg-elevated)] px-2 py-0.5 text-[11px] text-text-muted">
             Ctrl+K
           </kbd>
         </button>
