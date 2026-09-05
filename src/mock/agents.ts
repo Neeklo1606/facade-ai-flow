@@ -141,21 +141,21 @@ const targets = [
 const siteIds = ["s-korona", "s-meridian", "s-primorsky", "s-school", "s-galaxy"];
 
 export const agentRuns: AgentRun[] = Array.from({ length: 26 }, (_, i) => {
-  const agent = agents[i % agents.length];
+  const agent = agents[i % agents.length]!;
   const failed = i === 6 || i === 17;
   const day = 5 - Math.floor(i / 5);
   return {
     id: `run-${900 + i}`,
     at: `2026-09-${String(Math.max(day, 1)).padStart(2, "0")}T${String(8 + (i % 10)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")}:00`,
     agentId: agent.id,
-    target: targets[i % targets.length],
-    siteId: siteIds[i % siteIds.length],
+    target: targets[i % targets.length]!,
+    siteId: siteIds[i % siteIds.length]!,
     durationMs: 800 + ((i * 617) % 9000),
     success: !failed,
     confidence: failed ? 0.31 : Number((0.72 + ((i * 13) % 26) / 100).toFixed(2)),
     tokens: 400 + ((i * 911) % 18000),
     cost: Number((0.5 + ((i * 37) % 115) / 10).toFixed(1)),
-    input: targets[i % targets.length],
+    input: targets[i % targets.length]!,
     steps: [
       "Загрузка оригинала",
       "Нормализация входа",
@@ -165,7 +165,7 @@ export const agentRuns: AgentRun[] = Array.from({ length: 26 }, (_, i) => {
     tools: agent.tools,
     output: failed ? "Результат не сформирован" : "Структура сформирована, отправлено на проверку",
     humanConfirmed: failed ? "—" : i % 3 === 0 ? "Все поля" : "Поля ниже порога уверенности",
-    failReason: failed ? (i === 6 ? "Аудио повреждено: пустая дорожка" : "Не найден объект: номер заявки отсутствует") : undefined,
+    ...(failed ? { failReason: i === 6 ? "Аудио повреждено: пустая дорожка" : "Не найден объект: номер заявки отсутствует" } : {}),
   };
 });
 

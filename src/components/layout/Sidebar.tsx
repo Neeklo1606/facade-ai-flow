@@ -169,8 +169,8 @@ function SidebarInner({
           </span>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] text-sidebar-item-hover">{user.name}</div>
-              <div className="truncate text-[11px] text-sidebar-item">{user.roleLabel}</div>
+              <div className="truncate text-[13px] text-sidebar-item-hover">{user?.name}</div>
+              <div className="truncate text-[11px] text-sidebar-item">{user?.roleLabel}</div>
             </div>
           )}
           <button
