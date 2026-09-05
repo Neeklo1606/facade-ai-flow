@@ -31,10 +31,10 @@ export function Topbar() {
       <button
         type="button"
         onClick={() => setCommandOpen(true)}
-        className="mx-auto flex h-9 w-full max-w-md items-center gap-2 rounded-md border border-border bg-subtle px-3 text-caption text-text-muted transition-fast hover:border-border-strong"
+        className="ml-auto flex h-9 min-w-0 shrink items-center justify-center gap-2 rounded-md border border-border bg-subtle px-2.5 text-caption text-text-muted transition-fast hover:border-border-strong md:mx-auto md:w-full md:max-w-md md:justify-start md:px-3"
       >
         <Search className="size-4 shrink-0" />
-        <span className="truncate">Поиск по объектам, событиям, задачам, документам</span>
+        <span className="hidden truncate md:inline">Поиск по объектам, событиям, задачам, документам</span>
         <kbd className="ml-auto hidden shrink-0 rounded-sm border border-border bg-surface px-1.5 py-0.5 text-[11px] sm:block">
           Ctrl+K
         </kbd>
@@ -60,7 +60,7 @@ export function Topbar() {
             7
           </span>
         </button>
-        <span className="grid size-8 place-items-center rounded-md bg-subtle text-[11px] font-medium">СИ</span>
+        <span className="hidden size-8 place-items-center rounded-md bg-subtle text-[11px] font-medium sm:grid">СИ</span>
       </div>
     </header>
   );

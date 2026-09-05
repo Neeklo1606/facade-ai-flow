@@ -64,6 +64,7 @@ export function DataTable<T extends { id: string }>({
       <div className="grid gap-3 p-3 lg:hidden">
         {rows.map((row) => {
           const primary = columns.find((c) => c.primary) ?? columns[0];
+          if (!primary) return null;
           const rest = columns.filter((c) => c !== primary && !c.hideOnCard);
           return (
             <button

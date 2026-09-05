@@ -156,7 +156,7 @@ function Dashboard() {
               <article key={s.id} className="card-surface p-5">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-card-title">{s.name}</h3>
-                  <StatusBadge tone={siteStatusMeta[s.status].tone}>{siteStatusMeta[s.status].label}</StatusBadge>
+                  <StatusBadge tone={siteStatusMeta[s.status]!.tone}>{siteStatusMeta[s.status]!.label}</StatusBadge>
                 </div>
                 <p className="mt-1 text-caption text-text-muted">{s.address}</p>
                 <div className="mt-3 flex items-center gap-2">
@@ -233,7 +233,7 @@ function Dashboard() {
                   </div>
                   <p className="mt-1 line-clamp-2 text-[13px]">{e.preview}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <StatusBadge tone={processingStatusMeta[e.status].tone}>{processingStatusMeta[e.status].label}</StatusBadge>
+                    <StatusBadge tone={processingStatusMeta[e.status]!.tone}>{processingStatusMeta[e.status]!.label}</StatusBadge>
                     {e.confidence > 0 && <ConfidenceIndicator value={e.confidence} />}
                   </div>
                 </li>

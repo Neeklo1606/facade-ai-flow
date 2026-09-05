@@ -10,33 +10,362 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgentLogRouteImport } from './routes/agent-log'
+import { Route as AgentsRouteImport } from './routes/agents'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AuditRouteImport } from './routes/audit'
+import { Route as CatalogsRouteImport } from './routes/catalogs'
+import { Route as ContractsRouteImport } from './routes/contracts'
+import { Route as DeliveriesRouteImport } from './routes/deliveries'
+import { Route as DocumentsRouteImport } from './routes/documents'
+import { Route as FieldReportsRouteImport } from './routes/field-reports'
+import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as QualityRouteImport } from './routes/quality'
+import { Route as QuotesRouteImport } from './routes/quotes'
+import { Route as RequestsRouteImport } from './routes/requests'
+import { Route as RisksRouteImport } from './routes/risks'
+import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitesRouteImport } from './routes/sites'
+import { Route as SuppliersRouteImport } from './routes/suppliers'
+import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as UsersRouteImport } from './routes/users'
+import { Route as VerificationRouteImport } from './routes/verification'
+import { Route as ZonesRouteImport } from './routes/zones'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentLogRoute = AgentLogRouteImport.update({
+  id: '/agent-log',
+  path: '/agent-log',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogsRoute = CatalogsRouteImport.update({
+  id: '/catalogs',
+  path: '/catalogs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContractsRoute = ContractsRouteImport.update({
+  id: '/contracts',
+  path: '/contracts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveriesRoute = DeliveriesRouteImport.update({
+  id: '/deliveries',
+  path: '/deliveries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FieldReportsRoute = FieldReportsRouteImport.update({
+  id: '/field-reports',
+  path: '/field-reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeRoute = KnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QualityRoute = QualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesRoute = QuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsRoute = RequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RisksRoute = RisksRouteImport.update({
+  id: '/risks',
+  path: '/risks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitesRoute = SitesRouteImport.update({
+  id: '/sites',
+  path: '/sites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuppliersRoute = SuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerificationRoute = VerificationRouteImport.update({
+  id: '/verification',
+  path: '/verification',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZonesRoute = ZonesRouteImport.update({
+  id: '/zones',
+  path: '/zones',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agent-log': typeof AgentLogRoute
+  '/agents': typeof AgentsRoute
+  '/analytics': typeof AnalyticsRoute
+  '/audit': typeof AuditRoute
+  '/catalogs': typeof CatalogsRoute
+  '/contracts': typeof ContractsRoute
+  '/deliveries': typeof DeliveriesRoute
+  '/documents': typeof DocumentsRoute
+  '/field-reports': typeof FieldReportsRoute
+  '/inbox': typeof InboxRoute
+  '/integrations': typeof IntegrationsRoute
+  '/knowledge': typeof KnowledgeRoute
+  '/quality': typeof QualityRoute
+  '/quotes': typeof QuotesRoute
+  '/requests': typeof RequestsRoute
+  '/risks': typeof RisksRoute
+  '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
+  '/sites': typeof SitesRoute
+  '/suppliers': typeof SuppliersRoute
+  '/tasks': typeof TasksRoute
+  '/templates': typeof TemplatesRoute
+  '/users': typeof UsersRoute
+  '/verification': typeof VerificationRoute
+  '/zones': typeof ZonesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agent-log': typeof AgentLogRoute
+  '/agents': typeof AgentsRoute
+  '/analytics': typeof AnalyticsRoute
+  '/audit': typeof AuditRoute
+  '/catalogs': typeof CatalogsRoute
+  '/contracts': typeof ContractsRoute
+  '/deliveries': typeof DeliveriesRoute
+  '/documents': typeof DocumentsRoute
+  '/field-reports': typeof FieldReportsRoute
+  '/inbox': typeof InboxRoute
+  '/integrations': typeof IntegrationsRoute
+  '/knowledge': typeof KnowledgeRoute
+  '/quality': typeof QualityRoute
+  '/quotes': typeof QuotesRoute
+  '/requests': typeof RequestsRoute
+  '/risks': typeof RisksRoute
+  '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
+  '/sites': typeof SitesRoute
+  '/suppliers': typeof SuppliersRoute
+  '/tasks': typeof TasksRoute
+  '/templates': typeof TemplatesRoute
+  '/users': typeof UsersRoute
+  '/verification': typeof VerificationRoute
+  '/zones': typeof ZonesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agent-log': typeof AgentLogRoute
+  '/agents': typeof AgentsRoute
+  '/analytics': typeof AnalyticsRoute
+  '/audit': typeof AuditRoute
+  '/catalogs': typeof CatalogsRoute
+  '/contracts': typeof ContractsRoute
+  '/deliveries': typeof DeliveriesRoute
+  '/documents': typeof DocumentsRoute
+  '/field-reports': typeof FieldReportsRoute
+  '/inbox': typeof InboxRoute
+  '/integrations': typeof IntegrationsRoute
+  '/knowledge': typeof KnowledgeRoute
+  '/quality': typeof QualityRoute
+  '/quotes': typeof QuotesRoute
+  '/requests': typeof RequestsRoute
+  '/risks': typeof RisksRoute
+  '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
+  '/sites': typeof SitesRoute
+  '/suppliers': typeof SuppliersRoute
+  '/tasks': typeof TasksRoute
+  '/templates': typeof TemplatesRoute
+  '/users': typeof UsersRoute
+  '/verification': typeof VerificationRoute
+  '/zones': typeof ZonesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/agent-log'
+    | '/agents'
+    | '/analytics'
+    | '/audit'
+    | '/catalogs'
+    | '/contracts'
+    | '/deliveries'
+    | '/documents'
+    | '/field-reports'
+    | '/inbox'
+    | '/integrations'
+    | '/knowledge'
+    | '/quality'
+    | '/quotes'
+    | '/requests'
+    | '/risks'
+    | '/schedule'
+    | '/settings'
+    | '/sites'
+    | '/suppliers'
+    | '/tasks'
+    | '/templates'
+    | '/users'
+    | '/verification'
+    | '/zones'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/agent-log'
+    | '/agents'
+    | '/analytics'
+    | '/audit'
+    | '/catalogs'
+    | '/contracts'
+    | '/deliveries'
+    | '/documents'
+    | '/field-reports'
+    | '/inbox'
+    | '/integrations'
+    | '/knowledge'
+    | '/quality'
+    | '/quotes'
+    | '/requests'
+    | '/risks'
+    | '/schedule'
+    | '/settings'
+    | '/sites'
+    | '/suppliers'
+    | '/tasks'
+    | '/templates'
+    | '/users'
+    | '/verification'
+    | '/zones'
+  id:
+    | '__root__'
+    | '/'
+    | '/agent-log'
+    | '/agents'
+    | '/analytics'
+    | '/audit'
+    | '/catalogs'
+    | '/contracts'
+    | '/deliveries'
+    | '/documents'
+    | '/field-reports'
+    | '/inbox'
+    | '/integrations'
+    | '/knowledge'
+    | '/quality'
+    | '/quotes'
+    | '/requests'
+    | '/risks'
+    | '/schedule'
+    | '/settings'
+    | '/sites'
+    | '/suppliers'
+    | '/tasks'
+    | '/templates'
+    | '/users'
+    | '/verification'
+    | '/zones'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentLogRoute: typeof AgentLogRoute
+  AgentsRoute: typeof AgentsRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  AuditRoute: typeof AuditRoute
+  CatalogsRoute: typeof CatalogsRoute
+  ContractsRoute: typeof ContractsRoute
+  DeliveriesRoute: typeof DeliveriesRoute
+  DocumentsRoute: typeof DocumentsRoute
+  FieldReportsRoute: typeof FieldReportsRoute
+  InboxRoute: typeof InboxRoute
+  IntegrationsRoute: typeof IntegrationsRoute
+  KnowledgeRoute: typeof KnowledgeRoute
+  QualityRoute: typeof QualityRoute
+  QuotesRoute: typeof QuotesRoute
+  RequestsRoute: typeof RequestsRoute
+  RisksRoute: typeof RisksRoute
+  ScheduleRoute: typeof ScheduleRoute
+  SettingsRoute: typeof SettingsRoute
+  SitesRoute: typeof SitesRoute
+  SuppliersRoute: typeof SuppliersRoute
+  TasksRoute: typeof TasksRoute
+  TemplatesRoute: typeof TemplatesRoute
+  UsersRoute: typeof UsersRoute
+  VerificationRoute: typeof VerificationRoute
+  ZonesRoute: typeof ZonesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +377,211 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agent-log': {
+      id: '/agent-log'
+      path: '/agent-log'
+      fullPath: '/agent-log'
+      preLoaderRoute: typeof AgentLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalogs': {
+      id: '/catalogs'
+      path: '/catalogs'
+      fullPath: '/catalogs'
+      preLoaderRoute: typeof CatalogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contracts': {
+      id: '/contracts'
+      path: '/contracts'
+      fullPath: '/contracts'
+      preLoaderRoute: typeof ContractsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deliveries': {
+      id: '/deliveries'
+      path: '/deliveries'
+      fullPath: '/deliveries'
+      preLoaderRoute: typeof DeliveriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/field-reports': {
+      id: '/field-reports'
+      path: '/field-reports'
+      fullPath: '/field-reports'
+      preLoaderRoute: typeof FieldReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge': {
+      id: '/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof KnowledgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quality': {
+      id: '/quality'
+      path: '/quality'
+      fullPath: '/quality'
+      preLoaderRoute: typeof QualityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes': {
+      id: '/quotes'
+      path: '/quotes'
+      fullPath: '/quotes'
+      preLoaderRoute: typeof QuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risks': {
+      id: '/risks'
+      path: '/risks'
+      fullPath: '/risks'
+      preLoaderRoute: typeof RisksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sites': {
+      id: '/sites'
+      path: '/sites'
+      fullPath: '/sites'
+      preLoaderRoute: typeof SitesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/suppliers': {
+      id: '/suppliers'
+      path: '/suppliers'
+      fullPath: '/suppliers'
+      preLoaderRoute: typeof SuppliersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verification': {
+      id: '/verification'
+      path: '/verification'
+      fullPath: '/verification'
+      preLoaderRoute: typeof VerificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zones': {
+      id: '/zones'
+      path: '/zones'
+      fullPath: '/zones'
+      preLoaderRoute: typeof ZonesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentLogRoute: AgentLogRoute,
+  AgentsRoute: AgentsRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  AuditRoute: AuditRoute,
+  CatalogsRoute: CatalogsRoute,
+  ContractsRoute: ContractsRoute,
+  DeliveriesRoute: DeliveriesRoute,
+  DocumentsRoute: DocumentsRoute,
+  FieldReportsRoute: FieldReportsRoute,
+  InboxRoute: InboxRoute,
+  IntegrationsRoute: IntegrationsRoute,
+  KnowledgeRoute: KnowledgeRoute,
+  QualityRoute: QualityRoute,
+  QuotesRoute: QuotesRoute,
+  RequestsRoute: RequestsRoute,
+  RisksRoute: RisksRoute,
+  ScheduleRoute: ScheduleRoute,
+  SettingsRoute: SettingsRoute,
+  SitesRoute: SitesRoute,
+  SuppliersRoute: SuppliersRoute,
+  TasksRoute: TasksRoute,
+  TemplatesRoute: TemplatesRoute,
+  UsersRoute: UsersRoute,
+  VerificationRoute: VerificationRoute,
+  ZonesRoute: ZonesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
