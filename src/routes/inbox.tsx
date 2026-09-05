@@ -166,7 +166,7 @@ function InboxPage() {
                       <p className="mt-1 text-[13px] break-words">{e.preview}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         <StatusBadge tone="neutral">{eventTypeLabels[e.type]}</StatusBadge>
-                        <StatusBadge tone={processingStatusMeta[e.status].tone}>{processingStatusMeta[e.status].label}</StatusBadge>
+                        <StatusBadge tone={processingStatusMeta[e.status]!.tone}>{processingStatusMeta[e.status]!.label}</StatusBadge>
                         {e.confidence > 0 && <ConfidenceIndicator value={e.confidence} />}
                         <Link
                           to="/verification"
