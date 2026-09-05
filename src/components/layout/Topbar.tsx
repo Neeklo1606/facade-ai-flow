@@ -58,8 +58,8 @@ export function Topbar() {
         {current?.label ?? "ФАСАД-РП"}
       </div>
 
-      <nav className="hidden min-w-0 items-center gap-1.5 text-table text-text-muted md:flex">
-        <Link to="/dashboard" className="transition-fast hover:text-text-primary">
+      <nav className="hidden min-w-0 shrink items-center gap-1.5 whitespace-nowrap text-table text-text-muted md:flex">
+        <Link to="/dashboard" className="shrink-0 transition-fast hover:text-text-primary">
           ФАСАД-РП
         </Link>
         {current && (
