@@ -1,304 +1,52 @@
-export type TaskStatus = "new" | "in_progress" | "review" | "done";
-export type TaskPriority = "low" | "normal" | "high" | "critical";
-export type TaskSource = "manual" | "agent";
+import type { AuditEntry, DocumentRecord, Risk, TaskRecord } from "@/types";
 
-export interface TaskComment {
-  id: string;
-  author: string;
-  at: string;
-  text: string;
-  isAgent?: boolean;
-}
-
-export interface ChecklistItem {
-  id: string;
-  text: string;
-  done: boolean;
-}
-
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  projectId: string;
-  assignee: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  dueDate: string;
-  createdAt: string;
-  source: TaskSource;
-  contractClause?: string;
-  agentName?: string;
-  agentConfidence?: "high" | "medium" | "low";
-  checklist?: ChecklistItem[];
-  comments?: TaskComment[];
-}
-
-export const taskStatusLabels: Record<TaskStatus, string> = {
-  new: "Новая",
-  in_progress: "В работе",
-  review: "На проверке",
-  done: "Готово",
-};
-
-export const taskStatusOrder: TaskStatus[] = ["new", "in_progress", "review", "done"];
-
-export const taskPriorityLabels: Record<TaskPriority, string> = {
-  low: "Низкий",
-  normal: "Обычный",
-  high: "Высокий",
-  critical: "Критичный",
-};
-
-export const TODAY = new Date("2026-08-12");
-
-export const tasks: Task[] = [
-  {
-    id: "T-1042",
-    title: "Согласовать замерную карту по осям Г-К с заказчиком",
-    description:
-      "Передать замерную карту захватки 2 в ГК «Стройинвест», получить отметку о согласовании и приложить к исполнительной документации.",
-    projectId: "obj-severnaya-korona",
-    assignee: "Волкова Е.С.",
-    status: "in_progress",
-    priority: "high",
-    dueDate: "2026-08-16",
-    createdAt: "2026-07-28",
-    source: "manual",
-    checklist: [
-      { id: "c1", text: "Свести замеры по осям Г-К", done: true },
-      { id: "c2", text: "Отправить заказчику на согласование", done: true },
-      { id: "c3", text: "Получить подписанный экземпляр", done: false },
-    ],
-    comments: [
-      { id: "cm1", author: "Соколов И.П.", at: "2026-08-10T11:20:00+03:00", text: "Заказчик просит добавить отметки по парапету." },
-    ],
-  },
-  {
-    id: "T-1051",
-    title: "Передать исполнительную документацию по 5-8 этажам",
-    description:
-      "По договору исполнительная документация по завершенным этажам передается в течение 10 рабочих дней после закрытия захватки.",
-    projectId: "obj-severnaya-korona",
-    assignee: "Волкова Е.С.",
-    status: "new",
-    priority: "critical",
-    dueDate: "2026-08-11",
-    createdAt: "2026-08-01",
-    source: "agent",
-    contractClause: "п. 6.5 договора СИ-2025/114-НВФ",
-    agentName: "Парсер договоров",
-    agentConfidence: "high",
-    checklist: [
-      { id: "c1", text: "Собрать акты скрытых работ", done: true },
-      { id: "c2", text: "Подписать у технадзора", done: false },
-      { id: "c3", text: "Передать заказчику по реестру", done: false },
-    ],
-    comments: [
-      {
-        id: "cm1",
-        author: "Парсер договоров",
-        at: "2026-08-01T09:02:00+03:00",
-        isAgent: true,
-        text: "Задача создана из п. 6.5 договора: срок — 10 рабочих дней после закрытия захватки.",
-      },
-    ],
-  },
-  {
-    id: "T-1058",
-    title: "Заказать кронштейн КР-150 на захватку 2",
-    description: "Остаток на складе 0 при потребности 480 шт. Нужна заявка поставщику с поставкой до 20 августа.",
-    projectId: "obj-meridian",
-    assignee: "Дорохов С.Н.",
-    status: "in_progress",
-    priority: "critical",
-    dueDate: "2026-08-08",
-    createdAt: "2026-07-30",
-    source: "agent",
-    agentName: "Контролер сроков",
-    agentConfidence: "medium",
-    checklist: [
-      { id: "c1", text: "Сформировать заявку", done: true },
-      { id: "c2", text: "Разослать трем поставщикам", done: false },
-    ],
-    comments: [
-      {
-        id: "cm1",
-        author: "Контролер сроков",
-        at: "2026-07-30T07:10:00+03:00",
-        isAgent: true,
-        text: "Расчет потребности сделан по остаткам и темпу монтажа за 2 недели.",
-      },
-    ],
-  },
-  {
-    id: "T-1060",
-    title: "Устранить замечания по монтажу примыканий, 9 этаж",
-    projectId: "obj-meridian",
-    assignee: "Ким А.В.",
-    status: "in_progress",
-    priority: "high",
-    dueDate: "2026-08-14",
-    createdAt: "2026-08-05",
-    source: "manual",
-  },
-  {
-    id: "T-1063",
-    title: "Подготовить КС-2 за июль",
-    projectId: "obj-school-1547",
-    assignee: "Волкова Е.С.",
-    status: "review",
-    priority: "normal",
-    dueDate: "2026-08-15",
-    createdAt: "2026-08-03",
-    source: "manual",
-  },
-  {
-    id: "T-1064",
-    title: "Проверить геометрию стены по осям Г-К перед облицовкой",
-    projectId: "obj-severnaya-korona",
-    assignee: "Гареев Р.М.",
-    status: "in_progress",
-    priority: "high",
-    dueDate: "2026-08-18",
-    createdAt: "2026-08-07",
-    source: "manual",
-  },
-  {
-    id: "T-1067",
-    title: "Проверить сертификаты на керамогранит 600х600 антрацит",
-    projectId: "obj-primorskiy",
-    assignee: "Волкова Е.С.",
-    status: "new",
-    priority: "normal",
-    dueDate: "2026-08-19",
-    createdAt: "2026-08-08",
-    source: "manual",
-  },
-  {
-    id: "T-1069",
-    title: "Согласовать график поставки утеплителя на сентябрь",
-    projectId: "obj-severnaya-korona",
-    assignee: "Дорохов С.Н.",
-    status: "new",
-    priority: "normal",
-    dueDate: "2026-08-22",
-    createdAt: "2026-08-09",
-    source: "manual",
-  },
-  {
-    id: "T-1070",
-    title: "Организовать выезд на замеры по ТЦ «Галактика»",
-    projectId: "obj-galaktika",
-    assignee: "Соколов И.П.",
-    status: "new",
-    priority: "high",
-    dueDate: "2026-08-10",
-    createdAt: "2026-08-02",
-    source: "manual",
-  },
-  {
-    id: "T-1071",
-    title: "Закрыть акт скрытых работ по утеплителю, захватка 1",
-    projectId: "obj-severnaya-korona",
-    assignee: "Гареев Р.М.",
-    status: "review",
-    priority: "high",
-    dueDate: "2026-08-15",
-    createdAt: "2026-08-06",
-    source: "manual",
-  },
-  {
-    id: "T-1074",
-    title: "Согласовать узел примыкания к парапету",
-    projectId: "obj-severnaya-korona",
-    assignee: "Волкова Е.С.",
-    status: "in_progress",
-    priority: "normal",
-    dueDate: "2026-08-21",
-    createdAt: "2026-08-06",
-    source: "manual",
-  },
-  {
-    id: "T-1076",
-    title: "Проверить крепление лесов после ветровой нагрузки",
-    projectId: "obj-meridian",
-    assignee: "Ким А.В.",
-    status: "new",
-    priority: "critical",
-    dueDate: "2026-08-13",
-    createdAt: "2026-08-11",
-    source: "manual",
-  },
-  {
-    id: "T-1078",
-    title: "Контроль поставки минеральной ваты 100 мм",
-    projectId: "obj-meridian",
-    assignee: "Дорохов С.Н.",
-    status: "in_progress",
-    priority: "critical",
-    dueDate: "2026-08-13",
-    createdAt: "2026-08-07",
-    source: "manual",
-  },
-  {
-    id: "T-1080",
-    title: "Сформировать отчет по объемам за первую половину августа",
-    projectId: "obj-school-1547",
-    assignee: "Гареев Р.М.",
-    status: "new",
-    priority: "normal",
-    dueDate: "2026-08-17",
-    createdAt: "2026-08-11",
-    source: "manual",
-  },
-  {
-    id: "T-1081",
-    title: "Закрыть акт скрытых работ по утеплителю, захватка 1",
-    projectId: "obj-primorskiy",
-    assignee: "Гареев Р.М.",
-    status: "done",
-    priority: "normal",
-    dueDate: "2026-08-05",
-    createdAt: "2026-07-25",
-    source: "manual",
-  },
-  {
-    id: "T-1083",
-    title: "Обновить схему захваток после переноса лесов",
-    projectId: "obj-primorskiy",
-    assignee: "Ким А.В.",
-    status: "in_progress",
-    priority: "low",
-    dueDate: "2026-08-24",
-    createdAt: "2026-08-10",
-    source: "manual",
-  },
-  {
-    id: "T-1085",
-    title: "Подготовить письмо заказчику о переносе срока по захватке 2",
-    projectId: "obj-severnaya-korona",
-    assignee: "Соколов И.П.",
-    status: "review",
-    priority: "high",
-    dueDate: "2026-08-14",
-    createdAt: "2026-08-09",
-    source: "manual",
-  },
-  {
-    id: "T-1087",
-    title: "Принять смонтированный участок мембраны, 1-8 этажи",
-    projectId: "obj-severnaya-korona",
-    assignee: "Соколов И.П.",
-    status: "done",
-    priority: "normal",
-    dueDate: "2026-08-08",
-    createdAt: "2026-08-01",
-    source: "manual",
-  },
+export const tasks: TaskRecord[] = [
+  { id: "t-101", title: "Закрыть примыкания на захватке 2, оси Г–К", siteId: "s-korona", zoneId: "z-korona-z2", assigneeId: "u-gareev", status: "overdue", dueDate: "2026-09-03", origin: "report_issue", sourceEventId: "e-1041", sourceLabel: "Отчёт Гареева от 05.09", priority: "critical" },
+  { id: "t-102", title: "Согласовать замену перфораторов", siteId: "s-meridian", assigneeId: "u-dorohov", status: "in_progress", dueDate: "2026-09-06", origin: "report_issue", sourceEventId: "e-1034", sourceLabel: "Отчёт Кима от 02.09", priority: "high" },
+  { id: "t-103", title: "Передать заказчику исполнительную по этапу 2", siteId: "s-school", assigneeId: "u-volkova", status: "open", dueDate: "2026-09-09", origin: "contract", sourceEventId: "e-1039", sourceLabel: "Договор СИ-2026/052, п. 5.3", priority: "high" },
+  { id: "t-104", title: "Дозаказать нащельник угловой, 180 шт", siteId: "s-korona", assigneeId: "u-dorohov", status: "in_progress", dueDate: "2026-09-08", origin: "agent", sourceEventId: "e-1041", sourceLabel: "Агент снабжения", priority: "high" },
+  { id: "t-105", title: "Устранить сколы керамогранита, партия 420 м²", siteId: "s-meridian", assigneeId: "u-kim", status: "open", dueDate: "2026-09-10", origin: "report_issue", sourceEventId: "e-1038", sourceLabel: "Чек-лист от 04.09", priority: "normal" },
+  { id: "t-106", title: "Подписать акт КС-2 за август", siteId: "s-galaxy", assigneeId: "u-volkova", status: "review", dueDate: "2026-09-07", origin: "manual", sourceLabel: "Создана вручную", priority: "normal" },
+  { id: "t-107", title: "Контрольная точка 2: сдать 40% объёмов", siteId: "s-primorsky", assigneeId: "u-sokolov", status: "open", dueDate: "2026-10-15", origin: "contract", sourceEventId: "e-1039", sourceLabel: "Договор ДСК-2026/008, стр. 4", priority: "normal" },
+  { id: "t-108", title: "Проверить паспорта партии керамогранита", siteId: "s-meridian", assigneeId: "u-volkova", status: "overdue", dueDate: "2026-09-04", origin: "report_issue", sourceEventId: "e-1038", sourceLabel: "Чек-лист от 04.09", priority: "high" },
+  { id: "t-109", title: "Выдать бригаде наряд на захватку 1", siteId: "s-korona", assigneeId: "u-gareev", status: "done", dueDate: "2026-09-01", origin: "manual", sourceLabel: "Создана вручную", priority: "low" },
 ];
 
-export const isOverdue = (t: Task, today: Date = TODAY) =>
-  t.status !== "done" && new Date(t.dueDate) < today;
+export const documents: DocumentRecord[] = [
+  { id: "d-11", name: "Договор подряда ДСК-2026/008", type: "contract", siteId: "s-primorsky", authorId: "u-volkova", createdAt: "2026-09-04", status: "review", version: 1, sizeKb: 4820, sourceEventId: "e-1039" },
+  { id: "d-12", name: "Договор подряда СИ-2026/041", type: "contract", siteId: "s-korona", authorId: "u-volkova", createdAt: "2026-06-12", status: "confirmed", version: 2, sizeKb: 3960 },
+  { id: "d-13", name: "Замерная карта, секция 2", type: "survey", siteId: "s-korona", authorId: "u-gareev", createdAt: "2026-08-20", status: "confirmed", version: 1, sizeKb: 1240 },
+  { id: "d-14", name: "Акт скрытых работ, захватка 1", type: "act", siteId: "s-korona", authorId: "u-gareev", createdAt: "2026-08-31", status: "confirmed", version: 1, sizeKb: 860, sourceEventId: "e-1030" },
+  { id: "d-15", name: "КС-2 за август, БЦ «Меридиан»", type: "ks2", siteId: "s-meridian", authorId: "u-volkova", createdAt: "2026-09-01", status: "extracted", version: 1, sizeKb: 640 },
+  { id: "d-16", name: "Сертификат на керамогранит, партия 8841", type: "certificate", siteId: "s-school", authorId: "u-dorohov", createdAt: "2026-08-28", status: "confirmed", version: 1, sizeKb: 410 },
+  { id: "d-17", name: "Письмо заказчику о переносе сроков", type: "letter", siteId: "s-galaxy", authorId: "u-sokolov", createdAt: "2026-09-02", status: "confirmed", version: 1, sizeKb: 120 },
+  { id: "d-18", name: "Допсоглашение № 1 к СИ-2026/052", type: "annex", siteId: "s-school", authorId: "u-volkova", createdAt: "2026-07-15", status: "confirmed", version: 1, sizeKb: 780 },
+];
 
-export const overdueTasks = (today: Date = TODAY) => tasks.filter((t) => isOverdue(t, today));
+export const risks: Risk[] = [
+  { id: "rk-1", kind: "deadline", severity: "critical", siteId: "s-school", risk: "Срыв договорного срока 10.10.2026", cause: "Отставание по примыканиям 68 пог. м и парапетам 42 пог. м", action: "Вывести вторую бригаду с 08.09, согласовать сверхурочные", ownerId: "u-sokolov", dueDate: "2026-09-08", sourceEventId: "e-1035", sourceLabel: "План-факт по объёмам, отчёты с 25.08" },
+  { id: "rk-2", kind: "material", severity: "critical", siteId: "s-korona", risk: "Остановка монтажа примыканий на захватке 2", cause: "Нащельник угловой: остаток 0, потребность 180 шт", action: "Подтвердить заявку З-2026/319 и ускорить поставку", ownerId: "u-dorohov", dueDate: "2026-09-06", sourceEventId: "e-1041", sourceLabel: "Голосовой отчёт Гареева, 05.09, 00:28" },
+  { id: "rk-3", kind: "unclosed_volume", severity: "high", siteId: "s-korona", risk: "Незакрытый объём 554 м² по облицовке", cause: "Факт 1 846 м² против плана 2 400 м² на 05.09", action: "Скорректировать график или добавить смену", ownerId: "u-sokolov", dueDate: "2026-09-12", sourceLabel: "Работы: монтаж облицовки, захватка 2" },
+  { id: "rk-4", kind: "document", severity: "high", siteId: "s-primorsky", risk: "Договор не подтверждён, аванс не выставлен", cause: "7 полей извлечено, 2 с низкой уверенностью не проверены", action: "Пройти проверку данных по событию 1039", ownerId: "u-volkova", dueDate: "2026-09-06", sourceEventId: "e-1039", sourceLabel: "Договор ДСК-2026/008, стр. 15 и 18" },
+  { id: "rk-5", kind: "overspend", severity: "medium", siteId: "s-meridian", risk: "Перерасход по крепежу 4,2%", cause: "Повторное сверление после смещения осей на захватке 2", action: "Проверить разметку, зафиксировать доп. объём", ownerId: "u-kim", dueDate: "2026-09-15", sourceEventId: "e-1034", sourceLabel: "Отчёт Кима, 02.09" },
+  { id: "rk-6", kind: "open_issue", severity: "medium", siteId: "s-meridian", risk: "Открытое замечание по входному контролю", cause: "Сколы на 6 плитах, паспорт партии отсутствует", action: "Оформить рекламацию «Керамика Трейд»", ownerId: "u-volkova", dueDate: "2026-09-10", sourceEventId: "e-1038", sourceLabel: "Фото чек-листа, 04.09" },
+  { id: "rk-7", kind: "reporting", severity: "high", siteId: "s-galaxy", risk: "Отчёты с площадки не сдаются 3 дня", cause: "Ответственный прораб не назначен после перевода", action: "Назначить ответственного и включить напоминания", ownerId: "u-sokolov", dueDate: "2026-09-06", sourceLabel: "Дисциплина отчётности, ТЦ «Галактика»" },
+];
+
+export const auditLog: AuditEntry[] = [
+  { id: "al-1", at: "2026-09-05T08:42:38", actor: "Агент извлечения", actorType: "agent", action: "Извлёк 7 полей", target: "Событие 1041", details: "Средняя уверенность 0.83, 2 поля ниже порога" },
+  { id: "al-2", at: "2026-09-05T09:10:04", actor: "Дорохов С. Н.", actorType: "user", action: "Создал заявку", target: "З-2026/319", details: "Нащельник угловой, 180 шт" },
+  { id: "al-3", at: "2026-09-04T17:02:11", actor: "Соколов И. П.", actorType: "user", action: "Подтвердил событие", target: "Событие 1036", details: "Создана запись работ: 96 м² утеплителя" },
+  { id: "al-4", at: "2026-09-04T16:20:40", actor: "Агент документов", actorType: "agent", action: "Обработал документ", target: "ДСК-2026/008", details: "24 страницы, 4 контрольные точки" },
+  { id: "al-5", at: "2026-09-03T12:11:00", actor: "Волкова Е. С.", actorType: "user", action: "Загрузила документ", target: "Счёт № 4417", details: "Керамика Трейд, 1 284 000 ₽" },
+];
+
+export const planFact = [
+  { date: "07.08", plan: 320, fact: 298 },
+  { date: "12.08", plan: 340, fact: 351 },
+  { date: "17.08", plan: 360, fact: 302 },
+  { date: "22.08", plan: 380, fact: 344 },
+  { date: "27.08", plan: 390, fact: 318 },
+  { date: "01.09", plan: 400, fact: 286 },
+  { date: "05.09", plan: 410, fact: 184 },
+];

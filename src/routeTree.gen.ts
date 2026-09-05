@@ -10,254 +10,33 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AgentLogRouteImport } from './routes/agent-log'
-import { Route as AgentsRouteImport } from './routes/agents'
-import { Route as ContractsRouteImport } from './routes/contracts'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as DocumentsRouteImport } from './routes/documents'
-import { Route as IntegrationsRouteImport } from './routes/integrations'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as MailingsRouteImport } from './routes/mailings'
-import { Route as ObjectsRouteImport } from './routes/objects'
-import { Route as ProcurementRouteImport } from './routes/procurement'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as ScheduleRouteImport } from './routes/schedule'
-import { Route as SuppliersRouteImport } from './routes/suppliers'
-import { Route as TasksRouteImport } from './routes/tasks'
-import { Route as UsersRouteImport } from './routes/users'
-import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
-import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentLogRoute = AgentLogRouteImport.update({
-  id: '/agent-log',
-  path: '/agent-log',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContractsRoute = ContractsRouteImport.update({
-  id: '/contracts',
-  path: '/contracts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocumentsRoute = DocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IntegrationsRoute = IntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MailingsRoute = MailingsRouteImport.update({
-  id: '/mailings',
-  path: '/mailings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ObjectsRoute = ObjectsRouteImport.update({
-  id: '/objects',
-  path: '/objects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProcurementRoute = ProcurementRouteImport.update({
-  id: '/procurement',
-  path: '/procurement',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ScheduleRoute = ScheduleRouteImport.update({
-  id: '/schedule',
-  path: '/schedule',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SuppliersRoute = SuppliersRouteImport.update({
-  id: '/suppliers',
-  path: '/suppliers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TasksRoute = TasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UsersRoute = UsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ObjectsRoute,
-} as any)
-const ObjectsIdRoute = ObjectsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ObjectsRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agent-log': typeof AgentLogRoute
-  '/agents': typeof AgentsRoute
-  '/contracts': typeof ContractsRoute
-  '/dashboard': typeof DashboardRoute
-  '/documents': typeof DocumentsRoute
-  '/integrations': typeof IntegrationsRoute
-  '/login': typeof LoginRoute
-  '/mailings': typeof MailingsRoute
-  '/objects': typeof ObjectsRouteWithChildren
-  '/procurement': typeof ProcurementRoute
-  '/reports': typeof ReportsRoute
-  '/schedule': typeof ScheduleRoute
-  '/suppliers': typeof SuppliersRoute
-  '/tasks': typeof TasksRoute
-  '/users': typeof UsersRoute
-  '/objects/$id': typeof ObjectsIdRoute
-  '/objects/': typeof ObjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agent-log': typeof AgentLogRoute
-  '/agents': typeof AgentsRoute
-  '/contracts': typeof ContractsRoute
-  '/dashboard': typeof DashboardRoute
-  '/documents': typeof DocumentsRoute
-  '/integrations': typeof IntegrationsRoute
-  '/login': typeof LoginRoute
-  '/mailings': typeof MailingsRoute
-  '/procurement': typeof ProcurementRoute
-  '/reports': typeof ReportsRoute
-  '/schedule': typeof ScheduleRoute
-  '/suppliers': typeof SuppliersRoute
-  '/tasks': typeof TasksRoute
-  '/users': typeof UsersRoute
-  '/objects/$id': typeof ObjectsIdRoute
-  '/objects': typeof ObjectsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/agent-log': typeof AgentLogRoute
-  '/agents': typeof AgentsRoute
-  '/contracts': typeof ContractsRoute
-  '/dashboard': typeof DashboardRoute
-  '/documents': typeof DocumentsRoute
-  '/integrations': typeof IntegrationsRoute
-  '/login': typeof LoginRoute
-  '/mailings': typeof MailingsRoute
-  '/objects': typeof ObjectsRouteWithChildren
-  '/procurement': typeof ProcurementRoute
-  '/reports': typeof ReportsRoute
-  '/schedule': typeof ScheduleRoute
-  '/suppliers': typeof SuppliersRoute
-  '/tasks': typeof TasksRoute
-  '/users': typeof UsersRoute
-  '/objects/$id': typeof ObjectsIdRoute
-  '/objects/': typeof ObjectsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/agent-log'
-    | '/agents'
-    | '/contracts'
-    | '/dashboard'
-    | '/documents'
-    | '/integrations'
-    | '/login'
-    | '/mailings'
-    | '/objects'
-    | '/procurement'
-    | '/reports'
-    | '/schedule'
-    | '/suppliers'
-    | '/tasks'
-    | '/users'
-    | '/objects/$id'
-    | '/objects/'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/agent-log'
-    | '/agents'
-    | '/contracts'
-    | '/dashboard'
-    | '/documents'
-    | '/integrations'
-    | '/login'
-    | '/mailings'
-    | '/procurement'
-    | '/reports'
-    | '/schedule'
-    | '/suppliers'
-    | '/tasks'
-    | '/users'
-    | '/objects/$id'
-    | '/objects'
-  id:
-    | '__root__'
-    | '/'
-    | '/agent-log'
-    | '/agents'
-    | '/contracts'
-    | '/dashboard'
-    | '/documents'
-    | '/integrations'
-    | '/login'
-    | '/mailings'
-    | '/objects'
-    | '/procurement'
-    | '/reports'
-    | '/schedule'
-    | '/suppliers'
-    | '/tasks'
-    | '/users'
-    | '/objects/$id'
-    | '/objects/'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AgentLogRoute: typeof AgentLogRoute
-  AgentsRoute: typeof AgentsRoute
-  ContractsRoute: typeof ContractsRoute
-  DashboardRoute: typeof DashboardRoute
-  DocumentsRoute: typeof DocumentsRoute
-  IntegrationsRoute: typeof IntegrationsRoute
-  LoginRoute: typeof LoginRoute
-  MailingsRoute: typeof MailingsRoute
-  ObjectsRoute: typeof ObjectsRouteWithChildren
-  ProcurementRoute: typeof ProcurementRoute
-  ReportsRoute: typeof ReportsRoute
-  ScheduleRoute: typeof ScheduleRoute
-  SuppliersRoute: typeof SuppliersRoute
-  TasksRoute: typeof TasksRoute
-  UsersRoute: typeof UsersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -269,158 +48,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agent-log': {
-      id: '/agent-log'
-      path: '/agent-log'
-      fullPath: '/agent-log'
-      preLoaderRoute: typeof AgentLogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contracts': {
-      id: '/contracts'
-      path: '/contracts'
-      fullPath: '/contracts'
-      preLoaderRoute: typeof ContractsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/documents': {
-      id: '/documents'
-      path: '/documents'
-      fullPath: '/documents'
-      preLoaderRoute: typeof DocumentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/integrations': {
-      id: '/integrations'
-      path: '/integrations'
-      fullPath: '/integrations'
-      preLoaderRoute: typeof IntegrationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mailings': {
-      id: '/mailings'
-      path: '/mailings'
-      fullPath: '/mailings'
-      preLoaderRoute: typeof MailingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/objects': {
-      id: '/objects'
-      path: '/objects'
-      fullPath: '/objects'
-      preLoaderRoute: typeof ObjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/procurement': {
-      id: '/procurement'
-      path: '/procurement'
-      fullPath: '/procurement'
-      preLoaderRoute: typeof ProcurementRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/schedule': {
-      id: '/schedule'
-      path: '/schedule'
-      fullPath: '/schedule'
-      preLoaderRoute: typeof ScheduleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/suppliers': {
-      id: '/suppliers'
-      path: '/suppliers'
-      fullPath: '/suppliers'
-      preLoaderRoute: typeof SuppliersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tasks': {
-      id: '/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof TasksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/users': {
-      id: '/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/objects/': {
-      id: '/objects/'
-      path: '/'
-      fullPath: '/objects/'
-      preLoaderRoute: typeof ObjectsIndexRouteImport
-      parentRoute: typeof ObjectsRoute
-    }
-    '/objects/$id': {
-      id: '/objects/$id'
-      path: '/$id'
-      fullPath: '/objects/$id'
-      preLoaderRoute: typeof ObjectsIdRouteImport
-      parentRoute: typeof ObjectsRoute
-    }
   }
 }
 
-interface ObjectsRouteChildren {
-  ObjectsIdRoute: typeof ObjectsIdRoute
-  ObjectsIndexRoute: typeof ObjectsIndexRoute
-}
-
-const ObjectsRouteChildren: ObjectsRouteChildren = {
-  ObjectsIdRoute: ObjectsIdRoute,
-  ObjectsIndexRoute: ObjectsIndexRoute,
-}
-
-const ObjectsRouteWithChildren =
-  ObjectsRoute._addFileChildren(ObjectsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AgentLogRoute: AgentLogRoute,
-  AgentsRoute: AgentsRoute,
-  ContractsRoute: ContractsRoute,
-  DashboardRoute: DashboardRoute,
-  DocumentsRoute: DocumentsRoute,
-  IntegrationsRoute: IntegrationsRoute,
-  LoginRoute: LoginRoute,
-  MailingsRoute: MailingsRoute,
-  ObjectsRoute: ObjectsRouteWithChildren,
-  ProcurementRoute: ProcurementRoute,
-  ReportsRoute: ReportsRoute,
-  ScheduleRoute: ScheduleRoute,
-  SuppliersRoute: SuppliersRoute,
-  TasksRoute: TasksRoute,
-  UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

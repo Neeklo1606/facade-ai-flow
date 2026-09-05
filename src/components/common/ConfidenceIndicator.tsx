@@ -1,42 +1,43 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-export type Confidence = "high" | "medium" | "low";
+export function confidenceLevel(value: number) {
+  if (value >= 0.85) return "high" as const;
+  if (value >= 0.7) return "mid" as const;
+  return "low" as const;
+}
 
-const meta: Record<Confidence, { color: string; label: string }> = {
-  high: { color: "bg-ok", label: "Высокая уверенность агента" },
-  medium: { color: "bg-warn", label: "Средняя уверенность агента" },
-  low: { color: "bg-danger", label: "Низкая уверенность — требует проверки" },
+const dot: Record<"high" | "mid" | "low", string> = {
+  high: "bg-conf-high",
+  mid: "bg-conf-mid",
+  low: "bg-conf-low",
 };
 
+const label: Record<"high" | "mid" | "low", string> = {
+  high: "высокая уверенность",
+  mid: "средняя уверенность",
+  low: "низкая уверенность",
+};
+
+/** Единый индикатор уверенности модели. Низкая — всегда с пометкой «требует проверки». */
 export function ConfidenceIndicator({
-  level,
-  showLabel = false,
+  value,
+  showValue = true,
   className,
 }: {
-  level: Confidence;
-  showLabel?: boolean;
+  value: number;
+  showValue?: boolean;
   className?: string;
 }) {
-  const m = meta[level];
+  const level = confidenceLevel(value);
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className={cn("inline-flex items-center gap-1.5 align-middle", className)}>
-          <span className={cn("size-2 shrink-0 rounded-full", m.color)} />
-          {(showLabel || level === "low") && (
-            <span
-              className={cn(
-                "text-caption",
-                level === "low" ? "text-danger font-medium" : "text-text-muted",
-              )}
-            >
-              {level === "low" ? "Требует проверки" : m.label}
-            </span>
-          )}
+    <span className={cn("inline-flex items-center gap-1.5 text-caption tnum", className)} title={label[level]}>
+      <span className={cn("size-2 shrink-0 rounded-full", dot[level])} aria-hidden />
+      {showValue && <span className="text-text-secondary">{value.toFixed(2)}</span>}
+      {level === "low" && (
+        <span className="rounded-sm bg-danger-bg px-1.5 py-0.5 text-[11px] font-medium text-danger">
+          требует проверки
         </span>
-      </TooltipTrigger>
-      <TooltipContent>{m.label}</TooltipContent>
-    </Tooltip>
+      )}
+    </span>
   );
 }

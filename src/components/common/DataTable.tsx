@@ -1,123 +1,90 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export interface Column<T> {
   key: string;
   header: string;
-  align?: "left" | "right";
-  width?: string;
   cell: (row: T) => ReactNode;
+  className?: string;
+  /** скрыть колонку в мобильной карточке */
+  hideOnCard?: boolean;
+  /** заголовок карточки на мобильном */
+  primary?: boolean;
 }
 
-export function DataTable<T>({
+export function DataTable<T extends { id: string }>({
   columns,
   rows,
-  rowKey,
   onRowClick,
-  loading = false,
   empty,
-  className,
 }: {
   columns: Column<T>[];
   rows: T[];
-  rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
-  loading?: boolean;
   empty?: ReactNode;
-  className?: string;
 }) {
-  if (!loading && rows.length === 0 && empty) return <>{empty}</>;
+  if (rows.length === 0 && empty) return <>{empty}</>;
 
   return (
     <>
-      {/* Мобильные: таблица превращается в карточки в одну колонку */}
-      <div className={cn("grid grid-cols-1 gap-3 p-4 lg:hidden", className)}>
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="card-surface space-y-2 p-4">
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ))
-          : rows.map((row) => (
-              <div
-                key={rowKey(row)}
-                onClick={() => onRowClick?.(row)}
+      {/* Десктоп: таблица */}
+      <div className="hidden overflow-x-auto lg:block">
+        <table className="w-full text-table">
+          <thead>
+            <tr className="border-b border-border text-left">
+              {columns.map((c) => (
+                <th key={c.key} className={cn("px-4 py-2.5 text-caption font-medium text-text-muted", c.className)}>
+                  {c.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.id}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
-                  "card-surface p-4 transition-fast",
+                  "border-b border-border last:border-0 transition-fast",
                   onRowClick && "cursor-pointer hover:bg-subtle",
                 )}
               >
-                <dl className="space-y-1.5">
-                  {columns.map((c) => (
-                    <div key={c.key} className="flex min-h-6 items-start justify-between gap-3">
-                      <dt className="shrink-0 text-caption text-text-muted">{c.header}</dt>
-                      <dd className="tnum min-w-0 text-right text-table">{c.cell(row)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+                {columns.map((c) => (
+                  <td key={c.key} className={cn("px-4 py-2.5 align-top", c.className)}>
+                    {c.cell(row)}
+                  </td>
+                ))}
+              </tr>
             ))}
+          </tbody>
+        </table>
       </div>
 
-      <div className={cn("hidden w-full overflow-x-auto lg:block", className)}>
-      <table className="w-full border-collapse text-table">
-
-        <thead>
-          <tr className="border-b border-border-strong">
-            {columns.map((c) => (
-              <th
-                key={c.key}
-                style={{ width: c.width }}
-                className={cn(
-                  "px-4 py-2.5 text-left text-caption font-medium whitespace-nowrap text-text-secondary",
-                  c.align === "right" && "text-right",
-                )}
-              >
-                {c.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {loading
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <tr key={i} className="border-b border-border">
-                  {columns.map((c) => (
-                    <td key={c.key} className="px-4 py-3">
-                      <Skeleton className="h-4 w-full" />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            : rows.map((row, i) => (
-                <tr
-                  key={rowKey(row)}
-                  onClick={() => onRowClick?.(row)}
-                  className={cn(
-                    "border-b border-border transition-fast",
-                    i % 2 === 1 && "bg-subtle/60",
-                    onRowClick && "cursor-pointer hover:bg-subtle",
-                  )}
-                >
-                  {columns.map((c) => (
-                    <td
-                      key={c.key}
-                      className={cn(
-                        "px-4 py-2.5 align-middle",
-                        c.align === "right" && "text-right tnum",
-                      )}
-                    >
-                      {c.cell(row)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-        </tbody>
-      </table>
+      {/* Мобильный: карточки */}
+      <div className="grid gap-3 p-3 lg:hidden">
+        {rows.map((row) => {
+          const primary = columns.find((c) => c.primary) ?? columns[0];
+          const rest = columns.filter((c) => c !== primary && !c.hideOnCard);
+          return (
+            <button
+              key={row.id}
+              type="button"
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className="card-surface w-full min-h-11 p-4 text-left transition-fast hover:bg-subtle"
+            >
+              <div className="text-[14px] font-medium">{primary.cell(row)}</div>
+              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                {rest.map((c) => (
+                  <div key={c.key} className="min-w-0">
+                    <dt className="text-[11px] text-text-muted">{c.header}</dt>
+                    <dd className="text-caption">{c.cell(row)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </button>
+          );
+        })}
       </div>
     </>
   );
-
 }

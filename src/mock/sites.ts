@@ -1,0 +1,110 @@
+import type { Site, WorkItem, Zone } from "@/types";
+
+export const sites: Site[] = [
+  {
+    id: "s-korona",
+    name: "ЖК «Северная Корона», корпус 3",
+    address: "Санкт-Петербург, Приморский пр., 14, корп. 3",
+    client: "ГК «Стройинвест»",
+    contractNo: "СИ-2026/041",
+    contractSum: 47_200_000,
+    deadline: "2026-11-30",
+    managerId: "u-sokolov",
+    status: "risk",
+    progress: 62,
+    areaPlan: 18400,
+    areaFact: 11408,
+  },
+  {
+    id: "s-meridian",
+    name: "БЦ «Меридиан»",
+    address: "Санкт-Петербург, Кантемировская ул., 4",
+    client: "«Проектстрой»",
+    contractNo: "ПС-2026/117",
+    contractSum: 31_800_000,
+    deadline: "2026-12-20",
+    managerId: "u-sokolov",
+    status: "active",
+    progress: 41,
+    areaPlan: 12600,
+    areaFact: 5166,
+  },
+  {
+    id: "s-primorsky",
+    name: "ЖК «Приморский квартал», дом 7",
+    address: "Санкт-Петербург, ул. Оптиков, 34, корп. 7",
+    client: "ДСК-Регион",
+    contractNo: "ДСК-2026/008",
+    contractSum: 95_400_000,
+    deadline: "2027-04-15",
+    managerId: "u-sokolov",
+    status: "active",
+    progress: 18,
+    areaPlan: 29800,
+    areaFact: 5364,
+  },
+  {
+    id: "s-school",
+    name: "Школа № 1547, реконструкция фасада",
+    address: "Санкт-Петербург, ул. Савушкина, 61",
+    client: "ГК «Стройинвест»",
+    contractNo: "СИ-2026/052",
+    contractSum: 18_300_000,
+    deadline: "2026-10-10",
+    managerId: "u-sokolov",
+    status: "risk",
+    progress: 78,
+    areaPlan: 6200,
+    areaFact: 4836,
+  },
+  {
+    id: "s-galaxy",
+    name: "ТЦ «Галактика»",
+    address: "Санкт-Петербург, Дунайский пр., 12",
+    client: "«Проектстрой»",
+    contractNo: "ПС-2026/090",
+    contractSum: 26_900_000,
+    deadline: "2026-12-01",
+    managerId: "u-sokolov",
+    status: "active",
+    progress: 55,
+    areaPlan: 9400,
+    areaFact: 5170,
+  },
+];
+
+export function siteName(id: string | null) {
+  if (!id) return "Объект не определён";
+  return sites.find((s) => s.id === id)?.name ?? "—";
+}
+
+export const zones: Zone[] = [
+  { id: "z-korona", siteId: "s-korona", parentId: null, level: "site", name: "ЖК «Северная Корона», корпус 3", progress: 62 },
+  { id: "z-korona-b1", siteId: "s-korona", parentId: "z-korona", level: "building", name: "Корпус 3", progress: 62 },
+  { id: "z-korona-s1", siteId: "s-korona", parentId: "z-korona-b1", level: "section", name: "Секция 1", progress: 71 },
+  { id: "z-korona-s2", siteId: "s-korona", parentId: "z-korona-b1", level: "section", name: "Секция 2", progress: 53 },
+  { id: "z-korona-f9", siteId: "s-korona", parentId: "z-korona-s1", level: "floor", name: "Этажи 5–12", progress: 68 },
+  { id: "z-korona-z1", siteId: "s-korona", parentId: "z-korona-f9", level: "zone", name: "Захватка 1, оси А–Г", progress: 84 },
+  { id: "z-korona-z2", siteId: "s-korona", parentId: "z-korona-f9", level: "zone", name: "Захватка 2, оси Г–К", progress: 57 },
+  { id: "z-meridian", siteId: "s-meridian", parentId: null, level: "site", name: "БЦ «Меридиан»", progress: 41 },
+  { id: "z-meridian-z1", siteId: "s-meridian", parentId: "z-meridian", level: "zone", name: "Захватка 1, оси 1–6", progress: 48 },
+  { id: "z-meridian-z2", siteId: "s-meridian", parentId: "z-meridian", level: "zone", name: "Захватка 2, оси 6–11", progress: 34 },
+  { id: "z-school", siteId: "s-school", parentId: null, level: "site", name: "Школа № 1547", progress: 78 },
+  { id: "z-school-z1", siteId: "s-school", parentId: "z-school", level: "zone", name: "Главный фасад", progress: 88 },
+];
+
+export function zoneName(id?: string) {
+  if (!id) return "—";
+  return zones.find((z) => z.id === id)?.name ?? "—";
+}
+
+export const workItems: WorkItem[] = [
+  { id: "w-1", siteId: "s-korona", zoneId: "z-korona-z2", name: "Монтаж облицовки", unit: "м²", plan: 2400, fact: 1846, deviation: -554 },
+  { id: "w-2", siteId: "s-korona", zoneId: "z-korona-z2", name: "Монтаж направляющих", unit: "пог. м", plan: 3800, fact: 3620, deviation: -180 },
+  { id: "w-3", siteId: "s-korona", zoneId: "z-korona-z1", name: "Установка стеновых кронштейнов", unit: "шт", plan: 5400, fact: 5400, deviation: 0 },
+  { id: "w-4", siteId: "s-korona", zoneId: "z-korona-z1", name: "Монтаж утеплителя", unit: "м²", plan: 2200, fact: 2065, deviation: -135 },
+  { id: "w-5", siteId: "s-meridian", zoneId: "z-meridian-z1", name: "Разметка фасада", unit: "м²", plan: 4100, fact: 4100, deviation: 0 },
+  { id: "w-6", siteId: "s-meridian", zoneId: "z-meridian-z2", name: "Сверление отверстий", unit: "шт", plan: 9800, fact: 6240, deviation: -3560 },
+  { id: "w-7", siteId: "s-school", zoneId: "z-school-z1", name: "Монтаж примыканий", unit: "пог. м", plan: 780, fact: 712, deviation: -68 },
+  { id: "w-8", siteId: "s-school", zoneId: "z-school-z1", name: "Монтаж парапетов", unit: "пог. м", plan: 340, fact: 298, deviation: -42 },
+];

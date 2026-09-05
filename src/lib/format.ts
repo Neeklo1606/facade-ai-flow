@@ -1,22 +1,36 @@
-import { format, formatDistanceToNow, differenceInCalendarDays } from "date-fns";
+import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 
-export const fmtDate = (d: string | Date) => format(new Date(d), "d MMM yyyy", { locale: ru });
-export const fmtDateShort = (d: string | Date) => format(new Date(d), "d MMM", { locale: ru });
-export const fmtDateTime = (d: string | Date) => format(new Date(d), "d MMM, HH:mm", { locale: ru });
-// Даты приходят со смещением +03:00 (Москва) — показываем время объекта, не браузера.
-export const fmtTime = (d: string | Date) =>
-  typeof d === "string" && d.includes("T") ? d.slice(11, 16) : format(new Date(d), "HH:mm", { locale: ru });
-export const fmtAgo = (d: string | Date) =>
-  formatDistanceToNow(new Date(d), { locale: ru, addSuffix: true });
-export const daysLeft = (d: string | Date, from: Date = new Date("2026-08-12")) =>
-  differenceInCalendarDays(new Date(d), from);
+export function fmtDate(value: string) {
+  return format(parseISO(value), "dd.MM.yyyy", { locale: ru });
+}
 
-const rub = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+export function fmtDateTime(value: string) {
+  return format(parseISO(value), "dd.MM, HH:mm", { locale: ru });
+}
 
-export const fmtMoney = (v: number) => `${rub.format(v)} ₽`;
-export const fmtMln = (v: number) =>
-  `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(v / 1_000_000)} млн ₽`;
-export const fmtNum = (v: number) => rub.format(v);
-export const fmtPct = (v: number) =>
-  `${v > 0 ? "+" : ""}${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(v)}%`;
+export function fmtAgo(value: string) {
+  return formatDistanceToNow(parseISO(value), { addSuffix: true, locale: ru });
+}
+
+export function fmtNum(value: number, digits = 0) {
+  return value.toLocaleString("ru-RU", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+export function fmtMoney(value: number) {
+  return `${value.toLocaleString("ru-RU")} ₽`;
+}
+
+export function fmtMln(value: number) {
+  return `${(value / 1_000_000).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} млн ₽`;
+}
+
+export function fmtDuration(ms: number) {
+  return `${(ms / 1000).toFixed(1)} с`;
+}
+
+export function fmtSec(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}

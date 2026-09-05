@@ -1,31 +1,40 @@
 import {
+  AlertTriangle,
+  BookMarked,
   Bot,
   Building2,
+  CheckCircle2,
+  ClipboardList,
   FileSignature,
+  FileStack,
   FileText,
   GanttChartSquare,
   HardHat,
+  History,
+  Inbox,
   LayoutDashboard,
+  LayoutGrid,
+  Library,
   ListChecks,
-  Mail,
+  PackageCheck,
   PackageSearch,
   Plug,
   ScrollText,
+  Settings,
+  Target,
+  TrendingUp,
   Truck,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { DemoRole } from "./auth-context";
 
-export type BadgeKey = "overdueTasks" | "pendingReports" | "awaitingSuppliers";
+export type BadgeKey = "criticalRisks" | "inboxUnprocessed" | "pendingReview" | "overdueTasks" | "requestsNoReply";
 
 export interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
   badge?: BadgeKey;
-  /** роли, которым доступен раздел */
-  roles: DemoRole[];
 }
 
 export interface NavGroup {
@@ -33,67 +42,76 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-const ALL: DemoRole[] = ["pm", "foreman"];
-const PM: DemoRole[] = ["pm"];
-
 export const navGroups: NavGroup[] = [
   {
-    title: "Работа",
+    title: "Обзор",
     items: [
-      { to: "/dashboard", label: "Дашборд", icon: LayoutDashboard, roles: ALL },
-      { to: "/objects", label: "Объекты", icon: Building2, roles: PM },
-      { to: "/tasks", label: "Задачи", icon: ListChecks, badge: "overdueTasks", roles: ALL },
-      { to: "/reports", label: "Отчёты с объектов", icon: HardHat, badge: "pendingReports", roles: ALL },
-      { to: "/schedule", label: "График работ", icon: GanttChartSquare, roles: ALL },
+      { to: "/", label: "Дашборд", icon: LayoutDashboard },
+      { to: "/risks", label: "Риски и отклонения", icon: AlertTriangle, badge: "criticalRisks" },
     ],
   },
   {
-    title: "Документы и снабжение",
+    title: "Поток данных",
     items: [
-      { to: "/documents", label: "Документы", icon: FileText, roles: ALL },
-      { to: "/contracts", label: "Договоры и контроль", icon: FileSignature, roles: PM },
-      { to: "/procurement", label: "Заявки и закупки", icon: PackageSearch, badge: "awaitingSuppliers", roles: PM },
-      { to: "/suppliers", label: "Поставщики", icon: Truck, roles: PM },
-      { to: "/mailings", label: "Рассылки заказчикам", icon: Mail, roles: PM },
+      { to: "/inbox", label: "Входящие", icon: Inbox, badge: "inboxUnprocessed" },
+      { to: "/verification", label: "Проверка данных", icon: CheckCircle2, badge: "pendingReview" },
+      { to: "/field-reports", label: "Отчёты с площадки", icon: HardHat },
+    ],
+  },
+  {
+    title: "Объекты",
+    items: [
+      { to: "/sites", label: "Объекты", icon: Building2 },
+      { to: "/zones", label: "Захватки и объёмы", icon: LayoutGrid },
+      { to: "/schedule", label: "График работ", icon: GanttChartSquare },
+      { to: "/tasks", label: "Задачи и замечания", icon: ListChecks, badge: "overdueTasks" },
+    ],
+  },
+  {
+    title: "Снабжение",
+    items: [
+      { to: "/requests", label: "Заявки", icon: PackageSearch, badge: "requestsNoReply" },
+      { to: "/quotes", label: "Предложения поставщиков", icon: ClipboardList },
+      { to: "/suppliers", label: "Поставщики", icon: Truck },
+      { to: "/deliveries", label: "Поставки", icon: PackageCheck },
+    ],
+  },
+  {
+    title: "Документы",
+    items: [
+      { to: "/documents", label: "Реестр документов", icon: FileText },
+      { to: "/contracts", label: "Договоры и обязательства", icon: FileSignature },
+      { to: "/templates", label: "Шаблоны", icon: FileStack },
     ],
   },
   {
     title: "AI",
     items: [
-      { to: "/agents", label: "Агенты", icon: Bot, roles: PM },
-      { to: "/agent-log", label: "Журнал агентов", icon: ScrollText, roles: PM },
+      { to: "/agents", label: "Агенты", icon: Bot },
+      { to: "/agent-log", label: "Журнал агентов", icon: ScrollText },
+      { to: "/knowledge", label: "База знаний", icon: Library },
+      { to: "/quality", label: "Качество извлечения", icon: Target },
     ],
   },
   {
     title: "Управление",
     items: [
-      { to: "/users", label: "Пользователи и роли", icon: Users, roles: PM },
-      { to: "/integrations", label: "Интеграции", icon: Plug, roles: PM },
+      { to: "/analytics", label: "Аналитика", icon: TrendingUp },
+      { to: "/catalogs", label: "Справочники", icon: BookMarked },
+      { to: "/users", label: "Пользователи и роли", icon: Users },
+      { to: "/integrations", label: "Интеграции", icon: Plug },
+      { to: "/audit", label: "Журнал действий", icon: History },
+      { to: "/settings", label: "Настройки", icon: Settings },
     ],
   },
 ];
 
-export const allNavItems: NavItem[] = navGroups.flatMap((g) => g.items);
+export const allNavItems = navGroups.flatMap((g) => g.items);
 
-export function navGroupsForRole(role: DemoRole): NavGroup[] {
-  return navGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => i.roles.includes(role)) }))
-    .filter((g) => g.items.length > 0);
+export function findNavItem(pathname: string) {
+  if (pathname === "/") return allNavItems[0];
+  return allNavItems.find((i) => i.to !== "/" && (pathname === i.to || pathname.startsWith(`${i.to}/`)));
 }
 
-export function findNavItem(pathname: string): NavItem | undefined {
-  return allNavItems.find((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
-}
-
-export function canAccess(role: DemoRole, pathname: string): boolean {
-  const item = findNavItem(pathname);
-  if (!item) return true;
-  return item.roles.includes(role);
-}
-
-export const routeTitles: Record<string, string> = Object.fromEntries(
-  allNavItems.map((i) => [i.to, i.label]),
-);
-
-/** Нижняя таб-панель на мобильных */
-export const mobileTabs = ["/dashboard", "/objects", "/tasks", "/reports"] as const;
+/** Приоритет мобильной навигации */
+export const mobileTabs = ["/", "/inbox", "/verification", "/risks"] as const;

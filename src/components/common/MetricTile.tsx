@@ -1,62 +1,40 @@
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MetricTile({
+  icon: Icon,
   label,
   value,
-  suffix,
+  unit,
   delta,
-  deltaLabel = "за неделю",
-  invert = false,
+  deltaGood,
   tone = "neutral",
 }: {
+  icon: LucideIcon;
   label: string;
-  value: string | number;
-  suffix?: string;
-  delta?: number;
-  deltaLabel?: string;
-  /** true when a growing value is bad */
-  invert?: boolean;
-  tone?: "neutral" | "ok" | "warn" | "danger";
+  value: string;
+  unit?: string;
+  delta?: string;
+  deltaGood?: boolean;
+  tone?: "neutral" | "danger" | "warn" | "ok";
 }) {
-  const up = (delta ?? 0) > 0;
-  const flat = !delta;
-  const good = invert ? !up : up;
-  const DeltaIcon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
-
+  const valueTone =
+    tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : tone === "ok" ? "text-ok" : "text-text-primary";
   return (
-    <div className="card-surface p-5 transition-fast hover:bg-subtle">
-      <div className="text-caption text-text-secondary">{label}</div>
+    <div className="card-surface p-5">
+      <div className="flex items-center gap-2 text-text-secondary">
+        <Icon className="size-4" strokeWidth={1.75} />
+        <span className="text-caption">{label}</span>
+      </div>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            "tnum text-[28px] leading-none font-semibold",
-            tone === "danger" && "text-danger",
-            tone === "warn" && "text-warn",
-            tone === "ok" && "text-ok",
-          )}
-        >
-          {value}
-        </span>
-        {suffix && <span className="text-caption text-text-muted">{suffix}</span>}
+        <span className={cn("text-[26px] leading-none font-semibold tnum", valueTone)}>{value}</span>
+        {unit && <span className="text-caption text-text-muted">{unit}</span>}
       </div>
-      <div className="mt-3 flex items-center gap-1.5 whitespace-nowrap">
-        <DeltaIcon
-          className={cn(
-            "size-3.5",
-            flat ? "text-text-muted" : good ? "text-ok" : "text-danger",
-          )}
-        />
-        <span
-          className={cn(
-            "tnum text-caption font-medium",
-            flat ? "text-text-muted" : good ? "text-ok" : "text-danger",
-          )}
-        >
-          {flat ? "без изменений" : `${up ? "+" : ""}${delta}`}
-        </span>
-        <span className="text-caption text-text-muted">{deltaLabel}</span>
-      </div>
+      {delta && (
+        <div className={cn("mt-2 text-caption tnum", deltaGood ? "text-ok" : "text-danger")}>
+          {delta} <span className="text-text-muted">к прошлой неделе</span>
+        </div>
+      )}
     </div>
   );
 }
