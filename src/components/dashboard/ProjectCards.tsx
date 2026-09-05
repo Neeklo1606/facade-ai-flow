@@ -23,19 +23,19 @@ export function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       to="/objects"
-      className="card-surface flex h-full flex-col p-5 transition-fast hover:bg-subtle"
+      className="card-surface flex h-full min-w-0 flex-col p-5 transition-fast hover:bg-subtle"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-card-title">{project.name}</div>
           <div className="truncate text-caption text-text-muted">{project.address}</div>
         </div>
-        <StatusBadge tone={projectStatusTone[project.status]} dot>
+        <StatusBadge tone={projectStatusTone[project.status]} dot className="shrink-0">
           {projectStatusLabel[project.status]}
         </StatusBadge>
       </div>
 
-      <div className="mt-4 flex items-baseline justify-between">
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="tnum text-[20px] leading-none font-semibold">{project.progress}%</span>
         <span className="text-caption text-text-secondary">
           срок {fmtDate(project.deadline)} · {left} дн.
@@ -45,18 +45,18 @@ export function ProjectCard({ project }: { project: Project }) {
         <Bar value={project.progress} tone={project.status} />
       </div>
 
-      <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-border pt-3 pt-4">
-        <div>
+      <dl className="mt-auto grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-3">
+        <div className="min-w-0">
           <dt className="text-caption text-text-muted">Объем</dt>
-          <dd className="tnum text-table font-medium">
+          <dd className="tnum text-table font-medium break-words">
             {fmtNum(project.areaDone)} / {fmtNum(project.areaTotal)} м²
           </dd>
         </div>
-        <div>
+        <div className="min-w-0">
           <dt className="text-caption text-text-muted">Договор</dt>
-          <dd className="tnum text-table font-medium">{fmtMln(project.contractSum)}</dd>
+          <dd className="tnum text-table font-medium break-words">{fmtMln(project.contractSum)}</dd>
         </div>
-        <div>
+        <div className="min-w-0">
           <dt className="text-caption text-text-muted">План-факт</dt>
           <dd
             className={cn(
@@ -78,7 +78,7 @@ export function ProjectCard({ project }: { project: Project }) {
 
 export function ProjectCards({ items = projects }: { items?: Project[] }) {
   return (
-    <div className="grid auto-rows-fr gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid auto-rows-fr grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {items.map((p) => (
         <ProjectCard key={p.id} project={p} />
       ))}
