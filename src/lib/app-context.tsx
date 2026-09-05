@@ -1,50 +1,83 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { projects } from "@/mock/projects";
+import { sites } from "@/mock/sites";
 import { currentUser } from "@/mock/users";
+import type { IndustryPack } from "@/types";
 
-export type Theme = "light" | "dark";
-export const ALL_PROJECTS = "all";
+export const ALL_SITES = "all";
+
+export const industryPacks: { id: IndustryPack; label: string; hint: string }[] = [
+  { id: "facade", label: "Фасады", hint: "НВФ, захватки, объёмы" },
+  { id: "road", label: "Дороги", hint: "Участки, слои, километраж" },
+  { id: "hvac", label: "ОВК", hint: "Системы, узлы, пусконаладка" },
+  { id: "crane", label: "Краны", hint: "Техника, ТО, осмотры" },
+];
 
 interface AppContextValue {
-  theme: Theme;
+  theme: "light" | "dark";
   toggleTheme: () => void;
-  projectId: string;
-  setProjectId: (id: string) => void;
+  pack: IndustryPack;
+  setPack: (p: IndustryPack) => void;
+  siteId: string;
+  setSiteId: (id: string) => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  mobileNavOpen: boolean;
+  setMobileNavOpen: (v: boolean) => void;
   agentPanelOpen: boolean;
   setAgentPanelOpen: (v: boolean) => void;
+  commandOpen: boolean;
+  setCommandOpen: (v: boolean) => void;
   user: typeof currentUser;
-  scopedProjects: typeof projects;
+  scopedSites: typeof sites;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+/** Глобальное состояние прототипа. Только React state, никаких браузерных хранилищ. */
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
-  const [projectId, setProjectId] = useState<string>(ALL_PROJECTS);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [pack, setPack] = useState<IndustryPack>("facade");
+  const [siteId, setSiteId] = useState<string>(ALL_SITES);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const value = useMemo<AppContextValue>(
     () => ({
       theme,
       toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
-      projectId,
-      setProjectId,
+      pack,
+      setPack,
+      siteId,
+      setSiteId,
       sidebarCollapsed,
       toggleSidebar: () => setSidebarCollapsed((v) => !v),
+      mobileNavOpen,
+      setMobileNavOpen,
       agentPanelOpen,
       setAgentPanelOpen,
+      commandOpen,
+      setCommandOpen,
       user: currentUser,
-      scopedProjects: projectId === ALL_PROJECTS ? projects : projects.filter((p) => p.id === projectId),
+      scopedSites: siteId === ALL_SITES ? sites : sites.filter((s) => s.id === siteId),
     }),
-    [theme, projectId, sidebarCollapsed, agentPanelOpen],
+    [theme, pack, siteId, sidebarCollapsed, mobileNavOpen, agentPanelOpen, commandOpen],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -56,6 +89,7 @@ export function useApp() {
   return ctx;
 }
 
-export function inScope<T extends { projectId: string }>(items: T[], projectId: string) {
-  return projectId === ALL_PROJECTS ? items : items.filter((i) => i.projectId === projectId);
+/** Фильтр по выбранному объекту для любых записей с siteId. */
+export function inScope<T extends { siteId: string | null }>(items: T[], siteId: string) {
+  return siteId === ALL_SITES ? items : items.filter((i) => i.siteId === siteId);
 }
