@@ -23,14 +23,14 @@ export function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       to="/objects"
-      className="card-surface flex h-full flex-col p-5 transition-fast hover:bg-subtle"
+      className="card-surface flex h-full min-w-0 flex-col p-5 transition-fast hover:bg-subtle"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-card-title">{project.name}</div>
           <div className="truncate text-caption text-text-muted">{project.address}</div>
         </div>
-        <StatusBadge tone={projectStatusTone[project.status]} dot>
+        <StatusBadge tone={projectStatusTone[project.status]} dot className="shrink-0">
           {projectStatusLabel[project.status]}
         </StatusBadge>
       </div>
@@ -78,7 +78,7 @@ export function ProjectCard({ project }: { project: Project }) {
 
 export function ProjectCards({ items = projects }: { items?: Project[] }) {
   return (
-    <div className="grid auto-rows-fr gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid auto-rows-fr grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {items.map((p) => (
         <ProjectCard key={p.id} project={p} />
       ))}
