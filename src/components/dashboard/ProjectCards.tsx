@@ -35,7 +35,7 @@ export function ProjectCard({ project }: { project: Project }) {
         </StatusBadge>
       </div>
 
-      <div className="mt-4 flex items-baseline justify-between">
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="tnum text-[20px] leading-none font-semibold">{project.progress}%</span>
         <span className="text-caption text-text-secondary">
           срок {fmtDate(project.deadline)} · {left} дн.
@@ -45,18 +45,18 @@ export function ProjectCard({ project }: { project: Project }) {
         <Bar value={project.progress} tone={project.status} />
       </div>
 
-      <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-border pt-3 pt-4">
-        <div>
+      <dl className="mt-auto grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-3">
+        <div className="min-w-0">
           <dt className="text-caption text-text-muted">Объем</dt>
-          <dd className="tnum text-table font-medium">
+          <dd className="tnum text-table font-medium break-words">
             {fmtNum(project.areaDone)} / {fmtNum(project.areaTotal)} м²
           </dd>
         </div>
-        <div>
+        <div className="min-w-0">
           <dt className="text-caption text-text-muted">Договор</dt>
-          <dd className="tnum text-table font-medium">{fmtMln(project.contractSum)}</dd>
+          <dd className="tnum text-table font-medium break-words">{fmtMln(project.contractSum)}</dd>
         </div>
-        <div>
+        <div className="min-w-0">
           <dt className="text-caption text-text-muted">План-факт</dt>
           <dd
             className={cn(
