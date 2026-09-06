@@ -101,17 +101,17 @@ function Dashboard() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <MetricTile icon={Building2} label="Активных объектов" value={String(scopedSites.length)} delta="+1" deltaGood />
+      <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 xl:grid-cols-6">
+        <div className="xl:col-span-2"><MetricTile icon={Building2} label="Активных объектов" value={String(scopedSites.length)} delta="+1" deltaGood /></div>
         <MetricTile icon={Clock} label="Задач просрочено" value={String(overdue)} tone="danger" delta="+1" deltaGood={false} />
         <MetricTile icon={Inbox} label="Событий ждёт проверки" value={String(pendingReview)} tone="warn" delta="−3" deltaGood />
         <MetricTile icon={PackageSearch} label="Заявок без ответа" value={String(noReply)} tone="warn" delta="+2" deltaGood={false} />
-        <MetricTile icon={TrendingDown} label="Отклонение план-факт" value={`${deviation}`} unit="%" tone="danger" delta="−3,1 п.п." deltaGood={false} />
         <MetricTile icon={AlertTriangle} label="Критичных рисков" value={String(scopedRisks.filter((r) => r.severity === "critical").length)} tone="danger" delta="0" deltaGood />
+        <div className="md:col-span-2 xl:col-span-2"><MetricTile icon={TrendingDown} label="Отклонение план-факт" value={`${deviation}`} unit="%" tone="danger" delta="−3,1 п.п." deltaGood={false} /></div>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="grid min-w-0 gap-4">
+      <div className="mt-3.5 grid gap-3.5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid min-w-0 gap-3.5">
           <Panel
             title="Требует внимания"
             bodyClassName="p-0"
@@ -125,7 +125,7 @@ function Dashboard() {
               {scopedRisks.map((r) => {
                 const Icon = attentionIcons[r.kind];
                 return (
-                  <li key={r.id} className="flex flex-wrap items-start gap-3 px-5 py-3">
+                  <li key={r.id} className="flex flex-wrap items-start gap-3 px-5 py-3.5 transition-fast hover:bg-hover">
                     <Icon
                       className={cn("mt-0.5 size-4 shrink-0", r.severity === "critical" ? "text-danger" : "text-warn")}
                       strokeWidth={1.75}
@@ -151,9 +151,9 @@ function Dashboard() {
             </ul>
           </Panel>
 
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
             {scopedSites.map((s) => (
-              <article key={s.id} className="card-surface p-5">
+              <article key={s.id} className="card-surface p-5 transition-fast hover:border-border-strong hover:shadow-[var(--shadow-sm)]">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-card-title">{s.name}</h3>
                   <StatusBadge tone={siteStatusMeta[s.status]!.tone}>{siteStatusMeta[s.status]!.label}</StatusBadge>
@@ -161,7 +161,7 @@ function Dashboard() {
                 <p className="mt-1 text-caption text-text-muted">{s.address}</p>
                 <div className="mt-3 flex items-center gap-2">
                   <div className="h-1.5 flex-1 rounded-full bg-subtle">
-                    <div className="h-full rounded-full bg-accent" style={{ width: `${s.progress}%` }} />
+                      <div className="h-full rounded-full bg-accent" style={{ width: `${s.progress}%` }} />
                   </div>
                   <span className="text-caption tnum text-text-secondary">{s.progress}%</span>
                 </div>
@@ -196,13 +196,13 @@ function Dashboard() {
                     contentStyle={{
                       background: "var(--bg-surface)",
                       border: "1px solid var(--border)",
-                      borderRadius: 6,
+                      borderRadius: 14,
                       fontSize: 12,
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Area type="monotone" dataKey="plan" name="План, м²" stroke="var(--text-muted)" fill="var(--bg-subtle)" strokeWidth={1.5} />
-                  <Area type="monotone" dataKey="fact" name="Факт, м²" stroke="var(--accent)" fill="var(--accent-subtle)" strokeWidth={2} />
+                   <Area type="monotone" dataKey="fact" name="Факт, м²" stroke="var(--accent)" fill="var(--accent-soft)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -223,7 +223,7 @@ function Dashboard() {
             {scopedEvents.slice(0, 8).map((e) => {
               const Icon = channelIcons[e.channel];
               return (
-                <li key={e.id} className="px-5 py-3">
+                <li key={e.id} className="px-5 py-3.5 transition-fast hover:bg-hover">
                   <div className="flex items-center gap-2 text-caption text-text-muted">
                     <Icon className="size-3.5 shrink-0" strokeWidth={1.75} />
                     <span>{channelLabels[e.channel]}</span>
