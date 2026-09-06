@@ -15,7 +15,7 @@ export function BottomTabs() {
   const { setMobileNavOpen } = useApp();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 backdrop-blur-md lg:hidden md:inset-x-2 md:bottom-2 md:rounded-b-[var(--r-xl)]">
       {tabs.map((t) => {
         const active = t.to === "/" ? pathname === "/" : pathname.startsWith(t.to);
         return (

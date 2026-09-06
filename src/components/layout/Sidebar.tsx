@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronsLeft, ChevronsRight, LogOut, Moon, PanelsTopLeft, Sun, X } from "lucide-react";
+import { ChevronDown, ChevronsLeft, ChevronsRight, LogOut, Moon, PanelsTopLeft, Sun, X } from "lucide-react";
 import { ALL_SITES, industryPacks, useApp } from "@/lib/app-context";
 import { navGroups, type BadgeKey } from "@/lib/navigation";
 import { sites } from "@/mock/sites";
@@ -27,14 +27,14 @@ export function Sidebar() {
         <button
           type="button"
           aria-label="Закрыть меню"
-          className="fixed inset-0 z-40 bg-[#1a2228]/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-[color:color-mix(in_oklab,var(--ink)_32%,transparent)] backdrop-blur-[4px] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[264px] shrink-0 flex-col bg-sidebar-bg transition-[width,transform] duration-150 ease-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
-          sidebarCollapsed ? "lg:w-16" : "lg:w-[264px]",
+          "fixed inset-y-0 left-0 z-50 flex w-[260px] shrink-0 flex-col bg-[linear-gradient(180deg,var(--sidebar-from),var(--sidebar-to))] transition-[width,transform] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0",
+          sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[260px]",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -58,68 +58,72 @@ function SidebarInner({
   const counts = badgeCounts();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col text-sidebar-item">
-      <div className="flex items-center gap-2 border-b border-sidebar-border px-4 py-3">
-        <PanelsTopLeft className="size-5 shrink-0 text-sidebar-active-bar" strokeWidth={2} />
+    <div className="flex min-h-0 flex-1 flex-col p-3 text-sidebar-item">
+      <div className="flex items-center gap-2 px-1 py-1.5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--r-sm)] bg-ink text-primary-foreground shadow-[var(--shadow-xs)]">
+          <PanelsTopLeft className="size-[18px]" strokeWidth={2} />
+        </span>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[15px] leading-tight font-semibold text-sidebar-item-hover">neeklo FieldOps</div>
-            <div className="truncate text-[11px] text-sidebar-item">СК «Фасад-Проект»</div>
+            <div className="truncate text-sm leading-tight font-semibold text-sidebar-active-text">neeklo FieldOps</div>
+            <div className="truncate text-[11px] text-text-muted">СК «Фасад-Проект»</div>
           </div>
         )}
         <button
           type="button"
           onClick={onClose}
           aria-label="Закрыть меню"
-          className="grid size-11 place-items-center text-sidebar-item transition-fast hover:text-sidebar-item-hover lg:hidden"
+          className="grid size-11 place-items-center rounded-full text-sidebar-item hover:bg-hover hover:text-sidebar-item-hover lg:hidden"
         >
           <X className="size-5" />
         </button>
       </div>
 
       {!collapsed && (
-        <div className="space-y-2 border-b border-sidebar-border px-3 py-3">
-          <label className="block">
-            <span className="text-[11px] tracking-[0.1em] text-sidebar-item uppercase">Отраслевой пакет</span>
+        <div className="mt-3 space-y-2">
+          <label className="relative block rounded-[var(--r-sm)] bg-surface px-3 py-2 shadow-[var(--shadow-xs)]">
+            <span className="block text-overline text-text-muted">Отраслевой пакет</span>
             <select
               value={pack}
               onChange={(e) => setPack(e.target.value as typeof pack)}
-              className="mt-1 h-9 w-full rounded-md border border-sidebar-border bg-[rgba(255,255,255,0.06)] px-2 text-[13px] text-sidebar-item-hover outline-none focus:border-sidebar-active-bar"
+              className="mt-0.5 h-6 w-full appearance-none bg-transparent pr-6 text-sm font-medium text-text-primary outline-none"
             >
               {industryPacks.map((p) => (
-                <option key={p.id} value={p.id} className="text-text-primary">
+                <option key={p.id} value={p.id}>
                   {p.label} — {p.hint}
                 </option>
               ))}
             </select>
+            <ChevronDown className="pointer-events-none absolute right-3 bottom-3 size-4 text-text-muted" />
           </label>
-          <label className="block">
-            <span className="text-[11px] tracking-[0.1em] text-sidebar-item uppercase">Объект</span>
+          <label className="relative block rounded-[var(--r-sm)] bg-surface px-3 py-2 shadow-[var(--shadow-xs)]">
+            <span className="block text-overline text-text-muted">Объект</span>
             <select
               value={siteId}
               onChange={(e) => setSiteId(e.target.value)}
-              className="mt-1 h-9 w-full rounded-md border border-sidebar-border bg-[rgba(255,255,255,0.06)] px-2 text-[13px] text-sidebar-item-hover outline-none focus:border-sidebar-active-bar"
+              className="mt-0.5 h-6 w-full appearance-none bg-transparent pr-6 text-sm font-medium text-text-primary outline-none"
             >
-              <option value={ALL_SITES} className="text-text-primary">
+              <option value={ALL_SITES}>
                 Все объекты
               </option>
               {sites.map((s) => (
-                <option key={s.id} value={s.id} className="text-text-primary">
+                <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
               ))}
             </select>
+            <ChevronDown className="pointer-events-none absolute right-3 bottom-3 size-4 text-text-muted" />
           </label>
         </div>
       )}
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+      <nav className="mt-2 min-h-0 flex-1 overflow-y-auto py-1">
         {navGroups.map((group) => (
-          <div key={group.title} className="mb-3">
+          <div key={group.title} className="mb-1 pt-3">
             {!collapsed && (
-              <div className="px-2 pb-1 text-[11px] tracking-[0.1em] text-sidebar-item/70 uppercase">{group.title}</div>
+              <div className="px-2 pb-1.5 text-overline text-[var(--sidebar-section)]">{group.title}</div>
             )}
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {group.items.map((item) => {
                 const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
                 const count = item.badge ? counts[item.badge] : 0;
@@ -130,24 +134,21 @@ function SidebarInner({
                       onClick={onClose}
                       title={collapsed ? item.label : undefined}
                       className={cn(
-                        "relative flex min-h-11 items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-fast lg:min-h-0",
+                        "flex h-11 items-center gap-2.5 rounded-[var(--r-sm)] px-2.5 text-sm font-medium lg:h-[38px]",
                         active
-                          ? "bg-sidebar-active-bg text-sidebar-active-text"
+                          ? "bg-sidebar-active-bg text-sidebar-active-text shadow-[var(--shadow-xs)] [&>svg]:text-sidebar-active-bar"
                           : "text-sidebar-item hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover",
                       )}
                     >
-                      {active && (
-                        <span className="absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-sm bg-sidebar-active-bar" />
-                      )}
-                      <item.icon className="size-4 shrink-0" strokeWidth={1.75} />
+                      <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
                       {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
                       {!collapsed && count > 0 && (
                         <span
                           className={cn(
-                            "rounded-sm px-1.5 py-0.5 text-[11px] font-medium tnum",
+                            "grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-semibold tnum",
                             item.badge === "criticalRisks" || item.badge === "overdueTasks"
-                              ? "bg-danger text-white"
-                              : "bg-[rgba(255,255,255,0.12)] text-sidebar-item-hover",
+                              ? "bg-danger-bg text-danger"
+                              : "bg-hover text-text-secondary",
                           )}
                         >
                           {count}
@@ -162,22 +163,22 @@ function SidebarInner({
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-2">
-          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[rgba(255,255,255,0.1)] text-[11px] font-medium text-sidebar-item-hover">
+      <div className="border-t border-sidebar-border pt-3">
+        <div className="flex items-center gap-2 rounded-[var(--r-sm)] px-2 py-1.5 hover:bg-[var(--sidebar-hover-bg)]">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-pastel-violet text-[11px] font-medium text-pastel-violet-fg">
             СИ
           </span>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] text-sidebar-item-hover">{user?.name}</div>
-              <div className="truncate text-[11px] text-sidebar-item">{user?.roleLabel}</div>
+              <div className="truncate text-[13px] font-medium text-sidebar-active-text">{user?.name}</div>
+              <div className="truncate text-[11px] text-text-muted">{user?.roleLabel}</div>
             </div>
           )}
           <button
             type="button"
             onClick={toggleTheme}
             aria-label="Переключить тему"
-            className="grid size-8 place-items-center rounded-md text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover"
+            className="grid size-8 place-items-center rounded-full text-sidebar-item hover:bg-hover hover:text-sidebar-item-hover"
           >
             {theme === "light" ? <Moon className="size-4" /> : <Sun className="size-4" />}
           </button>
@@ -185,7 +186,7 @@ function SidebarInner({
             <button
               type="button"
               aria-label="Выход"
-              className="grid size-8 place-items-center rounded-md text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover"
+              className="grid size-8 place-items-center rounded-full text-sidebar-item hover:bg-hover hover:text-sidebar-item-hover"
             >
               <LogOut className="size-4" />
             </button>
@@ -194,7 +195,7 @@ function SidebarInner({
         <button
           type="button"
           onClick={onToggle}
-          className="mt-2 hidden w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-[11px] text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:flex"
+          className="mt-1 hidden h-8 w-full items-center justify-center gap-1.5 rounded-[var(--r-sm)] text-[11px] text-sidebar-item hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:flex"
         >
           {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
           {!collapsed && "Свернуть меню"}
