@@ -7,19 +7,21 @@ import { CommandPalette } from "./CommandPalette";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen overflow-x-clip bg-background text-text-primary">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
-        <div className="flex min-w-0 flex-1 items-start">
-          <main className="min-w-0 flex-1 px-4 py-4 pb-20 lg:px-6 lg:py-6 lg:pb-6">
-            <div className="mx-auto w-full max-w-[1680px]">{children}</div>
-          </main>
-          <AgentPanel />
+    <div className="h-dvh overflow-hidden bg-background p-0 text-text-primary md:p-2 xl:p-4">
+      <div className="flex h-full min-h-0 overflow-hidden bg-[var(--bg-shell)] shadow-[var(--shadow-shell)] md:rounded-[var(--r-xl)]">
+        <Sidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar />
+          <div className="flex min-h-0 min-w-0 flex-1 items-stretch">
+            <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5 pb-20 md:px-7 md:py-6 lg:pb-7">
+              <div className="mx-auto w-full max-w-[1680px]">{children}</div>
+            </main>
+            <AgentPanel />
+          </div>
         </div>
+        <BottomTabs />
+        <CommandPalette />
       </div>
-      <BottomTabs />
-      <CommandPalette />
     </div>
   );
 }
