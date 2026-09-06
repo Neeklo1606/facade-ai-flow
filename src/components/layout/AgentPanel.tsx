@@ -62,7 +62,7 @@ export function AgentPanel() {
   return (
     <aside
       className={cn(
-        "fixed inset-0 z-50 flex flex-col bg-surface lg:sticky lg:top-14 lg:z-20 lg:h-[calc(100vh-3.5rem)] lg:w-[420px] lg:shrink-0 lg:border-l lg:border-border",
+        "fixed inset-0 z-50 flex flex-col bg-surface shadow-[var(--shadow-md)] lg:relative lg:inset-auto lg:z-20 lg:h-full lg:w-[440px] lg:shrink-0 lg:rounded-l-[var(--r-lg)] lg:border-l lg:border-border",
       )}
     >
       <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
@@ -74,7 +74,7 @@ export function AgentPanel() {
           type="button"
           onClick={() => setAgentPanelOpen(false)}
           aria-label="Закрыть панель"
-          className="grid size-11 place-items-center rounded-md text-text-secondary transition-fast hover:bg-subtle lg:size-9"
+            className="grid size-11 place-items-center rounded-full text-text-secondary transition-fast hover:bg-hover lg:size-9"
         >
           <X className="size-4" />
         </button>
@@ -87,10 +87,10 @@ export function AgentPanel() {
 
         {thread.map((m, i) => (
           <div key={i} className="space-y-2">
-            <div className="ml-auto w-fit max-w-[85%] rounded-md bg-accent-subtle px-3 py-2 text-[13px] text-accent">
+            <div className="ml-auto w-fit max-w-[85%] rounded-[var(--r-md)] bg-accent-subtle px-3 py-2 text-[13px] text-accent">
               {m.q}
             </div>
-            <div className="rounded-md border border-border bg-subtle p-3">
+            <div className="rounded-[var(--r-md)] border border-border bg-raised p-3">
               <p className="text-[13px] leading-relaxed">{m.a.text}</p>
               <div className="mt-2">
                 <ConfidenceIndicator value={m.a.confidence} />
@@ -117,7 +117,7 @@ export function AgentPanel() {
               key={c}
               type="button"
               onClick={() => ask(c)}
-              className="block w-full rounded-md border border-border px-3 py-2 text-left text-caption transition-fast hover:bg-subtle"
+              className="block w-full rounded-[var(--r-sm)] border border-border px-3 py-2 text-left text-caption transition-fast hover:bg-hover"
             >
               {c}
             </button>
