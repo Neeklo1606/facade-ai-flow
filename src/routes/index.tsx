@@ -101,7 +101,7 @@ function Dashboard() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 xl:grid-cols-4">
         <div className="xl:col-span-2"><MetricTile icon={Building2} label="Активных объектов" value={String(scopedSites.length)} delta="+1" deltaGood /></div>
         <MetricTile icon={Clock} label="Задач просрочено" value={String(overdue)} tone="danger" delta="+1" deltaGood={false} />
         <MetricTile icon={Inbox} label="Событий ждёт проверки" value={String(pendingReview)} tone="warn" delta="−3" deltaGood />
