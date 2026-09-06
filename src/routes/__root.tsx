@@ -24,7 +24,7 @@ function NotFoundComponent() {
         <p className="mt-2 text-text-secondary">Проверьте адрес или вернитесь на дашборд.</p>
         <Link
           to="/"
-          className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-fast hover:opacity-90"
+          className="mt-6 inline-flex h-[38px] items-center justify-center rounded-full bg-primary px-[18px] text-[13px] font-medium text-primary-foreground hover:bg-[var(--ink-hover)]"
         >
           На дашборд
         </Link>
@@ -50,7 +50,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             router.invalidate();
             reset();
           }}
-          className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-fast hover:opacity-90"
+          className="mt-6 inline-flex h-[38px] items-center justify-center rounded-full bg-primary px-[18px] text-[13px] font-medium text-primary-foreground hover:bg-[var(--ink-hover)]"
         >
           Повторить
         </button>
@@ -64,7 +64,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#23303a" },
+      { name: "theme-color", content: "#e9eaec" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

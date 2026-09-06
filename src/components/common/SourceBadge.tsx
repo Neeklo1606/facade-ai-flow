@@ -22,7 +22,7 @@ export function SourceBadge({ agent, at, source, confidence, onOpen, className }
           onClick={onOpen}
           aria-label={`Источник: ${source}. Заполнено агентом «${agent}»`}
           className={cn(
-            "inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-accent transition-fast hover:bg-accent-subtle",
+            "inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-subtle text-text-muted transition-fast hover:bg-accent-subtle hover:text-accent",
             className,
           )}
         >

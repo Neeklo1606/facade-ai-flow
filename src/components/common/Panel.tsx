@@ -19,7 +19,7 @@ export function Panel({
   return (
     <section className={cn("card-surface flex min-w-0 flex-col", className)}>
       {(title || action) && (
-        <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
+        <header className="flex min-h-14 items-center justify-between gap-3 border-b border-border px-5 py-3">
           {typeof title === "string" ? <h2 className="text-card-title">{title}</h2> : title}
           {action}
         </header>

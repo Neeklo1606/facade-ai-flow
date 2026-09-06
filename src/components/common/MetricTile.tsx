@@ -21,18 +21,18 @@ export function MetricTile({
   const valueTone =
     tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : tone === "ok" ? "text-ok" : "text-text-primary";
   return (
-    <div className="card-surface p-5">
-      <div className="flex items-center gap-2 text-text-secondary">
-        <Icon className="size-4" strokeWidth={1.75} />
+    <div className="card-surface min-h-[148px] p-5">
+      <div className="flex items-center justify-between gap-3 text-text-secondary">
         <span className="text-caption">{label}</span>
+        <Icon className="size-[18px] text-text-muted" strokeWidth={1.75} />
       </div>
-      <div className="mt-2 flex items-baseline gap-1.5">
-        <span className={cn("text-[26px] leading-none font-semibold tnum", valueTone)}>{value}</span>
-        {unit && <span className="text-caption text-text-muted">{unit}</span>}
+      <div className="mt-4 flex items-baseline gap-1.5">
+        <span className={cn("text-[40px] leading-none font-semibold tnum", valueTone)}>{value}</span>
+        {unit && <span className="text-sm text-text-muted">{unit}</span>}
       </div>
       {delta && (
-        <div className={cn("mt-2 text-caption tnum", deltaGood ? "text-ok" : "text-danger")}>
-          {delta} <span className="text-text-muted">к прошлой неделе</span>
+        <div className={cn("mt-3 text-caption tnum", deltaGood ? "text-ok" : "text-danger")}>
+          {deltaGood ? "↗" : "↘"} {delta} <span className="text-text-muted">к прошлой неделе</span>
         </div>
       )}
     </div>
