@@ -3,11 +3,20 @@ import { Bell, Bot, ChevronRight, Menu, MessageSquare, Search } from "lucide-rea
 import { useApp } from "@/lib/app-context";
 import { findNavItem } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { events } from "@/mock/events";
+import { fmtAgo } from "@/lib/format";
+
+/** Что агенты обрабатывают прямо сейчас. */
+function activeJobs() {
+  return events.filter((e) => e.status === "received" || e.status === "recognizing");
+}
 
 export function Topbar() {
   const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, setCommandOpen } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const item = findNavItem(pathname);
+  const jobs = activeJobs();
 
   return (
     <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-[var(--bg-shell)] px-4 lg:px-7">
