@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export function confidenceLevel(value: number) {
@@ -13,15 +14,21 @@ const dot: Record<"high" | "mid" | "low", string> = {
 };
 
 const label: Record<"high" | "mid" | "low", string> = {
-  high: "высокая уверенность",
-  mid: "средняя уверенность",
-  low: "низкая уверенность",
+  high: "Проверено",
+  mid: "Уточнить",
+  low: "Требует проверки",
 };
 
-/** Единый индикатор уверенности модели. Низкая — всегда с пометкой «требует проверки». */
+const textTone: Record<"high" | "mid" | "low", string> = {
+  high: "text-text-secondary",
+  mid: "text-conf-mid",
+  low: "text-conf-low",
+};
+
+/** Уверенность модели человеческим языком; число — в тултипе. */
 export function ConfidenceIndicator({
   value,
-  showValue = true,
+  showValue = false,
   className,
 }: {
   value: number;
@@ -30,12 +37,17 @@ export function ConfidenceIndicator({
 }) {
   const level = confidenceLevel(value);
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-caption tnum", className)} title={`${label[level]}: ${value.toFixed(2)}`}>
-      <span className={cn("size-2 shrink-0 rounded-full", dot[level])} aria-hidden />
-      {showValue && level !== "low" && <span className="text-text-secondary">{value.toFixed(2)}</span>}
-      {level === "low" && (
-        <span className="text-[11px] font-medium text-conf-low">требует проверки</span>
-      )}
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={cn("inline-flex cursor-help items-center gap-1.5 text-caption", className)}>
+          <span className={cn("size-2 shrink-0 rounded-full", dot[level])} aria-hidden />
+          <span className={cn("font-medium", textTone[level])}>{label[level]}</span>
+          {showValue && <span className="tnum text-text-muted">{value.toFixed(2)}</span>}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        Уверенность модели: <span className="tnum font-medium">{value.toFixed(2)}</span>
+      </TooltipContent>
+    </Tooltip>
   );
 }

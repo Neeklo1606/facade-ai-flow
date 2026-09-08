@@ -237,3 +237,36 @@
 @utility text-caption { font-size: 12px; line-height: 1.5; }
 @utility text-overline { font-size: 11px; line-height: 1.2; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; }
 @utility transition-fast { transition-duration: 140ms; transition-timing-function: cubic-bezier(.2,.8,.2,1); }
+/* --- Микровзаимодействия и живая обработка --- */
+@keyframes fo-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes fo-indeterminate { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+@keyframes fo-pulse-dot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.82); } }
+@keyframes fo-flash { from { background: var(--accent-soft); } to { background: transparent; } }
+
+@utility skeleton {
+  border-radius: var(--r-xs);
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--bg-hover) 37%, var(--bg-subtle) 63%);
+  background-size: 200% 100%;
+  animation: fo-shimmer 1.6s ease-in-out infinite;
+}
+@utility live-bar { position: absolute; inset-inline: 0; bottom: 0; height: 2px; overflow: hidden; background: var(--accent-soft); }
+@utility live-bar-fill { display: block; height: 100%; width: 33%; background: var(--accent); animation: fo-indeterminate 1.4s ease-in-out infinite; }
+@utility pulse-dot { animation: fo-pulse-dot 1.4s ease-in-out infinite; }
+@utility flash-done { animation: fo-flash 800ms ease-out forwards; }
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 35%, transparent);
+    outline-offset: 2px;
+  }
+}
+@utility nav-scroll {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: transparent; border-radius: var(--r-pill); }
+  &:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
+}
+
+.density-compact { font-size: 13px; }
+.density-compact .card-surface { padding: 14px; }
