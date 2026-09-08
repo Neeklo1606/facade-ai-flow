@@ -1,16 +1,17 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-pill)] text-sm font-medium cursor-pointer transition-fast focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[color:color-mix(in_oklab,var(--accent)_20%,transparent)] disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-pill)] text-sm font-medium cursor-pointer transition-fast outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:color-mix(in_oklab,var(--accent)_35%,transparent)] disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-ink text-primary-foreground hover:bg-[var(--ink-hover)] hover:shadow-[var(--shadow-sm)]",
-        accent: "bg-accent text-accent-foreground hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-sm)]",
+        default: "bg-ink text-primary-foreground hover:bg-[var(--ink-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
+        accent: "bg-accent text-accent-foreground hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
         destructive: "bg-transparent text-danger hover:bg-danger-bg",
         outline: "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
         secondary: "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
@@ -34,13 +35,30 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  loading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    if (asChild) {
+      return (
+        <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>
+          {children}
+        </Comp>
+      );
+    }
     return (
-      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        {...props}
+      >
+        {loading && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+        {children}
+      </Comp>
     );
   },
 );
