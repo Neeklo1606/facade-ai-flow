@@ -86,11 +86,19 @@ export function MetricTile({
       </div>
 
       <div className="flex items-end justify-between gap-2">
-        <span className="flex items-baseline gap-1">
-          <span className={cn("text-[34px] leading-none font-semibold tracking-[-0.02em] tnum", valueTone)}>{value}</span>
+        <span className="flex min-w-0 items-baseline gap-1">
+          <span
+            className={cn(
+              "leading-none font-semibold tracking-[-0.02em] tnum",
+              value.length > 4 ? "text-[26px]" : "text-[34px]",
+              valueTone,
+            )}
+          >
+            {value}
+          </span>
           {unit && <span className="text-[13px] text-text-secondary">{unit}</span>}
         </span>
-        {trend && trend.length > 1 && <Sparkline data={trend} stroke={lineColor} />}
+        {trend && trend.length > 1 && <span className="hidden sm:block"><Sparkline data={trend} stroke={lineColor} /></span>}
       </div>
 
       <div className="flex items-center gap-1.5 text-caption">

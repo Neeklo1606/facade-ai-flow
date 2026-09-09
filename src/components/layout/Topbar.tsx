@@ -50,6 +50,39 @@ export function Topbar() {
       </button>
 
       <div className="flex shrink-0 items-center gap-1.5">
+        {jobs.length > 0 && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="focus-ring hidden h-[38px] items-center gap-2 rounded-full border border-border bg-surface px-3 text-[13px] text-text-secondary transition-fast hover:bg-hover sm:flex"
+                aria-label="Агенты в работе"
+              >
+                <span className="pulse-dot size-2 rounded-full bg-accent" aria-hidden />
+                <span className="tnum font-medium text-text-primary">{jobs.length}</span>
+                <span className="hidden lg:inline">в работе</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[340px] p-0">
+              <p className="border-b border-border px-4 py-2.5 text-caption text-text-secondary">
+                Обрабатывается прямо сейчас
+              </p>
+              <ul className="divide-y divide-border">
+                {jobs.map((j) => (
+                  <li key={j.id} className="relative px-4 py-3">
+                    <p className="truncate text-[13px]">{j.preview}</p>
+                    <p className="mt-0.5 text-caption text-text-muted">
+                      {j.authorName} · {fmtAgo(j.at)}
+                    </p>
+                    <span className="live-bar" aria-hidden>
+                      <span className="live-bar-fill" />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        )}
         <Button
           size="sm"
           variant="default"
