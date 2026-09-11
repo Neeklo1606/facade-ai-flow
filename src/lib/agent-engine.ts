@@ -86,7 +86,7 @@ export function buildIndex(): AgentEntity[] {
     ...requests.map<AgentEntity>((r) => ({
       id: r.id,
       kind: "Заявка",
-      title: r.number ?? r.id,
+      title: `Заявка ${r.id.replace("r-", "З-")}`,
       subtitle: `${siteName(r.siteId)} · ответов: ${r.repliesCount}`,
       to: "/requests",
       tone: r.repliesCount === 0 ? "warn" : "info",
