@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "@xyflow/react/dist/style.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -156,6 +157,17 @@
   --r-lg: 10px;
   --r-xl: 12px;
   --r-pill: 999px;
+  --void: #101316;
+  --line: #3b454c;
+  --line-strong: #566168;
+  --raised: #20262b;
+  --ember: #ff7a45;
+  --flare: #dc6b62;
+  --flare-dim: rgba(220,107,98,.55);
+  --glow-flare: 0 0 24px rgba(220,107,98,.14);
+  --glow-ember: 0 0 26px rgba(255,122,69,.2);
+  --graph-dot: rgba(255,255,255,.12);
+  --minimap-mask: rgba(11,13,15,.72);
 }
 
 .dark {
@@ -217,6 +229,17 @@
   --pastel-slate-bg: #252b2f;
   --pastel-slate-fg: #abb3b8;
   --shadow-shell: 0 24px 80px rgba(0,0,0,.45);
+  --void: #0b0d0f;
+  --line: #2a3136;
+  --line-strong: #566168;
+  --raised: #20262b;
+  --ember: #ff7a45;
+  --flare: #dc6b62;
+  --flare-dim: rgba(220,107,98,.55);
+  --glow-flare: 0 0 24px rgba(220,107,98,.14);
+  --glow-ember: 0 0 26px rgba(255,122,69,.2);
+  --graph-dot: rgba(255,255,255,.12);
+  --minimap-mask: rgba(11,13,15,.72);
 }
 
 @layer base {
@@ -296,3 +319,36 @@
 @utility graph-node { width:100%; min-height:190px; padding:18px; border:1px solid var(--border-strong); border-radius:var(--r-md); background:color-mix(in oklab,var(--bg-surface) 94%,transparent); box-shadow:var(--shadow-sm); @media (min-width:1024px) { max-width:230px; } }
 @utility graph-node-alert { border-color:color-mix(in oklab,var(--danger) 45%,var(--border)); box-shadow:0 0 28px color-mix(in oklab,var(--danger) 10%,transparent); }
 @utility graph-node-action { border-color:var(--accent-border); box-shadow:0 0 28px color-mix(in oklab,var(--accent) 10%,transparent); }
+
+@keyframes provenance-flow { to { stroke-dashoffset: -24; } }
+
+@utility provenance-node {
+  width: 220px;
+  height: 96px;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  cursor: pointer;
+}
+@utility provenance-node-critical { border-color: var(--flare-dim); box-shadow: var(--glow-flare); }
+@utility provenance-node-active { border-color: var(--ember); box-shadow: var(--glow-ember); }
+@utility provenance-handle { width: 1px; height: 1px; min-width: 1px; min-height: 1px; opacity: 0; border: 0; }
+@utility provenance-minimap { width: 160px !important; height: 120px !important; right: 12px; bottom: 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: color-mix(in oklab,var(--raised) 86%,transparent); backdrop-filter: blur(14px); box-shadow: var(--shadow-md); }
+@utility provenance-controls { right: 12px; bottom: 140px; margin: 0; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow-sm); }
+@utility provenance-drawer { position: absolute; z-index: 10; inset-block: 12px; right: 12px; width: min(340px,calc(100% - 24px)); border: 1px solid var(--line); border-radius: var(--r-sm); background: color-mix(in oklab,var(--raised) 94%,transparent); backdrop-filter: blur(18px); box-shadow: var(--shadow-md); animation: slide-in-right .2s ease-out; }
+
+.provenance-overlay { color-scheme: dark; --bg-page: #0b0d0f; --bg-surface: #181d21; --bg-raised: #20262b; --bg-hover: #2b3238; --text-primary: #f3f5f6; --text-secondary: #a3acb1; --text-muted: #69747a; --border: #2a3136; --border-strong: #3b454c; }
+
+.react-flow__edge-path { stroke: var(--line-strong); stroke-width: 1.5; }
+.react-flow__edge.edge-assumed .react-flow__edge-path { stroke-dasharray: 4 4; }
+.react-flow__edge.edge-critical .react-flow__edge-path { stroke: var(--flare); stroke-width: 2; stroke-dasharray: 8 5; animation: provenance-flow 3s linear infinite; }
+.react-flow__edge.edge-critical marker path { fill: var(--flare); }
+.react-flow__controls-button { width: 34px; height: 34px; border: 0; background: var(--raised); color: var(--text-primary); }
+.react-flow__controls-button:hover { background: var(--bg-hover); }
+.react-flow__controls-button svg { fill: currentColor; }
+.react-flow__minimap-mask { fill: var(--minimap-mask); }
+.react-flow__minimap { background-color: color-mix(in oklab,var(--raised) 88%,transparent) !important; }
