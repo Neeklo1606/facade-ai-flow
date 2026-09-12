@@ -180,13 +180,27 @@ function CommandCenter() {
         </div>
       </header>
 
-      <section className="metric-strip" aria-label="Оперативные показатели">
+      <section className="metric-strip items-center" aria-label="Оперативные показатели">
         {metrics.map((metric, index) => (
           <article key={metric.label} className="terminal-metric">
             <div className="min-w-0"><p className="terminal-label truncate">{metric.label}</p><div className="mt-1 flex items-baseline gap-2"><strong className={cn("mono text-display", metric.alert && "text-danger")}>{metric.value}</strong><span className={cn("mono text-micro", metric.alert ? "text-danger" : "text-ok")}>{metric.delta}</span></div></div>
             <Sparkline data={metricSeeds[index] ?? metricSeeds[0] ?? [0, 0]} alert={metric.alert} />
           </article>
         ))}
+        <article className="terminal-metric items-center gap-4">
+          <ProgressRing value={confirmedPct} status={confirmedPct >= 70 ? "ok" : "warn"} label="поток" threshold={70} />
+          <div className="min-w-0">
+            <p className="terminal-label truncate">Поток подтверждён</p>
+            <p className="mt-1 text-dense text-text-secondary">Доля сигналов с проверенным источником</p>
+            <p className="mt-2 mono text-micro text-ok">+4,8 за неделю</p>
+          </div>
+          <ProgressRing value={criticalCount} status={criticalCount > 0 ? "danger" : "ok"} label="критич." threshold={1} />
+          <div className="min-w-0">
+            <p className="terminal-label truncate">Критические</p>
+            <p className="mt-1 text-dense text-text-secondary">Требуют решения сегодня</p>
+            <p className="mt-2 mono text-micro text-danger">+2 за смену</p>
+          </div>
+        </article>
       </section>
 
       <div className="grid min-h-0 xl:grid-cols-[minmax(0,1fr)_320px]">
