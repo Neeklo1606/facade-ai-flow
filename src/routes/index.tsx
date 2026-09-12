@@ -187,23 +187,24 @@ function CommandCenter() {
             <Sparkline data={metricSeeds[index] ?? metricSeeds[0] ?? [0, 0]} alert={metric.alert} />
           </article>
         ))}
-        <article className="terminal-metric col-span-full flex items-center justify-center gap-6 border-t border-border/60 py-4 lg:col-span-1 lg:border-t-0 lg:py-0">
-          <div className="flex items-center gap-3">
-            <ProgressRing value={confirmedPct} status={confirmedPct >= 70 ? "ok" : "warn"} label="поток" threshold={70} />
-            <div className="min-w-0">
-              <p className="terminal-label truncate">Поток подтверждён</p>
-              <p className="mt-1 mono text-micro text-ok">+4,8 за неделю</p>
-            </div>
+      </section>
+
+      <section className="flex flex-wrap items-center gap-x-8 gap-y-4 border-b border-border px-4 py-4 lg:px-6" aria-label="Сводные показатели">
+        <div className="flex items-center gap-3">
+          <ProgressRing value={confirmedPct} status={confirmedPct >= 70 ? "ok" : "warn"} label="поток" threshold={70} />
+          <div className="min-w-0">
+            <p className="terminal-label">Поток подтверждён</p>
+            <p className="mt-1 mono text-micro text-ok">+4,8 за неделю</p>
           </div>
-          <span className="hidden h-10 w-px bg-border/60 lg:block" aria-hidden />
-          <div className="flex items-center gap-3">
-            <ProgressRing value={criticalCount} status={criticalCount > 0 ? "danger" : "ok"} label="критич." threshold={1} />
-            <div className="min-w-0">
-              <p className="terminal-label truncate">Критические</p>
-              <p className="mt-1 mono text-micro text-danger">+2 за смену</p>
-            </div>
+        </div>
+        <span className="hidden h-10 w-px bg-border/60 lg:block" aria-hidden />
+        <div className="flex items-center gap-3">
+          <ProgressRing value={criticalCount} status={criticalCount > 0 ? "danger" : "ok"} label="критич." threshold={1} />
+          <div className="min-w-0">
+            <p className="terminal-label">Критические</p>
+            <p className="mt-1 mono text-micro text-danger">+2 за смену</p>
           </div>
-        </article>
+        </div>
       </section>
 
       <div className="grid min-h-0 xl:grid-cols-[minmax(0,1fr)_320px]">
