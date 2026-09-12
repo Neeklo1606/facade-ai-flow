@@ -2,6 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 
 export const Route = createFileRoute("/risks")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    severity: typeof search['severity'] === "string" ? (search['severity'] as string) : undefined,
+    kind: typeof search['kind'] === "string" ? (search['kind'] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Риски и отклонения — neeklo FieldOps" },

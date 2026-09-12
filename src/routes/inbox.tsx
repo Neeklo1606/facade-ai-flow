@@ -21,6 +21,10 @@ import { cn } from "@/lib/utils";
 import type { EventChannel, EventType } from "@/types";
 
 export const Route = createFileRoute("/inbox")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search['status'] === "string" ? (search['status'] as string) : undefined,
+    channel: typeof search['channel'] === "string" ? (search['channel'] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Входящие — neeklo FieldOps" },
@@ -50,9 +54,13 @@ const typeFilters: (EventType | "all")[] = ["all", "field_report", "supplier_rep
 
 function InboxPage() {
   const { siteId } = useApp();
-  const [channel, setChannel] = useState<EventChannel | "all">("all");
+  const search = Route.useSearch();
+  const initialChannel = channelFilters.includes((search.channel ?? "all") as EventChannel)
+    ? ((search.channel ?? "all") as EventChannel)
+    : "all";
+  const [channel, setChannel] = useState<EventChannel | "all">(initialChannel);
   const [type, setType] = useState<EventType | "all">("all");
-  const [onlyUnprocessed, setOnlyUnprocessed] = useState(false);
+  const [onlyUnprocessed, setOnlyUnprocessed] = useState(search.status === "review");
   const [selected, setSelected] = useState<string[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
 
