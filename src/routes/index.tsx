@@ -170,7 +170,7 @@ function ProvenanceGraph({ risk, onClose }: { risk: Risk; onClose: () => void })
         <div className="min-h-0 flex-1"><ProvenanceCanvas risk={risk} source={source} siteName={siteName} /></div>
         <footer className="flex shrink-0 items-center justify-between border-t border-border px-4 py-3 lg:px-8">
           <p className="text-caption text-text-muted">Связь подтверждена по журналу обработки. Данные синтетические.</p>
-          <Button variant="accent" size="sm" asChild><Link to={risk.sourceEventId ? "/inbox" : "/risks"}>Открыть источник</Link></Button>
+          <Button variant="accent" size="sm" asChild><Link to={risk.sourceEventId ? "/inbox" : "/risks"} search={{}}>Открыть источник</Link></Button>
         </footer>
       </div>
     </div>
@@ -185,8 +185,8 @@ function CommandCenter() {
   const [sourceEvent, setSourceEvent] = useState<FieldEvent | null>(null);
 
   const allowedSites = useMemo(
-    () => (ownScope === "mine" ? user.siteIds : sites.map((item) => item.id)),
-    [ownScope, user.siteIds],
+    () => (ownScope === "mine" ? (user?.siteIds ?? []) : sites.map((item) => item.id)),
+    [ownScope, user],
   );
 
   function scoped<T extends { siteId: string | null }>(items: T[]) {
