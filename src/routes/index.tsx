@@ -237,7 +237,7 @@ function CommandCenter() {
           <div className="min-w-0">
             <p className="terminal-label truncate">Незакрытый объём</p>
             <strong className="mono mt-1 block text-display text-danger">{fmtMln(unclosed.value)}</strong>
-            <p className="mt-1 text-micro text-text-muted">{fmtNum(unclosed.qty)} м² по облицовке</p>
+            <p className="mt-1 text-micro text-text-muted">{fmtNum(unclosed.qty)} м² {siteId === ALL_SITES ? "по объектам" : "по облицовке"}</p>
           </div>
         </Link>
 
