@@ -60,8 +60,8 @@ const metricSeeds = [
 ];
 
 function Sparkline({ data, alert = false }: { data: number[]; alert?: boolean }) {
-  const last = data.at(-1) ?? min;
   const min = Math.min(...data);
+  const last = data.at(-1) ?? min;
   const span = Math.max(...data) - min || 1;
   const points = data.map((v, i) => `${(i / (data.length - 1)) * 70 + 1},${26 - ((v - min) / span) * 20}`).join(" ");
   return (
