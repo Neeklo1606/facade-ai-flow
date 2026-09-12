@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
+import { ProgressRing } from "@/components/common/ProgressRing";
 import { ProvenanceCanvas } from "@/components/graph/ProvenanceCanvas";
 import { inScope, useApp } from "@/lib/app-context";
 import { fmtDate, fmtDateTime } from "@/lib/format";
@@ -157,9 +158,11 @@ function CommandCenter() {
     { label: "Критические решения", value: scopedRisks.filter((risk) => risk.severity === "critical").length, delta: "+2", alert: true },
     { label: "Просрочено задач", value: scopedTasks.filter((task) => task.status === "overdue").length, delta: "+1", alert: true },
     { label: "Требуют проверки", value: scopedEvents.filter((event) => event.status === "review" || event.status === "extracted").length, delta: "−3", alert: false },
-    { label: "Поток подтверждён", value: "72%", delta: "+4,8", alert: false },
     { label: "Заявок без ответа", value: scopedRequests.filter((request) => request.repliesCount === 0 && request.status !== "draft").length, delta: "−1", alert: false },
   ], [scopedEvents, scopedRequests, scopedRisks, scopedTasks]);
+
+  const confirmedPct = 72;
+  const criticalCount = scopedRisks.filter((risk) => risk.severity === "critical").length;
 
   return (
     <div className="terminal-page -mx-4 -my-5 min-h-full md:-mx-7 md:-my-6">
@@ -177,13 +180,31 @@ function CommandCenter() {
         </div>
       </header>
 
-      <section className="metric-strip" aria-label="Оперативные показатели">
+      <section className="metric-strip items-center" aria-label="Оперативные показатели">
         {metrics.map((metric, index) => (
           <article key={metric.label} className="terminal-metric">
             <div className="min-w-0"><p className="terminal-label truncate">{metric.label}</p><div className="mt-1 flex items-baseline gap-2"><strong className={cn("mono text-display", metric.alert && "text-danger")}>{metric.value}</strong><span className={cn("mono text-micro", metric.alert ? "text-danger" : "text-ok")}>{metric.delta}</span></div></div>
             <Sparkline data={metricSeeds[index] ?? metricSeeds[0] ?? [0, 0]} alert={metric.alert} />
           </article>
         ))}
+      </section>
+
+      <section className="flex flex-wrap items-center gap-x-8 gap-y-4 border-b border-border px-4 py-4 lg:px-6" aria-label="Сводные показатели">
+        <div className="flex items-center gap-3">
+          <ProgressRing value={confirmedPct} status={confirmedPct >= 70 ? "ok" : "warn"} label="поток" threshold={70} />
+          <div className="min-w-0">
+            <p className="terminal-label">Поток подтверждён</p>
+            <p className="mt-1 mono text-micro text-ok">+4,8 за неделю</p>
+          </div>
+        </div>
+        <span className="hidden h-10 w-px bg-border/60 lg:block" aria-hidden />
+        <div className="flex items-center gap-3">
+          <ProgressRing value={criticalCount} status={criticalCount > 0 ? "danger" : "ok"} label="критич." threshold={1} />
+          <div className="min-w-0">
+            <p className="terminal-label">Критические</p>
+            <p className="mt-1 mono text-micro text-danger">+2 за смену</p>
+          </div>
+        </div>
       </section>
 
       <div className="grid min-h-0 xl:grid-cols-[minmax(0,1fr)_320px]">
