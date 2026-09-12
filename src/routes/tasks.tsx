@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 
 export const Route = createFileRoute("/tasks")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search['status'] === "string" ? (search['status'] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Задачи и замечания — neeklo FieldOps" },
