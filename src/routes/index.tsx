@@ -2,24 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
-  ArrowRight,
-  Bot,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
-  FileAudio,
-  FileText,
   Mail,
   MessageSquare,
   Radio,
-  ScanLine,
-  ShieldCheck,
   Sparkles,
   Upload,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
+import { ProvenanceCanvas } from "@/components/graph/ProvenanceCanvas";
 import { inScope, useApp } from "@/lib/app-context";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -123,19 +118,12 @@ function DecisionRow({ risk, onOpen }: { risk: Risk; onOpen: (risk: Risk) => voi
 
 function ProvenanceGraph({ risk, onClose }: { risk: Risk; onClose: () => void }) {
   const source = events.find((event) => event.id === risk.sourceEventId);
+  const siteName = sites.find((site) => site.id === risk.siteId)?.name ?? "Объект";
   useEffect(() => {
     const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [onClose]);
-
-  const nodes = [
-    { eyebrow: "ИСТОЧНИК", title: source?.original.kind === "audio" ? "Голосовой отчёт" : source?.original.kind === "file" ? "Документ" : "Данные проекта", meta: source?.authorName ?? risk.sourceLabel, icon: source?.original.kind === "audio" ? FileAudio : FileText },
-    { eyebrow: "AI-ОБРАБОТКА", title: "Извлечены сущности", meta: source ? `${source.fields.length} полей · уверенность ${source.confidence.toFixed(2)}` : "Сопоставление план-факт", icon: ScanLine },
-    { eyebrow: "ФАКТ", title: risk.cause, meta: sites.find((site) => site.id === risk.siteId)?.name ?? "Объект", icon: ShieldCheck },
-    { eyebrow: "РИСК", title: risk.risk, meta: severityLabel[risk.severity], icon: AlertTriangle },
-    { eyebrow: "ДЕЙСТВИЕ", title: risk.action, meta: `${userName(risk.ownerId)} · ${fmtDate(risk.dueDate)}`, icon: CheckCircle2 },
-  ];
 
   return (
     <div className="fixed inset-0 z-[70] bg-background/96 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Граф происхождения решения">
@@ -147,26 +135,7 @@ function ProvenanceGraph({ risk, onClose }: { risk: Risk; onClose: () => void })
           </div>
           <Button variant="outline" size="icon" onClick={onClose} aria-label="Закрыть граф"><X /></Button>
         </header>
-        <div className="blueprint-grid min-h-0 flex-1 overflow-auto p-4 lg:grid lg:place-items-center lg:p-10">
-          <div className="mx-auto flex w-full max-w-[1480px] flex-col items-stretch gap-3 lg:flex-row lg:items-center lg:justify-center">
-            {nodes.map((node, index) => {
-              const Icon = node.icon;
-              return (
-                <div key={node.eyebrow} className="contents">
-                  <article className={cn("graph-node", index === 3 && "graph-node-alert", index === 4 && "graph-node-action")}>
-                    <div className="flex items-start justify-between gap-4">
-                      <span className="terminal-label">{node.eyebrow}</span>
-                      <Icon className="size-4 shrink-0 text-text-muted" />
-                    </div>
-                    <p className="mt-6 text-[15px] font-medium leading-snug">{node.title}</p>
-                    <p className="mono mt-3 text-micro text-text-muted">{node.meta}</p>
-                  </article>
-                  {index < nodes.length - 1 && <ArrowRight className="mx-auto size-5 shrink-0 rotate-90 text-accent lg:rotate-0" aria-hidden />}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <div className="min-h-0 flex-1"><ProvenanceCanvas risk={risk} source={source} siteName={siteName} /></div>
         <footer className="flex shrink-0 items-center justify-between border-t border-border px-4 py-3 lg:px-8">
           <p className="text-caption text-text-muted">Связь подтверждена по журналу обработки. Данные синтетические.</p>
           <Button variant="accent" size="sm" asChild><Link to={risk.sourceEventId ? "/inbox" : "/risks"}>Открыть источник</Link></Button>
