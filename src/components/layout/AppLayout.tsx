@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { AgentPanel } from "./AgentPanel";
+import { AgentDock } from "@/components/agent/AgentDock";
 import { BottomTabs } from "./BottomTabs";
 import { CommandPalette } from "./CommandPalette";
 
@@ -13,10 +13,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
           <div className="flex min-h-0 min-w-0 flex-1 items-stretch">
-            <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5 pb-20 md:px-7 md:py-6 lg:pb-7">
+            <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5 pb-24 md:px-7 md:py-6 lg:pb-7">
               <div className="mx-auto w-full max-w-[1680px]">{children}</div>
             </main>
-            <AgentPanel />
+            <AgentDock />
           </div>
         </div>
         <BottomTabs />
