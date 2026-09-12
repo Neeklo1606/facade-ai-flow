@@ -49,7 +49,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    if (!themeChosen) setTheme(window.matchMedia("(min-width: 1024px)").matches ? "dark" : "light");
+    if (themeChosen) return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const syncTheme = () => setTheme(desktop.matches ? "dark" : "light");
+    syncTheme();
+    desktop.addEventListener("change", syncTheme);
+    return () => desktop.removeEventListener("change", syncTheme);
   }, [themeChosen]);
 
   useEffect(() => {
