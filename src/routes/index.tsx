@@ -187,18 +187,21 @@ function CommandCenter() {
             <Sparkline data={metricSeeds[index] ?? metricSeeds[0] ?? [0, 0]} alert={metric.alert} />
           </article>
         ))}
-        <article className="terminal-metric items-center gap-4">
-          <ProgressRing value={confirmedPct} status={confirmedPct >= 70 ? "ok" : "warn"} label="поток" threshold={70} />
-          <div className="min-w-0">
-            <p className="terminal-label truncate">Поток подтверждён</p>
-            <p className="mt-1 text-dense text-text-secondary">Доля сигналов с проверенным источником</p>
-            <p className="mt-2 mono text-micro text-ok">+4,8 за неделю</p>
+        <article className="terminal-metric col-span-full flex items-center justify-center gap-6 border-t border-border/60 py-4 lg:col-span-1 lg:border-t-0 lg:py-0">
+          <div className="flex items-center gap-3">
+            <ProgressRing value={confirmedPct} status={confirmedPct >= 70 ? "ok" : "warn"} label="поток" threshold={70} />
+            <div className="min-w-0">
+              <p className="terminal-label truncate">Поток подтверждён</p>
+              <p className="mt-1 mono text-micro text-ok">+4,8 за неделю</p>
+            </div>
           </div>
-          <ProgressRing value={criticalCount} status={criticalCount > 0 ? "danger" : "ok"} label="критич." threshold={1} />
-          <div className="min-w-0">
-            <p className="terminal-label truncate">Критические</p>
-            <p className="mt-1 text-dense text-text-secondary">Требуют решения сегодня</p>
-            <p className="mt-2 mono text-micro text-danger">+2 за смену</p>
+          <span className="hidden h-10 w-px bg-border/60 lg:block" aria-hidden />
+          <div className="flex items-center gap-3">
+            <ProgressRing value={criticalCount} status={criticalCount > 0 ? "danger" : "ok"} label="критич." threshold={1} />
+            <div className="min-w-0">
+              <p className="terminal-label truncate">Критические</p>
+              <p className="mt-1 mono text-micro text-danger">+2 за смену</p>
+            </div>
           </div>
         </article>
       </section>
