@@ -337,7 +337,7 @@
 @utility provenance-node-critical { border-color: var(--flare-dim); box-shadow: var(--glow-flare); }
 @utility provenance-node-active { border-color: var(--ember); box-shadow: var(--glow-ember); }
 @utility provenance-handle { width: 1px; height: 1px; min-width: 1px; min-height: 1px; opacity: 0; border: 0; }
-@utility provenance-minimap { width: 160px; height: 120px; right: 12px; bottom: 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: color-mix(in oklab,var(--raised) 86%,transparent); backdrop-filter: blur(14px); box-shadow: var(--shadow-md); }
+@utility provenance-minimap { width: 160px !important; height: 120px !important; right: 12px; bottom: 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: color-mix(in oklab,var(--raised) 86%,transparent); backdrop-filter: blur(14px); box-shadow: var(--shadow-md); }
 @utility provenance-controls { right: 12px; bottom: 140px; margin: 0; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow-sm); }
 @utility provenance-drawer { position: absolute; z-index: 10; inset-block: 12px; right: 12px; width: min(340px,calc(100% - 24px)); border: 1px solid var(--line); border-radius: var(--r-sm); background: color-mix(in oklab,var(--raised) 94%,transparent); backdrop-filter: blur(18px); box-shadow: var(--shadow-md); animation: slide-in-right .2s ease-out; }
 

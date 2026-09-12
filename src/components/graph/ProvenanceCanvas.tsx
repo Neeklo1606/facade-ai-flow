@@ -99,7 +99,7 @@ function fitNodeLimit(nodes: GraphNode[], limit = 40): GraphNode[] {
   ];
 }
 
-export function ProvenanceCanvas({ risk, source, siteName }: { risk: Risk; source?: FieldEvent; siteName: string }) {
+export function ProvenanceCanvas({ risk, source, siteName }: { risk: Risk; source: FieldEvent | undefined; siteName: string }) {
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const rawNodes = useMemo<GraphNode[]>(() => [
     {
