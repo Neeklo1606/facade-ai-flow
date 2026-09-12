@@ -223,17 +223,18 @@ function SidebarInner({
             type="button"
             onClick={toggleTheme}
             aria-label="Переключить тему"
-            className="focus-ring grid size-8 place-items-center rounded-full text-sidebar-item hover:bg-hover hover:text-sidebar-item-hover"
+            title={theme === "light" ? "Тёмная тема" : "Светлая тема"}
+            className="focus-ring grid size-9 shrink-0 place-items-center rounded-full text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover"
           >
-            {theme === "light" ? <Moon className="size-4" /> : <Sun className="size-4" />}
+            {theme === "light" ? <Moon className="size-4 shrink-0" /> : <Sun className="size-4 shrink-0" />}
           </button>
           {!collapsed && (
             <button
               type="button"
               aria-label="Выход"
-              className="focus-ring grid size-8 place-items-center rounded-full text-sidebar-item hover:bg-hover hover:text-sidebar-item-hover"
+              className="focus-ring grid size-9 shrink-0 place-items-center rounded-full text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover"
             >
-              <LogOut className="size-4" />
+              <LogOut className="size-4 shrink-0" />
             </button>
           )}
         </div>
