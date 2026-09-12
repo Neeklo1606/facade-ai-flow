@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
+import { ProgressRing } from "@/components/common/ProgressRing";
 import { ProvenanceCanvas } from "@/components/graph/ProvenanceCanvas";
 import { inScope, useApp } from "@/lib/app-context";
 import { fmtDate, fmtDateTime } from "@/lib/format";
