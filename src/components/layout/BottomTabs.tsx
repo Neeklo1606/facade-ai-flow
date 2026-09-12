@@ -33,7 +33,7 @@ export function BottomTabs() {
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:inset-x-2 md:bottom-2 md:rounded-b-[var(--r-xl)] lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_32px_color-mix(in_oklab,var(--bg-page)_45%,transparent)] backdrop-blur-xl lg:hidden">
       {left.map((t) => (
         <Tab key={t.to} {...t} />
       ))}
@@ -42,7 +42,7 @@ export function BottomTabs() {
           type="button"
           onClick={() => setAgentPanelOpen(!agentPanelOpen)}
           aria-label="Открыть агента"
-          className="-mt-6 grid size-14 place-items-center rounded-full bg-ink text-primary-foreground shadow-[var(--shadow-md)] transition-fast active:scale-95"
+          className="-mt-6 grid size-14 place-items-center rounded-full bg-accent text-accent-foreground shadow-[0_0_24px_color-mix(in_oklab,var(--accent)_28%,transparent)] transition-fast active:scale-95"
         >
           <Sparkle className="size-6" strokeWidth={1.75} />
         </button>

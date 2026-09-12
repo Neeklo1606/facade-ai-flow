@@ -19,7 +19,7 @@ export function Topbar() {
   const jobs = activeJobs();
 
   return (
-    <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-[var(--bg-shell)] px-4 lg:px-7">
+    <header className="sticky top-0 z-30 flex h-[52px] shrink-0 items-center gap-3 border-b border-border bg-[color:color-mix(in_oklab,var(--bg-shell)_92%,transparent)] px-3 backdrop-blur-xl lg:px-5">
       <button
         type="button"
         onClick={() => setMobileNavOpen(true)}
@@ -40,7 +40,7 @@ export function Topbar() {
       <button
         type="button"
         onClick={() => setCommandOpen(true)}
-        className="ml-auto flex h-[38px] min-w-0 shrink items-center justify-center gap-2 rounded-full bg-subtle px-3 text-[13px] text-text-muted hover:bg-surface hover:shadow-[var(--shadow-sm)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-strong md:mx-auto md:w-full md:max-w-[480px] md:justify-start"
+        className="ml-auto flex h-8 min-w-0 shrink items-center justify-center gap-2 rounded-full border border-border bg-surface px-3 text-[12px] text-text-muted hover:border-border-strong hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-strong md:mx-auto md:w-full md:max-w-[480px] md:justify-start"
       >
         <Search className="size-4 shrink-0" />
         <span className="hidden truncate md:inline">Поиск по объектам, событиям, задачам, документам</span>
@@ -86,7 +86,7 @@ export function Topbar() {
         <Button
           size="sm"
           variant="default"
-          className="h-[38px]"
+          className="h-8"
           onClick={() => setAgentPanelOpen(!agentPanelOpen)}
         >
           <Sparkle className="size-4" />

@@ -7,8 +7,8 @@ import { CommandPalette } from "./CommandPalette";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="h-dvh overflow-hidden bg-background p-0 text-text-primary md:p-2 xl:p-4">
-      <div className="flex h-full min-h-0 overflow-hidden bg-[var(--bg-shell)] shadow-[var(--shadow-shell)] md:rounded-[var(--r-xl)]">
+    <div className="h-dvh overflow-hidden bg-background p-0 text-text-primary lg:p-2">
+      <div className="flex h-full min-h-0 overflow-hidden bg-[var(--bg-shell)] shadow-[var(--shadow-shell)] lg:rounded-[var(--r-lg)]">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
