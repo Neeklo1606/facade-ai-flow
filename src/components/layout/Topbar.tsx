@@ -101,6 +101,15 @@ export function Topbar() {
         </button>
         <button
           type="button"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          className="grid size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover"
+        >
+          {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
+        </button>
+        <button
+          type="button"
           aria-label="Уведомления"
           className="relative grid size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover"
         >
