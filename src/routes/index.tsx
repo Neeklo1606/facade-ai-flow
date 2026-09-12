@@ -158,9 +158,11 @@ function CommandCenter() {
     { label: "Критические решения", value: scopedRisks.filter((risk) => risk.severity === "critical").length, delta: "+2", alert: true },
     { label: "Просрочено задач", value: scopedTasks.filter((task) => task.status === "overdue").length, delta: "+1", alert: true },
     { label: "Требуют проверки", value: scopedEvents.filter((event) => event.status === "review" || event.status === "extracted").length, delta: "−3", alert: false },
-    { label: "Поток подтверждён", value: "72%", delta: "+4,8", alert: false },
     { label: "Заявок без ответа", value: scopedRequests.filter((request) => request.repliesCount === 0 && request.status !== "draft").length, delta: "−1", alert: false },
   ], [scopedEvents, scopedRequests, scopedRisks, scopedTasks]);
+
+  const confirmedPct = 72;
+  const criticalCount = scopedRisks.filter((risk) => risk.severity === "critical").length;
 
   return (
     <div className="terminal-page -mx-4 -my-5 min-h-full md:-mx-7 md:-my-6">
