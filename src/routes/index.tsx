@@ -295,7 +295,7 @@ function CommandCenter() {
       <div className="grid min-h-0 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0 border-border xl:border-r">
           <div className="flex h-11 items-center justify-between border-b border-border px-4 lg:px-6"><div className="flex items-center gap-2"><h2 className="text-label">Очередь решений</h2><span className="mono text-micro text-text-muted">{scopedRisks.length}</span></div><Link to="/risks" search={{ severity: undefined, kind: undefined }} className="text-caption text-text-secondary hover:text-accent">Все риски →</Link></div>
-          <div className="hidden grid-cols-[minmax(210px,1.1fr)_minmax(180px,1fr)_minmax(200px,1fr)_minmax(170px,0.9fr)_150px_40px] gap-4 border-b border-border bg-raised/60 px-6 py-2 lg:grid">
+          <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_130px_32px] gap-4 border-b border-border bg-raised/60 px-6 py-2 lg:grid">
             {["Риск", "Причина", "Решение", "Источник", "Контроль", ""].map((label) => <span key={label} className="terminal-label">{label}</span>)}
           </div>
           <div className="divide-y divide-border">{scopedRisks.map((risk) => <DecisionRow key={risk.id} risk={risk} onOpen={setSelectedRisk} onOpenSource={setSourceEvent} />)}</div>
