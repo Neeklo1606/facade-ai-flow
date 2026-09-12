@@ -75,7 +75,8 @@ export function AgentDock() {
     <aside
       className={cn(
         "fixed inset-0 z-50 flex flex-col bg-surface",
-        "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:w-[420px] lg:shrink-0 lg:border-l lg:border-border lg:rounded-l-[var(--r-lg)]",
+        "lg:inset-y-3 lg:right-3 lg:left-auto lg:w-[420px] lg:rounded-[var(--r-lg)] lg:border lg:border-border lg:shadow-[var(--shadow-md)]",
+        "2xl:relative 2xl:inset-auto 2xl:z-20 2xl:h-full 2xl:shrink-0 2xl:rounded-none 2xl:rounded-l-[var(--r-lg)] 2xl:border-0 2xl:border-l 2xl:shadow-none",
       )}
     >
       <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 sm:px-4">
