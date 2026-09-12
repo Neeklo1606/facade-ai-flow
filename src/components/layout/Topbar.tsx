@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Bot, ChevronRight, Menu, MessageSquare, Search } from "lucide-react";
+import { Bell, ChevronRight, Menu, MessageSquare, Search, Sparkle } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { findNavItem } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
@@ -89,8 +89,8 @@ export function Topbar() {
           className="h-[38px]"
           onClick={() => setAgentPanelOpen(!agentPanelOpen)}
         >
-          <Bot className="size-4" />
-          <span className="hidden sm:inline">Спросить агента</span>
+          <Sparkle className="size-4" />
+          <span className="hidden sm:inline">Агент</span>
         </Button>
         <button
           type="button"
