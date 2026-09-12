@@ -1,0 +1,155 @@
+import type { Delivery, Material, SupplierOffer, SupplyRequest } from "./types";
+
+export const materials: Material[] = [
+  { id: "mt-bracket", name: "Кронштейн КР-150 оцинкованный", category: "Подконструкция", unit: "шт", need: 12400, ordered: 9000, delivered: 8400, stock: 620 },
+  { id: "mt-rail", name: "Направляющая Т-образная 60×40", category: "Подконструкция", unit: "пог. м", need: 8600, ordered: 6200, delivered: 6200, stock: 340 },
+  { id: "mt-tile", name: "Керамогранит 600×600, антрацит", category: "Облицовка", unit: "м²", need: 9800, ordered: 7400, delivered: 5100, stock: 210 },
+  { id: "mt-wool", name: "Минеральная вата 100 мм", category: "Утеплитель", unit: "м²", need: 11200, ordered: 8800, delivered: 8800, stock: 940 },
+  { id: "mt-anchor", name: "Анкер клиновой 10×100", category: "Крепёж", unit: "шт", need: 24000, ordered: 18000, delivered: 18000, stock: 2100 },
+  { id: "mt-parapet", name: "Парапетная крышка", category: "Доборные элементы", unit: "пог. м", need: 640, ordered: 400, delivered: 400, stock: 0 },
+  { id: "mt-firecut", name: "Противопожарная отсечка", category: "Доборные элементы", unit: "пог. м", need: 1800, ordered: 1200, delivered: 900, stock: 60 },
+  { id: "mt-strip", name: "Нащельник угловой", category: "Доборные элементы", unit: "шт", need: 480, ordered: 300, delivered: 300, stock: 0 },
+  { id: "mt-rivet", name: "Заклёпка вытяжная 4×12", category: "Крепёж", unit: "тыс. шт", need: 96, ordered: 80, delivered: 80, stock: 12 },
+];
+
+export const supplyRequests: SupplyRequest[] = [
+  {
+    id: "sr-318",
+    number: "З-2026/318",
+    projectId: "p-korona",
+    zoneId: "z-korona-2",
+    createdAt: "2026-09-01T10:00:00",
+    authorId: "e-dorohov",
+    items: [
+      { materialId: "mt-bracket", name: "Кронштейн КР-150 оцинкованный", qty: 3400, unit: "шт" },
+      { materialId: "mt-rail", name: "Направляющая Т-образная 60×40", qty: 2400, unit: "пог. м" },
+    ],
+    sentTo: ["c-fk", "c-mp", "c-sk"],
+    status: "compared",
+    sourceId: null,
+  },
+  {
+    id: "sr-319",
+    number: "З-2026/319",
+    projectId: "p-korona",
+    zoneId: "z-korona-2",
+    createdAt: "2026-09-05T09:10:00",
+    authorId: "e-dorohov",
+    items: [{ materialId: "mt-strip", name: "Нащельник угловой", qty: 180, unit: "шт" }],
+    sentTo: ["c-fk"],
+    status: "sent",
+    sourceId: "src-tg-gareev",
+  },
+  {
+    id: "sr-320",
+    number: "З-2026/320",
+    projectId: "p-meridian",
+    zoneId: "z-meridian-2",
+    createdAt: "2026-09-02T14:30:00",
+    authorId: "e-dorohov",
+    items: [{ materialId: "mt-tile", name: "Керамогранит 600×600, антрацит", qty: 1800, unit: "м²" }],
+    sentTo: ["c-kt", "c-fk"],
+    status: "collecting",
+    sourceId: null,
+  },
+  {
+    id: "sr-321",
+    number: "З-2026/321",
+    projectId: "p-primorsky",
+    zoneId: "z-primorsky-2",
+    createdAt: "2026-08-28T11:05:00",
+    authorId: "e-dorohov",
+    items: [{ materialId: "mt-wool", name: "Минеральная вата 100 мм", qty: 3200, unit: "м²" }],
+    sentTo: ["c-sk"],
+    status: "ordered",
+    sourceId: null,
+  },
+];
+
+export const supplierOffers: SupplierOffer[] = [
+  {
+    id: "so-318-fk",
+    requestId: "sr-318",
+    supplierId: "c-fk",
+    receivedAt: "2026-09-05T07:15:00",
+    prices: [
+      { materialId: "mt-bracket", price: 268 },
+      { materialId: "mt-rail", price: 412 },
+    ],
+    total: 3400 * 268 + 2400 * 412,
+    leadTimeDays: 12,
+    confidence: 0.93,
+    sourceId: "src-mail-fk",
+    best: true,
+  },
+  {
+    id: "so-318-mp",
+    requestId: "sr-318",
+    supplierId: "c-mp",
+    receivedAt: "2026-09-04T16:40:00",
+    prices: [
+      { materialId: "mt-bracket", price: 281 },
+      { materialId: "mt-rail", price: 399 },
+    ],
+    total: 3400 * 281 + 2400 * 399,
+    leadTimeDays: 18,
+    confidence: 0.88,
+    sourceId: null,
+    best: false,
+  },
+  {
+    id: "so-320-kt",
+    requestId: "sr-320",
+    supplierId: "c-kt",
+    receivedAt: "2026-09-04T10:22:00",
+    prices: [{ materialId: "mt-tile", price: 1740 }],
+    total: 1800 * 1740,
+    leadTimeDays: 24,
+    confidence: 0.81,
+    sourceId: null,
+    best: true,
+  },
+];
+
+export const deliveries: Delivery[] = [
+  {
+    id: "dl-501",
+    requestId: "sr-321",
+    projectId: "p-primorsky",
+    supplierId: "c-sk",
+    expectedAt: "2026-09-08",
+    receivedAt: null,
+    status: "in_transit",
+    items: [{ materialId: "mt-wool", name: "Минеральная вата 100 мм", qty: 3200, unit: "м²" }],
+    sourceId: null,
+  },
+  {
+    id: "dl-502",
+    requestId: "sr-318",
+    projectId: "p-korona",
+    supplierId: "c-fk",
+    expectedAt: "2026-09-19",
+    receivedAt: null,
+    status: "expected",
+    items: [
+      { materialId: "mt-bracket", name: "Кронштейн КР-150 оцинкованный", qty: 3400, unit: "шт" },
+      { materialId: "mt-rail", name: "Направляющая Т-образная 60×40", qty: 2400, unit: "пог. м" },
+    ],
+    sourceId: "src-mail-fk",
+  },
+  {
+    id: "dl-503",
+    requestId: "sr-318",
+    projectId: "p-korona",
+    supplierId: "c-mp",
+    expectedAt: "2026-08-26",
+    receivedAt: "2026-08-26",
+    status: "received",
+    items: [{ materialId: "mt-anchor", name: "Анкер клиновой 10×100", qty: 6000, unit: "шт" }],
+    sourceId: null,
+  },
+];
+
+export function materialName(id: string) {
+  return materials.find((item) => item.id === id)?.name ?? "—";
+}
