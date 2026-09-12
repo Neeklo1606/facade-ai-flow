@@ -60,13 +60,14 @@ const metricSeeds = [
 ];
 
 function Sparkline({ data, alert = false }: { data: number[]; alert?: boolean }) {
+  const last = data.at(-1) ?? min;
   const min = Math.min(...data);
   const span = Math.max(...data) - min || 1;
   const points = data.map((v, i) => `${(i / (data.length - 1)) * 70 + 1},${26 - ((v - min) / span) * 20}`).join(" ");
   return (
     <svg viewBox="0 0 72 30" className="h-[30px] w-[72px]" aria-hidden>
       <polyline points={points} fill="none" stroke={alert ? "var(--danger)" : "var(--accent)"} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-      <circle cx="71" cy={26 - ((data[data.length - 1] - min) / span) * 20} r="2" fill={alert ? "var(--danger)" : "var(--accent)"} />
+      <circle cx="71" cy={26 - ((last - min) / span) * 20} r="2" fill={alert ? "var(--danger)" : "var(--accent)"} />
     </svg>
   );
 }
@@ -211,7 +212,7 @@ function CommandCenter() {
         {metrics.map((metric, index) => (
           <article key={metric.label} className="terminal-metric">
             <div className="min-w-0"><p className="terminal-label truncate">{metric.label}</p><div className="mt-1 flex items-baseline gap-2"><strong className={cn("mono text-display", metric.alert && "text-danger")}>{metric.value}</strong><span className={cn("mono text-micro", metric.alert ? "text-danger" : "text-ok")}>{metric.delta}</span></div></div>
-            <Sparkline data={metricSeeds[index]} alert={metric.alert} />
+            <Sparkline data={metricSeeds[index] ?? metricSeeds[0] ?? [0, 0]} alert={metric.alert} />
           </article>
         ))}
       </section>
