@@ -36,6 +36,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 /** Глобальное состояние прототипа. Только React state, никаких браузерных хранилищ. */
 export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [themeChosen, setThemeChosen] = useState(false);
   const [pack, setPack] = useState<IndustryPack>("facade");
   const [siteId, setSiteId] = useState<string>(ALL_SITES);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -46,6 +47,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  useEffect(() => {
+    if (!themeChosen) setTheme(window.matchMedia("(min-width: 1024px)").matches ? "dark" : "light");
+  }, [themeChosen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -61,7 +66,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppContextValue>(
     () => ({
       theme,
-      toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
+      toggleTheme: () => {
+        setThemeChosen(true);
+        setTheme((t) => (t === "light" ? "dark" : "light"));
+      },
       pack,
       setPack,
       siteId,
@@ -77,7 +85,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user: currentUser,
       scopedSites: siteId === ALL_SITES ? sites : sites.filter((s) => s.id === siteId),
     }),
-    [theme, pack, siteId, sidebarCollapsed, mobileNavOpen, agentPanelOpen, commandOpen],
+    [theme, themeChosen, pack, siteId, sidebarCollapsed, mobileNavOpen, agentPanelOpen, commandOpen],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
