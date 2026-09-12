@@ -126,7 +126,7 @@ function ProvenanceGraph({ risk, onClose }: { risk: Risk; onClose: () => void })
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[70] bg-background/96 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Граф происхождения решения">
+    <div className="provenance-overlay fixed inset-0 z-[70] bg-background/96 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Граф происхождения решения">
       <div className="flex h-full flex-col">
         <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 lg:px-8">
           <div className="min-w-0 flex-1">

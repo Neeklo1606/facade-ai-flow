@@ -215,11 +215,11 @@ export function ProvenanceCanvas({ risk, source, siteName }: { risk: Risk; sourc
       </ReactFlow>
 
       {selected && (
-        <aside className="provenance-drawer" aria-label="Детали узла">
+        <aside className="provenance-drawer text-text-primary" aria-label="Детали узла">
           <div className="flex items-start gap-3 border-b border-border p-4">
             <div className="min-w-0 flex-1">
               <p className="terminal-label text-accent">{selected.data.typeLabel}</p>
-              <h3 className="mt-1 text-heading">{selected.data.title}</h3>
+              <h3 className="mt-1 text-heading text-text-primary">{selected.data.title}</h3>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setSelected(null)} aria-label="Закрыть детали"><X /></Button>
           </div>
