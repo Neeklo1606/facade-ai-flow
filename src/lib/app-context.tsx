@@ -35,8 +35,8 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 /** Глобальное состояние прототипа. Только React state, никаких браузерных хранилищ. */
 export function AppProvider({ children }: { children: ReactNode }) {
+  // Светлая тема по умолчанию, переключатель в шапке действует во всей системе.
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [themeChosen, setThemeChosen] = useState(false);
   const [pack, setPack] = useState<IndustryPack>("facade");
   const [siteId, setSiteId] = useState<string>(ALL_SITES);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -47,15 +47,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
-
-  useEffect(() => {
-    if (themeChosen) return;
-    const desktop = window.matchMedia("(min-width: 1024px)");
-    const syncTheme = () => setTheme(desktop.matches ? "dark" : "light");
-    syncTheme();
-    desktop.addEventListener("change", syncTheme);
-    return () => desktop.removeEventListener("change", syncTheme);
-  }, [themeChosen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -71,10 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppContextValue>(
     () => ({
       theme,
-      toggleTheme: () => {
-        setThemeChosen(true);
-        setTheme((t) => (t === "light" ? "dark" : "light"));
-      },
+      toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
       pack,
       setPack,
       siteId,
@@ -90,7 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user: currentUser,
       scopedSites: siteId === ALL_SITES ? sites : sites.filter((s) => s.id === siteId),
     }),
-    [theme, themeChosen, pack, siteId, sidebarCollapsed, mobileNavOpen, agentPanelOpen, commandOpen],
+    [theme, pack, siteId, sidebarCollapsed, mobileNavOpen, agentPanelOpen, commandOpen],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

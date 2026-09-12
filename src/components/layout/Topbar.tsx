@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, ChevronRight, Menu, MessageSquare, Search, Sparkle } from "lucide-react";
+import { Bell, ChevronRight, Menu, MessageSquare, Moon, Search, Sparkle, Sun } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { findNavItem } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ function activeJobs() {
 }
 
 export function Topbar() {
-  const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, setCommandOpen } = useApp();
+  const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, setCommandOpen, theme, toggleTheme } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const item = findNavItem(pathname);
   const jobs = activeJobs();
@@ -98,6 +98,15 @@ export function Topbar() {
           className="hidden size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover sm:grid"
         >
           <MessageSquare className="size-[18px]" />
+        </button>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          className="grid size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover"
+        >
+          {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
         </button>
         <button
           type="button"

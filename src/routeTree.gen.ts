@@ -17,6 +17,7 @@ import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as DeliveriesRouteImport } from './routes/deliveries'
+import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as FieldReportsRouteImport } from './routes/field-reports'
 import { Route as InboxRouteImport } from './routes/inbox'
@@ -74,6 +75,11 @@ const ContractsRoute = ContractsRouteImport.update({
 const DeliveriesRoute = DeliveriesRouteImport.update({
   id: '/deliveries',
   path: '/deliveries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignSystemRoute = DesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
   '/deliveries': typeof DeliveriesRoute
+  '/design-system': typeof DesignSystemRoute
   '/documents': typeof DocumentsRoute
   '/field-reports': typeof FieldReportsRoute
   '/inbox': typeof InboxRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
   '/deliveries': typeof DeliveriesRoute
+  '/design-system': typeof DesignSystemRoute
   '/documents': typeof DocumentsRoute
   '/field-reports': typeof FieldReportsRoute
   '/inbox': typeof InboxRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
   '/deliveries': typeof DeliveriesRoute
+  '/design-system': typeof DesignSystemRoute
   '/documents': typeof DocumentsRoute
   '/field-reports': typeof FieldReportsRoute
   '/inbox': typeof InboxRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/catalogs'
     | '/contracts'
     | '/deliveries'
+    | '/design-system'
     | '/documents'
     | '/field-reports'
     | '/inbox'
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/catalogs'
     | '/contracts'
     | '/deliveries'
+    | '/design-system'
     | '/documents'
     | '/field-reports'
     | '/inbox'
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/catalogs'
     | '/contracts'
     | '/deliveries'
+    | '/design-system'
     | '/documents'
     | '/field-reports'
     | '/inbox'
@@ -348,6 +360,7 @@ export interface RootRouteChildren {
   CatalogsRoute: typeof CatalogsRoute
   ContractsRoute: typeof ContractsRoute
   DeliveriesRoute: typeof DeliveriesRoute
+  DesignSystemRoute: typeof DesignSystemRoute
   DocumentsRoute: typeof DocumentsRoute
   FieldReportsRoute: typeof FieldReportsRoute
   InboxRoute: typeof InboxRoute
@@ -424,6 +437,13 @@ declare module '@tanstack/react-router' {
       path: '/deliveries'
       fullPath: '/deliveries'
       preLoaderRoute: typeof DeliveriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design-system': {
+      id: '/design-system'
+      path: '/design-system'
+      fullPath: '/design-system'
+      preLoaderRoute: typeof DesignSystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -564,6 +584,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogsRoute: CatalogsRoute,
   ContractsRoute: ContractsRoute,
   DeliveriesRoute: DeliveriesRoute,
+  DesignSystemRoute: DesignSystemRoute,
   DocumentsRoute: DocumentsRoute,
   FieldReportsRoute: FieldReportsRoute,
   InboxRoute: InboxRoute,
