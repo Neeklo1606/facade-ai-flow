@@ -38,6 +38,10 @@ const statusMeta: Record<string, { label: string; tone: Tone }> = {
   rejected: { label: "Отклонена", tone: "danger" },
 };
 
+function meta(status: string) {
+  return statusMeta[status] ?? { label: status, tone: "neutral" as Tone };
+}
+
 const filters = [
   { id: "all", label: "Все" },
   { id: "expected", label: "Ожидаются" },
@@ -87,7 +91,7 @@ function DeliveriesPage() {
     {
       key: "status",
       header: "Состояние",
-      cell: (row) => <StatusBadge tone={statusMeta[row.status]?.tone}>{statusMeta[row.status]?.label}</StatusBadge>,
+      cell: (row) => <StatusBadge tone={meta(row.status).tone}>{meta(row.status).label}</StatusBadge>,
     },
     {
       key: "source",
@@ -144,7 +148,7 @@ function DeliveriesPage() {
           subtitle={`${projectName(open.projectId)} · запрос ${
             supplyRequests.find((item) => item.id === open.requestId)?.number ?? "—"
           }`}
-          badges={<StatusBadge tone={statusMeta[open.status]?.tone}>{statusMeta[open.status]?.label}</StatusBadge>}
+          badges={<StatusBadge tone={meta(open.status).tone}>{meta(open.status).label}</StatusBadge>}
         >
           <div className="space-y-5">
             <dl className="grid grid-cols-2 gap-3 text-[13px]">

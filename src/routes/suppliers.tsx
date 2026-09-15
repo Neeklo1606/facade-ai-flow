@@ -166,7 +166,7 @@ function SuppliersPage() {
           }
           footer={
             <Button size="sm" asChild>
-              <Link to="/requests">Отправить запрос</Link>
+              <Link to="/requests" search={{ status: undefined }}>Отправить запрос</Link>
             </Button>
           }
         >

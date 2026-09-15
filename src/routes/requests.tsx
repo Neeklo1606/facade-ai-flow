@@ -48,6 +48,10 @@ const statusMeta: Record<string, { label: string; tone: Tone }> = {
   ordered: { label: "Заказано", tone: "ok" },
 };
 
+function meta(status: string) {
+  return statusMeta[status] ?? { label: status, tone: "neutral" as Tone };
+}
+
 const filters = [
   { id: "all", label: "Все" },
   { id: "sent", label: "Отправленные" },
@@ -107,7 +111,7 @@ function RequestsPage() {
     {
       key: "status",
       header: "Состояние",
-      cell: (row) => <StatusBadge tone={statusMeta[row.status]?.tone}>{statusMeta[row.status]?.label}</StatusBadge>,
+      cell: (row) => <StatusBadge tone={meta(row.status).tone}>{meta(row.status).label}</StatusBadge>,
     },
     {
       key: "source",
@@ -164,7 +168,7 @@ function RequestsPage() {
           onOpenChange={(v) => !v && setOpen(null)}
           title={`Запрос ${open.number}`}
           subtitle={`${projectName(open.projectId)} · создал ${employeeById(open.authorId)?.name ?? "—"} · ${fmtDate(open.createdAt)}`}
-          badges={<StatusBadge tone={statusMeta[open.status]?.tone}>{statusMeta[open.status]?.label}</StatusBadge>}
+          badges={<StatusBadge tone={meta(open.status).tone}>{meta(open.status).label}</StatusBadge>}
           footer={
             <Button size="sm" asChild>
               <Link to="/quotes" search={{ request: open.id }}>

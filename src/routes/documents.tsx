@@ -51,6 +51,10 @@ const statusMeta: Record<string, { label: string; tone: Tone }> = {
   rejected: { label: "Отклонено", tone: "danger" },
 };
 
+function meta(status: string) {
+  return statusMeta[status] ?? { label: status, tone: "neutral" as Tone };
+}
+
 const filters: { id: string; label: string }[] = [
   { id: "all", label: "Все" },
   { id: "design", label: "Проектная документация" },
@@ -107,7 +111,7 @@ function DocumentsPage() {
     {
       key: "status",
       header: "Состояние",
-      cell: (row) => <StatusBadge tone={statusMeta[row.status]?.tone}>{statusMeta[row.status]?.label}</StatusBadge>,
+      cell: (row) => <StatusBadge tone={meta(row.status).tone}>{meta(row.status).label}</StatusBadge>,
     },
     {
       key: "source",
@@ -174,7 +178,7 @@ function DocumentsPage() {
           subtitle={`${projectName(openDoc.projectId)} · версия ${openDoc.version} · ${openDoc.pages} стр.`}
           badges={
             <>
-              <StatusBadge tone={statusMeta[openDoc.status]?.tone}>{statusMeta[openDoc.status]?.label}</StatusBadge>
+              <StatusBadge tone={meta(openDoc.status).tone}>{meta(openDoc.status).label}</StatusBadge>
               <StatusBadge tone="neutral">{kindLabels[openDoc.kind] ?? openDoc.kind}</StatusBadge>
             </>
           }
