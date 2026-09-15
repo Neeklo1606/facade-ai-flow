@@ -56,10 +56,10 @@ interface AttentionRow {
   value: number;
   tone: "danger" | "warn";
   to: string;
-  search?: { status: string } | undefined;
+  search?: Record<string, string> | undefined;
 }
 
-function AttentionBlock({ overview, scope }: Props) {
+function AttentionBlock({ projectId, overview, scope }: Props) {
   const rows: AttentionRow[] = [
     {
       key: "unverified",
@@ -68,8 +68,8 @@ function AttentionBlock({ overview, scope }: Props) {
       hint: "Без проверки позиции не уходят в запросы поставщикам",
       value: overview.specUnverified,
       tone: "warn",
-      to: "/materials",
-      search: { status: "unverified" },
+      to: `/projects/${projectId}/materials`,
+      search: { review: "pending" },
     },
     {
       key: "overdue",
@@ -88,7 +88,7 @@ function AttentionBlock({ overview, scope }: Props) {
       hint: `Расхождения ${overview.docVersion} с предыдущей ревизией`,
       value: overview.openChanges,
       tone: "warn",
-      to: "/documents",
+      to: `/projects/${projectId}/documents`,
     },
     {
       key: "reports",
@@ -172,14 +172,21 @@ function AttentionBlock({ overview, scope }: Props) {
 
 /* ---------- 2. Документация ---------- */
 
-function DocumentationBlock({ projectId, scope, onSource }: Props) {
+function DocumentationBlock({ projectId, overview, scope, onSource }: Props) {
   const versions = docVersionsOf(projectId);
-  const latest = versions[0];
+  // Цифры актуальной ревизии берутся из живой сводки: подтверждения на экране извлечения видны сразу
+  const latest = versions[0]
+    ? {
+        ...versions[0],
+        extracted: overview.specTotal,
+        verified: overview.specTotal - overview.specUnverified,
+      }
+    : undefined;
 
   return (
     <Block
       title="Документация"
-      to="/documents"
+      to={`/projects/${projectId}/documents`}
       linkLabel="Открыть документацию"
       onLinkClick={scope}
     >
@@ -262,7 +269,7 @@ function DocumentationBlock({ projectId, scope, onSource }: Props) {
 
 /* ---------- 3. Материалы и закупки ---------- */
 
-function MaterialsBlock({ overview, scope }: Props) {
+function MaterialsBlock({ projectId, overview, scope }: Props) {
   const total = overview.specTotal;
   const verified = total - overview.specUnverified;
   const stages = [
@@ -281,7 +288,7 @@ function MaterialsBlock({ overview, scope }: Props) {
   return (
     <Block
       title="Материалы и закупки"
-      to="/materials"
+      to={`/projects/${projectId}/materials`}
       linkLabel="Открыть материалы"
       onLinkClick={scope}
     >

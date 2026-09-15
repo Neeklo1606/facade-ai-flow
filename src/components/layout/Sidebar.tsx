@@ -1,16 +1,28 @@
 import { useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, LogOut, Moon, PanelsTopLeft, Search, Sun, X } from "lucide-react";
 import { ALL_SITES, useApp } from "@/lib/app-context";
 import { navGroups, type BadgeKey } from "@/lib/navigation";
 import { siteIdOf, useProjectId } from "@/lib/project-scope";
-import { projectOverviews, projects } from "@/mock/repository";
+import { projects } from "@/mock/repository";
+import { useOverviews } from "@/lib/project-overview";
 import { cn } from "@/lib/utils";
 
 const CRITICAL_BADGES: BadgeKey[] = ["overdueRequests"];
 
-function badgeCounts(projectId: string | null): Record<BadgeKey, number> {
-  const scoped = projectOverviews.filter((item) => (projectId ? item.projectId === projectId : true));
+/** Разделы, у которых есть экран внутри объекта: при выбранном объекте меню ведёт туда. */
+const projectScoped: Record<string, string> = {
+  "/documents": "documents",
+  "/materials": "materials",
+};
+
+function badgeCounts(
+  projectId: string | null,
+  overviews: ReturnType<typeof useOverviews>,
+): Record<BadgeKey, number> {
+  const scoped = overviews.filter(
+    (item): item is NonNullable<typeof item> => !!item && (projectId ? item.projectId === projectId : true),
+  );
   const total = (pick: (item: (typeof scoped)[number]) => number) => scoped.reduce((acc, item) => acc + pick(item), 0);
   return {
     unverifiedSpec: total((item) => item.specUnverified),
@@ -57,10 +69,31 @@ function SidebarInner({
   const { siteId, setSiteId, theme, toggleTheme, user, setCommandOpen } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const projectId = useProjectId();
-  const counts = badgeCounts(projectId);
+  const overviews = useOverviews(projects.map((p) => p.id));
+  const counts = badgeCounts(projectId, overviews);
+  const navigate = useNavigate();
+  /** Смена объекта на экране объекта открывает тот же раздел у выбранного объекта. */
+  const changeProject = (value: string) => {
+    setSiteId(value);
+    const match = pathname.match(/^\/projects\/[^/]+(\/(documents|materials))?/);
+    if (!match) return;
+    if (value === ALL_SITES) {
+      navigate({ to: "/projects" });
+      return;
+    }
+    const id = value.replace(/^s-/, "p-");
+    navigate({ to: `/projects/${id}${match[1] ?? ""}` });
+  };
+  const hrefOf = (to: string) => (projectId && projectScoped[to] ? `/projects/${projectId}/${projectScoped[to]}` : to);
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
 
-  const isItemActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const isItemActive = (to: string) => {
+    if (to === "/") return pathname === "/";
+    const section = projectScoped[to];
+    if (section && new RegExp(`^/projects/[^/]+/${section}`).test(pathname)) return true;
+    if (to === "/projects") return pathname === "/projects" || /^\/projects\/[^/]+\/?$/.test(pathname);
+    return pathname.startsWith(to);
+  };
   const activeGroup = navGroups.find((g) => g.items.some((i) => isItemActive(i.to)))?.title;
 
   const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
@@ -93,7 +126,7 @@ function SidebarInner({
             <span className="block text-overline text-text-muted">Объект</span>
             <select
               value={siteId}
-              onChange={(e) => setSiteId(e.target.value)}
+              onChange={(e) => changeProject(e.target.value)}
               className="focus-ring mt-0.5 h-6 w-full appearance-none overflow-hidden bg-transparent pr-6 text-ellipsis whitespace-nowrap text-sm font-medium text-text-primary"
             >
               <option value={ALL_SITES}>Все объекты</option>
@@ -170,7 +203,7 @@ function SidebarInner({
                     return (
                       <li key={item.to}>
                         <Link
-                          to={item.to}
+                          to={hrefOf(item.to)}
                           onClick={onClose}
                           title={item.label}
                           className={cn(

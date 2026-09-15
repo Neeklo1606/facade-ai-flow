@@ -1,11 +1,15 @@
-import { Bot, Check, CircleSlash, PencilLine, UserRound } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Bot, Check, CircleSlash, FileText, PencilLine, UserRound } from "lucide-react";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
-import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
+import { ConfidenceIndicator, confidenceLevel } from "@/components/common/ConfidenceIndicator";
+import { documentStats, isActive, isVerified, useSpecStore } from "@/lib/spec-store";
+import { docStatusTone } from "@/lib/project-meta";
 import { SourceRef } from "@/components/common/SourceRef";
 import {
   byProject,
   counterpartyName,
   decisionsOf,
+  docStatusLabel,
   docVersionsOf,
   employeeById,
   employeeName,
@@ -14,6 +18,7 @@ import {
   offersFor,
   specItems,
   type Approval,
+  type ExtractedPosition,
   type Delivery,
   type DocumentRecord,
   type Milestone,
@@ -113,7 +118,66 @@ const docStatus: Record<DocumentRecord["status"], { label: string; tone: Tone }>
   rejected: { label: "Отклонено", tone: "danger" },
 };
 
-export function DocumentsPreview({ projectId, scope, onSource }: Props) {
+export function DocumentsPreview(props: Props) {
+  const liveDocuments = useSpecStore((st) => st.documents);
+  const livePositions = useSpecStore((st) => st.positions);
+  const docs = liveDocuments.filter((doc) => doc.projectId === props.projectId);
+  if (!docs.length) return <StaticDocumentsPreview {...props} />;
+  const sorted = [...docs].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+  const snapshot = { positions: livePositions } as Parameters<typeof documentStats>[0];
+
+  return (
+    <Block
+      title="Проектная документация"
+      count={docs.length}
+      to={`/projects/${props.projectId}/documents`}
+      onLinkClick={props.scope}
+    >
+      <PreviewTable
+        minWidth={760}
+        head={
+          <>
+            <Th>Документ</Th>
+            <Th>Раздел</Th>
+            <Th>Версия</Th>
+            <Th right>Извлечено</Th>
+            <Th right>Проверено</Th>
+            <Th>Статус</Th>
+          </>
+        }
+      >
+        {sorted.slice(0, PREVIEW).map((doc) => {
+          const stats = documentStats(snapshot, doc.id);
+          return (
+            <tr key={doc.id}>
+              <Td className="max-w-[320px] truncate font-medium text-text-primary">
+                <Link
+                  to="/projects/$id/documents/$docId"
+                  params={{ id: props.projectId, docId: doc.id }}
+                  className="hover:text-accent"
+                >
+                  {doc.title}
+                </Link>
+              </Td>
+              <Td>{doc.section}</Td>
+              <Td className="whitespace-nowrap">{doc.version}</Td>
+              <Td right>{stats.extracted ? fmtNum(stats.extracted) : "—"}</Td>
+              <Td right>{stats.extracted ? fmtNum(stats.verified) : "—"}</Td>
+              <Td>
+                <StatusBadge tone={docStatusTone[doc.status]}>
+                  {docStatusLabel[doc.status]}
+                </StatusBadge>
+              </Td>
+            </tr>
+          );
+        })}
+      </PreviewTable>
+      <More shown={PREVIEW} total={docs.length} unit="документов" />
+    </Block>
+  );
+}
+
+function StaticDocumentsPreview({ projectId, scope, onSource }: Props) {
   const docs = [...byProject.documents(projectId)].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
   );
@@ -121,7 +185,12 @@ export function DocumentsPreview({ projectId, scope, onSource }: Props) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-      <Block title="Документы объекта" count={docs.length} to="/documents" onLinkClick={scope}>
+      <Block
+        title="Документы объекта"
+        count={docs.length}
+        to={`/projects/${projectId}/documents`}
+        onLinkClick={scope}
+      >
         {docs.length === 0 ? (
           <BlockEmpty>Документов пока нет</BlockEmpty>
         ) : (
@@ -200,7 +269,100 @@ export function DocumentsPreview({ projectId, scope, onSource }: Props) {
 
 /* ---------- Материалы ---------- */
 
-export function MaterialsPreview({ projectId, overview, scope, onSource }: Props) {
+export function MaterialsPreview(props: Props) {
+  const livePositions = useSpecStore((st) => st.positions);
+  const positions = livePositions.filter(
+    (item) => item.projectId === props.projectId && isActive(item),
+  );
+  return positions.length ? (
+    <LiveMaterialsPreview {...props} positions={positions} />
+  ) : (
+    <StaticMaterialsPreview {...props} />
+  );
+}
+
+const levelWeight = { low: 0, mid: 1, high: 2 } as const;
+
+function LiveMaterialsPreview({
+  projectId,
+  overview,
+  scope,
+  positions,
+}: Props & { positions: ExtractedPosition[] }) {
+  const items = [...positions]
+    .sort(
+      (a, b) =>
+        Number(isVerified(a)) - Number(isVerified(b)) ||
+        levelWeight[confidenceLevel(a.confidence)] - levelWeight[confidenceLevel(b.confidence)],
+    )
+    .slice(0, PREVIEW);
+
+  return (
+    <Block
+      title="Спецификация материалов"
+      count={`${fmtNum(overview.specTotal)} поз. · непроверено ${fmtNum(overview.specUnverified)}`}
+      to={`/projects/${projectId}/materials`}
+      onLinkClick={scope}
+    >
+      <PreviewTable
+        minWidth={820}
+        head={
+          <>
+            <Th>Поз.</Th>
+            <Th>Наименование</Th>
+            <Th>Раздел</Th>
+            <Th right>Количество</Th>
+            <Th>Проверка</Th>
+            <Th>Источник</Th>
+          </>
+        }
+      >
+        {items.map((item) => (
+          <tr key={item.id}>
+            <Td className="mono text-caption">{item.position}</Td>
+            <Td className="max-w-[300px] truncate font-medium text-text-primary">
+              {item.projectName}
+            </Td>
+            <Td className="whitespace-nowrap">{item.group}</Td>
+            <Td right className="whitespace-nowrap">
+              {item.qty > 0 ? (
+                `${fmtNum(item.qty)} ${item.unit}`
+              ) : (
+                <span className="text-warn">по месту</span>
+              )}
+            </Td>
+            <Td className="whitespace-nowrap">
+              {isVerified(item) ? (
+                <StatusBadge tone="ok">
+                  <Check className="size-3" /> {employeeName(item.reviewedBy ?? "")}
+                </StatusBadge>
+              ) : (
+                <ConfidenceIndicator value={item.confidence} />
+              )}
+            </Td>
+            <Td>
+              <Link
+                to="/projects/$id/documents/$docId"
+                params={{ id: projectId, docId: item.documentId }}
+                search={{ position: item.id }}
+                className="inline-flex items-center gap-1 rounded-[var(--r-xs)] px-1.5 py-0.5 text-caption text-info hover:bg-info-bg"
+              >
+                <FileText className="size-3" /> л. {item.sheetNumber}
+              </Link>
+            </Td>
+          </tr>
+        ))}
+      </PreviewTable>
+      <More
+        shown={items.length}
+        total={overview.specTotal}
+        unit="позиций, сначала требующие разбора"
+      />
+    </Block>
+  );
+}
+
+function StaticMaterialsPreview({ projectId, overview, scope, onSource }: Props) {
   const items = specItems
     .filter((item) => item.projectId === projectId)
     .sort(
@@ -213,7 +375,7 @@ export function MaterialsPreview({ projectId, overview, scope, onSource }: Props
     <Block
       title="Спецификация материалов"
       count={`${fmtNum(overview.specTotal)} поз. · непроверено ${fmtNum(overview.specUnverified)}`}
-      to="/materials"
+      to={`/projects/${projectId}/materials`}
       onLinkClick={scope}
     >
       {items.length === 0 ? (

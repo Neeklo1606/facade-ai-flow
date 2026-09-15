@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Bell, ChevronRight, Menu, MessageSquare, Moon, Sparkle, Sun } from "lucide-react";
 import { useApp } from "@/lib/app-context";
@@ -7,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { events } from "@/mock/events";
 import { fmtAgo } from "@/lib/format";
 import { projectById } from "@/mock/repository";
+import { useSpecStore } from "@/lib/spec-store";
+import { siteIdOf } from "@/lib/project-scope";
 
 /** Что агенты обрабатывают прямо сейчас. */
 function activeJobs() {
@@ -14,11 +17,20 @@ function activeJobs() {
 }
 
 export function Topbar() {
-  const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, theme, toggleTheme } = useApp();
+  const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, theme, toggleTheme, setSiteId } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const item = findNavItem(pathname);
-  const detail = pathname.match(/^\/projects\/([^/]+)/);
+  const detail = pathname.match(/^\/projects\/([^/]+)(?:\/(documents|materials)(?:\/([^/]+))?)?/);
   const detailProject = detail?.[1] ? projectById(decodeURIComponent(detail[1])) : null;
+  const section = detail?.[2] === "documents" ? "Документация" : detail?.[2] === "materials" ? "Материалы" : null;
+  const docTitle = useSpecStore((s) =>
+    detail?.[3] ? (s.documents.find((doc) => doc.id === decodeURIComponent(detail[3]!))?.title ?? null) : null,
+  );
+
+  // Открыт экран объекта — селектор в сайдбаре показывает этот объект
+  useEffect(() => {
+    if (detailProject) setSiteId(siteIdOf(detailProject.id));
+  }, [detailProject, setSiteId]);
   const jobs = activeJobs();
 
   return (
@@ -33,17 +45,49 @@ export function Topbar() {
       </button>
 
       <nav aria-label="Хлебные крошки" className="hidden min-w-0 items-center gap-1.5 text-[13px] text-text-muted md:flex">
-        <Link to="/" className="transition-fast hover:text-text-primary">
-          neeklo FieldOps
-        </Link>
-        <ChevronRight className="size-3.5" />
-        {detailProject && item ? (
+        {!section && (
           <>
-            <Link to={item.to} className="transition-fast hover:text-text-primary">
-              {item.label}
+            <Link to="/" className="shrink-0 transition-fast hover:text-text-primary">
+              neeklo FieldOps
+            </Link>
+            <ChevronRight className="size-3.5 shrink-0" />
+          </>
+        )}
+        {detailProject ? (
+          <>
+            <Link to="/projects" className="transition-fast hover:text-text-primary">
+              Объекты
             </Link>
             <ChevronRight className="size-3.5" />
-            <span className="truncate font-medium text-text-primary">{detailProject.name}</span>
+            {section ? (
+              <>
+                <Link
+                  to="/projects/$id"
+                  params={{ id: detailProject.id }}
+                  className="max-w-[220px] truncate transition-fast hover:text-text-primary"
+                >
+                  {detailProject.name}
+                </Link>
+                <ChevronRight className="size-3.5" />
+                {docTitle ? (
+                  <>
+                    <Link
+                      to={detail?.[2] === "documents" ? "/projects/$id/documents" : "/projects/$id/materials"}
+                      params={{ id: detailProject.id }}
+                      className="transition-fast hover:text-text-primary"
+                    >
+                      {section}
+                    </Link>
+                    <ChevronRight className="size-3.5" />
+                    <span className="truncate font-medium text-text-primary">{docTitle}</span>
+                  </>
+                ) : (
+                  <span className="truncate font-medium text-text-primary">{section}</span>
+                )}
+              </>
+            ) : (
+              <span className="truncate font-medium text-text-primary">{detailProject.name}</span>
+            )}
           </>
         ) : (
           <span className="truncate font-medium text-text-primary">{item?.label ?? "Раздел"}</span>

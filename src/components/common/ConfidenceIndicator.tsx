@@ -25,6 +25,22 @@ const textTone: Record<"high" | "mid" | "low", string> = {
   low: "text-conf-low",
 };
 
+export { label as confidenceLevelLabel };
+
+/**
+ * Та же точка и слово без подсказки — для длинных списков,
+ * где сотни тултипов тормозят интерфейс.
+ */
+export function ConfidenceLabel({ value, className }: { value: number; className?: string }) {
+  const level = confidenceLevel(value);
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 text-caption", className)} title={`Уверенность ${Math.round(value * 100)}%`}>
+      <span className={cn("size-2 shrink-0 rounded-full", dot[level])} aria-hidden />
+      <span className={cn("font-medium", textTone[level])}>{label[level]}</span>
+    </span>
+  );
+}
+
 /** Уверенность модели человеческим языком; число — в тултипе. */
 export function ConfidenceIndicator({
   value,

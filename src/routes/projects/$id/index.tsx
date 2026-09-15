@@ -1,5 +1,8 @@
 import { useRef, useState, type DragEvent } from "react";
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import { useProjectOverview } from "@/lib/project-overview";
+import { specActions } from "@/lib/spec-store";
 import { ArrowLeft, CalendarRange, FileUp, Upload } from "lucide-react";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { SourceDrawer } from "@/components/common/SourceRef";
@@ -23,7 +26,7 @@ import {
   PurchasesPreview,
   TeamPreview,
 } from "@/components/project/PreviewTabs";
-import { byProject, docVersionsOf, employeeName, overviewOf, projectById } from "@/mock/repository";
+import { byProject, docVersionsOf, employeeName } from "@/mock/repository";
 import { useApp } from "@/lib/app-context";
 import { siteIdOf } from "@/lib/project-scope";
 import { projectStatusMeta } from "@/lib/project-meta";
@@ -44,19 +47,14 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-export const Route = createFileRoute("/projects/$id")({
+export const Route = createFileRoute("/projects/$id/")({
   validateSearch: (search: Record<string, unknown>): { tab?: TabId | undefined } => ({
     tab:
       tabs.some((t) => t.id === search["tab"]) && search["tab"] !== "summary"
         ? (search["tab"] as TabId)
         : undefined,
   }),
-  loader: ({ params }) => {
-    const project = projectById(params.id);
-    const overview = overviewOf(params.id);
-    if (!project || !overview) throw notFound();
-    return { project, overview };
-  },
+  loader: ({ params }) => loadProject(params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -74,20 +72,9 @@ export const Route = createFileRoute("/projects/$id")({
   component: ProjectPage,
 });
 
-function ProjectNotFound() {
-  return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <h1 className="text-section-title">Объект не найден</h1>
-      <p className="mt-2 text-text-secondary">Возможно, объект удалён или ссылка устарела.</p>
-      <Button asChild className="mt-6" size="sm">
-        <Link to="/projects">К реестру объектов</Link>
-      </Button>
-    </div>
-  );
-}
-
 function ProjectPage() {
-  const { project, overview } = Route.useLoaderData();
+  const { project, overview: staticOverview } = Route.useLoaderData();
+  const overview = useProjectOverview(project.id) ?? staticOverview;
   const { tab = "summary" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { setSiteId } = useApp();
@@ -305,6 +292,10 @@ function ProjectPage() {
           latestVersion ? `Рев. ${Number(latestVersion.version.replace(/\D/g, "")) + 1}` : "Рев. 1"
         }
         contractNumber={contract?.number ?? project.contract}
+        onUpload={(files) => {
+          files.forEach((file) => specActions.upload(project.id, file));
+          navigate({ to: "/projects/$id/documents", params: { id: project.id } });
+        }}
       />
       {sourceId && <SourceDrawer sourceId={sourceId} onOpenChange={() => setSourceId(null)} />}
     </>
@@ -317,12 +308,14 @@ function UploadDialog({
   projectName,
   nextVersion,
   contractNumber,
+  onUpload,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projectName: string;
   nextVersion: string;
   contractNumber: string;
+  onUpload: (files: File[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -340,10 +333,15 @@ function UploadDialog({
   }
 
   function submit() {
-    const sheets = files.length;
+    const accepted = files.filter((file) => /\.(pdf|docx|xlsx)$/i.test(file.name));
     close(false);
+    if (!accepted.length) {
+      toast.error("Файлы не приняты", { description: "Поддерживаются PDF, DOCX и XLSX." });
+      return;
+    }
+    onUpload(accepted);
     toast.success(`Документация принята как ${nextVersion}`, {
-      description: `${sheets} ${sheets === 1 ? "файл" : "файлов"}: извлекаем спецификацию и сравниваем с предыдущей ревизией. Расхождения появятся в блоке «Требует внимания».`,
+      description: "Извлекаем позиции — стадии обработки видны в реестре документации.",
     });
   }
 
@@ -374,13 +372,13 @@ function UploadDialog({
             Перетащите файлы или выберите на диске
           </span>
           <span className="mt-1 text-caption text-text-muted">
-            PDF, DWG, XLSX · разделы АР, КМ, спецификации, узлы
+            PDF, DOCX, XLSX · разделы АР, КМ, спецификации, узлы
           </span>
           <input
             ref={inputRef}
             type="file"
             multiple
-            accept=".pdf,.dwg,.xlsx,.xls"
+            accept=".pdf,.docx,.xlsx"
             className="sr-only"
             onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
           />

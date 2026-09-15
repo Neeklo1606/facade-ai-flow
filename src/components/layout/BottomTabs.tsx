@@ -13,10 +13,12 @@ export function BottomTabs() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_32px_color-mix(in_oklab,var(--bg-page)_45%,transparent)] backdrop-blur-xl lg:hidden">
       {tabs.map(({ to, label, icon: Icon }) => {
-        const active =
-          pathname === to ||
-          pathname.startsWith(`${to}/`) ||
-          (to === "/projects" && pathname === "/");
+        const section = pathname.match(/^\/projects\/[^/]+\/(documents|materials)/)?.[1];
+        const active = section
+          ? to === `/${section}`
+          : pathname === to ||
+            pathname.startsWith(`${to}/`) ||
+            (to === "/projects" && pathname === "/");
         return (
           <Link
             key={to}

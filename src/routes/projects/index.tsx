@@ -6,6 +6,7 @@ import { Panel } from "@/components/common/Panel";
 import { FilterChip } from "@/components/common/FilterBar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { FilterSelect } from "@/components/common/FilterSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ import {
 } from "@/mock/repository";
 import { attentionBar, attentionOf, projectStatusMeta } from "@/lib/project-meta";
 import { exportXlsx } from "@/lib/export-xlsx";
+import { useOverviews } from "@/lib/project-overview";
 import { fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -83,15 +85,13 @@ interface Row {
   overview: ProjectOverview;
 }
 
-const ALL = "all";
-
-const allRows: Row[] = projects
+const staticRows: Row[] = projects
   .map((project) => ({ id: project.id, project, overview: overviewOf(project.id) }))
   .filter((row): row is Row => row.overview !== null);
 
-const regions = [...new Set(allRows.map((row) => row.overview.region))];
-const managers = [...new Set(allRows.map((row) => row.project.manager))];
-const statuses = [...new Set(allRows.map((row) => row.project.status))];
+const regions = [...new Set(staticRows.map((row) => row.overview.region))];
+const managers = [...new Set(staticRows.map((row) => row.project.manager))];
+const statuses = [...new Set(staticRows.map((row) => row.project.status))];
 
 /** Число, которое требует реакции, выделяется цветом; ноль гасится. */
 function Count({ value, tone }: { value: number; tone?: "danger" | "warn" | undefined }) {
@@ -114,6 +114,11 @@ function ProjectsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const overviews = useOverviews(staticRows.map((row) => row.id));
+  const allRows = useMemo(
+    () => staticRows.map((row, index) => ({ ...row, overview: overviews[index] ?? row.overview })),
+    [overviews],
+  );
   const view = search.view ?? "table";
 
   const setSearch = (patch: Partial<ProjectsSearch>) =>
@@ -132,7 +137,7 @@ function ProjectsPage() {
             row.overview.overdueRequests * 10_000 + row.overview.specUnverified;
           return weight(b) - weight(a);
         }),
-    [search.region, search.manager, search.status, search.unverified],
+    [allRows, search.region, search.manager, search.status, search.unverified],
   );
 
   const filtersActive = Boolean(
@@ -341,48 +346,6 @@ function ProjectsPage() {
 
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
-  );
-}
-
-function FilterSelect({
-  label,
-  allLabel,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  allLabel: string;
-  value: string | undefined;
-  options: { value: string; label: string }[];
-  onChange: (value: string | undefined) => void;
-}) {
-  return (
-    <Select
-      value={value ?? ALL}
-      onValueChange={(next) => onChange(next === ALL ? undefined : next)}
-    >
-      <SelectTrigger
-        aria-label={label}
-        className={cn(
-          "h-9 w-full min-w-0 gap-2 rounded-full text-[13px] sm:w-auto sm:min-w-[150px] sm:shrink-0",
-          value && "border-border-strong bg-subtle",
-        )}
-      >
-        {value && <span className="hidden text-text-muted sm:inline">{label}:</span>}
-        <SelectValue>
-          {options.find((option) => option.value === value)?.label ?? allLabel}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }
 

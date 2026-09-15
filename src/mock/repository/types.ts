@@ -320,6 +320,113 @@ export interface ActivityItem {
   sourceId: Id | null;
 }
 
+/* ---------- Проектная документация и извлечение ---------- */
+
+/** Статус обработки загруженного документа. */
+export type DocProcessingStatus = "uploaded" | "recognizing" | "extracted" | "review" | "verified";
+
+/** Документ проектной документации объекта: ответ GET /projects/:id/documents. */
+export interface ProjectDocument {
+  id: Id;
+  projectId: Id;
+  title: string;
+  /** Раздел проекта: НВФ, АР, КМ… */
+  section: string;
+  version: string;
+  fileName: string;
+  fileType: "pdf" | "docx" | "xlsx";
+  sizeKb: number;
+  uploadedAt: string;
+  uploadedBy: Id;
+  sheetCount: number;
+  status: DocProcessingStatus;
+  sourceId: Id | null;
+}
+
+/** Лист документа в дереве структуры. */
+export interface DocumentSheet {
+  id: Id;
+  documentId: Id;
+  /** Номер листа в комплекте */
+  number: number;
+  title: string;
+  /** Раздел спецификации, к которому относится лист */
+  group: string;
+}
+
+/** Решение человека по извлечённой позиции. */
+export type PositionReview = "pending" | "confirmed" | "corrected" | "excluded" | "merged" | "header";
+
+/** Этап закупки позиции материала. */
+export type PurchaseStatus = "none" | "requested" | "offers" | "supplier_selected" | "ordered" | "delivered";
+
+export interface Characteristic {
+  label: string;
+  value: string;
+}
+
+/** Область строки на листе, в долях страницы 0…1. */
+export interface PageRegion {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Позиция, извлечённая из спецификации: ответ GET /documents/:id/positions. */
+export interface ExtractedPosition {
+  id: Id;
+  projectId: Id;
+  documentId: Id;
+  sheetId: Id;
+  sheetNumber: number;
+  /** Номер позиции в таблице документа */
+  position: string;
+  /** Раздел спецификации: Подконструкция, Облицовка… */
+  group: string;
+  /** Семейство материала для справочника и замен */
+  family: string;
+  projectName: string;
+  /** Наименование по справочнику; null — требует нормализации */
+  normalizedName: string | null;
+  characteristics: Characteristic[];
+  qty: number;
+  unit: string;
+  confidence: number;
+  region: PageRegion;
+  review: PositionReview;
+  reviewedBy: Id | null;
+  reviewedAt: string | null;
+  /** Почему извлечение неуверенное */
+  note: string | null;
+  purchase: PurchaseStatus;
+  requestIds: Id[];
+  /** С какой позицией объединена */
+  mergedInto: Id | null;
+}
+
+export interface PositionChange {
+  id: Id;
+  positionId: Id;
+  at: string;
+  actorId: Id;
+  action: string;
+  before: string | null;
+  after: string | null;
+}
+
+export interface ReplacementSuggestion {
+  id: Id;
+  /** Семейство материала, к которому применима замена */
+  family: string;
+  name: string;
+  reason: string;
+  /** Разница в цене за единицу, % */
+  priceDeltaPct: number;
+  status: "proposed" | "agreed" | "rejected";
+  agreedBy: Id | null;
+}
+
 /* ---------- Снабжение ---------- */
 
 export interface Material {

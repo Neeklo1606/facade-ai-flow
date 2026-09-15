@@ -35,7 +35,10 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
-import { Route as ProjectsIdRouteImport } from './routes/projects/$id'
+import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
+import { Route as ProjectsIdMaterialsRouteImport } from './routes/projects/$id/materials'
+import { Route as ProjectsIdDocumentsIndexRouteImport } from './routes/projects/$id/documents/index'
+import { Route as ProjectsIdDocumentsDocIdRouteImport } from './routes/projects/$id/documents/$docId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -167,11 +170,28 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   path: '/projects/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsIdRoute = ProjectsIdRouteImport.update({
-  id: '/projects/$id',
-  path: '/projects/$id',
+const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
+  id: '/projects/$id/',
+  path: '/projects/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIdMaterialsRoute = ProjectsIdMaterialsRouteImport.update({
+  id: '/projects/$id/materials',
+  path: '/projects/$id/materials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdDocumentsIndexRoute =
+  ProjectsIdDocumentsIndexRouteImport.update({
+    id: '/projects/$id/documents/',
+    path: '/projects/$id/documents/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProjectsIdDocumentsDocIdRoute =
+  ProjectsIdDocumentsDocIdRouteImport.update({
+    id: '/projects/$id/documents/$docId',
+    path: '/projects/$id/documents/$docId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -199,8 +219,11 @@ export interface FileRoutesByFullPath {
   '/users': typeof UsersRoute
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
-  '/projects/$id': typeof ProjectsIdRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
+  '/projects/$id/': typeof ProjectsIdIndexRoute
+  '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
+  '/projects/$id/documents/': typeof ProjectsIdDocumentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -228,8 +251,11 @@ export interface FileRoutesByTo {
   '/users': typeof UsersRoute
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
-  '/projects/$id': typeof ProjectsIdRoute
   '/projects': typeof ProjectsIndexRoute
+  '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
+  '/projects/$id': typeof ProjectsIdIndexRoute
+  '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
+  '/projects/$id/documents': typeof ProjectsIdDocumentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -258,8 +284,11 @@ export interface FileRoutesById {
   '/users': typeof UsersRoute
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
-  '/projects/$id': typeof ProjectsIdRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
+  '/projects/$id/': typeof ProjectsIdIndexRoute
+  '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
+  '/projects/$id/documents/': typeof ProjectsIdDocumentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -289,8 +318,11 @@ export interface FileRouteTypes {
     | '/users'
     | '/verification'
     | '/zones'
-    | '/projects/$id'
     | '/projects/'
+    | '/projects/$id/materials'
+    | '/projects/$id/'
+    | '/projects/$id/documents/$docId'
+    | '/projects/$id/documents/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -318,8 +350,11 @@ export interface FileRouteTypes {
     | '/users'
     | '/verification'
     | '/zones'
-    | '/projects/$id'
     | '/projects'
+    | '/projects/$id/materials'
+    | '/projects/$id'
+    | '/projects/$id/documents/$docId'
+    | '/projects/$id/documents'
   id:
     | '__root__'
     | '/'
@@ -347,8 +382,11 @@ export interface FileRouteTypes {
     | '/users'
     | '/verification'
     | '/zones'
-    | '/projects/$id'
     | '/projects/'
+    | '/projects/$id/materials'
+    | '/projects/$id/'
+    | '/projects/$id/documents/$docId'
+    | '/projects/$id/documents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -377,8 +415,11 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRoute
   VerificationRoute: typeof VerificationRoute
   ZonesRoute: typeof ZonesRoute
-  ProjectsIdRoute: typeof ProjectsIdRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ProjectsIdMaterialsRoute: typeof ProjectsIdMaterialsRoute
+  ProjectsIdIndexRoute: typeof ProjectsIdIndexRoute
+  ProjectsIdDocumentsDocIdRoute: typeof ProjectsIdDocumentsDocIdRoute
+  ProjectsIdDocumentsIndexRoute: typeof ProjectsIdDocumentsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -565,11 +606,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/$id': {
-      id: '/projects/$id'
+    '/projects/$id/': {
+      id: '/projects/$id/'
       path: '/projects/$id'
-      fullPath: '/projects/$id'
-      preLoaderRoute: typeof ProjectsIdRouteImport
+      fullPath: '/projects/$id/'
+      preLoaderRoute: typeof ProjectsIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/materials': {
+      id: '/projects/$id/materials'
+      path: '/projects/$id/materials'
+      fullPath: '/projects/$id/materials'
+      preLoaderRoute: typeof ProjectsIdMaterialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/documents/': {
+      id: '/projects/$id/documents/'
+      path: '/projects/$id/documents'
+      fullPath: '/projects/$id/documents/'
+      preLoaderRoute: typeof ProjectsIdDocumentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/documents/$docId': {
+      id: '/projects/$id/documents/$docId'
+      path: '/projects/$id/documents/$docId'
+      fullPath: '/projects/$id/documents/$docId'
+      preLoaderRoute: typeof ProjectsIdDocumentsDocIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -601,8 +663,11 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRoute,
   VerificationRoute: VerificationRoute,
   ZonesRoute: ZonesRoute,
-  ProjectsIdRoute: ProjectsIdRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ProjectsIdMaterialsRoute: ProjectsIdMaterialsRoute,
+  ProjectsIdIndexRoute: ProjectsIdIndexRoute,
+  ProjectsIdDocumentsDocIdRoute: ProjectsIdDocumentsDocIdRoute,
+  ProjectsIdDocumentsIndexRoute: ProjectsIdDocumentsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
