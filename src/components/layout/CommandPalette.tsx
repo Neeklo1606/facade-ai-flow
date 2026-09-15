@@ -9,10 +9,14 @@ import {
 } from "@/components/ui/command";
 import { useApp } from "@/lib/app-context";
 import { allNavItems } from "@/lib/navigation";
-import { sites } from "@/mock/sites";
-import { events } from "@/mock/events";
-import { tasks, documents } from "@/mock/tasks";
-import { suppliers } from "@/mock/supply";
+import {
+  counterparties,
+  documents,
+  materials,
+  projectName,
+  projects,
+  supplyRequests,
+} from "@/mock/repository";
 
 export function CommandPalette() {
   const { commandOpen, setCommandOpen } = useApp();
@@ -23,11 +27,30 @@ export function CommandPalette() {
     navigate({ to });
   };
 
+  const openProject = (id: string) => {
+    setCommandOpen(false);
+    navigate({ to: "/projects/$id", params: { id } });
+  };
+
   return (
     <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
-      <CommandInput placeholder="Объекты, события, задачи, документы, поставщики…" />
+      <CommandInput placeholder="Объекты, документы, материалы, запросы, поставщики…" />
       <CommandList>
-        <CommandEmpty>Ничего не найдено. Попробуйте номер заявки или фамилию.</CommandEmpty>
+        <CommandEmpty>
+          Ничего не найдено. Попробуйте код объекта, номер запроса или название материала.
+        </CommandEmpty>
+        <CommandGroup heading="Объекты">
+          {projects.map((p) => (
+            <CommandItem
+              key={p.id}
+              value={`объект ${p.name} ${p.code} ${p.contract}`}
+              onSelect={() => openProject(p.id)}
+            >
+              <span className="truncate">{p.name}</span>
+              <span className="ml-auto shrink-0 text-caption text-text-muted">{p.code}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
         <CommandGroup heading="Разделы">
           {allNavItems.map((i) => (
             <CommandItem key={i.to} value={`раздел ${i.label}`} onSelect={() => go(i.to)}>
@@ -36,40 +59,54 @@ export function CommandPalette() {
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandGroup heading="Объекты">
-          {sites.map((s) => (
-            <CommandItem key={s.id} value={`объект ${s.name}`} onSelect={() => go("/sites")}>
-              {s.name}
+        <CommandGroup heading="Документация">
+          {documents.map((d) => (
+            <CommandItem
+              key={d.id}
+              value={`документ ${d.name} ${projectName(d.projectId)}`}
+              onSelect={() => go("/documents")}
+            >
+              <span className="truncate">{d.name}</span>
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandGroup heading="События">
-          {events.slice(0, 6).map((e) => (
-            <CommandItem key={e.id} value={`событие ${e.preview}`} onSelect={() => go("/inbox")}>
-              <span className="truncate">{e.preview}</span>
+        <CommandGroup heading="Материалы">
+          {materials.map((m) => (
+            <CommandItem
+              key={m.id}
+              value={`материал ${m.name} ${m.category}`}
+              onSelect={() => go("/materials")}
+            >
+              <span className="truncate">{m.name}</span>
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandGroup heading="Задачи">
-          {tasks.slice(0, 6).map((t) => (
-            <CommandItem key={t.id} value={`задача ${t.title}`} onSelect={() => go("/tasks")}>
-              {t.title}
-            </CommandItem>
-          ))}
-        </CommandGroup>
-        <CommandGroup heading="Документы">
-          {documents.slice(0, 5).map((d) => (
-            <CommandItem key={d.id} value={`документ ${d.name}`} onSelect={() => go("/documents")}>
-              {d.name}
+        <CommandGroup heading="Запросы поставщикам">
+          {supplyRequests.map((r) => (
+            <CommandItem
+              key={r.id}
+              value={`запрос ${r.number} ${projectName(r.projectId)}`}
+              onSelect={() => go("/requests")}
+            >
+              <span className="truncate">{r.number}</span>
+              <span className="ml-auto shrink-0 truncate text-caption text-text-muted">
+                {projectName(r.projectId)}
+              </span>
             </CommandItem>
           ))}
         </CommandGroup>
         <CommandGroup heading="Поставщики">
-          {suppliers.map((s) => (
-            <CommandItem key={s.id} value={`поставщик ${s.name}`} onSelect={() => go("/suppliers")}>
-              {s.name}
-            </CommandItem>
-          ))}
+          {counterparties
+            .filter((c) => c.role === "supplier")
+            .map((s) => (
+              <CommandItem
+                key={s.id}
+                value={`поставщик ${s.name}`}
+                onSelect={() => go("/suppliers")}
+              >
+                {s.name}
+              </CommandItem>
+            ))}
         </CommandGroup>
       </CommandList>
     </CommandDialog>

@@ -40,7 +40,7 @@ export function buildIndex(): AgentEntity[] {
       kind: "Объект",
       title: s.name,
       subtitle: `Готовность ${s.progress}% · срок ${s.deadline}`,
-      to: "/sites",
+      to: "/projects",
       tone: s.status === "risk" ? "warn" : "info",
     })),
     ...risks.map<AgentEntity>((r) => ({
@@ -139,7 +139,7 @@ export const suggestionsByRoute: Record<string, string[]> = {
   "/suppliers": ["Сравни поставщиков по подконструкции", "У кого лучший срок поставки?"],
   "/deliveries": ["Когда приедут материалы?", "Какие поставки в риске?"],
   "/documents": ["Какие документы не подтверждены?", "Собери пакет по объекту"],
-  "/sites": ["Сравни объекты по отставанию", "Что горит сегодня?"],
+  "/projects": ["Сравни объекты по отставанию", "Что горит сегодня?"],
 };
 
 export const defaultSuggestions = [
@@ -279,7 +279,7 @@ export function runAgent(query: string): AgentAnswer {
         kind: "Объект" as const,
         title: s.name,
         subtitle: `Готовность ${s.progress}% · срок ${s.deadline}`,
-        to: "/sites",
+        to: "/projects",
         tone: s.status === "risk" ? ("warn" as const) : ("info" as const),
       })),
       actions: [

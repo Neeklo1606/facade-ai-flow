@@ -1,4 +1,9 @@
 import type { ActivityItem, DocVersionRecord, ProjectOverview } from "./types";
+import { approvals, auditLog, extractions, fieldReports, sources } from "./field";
+import { milestones } from "./projects";
+import { supplyRequests } from "./supply";
+import { documents, risks, tasks } from "./operations";
+import { volumeEntries } from "./work";
 
 /**
  * Сводные показатели объекта: регион, стадия, состояние спецификации и закупок.
@@ -28,7 +33,7 @@ export const projectOverviews: ProjectOverview[] = [
     stage: "Северный фасад",
     docVersion: "Рев. 2",
     specTotal: 612,
-    specUnverified: 48,
+    specUnverified: 0,
     inRequests: 190,
     offersReceived: 142,
     ordered: 120,
@@ -142,9 +147,9 @@ export const docVersions: DocVersionRecord[] = [
     uploadedBy: "e-volkova",
     sheets: 36,
     extracted: 612,
-    verified: 564,
-    sourceId: null,
-    documentId: null,
+    verified: 612,
+    sourceId: "src-pd-meridian-spec",
+    documentId: "doc-11",
   },
   {
     id: "dv-primorsky-1",
@@ -155,8 +160,8 @@ export const docVersions: DocVersionRecord[] = [
     sheets: 52,
     extracted: 734,
     verified: 608,
-    sourceId: null,
-    documentId: null,
+    sourceId: "src-pd-primorsky-spec",
+    documentId: "doc-12",
   },
   {
     id: "dv-school-2",
@@ -167,8 +172,8 @@ export const docVersions: DocVersionRecord[] = [
     sheets: 21,
     extracted: 268,
     verified: 268,
-    sourceId: null,
-    documentId: null,
+    sourceId: "src-pd-school-spec",
+    documentId: "doc-13",
   },
   {
     id: "dv-galaxy-1",
@@ -179,8 +184,8 @@ export const docVersions: DocVersionRecord[] = [
     sheets: 29,
     extracted: 421,
     verified: 357,
-    sourceId: null,
-    documentId: null,
+    sourceId: "src-pd-galaxy-spec",
+    documentId: "doc-14",
   },
 ];
 
@@ -324,5 +329,49 @@ export const activityKindLabel: Record<ActivityItem["kind"], string> = {
 export function activityOf(projectId: string) {
   return activityItems
     .filter((item) => item.projectId === projectId)
+    .sort((a, b) => b.at.localeCompare(a.at));
+}
+
+/* ---------- Решения и история объекта ---------- */
+
+/** К какому объекту относится запись журнала или подтверждения. */
+export function projectOfEntity(entity: string, id: string): string | null {
+  const lookup: Record<string, { id: string; projectId: string }[]> = {
+    VolumeEntry: volumeEntries,
+    SupplyRequest: supplyRequests,
+    Milestone: milestones,
+    FieldReport: fieldReports,
+    Risk: risks,
+    Task: tasks,
+    Document: documents,
+  };
+  if (entity === "Project") return id;
+  return lookup[entity]?.find((item) => item.id === id)?.projectId ?? null;
+}
+
+function projectOfSource(sourceId: string | null) {
+  return sourceId ? (sources.find((item) => item.id === sourceId)?.projectId ?? null) : null;
+}
+
+/** Решения людей по объекту: что подтвердили, исправили или отклонили. */
+export function decisionsOf(projectId: string) {
+  return approvals
+    .filter((item) => {
+      const sourceId = extractions.find((ex) => ex.id === item.extractionId)?.sourceId ?? null;
+      return (
+        (projectOfEntity(item.entity, item.entityId) ?? projectOfSource(sourceId)) === projectId
+      );
+    })
+    .sort((a, b) => b.approvedAt.localeCompare(a.approvedAt));
+}
+
+/** Журнал действий по объекту. */
+export function historyOf(projectId: string) {
+  return auditLog
+    .filter(
+      (item) =>
+        (projectOfEntity(item.entity, item.entityId) ?? projectOfSource(item.sourceId)) ===
+        projectId,
+    )
     .sort((a, b) => b.at.localeCompare(a.at));
 }

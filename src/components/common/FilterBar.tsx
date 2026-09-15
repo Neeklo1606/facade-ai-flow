@@ -33,11 +33,13 @@ export function FilterChip({
   count,
   onClick,
   children,
+  className,
 }: {
   active?: boolean;
   count?: number;
   onClick?: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <button
@@ -49,6 +51,7 @@ export function FilterChip({
         active
           ? "border-border-strong bg-subtle text-text-primary"
           : "border-border bg-surface text-text-secondary hover:bg-hover hover:text-text-primary",
+        className,
       )}
     >
       {children}

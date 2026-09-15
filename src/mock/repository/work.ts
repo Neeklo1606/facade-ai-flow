@@ -28,7 +28,7 @@ export const workZones: WorkZone[] = [
   { id: "z-school-1", projectId: "p-school", parentId: null, level: "zone", name: "Главный корпус, дворовый фасад", axes: "1–12", floors: "1–4", planQty: 3400, factQty: 3120, unit: "м²" },
   { id: "z-school-2", projectId: "p-school", parentId: null, level: "zone", name: "Спортивный блок", axes: "12–18", floors: "1–2", planQty: 1800, factQty: 980, unit: "м²" },
 
-  /* ТРК «Галактика» */
+  /* ТЦ «Галактика» */
   { id: "z-galaxy-1", projectId: "p-galaxy", parentId: null, level: "zone", name: "Витражи входной группы", axes: "А–В", floors: "1–3", planQty: 1400, factQty: 860, unit: "м²" },
   { id: "z-galaxy-2", projectId: "p-galaxy", parentId: null, level: "zone", name: "Атриум, световой фонарь", axes: "В–Е", floors: "3", planQty: 900, factQty: 240, unit: "м²" },
 ];

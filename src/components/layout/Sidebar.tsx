@@ -1,24 +1,21 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, LogOut, Moon, PanelsTopLeft, Sun, X } from "lucide-react";
-import { ALL_SITES, industryPacks, useApp } from "@/lib/app-context";
+import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, LogOut, Moon, PanelsTopLeft, Search, Sun, X } from "lucide-react";
+import { ALL_SITES, useApp } from "@/lib/app-context";
 import { navGroups, type BadgeKey } from "@/lib/navigation";
-import { sites } from "@/mock/sites";
-import { events } from "@/mock/events";
-import { risks, tasks } from "@/mock/tasks";
-import { requests } from "@/mock/supply";
+import { siteIdOf, useProjectId } from "@/lib/project-scope";
+import { projectOverviews, projects } from "@/mock/repository";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_OPEN = ["Обзор", "Поток данных", "Объекты"];
-const CRITICAL_BADGES: BadgeKey[] = ["criticalRisks", "overdueTasks"];
+const CRITICAL_BADGES: BadgeKey[] = ["overdueRequests"];
 
-function badgeCounts(): Record<BadgeKey, number> {
+function badgeCounts(projectId: string | null): Record<BadgeKey, number> {
+  const scoped = projectOverviews.filter((item) => (projectId ? item.projectId === projectId : true));
+  const total = (pick: (item: (typeof scoped)[number]) => number) => scoped.reduce((acc, item) => acc + pick(item), 0);
   return {
-    criticalRisks: risks.filter((r) => r.severity === "critical").length,
-    inboxUnprocessed: events.filter((e) => e.status === "received" || e.status === "recognizing").length,
-    pendingReview: events.filter((e) => e.status === "review" || e.status === "extracted").length,
-    overdueTasks: tasks.filter((t) => t.status === "overdue").length,
-    requestsNoReply: requests.filter((r) => r.repliesCount === 0 && r.status !== "draft").length,
+    unverifiedSpec: total((item) => item.specUnverified),
+    overdueRequests: total((item) => item.overdueRequests),
+    openChanges: total((item) => item.openChanges),
   };
 }
 
@@ -57,23 +54,21 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { pack, setPack, siteId, setSiteId, theme, toggleTheme, user } = useApp();
+  const { siteId, setSiteId, theme, toggleTheme, user, setCommandOpen } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const counts = badgeCounts();
-  const [closedGroups, setClosedGroups] = useState<string[]>(() =>
-    navGroups.map((g) => g.title).filter((t) => !DEFAULT_OPEN.includes(t)),
-  );
+  const projectId = useProjectId();
+  const counts = badgeCounts(projectId);
+  const [closedGroups, setClosedGroups] = useState<string[]>([]);
 
   const isItemActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   const activeGroup = navGroups.find((g) => g.items.some((i) => isItemActive(i.to)))?.title;
 
-  const packLabel = industryPacks.find((p) => p.id === pack);
-  const siteLabel = siteId === ALL_SITES ? "Все объекты" : sites.find((s) => s.id === siteId)?.name;
+  const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col p-3 text-sidebar-item">
       <div className="flex items-center gap-2 px-1 py-1.5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--r-sm)] bg-ink text-primary-foreground shadow-[var(--shadow-xs)]">
+        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--r-sm)] bg-accent text-accent-foreground shadow-[var(--shadow-xs)]">
           <PanelsTopLeft className="size-[18px]" strokeWidth={1.5} />
         </span>
         {!collapsed && (
@@ -94,24 +89,6 @@ function SidebarInner({
 
       {!collapsed && (
         <div className="mt-3 shrink-0 space-y-2">
-          <label
-            className="relative block rounded-[var(--r-sm)] bg-surface px-3 py-2 shadow-[var(--shadow-xs)]"
-            title={packLabel ? `${packLabel.label} — ${packLabel.hint}` : undefined}
-          >
-            <span className="block text-overline text-text-muted">Отраслевой пакет</span>
-            <select
-              value={pack}
-              onChange={(e) => setPack(e.target.value as typeof pack)}
-              className="focus-ring mt-0.5 h-6 w-full appearance-none overflow-hidden bg-transparent pr-6 text-ellipsis whitespace-nowrap text-sm font-medium text-text-primary"
-            >
-              {industryPacks.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label} — {p.hint}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 bottom-3 size-4 text-text-muted" />
-          </label>
           <label className="relative block rounded-[var(--r-sm)] bg-surface px-3 py-2 shadow-[var(--shadow-xs)]" title={siteLabel}>
             <span className="block text-overline text-text-muted">Объект</span>
             <select
@@ -120,9 +97,9 @@ function SidebarInner({
               className="focus-ring mt-0.5 h-6 w-full appearance-none overflow-hidden bg-transparent pr-6 text-ellipsis whitespace-nowrap text-sm font-medium text-text-primary"
             >
               <option value={ALL_SITES}>Все объекты</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+              {projects.map((p) => (
+                <option key={p.id} value={siteIdOf(p.id)}>
+                  {p.name}
                 </option>
               ))}
             </select>
@@ -130,6 +107,28 @@ function SidebarInner({
           </label>
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          setCommandOpen(true);
+        }}
+        title="Поиск"
+        aria-label="Поиск по объектам, документам и материалам"
+        className={cn(
+          "focus-ring mt-2 flex h-[38px] shrink-0 items-center gap-2 rounded-[var(--r-sm)] border border-[var(--sidebar-hover-bg)] px-2.5 text-[13px] text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover",
+          collapsed && "justify-center px-0",
+        )}
+      >
+        <Search className="size-4 shrink-0" strokeWidth={1.5} />
+        {!collapsed && (
+          <>
+            <span className="min-w-0 flex-1 truncate text-left">Поиск</span>
+            <kbd className="shrink-0 rounded-[var(--r-xs)] bg-[var(--sidebar-hover-bg)] px-1.5 py-0.5 text-[11px]">Ctrl K</kbd>
+          </>
+        )}
+      </button>
 
       <nav className="nav-scroll mt-2 min-h-0 flex-1 py-1">
         {navGroups.map((group) => {

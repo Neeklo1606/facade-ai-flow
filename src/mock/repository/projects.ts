@@ -2,7 +2,7 @@ import type { Contract, Milestone, Project, ProjectStatus } from "./types";
 import { volumeEntries, workZones } from "./work";
 
 export const contracts: Contract[] = [
-  { id: "ct-korona", number: "ДСК-2026/008", projectId: "p-korona", customerId: "c-dsk", signedAt: "2026-04-18", startDate: "2026-05-12", endDate: "2027-03-31", amount: 95_400_000, advance: 19_080_000, retentionPct: 5, paymentTermDays: 30, status: "active", sourceId: "src-contract-korona" },
+  { id: "ct-korona", number: "ДСК-2026/008", projectId: "p-korona", customerId: "c-stroyinvest", signedAt: "2026-04-18", startDate: "2026-05-12", endDate: "2027-03-31", amount: 95_400_000, advance: 19_080_000, retentionPct: 5, paymentTermDays: 30, status: "active", sourceId: "src-contract-korona" },
   { id: "ct-meridian", number: "ПС-2026/117", projectId: "p-meridian", customerId: "c-proekt", signedAt: "2026-05-06", startDate: "2026-06-01", endDate: "2026-12-20", amount: 31_800_000, advance: 6_360_000, retentionPct: 5, paymentTermDays: 45, status: "active", sourceId: null },
   { id: "ct-primorsky", number: "СИ-2026/041", projectId: "p-primorsky", customerId: "c-stroyinvest", signedAt: "2026-04-29", startDate: "2026-05-20", endDate: "2027-01-30", amount: 47_200_000, advance: 9_440_000, retentionPct: 5, paymentTermDays: 30, status: "active", sourceId: null },
   { id: "ct-school", number: "СИ-2026/052", projectId: "p-school", customerId: "c-stroyinvest", signedAt: "2026-03-21", startDate: "2026-04-10", endDate: "2026-10-10", amount: 18_300_000, advance: 3_660_000, retentionPct: 3, paymentTermDays: 20, status: "active", sourceId: null },
@@ -32,11 +32,11 @@ interface ProjectSeed {
 }
 
 const seeds: ProjectSeed[] = [
-  { id: "p-korona", name: "ЖК «Северная Корона», корпус 3", code: "СК-3", customer: "ДСК-Регион", plannedProgress: 52, paidAmount: 32_000_000, status: "at_risk", manager: "e-sokolov", teams: ["cr-korona-1", "cr-korona-2"] },
+  { id: "p-korona", name: "ЖК «Северная Корона», корпус 3", code: "СК-3", customer: "ГК «Стройинвест»", plannedProgress: 52, paidAmount: 32_000_000, status: "at_risk", manager: "e-sokolov", teams: ["cr-korona-1", "cr-korona-2"] },
   { id: "p-meridian", name: "БЦ «Меридиан»", code: "МР-1", customer: "«Проектстрой»", plannedProgress: 58, paidAmount: 11_400_000, status: "active", manager: "e-sokolov", teams: ["cr-meridian-1"] },
   { id: "p-primorsky", name: "ЖК «Приморский квартал», дом 7", code: "ПК-7", customer: "ГК «Стройинвест»", plannedProgress: 61, paidAmount: 16_900_000, status: "active", manager: "e-sokolov", teams: ["cr-primorsky-1"] },
   { id: "p-school", name: "Школа № 1547, реконструкция фасада", code: "Ш-1547", customer: "ГК «Стройинвест»", plannedProgress: 88, paidAmount: 9_800_000, status: "at_risk", manager: "e-sokolov", teams: ["cr-school-1"] },
-  { id: "p-galaxy", name: "ТРК «Галактика», витражи", code: "ГЛ-2", customer: "УК «Галактика»", plannedProgress: 44, paidAmount: 5_900_000, status: "active", manager: "e-sokolov", teams: ["cr-galaxy-1"] },
+  { id: "p-galaxy", name: "ТЦ «Галактика»", code: "ГЛ-2", customer: "УК «Галактика»", plannedProgress: 44, paidAmount: 5_900_000, status: "active", manager: "e-sokolov", teams: ["cr-galaxy-1"] },
 ];
 
 function sum(values: number[]) {

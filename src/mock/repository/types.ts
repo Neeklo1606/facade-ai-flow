@@ -257,6 +257,69 @@ export interface Project {
   workZones: Id[];
 }
 
+/** Сводка объекта для реестра и карточки: ответ GET /projects/:id/overview. */
+export interface ProjectOverview {
+  projectId: Id;
+  region: string;
+  stage: string;
+  /** Актуальная ревизия проектной документации */
+  docVersion: string;
+  /** Позиций материалов в спецификации */
+  specTotal: number;
+  /** Позиций, которые ещё не подтвердил человек */
+  specUnverified: number;
+  /** Позиций, по которым отправлены запросы поставщикам */
+  inRequests: number;
+  /** Позиций, по которым получены предложения */
+  offersReceived: number;
+  ordered: number;
+  inTransit: number;
+  delivered: number;
+  activeRequests: number;
+  /** Запросов, по которым поставщик не ответил в срок */
+  overdueRequests: number;
+  /** Изменений документации, которые никто не разобрал */
+  openChanges: number;
+  /** Смен без отчёта с площадки за последнюю неделю */
+  missingReports: number;
+}
+
+/** Загруженная ревизия проектной документации. */
+export interface DocVersionRecord {
+  id: Id;
+  projectId: Id;
+  version: string;
+  uploadedAt: string;
+  uploadedBy: Id;
+  sheets: number;
+  /** Позиций извлечено из документации */
+  extracted: number;
+  /** Позиций подтверждено человеком */
+  verified: number;
+  sourceId: Id | null;
+  documentId: Id | null;
+}
+
+export type ActivityKind =
+  | "version_uploaded"
+  | "spec_extracted"
+  | "qty_corrected"
+  | "request_sent"
+  | "offer_received"
+  | "replacement_agreed"
+  | "report_added";
+
+/** Событие в ленте объекта. */
+export interface ActivityItem {
+  id: Id;
+  projectId: Id;
+  at: string;
+  kind: ActivityKind;
+  title: string;
+  actorId: Id;
+  sourceId: Id | null;
+}
+
 /* ---------- Снабжение ---------- */
 
 export interface Material {

@@ -10,8 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AgentLogRouteImport } from './routes/agent-log'
-import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
@@ -23,33 +21,25 @@ import { Route as FieldReportsRouteImport } from './routes/field-reports'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as RisksRouteImport } from './routes/risks'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SitesRouteImport } from './routes/sites'
 import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as ZonesRouteImport } from './routes/zones'
+import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as ProjectsIdRouteImport } from './routes/projects/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentLogRoute = AgentLogRouteImport.update({
-  id: '/agent-log',
-  path: '/agent-log',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -107,6 +97,11 @@ const KnowledgeRoute = KnowledgeRouteImport.update({
   path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MaterialsRoute = MaterialsRouteImport.update({
+  id: '/materials',
+  path: '/materials',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QualityRoute = QualityRouteImport.update({
   id: '/quality',
   path: '/quality',
@@ -135,11 +130,6 @@ const ScheduleRoute = ScheduleRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitesRoute = SitesRouteImport.update({
-  id: '/sites',
-  path: '/sites',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuppliersRoute = SuppliersRouteImport.update({
@@ -172,11 +162,19 @@ const ZonesRoute = ZonesRouteImport.update({
   path: '/zones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdRoute = ProjectsIdRouteImport.update({
+  id: '/projects/$id',
+  path: '/projects/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agent-log': typeof AgentLogRoute
-  '/agents': typeof AgentsRoute
   '/analytics': typeof AnalyticsRoute
   '/audit': typeof AuditRoute
   '/catalogs': typeof CatalogsRoute
@@ -188,24 +186,24 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
+  '/materials': typeof MaterialsRoute
   '/quality': typeof QualityRoute
   '/quotes': typeof QuotesRoute
   '/requests': typeof RequestsRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/sites': typeof SitesRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
+  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/': typeof ProjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agent-log': typeof AgentLogRoute
-  '/agents': typeof AgentsRoute
   '/analytics': typeof AnalyticsRoute
   '/audit': typeof AuditRoute
   '/catalogs': typeof CatalogsRoute
@@ -217,25 +215,25 @@ export interface FileRoutesByTo {
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
+  '/materials': typeof MaterialsRoute
   '/quality': typeof QualityRoute
   '/quotes': typeof QuotesRoute
   '/requests': typeof RequestsRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/sites': typeof SitesRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
+  '/projects/$id': typeof ProjectsIdRoute
+  '/projects': typeof ProjectsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/agent-log': typeof AgentLogRoute
-  '/agents': typeof AgentsRoute
   '/analytics': typeof AnalyticsRoute
   '/audit': typeof AuditRoute
   '/catalogs': typeof CatalogsRoute
@@ -247,26 +245,26 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
+  '/materials': typeof MaterialsRoute
   '/quality': typeof QualityRoute
   '/quotes': typeof QuotesRoute
   '/requests': typeof RequestsRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/sites': typeof SitesRoute
   '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
+  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/': typeof ProjectsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/agent-log'
-    | '/agents'
     | '/analytics'
     | '/audit'
     | '/catalogs'
@@ -278,24 +276,24 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/integrations'
     | '/knowledge'
+    | '/materials'
     | '/quality'
     | '/quotes'
     | '/requests'
     | '/risks'
     | '/schedule'
     | '/settings'
-    | '/sites'
     | '/suppliers'
     | '/tasks'
     | '/templates'
     | '/users'
     | '/verification'
     | '/zones'
+    | '/projects/$id'
+    | '/projects/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/agent-log'
-    | '/agents'
     | '/analytics'
     | '/audit'
     | '/catalogs'
@@ -307,24 +305,24 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/integrations'
     | '/knowledge'
+    | '/materials'
     | '/quality'
     | '/quotes'
     | '/requests'
     | '/risks'
     | '/schedule'
     | '/settings'
-    | '/sites'
     | '/suppliers'
     | '/tasks'
     | '/templates'
     | '/users'
     | '/verification'
     | '/zones'
+    | '/projects/$id'
+    | '/projects'
   id:
     | '__root__'
     | '/'
-    | '/agent-log'
-    | '/agents'
     | '/analytics'
     | '/audit'
     | '/catalogs'
@@ -336,25 +334,25 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/integrations'
     | '/knowledge'
+    | '/materials'
     | '/quality'
     | '/quotes'
     | '/requests'
     | '/risks'
     | '/schedule'
     | '/settings'
-    | '/sites'
     | '/suppliers'
     | '/tasks'
     | '/templates'
     | '/users'
     | '/verification'
     | '/zones'
+    | '/projects/$id'
+    | '/projects/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AgentLogRoute: typeof AgentLogRoute
-  AgentsRoute: typeof AgentsRoute
   AnalyticsRoute: typeof AnalyticsRoute
   AuditRoute: typeof AuditRoute
   CatalogsRoute: typeof CatalogsRoute
@@ -366,19 +364,21 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
   KnowledgeRoute: typeof KnowledgeRoute
+  MaterialsRoute: typeof MaterialsRoute
   QualityRoute: typeof QualityRoute
   QuotesRoute: typeof QuotesRoute
   RequestsRoute: typeof RequestsRoute
   RisksRoute: typeof RisksRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
-  SitesRoute: typeof SitesRoute
   SuppliersRoute: typeof SuppliersRoute
   TasksRoute: typeof TasksRoute
   TemplatesRoute: typeof TemplatesRoute
   UsersRoute: typeof UsersRoute
   VerificationRoute: typeof VerificationRoute
   ZonesRoute: typeof ZonesRoute
+  ProjectsIdRoute: typeof ProjectsIdRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -388,20 +388,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agent-log': {
-      id: '/agent-log'
-      path: '/agent-log'
-      fullPath: '/agent-log'
-      preLoaderRoute: typeof AgentLogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -481,6 +467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/materials': {
+      id: '/materials'
+      path: '/materials'
+      fullPath: '/materials'
+      preLoaderRoute: typeof MaterialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quality': {
       id: '/quality'
       path: '/quality'
@@ -521,13 +514,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sites': {
-      id: '/sites'
-      path: '/sites'
-      fullPath: '/sites'
-      preLoaderRoute: typeof SitesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/suppliers': {
@@ -572,13 +558,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZonesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id': {
+      id: '/projects/$id'
+      path: '/projects/$id'
+      fullPath: '/projects/$id'
+      preLoaderRoute: typeof ProjectsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AgentLogRoute: AgentLogRoute,
-  AgentsRoute: AgentsRoute,
   AnalyticsRoute: AnalyticsRoute,
   AuditRoute: AuditRoute,
   CatalogsRoute: CatalogsRoute,
@@ -590,19 +588,21 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,
   KnowledgeRoute: KnowledgeRoute,
+  MaterialsRoute: MaterialsRoute,
   QualityRoute: QualityRoute,
   QuotesRoute: QuotesRoute,
   RequestsRoute: RequestsRoute,
   RisksRoute: RisksRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
-  SitesRoute: SitesRoute,
   SuppliersRoute: SuppliersRoute,
   TasksRoute: TasksRoute,
   TemplatesRoute: TemplatesRoute,
   UsersRoute: UsersRoute,
   VerificationRoute: VerificationRoute,
   ZonesRoute: ZonesRoute,
+  ProjectsIdRoute: ProjectsIdRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

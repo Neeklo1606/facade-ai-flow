@@ -9,6 +9,11 @@ export function useProjectId(): string | null {
   return projects.some((item) => item.id === id) ? id : null;
 }
 
+/** Обратное преобразование: id проекта репозитория → значение селектора объекта в контексте. */
+export function siteIdOf(projectId: string) {
+  return projectId.replace(/^p-/, "s-");
+}
+
 export function projectName(id: string) {
   return projects.find((item) => item.id === id)?.name ?? "—";
 }

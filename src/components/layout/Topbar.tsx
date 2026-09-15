@@ -1,11 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, ChevronRight, Menu, MessageSquare, Moon, Search, Sparkle, Sun } from "lucide-react";
+import { Bell, ChevronRight, Menu, MessageSquare, Moon, Sparkle, Sun } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { findNavItem } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { events } from "@/mock/events";
 import { fmtAgo } from "@/lib/format";
+import { projectById } from "@/mock/repository";
 
 /** Что агенты обрабатывают прямо сейчас. */
 function activeJobs() {
@@ -13,9 +14,11 @@ function activeJobs() {
 }
 
 export function Topbar() {
-  const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, setCommandOpen, theme, toggleTheme } = useApp();
+  const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, theme, toggleTheme } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const item = findNavItem(pathname);
+  const detail = pathname.match(/^\/projects\/([^/]+)/);
+  const detailProject = detail?.[1] ? projectById(decodeURIComponent(detail[1])) : null;
   const jobs = activeJobs();
 
   return (
@@ -34,22 +37,20 @@ export function Topbar() {
           neeklo FieldOps
         </Link>
         <ChevronRight className="size-3.5" />
-        <span className="truncate font-medium text-text-primary">{item?.label ?? "Раздел"}</span>
+        {detailProject && item ? (
+          <>
+            <Link to={item.to} className="transition-fast hover:text-text-primary">
+              {item.label}
+            </Link>
+            <ChevronRight className="size-3.5" />
+            <span className="truncate font-medium text-text-primary">{detailProject.name}</span>
+          </>
+        ) : (
+          <span className="truncate font-medium text-text-primary">{item?.label ?? "Раздел"}</span>
+        )}
       </nav>
 
-      <button
-        type="button"
-        onClick={() => setCommandOpen(true)}
-        className="ml-auto flex h-8 min-w-0 shrink items-center justify-center gap-2 rounded-full border border-border bg-surface px-3 text-[12px] text-text-muted hover:border-border-strong hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-strong md:mx-auto md:w-full md:max-w-[480px] md:justify-start"
-      >
-        <Search className="size-4 shrink-0" />
-        <span className="hidden truncate md:inline">Поиск по объектам, событиям, задачам, документам</span>
-        <kbd className="ml-auto hidden shrink-0 rounded-md bg-surface px-1.5 py-0.5 text-[11px] shadow-[var(--shadow-xs)] sm:block">
-          Ctrl+K
-        </kbd>
-      </button>
-
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5">
         {jobs.length > 0 && (
           <Popover>
             <PopoverTrigger asChild>

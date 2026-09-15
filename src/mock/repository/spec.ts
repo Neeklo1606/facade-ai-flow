@@ -160,6 +160,24 @@ export const specItems: SpecItem[] = [
   },
 ];
 
+/** Позиции остальных объектов: по три строки на объект для превью в карточке. */
+const otherProjectItems: SpecItem[] = [
+  { id: "sp-m-1", projectId: "p-meridian", documentId: "doc-11", sourceId: "src-pd-meridian-spec", page: 18, section: "Облицовка", position: "5.1", name: "Керамогранит 600×1200, серый", materialId: null, unit: "м²", qty: 7900, confidence: 0.95, approvedBy: "e-volkova", approvedAt: "2026-07-23T10:15:00", note: null },
+  { id: "sp-m-2", projectId: "p-meridian", documentId: "doc-11", sourceId: "src-pd-meridian-spec", page: 18, section: "Подконструкция", position: "5.2", name: "Кронштейн КР-120", materialId: null, unit: "шт", qty: 9600, confidence: 0.93, approvedBy: "e-volkova", approvedAt: "2026-07-23T10:18:00", note: null },
+  { id: "sp-m-3", projectId: "p-meridian", documentId: "doc-11", sourceId: "src-pd-meridian-spec", page: 18, section: "Подконструкция", position: "5.3", name: "Направляющая Г-образная 40×40", materialId: null, unit: "пог. м", qty: 6100, confidence: 0.92, approvedBy: "e-volkova", approvedAt: "2026-07-23T10:21:00", note: null },
+  { id: "sp-p-1", projectId: "p-primorsky", documentId: "doc-12", sourceId: "src-pd-primorsky-spec", page: 26, section: "Облицовка", position: "9.1", name: "Фиброцементная панель 1200×3000", materialId: null, unit: "м²", qty: 10400, confidence: 0.9, approvedBy: "e-volkova", approvedAt: "2026-06-04T12:00:00", note: null },
+  { id: "sp-p-2", projectId: "p-primorsky", documentId: "doc-12", sourceId: "src-pd-primorsky-spec", page: 26, section: "Утеплитель", position: "9.2", name: "Минеральная вата 150 мм", materialId: null, unit: "м²", qty: 11000, confidence: 0.86, approvedBy: null, approvedAt: null, note: "Толщина в таблице расходится с разрезом 2-2 (100 мм)." },
+  { id: "sp-p-3", projectId: "p-primorsky", documentId: "doc-12", sourceId: "src-pd-primorsky-spec", page: 26, section: "Мембраны", position: "9.3", name: "Ветрозащитная мембрана", materialId: null, unit: "м²", qty: 11500, confidence: 0.64, approvedBy: null, approvedAt: null, note: "Количество указано как ориентировочное." },
+  { id: "sp-s-1", projectId: "p-school", documentId: "doc-13", sourceId: "src-pd-school-spec", page: 7, section: "Штукатурные работы", position: "2.1", name: "Штукатурная смесь фасадная", materialId: null, unit: "т", qty: 38, confidence: 0.94, approvedBy: "e-volkova", approvedAt: "2026-05-20T09:40:00", note: null },
+  { id: "sp-s-2", projectId: "p-school", documentId: "doc-13", sourceId: "src-pd-school-spec", page: 7, section: "Армирование", position: "2.2", name: "Сетка стеклотканевая", materialId: null, unit: "м²", qty: 5600, confidence: 0.91, approvedBy: "e-volkova", approvedAt: "2026-05-20T09:42:00", note: null },
+  { id: "sp-s-3", projectId: "p-school", documentId: "doc-13", sourceId: "src-pd-school-spec", page: 7, section: "Подготовка основания", position: "2.3", name: "Грунт глубокого проникновения", materialId: null, unit: "л", qty: 1250, confidence: 0.9, approvedBy: "e-volkova", approvedAt: "2026-05-20T09:44:00", note: null },
+  { id: "sp-g-1", projectId: "p-galaxy", documentId: "doc-14", sourceId: "src-pd-galaxy-spec", page: 12, section: "Остекление", position: "3.1", name: "Стеклопакет 2-камерный 1500×3200", materialId: null, unit: "шт", qty: 312, confidence: 0.92, approvedBy: "e-volkova", approvedAt: "2026-06-25T11:05:00", note: null },
+  { id: "sp-g-2", projectId: "p-galaxy", documentId: "doc-14", sourceId: "src-pd-galaxy-spec", page: 12, section: "Каркас", position: "3.2", name: "Стойка алюминиевая 150 мм", materialId: null, unit: "пог. м", qty: 1480, confidence: 0.81, approvedBy: null, approvedAt: null, note: "Сечение стойки на листе 12 и узле 4 различается." },
+  { id: "sp-g-3", projectId: "p-galaxy", documentId: "doc-14", sourceId: "src-pd-galaxy-spec", page: 12, section: "Уплотнение", position: "3.3", name: "Уплотнитель EPDM", materialId: null, unit: "пог. м", qty: 0, confidence: 0.41, approvedBy: null, approvedAt: null, note: "Количество «по месту», требуется расчёт." },
+];
+
+specItems.push(...otherProjectItems);
+
 export function specItemsOf(documentId: string) {
   return specItems.filter((item) => item.documentId === documentId);
 }
