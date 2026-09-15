@@ -168,7 +168,7 @@ function QuotesPage() {
                       choice &&
                       setDecisions((prev) => ({
                         ...prev,
-                        [request.id]: { supplierId: choice, at: new Date().toISOString(), by: user.name },
+                        [request.id]: { supplierId: choice, at: new Date().toISOString(), by: user?.name ?? "текущий пользователь" },
                       }))
                     }
                   >
