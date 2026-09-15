@@ -15,8 +15,8 @@ const dot: Record<"high" | "mid" | "low", string> = {
 
 const label: Record<"high" | "mid" | "low", string> = {
   high: "Проверено",
-  mid: "Уточнить",
-  low: "Требует проверки",
+  mid: "Требует внимания",
+  low: "Не удалось определить",
 };
 
 const textTone: Record<"high" | "mid" | "low", string> = {
@@ -46,7 +46,7 @@ export function ConfidenceIndicator({
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        Уверенность модели: <span className="tnum font-medium">{value.toFixed(2)}</span>
+        Уверенность: <span className="tnum font-medium">{Math.round(value * 100)}%</span>
       </TooltipContent>
     </Tooltip>
   );

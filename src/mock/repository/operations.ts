@@ -10,6 +10,7 @@ export const documents: DocumentRecord[] = [
   { id: "doc-7", name: "Договор подряда СИ-2026/041", kind: "contract", projectId: "p-primorsky", authorId: "e-volkova", createdAt: "2026-04-29", status: "confirmed", version: 1, pages: 28, sizeKb: 3960, sourceId: null },
   { id: "doc-8", name: "Письмо заказчику о сроке этапа 1", kind: "letter", projectId: "p-korona", authorId: "e-sokolov", createdAt: "2026-09-04", status: "review", version: 1, pages: 1, sizeKb: 120, sourceId: "src-call-dsk" },
   { id: "doc-9", name: "Дополнительное соглашение №1", kind: "annex", projectId: "p-school", authorId: "e-volkova", createdAt: "2026-07-15", status: "confirmed", version: 1, pages: 5, sizeKb: 720, sourceId: null },
+  { id: "doc-10", name: "Проектная документация НВФ, раздел АР", kind: "design", projectId: "p-korona", authorId: "e-volkova", createdAt: "2026-08-27", status: "review", version: 3, pages: 48, sizeKb: 18640, sourceId: "src-pd-korona-ar" },
 ];
 
 export const tasks: Task[] = [

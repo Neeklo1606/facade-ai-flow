@@ -10,8 +10,8 @@ const dotClass: Record<"high" | "mid" | "low", string> = {
 
 const wordLabel: Record<"high" | "mid" | "low", string> = {
   high: "Проверено",
-  mid: "Уточнить",
-  low: "Требует проверки",
+  mid: "Требует внимания",
+  low: "Не удалось определить",
 };
 
 /**

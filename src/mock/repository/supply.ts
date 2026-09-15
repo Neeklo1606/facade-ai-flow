@@ -94,7 +94,7 @@ export const supplierOffers: SupplierOffer[] = [
     total: 3400 * 281 + 2400 * 399,
     leadTimeDays: 18,
     confidence: 0.88,
-    sourceId: null,
+    sourceId: "src-mail-mp",
     best: false,
   },
   {
@@ -106,7 +106,7 @@ export const supplierOffers: SupplierOffer[] = [
     total: 1800 * 1740,
     leadTimeDays: 24,
     confidence: 0.81,
-    sourceId: null,
+    sourceId: "src-mail-kt",
     best: true,
   },
 ];

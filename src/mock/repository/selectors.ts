@@ -117,8 +117,8 @@ export function confidenceBand(value: number): ConfidenceBand {
 
 export const confidenceLabel: Record<ConfidenceBand, string> = {
   verified: "Проверено",
-  clarify: "Уточнить",
-  check: "Требует проверки",
+  clarify: "Требует внимания",
+  check: "Не удалось определить",
 };
 
 export function sourceById(id: string | null) {

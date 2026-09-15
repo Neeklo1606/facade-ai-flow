@@ -270,6 +270,27 @@ export interface Material {
   stock: number;
 }
 
+/** Позиция спецификации, извлечённая из проектной документации. */
+export interface SpecItem {
+  id: Id;
+  projectId: Id;
+  documentId: Id;
+  sourceId: Id;
+  /** Страница документации, откуда взята позиция */
+  page: number;
+  section: string;
+  /** Номер позиции в таблице документации */
+  position: string;
+  name: string;
+  materialId: Id | null;
+  unit: string;
+  qty: number;
+  confidence: number;
+  approvedBy: Id | null;
+  approvedAt: string | null;
+  note: string | null;
+}
+
 export interface SupplyRequest {
   id: Id;
   number: string;
