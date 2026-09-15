@@ -8,6 +8,7 @@ export * from "./org";
 export * from "./work";
 export * from "./projects";
 export * from "./supply";
+export * from "./spec";
 export * from "./field";
 export * from "./operations";
 export * from "./selectors";
