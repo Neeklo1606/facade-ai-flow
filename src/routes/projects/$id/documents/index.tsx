@@ -19,7 +19,7 @@ import { useScreenState } from "@/lib/screen-state";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
-import { fmtDateTime, fmtNum } from "@/lib/format";
+import { fmtDateTime, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -98,17 +98,27 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         : doc.status === filter,
   );
 
-  function handleFiles(files: File[]) {
-    for (const file of files) {
-      upload.mutate({
-        projectId: project.id,
-        fileName: file.name,
-        sizeKb: Math.max(1, Math.round(file.size / 1024)),
+  async function handleFiles(files: File[]) {
+    const results = await Promise.allSettled(
+      files.map((file) =>
+        upload.mutateAsync({
+          projectId: project.id,
+          fileName: file.name,
+          sizeKb: Math.max(1, Math.round(file.size / 1024)),
+        }),
+      ),
+    );
+    const loaded = results.filter((result) => result.status === "fulfilled").length;
+    if (loaded) {
+      toast(`Загружено: ${loaded} ${plural(loaded, "документ", "документа", "документов")}`, {
+        description: "Распознаём текст и ищем таблицы спецификаций.",
       });
     }
-    toast(`Загружено: ${files.length} ${files.length === 1 ? "документ" : "документа"}`, {
-      description: "Распознаём текст и ищем таблицы спецификаций.",
-    });
+    if (loaded < files.length) {
+      toast.error(`Не загружено: ${files.length - loaded}`, {
+        description: "Проверьте размер файла (до 500 МБ) и повторите.",
+      });
+    }
   }
 
   const open = (doc: ProjectDocument) =>

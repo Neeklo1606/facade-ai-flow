@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,9 +54,11 @@ export function CreateRfqDialog({
   const { employeeById, counterpartyById } = useDirectory();
   const createRequest = useCreateRequest();
   // Позиции загружаются, только пока мастер открыт
-  const positions =
-    useQuery({ ...queries.positions({ projectId: project.id, limit: 5000 }), enabled: open }).data
-      ?.items ?? EMPTY;
+  const positionsQuery = useQuery({
+    ...queries.positions({ projectId: project.id, limit: 5000 }),
+    enabled: open,
+  });
+  const positions = positionsQuery.data?.items ?? EMPTY;
   const supplierList = useQuery({ ...queries.suppliers(), enabled: open }).data;
   const profiles = useMemo(() => (supplierList ?? []).map((item) => item.profile), [supplierList]);
   const eligible = useMemo(
@@ -101,15 +103,23 @@ export function CreateRfqDialog({
   const inRegion = matched.filter((m) => m.regionMatch);
   const otherRegions = matched.filter((m) => !m.regionMatch);
 
-  // При открытии: выбранные в реестре позиции, иначе все готовые к запросу
+  // При открытии: выбранные в реестре позиции, иначе все готовые к запросу. Ждём загрузки позиций:
+  // при пустом кеше мастер открывается раньше, чем приходит список
+  const preselected = useRef(false);
+  const positionsLoaded = positionsQuery.isSuccess;
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      preselected.current = false;
+      return;
+    }
+    if (preselected.current || !positionsLoaded) return;
+    preselected.current = true;
     setStep(0);
     const initial = initialIds.filter((id) => eligible.some((item) => item.id === id));
     setSelected(new Set(initial.length ? initial : eligible.map((item) => item.id)));
     setShowOtherRegions(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, positionsLoaded]);
 
   // Поставщики по умолчанию: свой регион, контакт не устарел
   useEffect(() => {

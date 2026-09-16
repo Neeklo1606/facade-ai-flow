@@ -227,7 +227,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       markHeader: ({ id }, { actorId }) =>
         done(actions.setReview(id, "header", "Отмечено как заголовок раздела", actorId)),
       reopen: ({ id }, { actorId }) => done(actions.reopen(id, actorId)),
-      restoreReview: ({ items }) => done(actions.restoreReview(items)),
+      undoReview: ({ items }, { actorId }) => done(actions.undoReview(items, actorId)),
       merge: ({ sourceId, targetId }, { actorId }) =>
         done(actions.merge(sourceId, targetId, actorId)),
       split: ({ id, firstQty }, { actorId }) => done(actions.split(id, firstQty, actorId)),
@@ -275,6 +275,19 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         });
       },
       createRequest: (input, { actorId }) => {
+        const s = state();
+        if (!s.projects.some((item) => item.id === input.projectId)) {
+          return Promise.reject(new NotFoundError("Объект", input.projectId));
+        }
+        const foreign = s.positions.some(
+          (item) => input.positionIds.includes(item.id) && item.projectId !== input.projectId,
+        );
+        if (foreign)
+          return Promise.reject(new ConflictError("Позиции относятся к другому объекту"));
+        const unknownSupplier = input.supplierIds.find(
+          (id) => !s.profiles.some((item) => item.supplierId === id),
+        );
+        if (unknownSupplier) return Promise.reject(new NotFoundError("Поставщик", unknownSupplier));
         const result = actions.createRequest(input, actorId);
         if (!result) return Promise.reject(new ConflictError("Нет позиций, готовых к запросу"));
         return done(result);
@@ -286,7 +299,26 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         return done({ reminded: actions.remind(requestId) });
       },
       recordDecision: (input) => {
-        if (input.requestId && decisionFor(state().decisions, input.requestId)) {
+        const s = state();
+        if (!s.projects.some((item) => item.id === input.projectId)) {
+          return Promise.reject(new NotFoundError("Объект", input.projectId));
+        }
+        if (!s.employees.some((item) => item.id === input.approvedBy && item.status === "active")) {
+          return Promise.reject(new ConflictError("Согласующий не найден среди сотрудников"));
+        }
+        const request = input.requestId
+          ? s.requests.find((item) => item.id === input.requestId)
+          : null;
+        if (input.requestId && !request) {
+          return Promise.reject(new NotFoundError("Запрос", input.requestId));
+        }
+        if (request && request.projectId !== input.projectId) {
+          return Promise.reject(new ConflictError("Запрос относится к другому объекту"));
+        }
+        if (input.supplierId && request && !request.sentTo.includes(input.supplierId)) {
+          return Promise.reject(new ConflictError("Поставщику не отправляли этот запрос"));
+        }
+        if (input.requestId && decisionFor(s.decisions, input.requestId)) {
           return Promise.reject(new ConflictError("Решение по запросу уже зафиксировано"));
         }
         return done(actions.recordDecision(input));

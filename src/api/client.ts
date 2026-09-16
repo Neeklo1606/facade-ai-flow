@@ -9,9 +9,9 @@ import type {
   MergePositionsInput,
   RecordDecisionInput,
   Repositories,
-  RestoreReviewInput,
   ReviewReportInput,
   SplitPositionInput,
+  UndoReviewInput,
   UploadRevisionInput,
 } from "@/ports";
 import { CURRENT_USER_ID, dataSource } from "./config";
@@ -90,10 +90,8 @@ export const api = {
       server
         ? fn.reopenFn({ data: { id } }).then(() => undefined)
         : local().positions.reopen({ id }, actor),
-    restoreReview: (data: RestoreReviewInput) =>
-      server
-        ? fn.restoreReviewFn({ data }).then(() => undefined)
-        : local().positions.restoreReview(data, actor),
+    undoReview: (data: UndoReviewInput) =>
+      server ? fn.undoReviewFn({ data }) : local().positions.undoReview(data, actor),
     merge: (data: MergePositionsInput) =>
       server ? fn.mergeFn({ data }) : local().positions.merge(data, actor),
     split: (data: SplitPositionInput) =>

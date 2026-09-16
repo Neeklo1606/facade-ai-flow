@@ -10,8 +10,10 @@ import type { ListPositionsInput } from "@/ports";
  * | передача в закупку                 | positions, documents, projects                          |
  * | загрузка документа                 | documents, positions, projects, timeline                |
  * | создание запроса                   | procurement, positions, projects, timeline              |
- * | предложение поставщика, напоминание| procurement, positions, projects, timeline              |
- * | решение по запросу                 | procurement, positions, projects, timeline              |
+ * | предложение поставщика (событие)   | procurement, positions, projects, timeline              |
+ * | напоминание поставщикам            | procurement                                             |
+ * | решение по запросу                 | procurement, positions, projects, timeline, reports     |
+ * | заказ, отгрузка (событие демо)     | procurement, positions, projects, timeline              |
  * | приёмка отчёта                     | reports                                                 |
  * | проверка контакта поставщика       | procurement                                             |
  * | новый объект                       | projects, directory                                     |

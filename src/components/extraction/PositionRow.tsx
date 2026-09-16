@@ -202,24 +202,27 @@ export const PositionRow = memo(function PositionRow({
                     <Ban className="size-3.5" /> Исключить
                   </Button>
                   <span className="mx-0.5 h-4 w-px bg-border" aria-hidden />
-                  <IconAction
-                    label="Объединить с другой позицией"
-                    onClick={() => onAction(item.id, "merge")}
-                  >
-                    <Combine className="size-3.5" />
-                  </IconAction>
-                  <IconAction
-                    label="Разделить на две позиции"
-                    onClick={() => onAction(item.id, "split")}
-                  >
-                    <Split className="size-3.5" />
-                  </IconAction>
-                  <IconAction
-                    label="Отметить как заголовок раздела"
-                    onClick={() => onAction(item.id, "header")}
-                  >
-                    <Heading className="size-3.5" />
-                  </IconAction>
+                  {/* Значки переносятся группой: на узком экране одиночный значок на строке выглядел как буква */}
+                  <span className="inline-flex items-center">
+                    <IconAction
+                      label="Объединить с другой позицией"
+                      onClick={() => onAction(item.id, "merge")}
+                    >
+                      <Combine className="size-3.5" />
+                    </IconAction>
+                    <IconAction
+                      label="Разделить на две позиции"
+                      onClick={() => onAction(item.id, "split")}
+                    >
+                      <Split className="size-3.5" />
+                    </IconAction>
+                    <IconAction
+                      label="Отметить как заголовок раздела"
+                      onClick={() => onAction(item.id, "header")}
+                    >
+                      <Heading className="size-3.5" />
+                    </IconAction>
+                  </span>
                 </>
               )}
             </div>

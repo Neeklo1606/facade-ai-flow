@@ -29,7 +29,7 @@ import { useScreenState } from "@/lib/screen-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isActivePosition as isActive, isVerifiedPosition as isVerified } from "@/contracts";
-import { reviewSnapshot, usePositionMutations } from "@/api/mutations";
+import { undoInput, usePositionMutations } from "@/api/mutations";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
@@ -215,7 +215,6 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const onActivate = useCallback((id: string) => {
     const { mergeSourceId: source, positions: all, mutations: m } = live.current;
     if (source && source !== id) {
-      const snapshot = all.filter((item) => item.id === source || item.id === id);
       const target = all.find((item) => item.id === id)!;
       const sourceItem = all.find((item) => item.id === source)!;
       setMergeSourceId(null);
@@ -226,7 +225,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           onSuccess: (summed) =>
             toastUndo(
               `Поз. ${sourceItem.position} объединена с поз. ${target.position}`,
-              () => m.restoreReview.mutate(reviewSnapshot(snapshot)),
+              () => m.undoReview.mutate(undoInput([sourceItem], "merged")),
               summed
                 ? "Количество сложено."
                 : "Единицы разные — количество не сложено, проверьте вручную.",
@@ -257,13 +256,13 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           advanceFrom(id);
           m.exclude.mutate(id);
           toastUndo(`Поз. ${item.position} исключена`, () =>
-            m.restoreReview.mutate(reviewSnapshot([item])),
+            m.undoReview.mutate(undoInput([item], "excluded")),
           );
           return;
         case "header":
           m.markHeader.mutate(id);
           toastUndo(`Поз. ${item.position} отмечена как заголовок`, () =>
-            m.restoreReview.mutate(reviewSnapshot([item])),
+            m.undoReview.mutate(undoInput([item], "header")),
           );
           return;
         case "merge":
@@ -328,7 +327,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     mutations.confirm.mutate(snapshot.map((item) => item.id));
     toastUndo(
       `Подтверждено ${fmtNum(snapshot.length)} позиций`,
-      () => mutations.restoreReview.mutate(reviewSnapshot(snapshot)),
+      () => mutations.undoReview.mutate(undoInput(snapshot, "confirmed")),
       "Позиции со статусом «Проверено» отмечены как проверенные человеком.",
     );
   }

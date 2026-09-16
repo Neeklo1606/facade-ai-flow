@@ -293,11 +293,16 @@ function ReportCard({
   const [qty, setQty] = useState(String(report.acceptedQty ?? report.declaredQty ?? ""));
 
   const accept = (value: number) => {
-    review.mutate({ id: report.id, status: "accepted", acceptedQty: value });
     setEditing(false);
-    toast.success(`Отчёт принят: ${fmtNum(value)} ${report.unit}`, {
-      description: zone?.name ?? "",
-    });
+    review.mutate(
+      { id: report.id, status: "accepted", acceptedQty: value },
+      {
+        onSuccess: () =>
+          toast.success(`Отчёт принят: ${fmtNum(value)} ${report.unit}`, {
+            description: zone?.name ?? "",
+          }),
+      },
+    );
   };
 
   const end = audio?.location.match(/(\d+):(\d+)$/);
@@ -444,10 +449,15 @@ function ReportCard({
               <Button
                 variant="ghost"
                 onClick={() => {
-                  review.mutate({ id: report.id, status: "returned", acceptedQty: null });
-                  toast("Отчёт возвращён на уточнение", {
-                    description: "Отчёт останется в ленте со статусом «Возвращён».",
-                  });
+                  review.mutate(
+                    { id: report.id, status: "returned", acceptedQty: null },
+                    {
+                      onSuccess: () =>
+                        toast("Отчёт возвращён на уточнение", {
+                          description: "Отчёт останется в ленте со статусом «Возвращён».",
+                        }),
+                    },
+                  );
                 }}
                 disabled={report.status === "returned"}
               >

@@ -7,7 +7,6 @@ import {
   positionReview,
   purchaseStatus,
   replacementSuggestions,
-  timestampSchema,
   type ExtractedPosition,
   type Material,
   type PositionChange,
@@ -37,20 +36,23 @@ export const correctPositionInput = z.object({
   characteristics: z.array(characteristic),
 });
 
-/** Откат решения проверки — обратная мутация для «Отменить» */
-export const restoreReviewInput = z.object({
+/**
+ * «Отменить» — обратная мутация решения проверки. Клиент называет только позицию, отменяемое решение
+ * и решение до него; кто проверил, когда и количество цели объединения определяет сервер.
+ */
+export const undoReviewInput = z.object({
   items: z
     .array(
       z.object({
         id,
-        review: positionReview.schema,
-        reviewedBy: id.nullable(),
-        reviewedAt: timestampSchema.nullable(),
-        mergedInto: id.nullable(),
-        qty: z.number().nonnegative(),
+        /** Отменяемое решение; если позицию успели изменить иначе, она не трогается */
+        from: positionReview.schema,
+        /** Решение до действия; вернуть позицию в «объединено» отменой нельзя */
+        to: positionReview.schema.exclude(["merged"]),
       }),
     )
-    .min(1),
+    .min(1)
+    .max(5000),
 });
 
 export const mergePositionsInput = z.object({ sourceId: id, targetId: id });
@@ -74,7 +76,7 @@ export const replacementList = z.array(replacementSuggestions);
 
 export type ListPositionsInput = z.input<typeof listPositionsInput>;
 export type CorrectPositionInput = z.infer<typeof correctPositionInput>;
-export type RestoreReviewInput = z.infer<typeof restoreReviewInput>;
+export type UndoReviewInput = z.infer<typeof undoReviewInput>;
 export type MergePositionsInput = z.infer<typeof mergePositionsInput>;
 export type SplitPositionInput = z.infer<typeof splitPositionInput>;
 
@@ -93,7 +95,8 @@ export interface PositionsPort {
   markHeader(input: z.infer<typeof idInput>, actor: Actor): Promise<void>;
   /** Возвращает исключённую, объединённую или заголовок на проверку */
   reopen(input: z.infer<typeof idInput>, actor: Actor): Promise<void>;
-  restoreReview(input: RestoreReviewInput, actor: Actor): Promise<void>;
+  /** Отменяет решения проверки и пишет отмену в журнал; возвращает число отменённых */
+  undoReview(input: UndoReviewInput, actor: Actor): Promise<number>;
   /** false — единицы разные, количество цели не изменилось */
   merge(input: MergePositionsInput, actor: Actor): Promise<boolean>;
   split(input: SplitPositionInput, actor: Actor): Promise<void>;

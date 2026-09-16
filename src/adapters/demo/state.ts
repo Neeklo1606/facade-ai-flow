@@ -85,6 +85,7 @@ export interface DemoEvent {
 const listeners = new Set<(event: DemoEvent) => void>();
 /** События, случившиеся до подписки: после перезагрузки симулятор догоняет пропущенное раньше, чем открылся экран */
 let missed: DemoEvent[] = [];
+const MAX_MISSED = 20;
 
 export function onDemoEvent(listener: (event: DemoEvent) => void) {
   listeners.add(listener);
@@ -95,6 +96,9 @@ export function onDemoEvent(listener: (event: DemoEvent) => void) {
 }
 
 export function emitDemoEvent(event: DemoEvent) {
-  if (!listeners.size) missed.push(event);
+  // Копим только во вкладке и немного: на сервере подписчиков нет, очередь росла бы без конца
+  if (!listeners.size && typeof window !== "undefined" && missed.length < MAX_MISSED) {
+    missed.push(event);
+  }
   listeners.forEach((listener) => listener(event));
 }

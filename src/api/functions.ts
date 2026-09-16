@@ -33,11 +33,11 @@ import {
   reportCard,
   requestCard,
   requestSummary,
-  restoreReviewInput,
   reviewReportInput,
   revisionChangeView,
   sourceCard,
   splitPositionInput,
+  undoReviewInput,
   supplierListItem,
   templateList,
   timelineList,
@@ -164,12 +164,15 @@ export const reopenFn = createServerFn({ method: "POST" })
     return ok.parse({ ok: true });
   });
 
-export const restoreReviewFn = createServerFn({ method: "POST" })
-  .validator(restoreReviewInput)
-  .handler(async ({ data }) => {
-    await repos().positions.restoreReview(data, actor());
-    return ok.parse({ ok: true });
-  });
+export const undoReviewFn = createServerFn({ method: "POST" })
+  .validator(undoReviewInput)
+  .handler(async ({ data }) =>
+    z
+      .number()
+      .int()
+      .nonnegative()
+      .parse(await repos().positions.undoReview(data, actor())),
+  );
 
 export const mergeFn = createServerFn({ method: "POST" })
   .validator(mergePositionsInput)

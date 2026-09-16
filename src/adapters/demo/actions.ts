@@ -1,4 +1,5 @@
 import {
+  positionReviewLabel,
   isReadyForRequest,
   isVerifiedPosition,
   type Contract,
@@ -19,7 +20,7 @@ import type {
   CreateProjectInput,
   CreateRequestInput,
   RecordDecisionInput,
-  RestoreReviewInput,
+  UndoReviewInput,
   ReviewReportInput,
   UploadRevisionInput,
 } from "@/ports";
@@ -142,16 +143,64 @@ export function reopen(id: string, actorId: string) {
   );
 }
 
-/** «Отменить»: вернуть поля проверки, какими они были до действия */
-export function restoreReview(items: RestoreReviewInput["items"]) {
-  const byId = new Map(items.map((item) => [item.id, item]));
+/**
+ * «Отменить»: вернуть решение проверки, которое было до действия. Меняются только позиции, у которых
+ * всё ещё отменяемое решение; отмена объединения вычитает количество из цели. Отмена пишется в журнал.
+ */
+export function undoReview(items: UndoReviewInput["items"], actorId: string) {
+  const s = getState();
+  const byId = new Map(s.positions.map((item) => [item.id, item]));
+  const patches = new Map<string, Partial<ExtractedPosition>>();
+  const changes: PositionChange[] = [];
+  const at = tick();
+
+  for (const { id, from, to } of items) {
+    const item = byId.get(id);
+    if (!item || item.review !== from || from === to) continue;
+    const target = from === "merged" && item.mergedInto ? byId.get(item.mergedInto) : undefined;
+    // Цель уже объединена дальше: её количество ушло в другую позицию, вычитать его неоткуда
+    if (target?.review === "merged") continue;
+    patches.set(id, {
+      review: to,
+      mergedInto: null,
+      reviewedBy: to === "pending" ? null : actorId,
+      reviewedAt: to === "pending" ? null : at,
+    });
+    changes.push(
+      positionChange(
+        id,
+        actorId,
+        "Действие отменено",
+        positionReviewLabel[from],
+        positionReviewLabel[to],
+      ),
+    );
+
+    if (target && target.unit === item.unit && target.qty >= item.qty) {
+      const qty = target.qty - item.qty;
+      patches.set(target.id, { ...patches.get(target.id), qty });
+      changes.push(
+        positionChange(
+          target.id,
+          actorId,
+          `Отменено присоединение поз. ${item.position}`,
+          `${target.qty} ${target.unit}`,
+          `${qty} ${target.unit}`,
+        ),
+      );
+    }
+  }
+
+  if (!patches.size) return 0;
   update((prev) => ({
     ...prev,
     positions: prev.positions.map((item) => {
-      const saved = byId.get(item.id);
-      return saved ? { ...item, ...saved } : item;
+      const patch = patches.get(item.id);
+      return patch ? { ...item, ...patch } : item;
     }),
+    changes: [...prev.changes, ...changes],
   }));
+  return changes.filter((change) => change.action === "Действие отменено").length;
 }
 
 export function merge(sourceId: string, targetId: string, actorId: string) {
@@ -310,6 +359,9 @@ export function createProject(input: CreateProjectInput) {
 
 /* ---------- Документы ---------- */
 
+/** Верхняя граница листов демо-документа: число листов оценивается по размеру файла */
+const MAX_SHEETS = 200;
+
 export function upload(input: UploadRevisionInput, actorId: string) {
   const id = liveId("pd");
   const documentId = liveId("doc");
@@ -330,7 +382,10 @@ export function upload(input: UploadRevisionInput, actorId: string) {
     sizeKb: input.sizeKb,
     uploadedAt: tick(),
     uploadedBy: actorId,
-    sheetCount: fileType === "xlsx" ? 1 : 1 + Math.round((input.sizeKb * 1024) / 180_000) || 1,
+    sheetCount:
+      fileType === "xlsx"
+        ? 1
+        : Math.min(MAX_SHEETS, 1 + Math.round((input.sizeKb * 1024) / 180_000)),
     status: "uploaded",
     sourceId: null,
     positionsTotal: null,
