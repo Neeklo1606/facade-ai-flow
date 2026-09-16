@@ -5,9 +5,11 @@ import {
   emailTemplates,
   offerLine,
   projectDecision,
+  rfqDisplayStatus,
   supplierOffer,
   supplierProfiles,
   supplyRequest,
+  timestampSchema,
   type Counterparty,
   type Delivery,
   type EmailTemplate,
@@ -19,46 +21,56 @@ import {
 } from "@/contracts";
 import type { Actor } from "./common";
 
+const id = z.string().min(1);
+
 export const createRequestInput = z.object({
-  projectId: z.string().min(1),
+  projectId: id,
   /** Позиции, готовые к запросу; одинаковые материалы собираются в одну строку */
-  positionIds: z.array(z.string().min(1)).min(1),
-  supplierIds: z.array(z.string().min(1)).min(1),
-  templateId: z.string().min(1).nullable(),
-  replyDueAt: z.string().datetime({ local: true, offset: true }),
+  positionIds: z.array(id).min(1),
+  supplierIds: z.array(id).min(1),
+  templateId: id.nullable(),
+  replyDueAt: timestampSchema,
 });
 
-export const listSuppliersInput = z.object({
-  region: z.string().optional(),
-  categories: z.array(z.string()).optional(),
+export const createRequestResult = z.object({
+  request: supplyRequest,
+  /** Сколько позиций спецификации вошло в запрос */
+  positions: z.number().int().positive(),
 });
 
 export const supplierListItem = z.object({ supplier: counterparties, profile: supplierProfiles });
 
-export const requestCard = z.object({
+/** Запрос в списке: с числом ответов, лучшей ценой и статусом на экране */
+export const requestSummary = z.object({
   request: supplyRequest,
+  answered: z.number().int().nonnegative(),
+  bestSupplierId: id.nullable(),
+  /** Итог лучшего предложения с НДС и доставкой, копейки */
+  bestTotal: z.number().int().nullable(),
+  status: rfqDisplayStatus,
+  decisionId: id.nullable(),
+});
+
+export const recipientView = z.object({ supplierId: id, remindedAt: timestampSchema.nullable() });
+
+export const requestCard = z.object({
+  summary: requestSummary,
+  recipients: z.array(recipientView),
   offers: z.array(supplierOffer),
   lines: z.array(offerLine),
   decision: projectDecision.nullable(),
 });
 
-export const recordDecisionInput = projectDecision.omit({
-  id: true,
-  approvedAt: true,
-  link: true,
-});
+export const recordDecisionInput = projectDecision.omit({ id: true, approvedAt: true, link: true });
 
-export const recordOfferInput = supplierOffer.omit({ id: true }).extend({
-  lines: z.array(offerLine.omit({ id: true, offerId: true })).min(1),
-});
-
+export const remindResult = z.object({ reminded: z.array(id) });
 export const templateList = z.array(emailTemplates);
 export const deliveryList = z.array(delivery);
 
 export type CreateRequestInput = z.infer<typeof createRequestInput>;
-export type ListSuppliersInput = z.infer<typeof listSuppliersInput>;
+export type CreateRequestResult = z.infer<typeof createRequestResult>;
 export type RecordDecisionInput = z.infer<typeof recordDecisionInput>;
-export type RecordOfferInput = z.infer<typeof recordOfferInput>;
+export type RequestSummary = z.infer<typeof requestSummary>;
 
 export interface SupplierListItem {
   supplier: Counterparty;
@@ -66,7 +78,8 @@ export interface SupplierListItem {
 }
 
 export interface RequestCard {
-  request: SupplyRequest;
+  summary: RequestSummary;
+  recipients: { supplierId: string; remindedAt: string | null }[];
   offers: SupplierOffer[];
   lines: OfferLine[];
   decision: ProjectDecision | null;
@@ -74,22 +87,20 @@ export interface RequestCard {
 
 /** Поставщики, запросы, предложения, решения и поставки. */
 export interface ProcurementPort {
-  suppliers(input: ListSuppliersInput): Promise<SupplierListItem[]>;
+  suppliers(): Promise<SupplierListItem[]>;
   /** Отмечает контакт проверенным сегодняшней датой */
-  verifyContact(supplierId: string, actor: Actor): Promise<SupplierProfile>;
+  verifyContact(input: { supplierId: string }, actor: Actor): Promise<void>;
   templates(): Promise<EmailTemplate[]>;
 
-  requests(projectId: string): Promise<SupplyRequest[]>;
+  requests(projectId: string): Promise<RequestSummary[]>;
   request(requestId: string): Promise<RequestCard | null>;
   /**
    * Создаёт запрос со строками, получателями и связями с позициями, переводит позиции
    * в `requested`, пишет событие `request_created`. Позиции не готовы к запросу — ConflictError.
    */
-  createRequest(input: CreateRequestInput, actor: Actor): Promise<SupplyRequest>;
+  createRequest(input: CreateRequestInput, actor: Actor): Promise<CreateRequestResult>;
   /** Напоминает поставщикам без ответа; возвращает их id */
-  remind(requestId: string, actor: Actor): Promise<string[]>;
-  /** Предложение, распознанное из письма; позиции запроса переходят в `offers` */
-  recordOffer(input: RecordOfferInput): Promise<SupplierOffer>;
+  remind(input: { requestId: string }, actor: Actor): Promise<{ reminded: string[] }>;
   /** Решение по запросу одно: повтор — ConflictError. Позиции переходят в `supplier_selected` */
   recordDecision(input: RecordDecisionInput, actor: Actor): Promise<ProjectDecision>;
 

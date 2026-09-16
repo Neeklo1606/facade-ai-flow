@@ -12,7 +12,8 @@ export const actorInput = z.object({ actorId: idSchema });
 
 export const pageInput = z.object({
   cursor: z.string().nullable().default(null),
-  limit: z.number().int().min(1).max(500).default(100),
+  // До серверного пейджинга (P3-3) список позиций ревизии отдаётся целиком
+  limit: z.number().int().min(1).max(5000).default(100),
 });
 
 export function pageOf<T extends z.ZodTypeAny>(item: T) {

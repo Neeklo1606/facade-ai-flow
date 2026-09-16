@@ -3,20 +3,15 @@ import {
   evidence,
   extractions,
   fieldReport,
-  reportStatus,
+  projectDecision,
   sources,
   type Evidence,
   type Extraction,
   type FieldReport,
+  type ProjectDecision,
   type Source,
 } from "@/contracts";
 import type { Actor } from "./common";
-
-export const listReportsInput = z.object({
-  projectId: z.string().min(1),
-  status: reportStatus.schema.optional(),
-  zoneId: z.string().optional(),
-});
 
 export const reviewReportInput = z
   .object({
@@ -32,26 +27,35 @@ export const reviewReportInput = z
 export const reportCard = z.object({
   report: fieldReport,
   evidence: z.array(evidence),
-  source: sources,
   extractions: z.array(extractions),
 });
 
-export type ListReportsInput = z.infer<typeof listReportsInput>;
+export const sourceCard = z.object({
+  source: sources,
+  extractions: z.array(extractions),
+  /** Решения, принятые на основании источника */
+  decisions: z.array(projectDecision),
+});
+
 export type ReviewReportInput = z.infer<typeof reviewReportInput>;
 
 export interface ReportCard {
   report: FieldReport;
   evidence: Evidence[];
+  extractions: Extraction[];
+}
+
+export interface SourceCard {
   source: Source;
   extractions: Extraction[];
+  decisions: ProjectDecision[];
 }
 
 /** Отчёты с площадки и первоисточники. */
 export interface ReportsPort {
-  list(input: ListReportsInput): Promise<FieldReport[]>;
-  card(reportId: string): Promise<ReportCard | null>;
-  /** Приёмка или возврат; принятый объём попадает в факт захватки */
-  review(input: ReviewReportInput, actor: Actor): Promise<FieldReport>;
-  /** Источник с распознанными полями — для панели «Источник» */
-  source(sourceId: string): Promise<{ source: Source; extractions: Extraction[] } | null>;
+  /** Отчёты объекта с материалами и распознанными полями, новые сверху */
+  list(projectId: string): Promise<ReportCard[]>;
+  /** Приёмка или возврат на уточнение */
+  review(input: ReviewReportInput, actor: Actor): Promise<void>;
+  source(sourceId: string): Promise<SourceCard | null>;
 }

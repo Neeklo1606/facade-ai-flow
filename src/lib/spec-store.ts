@@ -94,6 +94,9 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
+/** Подписка на изменения демо-состояния вне React — для моста с кешем запросов (P2-1…P2-6). */
+export const subscribeSpecStore = subscribe;
+
 const getSnapshot = () => state;
 const getServerSnapshot = () => seedState;
 

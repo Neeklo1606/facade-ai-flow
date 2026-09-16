@@ -1,25 +1,30 @@
 import { z } from "zod";
 import {
-  eventType,
   projectDecision,
   timelineEvent,
   type ProjectDecision,
   type TimelineEvent,
 } from "@/contracts";
-import { pageInput, type Page } from "./common";
 
-export const listTimelineInput = pageInput.extend({
-  projectId: z.string().min(1),
-  types: z.array(z.enum([...eventType.values, "decision"])).optional(),
+/** Что ждёт решения по объекту: запрос с ответами всех поставщиков или предложенная замена */
+export const pendingDecision = z.object({
+  id: z.string().min(1),
+  kind: z.enum(["request", "replacement"]),
+  title: z.string().min(1),
+  details: z.string(),
+  link: z.string().min(1),
 });
 
+export const timelineList = z.array(timelineEvent);
 export const decisionList = z.array(projectDecision);
-export const timelineItem = timelineEvent;
+export const pendingList = z.array(pendingDecision);
 
-export type ListTimelineInput = z.input<typeof listTimelineInput>;
+export type PendingDecision = z.infer<typeof pendingDecision>;
 
 /** История объекта: события и решения одной лентой. Записи пишут мутации других портов. */
 export interface TimelinePort {
-  list(input: ListTimelineInput): Promise<Page<TimelineEvent>>;
+  /** События и решения объекта, новые сверху */
+  list(projectId: string): Promise<TimelineEvent[]>;
   decisions(projectId: string): Promise<ProjectDecision[]>;
+  pending(projectId: string): Promise<PendingDecision[]>;
 }

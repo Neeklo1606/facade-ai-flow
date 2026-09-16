@@ -1,0 +1,114 @@
+import { queryOptions } from "@tanstack/react-query";
+import type { ListPositionsInput } from "@/ports";
+import { api } from "./client";
+import { keys } from "./keys";
+
+/** Опции запросов для useQuery и loader (ensureQueryData). Один объект — один ключ и одна функция. */
+
+/** Справочники меняются редко: не перезапрашиваем их при каждом монтировании */
+const reference = { staleTime: 5 * 60_000 } as const;
+
+export const queries = {
+  employees: () =>
+    queryOptions({
+      queryKey: keys.directory.employees(),
+      queryFn: api.directory.employees,
+      ...reference,
+    }),
+  counterparties: () =>
+    queryOptions({
+      queryKey: keys.directory.counterparties(),
+      queryFn: api.directory.counterparties,
+      ...reference,
+    }),
+
+  projects: () => queryOptions({ queryKey: keys.projects.list(), queryFn: api.projects.list }),
+  project: (id: string) =>
+    queryOptions({ queryKey: keys.projects.card(id), queryFn: () => api.projects.card(id) }),
+
+  documents: (projectId?: string) =>
+    queryOptions({
+      queryKey: keys.documents.list(projectId),
+      queryFn: () => api.documents.list(projectId ? { projectId } : {}),
+    }),
+  revisions: (documentId: string) =>
+    queryOptions({
+      queryKey: keys.documents.revisions(documentId),
+      queryFn: () => api.documents.revisions(documentId),
+    }),
+  document: (revisionId: string) =>
+    queryOptions({
+      queryKey: keys.documents.card(revisionId),
+      queryFn: () => api.documents.card(revisionId),
+    }),
+
+  positions: (input: ListPositionsInput) =>
+    queryOptions({
+      queryKey: keys.positions.list(input),
+      queryFn: () => api.positions.list(input),
+    }),
+  positionHistory: (positionId: string) =>
+    queryOptions({
+      queryKey: keys.positions.history(positionId),
+      queryFn: () => api.positions.history(positionId),
+    }),
+  materials: () =>
+    queryOptions({
+      queryKey: keys.positions.materials(),
+      queryFn: api.positions.materials,
+      ...reference,
+    }),
+  replacements: () =>
+    queryOptions({ queryKey: keys.positions.replacements(), queryFn: api.positions.replacements }),
+
+  suppliers: () =>
+    queryOptions({ queryKey: keys.procurement.suppliers(), queryFn: api.procurement.suppliers }),
+  templates: () =>
+    queryOptions({
+      queryKey: keys.procurement.templates(),
+      queryFn: api.procurement.templates,
+      ...reference,
+    }),
+  requests: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.procurement.requests(projectId),
+      queryFn: () => api.procurement.requests(projectId),
+    }),
+  request: (requestId: string) =>
+    queryOptions({
+      queryKey: keys.procurement.request(requestId),
+      queryFn: () => api.procurement.request(requestId),
+    }),
+  deliveries: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.procurement.deliveries(projectId),
+      queryFn: () => api.procurement.deliveries(projectId),
+    }),
+
+  reports: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.reports.list(projectId),
+      queryFn: () => api.reports.list(projectId),
+    }),
+  source: (sourceId: string) =>
+    queryOptions({
+      queryKey: keys.reports.source(sourceId),
+      queryFn: () => api.reports.source(sourceId),
+    }),
+
+  timeline: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.timeline.list(projectId),
+      queryFn: () => api.timeline.list(projectId),
+    }),
+  decisions: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.timeline.decisions(projectId),
+      queryFn: () => api.timeline.decisions(projectId),
+    }),
+  pendingDecisions: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.timeline.pending(projectId),
+      queryFn: () => api.timeline.pending(projectId),
+    }),
+};

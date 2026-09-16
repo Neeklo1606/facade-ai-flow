@@ -5,7 +5,6 @@ import {
   employeeView,
   milestoneView,
   projectOverview,
-  projectStatus,
   projectView,
   workZoneView,
   type Contract,
@@ -18,14 +17,7 @@ import {
 } from "@/contracts";
 import type { Actor } from "./common";
 
-export const listProjectsInput = z.object({
-  status: projectStatus.schema.optional(),
-  region: z.string().optional(),
-  managerId: z.string().optional(),
-  /** Только объекты, где есть непроверенные позиции */
-  withUnverified: z.boolean().optional(),
-});
-
+export const projectList = z.array(z.object({ project: projectView, overview: projectOverview }));
 export const projectListItem = z.object({ project: projectView, overview: projectOverview });
 
 export const projectCard = z.object({
@@ -45,7 +37,8 @@ export const createProjectInput = z
     region: z.string().trim().min(1),
     /** Название заказчика; если такого контрагента нет, он создаётся */
     customer: z.string().trim().min(1),
-    contractNumber: z.string().trim().nullable(),
+    /** Номер договора; пусто — договора ещё нет */
+    contractNumber: z.string().trim(),
     startDate: z.string().date(),
     endDate: z.string().date(),
     managerId: z.string().min(1),
@@ -55,7 +48,6 @@ export const createProjectInput = z
     path: ["endDate"],
   });
 
-export type ListProjectsInput = z.infer<typeof listProjectsInput>;
 export type ProjectListItem = z.infer<typeof projectListItem>;
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
 
@@ -71,7 +63,7 @@ export interface ProjectCard {
 
 /** Объекты, договоры, захватки, команда. Сводка считается представлением `project_overview`. */
 export interface ProjectsPort {
-  list(input: ListProjectsInput): Promise<ProjectListItem[]>;
+  list(): Promise<ProjectListItem[]>;
   /** null — объекта нет */
   card(projectId: string): Promise<ProjectCard | null>;
   /** Код объекта уникален: при повторе — ConflictError */
