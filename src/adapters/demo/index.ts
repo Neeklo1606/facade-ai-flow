@@ -303,6 +303,10 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         if (!s.projects.some((item) => item.id === input.projectId)) {
           return Promise.reject(new NotFoundError("Объект", input.projectId));
         }
+        // Как проверка таблицы project_decisions: выбор поставщика всегда по запросу и с поставщиком
+        if (input.kind === "supplier" && (!input.requestId || !input.supplierId)) {
+          return Promise.reject(new ConflictError("Выбор поставщика требует запроса и поставщика"));
+        }
         if (!s.employees.some((item) => item.id === input.approvedBy && item.status === "active")) {
           return Promise.reject(new ConflictError("Согласующий не найден среди сотрудников"));
         }

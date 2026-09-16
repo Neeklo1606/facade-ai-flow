@@ -189,7 +189,16 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     viewer.current?.scrollToPosition(active);
   }, [active]);
 
-  const mutations = usePositionMutations();
+  const mutations = usePositionMutations({
+    onFailed: () =>
+      toast.error("Изменение не сохранилось", {
+        description: "Список возвращён к прежнему виду.",
+      }),
+    onNothingUndone: () =>
+      toast("Отменить не получилось", {
+        description: "Позицию уже изменили другим действием — проверьте её вручную.",
+      }),
+  });
   // Свежие значения для стабильных обработчиков строк
   const live = useRef({ list, positions, mergeSourceId, mutations });
   live.current = { list, positions, mergeSourceId, mutations };

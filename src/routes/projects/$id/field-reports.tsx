@@ -274,7 +274,9 @@ function ReportCard({
   partial: boolean;
 }) {
   const { employeeById } = useDirectory();
-  const review = useReviewReport();
+  const review = useReviewReport({
+    onFailed: () => toast.error("Решение по отчёту не сохранилось", { description: "Повторите." }),
+  });
   const author = employeeById(report.authorId);
   const card = useQuery(queries.reports(report.projectId)).data?.find(
     (item) => item.report.id === report.id,

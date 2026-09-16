@@ -144,8 +144,10 @@ export function reopen(id: string, actorId: string) {
 }
 
 /**
- * «Отменить»: вернуть решение проверки, которое было до действия. Меняются только позиции, у которых
- * всё ещё отменяемое решение; отмена объединения вычитает количество из цели. Отмена пишется в журнал.
+ * «Отменить»: вернуть решение проверки, которое было до действия. Отмена пишется в журнал.
+ * Позиция не трогается, если её успели изменить после действия: другое решение, передана в закупку
+ * (и отмена сделала бы её непроверенной),
+ * цель объединения уже объединена дальше или её количество не то, что получилось при объединении.
  */
 export function undoReview(items: UndoReviewInput["items"], actorId: string) {
   const s = getState();
@@ -153,13 +155,41 @@ export function undoReview(items: UndoReviewInput["items"], actorId: string) {
   const patches = new Map<string, Partial<ExtractedPosition>>();
   const changes: PositionChange[] = [];
   const at = tick();
+  let undone = 0;
+
+  const current = (item: ExtractedPosition) => ({ ...item, ...patches.get(item.id) });
 
   for (const { id, from, to } of items) {
-    const item = byId.get(id);
-    if (!item || item.review !== from || from === to) continue;
-    const target = from === "merged" && item.mergedInto ? byId.get(item.mergedInto) : undefined;
-    // Цель уже объединена дальше: её количество ушло в другую позицию, вычитать его неоткуда
-    if (target?.review === "merged") continue;
+    const found = byId.get(id);
+    if (!found || patches.has(id) || from === to) continue;
+    const item = current(found);
+    if (item.review !== from) continue;
+    // Переданную в закупку позицию нельзя вернуть в непроверенные: она уже числится в закупке
+    const inProcurement = item.handedOverAt !== null || item.purchase !== "none";
+    if (inProcurement && !isVerifiedPosition({ ...item, review: to })) continue;
+
+    let targetQty: { id: string; before: string; after: string; qty: number } | null = null;
+    if (from === "merged") {
+      const target = item.mergedInto ? byId.get(item.mergedInto) : undefined;
+      if (!target) continue;
+      const t = current(target);
+      if (t.review === "merged") continue;
+      // Запись объединения на цели хранит, каким стало количество; если цель с тех пор меняли — не отменяем
+      const joined = [...s.changes]
+        .reverse()
+        .find(
+          (change) =>
+            change.positionId === t.id && change.action === `Присоединена поз. ${item.position}`,
+        );
+      const now = `${t.qty} ${t.unit}`;
+      if (!joined || joined.after !== now) continue;
+      if (joined.before !== joined.after) {
+        const qty = t.qty - item.qty;
+        if (qty < 0) continue;
+        targetQty = { id: t.id, before: now, after: `${qty} ${t.unit}`, qty };
+      }
+    }
+
     patches.set(id, {
       review: to,
       mergedInto: null,
@@ -175,23 +205,22 @@ export function undoReview(items: UndoReviewInput["items"], actorId: string) {
         positionReviewLabel[to],
       ),
     );
-
-    if (target && target.unit === item.unit && target.qty >= item.qty) {
-      const qty = target.qty - item.qty;
-      patches.set(target.id, { ...patches.get(target.id), qty });
+    if (targetQty) {
+      patches.set(targetQty.id, { ...patches.get(targetQty.id), qty: targetQty.qty });
       changes.push(
         positionChange(
-          target.id,
+          targetQty.id,
           actorId,
           `Отменено присоединение поз. ${item.position}`,
-          `${target.qty} ${target.unit}`,
-          `${qty} ${target.unit}`,
+          targetQty.before,
+          targetQty.after,
         ),
       );
     }
+    undone += 1;
   }
 
-  if (!patches.size) return 0;
+  if (!undone) return 0;
   update((prev) => ({
     ...prev,
     positions: prev.positions.map((item) => {
@@ -200,7 +229,7 @@ export function undoReview(items: UndoReviewInput["items"], actorId: string) {
     }),
     changes: [...prev.changes, ...changes],
   }));
-  return changes.filter((change) => change.action === "Действие отменено").length;
+  return undone;
 }
 
 export function merge(sourceId: string, targetId: string, actorId: string) {

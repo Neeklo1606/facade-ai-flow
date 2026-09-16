@@ -376,12 +376,19 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         }
         contractNumber={contract?.number ?? project.contract}
         onUpload={(files) => {
+          // mutateAsync, а не колбэки mutate: они не срабатывают после ухода с карточки
           files.forEach((file) =>
-            upload.mutate({
-              projectId: project.id,
-              fileName: file.name,
-              sizeKb: Math.max(1, Math.round(file.size / 1024)),
-            }),
+            upload
+              .mutateAsync({
+                projectId: project.id,
+                fileName: file.name,
+                sizeKb: Math.max(1, Math.round(file.size / 1024)),
+              })
+              .catch(() =>
+                toast.error(`Не загружено: ${file.name}`, {
+                  description: "Проверьте размер файла (до 500 МБ) и повторите.",
+                }),
+              ),
           );
           navigate({ to: "/projects/$id/documents", params: { id: project.id } });
         }}
