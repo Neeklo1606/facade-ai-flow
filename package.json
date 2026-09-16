@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:schema": "bun scripts/db-schema.ts && prettier --write docs/db/schema.md"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
