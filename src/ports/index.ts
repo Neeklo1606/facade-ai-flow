@@ -1,0 +1,27 @@
+import type { DirectoryPort } from "./directory";
+import type { DocumentsPort } from "./documents";
+import type { PositionsPort } from "./positions";
+import type { ProcurementPort } from "./procurement";
+import type { ProjectsPort } from "./projects";
+import type { ReportsPort } from "./reports";
+import type { TimelinePort } from "./timeline";
+
+export * from "./common";
+export * from "./directory";
+export * from "./documents";
+export * from "./positions";
+export * from "./procurement";
+export * from "./projects";
+export * from "./reports";
+export * from "./timeline";
+
+/** Все порты приложения. Адаптер (фикстуры или БД) реализует этот набор целиком. */
+export interface Repositories {
+  directory: DirectoryPort;
+  projects: ProjectsPort;
+  documents: DocumentsPort;
+  positions: PositionsPort;
+  procurement: ProcurementPort;
+  reports: ReportsPort;
+  timeline: TimelinePort;
+}
