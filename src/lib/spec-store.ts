@@ -94,8 +94,19 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-/** Подписка на изменения демо-состояния вне React — для моста с кешем запросов (P2-1…P2-6). */
-export const subscribeSpecStore = subscribe;
+/** События, которые меняют данные без действия пользователя: ответ поставщика, стадия распознавания */
+export type DemoEventArea = "documents" | "positions" | "projects" | "procurement" | "timeline";
+const demoEventListeners = new Set<(areas: DemoEventArea[]) => void>();
+
+/** Подписка на события симулятора — кеш запросов обновляет только затронутые области (P2-3). */
+export function onDemoEvent(listener: (areas: DemoEventArea[]) => void) {
+  demoEventListeners.add(listener);
+  return () => demoEventListeners.delete(listener);
+}
+
+function emitDemoEvent(areas: DemoEventArea[]) {
+  demoEventListeners.forEach((listener) => listener(areas));
+}
 
 const getSnapshot = () => state;
 const getServerSnapshot = () => seedState;
@@ -203,6 +214,7 @@ function scheduleUpload(id: string) {
           ? [...prev.positions, ...simulatedPositions(id, doc.projectId, 36)]
           : prev.positions,
     }));
+    emitDemoEvent(["documents", "positions", "projects"]);
     scheduleUpload(id);
   });
 }
@@ -284,6 +296,7 @@ function deliverReply(requestId: string, supplierId: string) {
       }),
     ],
   }));
+  emitDemoEvent(["procurement", "positions", "projects", "timeline"]);
   toast.success(`Пришло предложение «${supplierName}»`, {
     description: `Запрос ${request.number}: цены и сроки добавлены в сравнение.`,
   });

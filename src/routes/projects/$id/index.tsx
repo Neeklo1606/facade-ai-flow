@@ -6,7 +6,6 @@ import {
   withProject,
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
-import { specActions } from "@/lib/spec-store";
 import { useScreenState } from "@/lib/screen-state";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
@@ -42,6 +41,7 @@ import { mainSpecification } from "@/lib/documents";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useDirectory } from "@/api/directory";
+import { useUploadDocument } from "@/api/mutations";
 
 const tabs = [
   { id: "summary", label: "Сводка" },
@@ -100,6 +100,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   const { tab = "summary" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const upload = useUploadDocument();
   const { setProjectId } = useApp();
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -366,7 +367,13 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         }
         contractNumber={contract?.number ?? project.contract}
         onUpload={(files) => {
-          files.forEach((file) => specActions.upload(project.id, file));
+          files.forEach((file) =>
+            upload.mutate({
+              projectId: project.id,
+              fileName: file.name,
+              sizeKb: Math.max(1, Math.round(file.size / 1024)),
+            }),
+          );
           navigate({ to: "/projects/$id/documents", params: { id: project.id } });
         }}
       />

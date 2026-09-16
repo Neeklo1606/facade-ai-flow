@@ -1,7 +1,7 @@
 import { dehydrate, hydrate, QueryClient, type DehydratedState } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { dataSource } from "@/api/config";
-import { subscribeSpecStore } from "@/lib/spec-store";
+import { onDemoEvent } from "@/lib/spec-store";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -17,10 +17,12 @@ export const getRouter = () => {
     },
   });
 
-  // Демо: события симулятора (ответы поставщиков, стадии распознавания) меняют данные без запроса
-  // пользователя — обновляем открытые запросы. Временный мост до переноса симулятора в адаптер (P2-6).
+  // Демо: события симулятора (ответы поставщиков, стадии распознавания) меняют данные без действия
+  // пользователя — обновляем только затронутые области
   if (dataSource === "demo" && typeof window !== "undefined") {
-    subscribeSpecStore(() => void queryClient.invalidateQueries());
+    onDemoEvent((areas) => {
+      areas.forEach((area) => void queryClient.invalidateQueries({ queryKey: [area] }));
+    });
   }
 
   const router = createRouter({

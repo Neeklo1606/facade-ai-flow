@@ -1,4 +1,4 @@
-import { createDemoRepositories } from "@/adapters/demo";
+import { createDemoRepositories, resetDemo } from "@/adapters/demo";
 import type {
   CorrectPositionInput,
   CreateProjectInput,
@@ -29,6 +29,13 @@ const actor = { actorId: CURRENT_USER_ID };
 const server = dataSource === "server";
 
 export const api = {
+  /** Действия, которые есть только в демо */
+  demo: {
+    reset: () => {
+      if (server) throw new Error("Сброс доступен только в демо-режиме");
+      resetDemo();
+    },
+  },
   directory: {
     employees: () => (server ? fn.employeesFn() : local().directory.employees()),
     counterparties: () => (server ? fn.counterpartiesFn() : local().directory.counterparties()),

@@ -19,7 +19,6 @@ import { useScreenState } from "@/lib/screen-state";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
-import { specActions } from "@/lib/spec-store";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -31,6 +30,7 @@ import {
   processingStatusLabel as docStatusLabel,
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useUploadDocument } from "@/api/mutations";
 
 export const Route = createFileRoute("/projects/$id/documents/")({
   loader: ({ params, context }) => loadProject(context.queryClient, params.id),
@@ -62,6 +62,7 @@ const filters: { id: "all" | DocProcessingStatus; label: string }[] = [
 function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const { employeeName } = useDirectory();
   const navigate = useNavigate();
+  const upload = useUploadDocument();
   const zone = useRef<UploadZoneHandle>(null);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
 
@@ -91,7 +92,13 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   );
 
   function handleFiles(files: File[]) {
-    for (const file of files) specActions.upload(project.id, file);
+    for (const file of files) {
+      upload.mutate({
+        projectId: project.id,
+        fileName: file.name,
+        sizeKb: Math.max(1, Math.round(file.size / 1024)),
+      });
+    }
     toast(`Загружено: ${files.length} ${files.length === 1 ? "документ" : "документа"}`, {
       description: "Распознаём текст и ищем таблицы спецификаций.",
     });

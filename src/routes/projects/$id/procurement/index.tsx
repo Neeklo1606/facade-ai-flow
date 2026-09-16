@@ -16,7 +16,6 @@ import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { specActions } from "@/lib/spec-store";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
@@ -32,6 +31,7 @@ import {
   type SupplyRequest,
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useRemindSuppliers, useVerifyContact } from "@/api/mutations";
 
 type View = "requests" | "suppliers";
 
@@ -99,6 +99,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
   const [createOpen, setCreateOpen] = useState(false);
 
   const requestsQuery = useQuery(queries.requests(project.id));
+  const remind = useRemindSuppliers();
   const suppliersQuery = useQuery(queries.suppliers());
   const summaries = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
   const profiles = useMemo(
@@ -244,11 +245,11 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                 size="sm"
                 variant="secondary"
                 disabled={waitingForReminder === 0}
-                onClick={() => {
-                  const sent = waiting.reduce(
-                    (acc, r) => acc + specActions.remindSuppliers(r.request.id),
-                    0,
+                onClick={async () => {
+                  const results = await Promise.all(
+                    waiting.map((r) => remind.mutateAsync(r.request.id)),
                   );
+                  const sent = results.reduce((acc, result) => acc + result.reminded.length, 0);
                   toast.success(
                     `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
                     {
@@ -556,6 +557,7 @@ function SuppliersView({
   }[];
   region: string;
 }) {
+  const verifyContact = useVerifyContact();
   return (
     <>
       <div className="hidden overflow-x-auto lg:block">
@@ -630,7 +632,7 @@ function SuppliersView({
                   {profile.contactStatus !== "verified" && (
                     <button
                       type="button"
-                      onClick={() => specActions.verifyContact(profile.supplierId)}
+                      onClick={() => verifyContact.mutate(profile.supplierId)}
                       className="text-caption text-accent hover:underline"
                     >
                       Отметить проверенным
@@ -712,7 +714,7 @@ function SuppliersView({
                 <Button
                   variant="ghost"
                   className="col-span-2"
-                  onClick={() => specActions.verifyContact(profile.supplierId)}
+                  onClick={() => verifyContact.mutate(profile.supplierId)}
                 >
                   <Check className="size-4" /> Контакт актуален
                 </Button>

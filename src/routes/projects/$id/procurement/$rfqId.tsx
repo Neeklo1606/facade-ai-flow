@@ -14,7 +14,6 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { specActions } from "@/lib/spec-store";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import {
@@ -30,6 +29,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type SupplyRequest } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useRecordDecision, useRemindSuppliers } from "@/api/mutations";
 
 export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
   loader: ({ params, context }) => loadProject(context.queryClient, params.id),
@@ -51,6 +51,8 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const { rfqId } = Route.useParams();
   const navigate = useNavigate();
   const cardQuery = useQuery(queries.request(rfqId));
+  const recordDecision = useRecordDecision();
+  const remind = useRemindSuppliers();
   const card = cardQuery.data?.summary.request.projectId === project.id ? cardQuery.data : null;
   const request = card?.summary.request ?? null;
   const [decisionOpen, setDecisionOpen] = useState(false);
@@ -109,36 +111,42 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     if (!request || !calc) return;
     const chosen = calc.columns.find((c) => c.supplierId === input.supplierId)!;
     const supplier = counterpartyById(input.supplierId)?.name ?? "";
-    const record = specActions.recordDecision({
-      projectId: project.id,
-      kind: "supplier",
-      requestId: request.id,
-      supplierId: input.supplierId,
-      title: `${itemsSummary(request.items)} — «${supplier}»`,
-      requirement: request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join("; "),
-      problem: `Получено ${calc.answered} ${calc.answered === 1 ? "предложение" : "предложения"} из ${request.sentTo.length}; цены и сроки различаются${calc.columns.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
-      options: calc.columns
-        .filter((c) => c.offerId)
-        .map(
-          (c) =>
-            `«${counterpartyById(c.supplierId)?.name}» — ${fmtMoney(c.total)} с НДС и доставкой, до ${c.maxLeadTime} дн.${c.deviations ? `, отклонений: ${c.deviations}` : ""}`,
-        ),
-      choice: `«${supplier}», ${fmtMoney(chosen.total)}`,
-      reason: input.reason,
-      approvedBy: input.approvedBy,
-      reportId: null,
-      materialFamily: null,
-      basisLabel: `Письма поставщиков по запросу ${request.number}`,
-      basisSourceId: [...chosen.cells.values()][0]?.sourceId ?? null,
-    });
-    setDecisionOpen(false);
-    toast.success("Решение зафиксировано", {
-      description: `«${supplier}» · согласовал ${employeeName(record.approvedBy)}`,
-      action: {
-        label: "Открыть историю",
-        onClick: () => navigate({ to: "/projects/$id/timeline", params: { id: project.id } }),
+    recordDecision.mutate(
+      {
+        projectId: project.id,
+        kind: "supplier",
+        requestId: request.id,
+        supplierId: input.supplierId,
+        title: `${itemsSummary(request.items)} — «${supplier}»`,
+        requirement: request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join("; "),
+        problem: `Получено ${calc.answered} ${calc.answered === 1 ? "предложение" : "предложения"} из ${request.sentTo.length}; цены и сроки различаются${calc.columns.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
+        options: calc.columns
+          .filter((c) => c.offerId)
+          .map(
+            (c) =>
+              `«${counterpartyById(c.supplierId)?.name}» — ${fmtMoney(c.total)} с НДС и доставкой, до ${c.maxLeadTime} дн.${c.deviations ? `, отклонений: ${c.deviations}` : ""}`,
+          ),
+        choice: `«${supplier}», ${fmtMoney(chosen.total)}`,
+        reason: input.reason,
+        approvedBy: input.approvedBy,
+        reportId: null,
+        materialFamily: null,
+        basisLabel: `Письма поставщиков по запросу ${request.number}`,
+        basisSourceId: [...chosen.cells.values()][0]?.sourceId ?? null,
       },
-    });
+      {
+        onSuccess: (record) =>
+          toast.success("Решение зафиксировано", {
+            description: `«${supplier}» · согласовал ${employeeName(record.approvedBy)}`,
+            action: {
+              label: "Открыть историю",
+              onClick: () => navigate({ to: "/projects/$id/timeline", params: { id: project.id } }),
+            },
+          }),
+        onError: (error) => toast.error("Решение не зафиксировано", { description: error.message }),
+      },
+    );
+    setDecisionOpen(false);
   }
 
   return (
@@ -213,8 +221,8 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               size="sm"
               variant="secondary"
               disabled={canRemind === 0}
-              onClick={() => {
-                const sent = specActions.remindSuppliers(request.id);
+              onClick={async () => {
+                const sent = (await remind.mutateAsync(request.id)).reminded.length;
                 toast.success(
                   `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
                   {
@@ -257,8 +265,8 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             title: "Предложений пока нет",
             description: `Запрос отправлен ${meta ? fmtDateTime(meta.sentAt) : ""} ${request.sentTo.length} поставщикам. Ответы из писем появятся здесь автоматически — если срок выходит, напомните поставщикам.`,
             actionLabel: "Напомнить поставщикам",
-            onAction: () => {
-              const sent = specActions.remindSuppliers(request.id);
+            onAction: async () => {
+              const sent = (await remind.mutateAsync(request.id)).reminded.length;
               toast.success(
                 `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
               );

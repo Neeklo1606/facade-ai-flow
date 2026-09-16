@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
-import { isReadyForRequest, specActions } from "@/lib/spec-store";
+import { isReadyForRequest } from "@/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { MOCK_NOW, fmtDate, fmtNum } from "@/lib/format";
@@ -21,6 +21,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type Project, type SupplierProfile } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useCreateRequest } from "@/api/mutations";
 
 const steps = ["Позиции", "Поставщики", "Письмо", "Предпросмотр"] as const;
 
@@ -50,6 +51,7 @@ export function CreateRfqDialog({
   onCreated?: (requestId: string) => void;
 }) {
   const { employeeById, counterpartyById } = useDirectory();
+  const createRequest = useCreateRequest();
   // Позиции загружаются, только пока мастер открыт
   const positions =
     useQuery({ ...queries.positions({ projectId: project.id, limit: 5000 }), enabled: open }).data
@@ -122,6 +124,15 @@ export function CreateRfqDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
+  // Шаблоны приходят запросом: как только список загружен, подставляем первый
+  const firstTemplate = emailTemplates[0];
+  useEffect(() => {
+    if (templateId || !firstTemplate) return;
+    setTemplateId(firstTemplate.id);
+    setSubject(firstTemplate.subject);
+    setBody(firstTemplate.body);
+  }, [templateId, firstTemplate]);
+
   function pickTemplate(id: string) {
     const template = emailTemplates.find((t) => t.id === id) ?? emailTemplates[0];
     if (!template) return;
@@ -154,17 +165,26 @@ export function CreateRfqDialog({
   ][step];
 
   function send() {
-    const result = specActions.createRequest(project.id, [...selected], recipients, {
-      templateId,
-      replyDueAt: `${dueDate}T18:00:00`,
-    });
-    if (!result) return;
-    onOpenChange(false);
-    setSuppliers(new Set());
-    toast.success(`Запрос ${result.request.number} отправлен`, {
-      description: `${fmtNum(result.count)} поз. · ${recipients.length} ${recipients.length === 1 ? "поставщику" : "поставщикам"}. Ответы из писем появятся в сравнении.`,
-    });
-    onCreated?.(result.request.id);
+    createRequest.mutate(
+      {
+        projectId: project.id,
+        positionIds: [...selected],
+        supplierIds: recipients,
+        templateId: templateId || null,
+        replyDueAt: `${dueDate}T18:00:00`,
+      },
+      {
+        onSuccess: (result) => {
+          onOpenChange(false);
+          setSuppliers(new Set());
+          toast.success(`Запрос ${result.request.number} отправлен`, {
+            description: `${fmtNum(result.positions)} поз. · ${recipients.length} ${recipients.length === 1 ? "поставщику" : "поставщикам"}. Ответы из писем появятся в сравнении.`,
+          });
+          onCreated?.(result.request.id);
+        },
+        onError: (error) => toast.error("Запрос не отправлен", { description: error.message }),
+      },
+    );
   }
 
   return (

@@ -369,3 +369,8 @@ export function createDemoRepositories(): Repositories {
     },
   };
 }
+
+/** Сброс демо: стартовые данные, часы и сохранение вкладки */
+export function resetDemo() {
+  specActions.resetDemo();
+}

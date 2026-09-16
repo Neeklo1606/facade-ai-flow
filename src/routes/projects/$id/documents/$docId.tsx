@@ -28,7 +28,8 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { useScreenState } from "@/lib/screen-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { isActive, isVerified, specActions } from "@/lib/spec-store";
+import { isActivePosition as isActive, isVerifiedPosition as isVerified } from "@/contracts";
+import { reviewSnapshot, usePositionMutations } from "@/api/mutations";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
@@ -179,9 +180,10 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     viewer.current?.scrollToPosition(active);
   }, [active]);
 
+  const mutations = usePositionMutations();
   // Свежие значения для стабильных обработчиков строк
-  const live = useRef({ list, positions, mergeSourceId });
-  live.current = { list, positions, mergeSourceId };
+  const live = useRef({ list, positions, mergeSourceId, mutations });
+  live.current = { list, positions, mergeSourceId, mutations };
 
   const moveBy = useCallback((delta: number) => {
     const { list: items } = live.current;
@@ -202,20 +204,25 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   }, []);
 
   const onActivate = useCallback((id: string) => {
-    const { mergeSourceId: source, positions: all } = live.current;
+    const { mergeSourceId: source, positions: all, mutations: m } = live.current;
     if (source && source !== id) {
       const snapshot = all.filter((item) => item.id === source || item.id === id);
       const target = all.find((item) => item.id === id)!;
       const sourceItem = all.find((item) => item.id === source)!;
-      const summed = specActions.merge(source, id);
       setMergeSourceId(null);
       setActiveId(id);
-      toastUndo(
-        `Поз. ${sourceItem.position} объединена с поз. ${target.position}`,
-        () => specActions.restore(snapshot),
-        summed
-          ? "Количество сложено."
-          : "Единицы разные — количество не сложено, проверьте вручную.",
+      m.merge.mutate(
+        { sourceId: source, targetId: id },
+        {
+          onSuccess: (summed) =>
+            toastUndo(
+              `Поз. ${sourceItem.position} объединена с поз. ${target.position}`,
+              () => m.restoreReview.mutate(reviewSnapshot(snapshot)),
+              summed
+                ? "Количество сложено."
+                : "Единицы разные — количество не сложено, проверьте вручную.",
+            ),
+        },
       );
       return;
     }
@@ -224,14 +231,14 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
   const onAction = useCallback(
     (id: string, action: RowAction) => {
-      const { positions: all } = live.current;
+      const { positions: all, mutations: m } = live.current;
       const item = all.find((p) => p.id === id);
       if (!item) return;
       setActiveId(id);
       switch (action) {
         case "confirm":
           if (item.review !== "pending") return;
-          specActions.confirm([id]);
+          m.confirm.mutate([id]);
           advanceFrom(id);
           return;
         case "edit":
@@ -239,13 +246,15 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           return;
         case "exclude":
           advanceFrom(id);
-          specActions.exclude(id);
-          toastUndo(`Поз. ${item.position} исключена`, () => specActions.restore([item]));
+          m.exclude.mutate(id);
+          toastUndo(`Поз. ${item.position} исключена`, () =>
+            m.restoreReview.mutate(reviewSnapshot([item])),
+          );
           return;
         case "header":
-          specActions.markHeader(id);
+          m.markHeader.mutate(id);
           toastUndo(`Поз. ${item.position} отмечена как заголовок`, () =>
-            specActions.restore([item]),
+            m.restoreReview.mutate(reviewSnapshot([item])),
           );
           return;
         case "merge":
@@ -255,7 +264,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           setSplitId(id);
           return;
         case "restore":
-          specActions.reopen(id);
+          m.reopen.mutate(id);
           return;
         case "source":
           scrolledFor.current = null;
@@ -272,9 +281,11 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       patch: Pick<ExtractedPosition, "projectName" | "qty" | "unit" | "characteristics">,
     ) => {
       advanceFrom(id);
-      specActions.correct(id, patch);
+      live.current.mutations.correct.mutate(
+        { id, ...patch },
+        { onSuccess: () => toast.success("Позиция исправлена и подтверждена") },
+      );
       setEditingId(null);
-      toast.success("Позиция исправлена и подтверждена");
     },
     [advanceFrom],
   );
@@ -305,23 +316,26 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
   function confirmAllVerified() {
     const snapshot = autoVerified;
-    specActions.confirm(snapshot.map((item) => item.id));
+    mutations.confirm.mutate(snapshot.map((item) => item.id));
     toastUndo(
       `Подтверждено ${fmtNum(snapshot.length)} позиций`,
-      () => specActions.restore(snapshot),
+      () => mutations.restoreReview.mutate(reviewSnapshot(snapshot)),
       "Позиции со статусом «Проверено» отмечены как проверенные человеком.",
     );
   }
 
   function send() {
-    specActions.sendToProcurement(docId);
     setSendOpen(false);
-    toast.success(`В закупку переданы позиции: ${fmtNum(summary.create)}`, {
-      description: `По ним можно запрашивать цены у поставщиков. Нормализации требуют ${fmtNum(summary.needNormalization)}.`,
-      action: {
-        label: "Открыть материалы",
-        onClick: () => navigate({ to: "/projects/$id/materials", params: { id: project.id } }),
-      },
+    mutations.handOver.mutate(docId, {
+      onSuccess: (count) =>
+        toast.success(`В закупку переданы позиции: ${fmtNum(count)}`, {
+          description: `По ним можно запрашивать цены у поставщиков. Нормализации требуют ${fmtNum(summary.needNormalization)}.`,
+          action: {
+            label: "Открыть материалы",
+            onClick: () => navigate({ to: "/projects/$id/materials", params: { id: project.id } }),
+          },
+        }),
+      onError: () => toast.error("Не удалось передать позиции в закупку"),
     });
   }
 
@@ -794,9 +808,11 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         item={splitItem}
         onOpenChange={(open) => !open && setSplitId(null)}
         onSplit={(id, qty) => {
-          specActions.split(id, qty);
           setSplitId(null);
-          toast.success("Позиция разделена на две");
+          mutations.split.mutate(
+            { id, firstQty: qty },
+            { onSuccess: () => toast.success("Позиция разделена на две") },
+          );
         }}
       />
       <SendDialog open={sendOpen} summary={summary} onOpenChange={setSendOpen} onConfirm={send} />

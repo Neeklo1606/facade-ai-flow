@@ -27,7 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { specActions } from "@/lib/spec-store";
 import { useApp } from "@/lib/app-context";
 import { sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
 import { MOCK_NOW } from "@/lib/format";
@@ -41,6 +40,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type Project, type ProjectOverview, type ProjectStatus } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useCreateProject } from "@/api/mutations";
 
 interface ProjectsSearch {
   region?: string | undefined;
@@ -627,6 +627,7 @@ function CreateProjectDialog({
   onCreated: (id: string) => void;
 }) {
   const { employeeName, employees } = useDirectory();
+  const createProject = useCreateProject();
   const managersList = employees.filter((item) => item.role === "manager");
   const [manager, setManager] = useState(managersList[0]?.id ?? "");
   const today = MOCK_NOW.slice(0, 10);
@@ -639,21 +640,29 @@ function CreateProjectDialog({
     if (datesInvalid) return;
     const data = new FormData(e.currentTarget);
     const field = (name: string) => String(data.get(name) ?? "").trim();
-    const id = specActions.createProject({
-      name: field("name"),
-      code: field("code"),
-      region: field("region"),
-      customer: field("customer"),
-      contract: field("contract"),
-      startDate: start,
-      endDate: end,
-      manager,
-    });
-    onOpenChange(false);
-    toast.success(`Объект «${field("name")}» создан`, {
-      description: "Загрузите проектную документацию, чтобы извлечь спецификацию материалов.",
-    });
-    onCreated(id);
+    const name = field("name");
+    createProject.mutate(
+      {
+        name,
+        code: field("code"),
+        region: field("region"),
+        customer: field("customer"),
+        contractNumber: field("contract"),
+        startDate: start,
+        endDate: end,
+        managerId: manager,
+      },
+      {
+        onSuccess: (project) => {
+          onOpenChange(false);
+          toast.success(`Объект «${name}» создан`, {
+            description: "Загрузите проектную документацию, чтобы извлечь спецификацию материалов.",
+          });
+          onCreated(project.id);
+        },
+        onError: (error) => toast.error("Объект не создан", { description: error.message }),
+      },
+    );
   }
 
   return (

@@ -27,7 +27,6 @@ import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { specActions } from "@/lib/spec-store";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
@@ -36,6 +35,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type FieldReport, reportKindLabel, reportStatusLabel } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useReviewReport } from "@/api/mutations";
 
 type StatusFilter = FieldReport["status"] | "all";
 
@@ -263,6 +263,7 @@ function ReportCard({
   partial: boolean;
 }) {
   const { employeeById } = useDirectory();
+  const review = useReviewReport();
   const author = employeeById(report.authorId);
   const card = useQuery(queries.reports(report.projectId)).data?.find(
     (item) => item.report.id === report.id,
@@ -281,7 +282,7 @@ function ReportCard({
   const [qty, setQty] = useState(String(report.acceptedQty ?? report.declaredQty ?? ""));
 
   const accept = (value: number) => {
-    specActions.reviewReport(report.id, "accepted", value);
+    review.mutate({ id: report.id, status: "accepted", acceptedQty: value });
     setEditing(false);
     toast.success(`Отчёт принят: ${fmtNum(value)} ${report.unit}`, {
       description: zone?.name ?? "",
@@ -432,7 +433,7 @@ function ReportCard({
               <Button
                 variant="ghost"
                 onClick={() => {
-                  specActions.reviewReport(report.id, "returned", null);
+                  review.mutate({ id: report.id, status: "returned", acceptedQty: null });
                   toast("Отчёт возвращён на уточнение", {
                     description: "Отчёт останется в ленте со статусом «Возвращён».",
                   });

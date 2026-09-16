@@ -15,7 +15,8 @@ import {
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
 import { activeNavKey, navGroups, sectionHref, type BadgeKey } from "@/lib/navigation";
 import { useCurrentUser, useProjectId } from "@/lib/project-scope";
-import { specActions } from "@/lib/spec-store";
+import { useResetDemo } from "@/api/mutations";
+import { dataSource } from "@/api/config";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,6 +91,7 @@ function SidebarInner({
 }) {
   const { setProjectId, theme, toggleTheme, setCommandOpen } = useApp();
   const user = useCurrentUser();
+  const resetDemo = useResetDemo();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const view = useRouterState({
     select: (s) => String((s.location.search as Record<string, unknown>)["view"] ?? ""),
@@ -316,7 +318,7 @@ function SidebarInner({
             )}
           </button>
         </div>
-        {!collapsed && (
+        {!collapsed && dataSource === "demo" && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
@@ -338,7 +340,7 @@ function SidebarInner({
                 <AlertDialogCancel>Отмена</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => {
-                    specActions.resetDemo();
+                    resetDemo();
                     setProjectId(ALL_PROJECTS);
                     onClose();
                     navigate({ to: "/projects" });
