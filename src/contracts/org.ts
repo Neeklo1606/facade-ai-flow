@@ -65,7 +65,12 @@ export const counterparties = table(
     primaryKey: ["id"],
     audited: true,
     indexes: [
-      { columns: ["inn"], unique: true, purpose: "поиск и защита от дублей по ИНН" },
+      {
+        columns: ["inn"],
+        unique: true,
+        where: "inn is not null",
+        purpose: "поиск и защита от дублей по ИНН",
+      },
       { columns: ["role", "name"], purpose: "списки заказчиков и поставщиков по алфавиту" },
     ],
   },
@@ -73,7 +78,7 @@ export const counterparties = table(
     id: col.id(),
     name: col.name(),
     role: col.enum(counterpartyRole),
-    inn: col.name({ comment: "10 или 12 цифр" }),
+    inn: col.name({ nullable: true, comment: "10 или 12 цифр; null — контрагент ещё не проверен" }),
     contactName: col.text(),
     email: col.text(),
     phone: col.text(),

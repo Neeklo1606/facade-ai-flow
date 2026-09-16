@@ -27,13 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  employeeName,
-  employees,
-  type Project,
-  type ProjectOverview,
-  type ProjectStatus,
-} from "@/mock/repository";
 import { specActions, useSpecStore } from "@/lib/spec-store";
 import { useApp } from "@/lib/app-context";
 import { sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
@@ -45,6 +38,8 @@ import { useOverviews } from "@/lib/project-overview";
 import { fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { type Project, type ProjectOverview, type ProjectStatus } from "@/contracts";
+import { employeeName } from "@/lib/directory";
 
 interface ProjectsSearch {
   region?: string | undefined;
@@ -625,6 +620,7 @@ function CreateProjectDialog({
   onOpenChange: (v: boolean) => void;
   onCreated: (id: string) => void;
 }) {
+  const employees = useSpecStore((s) => s.employees);
   const managersList = employees.filter((item) => item.role === "manager");
   const [manager, setManager] = useState(managersList[0]?.id ?? "");
   const today = MOCK_NOW.slice(0, 10);

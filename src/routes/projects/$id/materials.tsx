@@ -18,17 +18,17 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterSelect } from "@/components/common/FilterSelect";
-import {
-  purchaseOrder,
-  purchaseStatusLabel,
-  type ExtractedPosition,
-  type PurchaseStatus,
-} from "@/mock/repository";
 import { isActive, isReadyForRequest, isVerified, useSpecStore } from "@/lib/spec-store";
 import { useProjectOverview } from "@/lib/project-overview";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import {
+  purchaseOrder,
+  purchaseStatusLabel,
+  type ExtractedPosition,
+  type PurchaseStatus,
+} from "@/contracts";
 
 type ReviewFilter = "verified" | "pending" | "attention" | "check" | "excluded";
 type CharsFilter = "with" | "without";
@@ -133,7 +133,7 @@ function MaterialsPage({ project }: ProjectPageProps): React.JSX.Element {
         .filter((item) => (search.group ? item.group === search.group : true))
         .filter((item) =>
           search.purchase
-            ? item.purchase === search.purchase && isVerified(item) && item.handedOver
+            ? item.purchase === search.purchase && isVerified(item) && item.handedOverAt !== null
             : true,
         )
         .filter((item) =>
@@ -157,7 +157,7 @@ function MaterialsPage({ project }: ProjectPageProps): React.JSX.Element {
   }, [rows]);
 
   const purchaseCounts = useMemo(() => {
-    const verified = positions.filter((item) => isVerified(item) && item.handedOver);
+    const verified = positions.filter((item) => isVerified(item) && item.handedOverAt !== null);
     return Object.fromEntries(
       purchaseOrder.map((status) => [
         status,
@@ -613,7 +613,7 @@ function MaterialRow({
         </Link>
       </td>
       <td className="px-2.5 pr-4 whitespace-nowrap">
-        {verified && item.handedOver ? (
+        {verified && item.handedOverAt !== null ? (
           <StatusBadge tone={purchaseTone[item.purchase]}>
             {purchaseStatusLabel[item.purchase]}
           </StatusBadge>
@@ -687,7 +687,7 @@ function MobileMaterials({
                       ) : (
                         <ConfidenceLabel value={item.confidence} />
                       )}
-                      {isVerified(item) && item.handedOver && (
+                      {isVerified(item) && item.handedOverAt !== null && (
                         <StatusBadge tone={purchaseTone[item.purchase]}>
                           {purchaseStatusLabel[item.purchase]}
                         </StatusBadge>

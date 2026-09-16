@@ -108,7 +108,8 @@ export const changeStatus = pgEnum(
 export const revisionChanges = table(
   {
     name: "revision_changes",
-    comment: "Расхождение между ревизиями документа, которое нужно разобрать",
+    comment:
+      "Расхождение в ревизии документа, которое нужно разобрать: с прошлой ревизией или с другим разделом",
     primaryKey: ["id"],
     audited: true,
     indexes: [
@@ -118,14 +119,17 @@ export const revisionChanges = table(
       },
     ],
     checks: [
-      "from_revision_id <> to_revision_id",
+      "from_revision_id is null or from_revision_id <> to_revision_id",
       "(status = 'resolved') = (resolved_at is not null)",
     ],
   },
   {
     id: col.id(),
     documentId: col.ref("documents", "cascade"),
-    fromRevisionId: col.ref("document_revisions", "restrict"),
+    fromRevisionId: col.ref("document_revisions", "restrict", {
+      nullable: true,
+      comment: "null — расхождение с другим разделом, а не с прошлой ревизией",
+    }),
     toRevisionId: col.ref("document_revisions", "restrict"),
     description: col.name(),
     status: col.enum(changeStatus),
@@ -140,6 +144,7 @@ export const revisionChanges = table(
 export const projectDocument = z.object({
   id: idSchema,
   documentId: idSchema,
+  revision: z.number().int().positive(),
   projectId: idSchema,
   title: z.string().min(1),
   section: z.string().min(1),

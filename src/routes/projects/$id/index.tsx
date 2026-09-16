@@ -33,13 +33,14 @@ import {
   PurchasesPreview,
   TeamPreview,
 } from "@/components/project/PreviewTabs";
-import { byProject, docVersionsOf, employeeName } from "@/mock/repository";
 import { useApp } from "@/lib/app-context";
 import { siteIdOf } from "@/lib/project-scope";
 import { projectStatusMeta } from "@/lib/project-meta";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { employeeName } from "@/lib/directory";
+import { mainSpecification } from "@/domain/overview";
 
 const tabs = [
   { id: "summary", label: "Сводка" },
@@ -99,9 +100,9 @@ function ProjectPage({ project, overview }: ProjectPageProps): React.JSX.Element
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const contract = byProject.contract(project.id);
+  const contract = useSpecStore((s) => s.contracts.find((item) => item.projectId === project.id));
   const status = projectStatusMeta[project.status];
-  const latestVersion = docVersionsOf(project.id)[0];
+  const latestVersion = useSpecStore((s) => mainSpecification(s, project.id));
 
   const setTab = (next: string) =>
     navigate({

@@ -29,22 +29,20 @@ import { FilterSelect } from "@/components/common/FilterSelect";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { Button } from "@/components/ui/button";
-import {
-  employeeById,
-  employeeName,
-  timelineTypeLabel,
-  type ProjectDecision,
-  type TimelineEventType,
-} from "@/mock/repository";
 import { timelineOf, useSpecStore } from "@/lib/spec-store";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDateTime, fmtDayTitle, fmtTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { timelineTypeLabel, type ProjectDecision, type TimelineEventType } from "@/contracts";
+import { employeeById, employeeName } from "@/lib/directory";
 
 interface TimelineSearch {
   type?: TimelineEventType | undefined;
   author?: string | undefined;
 }
+
+/** Значение фильтра «Автор» для событий, которые записала обработка */
+const SYSTEM = "system";
 
 export const Route = createFileRoute("/projects/$id/timeline")({
   validateSearch: (search: Record<string, unknown>): TimelineSearch => ({
@@ -95,7 +93,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
   );
   const filtered = events
     .filter((e) => (search.type ? e.type === search.type : true))
-    .filter((e) => (search.author ? e.actorId === search.author : true));
+    .filter((e) => (search.author ? (e.actorId ?? SYSTEM) === search.author : true));
 
   const days = useMemo(() => {
     const map = new Map<string, typeof filtered>();
@@ -106,7 +104,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
     return [...map.entries()];
   }, [filtered]);
 
-  const authors = [...new Set(events.map((e) => e.actorId))];
+  const authors = [...new Set(events.map((e) => e.actorId ?? SYSTEM))];
   const setSearch = (patch: Partial<TimelineSearch>) =>
     navigate({
       search: (prev: TimelineSearch) => ({ ...prev, ...patch }),
@@ -180,7 +178,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
             value={search.author}
             options={authors.map((id) => ({
               value: id,
-              label: employeeById(id)?.name ?? "Автоматическая обработка",
+              label: id === SYSTEM ? "Автоматическая обработка" : (employeeById(id)?.name ?? "—"),
             }))}
             onChange={(author) => setSearch({ author })}
           />
@@ -348,11 +346,11 @@ function DecisionCard({
       label: "На основании какого документа",
       content: (
         <span className="inline-flex items-center gap-1">
-          {decision.basis.label}
-          {decision.basis.sourceId && (
+          {decision.basisLabel}
+          {decision.basisSourceId && (
             <SourceRef
-              sourceId={decision.basis.sourceId}
-              onOpen={() => onSource(decision.basis.sourceId!)}
+              sourceId={decision.basisSourceId}
+              onOpen={() => onSource(decision.basisSourceId!)}
             />
           )}
         </span>

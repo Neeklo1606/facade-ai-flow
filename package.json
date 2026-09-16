@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "db:schema": "bun scripts/db-schema.ts && prettier --write docs/db/schema.md"
+    "db:schema": "bun scripts/db-schema.ts && prettier --write docs/db/schema.md",
+    "check:fixtures": "bun scripts/check-fixtures.ts",
+    "db:fixtures-sql": "bun scripts/fixtures-sql.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

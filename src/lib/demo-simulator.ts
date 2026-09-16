@@ -1,11 +1,11 @@
 import type {
   OfferLine,
-  OfferTerms,
+  RequestLine,
   Source,
   SupplierOffer,
   SupplierProfile,
   SupplyRequest,
-} from "@/mock/repository";
+} from "@/contracts";
 
 /**
  * Демо-симулятор ответов поставщиков. Реального почтового ящика нет, поэтому предложение
@@ -14,7 +14,7 @@ import type {
  * При переходе на демо-адаптер (TASKS P2-6) модуль переезжает туда без изменений.
  */
 
-/** Справочная цена за единицу без НДС, ₽. Ключ — семейство материала. */
+/** Справочная цена за единицу без НДС, ₽. Ключ — семейство материала. В предложение уходит в копейках. */
 const basePrice: Record<string, number> = {
   bracket: 268,
   rail: 405,
@@ -40,11 +40,6 @@ const specDeviation: Record<string, string> = {
   firecut: "Сталь 0,5 мм вместо 0,55 мм",
 };
 
-/** Семейство материала из ключа позиции запроса: «bracket:…» → «bracket». */
-export function familyOf(materialId: string) {
-  return materialId.split(":")[0] ?? materialId;
-}
-
 function hash(text: string) {
   let h = 2166136261;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
@@ -62,14 +57,16 @@ function rng(seed: string) {
   };
 }
 
-function roundPrice(value: number) {
-  return value < 10 ? Math.round(value * 100) / 100 : Math.round(value);
+/** Цена в копейках: дешёвый крепёж — с копейками, остальное — до рубля */
+function priceKopecks(rubles: number) {
+  return rubles < 10 ? Math.round(rubles * 100) : Math.round(rubles) * 100;
 }
+
+const rub = (kopecks: number) => (kopecks / 100).toLocaleString("ru-RU");
 
 export interface SimulatedReply {
   offer: SupplierOffer;
   lines: OfferLine[];
-  terms: OfferTerms;
   source: Source;
 }
 
@@ -78,6 +75,7 @@ export function simulateReply(
   profile: SupplierProfile,
   supplierName: string,
   receivedAt: string,
+  familyOf: (line: RequestLine) => string,
 ): SimulatedReply {
   const random = rng(`${request.id}:${profile.supplierId}`);
   const factor = 0.93 + random() * 0.15;
@@ -86,8 +84,8 @@ export function simulateReply(
   const leadBase = 7 + Math.floor(random() * 14);
 
   const lines: OfferLine[] = request.items.map((item, index) => {
-    const family = familyOf(item.materialId);
-    const price = roundPrice((basePrice[family] ?? 500) * factor * (0.97 + random() * 0.06));
+    const family = familyOf(item);
+    const price = priceKopecks((basePrice[family] ?? 500) * factor * (0.97 + random() * 0.06));
     const shortage = random() < 0.2;
     const availableQty = shortage ? Math.floor(item.qty * (0.6 + random() * 0.3)) : item.qty;
     const deviation = shortage
@@ -96,8 +94,9 @@ export function simulateReply(
         ? (specDeviation[family] ?? "Аналог другого производителя, паспорт приложен")
         : null;
     return {
+      id: `${offerId}-${index + 1}`,
       offerId,
-      materialId: item.materialId,
+      requestLineId: item.id,
       name: item.name,
       price,
       availableQty,
@@ -108,14 +107,11 @@ export function simulateReply(
     };
   });
 
-  const goods = lines.reduce((acc, line, i) => acc + line.price * request.items[i]!.qty, 0);
-  const deliveryCost = 8_000 + Math.floor(random() * 30) * 1_000;
+  const deliveryCost = (8_000 + Math.floor(random() * 30) * 1_000) * 100;
   const excerpt = [
-    ...lines
-      .slice(0, 3)
-      .map((line) => `${line.name} — ${line.price.toLocaleString("ru-RU")} руб. без НДС`),
+    ...lines.slice(0, 3).map((line) => `${line.name} — ${rub(line.price)} руб. без НДС`),
     lines.length > 3 ? `…и ещё ${lines.length - 3} поз. в таблице` : null,
-    `Доставка на объект ${deliveryCost.toLocaleString("ru-RU")} руб. Отгрузка ${leadBase} рабочих дней.`,
+    `Доставка на объект ${rub(deliveryCost)} руб. Отгрузка ${leadBase} рабочих дней.`,
   ]
     .filter(Boolean)
     .join(". ");
@@ -126,22 +122,15 @@ export function simulateReply(
       requestId: request.id,
       supplierId: profile.supplierId,
       receivedAt,
-      prices: lines.map((line) => ({ materialId: line.materialId, price: line.price })),
-      total: Math.round(goods),
-      leadTimeDays: Math.max(...lines.map((line) => line.leadTimeDays)),
-      confidence: 0.86 + random() * 0.1,
-      sourceId,
-      best: false,
-    },
-    lines,
-    terms: {
-      offerId,
       deliveryCost,
       vatPct: 20,
       validUntil: new Date(new Date(receivedAt).getTime() + 10 * 86_400_000)
         .toISOString()
         .slice(0, 10),
+      confidence: 0.86 + random() * 0.1,
+      sourceId,
     },
+    lines,
     source: {
       id: sourceId,
       kind: "email",

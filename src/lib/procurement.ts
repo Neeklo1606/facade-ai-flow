@@ -1,7 +1,8 @@
-import type { RfqMeta, SupplyRequest } from "@/mock/repository";
-import { MOCK_NOW } from "@/lib/format";
-import { decisionForRequest, type SpecState } from "@/lib/spec-store";
+import type { OfferLine, SupplierOffer, SupplyRequest } from "@/contracts";
+import { answeredCount, rfqStatus as displayStatus } from "@/domain/procurement";
+import { decisionForRequest, demoNow, type SpecState } from "@/lib/spec-store";
 
+/** Расчёт ячейки сравнения. Все суммы в копейках. */
 export interface CellCalc {
   price: number;
   qty: number;
@@ -22,6 +23,7 @@ export interface ColumnCalc {
   supplierId: string;
   offerId: string | null;
   receivedAt: string | null;
+  /** Ключ — id строки запроса */
   cells: Map<string, CellCalc>;
   deliveryCost: number;
   vatPct: number;
@@ -35,10 +37,11 @@ export interface ColumnCalc {
 
 /**
  * Сравнение предложений по запросу. Доставка распределяется по строкам пропорционально сумме,
- * НДС считается на товар и доставку, итог колонки — всё вместе.
+ * НДС считается на товар и доставку, итог колонки — всё вместе. Суммы в копейках.
+ * Переезжает в domain/procurement в P3-1.
  */
 export function compareOffers(
-  s: Pick<SpecState, "offers" | "offerLines" | "offerTerms">,
+  s: { offers: SupplierOffer[]; offerLines: OfferLine[] },
   request: SupplyRequest,
 ) {
   const columns: ColumnCalc[] = request.sentTo.map((supplierId) => {
@@ -60,37 +63,31 @@ export function compareOffers(
     };
     if (!offer) return empty;
 
-    const terms = s.offerTerms.find((t) => t.offerId === offer.id);
     const lines = s.offerLines.filter((line) => line.offerId === offer.id);
-    const deliveryCost = terms?.deliveryCost ?? 0;
-    const vatPct = terms?.vatPct ?? 20;
-    const amounts = request.items.map((item) => {
-      const line = lines.find((l) => l.materialId === item.materialId);
-      const price =
-        line?.price ?? offer.prices.find((p) => p.materialId === item.materialId)?.price ?? 0;
-      return { item, line, price, amount: price * item.qty };
+    const { deliveryCost, vatPct } = offer;
+    const amounts = request.items.flatMap((item) => {
+      const line = lines.find((l) => l.requestLineId === item.id);
+      return line ? [{ item, line, amount: Math.round(line.price * item.qty) }] : [];
     });
     const goods = amounts.reduce((acc, a) => acc + a.amount, 0);
     const cells = new Map<string, CellCalc>();
-    for (const { item, line, price, amount } of amounts) {
-      if (!price) continue;
+    for (const { item, line, amount } of amounts) {
       const delivery = goods ? Math.round((deliveryCost * amount) / goods) : 0;
       const vat = Math.round(((amount + delivery) * vatPct) / 100);
-      const availableQty = line?.availableQty ?? item.qty;
-      cells.set(item.materialId, {
-        price,
+      cells.set(item.id, {
+        price: line.price,
         qty: item.qty,
         amount,
         delivery,
         vat,
         total: amount + delivery + vat,
-        leadTimeDays: line?.leadTimeDays ?? offer.leadTimeDays,
-        availableQty,
-        shortage: availableQty < item.qty,
-        deviation: line?.deviation ?? null,
-        sourceId: line?.sourceId ?? offer.sourceId,
-        location: line?.location ?? "",
-        name: line?.name ?? item.name,
+        leadTimeDays: line.leadTimeDays,
+        availableQty: line.availableQty,
+        shortage: line.availableQty < item.qty,
+        deviation: line.deviation,
+        sourceId: line.sourceId ?? offer.sourceId,
+        location: line.location,
+        name: line.name,
       });
     }
     const subtotal = goods + deliveryCost;
@@ -120,10 +117,10 @@ export function compareOffers(
   return { columns, answered: answered.length, best };
 }
 
-export type RfqStatus = "decided" | "ordered" | "overdue" | "collecting" | "ready" | "sent";
+export type { RfqStatus } from "@/contracts";
 
 export const rfqStatusMeta: Record<
-  RfqStatus,
+  import("@/contracts").RfqStatus,
   { label: string; tone: "ok" | "warn" | "danger" | "info" | "accent" | "neutral" }
 > = {
   decided: { label: "Решение принято", tone: "ok" },
@@ -134,18 +131,14 @@ export const rfqStatusMeta: Record<
   sent: { label: "Отправлен", tone: "info" },
 };
 
-export function rfqStatus(
-  s: SpecState,
-  request: SupplyRequest,
-  meta: RfqMeta | undefined,
-  answered: number,
-): RfqStatus {
-  if (request.status === "ordered") return "ordered";
-  if (decisionForRequest(s, request.id)) return "decided";
-  const overdue = meta ? meta.replyDueAt < MOCK_NOW : false;
-  if (answered >= request.sentTo.length && answered > 0) return "ready";
-  if (overdue && answered < request.sentTo.length) return answered ? "collecting" : "overdue";
-  return answered ? "collecting" : "sent";
+/** Статус запроса на экране — та же функция, что считает «Просрочено» в реестре */
+export function rfqStatus(s: SpecState, request: SupplyRequest) {
+  return displayStatus(
+    request,
+    answeredCount(s.offers, request),
+    Boolean(decisionForRequest(s, request.id)),
+    demoNow(),
+  );
 }
 
 /** Короткое перечисление материалов запроса: «A, B и ещё 10» — для заголовков, где полный список не помещается. */

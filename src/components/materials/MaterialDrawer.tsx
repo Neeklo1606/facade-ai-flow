@@ -4,31 +4,24 @@ import { EntityDrawer } from "@/components/common/EntityDrawer";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
 import { Button } from "@/components/ui/button";
-import {
-  counterpartyName,
-  employeeById,
-  purchaseOrder,
-  purchaseStatusLabel,
-  replacementSuggestions,
-  type ExtractedPosition,
-} from "@/mock/repository";
-import { offersOf, useSpecStore } from "@/lib/spec-store";
+import { useSpecStore } from "@/lib/spec-store";
+import { compareOffers, rfqStatus, rfqStatusMeta } from "@/lib/procurement";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import {
+  purchaseOrder,
+  purchaseStatusLabel,
+  replacementStatusLabel,
+  type ExtractedPosition,
+  type ReplacementSuggestion,
+} from "@/contracts";
+import { counterpartyName, employeeById } from "@/lib/directory";
 
-const requestStatus: Record<string, string> = {
-  draft: "Черновик",
-  sent: "Отправлен",
-  collecting: "Ждём ответы",
-  compared: "Есть сравнение",
-  ordered: "Заказано",
-};
-
-const replacementStatus = {
-  proposed: { label: "Предложена", tone: "info" as const },
-  agreed: { label: "Согласована", tone: "ok" as const },
-  rejected: { label: "Отклонена", tone: "neutral" as const },
+const replacementTone: Record<ReplacementSuggestion["status"], "info" | "ok" | "neutral"> = {
+  proposed: "info",
+  agreed: "ok",
+  rejected: "neutral",
 };
 
 function Section({
@@ -64,7 +57,7 @@ export function MaterialDrawer({
     .filter((change) => change.positionId === item.id)
     .sort((a, b) => b.at.localeCompare(a.at));
   const related = requests.filter((request) => item.requestIds.includes(request.id));
-  const replacements = replacementSuggestions.filter((r) => r.family === item.family);
+  const replacements = store.replacements.filter((r) => r.family === item.family);
   const review = reviewLabel(item);
   const stage = purchaseOrder.indexOf(item.purchase);
 
@@ -200,13 +193,16 @@ export function MaterialDrawer({
           ) : (
             <ul className="space-y-2">
               {related.map((request) => {
-                const offers = offersOf(store, request.id);
+                const calc = compareOffers(store, request);
+                const offers = calc.columns
+                  .filter((column) => column.offerId)
+                  .sort((a, b) => a.total - b.total);
                 return (
                   <li key={request.id} className="rounded-[var(--r-md)] border border-border">
                     <div className="flex items-center justify-between gap-3 px-3 py-2">
                       <span className="text-[13px] font-medium">{request.number}</span>
                       <span className="text-caption text-text-muted">
-                        {requestStatus[request.status]} ·{" "}
+                        {rfqStatusMeta[rfqStatus(store, request)].label} ·{" "}
                         {request.sentTo.map(counterpartyName).join(", ")}
                       </span>
                     </div>
@@ -214,19 +210,19 @@ export function MaterialDrawer({
                       <ul className="divide-y divide-border border-t border-border">
                         {offers.map((offer) => (
                           <li
-                            key={offer.id}
+                            key={offer.supplierId}
                             className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
                           >
                             <span className="min-w-0 truncate">
                               {counterpartyName(offer.supplierId)}
-                              {offer.best && (
+                              {calc.best?.supplierId === offer.supplierId && (
                                 <StatusBadge tone="ok" className="ml-2 h-5">
                                   Лучшее
                                 </StatusBadge>
                               )}
                             </span>
                             <span className="tnum shrink-0 text-text-secondary">
-                              {fmtMoney(offer.total)} · {offer.leadTimeDays} дн.
+                              {fmtMoney(offer.total)} · {offer.maxLeadTime} дн.
                             </span>
                           </li>
                         ))}
@@ -257,8 +253,8 @@ export function MaterialDrawer({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-[13px] font-medium">{r.name}</p>
-                      <StatusBadge tone={replacementStatus[r.status].tone}>
-                        {replacementStatus[r.status].label}
+                      <StatusBadge tone={replacementTone[r.status]}>
+                        {replacementStatusLabel[r.status]}
                       </StatusBadge>
                     </div>
                     <p className="mt-0.5 text-caption text-text-secondary">{r.reason}</p>
@@ -270,8 +266,11 @@ export function MaterialDrawer({
                     >
                       Цена {r.priceDeltaPct > 0 ? "+" : "−"}
                       {Math.abs(r.priceDeltaPct)}%
-                      {r.agreedBy && (
-                        <span className="text-text-muted"> · {employeeById(r.agreedBy)?.name}</span>
+                      {r.decidedBy && (
+                        <span className="text-text-muted">
+                          {" "}
+                          · {employeeById(r.decidedBy)?.name}
+                        </span>
                       )}
                     </p>
                   </div>

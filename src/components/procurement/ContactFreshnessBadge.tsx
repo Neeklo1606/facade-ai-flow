@@ -1,6 +1,6 @@
 import { CircleCheck, CircleHelp, CircleX } from "lucide-react";
-import { contactFreshnessLabel, type ContactFreshness } from "@/mock/repository";
 import { cn } from "@/lib/utils";
+import { contactStatusLabel as contactFreshnessLabel, type ContactFreshness } from "@/contracts";
 
 const style: Record<ContactFreshness, { className: string; icon: typeof CircleCheck }> = {
   verified: { className: "bg-ok-bg text-ok", icon: CircleCheck },

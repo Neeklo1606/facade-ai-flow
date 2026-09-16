@@ -106,7 +106,7 @@ create table counterparties (
   id uuid not null default gen_random_uuid(),
   name text not null,
   role counterparty_role not null,
-  inn text not null,
+  inn text,
   contact_name text not null,
   email text not null,
   phone text not null,
@@ -117,10 +117,10 @@ create table counterparties (
   created_by uuid,
   primary key (id)
 );
-comment on column counterparties.inn is '10 или 12 цифр';
+comment on column counterparties.inn is '10 или 12 цифр; null — контрагент ещё не проверен';
 comment on column counterparties.avg_reply_hours is 'средний срок ответа на запрос, ч';
 comment on column counterparties.rating is 'оценка 0…5';
-create unique index counterparties_inn_key on counterparties (inn); -- поиск и защита от дублей по ИНН
+create unique index counterparties_inn_key on counterparties (inn) where inn is not null; -- поиск и защита от дублей по ИНН
 create index counterparties_role_name_idx on counterparties (role, name); -- списки заказчиков и поставщиков по алфавиту
 
 -- Профиль поставщика для подбора в запрос: регион, разделы спецификации, контакт
@@ -318,11 +318,11 @@ create table document_sheets (
 comment on column document_sheets.group_name is 'раздел спецификации: Подконструкция, Облицовка…';
 create unique index document_sheets_revision_id_number_key on document_sheets (revision_id, number); -- дерево листов по порядку
 
--- Расхождение между ревизиями документа, которое нужно разобрать
+-- Расхождение в ревизии документа, которое нужно разобрать: с прошлой ревизией или с другим разделом
 create table revision_changes (
   id uuid not null default gen_random_uuid(),
   document_id uuid not null,
-  from_revision_id uuid not null,
+  from_revision_id uuid,
   to_revision_id uuid not null,
   description text not null,
   status change_status not null,
@@ -332,9 +332,10 @@ create table revision_changes (
   updated_at timestamptz not null default now(),
   created_by uuid,
   primary key (id),
-  check (from_revision_id <> to_revision_id),
+  check (from_revision_id is null or from_revision_id <> to_revision_id),
   check ((status = 'resolved') = (resolved_at is not null))
 );
+comment on column revision_changes.from_revision_id is 'null — расхождение с другим разделом, а не с прошлой ревизией';
 create index revision_changes_document_id_status_idx on revision_changes (document_id, status); -- открытые изменения в реестре и карточке объекта
 
 -- Справочник нормализованных наименований материалов

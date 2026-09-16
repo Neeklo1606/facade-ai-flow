@@ -10,15 +10,11 @@ import {
 } from "react";
 import { ChevronLeft, ChevronRight, Maximize2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  SHEET_TABLE,
-  type DocumentSheet,
-  type ExtractedPosition,
-  type ProjectDocument,
-} from "@/mock/repository";
 import { confidenceLevel } from "@/components/common/ConfidenceIndicator";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { type DocumentSheet, type ExtractedPosition, type ProjectDocument } from "@/contracts";
+import { SHEET_TABLE } from "@/lib/sheet-geometry";
 
 /** Пропорции листа A4, книжная ориентация. */
 const PAGE_RATIO = 297 / 210;

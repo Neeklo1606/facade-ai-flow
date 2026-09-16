@@ -1,11 +1,11 @@
 import type { Tone } from "@/components/common/StatusBadge";
-import type {
-  DocProcessingStatus,
-  ExtractedPosition,
-  ProjectOverview,
-  ProjectStatus,
-  PurchaseStatus,
-} from "@/mock/repository";
+import {
+  type DocProcessingStatus,
+  type ExtractedPosition,
+  type ProjectOverview,
+  type ProjectStatus,
+  type PurchaseStatus,
+} from "@/contracts";
 
 export const projectStatusMeta: Record<ProjectStatus, { label: string; tone: Tone }> = {
   active: { label: "В работе", tone: "ok" },

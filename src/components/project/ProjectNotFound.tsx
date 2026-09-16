@@ -2,16 +2,16 @@ import { useEffect, type ComponentType } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ScreenSkeleton } from "@/components/common/ScreenStates";
-import { projectById, type Project, type ProjectOverview } from "@/mock/repository";
-import { projectOf, useIsClient, useSpecStore } from "@/lib/spec-store";
+import { getSpecState, projectOf, useIsClient, useSpecStore } from "@/lib/spec-store";
 import { useProjectOverview } from "@/lib/project-overview";
+import { type Project, type ProjectOverview } from "@/contracts";
 
 /**
  * Загрузчик маршрутов объекта. Объект мог быть создан в этой вкладке и существовать только
  * в клиентском хранилище, поэтому сервер не отвечает 404 — решение принимает клиент.
  */
 export function loadProject(id: string) {
-  return { id, project: projectById(id) };
+  return { id, project: projectOf(getSpecState(), id) };
 }
 
 export interface ProjectPageProps {

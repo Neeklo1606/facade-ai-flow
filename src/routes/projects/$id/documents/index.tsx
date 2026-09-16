@@ -1,3 +1,4 @@
+import { currentRevisions } from "@/domain/overview";
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, FileSpreadsheet, FileText, FileType2, Upload } from "lucide-react";
@@ -17,16 +18,16 @@ import { useScreenState } from "@/lib/screen-state";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
-import {
-  docStatusLabel,
-  employeeName,
-  type DocProcessingStatus,
-  type ProjectDocument,
-} from "@/mock/repository";
 import { documentStats, specActions, useSpecStore } from "@/lib/spec-store";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import {
+  processingStatusLabel as docStatusLabel,
+  type DocProcessingStatus,
+  type ProjectDocument,
+} from "@/contracts";
+import { employeeName } from "@/lib/directory";
 
 export const Route = createFileRoute("/projects/$id/documents/")({
   loader: ({ params }) => loadProject(params.id),
@@ -60,21 +61,18 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const zone = useRef<UploadZoneHandle>(null);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
 
-  const allDocuments = useSpecStore((s) => s.documents);
-  const positions = useSpecStore((s) => s.positions);
-  const uploads = useSpecStore((s) => s.uploads);
+  const state = useSpecStore((s) => s);
+  const uploads = state.uploads;
 
+  // Экран показывает действующие ревизии; прошлые — в карточке объекта, «Ревизии спецификации»
   const documents = useMemo(
-    () =>
-      allDocuments
-        .filter((doc) => doc.projectId === project.id)
-        .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt)),
-    [allDocuments, project.id],
+    () => currentRevisions(state.documents, project.id),
+    [state.documents, project.id],
   );
-  const stats = useMemo(() => {
-    const snapshot = { positions } as Parameters<typeof documentStats>[0];
-    return new Map(documents.map((doc) => [doc.id, documentStats(snapshot, doc.id)]));
-  }, [documents, positions]);
+  const stats = useMemo(
+    () => new Map(documents.map((doc) => [doc.id, documentStats(state, doc.id)])),
+    [documents, state],
+  );
 
   const inProgress = documents.filter((doc) => uploads[doc.id] && uploads[doc.id]!.stage < 4);
   const justFinished = documents.filter((doc) => uploads[doc.id]?.stage === 4);

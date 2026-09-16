@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
-import { processingStages } from "@/mock/repository";
 import { cn } from "@/lib/utils";
+import { processingStages } from "@/contracts";
 
 /**
  * Полоса стадий обработки документа. Каждая стадия подписана:

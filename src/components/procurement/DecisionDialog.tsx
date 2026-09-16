@@ -11,14 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { counterpartyById, employees } from "@/mock/repository";
 import type { ColumnCalc } from "@/lib/procurement";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { counterpartyById } from "@/lib/directory";
+import { useSpecStore } from "@/lib/spec-store";
 
-const approvers = employees.filter(
-  (e) => e.role === "manager" || e.role === "finance" || e.role === "supply",
-);
+const approverRoles = new Set(["manager", "finance", "supply"]);
 const MIN_REASON = 15;
 
 export interface DecisionInput {
@@ -42,6 +41,8 @@ export function DecisionDialog({
   onSave: (input: DecisionInput) => void;
 }) {
   const answered = columns.filter((c) => c.offerId);
+  const employees = useSpecStore((s) => s.employees);
+  const approvers = employees.filter((e) => approverRoles.has(e.role));
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [approvedBy, setApprovedBy] = useState("e-sokolov");

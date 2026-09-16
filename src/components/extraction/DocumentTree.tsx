@@ -1,8 +1,8 @@
 import { memo, useState } from "react";
 import { ChevronRight, FileText } from "lucide-react";
-import type { DocumentSheet } from "@/mock/repository";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { type DocumentSheet } from "@/contracts";
 
 export interface SheetCounts {
   total: number;

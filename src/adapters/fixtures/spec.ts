@@ -1,101 +1,29 @@
 import type {
   Characteristic,
-  DocumentSheet,
+  DocumentRevisionRow,
+  DocumentSheetRow,
   ExtractedPosition,
+  Material,
   PositionChange,
-  ProjectDocument,
+  PositionRow,
   PurchaseStatus,
   ReplacementSuggestion,
-} from "./types";
+  SupplyRequestLine,
+  SupplyRequestPosition,
+} from "@/contracts";
+import { SHEET_TABLE } from "@/lib/sheet-geometry";
 
 /**
- * Проектная документация объекта и позиции, извлечённые из спецификаций.
- * Формат повторяет ответы GET /projects/:id/documents и GET /documents/:id/positions.
+ * Спецификация «Северной Короны»: справочник материалов, листы ревизий и генератор 847 позиций.
+ * Данные детерминированы: одинаковые при каждом запуске, на сервере и в браузере.
  */
 
-export const SPEC_DOCUMENT_ID = "pd-korona-spec";
-
-export const projectDocuments: ProjectDocument[] = [
-  {
-    id: SPEC_DOCUMENT_ID,
-    projectId: "p-korona",
-    title: "Спецификация фасадных материалов, ДСК-2026/008, лист 84",
-    section: "НВФ",
-    version: "Рев. 3",
-    fileName: "ДСК-2026-008_НВФ_СМ_л84-95_рев3.pdf",
-    fileType: "pdf",
-    sizeKb: 18640,
-    uploadedAt: "2026-08-27T10:05:00",
-    uploadedBy: "e-volkova",
-    sheetCount: 12,
-    status: "review",
-    sourceId: "src-pd-korona-spec",
-  },
-  {
-    id: "pd-korona-ar",
-    projectId: "p-korona",
-    title: "Архитектурные решения. Фасады, ДСК-2026/008",
-    section: "АР",
-    version: "Рев. 3",
-    fileName: "ДСК-2026-008_АР_фасады_рев3.pdf",
-    fileType: "pdf",
-    sizeKb: 24310,
-    uploadedAt: "2026-08-27T09:50:00",
-    uploadedBy: "e-volkova",
-    sheetCount: 36,
-    status: "verified",
-    sourceId: "src-pd-korona-ar",
-  },
-  {
-    id: "pd-korona-uzly",
-    projectId: "p-korona",
-    title: "Узлы примыканий НВФ, лист 33",
-    section: "НВФ",
-    version: "Рев. 2",
-    fileName: "ДСК-2026-008_НВФ_узлы_рев2.pdf",
-    fileType: "pdf",
-    sizeKb: 6120,
-    uploadedAt: "2026-08-27T10:02:00",
-    uploadedBy: "e-volkova",
-    sheetCount: 8,
-    status: "verified",
-    sourceId: "src-pd-korona-uzly",
-  },
-  {
-    id: "pd-korona-km",
-    projectId: "p-korona",
-    title: "Расчёт кронштейнов на ветровую нагрузку",
-    section: "КМ",
-    version: "Рев. 1",
-    fileName: "ДСК-2026-008_КМ_расчёт.docx",
-    fileType: "docx",
-    sizeKb: 1480,
-    uploadedAt: "2026-09-05T11:30:00",
-    uploadedBy: "e-volkova",
-    sheetCount: 14,
-    status: "recognizing",
-    sourceId: null,
-  },
-  {
-    id: "pd-korona-vedomost",
-    projectId: "p-korona",
-    title: "Ведомость отделки фасадов, корпус 3",
-    section: "АР",
-    version: "Рев. 1",
-    fileName: "Ведомость_отделки_К3.xlsx",
-    fileType: "xlsx",
-    sizeKb: 212,
-    uploadedAt: "2026-09-05T12:04:00",
-    uploadedBy: "e-sokolov",
-    sheetCount: 3,
-    status: "uploaded",
-    sourceId: null,
-  },
-];
-
-/* ---------- Структура спецификации ---------- */
+export const SPEC_REVISION_ID = "pd-korona-spec";
+export const SPEC_TOTAL = 847;
+export const SPEC_CONFIRMED = 312;
 
 interface Family {
+  material: string;
   family: string;
   base: string;
   normalized: string;
@@ -123,8 +51,9 @@ function seeded(i: number, salt: number) {
   return x - Math.floor(x);
 }
 
-const families: Record<number, Family> = {
+export const families: Record<number, Family> = {
   84: {
+    material: "mat-bracket",
     family: "bracket",
     base: "Кронштейн КР-150 оцинкованный",
     normalized: "Кронштейн стеновой КР-150, сталь оцинкованная",
@@ -139,6 +68,7 @@ const families: Record<number, Family> = {
     qty: (i) => 40 + Math.round(seeded(i, 1) * 26) * 10,
   },
   85: {
+    material: "mat-rail-t",
     family: "rail",
     base: "Направляющая Т-образная 60×40",
     normalized: "Профиль направляющий Т-образный 60×40, АД31",
@@ -152,6 +82,7 @@ const families: Record<number, Family> = {
     qty: (i) => 60 + Math.round(seeded(i, 2) * 30) * 6,
   },
   86: {
+    material: "mat-rail-g",
     family: "rail",
     base: "Направляющая Г-образная 40×40",
     normalized: "Профиль направляющий Г-образный 40×40, АД31",
@@ -164,6 +95,7 @@ const families: Record<number, Family> = {
     qty: (i) => 24 + Math.round(seeded(i, 3) * 20) * 4,
   },
   87: {
+    material: "mat-tile",
     family: "tile",
     base: "Керамогранит 600×600 антрацит",
     normalized: "Плита керамогранитная 600×600×10, антрацит, матовая",
@@ -178,6 +110,7 @@ const families: Record<number, Family> = {
     qty: (i) => 80 + Math.round(seeded(i, 4) * 30) * 8,
   },
   88: {
+    material: "mat-tile-cut",
     family: "tile",
     base: "Керамогранит 600×600 антрацит, подрезка",
     normalized: "Плита керамогранитная 600×600×10, антрацит, подрезка",
@@ -191,6 +124,7 @@ const families: Record<number, Family> = {
     qty: (i) => 6 + Math.round(seeded(i, 5) * 18) * 2,
   },
   89: {
+    material: "mat-wool",
     family: "wool",
     base: "Минеральная вата 100 мм",
     normalized: "Плита теплоизоляционная из каменной ваты 100 мм",
@@ -204,6 +138,7 @@ const families: Record<number, Family> = {
     qty: (i) => 90 + Math.round(seeded(i, 6) * 30) * 8,
   },
   90: {
+    material: "mat-membrane",
     family: "membrane",
     base: "Мембрана ветрозащитная",
     normalized: "Мембрана ветрогидрозащитная паропроницаемая",
@@ -216,6 +151,7 @@ const families: Record<number, Family> = {
     qty: (i) => 100 + Math.round(seeded(i, 7) * 30) * 8,
   },
   91: {
+    material: "mat-anchor",
     family: "anchor",
     base: "Анкер клиновой 10×100",
     normalized: "Анкер клиновой оцинкованный М10×100",
@@ -230,6 +166,7 @@ const families: Record<number, Family> = {
     qty: (i) => 80 + Math.round(seeded(i, 8) * 26) * 12,
   },
   92: {
+    material: "mat-rivet",
     family: "rivet",
     base: "Заклёпка вытяжная 4×12",
     normalized: "Заклёпка вытяжная 4,0×12, Al/нерж.",
@@ -242,6 +179,7 @@ const families: Record<number, Family> = {
     qty: (i) => 400 + Math.round(seeded(i, 9) * 40) * 50,
   },
   93: {
+    material: "mat-parapet",
     family: "parapet",
     base: "Парапетная крышка",
     normalized: "Крышка парапетная, сталь с полимерным покрытием",
@@ -255,6 +193,7 @@ const families: Record<number, Family> = {
     qty: (i) => 12 + Math.round(seeded(i, 10) * 20) * 2,
   },
   94: {
+    material: "mat-strip",
     family: "strip",
     base: "Нащельник угловой",
     normalized: "Нащельник угловой 50×50, RAL 7016",
@@ -268,6 +207,7 @@ const families: Record<number, Family> = {
     qty: (i) => 4 + Math.round(seeded(i, 11) * 12) * 2,
   },
   95: {
+    material: "mat-firecut",
     family: "firecut",
     base: "Противопожарная отсечка",
     normalized: "Отсечка противопожарная, сталь оцинкованная 0,55 мм",
@@ -282,7 +222,10 @@ const families: Record<number, Family> = {
   },
 };
 
-const sheetPlan: { group: string; sheets: { number: number; title: string; rows: number }[] }[] = [
+export const sheetPlan: {
+  group: string;
+  sheets: { number: number; title: string; rows: number }[];
+}[] = [
   {
     group: "Подконструкция",
     sheets: [
@@ -322,23 +265,6 @@ const sheetPlan: { group: string; sheets: { number: number; title: string; rows:
   },
 ];
 
-export const SPEC_TOTAL = 847;
-export const SPEC_CONFIRMED = 312;
-
-/** Геометрия таблицы на листе: где начинаются строки и сколько места они занимают. */
-export const SHEET_TABLE = { top: 0.135, bottom: 0.855, left: 0.06, right: 0.94 } as const;
-
-export const documentSheets: DocumentSheet[] = sheetPlan.flatMap((group) =>
-  group.sheets.map((sheet) => ({
-    id: `sh-${sheet.number}`,
-    documentId: SPEC_DOCUMENT_ID,
-    number: sheet.number,
-    title: sheet.title,
-    group: group.group,
-  })),
-);
-
-/** Этап закупки проверенной позиции определяется запросом по её семейству. */
 const purchaseBySheet: Record<
   number,
   { status: PurchaseStatus; requestIds: string[]; split?: PurchaseStatus }
@@ -369,11 +295,55 @@ const clarifyNotes = [
   "Характеристики указаны сноской внизу листа.",
 ];
 
-function buildSpecPositions(): ExtractedPosition[] {
-  const rows: Omit<
-    ExtractedPosition,
-    "review" | "reviewedBy" | "reviewedAt" | "purchase" | "requestIds" | "handedOver"
-  >[] = [];
+/* ---------- Справочник материалов ---------- */
+
+export const materials: Material[] = Object.values(families).map((item) => ({
+  id: item.material,
+  family: item.family,
+  name: item.normalized,
+  unit: item.unit,
+}));
+
+/* ---------- Листы ревизий ---------- */
+
+/** Листы ревизии: у спецификации — реальная структура, у остальных — сквозная нумерация. */
+export function sheetsOf(
+  revision: Pick<DocumentRevisionRow, "id" | "sheetCount">,
+  section: string,
+) {
+  if (revision.id === SPEC_REVISION_ID) {
+    return sheetPlan.flatMap((group) =>
+      group.sheets.map((sheet): DocumentSheetRow => ({
+        id: `sh-${sheet.number}`,
+        revisionId: revision.id,
+        number: sheet.number,
+        title: sheet.title,
+        groupName: group.group,
+      })),
+    );
+  }
+  return Array.from({ length: revision.sheetCount }, (_, index): DocumentSheetRow => ({
+    id: `${revision.id}-sh-${index + 1}`,
+    revisionId: revision.id,
+    number: index + 1,
+    title: index === 0 ? "Общие данные" : `Лист ${index + 1}`,
+    groupName: section,
+  }));
+}
+
+/* ---------- Позиции ---------- */
+
+interface GeneratedPosition {
+  row: PositionRow;
+  /** Запрос, в который вошла проверенная позиция */
+  requestId: string | null;
+}
+
+function buildSpecPositions(): GeneratedPosition[] {
+  const rows: {
+    row: Omit<PositionRow, "review" | "reviewedBy" | "reviewedAt" | "purchase" | "handedOverAt">;
+    sheetNumber: number;
+  }[] = [];
   let g = 0;
   sheetPlan.forEach((group, groupIndex) => {
     let inGroup = 0;
@@ -384,28 +354,29 @@ function buildSpecPositions(): ExtractedPosition[] {
         inGroup += 1;
         const i = g + 1;
         rows.push({
-          id: `pos-${String(i).padStart(4, "0")}`,
-          projectId: "p-korona",
-          documentId: SPEC_DOCUMENT_ID,
-          sheetId: `sh-${sheet.number}`,
           sheetNumber: sheet.number,
-          position: `${groupIndex + 1}.${inGroup}`,
-          group: group.group,
-          family: family.family,
-          projectName: `${family.base}, ${family.variant(r)}`,
-          normalizedName: family.normalized,
-          characteristics: family.characteristics(r),
-          qty: family.qty(i),
-          unit: family.unit,
-          confidence: 0.86 + seeded(i, 20) * 0.13,
-          region: {
-            x: SHEET_TABLE.left,
-            y: SHEET_TABLE.top + r * rowH,
-            w: SHEET_TABLE.right - SHEET_TABLE.left,
-            h: rowH,
+          row: {
+            id: `pos-${String(i).padStart(4, "0")}`,
+            projectId: "p-korona",
+            revisionId: SPEC_REVISION_ID,
+            sheetId: `sh-${sheet.number}`,
+            position: `${groupIndex + 1}.${inGroup}`,
+            family: family.family,
+            projectName: `${family.base}, ${family.variant(r)}`,
+            materialId: family.material,
+            characteristics: family.characteristics(r),
+            qty: family.qty(i),
+            unit: family.unit,
+            confidence: 0.86 + seeded(i, 20) * 0.13,
+            region: {
+              x: SHEET_TABLE.left,
+              y: SHEET_TABLE.top + r * rowH,
+              w: SHEET_TABLE.right - SHEET_TABLE.left,
+              h: rowH,
+            },
+            note: null,
+            mergedInto: null,
           },
-          note: null,
-          mergedInto: null,
         });
         g += 1;
       }
@@ -419,61 +390,188 @@ function buildSpecPositions(): ExtractedPosition[] {
   let u = 0;
   const lowSheets = new Set([93, 92]);
 
-  return rows.map((row, index) => {
+  return rows.map(({ row, sheetNumber }, index) => {
     if (confirmedFlags[index]) {
       const kk = k++;
-      const inSheet = sheetCounter.get(row.sheetNumber) ?? 0;
-      sheetCounter.set(row.sheetNumber, inSheet + 1);
-      const plan = purchaseBySheet[row.sheetNumber]!;
-      const purchase = plan.split && inSheet % 3 === 2 ? plan.split : plan.status;
+      const inSheet = sheetCounter.get(sheetNumber) ?? 0;
+      sheetCounter.set(sheetNumber, inSheet + 1);
+      const plan = purchaseBySheet[sheetNumber]!;
+      const purchase: PurchaseStatus = plan.split && inSheet % 3 === 2 ? plan.split : plan.status;
+      const reviewedAt = `2026-09-0${1 + (kk % 5)}T${String(9 + (kk % 8)).padStart(2, "0")}:${String((kk * 7) % 60).padStart(2, "0")}:00`;
       return {
-        ...row,
-        // 47 проверенных позиций без нормализованного наименования, 12 — без характеристик
-        normalizedName: (kk * 149 + 17) % SPEC_CONFIRMED < 47 ? null : row.normalizedName,
-        characteristics: (kk * 97 + 31) % SPEC_CONFIRMED < 12 ? [] : row.characteristics,
-        review: kk % 9 === 0 ? "corrected" : "confirmed",
-        reviewedBy: kk % 4 === 0 ? "e-sokolov" : "e-volkova",
-        reviewedAt: `2026-09-0${1 + (kk % 5)}T${String(9 + (kk % 8)).padStart(2, "0")}:${String((kk * 7) % 60).padStart(2, "0")}:00`,
-        handedOver: true,
-        purchase,
-        requestIds: purchase === "none" ? [] : plan.requestIds,
-      } satisfies ExtractedPosition;
+        requestId: purchase === "none" ? null : (plan.requestIds[0] ?? null),
+        row: {
+          ...row,
+          // 47 проверенных позиций без нормализованного наименования, 12 — без характеристик
+          materialId: (kk * 149 + 17) % SPEC_CONFIRMED < 47 ? null : row.materialId,
+          characteristics: (kk * 97 + 31) % SPEC_CONFIRMED < 12 ? [] : row.characteristics,
+          review: kk % 9 === 0 ? "corrected" : "confirmed",
+          reviewedBy: kk % 4 === 0 ? "e-sokolov" : "e-volkova",
+          reviewedAt,
+          handedOverAt: reviewedAt,
+          purchase,
+        },
+      };
     }
 
     const uu = u++;
     let confidence = row.confidence;
     let note: string | null = null;
     let qty = row.qty;
-    if (lowSheets.has(row.sheetNumber)) {
-      lowSheets.delete(row.sheetNumber);
+    if (lowSheets.has(sheetNumber)) {
+      lowSheets.delete(sheetNumber);
       confidence = 0.42 + seeded(index, 30) * 0.14;
-      note = lowConfidenceNotes[row.sheetNumber] ?? null;
-      qty = row.sheetNumber === 93 ? 0 : row.qty;
+      note = lowConfidenceNotes[sheetNumber] ?? null;
+      qty = sheetNumber === 93 ? 0 : row.qty;
     } else if (uu % 61 === 5) {
       confidence = 0.72 + seeded(index, 31) * 0.1;
       note = clarifyNotes[uu % clarifyNotes.length] ?? null;
     }
     return {
-      ...row,
-      confidence,
-      note,
-      qty,
-      normalizedName: uu % 13 === 0 ? null : row.normalizedName,
-      review: "pending",
-      reviewedBy: null,
-      reviewedAt: null,
-      handedOver: false,
-      purchase: "none",
-      requestIds: [],
-    } satisfies ExtractedPosition;
+      requestId: null,
+      row: {
+        ...row,
+        confidence,
+        note,
+        qty,
+        materialId: uu % 13 === 0 ? null : row.materialId,
+        review: "pending",
+        reviewedBy: null,
+        reviewedAt: null,
+        handedOverAt: null,
+        purchase: "none",
+      },
+    };
   });
 }
 
-export const extractedPositions: ExtractedPosition[] = buildSpecPositions();
+const generated = buildSpecPositions();
+
+export const positions: PositionRow[] = generated.map((item) => item.row);
+
+/** Связь проверенных позиций со строками запросов: строка того же семейства материала. */
+export function requestPositionsOf(
+  lines: SupplyRequestLine[],
+  materialFamily: (materialId: string | null) => string | null,
+): SupplyRequestPosition[] {
+  return generated.flatMap(({ row, requestId }) => {
+    if (!requestId) return [];
+    const line =
+      lines.find((item) => item.requestId === requestId && item.materialId === row.materialId) ??
+      lines.find(
+        (item) => item.requestId === requestId && materialFamily(item.materialId) === row.family,
+      );
+    return line ? [{ requestLineId: line.id, positionId: row.id }] : [];
+  });
+}
+
+/** История для проверенных позиций: что предложила обработка и что поставил человек. */
+export const positionChanges: PositionChange[] = positions.flatMap((item, index) => {
+  if (item.review === "pending") return [];
+  const extracted: PositionChange = {
+    id: `pc-${item.id}-1`,
+    positionId: item.id,
+    at: "2026-08-27T11:33:00",
+    actorKind: "system",
+    actorId: null,
+    action: `Извлечено из листа ${item.sheetId.replace("sh-", "")}`,
+    before: null,
+    after: `${item.qty} ${item.unit}`,
+  };
+  const reviewed = { actorKind: "user" as const, actorId: item.reviewedBy, at: item.reviewedAt! };
+  if (item.review === "corrected") {
+    const before = Math.round(item.qty * (index % 2 ? 1.1 : 0.9));
+    return [
+      { ...extracted, after: `${before} ${item.unit}` },
+      {
+        id: `pc-${item.id}-2`,
+        positionId: item.id,
+        ...reviewed,
+        action: "Исправлено количество",
+        before: `${before} ${item.unit}`,
+        after: `${item.qty} ${item.unit}`,
+      },
+    ];
+  }
+  return [
+    extracted,
+    {
+      id: `pc-${item.id}-2`,
+      positionId: item.id,
+      ...reviewed,
+      action: "Подтверждено",
+      before: null,
+      after: null,
+    },
+  ];
+});
+
+/* ---------- Замены ---------- */
+
+const REPLACEMENTS: ReplacementSuggestion[] = [
+  {
+    id: "rp-1",
+    family: "strip",
+    name: "Нащельник угловой 50×50 «Фасад-Комплект», RAL 7024",
+    reason: "Профиль совпадает, срок поставки 5 дней вместо 18",
+    priceDeltaPct: 4,
+    status: "agreed",
+    decidedBy: "e-sokolov",
+  },
+  {
+    id: "rp-2",
+    family: "tile",
+    name: "Керамогранит 600×600×10 Estima, графит матовый",
+    reason: "Аналог по водопоглощению и морозостойкости, есть на складе в Москве",
+    priceDeltaPct: -6,
+    status: "proposed",
+    decidedBy: null,
+  },
+  {
+    id: "rp-3",
+    family: "bracket",
+    name: "Кронштейн КН-150 «МеталлПрофиль», сталь оцинкованная",
+    reason: "Совместим с направляющей 60×40, сертификат ТС есть",
+    priceDeltaPct: 3,
+    status: "proposed",
+    decidedBy: null,
+  },
+  {
+    id: "rp-4",
+    family: "wool",
+    name: "Плита ТЕХНОВЕНТ Стандарт 100 мм",
+    reason: "Та же плотность и группа горючести НГ",
+    priceDeltaPct: -3,
+    status: "rejected",
+    decidedBy: "e-volkova",
+  },
+  {
+    id: "rp-5",
+    family: "membrane",
+    name: "Мембрана Изоспан AF+",
+    reason: "Паропроницаемость выше требуемой, Г1",
+    priceDeltaPct: -9,
+    status: "proposed",
+    decidedBy: null,
+  },
+  {
+    id: "rp-6",
+    family: "firecut",
+    name: "Отсечка противопожарная 0,7 мм, EI 60",
+    reason: "Запас по огнестойкости, заказчик согласен",
+    priceDeltaPct: 12,
+    status: "proposed",
+    decidedBy: null,
+  },
+];
+
+export const replacementSuggestions: ReplacementSuggestion[] = REPLACEMENTS;
+
+/* ---------- Позиции загруженного в демо документа ---------- */
 
 /** Позиции для документа, загруженного в демо: небольшая таблица из того же справочника. */
 export function simulatedPositions(
-  documentId: string,
+  revisionId: string,
   projectId: string,
   count: number,
 ): ExtractedPosition[] {
@@ -483,19 +581,21 @@ export function simulatedPositions(
     const sheetNumber = sheetNumbers[r % sheetNumbers.length]!;
     const family = families[sheetNumber]!;
     const i = 5000 + r;
+    const normalized = r % 7 !== 3;
     return {
-      id: `${documentId}-pos-${r + 1}`,
+      id: `${revisionId}-pos-${r + 1}`,
       projectId,
-      documentId,
-      sheetId: `${documentId}-sh-1`,
+      documentId: revisionId,
+      sheetId: `${revisionId}-sh-1`,
       sheetNumber: 1,
       position: String(r + 1),
       group: sheetPlan.find((group) => group.sheets.some((sheet) => sheet.number === sheetNumber))!
         .group,
       family: family.family,
       projectName: `${family.base}, ${family.variant(r)}`,
-      normalizedName: r % 7 === 3 ? null : family.normalized,
-      characteristics: family.characteristics(r),
+      materialId: normalized ? family.material : null,
+      normalizedName: normalized ? family.normalized : null,
+      characteristics: family.characteristics(r) satisfies Characteristic[],
       qty: family.qty(i),
       unit: family.unit,
       confidence: r === 5 ? 0.55 : r % 6 === 2 ? 0.76 : 0.88 + seeded(i, 40) * 0.1,
@@ -509,164 +609,10 @@ export function simulatedPositions(
       reviewedBy: null,
       reviewedAt: null,
       note: r === 5 ? "Количество не распознано: ячейка пустая." : null,
-      handedOver: false,
+      handedOverAt: null,
       purchase: "none",
       requestIds: [],
       mergedInto: null,
-    } satisfies ExtractedPosition;
+    };
   });
-}
-
-/* ---------- История позиций и замены ---------- */
-
-/** История для исправленных позиций: что предложила обработка и что поставил человек. */
-export const positionChanges: PositionChange[] = extractedPositions.flatMap((item, index) => {
-  if (item.review === "pending") return [];
-  const extracted: PositionChange = {
-    id: `pc-${item.id}-1`,
-    positionId: item.id,
-    at: "2026-08-27T11:33:00",
-    actorId: "agent-extract",
-    action: `Извлечено из листа ${item.sheetNumber}`,
-    before: null,
-    after: `${item.qty} ${item.unit}`,
-  };
-  if (item.review === "corrected") {
-    const before = Math.round(item.qty * (index % 2 ? 1.1 : 0.9));
-    return [
-      { ...extracted, after: `${before} ${item.unit}` },
-      {
-        id: `pc-${item.id}-2`,
-        positionId: item.id,
-        at: item.reviewedAt!,
-        actorId: item.reviewedBy!,
-        action: "Исправлено количество",
-        before: `${before} ${item.unit}`,
-        after: `${item.qty} ${item.unit}`,
-      },
-    ];
-  }
-  return [
-    extracted,
-    {
-      id: `pc-${item.id}-2`,
-      positionId: item.id,
-      at: item.reviewedAt!,
-      actorId: item.reviewedBy!,
-      action: "Подтверждено",
-      before: null,
-      after: null,
-    },
-  ];
-});
-
-export const replacementSuggestions: ReplacementSuggestion[] = [
-  {
-    id: "rp-1",
-    family: "strip",
-    name: "Нащельник угловой 50×50 «Фасад-Комплект», RAL 7024",
-    reason: "Профиль совпадает, срок поставки 5 дней вместо 18",
-    priceDeltaPct: 4,
-    status: "agreed",
-    agreedBy: "e-sokolov",
-  },
-  {
-    id: "rp-2",
-    family: "tile",
-    name: "Керамогранит 600×600×10 Estima, графит матовый",
-    reason: "Аналог по водопоглощению и морозостойкости, есть на складе в Москве",
-    priceDeltaPct: -6,
-    status: "proposed",
-    agreedBy: null,
-  },
-  {
-    id: "rp-3",
-    family: "bracket",
-    name: "Кронштейн КН-150 «МеталлПрофиль», сталь оцинкованная",
-    reason: "Совместим с направляющей 60×40, сертификат ТС есть",
-    priceDeltaPct: 3,
-    status: "proposed",
-    agreedBy: null,
-  },
-  {
-    id: "rp-4",
-    family: "wool",
-    name: "Плита ТЕХНОВЕНТ Стандарт 100 мм",
-    reason: "Та же плотность и группа горючести НГ",
-    priceDeltaPct: -3,
-    status: "rejected",
-    agreedBy: "e-volkova",
-  },
-  {
-    id: "rp-5",
-    family: "membrane",
-    name: "Мембрана Изоспан AF+",
-    reason: "Паропроницаемость выше требуемой, Г1",
-    priceDeltaPct: -9,
-    status: "proposed",
-    agreedBy: null,
-  },
-  {
-    id: "rp-6",
-    family: "firecut",
-    name: "Отсечка противопожарная 0,7 мм, EI 60",
-    reason: "Запас по огнестойкости, заказчик согласен",
-    priceDeltaPct: 12,
-    status: "proposed",
-    agreedBy: null,
-  },
-];
-
-export const purchaseStatusLabel: Record<PurchaseStatus, string> = {
-  none: "Не в работе",
-  requested: "В запросе",
-  offers: "Получены предложения",
-  supplier_selected: "Выбран поставщик",
-  ordered: "Заказано",
-  delivered: "Поставлено",
-};
-
-export const purchaseOrder: PurchaseStatus[] = [
-  "none",
-  "requested",
-  "offers",
-  "supplier_selected",
-  "ordered",
-  "delivered",
-];
-
-export const docStatusLabel: Record<ProjectDocument["status"], string> = {
-  uploaded: "Загружен",
-  recognizing: "Распознаётся",
-  extracted: "Извлечено",
-  review: "На проверке",
-  verified: "Проверено",
-};
-
-/** Стадии обработки загруженного файла в порядке прохождения. */
-export const processingStages = [
-  "Загружен",
-  "Распознан текст",
-  "Найдены таблицы",
-  "Извлечены позиции",
-  "Готов к проверке",
-] as const;
-
-/** Листы документа: для спецификации — реальная структура, для остальных — сквозная нумерация. */
-export function sheetsOfDocument(document: ProjectDocument): DocumentSheet[] {
-  const own = documentSheets.filter((sheet) => sheet.documentId === document.id);
-  if (own.length) return own;
-  return Array.from({ length: document.sheetCount }, (_, index) => ({
-    id: `${document.id}-sh-${index + 1}`,
-    documentId: document.id,
-    number: index + 1,
-    title: index === 0 ? "Общие данные" : `Лист ${index + 1}`,
-    group: document.section,
-  }));
-}
-
-export function projectDocumentsOf(projectId: string) {
-  return projectDocuments
-    .filter((item) => item.projectId === projectId)
-    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 }

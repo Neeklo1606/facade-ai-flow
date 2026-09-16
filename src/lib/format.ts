@@ -20,8 +20,13 @@ export function fmtNum(value: number, digits = 0) {
   });
 }
 
-export function fmtMoney(value: number) {
-  return `${value.toLocaleString("ru-RU")} ₽`;
+/** Деньги хранятся в копейках (docs/db/schema.md); копейки показываются, только если они есть */
+export function fmtMoney(kopecks: number) {
+  const digits = kopecks % 100 === 0 ? 0 : 2;
+  return `${(kopecks / 100).toLocaleString("ru-RU", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })} ₽`;
 }
 
 export function fmtMln(value: number) {

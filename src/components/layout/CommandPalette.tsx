@@ -1,3 +1,4 @@
+import { currentRevisions } from "@/domain/overview";
 import { useNavigate } from "@tanstack/react-router";
 import {
   CommandDialog,
@@ -11,7 +12,7 @@ import { useApp } from "@/lib/app-context";
 import { allNavItems, sectionHref } from "@/lib/navigation";
 import { useProjectId } from "@/lib/project-scope";
 import { useSpecStore } from "@/lib/spec-store";
-import { counterpartyName } from "@/mock/repository";
+import { counterpartyName } from "@/lib/directory";
 
 /** Поиск по системе: объекты, разделы, документы, запросы и поставщики — только экраны объекта. */
 export function CommandPalette() {
@@ -19,7 +20,8 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const projectId = useProjectId();
   const projects = useSpecStore((s) => s.projects);
-  const documents = useSpecStore((s) => s.documents);
+  const allDocuments = useSpecStore((s) => s.documents);
+  const documents = currentRevisions(allDocuments);
   const requests = useSpecStore((s) => s.requests);
   const profiles = useSpecStore((s) => s.profiles);
   const nameOf = (id: string) => projects.find((p) => p.id === id)?.name ?? "";

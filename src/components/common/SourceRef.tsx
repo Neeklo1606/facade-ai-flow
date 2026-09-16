@@ -5,9 +5,9 @@ import { ConfidenceIndicator } from "./ConfidenceIndicator";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { fmtDateTime } from "@/lib/format";
-import { approvals, employeeById, extractions } from "@/mock/repository";
 import { sourceOf, useSpecStore } from "@/lib/spec-store";
-import type { SourceKind } from "@/mock/repository";
+import { type SourceKind } from "@/contracts";
+import { employeeById } from "@/lib/directory";
 
 const kindIcon: Record<SourceKind, typeof Mail> = {
   telegram: MessageSquare,
@@ -125,12 +125,11 @@ export function SourceDrawer({
   fragment?: string | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const source = useSpecStore((st) => sourceOf(st, sourceId));
+  const state = useSpecStore((st) => st);
+  const source = sourceOf(state, sourceId);
   if (!source) return null;
-  const fields = extractions.filter((item) => item.sourceId === source.id);
-  const decisions = approvals.filter((item) =>
-    fields.some((field) => field.id === item.extractionId),
-  );
+  const fields = state.extractions.filter((item) => item.sourceId === source.id);
+  const decisions = state.decisions.filter((item) => item.basisSourceId === source.id);
 
   return (
     <EntityDrawer
@@ -179,24 +178,18 @@ export function SourceDrawer({
 
         {decisions.length > 0 && (
           <section>
-            <p className="text-[12px] text-text-muted">Решения человека</p>
+            <p className="text-[12px] text-text-muted">Решения на основании источника</p>
             <ul className="mt-2 space-y-2">
               {decisions.map((item) => (
                 <li
                   key={item.id}
                   className="rounded-[var(--r-md)] border border-border px-3 py-2.5"
                 >
-                  <p className="text-[13px]">
-                    {item.field}: {item.previousValue ? `${item.previousValue} → ` : ""}
-                    <span className="font-medium">{item.newValue}</span>
-                  </p>
+                  <p className="text-[13px] font-medium">{item.title}</p>
                   <p className="mt-1 text-[12px] text-text-muted">
-                    {employeeById(item.approvedBy)?.name ?? item.approvedBy} ·{" "}
-                    {fmtDateTime(item.approvedAt)}
+                    {employeeById(item.approvedBy)?.name ?? "—"} · {fmtDateTime(item.approvedAt)}
                   </p>
-                  {item.comment && (
-                    <p className="mt-1 text-[12px] text-text-secondary">{item.comment}</p>
-                  )}
+                  <p className="mt-1 text-[12px] text-text-secondary">{item.reason}</p>
                 </li>
               ))}
             </ul>

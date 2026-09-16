@@ -1,30 +1,30 @@
 import { Link } from "@tanstack/react-router";
-import { Bot, Check, CircleSlash, FileText, PencilLine, UserRound } from "lucide-react";
+import { Bot, Check, FileText, UserRound } from "lucide-react";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator, confidenceLevel } from "@/components/common/ConfidenceIndicator";
-import { documentStats, isActive, isVerified, offersOf, useSpecStore } from "@/lib/spec-store";
+import {
+  documentStats,
+  isActive,
+  isVerified,
+  timelineOf,
+  useSpecStore,
+  type SpecState,
+} from "@/lib/spec-store";
 import { docStatusTone } from "@/lib/project-meta";
 import { SourceRef } from "@/components/common/SourceRef";
 import {
-  byProject,
-  counterpartyName,
-  decisionsOf,
-  docStatusLabel,
-  docVersionsOf,
-  employeeById,
-  employeeName,
-  employees,
-  historyOf,
-  specItems,
-  type Approval,
-  type ExtractedPosition,
+  deliveryStatusLabel,
+  milestoneStatusLabel,
+  processingStatusLabel as docStatusLabel,
+  replacementStatusLabel,
   type Delivery,
-  type DocumentRecord,
+  type ExtractedPosition,
   type Milestone,
-  type Risk,
-  type SupplyRequest,
   type ProjectOverview,
-} from "@/mock/repository";
+} from "@/contracts";
+import { currentRevisions, mainSpecification, revisionStats, revisionsOf } from "@/domain/overview";
+import { compareOffers, rfqStatus, rfqStatusMeta } from "@/lib/procurement";
+import { counterpartyName, employeeById, employeeName } from "@/lib/directory";
 import { fmtDate, fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Bar, Block, BlockEmpty } from "./parts";
@@ -99,166 +99,100 @@ function More({ shown, total, unit }: { shown: number; total: number; unit: stri
 
 /* ---------- Документация ---------- */
 
-const docKindLabel: Record<DocumentRecord["kind"], string> = {
-  contract: "Договор",
-  annex: "Доп. соглашение",
-  design: "Проектная документация",
-  act_ks2: "Акт КС-2",
-  act_ks3: "Справка КС-3",
-  certificate: "Паспорт, сертификат",
-  checklist: "Чек-лист",
-  letter: "Письмо",
-};
-
-const docStatus: Record<DocumentRecord["status"], { label: string; tone: Tone }> = {
-  processing: { label: "Обрабатывается", tone: "info" },
-  review: { label: "Требует проверки", tone: "warn" },
-  confirmed: { label: "Проверено", tone: "ok" },
-  rejected: { label: "Отклонено", tone: "danger" },
-};
-
 export function DocumentsPreview(props: Props) {
-  const liveDocuments = useSpecStore((st) => st.documents);
-  const livePositions = useSpecStore((st) => st.positions);
-  const docs = liveDocuments.filter((doc) => doc.projectId === props.projectId);
-  if (!docs.length) return <StaticDocumentsPreview {...props} />;
-  const sorted = [...docs].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
-  const snapshot = { positions: livePositions } as Parameters<typeof documentStats>[0];
-
-  return (
-    <Block
-      title="Проектная документация"
-      count={docs.length}
-      to={`/projects/${props.projectId}/documents`}
-      onLinkClick={props.scope}
-    >
-      <PreviewTable
-        minWidth={760}
-        head={
-          <>
-            <Th>Документ</Th>
-            <Th>Раздел</Th>
-            <Th>Версия</Th>
-            <Th right>Извлечено</Th>
-            <Th right>Проверено</Th>
-            <Th>Статус</Th>
-          </>
-        }
-      >
-        {sorted.slice(0, PREVIEW).map((doc) => {
-          const stats = documentStats(snapshot, doc.id);
-          return (
-            <tr key={doc.id}>
-              <Td className="max-w-[320px] truncate font-medium text-text-primary">
-                <Link
-                  to="/projects/$id/documents/$docId"
-                  params={{ id: props.projectId, docId: doc.id }}
-                  className="hover:text-accent"
-                >
-                  {doc.title}
-                </Link>
-              </Td>
-              <Td>{doc.section}</Td>
-              <Td className="whitespace-nowrap">{doc.version}</Td>
-              <Td right>{stats.extracted ? fmtNum(stats.extracted) : "—"}</Td>
-              <Td right>{stats.extracted ? fmtNum(stats.verified) : "—"}</Td>
-              <Td>
-                <StatusBadge tone={docStatusTone[doc.status]}>
-                  {docStatusLabel[doc.status]}
-                </StatusBadge>
-              </Td>
-            </tr>
-          );
-        })}
-      </PreviewTable>
-      <More shown={PREVIEW} total={docs.length} unit="документов" />
-    </Block>
-  );
-}
-
-function StaticDocumentsPreview({ projectId, scope, onSource }: Props) {
-  const docs = [...byProject.documents(projectId)].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
-  );
-  const versions = docVersionsOf(projectId);
+  const state = useSpecStore((st) => st);
+  const docs = currentRevisions(state.documents, props.projectId);
+  const main = mainSpecification(state, props.projectId);
+  const versions = main ? revisionsOf(state.documents, main.documentId) : [];
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <Block
-        title="Документы объекта"
+        title="Проектная документация"
         count={docs.length}
-        to={`/projects/${projectId}/documents`}
-        onLinkClick={scope}
+        to={`/projects/${props.projectId}/documents`}
+        onLinkClick={props.scope}
       >
         {docs.length === 0 ? (
-          <BlockEmpty>Документов пока нет</BlockEmpty>
+          <BlockEmpty>Документация объекта ещё не загружена</BlockEmpty>
         ) : (
           <>
             <PreviewTable
+              minWidth={760}
               head={
                 <>
                   <Th>Документ</Th>
-                  <Th>Тип</Th>
-                  <Th right>Листов</Th>
-                  <Th>Загружен</Th>
-                  <Th>Состояние</Th>
-                  <Th />
+                  <Th>Раздел</Th>
+                  <Th>Версия</Th>
+                  <Th right>Извлечено</Th>
+                  <Th right>Проверено</Th>
+                  <Th>Статус</Th>
                 </>
               }
             >
-              {docs.slice(0, PREVIEW).map((doc) => (
-                <tr key={doc.id}>
-                  <Td className="max-w-[260px] truncate font-medium text-text-primary">
-                    {doc.name}
-                  </Td>
-                  <Td className="whitespace-nowrap">{docKindLabel[doc.kind]}</Td>
-                  <Td right>{doc.pages}</Td>
-                  <Td className="whitespace-nowrap">{fmtDate(doc.createdAt)}</Td>
-                  <Td>
-                    <StatusBadge tone={docStatus[doc.status].tone}>
-                      {docStatus[doc.status].label}
-                    </StatusBadge>
-                  </Td>
-                  <Td>
-                    <SourceRef sourceId={doc.sourceId} onOpen={() => onSource(doc.sourceId)} />
-                  </Td>
-                </tr>
-              ))}
+              {docs.slice(0, PREVIEW).map((doc) => {
+                const stats = documentStats(state, doc.id);
+                return (
+                  <tr key={doc.id}>
+                    <Td className="max-w-[320px] truncate font-medium text-text-primary">
+                      <Link
+                        to="/projects/$id/documents/$docId"
+                        params={{ id: props.projectId, docId: doc.id }}
+                        className="hover:text-accent"
+                      >
+                        {doc.title}
+                      </Link>
+                    </Td>
+                    <Td>{doc.section}</Td>
+                    <Td className="whitespace-nowrap">{doc.version}</Td>
+                    <Td right>{stats.extracted ? fmtNum(stats.extracted) : "—"}</Td>
+                    <Td right>{stats.extracted ? fmtNum(stats.verified) : "—"}</Td>
+                    <Td>
+                      <StatusBadge tone={docStatusTone[doc.status]}>
+                        {docStatusLabel[doc.status]}
+                      </StatusBadge>
+                    </Td>
+                  </tr>
+                );
+              })}
             </PreviewTable>
             <More shown={PREVIEW} total={docs.length} unit="документов" />
           </>
         )}
       </Block>
 
-      <Block title="Ревизии проектной документации" count={versions.length}>
+      <Block title="Ревизии спецификации" count={versions.length}>
         {versions.length === 0 ? (
-          <BlockEmpty>Ревизий нет</BlockEmpty>
+          <BlockEmpty>Спецификация не загружена</BlockEmpty>
         ) : (
           <ul className="divide-y divide-border">
-            {versions.map((version, index) => (
-              <li key={version.id} className="px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-[13px] font-medium">
-                    {version.version}
-                    {index === 0 && <StatusBadge tone="accent">Актуальная</StatusBadge>}
-                  </span>
-                  <span className="tnum text-caption text-text-muted">
-                    {fmtDate(version.uploadedAt)}
-                  </span>
-                </div>
-                <p className="mt-1 text-caption text-text-secondary">
-                  {version.sheets} листов · извлечено {fmtNum(version.extracted)} · проверено{" "}
-                  {fmtNum(version.verified)}
-                </p>
-                <div className="mt-2">
-                  <Bar
-                    value={version.verified}
-                    total={version.extracted}
-                    tone={version.verified < version.extracted ? "warn" : "ok"}
-                  />
-                </div>
-              </li>
-            ))}
+            {versions.map((version, index) => {
+              const stats = revisionStats(state.positions, version);
+              return (
+                <li key={version.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-2 text-[13px] font-medium">
+                      {version.version}
+                      {index === 0 && <StatusBadge tone="accent">Актуальная</StatusBadge>}
+                    </span>
+                    <span className="tnum text-caption text-text-muted">
+                      {fmtDate(version.uploadedAt)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-caption text-text-secondary">
+                    {version.sheetCount} листов · извлечено {fmtNum(stats.total)} · проверено{" "}
+                    {fmtNum(stats.verified)}
+                  </p>
+                  <div className="mt-2">
+                    <Bar
+                      value={stats.verified}
+                      total={stats.total}
+                      tone={stats.verified < stats.total ? "warn" : "ok"}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Block>
@@ -273,10 +207,20 @@ export function MaterialsPreview(props: Props) {
   const positions = livePositions.filter(
     (item) => item.projectId === props.projectId && isActive(item),
   );
-  return positions.length ? (
-    <LiveMaterialsPreview {...props} positions={positions} />
-  ) : (
-    <StaticMaterialsPreview {...props} />
+  if (positions.length) return <LiveMaterialsPreview {...props} positions={positions} />;
+  return (
+    <Block
+      title="Спецификация материалов"
+      count={`${fmtNum(props.overview.specTotal)} поз. · непроверено ${fmtNum(props.overview.specUnverified)}`}
+      to={`/projects/${props.projectId}/materials`}
+      onLinkClick={props.scope}
+    >
+      <BlockEmpty>
+        {props.overview.specTotal
+          ? `Позиции спецификации (${fmtNum(props.overview.specTotal)}) ещё не загружены в систему — в демо загружена только спецификация «Северной Короны»`
+          : "Спецификация ещё не загружена"}
+      </BlockEmpty>
+    </Block>
   );
 }
 
@@ -361,103 +305,13 @@ function LiveMaterialsPreview({
   );
 }
 
-function StaticMaterialsPreview({ projectId, overview, scope, onSource }: Props) {
-  const items = specItems
-    .filter((item) => item.projectId === projectId)
-    .sort(
-      (a, b) =>
-        Number(Boolean(a.approvedBy)) - Number(Boolean(b.approvedBy)) ||
-        a.confidence - b.confidence,
-    );
-
-  return (
-    <Block
-      title="Спецификация материалов"
-      count={`${fmtNum(overview.specTotal)} поз. · непроверено ${fmtNum(overview.specUnverified)}`}
-      to={`/projects/${projectId}/materials`}
-      onLinkClick={scope}
-    >
-      {items.length === 0 ? (
-        <BlockEmpty>
-          Извлечено {fmtNum(overview.specTotal)} позиций, строки открываются в реестре материалов
-        </BlockEmpty>
-      ) : (
-        <>
-          <PreviewTable
-            minWidth={820}
-            head={
-              <>
-                <Th>Поз.</Th>
-                <Th>Наименование</Th>
-                <Th>Раздел</Th>
-                <Th right>Количество</Th>
-                <Th>Лист</Th>
-                <Th>Проверка</Th>
-                <Th />
-              </>
-            }
-          >
-            {items.slice(0, PREVIEW).map((item) => (
-              <tr key={item.id}>
-                <Td className="mono text-caption">{item.position}</Td>
-                <Td className="max-w-[260px] truncate font-medium text-text-primary">
-                  {item.name}
-                </Td>
-                <Td className="whitespace-nowrap">{item.section}</Td>
-                <Td right className="whitespace-nowrap">
-                  {item.qty > 0 ? (
-                    `${fmtNum(item.qty)} ${item.unit}`
-                  ) : (
-                    <span className="text-warn">по месту</span>
-                  )}
-                </Td>
-                <Td className="tnum">{item.page}</Td>
-                <Td>
-                  {item.approvedBy ? (
-                    <StatusBadge tone="ok">
-                      <Check className="size-3" /> {employeeName(item.approvedBy)}
-                    </StatusBadge>
-                  ) : (
-                    <ConfidenceIndicator value={item.confidence} />
-                  )}
-                </Td>
-                <Td>
-                  <SourceRef
-                    sourceId={item.sourceId}
-                    approvedBy={item.approvedBy}
-                    approvedAt={item.approvedAt}
-                    onOpen={() => onSource(item.sourceId)}
-                  />
-                </Td>
-              </tr>
-            ))}
-          </PreviewTable>
-          <More
-            shown={Math.min(PREVIEW, items.length)}
-            total={overview.specTotal}
-            unit="позиций, сначала непроверенные"
-          />
-        </>
-      )}
-    </Block>
-  );
-}
-
 /* ---------- Закупки ---------- */
 
-const requestStatus: Record<SupplyRequest["status"], { label: string; tone: Tone }> = {
-  draft: { label: "Черновик", tone: "neutral" },
-  sent: { label: "Отправлен", tone: "info" },
-  collecting: { label: "Ждём ответы", tone: "warn" },
-  compared: { label: "Есть сравнение", tone: "ok" },
-  ordered: { label: "Заказано", tone: "ok" },
-};
-
-const deliveryStatus: Record<Delivery["status"], { label: string; tone: Tone }> = {
-  expected: { label: "Ожидается", tone: "neutral" },
-  in_transit: { label: "В пути", tone: "info" },
-  received: { label: "Принята", tone: "ok" },
-  rejected: { label: "Отклонена", tone: "danger" },
+const deliveryTone: Record<Delivery["status"], Tone> = {
+  expected: "neutral",
+  in_transit: "info",
+  received: "ok",
+  rejected: "danger",
 };
 
 export function PurchasesPreview({ projectId, overview, scope }: Props) {
@@ -465,7 +319,7 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
   const requests = [...store.requests.filter((r) => r.projectId === projectId)].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
   );
-  const deliveries = [...byProject.deliveries(projectId)].sort((a, b) =>
+  const deliveries = [...store.deliveries.filter((d) => d.projectId === projectId)].sort((a, b) =>
     b.expectedAt.localeCompare(a.expectedAt),
   );
 
@@ -492,7 +346,8 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
             }
           >
             {requests.slice(0, PREVIEW).map((request) => {
-              const offers = offersOf(store, request.id);
+              const calc = compareOffers(store, request);
+              const status = rfqStatusMeta[rfqStatus(store, request)];
               return (
                 <tr key={request.id}>
                   <Td className="whitespace-nowrap font-medium text-text-primary">
@@ -505,15 +360,13 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
                     {request.items.map((item) => item.name).join(", ")}
                   </Td>
                   <Td right>
-                    {offers.length} из {request.sentTo.length}
+                    {calc.answered} из {request.sentTo.length}
                   </Td>
                   <Td right className="whitespace-nowrap">
-                    {offers[0] ? fmtMoney(offers[0].total) : "—"}
+                    {calc.best ? fmtMoney(calc.best.total) : "—"}
                   </Td>
                   <Td>
-                    <StatusBadge tone={requestStatus[request.status].tone}>
-                      {requestStatus[request.status].label}
-                    </StatusBadge>
+                    <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
                   </Td>
                 </tr>
               );
@@ -545,8 +398,8 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
                       : `ожидается ${fmtDate(delivery.expectedAt)}`}
                   </p>
                 </div>
-                <StatusBadge tone={deliveryStatus[delivery.status].tone}>
-                  {deliveryStatus[delivery.status].label}
+                <StatusBadge tone={deliveryTone[delivery.status]}>
+                  {deliveryStatusLabel[delivery.status]}
                 </StatusBadge>
               </li>
             ))}
@@ -559,18 +412,20 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
 
 /* ---------- Ход работ ---------- */
 
-const milestoneStatus: Record<Milestone["status"], { label: string; tone: Tone }> = {
-  planned: { label: "По плану", tone: "neutral" },
-  at_risk: { label: "Под риском", tone: "warn" },
-  done: { label: "Выполнено", tone: "ok" },
-  overdue: { label: "Просрочено", tone: "danger" },
+const milestoneTone: Record<Milestone["status"], Tone> = {
+  planned: "neutral",
+  at_risk: "warn",
+  done: "ok",
+  overdue: "danger",
 };
 
 export function ProgressPreview({ projectId, scope, onSource }: Props) {
-  const zones = byProject.zones(projectId);
-  const milestones = [...byProject.milestones(projectId)].sort((a, b) =>
-    a.dueDate.localeCompare(b.dueDate),
-  );
+  const allZones = useSpecStore((st) => st.zones);
+  const allMilestones = useSpecStore((st) => st.milestones);
+  const zones = allZones.filter((zone) => zone.projectId === projectId);
+  const milestones = allMilestones
+    .filter((milestone) => milestone.projectId === projectId)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const planQty = zones.reduce((acc, zone) => acc + zone.planQty, 0);
   const factQty = zones.reduce((acc, zone) => acc + zone.factQty, 0);
 
@@ -621,8 +476,8 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <StatusBadge tone={milestoneStatus[milestone.status].tone}>
-                    {milestoneStatus[milestone.status].label}
+                  <StatusBadge tone={milestoneTone[milestone.status]}>
+                    {milestoneStatusLabel[milestone.status]}
                   </StatusBadge>
                   <SourceRef
                     sourceId={milestone.sourceId}
@@ -640,24 +495,46 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
 
 /* ---------- Решения ---------- */
 
-const decisionMeta: Record<
-  Approval["decision"],
-  { label: string; chip: string; icon: typeof Check }
-> = {
-  accepted: { label: "Подтверждено", chip: "bg-ok-bg text-ok", icon: Check },
-  corrected: { label: "Исправлено", chip: "bg-info-bg text-info", icon: PencilLine },
-  rejected: { label: "Отклонено", chip: "bg-danger-bg text-danger", icon: CircleSlash },
-};
+interface PendingItem {
+  id: string;
+  title: string;
+  details: string;
+  link: string;
+  kind: "request" | "replacement";
+}
 
-const severityMeta: Record<Risk["severity"], { label: string; tone: Tone }> = {
-  critical: { label: "Критично", tone: "danger" },
-  high: { label: "Высокий", tone: "warn" },
-  medium: { label: "Средний", tone: "neutral" },
-};
+/** «Ждут решения»: запросы, по которым ответили все, и предложенные замены материалов объекта */
+function pendingDecisions(state: SpecState, projectId: string): PendingItem[] {
+  const requests: PendingItem[] = state.requests
+    .filter((request) => request.projectId === projectId && rfqStatus(state, request) === "ready")
+    .map((request) => ({
+      id: request.id,
+      title: `Выбрать поставщика по запросу ${request.number}`,
+      details: `Ответили все ${request.sentTo.length}: ${request.items.map((item) => item.name).join(", ")}`,
+      link: `/projects/${projectId}/procurement/${request.id}`,
+      kind: "request",
+    }));
+  const families = new Set(
+    state.positions.filter((item) => item.projectId === projectId).map((item) => item.family),
+  );
+  const replacements: PendingItem[] = state.replacements
+    .filter((item) => item.status === "proposed" && families.has(item.family))
+    .map((item) => ({
+      id: item.id,
+      title: `Замена: ${item.name}`,
+      details: `${item.reason} · цена ${item.priceDeltaPct > 0 ? "+" : ""}${item.priceDeltaPct}%`,
+      link: `/projects/${projectId}/materials`,
+      kind: "replacement",
+    }));
+  return [...requests, ...replacements];
+}
 
 export function DecisionsPreview({ projectId, scope, onSource }: Props) {
-  const pending = byProject.risks(projectId);
-  const decisions = decisionsOf(projectId);
+  const state = useSpecStore((st) => st);
+  const pending = pendingDecisions(state, projectId);
+  const decisions = state.decisions
+    .filter((item) => item.projectId === projectId)
+    .sort((a, b) => b.approvedAt.localeCompare(a.approvedAt));
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -671,22 +548,17 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
           <BlockEmpty>Открытых вопросов нет</BlockEmpty>
         ) : (
           <ul className="divide-y divide-border">
-            {pending.map((risk) => (
-              <li key={risk.id} className="px-4 py-3">
+            {pending.slice(0, PREVIEW).map((item) => (
+              <li key={item.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-[13px] font-medium">{risk.title}</p>
-                  <StatusBadge tone={severityMeta[risk.severity].tone}>
-                    {severityMeta[risk.severity].label}
+                  <Link to={item.link} className="text-[13px] font-medium hover:text-accent">
+                    {item.title}
+                  </Link>
+                  <StatusBadge tone={item.kind === "request" ? "accent" : "info"}>
+                    {item.kind === "request" ? "Сравнение готово" : replacementStatusLabel.proposed}
                   </StatusBadge>
                 </div>
-                <p className="mt-1 text-caption text-text-secondary">
-                  <span className="text-text-muted">Предлагается:</span> {risk.action}
-                </p>
-                <p className="mt-1 flex items-center gap-1 text-caption text-text-muted">
-                  {employeeName(risk.ownerId)} · до {fmtDate(risk.dueDate)}
-                  {risk.impactValue ? ` · ${fmtMoney(risk.impactValue)}` : ""}
-                  <SourceRef sourceId={risk.sourceId} onOpen={() => onSource(risk.sourceId)} />
-                </p>
+                <p className="mt-1 line-clamp-2 text-caption text-text-secondary">{item.details}</p>
               </li>
             ))}
           </ul>
@@ -703,40 +575,26 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
           <BlockEmpty>Решений по объекту пока нет</BlockEmpty>
         ) : (
           <ul className="divide-y divide-border">
-            {decisions.slice(0, PREVIEW).map((decision) => {
-              const meta = decisionMeta[decision.decision];
-              return (
-                <li key={decision.id} className="flex gap-3 px-4 py-3">
-                  <span
-                    className={cn(
-                      "mt-0.5 grid size-6 shrink-0 place-items-center rounded-full",
-                      meta.chip,
-                    )}
-                  >
-                    <meta.icon className="size-3.5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px]">
-                      {decision.field}:{" "}
-                      {decision.previousValue ? (
-                        <span className="text-text-muted line-through">
-                          {decision.previousValue}
-                        </span>
-                      ) : null}
-                      {decision.previousValue ? " → " : ""}
-                      <span className="font-medium">{decision.newValue}</span>
-                    </p>
-                    {decision.comment && (
-                      <p className="mt-0.5 text-caption text-text-secondary">{decision.comment}</p>
-                    )}
-                    <p className="mt-0.5 text-caption text-text-muted">
-                      {meta.label} · {employeeName(decision.approvedBy)} ·{" "}
-                      {fmtDateTime(decision.approvedAt)}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
+            {decisions.slice(0, PREVIEW).map((decision) => (
+              <li key={decision.id} className="flex gap-3 px-4 py-3">
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-ok-bg text-ok">
+                  <Check className="size-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium">{decision.title}</p>
+                  <p className="mt-0.5 text-caption text-text-secondary">
+                    {decision.choice}. {decision.reason}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1 text-caption text-text-muted">
+                    {employeeName(decision.approvedBy)} · {fmtDateTime(decision.approvedAt)}
+                    <SourceRef
+                      sourceId={decision.basisSourceId}
+                      onOpen={() => onSource(decision.basisSourceId)}
+                    />
+                  </p>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </Block>
@@ -747,7 +605,8 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
 /* ---------- История ---------- */
 
 export function HistoryPreview({ projectId, scope, onSource }: Props) {
-  const log = historyOf(projectId);
+  const state = useSpecStore((st) => st);
+  const log = timelineOf(state, projectId);
 
   return (
     <Block
@@ -771,29 +630,30 @@ export function HistoryPreview({ projectId, scope, onSource }: Props) {
             </>
           }
         >
-          {log.slice(0, 10).map((entry) => {
-            const actor = employeeById(entry.actorId);
-            return (
-              <tr key={entry.id}>
-                <Td className="tnum whitespace-nowrap">{fmtDateTime(entry.at)}</Td>
-                <Td className="whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1.5">
-                    {entry.actorKind === "agent" ? (
-                      <Bot className="size-3.5 text-text-muted" />
-                    ) : (
-                      <UserRound className="size-3.5 text-text-muted" />
-                    )}
-                    {actor?.name ?? "Автоматическая обработка"}
-                  </span>
-                </Td>
-                <Td className="font-medium text-text-primary">{entry.action}</Td>
-                <Td className="tnum">{entry.details}</Td>
-                <Td>
-                  <SourceRef sourceId={entry.sourceId} onOpen={() => onSource(entry.sourceId)} />
-                </Td>
-              </tr>
-            );
-          })}
+          {log.slice(0, 10).map((entry) => (
+            <tr key={entry.id}>
+              <Td className="tnum whitespace-nowrap">{fmtDateTime(entry.at)}</Td>
+              <Td className="whitespace-nowrap">
+                <span className="inline-flex items-center gap-1.5">
+                  {entry.actorId ? (
+                    <UserRound className="size-3.5 text-text-muted" />
+                  ) : (
+                    <Bot className="size-3.5 text-text-muted" />
+                  )}
+                  {entry.actorId
+                    ? (employeeById(entry.actorId)?.name ?? "—")
+                    : "Автоматическая обработка"}
+                </span>
+              </Td>
+              <Td className="max-w-[320px] truncate font-medium text-text-primary">
+                {entry.title}
+              </Td>
+              <Td className="max-w-[240px] truncate">{entry.details ?? "—"}</Td>
+              <Td>
+                <SourceRef sourceId={entry.sourceId} onOpen={() => onSource(entry.sourceId)} />
+              </Td>
+            </tr>
+          ))}
         </PreviewTable>
       )}
     </Block>
@@ -803,8 +663,10 @@ export function HistoryPreview({ projectId, scope, onSource }: Props) {
 /* ---------- Команда ---------- */
 
 export function TeamPreview({ projectId }: Props) {
+  const employees = useSpecStore((st) => st.employees);
+  const allCrews = useSpecStore((st) => st.crews);
   const people = employees.filter((item) => item.projectIds.includes(projectId));
-  const crews = byProject.crews(projectId);
+  const crews = allCrews.filter((crew) => crew.projectId === projectId);
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfidenceLabel, confidenceLevel } from "@/components/common/ConfidenceIndicator";
-import type { Characteristic, ExtractedPosition } from "@/mock/repository";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { type Characteristic, type ExtractedPosition } from "@/contracts";
 
 export type RowAction =
   "confirm" | "edit" | "exclude" | "merge" | "split" | "header" | "restore" | "source";

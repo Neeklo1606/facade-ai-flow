@@ -27,18 +27,13 @@ import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  employeeById,
-  evidence,
-  extractions,
-  workZones,
-  type FieldReport,
-} from "@/mock/repository";
 import { sourceOf, specActions, useSpecStore } from "@/lib/spec-store";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDayTitle, fmtNum, fmtTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { type FieldReport } from "@/contracts";
+import { employeeById } from "@/lib/directory";
 
 type StatusFilter = FieldReport["status"] | "all";
 
@@ -97,7 +92,8 @@ function FieldReportsPage({ project }: ProjectPageProps): React.JSX.Element {
     .filter((r) => (search.status ? r.status === search.status : true))
     .filter((r) => (search.zone ? r.zoneId === search.zone : true));
   const toReview = reports.filter((r) => r.status === "review");
-  const zones = workZones.filter((z) => z.projectId === project.id);
+  const allZones = useSpecStore((s) => s.zones);
+  const zones = allZones.filter((z) => z.projectId === project.id);
 
   const days = useMemo(() => {
     const map = new Map<string, FieldReport[]>();
@@ -262,13 +258,14 @@ function ReportCard({
   partial: boolean;
 }) {
   const author = employeeById(report.authorId);
-  const zone = workZones.find((z) => z.id === report.zoneId);
-  const items = evidence.filter((e) => report.evidenceIds.includes(e.id));
+  const state = useSpecStore((s) => s);
+  const zone = state.zones.find((z) => z.id === report.zoneId);
+  const items = state.evidence.filter((e) => report.evidenceIds.includes(e.id));
   const photos = partial
     ? items.filter((e) => e.kind === "photo").slice(0, 1)
     : items.filter((e) => e.kind === "photo");
   const audio = items.find((e) => e.kind === "audio");
-  const fields = extractions.filter((x) => x.sourceId === report.sourceId);
+  const fields = state.extractions.filter((x) => x.sourceId === report.sourceId);
   const kind = kindMeta[report.kind];
   const [editing, setEditing] = useState(false);
   const [qty, setQty] = useState(String(report.acceptedQty ?? report.declaredQty ?? ""));

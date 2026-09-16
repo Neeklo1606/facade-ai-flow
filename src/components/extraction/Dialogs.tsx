@@ -11,8 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { ExtractedPosition } from "@/mock/repository";
 import { fmtNum } from "@/lib/format";
+import { type ExtractedPosition } from "@/contracts";
 
 export function SplitDialog({
   item,

@@ -261,6 +261,7 @@ function markdown() {
     "- Изменяемые таблицы имеют `created_at`, `updated_at`, `created_by`. Журналы (`position_changes`, `project_decisions`, `project_events`, `sources`, `extractions`) только пополняются.",
     "- Сводка объекта (`project_overview`) — представление, а не таблица; формулы в глоссарии, §3.",
     "- Индексы подобраны под списки и фильтры экранов; колонка «Для чего» называет экран.",
+    "- Фикстуры проверяются по этому описанию: `bun run check:fixtures` (схемы, ключи, уникальности, представления); на PostgreSQL — `psql -f docs/db/schema.sql` и `bun run db:fixtures-sql | psql`.",
     "",
     `Таблиц: ${tables.length}, перечислений: ${enums.length}.`,
     "",

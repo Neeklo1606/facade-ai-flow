@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-import type { Project } from "@/mock/repository";
+import { type Project } from "@/contracts";
 
 /** Шапка вложенного экрана объекта: возврат в карточку, название раздела и действия. */
 export function SubpageHeader({

@@ -1,50 +1,41 @@
 import { useSyncExternalStore } from "react";
 import {
-  counterpartyById,
-  counterpartyName,
-  emailTemplates,
-  extractedPositions,
-  fieldReports,
-  offerLines,
-  offerTerms,
-  positionChanges,
-  projectDecisions,
-  projectDocuments,
-  projectOverviews,
-  projects,
-  rfqMeta,
-  simulatedPositions,
-  sources,
-  supplierOffers,
-  supplierProfiles,
-  supplyRequests,
-  timelineSeed,
+  isActivePosition,
+  isReadyForRequest,
+  isVerifiedPosition,
+  type Contract,
+  type Counterparty,
   type ExtractedPosition,
   type FieldReport,
-  type OfferLine,
-  type OfferTerms,
   type PositionChange,
   type Project,
   type ProjectDecision,
   type ProjectDocument,
-  type ProjectOverview,
-  type RfqMeta,
-  type Source,
-  type SupplierOffer,
-  type SupplierProfile,
+  type ProjectEvent,
+  type RequestLine,
   type SupplyRequest,
-  type TimelineEvent,
-} from "@/mock/repository";
+} from "@/contracts";
+import {
+  buildSnapshot,
+  sheetsOf,
+  simulatedPositions,
+  type FixtureSnapshot,
+} from "@/adapters/fixtures";
+import { projectOverview, revisionStats } from "@/domain/overview";
+import { decisionFor } from "@/domain/procurement";
+import { decisionLink, timelineOf as buildTimeline } from "@/domain/timeline";
 import { simulateReply } from "@/lib/demo-simulator";
 import { MOCK_NOW } from "@/lib/format";
 import { toast } from "@/lib/toast";
 
 /**
- * Клиентское состояние цепочки «документ → позиции → закупка».
- * Стартует с моков репозитория; экраны читают только отсюда, чтобы решение
- * на экране извлечения сразу было видно в материалах, карточке и реестре.
- * Потом этот слой заменяется запросами к API без изменения экранов.
+ * Клиентское состояние демо до перехода на запросы к серверу (ADR-002, фаза 2).
+ * Стартует со снимка адаптера фикстур: представления из src/contracts, собранные из таблиц.
+ * Экраны читают только отсюда, поэтому решение на экране проверки сразу видно в материалах,
+ * карточке и реестре. Действия ведут себя как мутации портов: меняют строки и пишут журнал.
  */
+
+export { isActivePosition as isActive, isVerifiedPosition as isVerified, isReadyForRequest };
 
 export interface UploadProgress {
   /** Индекс пройденной стадии обработки, 0…4 */
@@ -60,55 +51,20 @@ export interface PendingReply {
   dueAt: number;
 }
 
-export interface SpecState {
+export interface SpecState extends FixtureSnapshot {
   version: number;
-  projects: Project[];
-  overviews: ProjectOverview[];
-  documents: ProjectDocument[];
-  positions: ExtractedPosition[];
-  changes: PositionChange[];
   uploads: Record<string, UploadProgress>;
-  requests: SupplyRequest[];
-  /** Документы, чьи проверенные позиции переданы в закупку, и когда */
-  sentDocuments: Record<string, string>;
-  rfq: RfqMeta[];
-  offers: SupplierOffer[];
-  offerLines: OfferLine[];
-  offerTerms: OfferTerms[];
-  sources: Source[];
   pendingReplies: PendingReply[];
-  decisions: ProjectDecision[];
-  reports: FieldReport[];
-  profiles: SupplierProfile[];
 }
 
 const ACTOR = "e-sokolov";
 const STORAGE_KEY = "neeklo-fieldops-demo";
 const CLOCK_KEY = "neeklo-fieldops-demo-clock";
 /** Меняется при несовместимом изменении формы состояния: старое сохранение тогда игнорируется. */
-const STATE_VERSION = 2;
+const STATE_VERSION = 3;
 
 function createSeed(): SpecState {
-  return {
-    version: STATE_VERSION,
-    projects,
-    overviews: projectOverviews,
-    documents: projectDocuments,
-    positions: extractedPositions,
-    changes: positionChanges,
-    uploads: {},
-    requests: supplyRequests,
-    sentDocuments: {},
-    rfq: rfqMeta,
-    offers: supplierOffers,
-    offerLines,
-    offerTerms,
-    sources,
-    pendingReplies: [],
-    decisions: projectDecisions,
-    reports: fieldReports,
-    profiles: supplierProfiles,
-  };
+  return { version: STATE_VERSION, ...buildSnapshot(), uploads: {}, pendingReplies: [] };
 }
 
 /** Состояние, с которым рендерится сервер: гидратация идёт от него, а не от сохранения во вкладке. */
@@ -141,7 +97,7 @@ function subscribe(listener: () => void) {
 const getSnapshot = () => state;
 const getServerSnapshot = () => seedState;
 
-/** Текущее состояние вне React — для действий и проверок. */
+/** Текущее состояние вне React — для действий, справочников и проверок. */
 export const getSpecState = getSnapshot;
 
 export function useSpecStore<T>(selector: (s: SpecState) => T): T {
@@ -156,6 +112,47 @@ export function useIsClient() {
     () => true,
     () => false,
   );
+}
+
+/* ---------- Часы демо ---------- */
+
+/**
+ * Часы демо: идут от «сегодня» фикстур (MOCK_NOW) с момента первого действия в сессии.
+ * Иначе новые записи получали бы реальную дату и спорили со сроками и историей в фикстурах.
+ */
+let clockStartedAt: number | null = null;
+
+function demoTime() {
+  if (clockStartedAt === null) {
+    clockStartedAt = Date.now();
+    try {
+      sessionStorage.setItem(CLOCK_KEY, String(clockStartedAt));
+    } catch {
+      // без хранилища часы начнутся заново после перезагрузки
+    }
+  }
+  return new Date(new Date(MOCK_NOW).getTime() + (Date.now() - clockStartedAt));
+}
+
+function localIso(d: Date) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 19);
+}
+
+/** Локальное время демо без часового пояса — в том же формате, что даты в фикстурах. */
+function now() {
+  return localIso(demoTime());
+}
+
+/** Текущее время демо без запуска часов: до первого действия — MOCK_NOW. Для расчётов на экране. */
+export function demoNow() {
+  if (clockStartedAt === null) return MOCK_NOW;
+  return localIso(new Date(new Date(MOCK_NOW).getTime() + (Date.now() - clockStartedAt)));
+}
+
+let seq = 0;
+function liveId(prefix: string) {
+  seq += 1;
+  return `${prefix}-live-${Date.now()}-${seq}`;
 }
 
 /* ---------- Отложенные процессы: стадии загрузки и ответы поставщиков ---------- */
@@ -207,6 +204,42 @@ function scheduleUpload(id: string) {
   });
 }
 
+function event(
+  input: Omit<
+    ProjectEvent,
+    | "id"
+    | "occurredAt"
+    | "actorKind"
+    | "actorId"
+    | "sourceId"
+    | "requestId"
+    | "revisionId"
+    | "positionId"
+    | "reportId"
+  > &
+    Partial<ProjectEvent>,
+): ProjectEvent {
+  return {
+    id: liveId("ev"),
+    occurredAt: now(),
+    actorKind: "user",
+    actorId: ACTOR,
+    sourceId: null,
+    requestId: null,
+    revisionId: null,
+    positionId: null,
+    reportId: null,
+    ...input,
+  };
+}
+
+function familyOfLine(line: RequestLine) {
+  const material = line.materialId
+    ? state.materials.find((item) => item.id === line.materialId)
+    : null;
+  return material?.family ?? "other";
+}
+
 function deliverReply(requestId: string, supplierId: string) {
   const request = state.requests.find((item) => item.id === requestId);
   const profile = state.profiles.find((item) => item.supplierId === supplierId);
@@ -219,33 +252,35 @@ function deliverReply(requestId: string, supplierId: string) {
     set((prev) => ({ ...prev, pendingReplies: dropPending(prev.pendingReplies) }));
     return;
   }
-  const supplierName = counterpartyById(supplierId)?.name ?? profile.contactName;
-  const reply = simulateReply(request, profile, supplierName, now());
-  set((prev) => {
-    const answered = new Set(
-      [...prev.offers, reply.offer]
-        .filter((o) => o.requestId === requestId)
-        .map((o) => o.supplierId),
-    );
-    return {
-      ...prev,
-      offers: [...prev.offers, reply.offer],
-      offerLines: [...prev.offerLines, ...reply.lines],
-      offerTerms: [...prev.offerTerms, reply.terms],
-      sources: [...prev.sources, reply.source],
-      pendingReplies: dropPending(prev.pendingReplies),
-      requests: prev.requests.map((item) =>
-        item.id === requestId && item.status !== "ordered"
-          ? { ...item, status: answered.size >= item.sentTo.length ? "compared" : "collecting" }
-          : item,
-      ),
-      positions: prev.positions.map((item) =>
-        item.requestIds.includes(requestId) && item.purchase === "requested"
-          ? { ...item, purchase: "offers" }
-          : item,
-      ),
-    };
-  });
+  const supplierName =
+    state.counterparties.find((item) => item.id === supplierId)?.name ?? profile.contactName;
+  const reply = simulateReply(request, profile, supplierName, now(), familyOfLine);
+  const maxLead = Math.max(...reply.lines.map((line) => line.leadTimeDays));
+  set((prev) => ({
+    ...prev,
+    offers: [...prev.offers, reply.offer],
+    offerLines: [...prev.offerLines, ...reply.lines],
+    sources: [...prev.sources, reply.source],
+    pendingReplies: dropPending(prev.pendingReplies),
+    positions: prev.positions.map((item) =>
+      item.requestIds.includes(requestId) && item.purchase === "requested"
+        ? { ...item, purchase: "offers" }
+        : item,
+    ),
+    events: [
+      ...prev.events,
+      event({
+        projectId: request.projectId,
+        type: "offer_received",
+        title: `Получено предложение «${supplierName}» по запросу ${request.number}`,
+        details: `${reply.lines.length} поз., срок до ${maxLead} дн.`,
+        actorKind: "system",
+        actorId: null,
+        sourceId: reply.source.id,
+        requestId,
+      }),
+    ],
+  }));
   toast.success(`Пришло предложение «${supplierName}»`, {
     description: `Запрос ${request.number}: цены и сроки добавлены в сравнение.`,
   });
@@ -298,45 +333,17 @@ function restore() {
   });
 }
 
-/**
- * Часы демо: идут от «сегодня» моков (MOCK_NOW) с момента первого действия в сессии.
- * Иначе новые записи получали бы реальную дату и спорили со сроками и историей в моках.
- */
-let clockStartedAt: number | null = null;
-
-function demoTime() {
-  if (clockStartedAt === null) {
-    clockStartedAt = Date.now();
-    try {
-      sessionStorage.setItem(CLOCK_KEY, String(clockStartedAt));
-    } catch {
-      // без хранилища часы начнутся заново после перезагрузки
-    }
-  }
-  return new Date(new Date(MOCK_NOW).getTime() + (Date.now() - clockStartedAt));
-}
-
-function localIso(d: Date) {
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 19);
-}
-
-/** Локальное время демо без часового пояса — в том же формате, что даты в моках. */
-function now() {
-  return localIso(demoTime());
-}
-
-let changeSeq = 0;
 function change(
   positionId: string,
   action: string,
   before: string | null = null,
   after: string | null = null,
 ): PositionChange {
-  changeSeq += 1;
   return {
-    id: `pc-live-${changeSeq}`,
+    id: liveId("pc"),
     positionId,
     at: now(),
+    actorKind: "user",
     actorId: ACTOR,
     action,
     before,
@@ -348,28 +355,17 @@ function patchPositions(
   ids: Set<string>,
   patch: (item: ExtractedPosition) => ExtractedPosition,
   changes: PositionChange[],
+  events: ProjectEvent[] = [],
 ) {
   set((prev) => ({
     ...prev,
     positions: prev.positions.map((item) => (ids.has(item.id) ? patch(item) : item)),
     changes: [...prev.changes, ...changes],
+    events: [...prev.events, ...events],
   }));
 }
 
-/* ---------- Решения по позициям ---------- */
-
-export function isActive(item: ExtractedPosition) {
-  return item.review !== "excluded" && item.review !== "merged" && item.review !== "header";
-}
-
-export function isVerified(item: ExtractedPosition) {
-  return item.review === "confirmed" || item.review === "corrected";
-}
-
-/** По позиции можно запросить цены: проверена, передана в закупку и ещё не в работе. */
-export function isReadyForRequest(item: ExtractedPosition) {
-  return isVerified(item) && item.handedOver && item.purchase === "none";
-}
+/* ---------- Действия ---------- */
 
 export const specActions = {
   confirm(ids: string[]) {
@@ -393,14 +389,20 @@ export const specActions = {
     const item = state.positions.find((p) => p.id === id);
     if (!item) return;
     const changes: PositionChange[] = [];
+    const events: ProjectEvent[] = [];
     if (item.qty !== patch.qty || item.unit !== patch.unit) {
-      changes.push(
-        change(
-          id,
-          "Исправлено количество",
-          `${item.qty} ${item.unit}`,
-          `${patch.qty} ${patch.unit}`,
-        ),
+      const before = `${item.qty} ${item.unit}`;
+      const after = `${patch.qty} ${patch.unit}`;
+      changes.push(change(id, "Исправлено количество", before, after));
+      events.push(
+        event({
+          projectId: item.projectId,
+          type: "qty_corrected",
+          title: `Исправлено количество, поз. ${item.position}: ${before} → ${after}`,
+          details: item.projectName,
+          revisionId: item.documentId,
+          positionId: item.id,
+        }),
       );
     }
     if (item.projectName !== patch.projectName) {
@@ -429,6 +431,7 @@ export const specActions = {
         confidence: Math.max(p.confidence, 0.85),
       }),
       changes.length ? changes : [change(id, "Подтверждено с правкой")],
+      events,
     );
   },
 
@@ -513,6 +516,7 @@ export const specActions = {
       review: "pending",
       reviewedBy: null,
       reviewedAt: null,
+      handedOverAt: null,
       purchase: "none",
       requestIds: [],
     };
@@ -537,17 +541,18 @@ export const specActions = {
     });
   },
 
-  /** Передать проверенные позиции документа в закупку: после этого по ним можно запрашивать цены. */
+  /** Передать проверенные позиции ревизии в закупку: после этого по ним можно запрашивать цены. */
   sendToProcurement(documentId: string) {
     const targets = state.positions.filter(
-      (item) => item.documentId === documentId && isVerified(item) && !item.handedOver,
+      (item) =>
+        item.documentId === documentId && isVerifiedPosition(item) && item.handedOverAt === null,
     );
     const ids = new Set(targets.map((item) => item.id));
+    const at = now();
     set((prev) => ({
       ...prev,
-      sentDocuments: { ...prev.sentDocuments, [documentId]: now() },
       positions: prev.positions.map((item) =>
-        ids.has(item.id) ? { ...item, handedOver: true } : item,
+        ids.has(item.id) ? { ...item, handedOverAt: at } : item,
       ),
       changes: [...prev.changes, ...targets.map((item) => change(item.id, "Передано в закупку"))],
     }));
@@ -566,50 +571,58 @@ export const specActions = {
     endDate: string;
     manager: string;
   }) {
-    const id = `p-live-${Date.now()}`;
+    const id = liveId("p");
+    const known = state.counterparties.find(
+      (item) => item.role === "customer" && item.name === input.customer,
+    );
+    const customer: Counterparty = known ?? {
+      id: liveId("c"),
+      name: input.customer,
+      role: "customer",
+      inn: null,
+      contactName: "",
+      email: "",
+      phone: "",
+      avgReplyHours: 0,
+      rating: 0,
+    };
+    const contract: Contract | null = input.contract
+      ? {
+          id: liveId("ct"),
+          projectId: id,
+          customerId: customer.id,
+          number: input.contract,
+          signedAt: input.startDate,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          amount: 0,
+          advance: 0,
+          retentionPct: 0,
+          paymentTermDays: 0,
+          status: "draft",
+          sourceId: null,
+        }
+      : null;
     const project: Project = {
       id,
       name: input.name,
       code: input.code,
-      customer: input.customer,
-      contract: input.contract || "—",
-      startDate: input.startDate,
-      endDate: input.endDate,
-      plannedProgress: 0,
-      actualProgress: 0,
-      contractAmount: 0,
-      performedAmount: 0,
-      approvedAmount: 0,
-      closedAmount: 0,
-      paidAmount: 0,
-      unclosedAmount: 0,
-      unclosedValue: 0,
-      status: "active",
-      manager: input.manager,
-      teams: [],
-      workZones: [],
-    };
-    const overview: ProjectOverview = {
-      projectId: id,
+      customerId: customer.id,
+      customer: customer.name,
+      contractId: contract?.id ?? null,
+      contract: contract?.number ?? "—",
       region: input.region,
       stage: "Подготовка: нет документации",
-      docVersion: "—",
-      specTotal: 0,
-      specUnverified: 0,
-      inRequests: 0,
-      offersReceived: 0,
-      ordered: 0,
-      inTransit: 0,
-      delivered: 0,
-      activeRequests: 0,
-      overdueRequests: 0,
-      openChanges: 0,
-      missingReports: 0,
+      status: "active",
+      manager: input.manager,
+      startDate: input.startDate,
+      endDate: input.endDate,
     };
     set((prev) => ({
       ...prev,
       projects: [project, ...prev.projects],
-      overviews: [overview, ...prev.overviews],
+      counterparties: known ? prev.counterparties : [...prev.counterparties, customer],
+      contracts: contract ? [...prev.contracts, contract] : prev.contracts,
     }));
     return id;
   },
@@ -627,57 +640,65 @@ export const specActions = {
       (item) => wanted.has(item.id) && isReadyForRequest(item),
     );
     if (!targets.length) return null;
-    const number = `З-2026/${326 + state.requests.filter((r) => r.id.startsWith("sr-live")).length}`;
+    const requestId = liveId("sr");
+    const number = `З-2026/${326 + state.requests.filter((r) => r.id.includes("-live-")).length}`;
     const createdAt = now();
 
-    // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой
-    // Строка без нормализации берёт справочное наименование у позиции с тем же проектным названием,
+    // Строка без нормализации берёт материал у позиции с тем же проектным названием,
     // иначе один материал ушёл бы поставщику двумя строками под разными именами
     const baseName = (item: ExtractedPosition) => item.projectName.split(",")[0]!.trim();
     const dictionary = new Map<string, string>();
     for (const item of state.positions) {
-      if (item.projectId === projectId && item.normalizedName) {
-        dictionary.set(`${item.family}:${baseName(item)}`, item.normalizedName);
+      if (item.projectId === projectId && item.materialId) {
+        dictionary.set(`${item.family}:${baseName(item)}`, item.materialId);
       }
     }
-    const items = new Map<string, SupplyRequest["items"][number]>();
+    // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой
+    const lines = new Map<string, RequestLine>();
     for (const item of targets) {
-      const name =
-        item.normalizedName ?? dictionary.get(`${item.family}:${baseName(item)}`) ?? baseName(item);
-      const key = `${item.family}:${name}:${item.unit}`;
-      const existing = items.get(key);
+      const materialId =
+        item.materialId ?? dictionary.get(`${item.family}:${baseName(item)}`) ?? null;
+      const material = materialId ? state.materials.find((m) => m.id === materialId) : null;
+      const name = material?.name ?? baseName(item);
+      const key = materialId ?? `${name}:${item.unit}`;
+      const existing = lines.get(key);
       if (existing) existing.qty += item.qty;
-      else items.set(key, { materialId: key, name, qty: item.qty, unit: item.unit });
+      else {
+        lines.set(key, {
+          id: `${requestId}-l${lines.size + 1}`,
+          materialId,
+          name,
+          qty: item.qty,
+          unit: item.unit,
+        });
+      }
     }
 
-    const request: SupplyRequest = {
-      id: `sr-live-${Date.now()}`,
-      number,
-      projectId,
-      zoneId: null,
-      createdAt,
-      authorId: ACTOR,
-      items: [...items.values()],
-      sentTo: supplierIds,
-      status: "sent",
-      sourceId: null,
-    };
     const due =
       options.replyDueAt ??
       localIso(new Date(demoTime().getTime() + 3 * 86_400_000)).slice(0, 10) + "T18:00:00";
+    const request: SupplyRequest = {
+      id: requestId,
+      number,
+      projectId,
+      zoneId: null,
+      authorId: ACTOR,
+      createdAt,
+      sentAt: createdAt,
+      replyDueAt: due,
+      templateId: options.templateId ?? state.templates[0]?.id ?? null,
+      status: "sent",
+      sourceId: null,
+      items: [...lines.values()],
+      sentTo: supplierIds,
+    };
+    const supplierNames = supplierIds
+      .map((id) => state.counterparties.find((item) => item.id === id)?.name ?? "—")
+      .join(", ");
     const targetIds = new Set(targets.map((item) => item.id));
     set((prev) => ({
       ...prev,
       requests: [request, ...prev.requests],
-      rfq: [
-        ...prev.rfq,
-        {
-          requestId: request.id,
-          sentAt: createdAt,
-          replyDueAt: due,
-          templateId: options.templateId ?? emailTemplates[0].id,
-        },
-      ],
       positions: prev.positions.map((item) =>
         targetIds.has(item.id)
           ? { ...item, purchase: "requested", requestIds: [...item.requestIds, request.id] }
@@ -686,6 +707,16 @@ export const specActions = {
       changes: [
         ...prev.changes,
         ...targets.map((item) => change(item.id, `Добавлено в запрос ${number}`)),
+      ],
+      events: [
+        ...prev.events,
+        event({
+          projectId,
+          type: "request_created",
+          title: `Создан запрос ${number}`,
+          details: `${request.items.length} поз. · ${supplierNames}`,
+          requestId,
+        }),
       ],
     }));
 
@@ -724,17 +755,18 @@ export const specActions = {
   },
 
   /** Зафиксировать выбор поставщика: решение уходит в историю объекта, позиции — в «Выбран поставщик». */
-  recordDecision(decision: Omit<ProjectDecision, "id" | "approvedAt">) {
+  recordDecision(decision: Omit<ProjectDecision, "id" | "approvedAt" | "link">) {
     const record: ProjectDecision = {
       ...decision,
-      id: `dec-live-${Date.now()}`,
+      id: liveId("dec"),
       approvedAt: now(),
+      link: decisionLink(decision, state.requests),
     };
     set((prev) => ({
       ...prev,
       decisions: [record, ...prev.decisions],
       requests: prev.requests.map((r) =>
-        r.id === decision.requestId ? { ...r, status: "compared" } : r,
+        r.id === decision.requestId && r.status === "sent" ? { ...r, status: "decided" } : r,
       ),
       positions: prev.positions.map((item) =>
         decision.requestId &&
@@ -768,15 +800,19 @@ export const specActions = {
   /* ---------- Загрузка ---------- */
 
   upload(projectId: string, file: { name: string; size: number }) {
-    const id = `pd-live-${Date.now()}-${Math.round(Math.random() * 1000)}`;
+    const id = liveId("pd");
+    const documentId = liveId("doc");
     const ext = file.name.split(".").pop()?.toLowerCase();
     const fileType: ProjectDocument["fileType"] =
       ext === "docx" ? "docx" : ext === "xlsx" ? "xlsx" : "pdf";
+    const section = /ар/i.test(file.name) ? "АР" : /км/i.test(file.name) ? "КМ" : "НВФ";
     const doc: ProjectDocument = {
       id,
+      documentId,
+      revision: 1,
       projectId,
       title: file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
-      section: /ар/i.test(file.name) ? "АР" : /км/i.test(file.name) ? "КМ" : "НВФ",
+      section,
       version: "Рев. 1",
       fileName: file.name,
       fileType,
@@ -786,11 +822,31 @@ export const specActions = {
       sheetCount: fileType === "xlsx" ? 1 : 1 + Math.round(file.size / 180_000) || 1,
       status: "uploaded",
       sourceId: null,
+      positionsTotal: null,
+      positionsVerified: null,
     };
+    const sheets = sheetsOf(doc, section).map((row) => ({
+      id: row.id,
+      documentId: row.revisionId,
+      number: row.number,
+      title: row.title,
+      group: row.groupName,
+    }));
     set((prev) => ({
       ...prev,
       documents: [doc, ...prev.documents],
+      sheets: [...prev.sheets, ...sheets],
       uploads: { ...prev.uploads, [id]: { stage: 0, startedAt: Date.now() } },
+      events: [
+        ...prev.events,
+        event({
+          projectId,
+          type: "version_uploaded",
+          title: `Загружен документ «${doc.title}»`,
+          details: `${doc.fileName}, ${doc.version}`,
+          revisionId: id,
+        }),
+      ],
     }));
     scheduleUpload(id);
     return id;
@@ -799,30 +855,16 @@ export const specActions = {
 
 /* ---------- Селекторы ---------- */
 
+/** Извлечено и проверено у ревизии: по позициям или по счётчику ревизии */
 export function documentStats(s: SpecState, documentId: string) {
-  const items = s.positions.filter((item) => item.documentId === documentId && isActive(item));
-  return {
-    extracted: items.length,
-    verified: items.filter(isVerified).length,
-  };
+  const revision = s.documents.find((item) => item.id === documentId);
+  if (!revision) return { extracted: 0, verified: 0, loaded: true };
+  const stats = revisionStats(s.positions, revision);
+  return { extracted: stats.total, verified: stats.verified, loaded: stats.loaded };
 }
 
-/** Сводные цифры спецификации объекта; null — если позиций в системе нет. */
-export function projectSpecStats(s: SpecState, projectId: string) {
-  const items = s.positions.filter((item) => item.projectId === projectId && isActive(item));
-  if (!items.length) return null;
-  const verified = items.filter(isVerified);
-  const count = (statuses: ExtractedPosition["purchase"][]) =>
-    verified.filter((item) => statuses.includes(item.purchase)).length;
-  return {
-    specTotal: items.length,
-    specUnverified: items.length - verified.length,
-    inRequests: count(["requested", "offers", "supplier_selected", "ordered", "delivered"]),
-    offersReceived: count(["offers", "supplier_selected", "ordered", "delivered"]),
-    ordered: count(["ordered", "delivered"]),
-    inTransit: count(["ordered"]),
-    delivered: count(["delivered"]),
-  };
+export function overviewOf(s: SpecState, projectId: string) {
+  return projectOverview(s, projectId, demoNow());
 }
 
 export function projectOf(s: SpecState, projectId: string) {
@@ -833,102 +875,31 @@ export function sourceOf(s: SpecState, sourceId: string | null) {
   return sourceId ? (s.sources.find((item) => item.id === sourceId) ?? null) : null;
 }
 
+/** Предложения по запросу в порядке получения */
 export function offersOf(s: SpecState, requestId: string) {
-  return s.offers.filter((item) => item.requestId === requestId).sort((a, b) => a.total - b.total);
+  return s.offers
+    .filter((item) => item.requestId === requestId)
+    .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
 }
 
 /** Решение по запросу, если оно уже зафиксировано. */
 export function decisionForRequest(s: SpecState, requestId: string) {
-  return s.decisions.find((item) => item.requestId === requestId) ?? null;
+  return decisionFor(s.decisions, requestId);
 }
 
-/** История объекта: исходные события плюс то, что произошло в этой сессии. */
-export function timelineOf(s: SpecState, projectId: string): TimelineEvent[] {
-  const base = timelineSeed.filter((item) => item.projectId === projectId);
-  const live: TimelineEvent[] = [];
-  const positionsById = new Map(s.positions.map((item) => [item.id, item]));
+/** Когда проверенные позиции ревизии переданы в закупку: время последней передачи */
+export function handedOverAt(s: SpecState, documentId: string) {
+  return s.positions
+    .filter((item) => item.documentId === documentId && item.handedOverAt)
+    .reduce<string | null>(
+      (acc, item) => (!acc || item.handedOverAt! > acc ? item.handedOverAt : acc),
+      null,
+    );
+}
 
-  for (const c of s.changes) {
-    if (!c.id.startsWith("pc-live") || !c.action.startsWith("Исправлено количество")) continue;
-    const item = positionsById.get(c.positionId);
-    if (!item || item.projectId !== projectId) continue;
-    live.push({
-      id: `tl-${c.id}`,
-      projectId,
-      at: c.at,
-      type: "qty_corrected",
-      title: `Исправлено количество, поз. ${item.position}: ${c.before} → ${c.after}`,
-      details: item.projectName,
-      actorId: c.actorId,
-      sourceId: null,
-      link: {
-        to: `/projects/${projectId}/documents/${item.documentId}?position=${item.id}`,
-        label: `Лист ${item.sheetNumber}`,
-      },
-    });
-  }
-  for (const r of s.requests) {
-    if (!r.id.startsWith("sr-live") || r.projectId !== projectId) continue;
-    live.push({
-      id: `tl-${r.id}`,
-      projectId,
-      at: r.createdAt,
-      type: "request_created",
-      title: `Создан запрос ${r.number}`,
-      details: `${r.items.length} поз. · ${r.sentTo.map(counterpartyName).join(", ")}`,
-      actorId: r.authorId,
-      sourceId: null,
-      link: { to: `/projects/${projectId}/procurement/${r.id}`, label: `Запрос ${r.number}` },
-    });
-  }
-  for (const o of s.offers) {
-    if (!o.id.startsWith("so-live")) continue;
-    const request = s.requests.find((r) => r.id === o.requestId);
-    if (!request || request.projectId !== projectId) continue;
-    live.push({
-      id: `tl-${o.id}`,
-      projectId,
-      at: o.receivedAt,
-      type: "offer_received",
-      title: `Получено предложение «${counterpartyName(o.supplierId)}» по запросу ${request.number}`,
-      details: `${o.prices.length} поз., срок до ${o.leadTimeDays} дн.`,
-      actorId: "agent-extract",
-      sourceId: o.sourceId,
-      link: {
-        to: `/projects/${projectId}/procurement/${request.id}`,
-        label: "Сравнение предложений",
-      },
-    });
-  }
-  for (const d of s.decisions) {
-    if (!d.id.startsWith("dec-live") || d.projectId !== projectId) continue;
-    live.push({
-      id: `tl-${d.id}`,
-      projectId,
-      at: d.approvedAt,
-      type: "decision",
-      title: d.title,
-      details: d.reason,
-      actorId: d.approvedBy,
-      sourceId: d.basis.sourceId,
-      link: d.link,
-    });
-  }
-  for (const doc of s.documents) {
-    if (!doc.id.startsWith("pd-live") || doc.projectId !== projectId) continue;
-    live.push({
-      id: `tl-${doc.id}`,
-      projectId,
-      at: doc.uploadedAt,
-      type: "version_uploaded",
-      title: `Загружен документ «${doc.title}»`,
-      details: `${doc.fileName}, ${doc.version}`,
-      actorId: doc.uploadedBy,
-      sourceId: null,
-      link: { to: `/projects/${projectId}/documents/${doc.id}`, label: "Документ" },
-    });
-  }
-  return [...base, ...live].sort((a, b) => b.at.localeCompare(a.at));
+/** История объекта: события журнала и решения. */
+export function timelineOf(s: SpecState, projectId: string) {
+  return buildTimeline(s, projectId);
 }
 
 // В конце модуля: восстановлению нужны все объявления выше (часы демо, таймеры, действия)

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import type { Evidence, Extraction } from "@/mock/repository";
 import { cn } from "@/lib/utils";
+import { type Evidence, type Extraction } from "@/contracts";
 
 function hash(text: string) {
   let h = 0;

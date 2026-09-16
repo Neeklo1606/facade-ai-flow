@@ -14,6 +14,7 @@
 - Изменяемые таблицы имеют `created_at`, `updated_at`, `created_by`. Журналы (`position_changes`, `project_decisions`, `project_events`, `sources`, `extractions`) только пополняются.
 - Сводка объекта (`project_overview`) — представление, а не таблица; формулы в глоссарии, §3.
 - Индексы подобраны под списки и фильтры экранов; колонка «Для чего» называет экран.
+- Фикстуры проверяются по этому описанию: `bun run check:fixtures` (схемы, ключи, уникальности, представления); на PostgreSQL — `psql -f docs/db/schema.sql` и `bun run db:fixtures-sql | psql`.
 
 Таблиц: 34, перечислений: 24.
 
@@ -146,23 +147,23 @@ erDiagram
 
 Заказчики, поставщики и субподрядчики.
 
-| Колонка                                  | Тип                 | Пусто | Ссылка        | Комментарий                      |
-| ---------------------------------------- | ------------------- | ----- | ------------- | -------------------------------- |
-| `id` **PK**                              | `uuid`              |       |               |                                  |
-| `name`                                   | `text`              |       |               |                                  |
-| `role`                                   | `counterparty_role` |       |               |                                  |
-| `inn`                                    | `text`              |       |               | 10 или 12 цифр                   |
-| `contact_name`                           | `text`              |       |               |                                  |
-| `email`                                  | `text`              |       |               |                                  |
-| `phone`                                  | `text`              |       |               |                                  |
-| `avg_reply_hours`                        | `smallint`          |       |               | средний срок ответа на запрос, ч |
-| `rating`                                 | `numeric(2,1)`      |       |               | оценка 0…5                       |
-| `created_at`, `updated_at`, `created_by` | служебные           |       | → `employees` | не отдаются в API                |
+| Колонка                                  | Тип                 | Пусто | Ссылка        | Комментарий                                       |
+| ---------------------------------------- | ------------------- | ----- | ------------- | ------------------------------------------------- |
+| `id` **PK**                              | `uuid`              |       |               |                                                   |
+| `name`                                   | `text`              |       |               |                                                   |
+| `role`                                   | `counterparty_role` |       |               |                                                   |
+| `inn`                                    | `text`              | да    |               | 10 или 12 цифр; null — контрагент ещё не проверен |
+| `contact_name`                           | `text`              |       |               |                                                   |
+| `email`                                  | `text`              |       |               |                                                   |
+| `phone`                                  | `text`              |       |               |                                                   |
+| `avg_reply_hours`                        | `smallint`          |       |               | средний срок ответа на запрос, ч                  |
+| `rating`                                 | `numeric(2,1)`      |       |               | оценка 0…5                                        |
+| `created_at`, `updated_at`, `created_by` | служебные           |       | → `employees` | не отдаются в API                                 |
 
-| Индекс | Колонки      | Для чего                                    |
-| ------ | ------------ | ------------------------------------------- |
-| unique | `inn`        | поиск и защита от дублей по ИНН             |
-| btree  | `role, name` | списки заказчиков и поставщиков по алфавиту |
+| Индекс | Колонки                       | Для чего                                    |
+| ------ | ----------------------------- | ------------------------------------------- |
+| unique | `inn` where `inn is not null` | поиск и защита от дублей по ИНН             |
+| btree  | `role, name`                  | списки заказчиков и поставщиков по алфавиту |
 
 #### `supplier_profiles`
 
@@ -402,7 +403,7 @@ erDiagram
   sources |o--o{ document_revisions : source_id
   document_revisions ||--o{ document_sheets : revision_id
   documents ||--o{ revision_changes : document_id
-  document_revisions ||--o{ revision_changes : from_revision_id
+  document_revisions |o--o{ revision_changes : from_revision_id
   document_revisions ||--o{ revision_changes : to_revision_id
   employees |o--o{ revision_changes : resolved_by
   projects ||--o{ positions : project_id
@@ -577,25 +578,25 @@ erDiagram
 
 #### `revision_changes`
 
-Расхождение между ревизиями документа, которое нужно разобрать.
+Расхождение в ревизии документа, которое нужно разобрать: с прошлой ревизией или с другим разделом.
 
-| Колонка                                  | Тип             | Пусто | Ссылка                            | Комментарий       |
-| ---------------------------------------- | --------------- | ----- | --------------------------------- | ----------------- |
-| `id` **PK**                              | `uuid`          |       |                                   |                   |
-| `document_id`                            | `uuid`          |       | → `documents` (cascade)           |                   |
-| `from_revision_id`                       | `uuid`          |       | → `document_revisions` (restrict) |                   |
-| `to_revision_id`                         | `uuid`          |       | → `document_revisions` (restrict) |                   |
-| `description`                            | `text`          |       |                                   |                   |
-| `status`                                 | `change_status` |       |                                   |                   |
-| `resolved_by`                            | `uuid`          | да    | → `employees` (restrict)          |                   |
-| `resolved_at`                            | `timestamptz`   | да    |                                   |                   |
-| `created_at`, `updated_at`, `created_by` | служебные       |       | → `employees`                     | не отдаются в API |
+| Колонка                                  | Тип             | Пусто | Ссылка                            | Комментарий                                                   |
+| ---------------------------------------- | --------------- | ----- | --------------------------------- | ------------------------------------------------------------- |
+| `id` **PK**                              | `uuid`          |       |                                   |                                                               |
+| `document_id`                            | `uuid`          |       | → `documents` (cascade)           |                                                               |
+| `from_revision_id`                       | `uuid`          | да    | → `document_revisions` (restrict) | null — расхождение с другим разделом, а не с прошлой ревизией |
+| `to_revision_id`                         | `uuid`          |       | → `document_revisions` (restrict) |                                                               |
+| `description`                            | `text`          |       |                                   |                                                               |
+| `status`                                 | `change_status` |       |                                   |                                                               |
+| `resolved_by`                            | `uuid`          | да    | → `employees` (restrict)          |                                                               |
+| `resolved_at`                            | `timestamptz`   | да    |                                   |                                                               |
+| `created_at`, `updated_at`, `created_by` | служебные       |       | → `employees`                     | не отдаются в API                                             |
 
 | Индекс | Колонки               | Для чего                                        |
 | ------ | --------------------- | ----------------------------------------------- |
 | btree  | `document_id, status` | открытые изменения в реестре и карточке объекта |
 
-Проверки: `from_revision_id <> to_revision_id`; `(status = 'resolved') = (resolved_at is not null)`.
+Проверки: `from_revision_id is null or from_revision_id <> to_revision_id`; `(status = 'resolved') = (resolved_at is not null)`.
 
 #### `materials`
 

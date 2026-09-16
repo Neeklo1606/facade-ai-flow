@@ -28,13 +28,13 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { useScreenState } from "@/lib/screen-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { docStatusLabel, sheetsOfDocument, type ExtractedPosition } from "@/mock/repository";
-import { isActive, isVerified, specActions, useSpecStore } from "@/lib/spec-store";
+import { handedOverAt, isActive, isVerified, specActions, useSpecStore } from "@/lib/spec-store";
 import { useProjectOverview } from "@/lib/project-overview";
 import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { processingStatusLabel as docStatusLabel, type ExtractedPosition } from "@/contracts";
 
 export const Route = createFileRoute("/projects/$id/documents/$docId")({
   validateSearch: (search: Record<string, unknown>): { position?: string | undefined } => ({
@@ -97,13 +97,18 @@ function ExtractionPage({ project }: ProjectPageProps): React.JSX.Element {
   const document = useSpecStore((s) => s.documents.find((doc) => doc.id === docId) ?? null);
   const allPositions = useSpecStore((s) => s.positions);
   const upload = useSpecStore((s) => s.uploads[docId]);
-  const sentAt = useSpecStore((s) => s.sentDocuments[docId]);
+  const sentAt = useSpecStore((s) => handedOverAt(s, docId));
 
   const positions = useMemo(
     () => allPositions.filter((item) => item.documentId === docId),
     [allPositions, docId],
   );
-  const sheets = useMemo(() => (document ? sheetsOfDocument(document) : []), [document]);
+  const allSheets = useSpecStore((s) => s.sheets);
+  const sheets = useMemo(
+    () =>
+      allSheets.filter((sheet) => sheet.documentId === docId).sort((a, b) => a.number - b.number),
+    [allSheets, docId],
+  );
   const positionsBySheet = useMemo(() => {
     const map = new Map<string, ExtractedPosition[]>();
     for (const item of positions) {
@@ -288,7 +293,7 @@ function ExtractionPage({ project }: ProjectPageProps): React.JSX.Element {
   const onSelectOnPage = useCallback((id: string) => onActivate(id), [onActivate]);
 
   const toHandOver = useMemo(
-    () => positions.filter((item) => isVerified(item) && !item.handedOver),
+    () => positions.filter((item) => isVerified(item) && item.handedOverAt === null),
     [positions],
   );
   const canSend = blocking === 0 && toHandOver.length > 0;
@@ -548,6 +553,16 @@ function ExtractionPage({ project }: ProjectPageProps): React.JSX.Element {
                 <div className="mt-4">
                   <ProcessingStages stage={upload?.stage ?? stageOfStatus(document.status)} />
                 </div>
+              </div>
+            ) : positions.length === 0 && document.positionsTotal ? (
+              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
+                <p className="mt-3 text-[14px] font-medium">Позиции ревизии не загружены в демо</p>
+                <p className="mt-1 text-caption text-text-muted">
+                  Извлечено {fmtNum(document.positionsTotal)}, проверено{" "}
+                  {fmtNum(document.positionsVerified ?? 0)}. В демо построчно загружена только
+                  спецификация «Северной Короны».
+                </p>
               </div>
             ) : positions.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">

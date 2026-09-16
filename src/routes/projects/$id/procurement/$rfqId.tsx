@@ -14,7 +14,6 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { counterpartyById, employeeName, type SupplyRequest } from "@/mock/repository";
 import { decisionForRequest, specActions, useSpecStore } from "@/lib/spec-store";
 import { useProjectOverview } from "@/lib/project-overview";
 import {
@@ -29,6 +28,8 @@ import { useScreenState } from "@/lib/screen-state";
 import { fmtDateTime, fmtDue, fmtMoney, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { type SupplyRequest } from "@/contracts";
+import { counterpartyById, employeeName } from "@/lib/directory";
 
 export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
   loader: ({ params }) => loadProject(params.id),
@@ -63,9 +64,12 @@ function ComparisonPage({ project }: ProjectPageProps): React.JSX.Element {
           !pending.some((p) => p.supplierId === id),
       ).length
     : 0;
-  const meta = state.rfq.find((m) => m.requestId === rfqId);
+  const meta =
+    request?.sentAt && request.replyDueAt
+      ? { sentAt: request.sentAt, replyDueAt: request.replyDueAt }
+      : null;
   const decision = request ? decisionForRequest(state, request.id) : null;
-  const status = request && calc ? rfqStatus(state, request, meta, calc.answered) : null;
+  const status = request ? rfqStatus(state, request) : null;
   const silent = calc ? calc.columns.filter((c) => !c.offerId) : [];
 
   const screen = useScreenState({
@@ -117,14 +121,10 @@ function ComparisonPage({ project }: ProjectPageProps): React.JSX.Element {
       choice: `«${supplier}», ${fmtMoney(chosen.total)}`,
       reason: input.reason,
       approvedBy: input.approvedBy,
-      basis: {
-        label: `Письма поставщиков по запросу ${request.number}`,
-        sourceId: [...chosen.cells.values()][0]?.sourceId ?? null,
-      },
-      link: {
-        to: `/projects/${project.id}/procurement/${request.id}`,
-        label: `Запрос ${request.number}`,
-      },
+      reportId: null,
+      materialFamily: null,
+      basisLabel: `Письма поставщиков по запросу ${request.number}`,
+      basisSourceId: [...chosen.cells.values()][0]?.sourceId ?? null,
     });
     setDecisionOpen(false);
     toast.success("Решение зафиксировано", {
@@ -415,7 +415,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
         </thead>
         <tbody>
           {request.items.map((item) => (
-            <tr key={item.materialId} className="align-top">
+            <tr key={item.id} className="align-top">
               <th
                 scope="row"
                 className="sticky left-0 z-10 border-r border-b border-border bg-surface px-4 py-3 text-left font-normal"
@@ -426,7 +426,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
                 </p>
               </th>
               {columns.map((c) => {
-                const cell = c.cells.get(item.materialId);
+                const cell = c.cells.get(item.id);
                 const warn = cell && (cell.deviation || cell.shortage);
                 return (
                   <td
@@ -537,7 +537,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
         ))}
       </section>
       {request.items.map((item) => (
-        <section key={item.materialId} className="card-surface">
+        <section key={item.id} className="card-surface">
           <header className="border-b border-border px-4 py-3">
             <p className="text-[14px] font-semibold">{item.name}</p>
             <p className="tnum text-caption text-text-muted">
@@ -546,7 +546,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
           </header>
           <ul className="divide-y divide-border">
             {columns.map((c) => {
-              const cell = c.cells.get(item.materialId);
+              const cell = c.cells.get(item.id);
               return (
                 <li
                   key={c.supplierId}

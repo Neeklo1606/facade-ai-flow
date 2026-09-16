@@ -14,17 +14,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { SourceRef } from "@/components/common/SourceRef";
-import {
-  activityKindLabel,
-  activityOf,
-  docVersionsOf,
-  employeeName,
-  type ActivityKind,
-  type ProjectOverview,
-} from "@/mock/repository";
 import { fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Bar, Block, BlockEmpty } from "./parts";
+import { timelineTypeLabel, type ProjectOverview, type TimelineEventType } from "@/contracts";
+import { employeeName } from "@/lib/directory";
+import { mainSpecification, revisionStats, revisionsOf } from "@/domain/overview";
+import { timelineOf, useSpecStore } from "@/lib/spec-store";
 
 interface Props {
   projectId: string;
@@ -173,15 +169,19 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
 /* ---------- 2. Документация ---------- */
 
 function DocumentationBlock({ projectId, overview, scope, onSource }: Props) {
-  const versions = docVersionsOf(projectId);
-  // Цифры актуальной ревизии берутся из живой сводки: подтверждения на экране извлечения видны сразу
-  const latest = versions[0]
-    ? {
-        ...versions[0],
-        extracted: overview.specTotal,
-        verified: overview.specTotal - overview.specUnverified,
-      }
-    : undefined;
+  const state = useSpecStore((st) => st);
+  const main = mainSpecification(state, projectId);
+  // Ревизии основной спецификации; цифры считаются по позициям, поэтому подтверждения видны сразу
+  const versions = (main ? revisionsOf(state.documents, main.documentId) : []).map((revision) => {
+    const stats = revisionStats(state.positions, revision);
+    return {
+      ...revision,
+      sheets: revision.sheetCount,
+      extracted: stats.total,
+      verified: stats.verified,
+    };
+  });
+  const latest = versions[0];
 
   return (
     <Block
@@ -338,18 +338,23 @@ function MaterialsBlock({ projectId, overview, scope }: Props) {
 
 /* ---------- 4. Последние события ---------- */
 
-const activityIcon: Record<ActivityKind, LucideIcon> = {
+const activityIcon: Record<TimelineEventType, LucideIcon> = {
   version_uploaded: FilePlus2,
   spec_extracted: FileSearch,
   qty_corrected: PencilLine,
-  request_sent: Send,
+  request_created: Send,
   offer_received: PackageCheck,
+  replacement_proposed: ArrowLeftRight,
   replacement_agreed: ArrowLeftRight,
+  material_ordered: PackageCheck,
+  delivery_received: PackageCheck,
   report_added: HardHat,
+  decision: ListChecks,
 };
 
 function ActivityBlock({ projectId, onSource, onTab }: Props) {
-  const items = activityOf(projectId).slice(0, 7);
+  const state = useSpecStore((st) => st);
+  const items = timelineOf(state, projectId).slice(0, 7);
 
   return (
     <Block title="Последние события" linkLabel="Вся история" onLinkClick={() => onTab("history")}>
@@ -358,7 +363,7 @@ function ActivityBlock({ projectId, onSource, onTab }: Props) {
       ) : (
         <ol className="relative px-4 py-2">
           {items.map((item, index) => {
-            const Icon = activityIcon[item.kind];
+            const Icon = activityIcon[item.type];
             return (
               <li key={item.id} className="relative flex gap-3 py-2">
                 {index < items.length - 1 && (
@@ -373,7 +378,7 @@ function ActivityBlock({ projectId, onSource, onTab }: Props) {
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] leading-snug">{item.title}</p>
                   <p className="mt-0.5 text-caption text-text-muted">
-                    {activityKindLabel[item.kind]} · {employeeName(item.actorId)} ·{" "}
+                    {timelineTypeLabel[item.type]} · {employeeName(item.actorId)} ·{" "}
                     {fmtDateTime(item.at)}
                   </p>
                 </div>

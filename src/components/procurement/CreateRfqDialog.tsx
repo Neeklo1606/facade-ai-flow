@@ -13,17 +13,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
-import {
-  counterpartyById,
-  emailTemplates,
-  employeeById,
-  type Project,
-  type SupplierProfile,
-} from "@/mock/repository";
 import { isReadyForRequest, specActions, useSpecStore } from "@/lib/spec-store";
 import { MOCK_NOW, fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { type Project, type SupplierProfile } from "@/contracts";
+import { counterpartyById, employeeById } from "@/lib/directory";
 
 const steps = ["Позиции", "Поставщики", "Письмо", "Предпросмотр"] as const;
 
@@ -61,9 +56,10 @@ export function CreateRfqDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [suppliers, setSuppliers] = useState<Set<string>>(new Set());
   const [showOtherRegions, setShowOtherRegions] = useState(false);
-  const [templateId, setTemplateId] = useState<string>(emailTemplates[0].id);
-  const [subject, setSubject] = useState<string>(emailTemplates[0].subject);
-  const [body, setBody] = useState<string>(emailTemplates[0].body);
+  const emailTemplates = useSpecStore((s) => s.templates);
+  const [templateId, setTemplateId] = useState<string>(emailTemplates[0]?.id ?? "");
+  const [subject, setSubject] = useState<string>(emailTemplates[0]?.subject ?? "");
+  const [body, setBody] = useState<string>(emailTemplates[0]?.body ?? "");
   const [dueDate, setDueDate] = useState(() =>
     new Date(new Date(MOCK_NOW).getTime() + 3 * 86_400_000).toISOString().slice(0, 10),
   );
@@ -119,6 +115,7 @@ export function CreateRfqDialog({
 
   function pickTemplate(id: string) {
     const template = emailTemplates.find((t) => t.id === id) ?? emailTemplates[0];
+    if (!template) return;
     setTemplateId(template.id);
     setSubject(template.subject);
     setBody(template.body);

@@ -16,14 +16,6 @@ import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
-import {
-  contactFreshnessLabel,
-  counterpartyById,
-  type ContactFreshness,
-  type Counterparty,
-  type SupplierProfile,
-  type SupplyRequest,
-} from "@/mock/repository";
 import { specActions, useSpecStore } from "@/lib/spec-store";
 import { useProjectOverview } from "@/lib/project-overview";
 import { compareOffers, rfqStatus, rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
@@ -31,6 +23,14 @@ import { useScreenState } from "@/lib/screen-state";
 import { fmtDate, fmtDateTime, fmtDue, fmtMoney, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import {
+  contactStatusLabel as contactFreshnessLabel,
+  type ContactFreshness,
+  type Counterparty,
+  type SupplierProfile,
+  type SupplyRequest,
+} from "@/contracts";
+import { counterpartyById } from "@/lib/directory";
 
 type View = "requests" | "suppliers";
 
@@ -110,14 +110,13 @@ function ProcurementPage({ project }: ProjectPageProps): React.JSX.Element {
       state.requests
         .filter((r) => r.projectId === project.id)
         .map((request) => {
-          const meta = state.rfq.find((m) => m.requestId === request.id);
           const { answered, best } = compareOffers(state, request);
           return {
             request,
             answered,
             bestTotal: best?.total ?? null,
-            due: meta?.replyDueAt ?? null,
-            status: rfqStatus(state, request, meta, answered),
+            due: request.replyDueAt,
+            status: rfqStatus(state, request),
           };
         })
         .sort((a, b) => b.request.createdAt.localeCompare(a.request.createdAt)),
