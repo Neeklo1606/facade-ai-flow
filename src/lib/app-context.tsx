@@ -1,42 +1,32 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { sites } from "@/mock/sites";
-import { currentUser } from "@/mock/users";
-import type { IndustryPack } from "@/types";
 
-export const ALL_SITES = "all";
+/** Значение селектора объекта «Все объекты» */
+export const ALL_PROJECTS = "all";
 
-export const industryPacks: { id: IndustryPack; label: string; hint: string }[] = [
-  { id: "facade", label: "Фасады", hint: "НВФ, захватки, объёмы" },
-  { id: "road", label: "Дороги", hint: "Участки, слои, километраж" },
-  { id: "hvac", label: "ОВК", hint: "Системы, узлы, пусконаладка" },
-  { id: "crane", label: "Краны", hint: "Техника, ТО, осмотры" },
-];
+/** Сотрудник, от имени которого работает демо. В фазе 4 приходит из сессии (P4-2). */
+export const CURRENT_USER_ID = "e-sokolov";
 
 interface AppContextValue {
   theme: "light" | "dark";
   toggleTheme: () => void;
-  pack: IndustryPack;
-  setPack: (p: IndustryPack) => void;
-  siteId: string;
-  setSiteId: (id: string) => void;
+  /** Выбранный в шапке объект: id объекта или ALL_PROJECTS */
+  projectId: string;
+  setProjectId: (id: string) => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   mobileNavOpen: boolean;
   setMobileNavOpen: (v: boolean) => void;
   commandOpen: boolean;
   setCommandOpen: (v: boolean) => void;
-  user: typeof currentUser;
-  scopedSites: typeof sites;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-/** Глобальное состояние прототипа. Только React state, никаких браузерных хранилищ. */
+/** Состояние оболочки интерфейса: тема, выбранный объект, панели. Данные предметной области — не здесь. */
 export function AppProvider({ children }: { children: ReactNode }) {
   // Светлая тема по умолчанию, переключатель в шапке действует во всей системе.
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [pack, setPack] = useState<IndustryPack>("facade");
-  const [siteId, setSiteId] = useState<string>(ALL_SITES);
+  const [projectId, setProjectId] = useState<string>(ALL_PROJECTS);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -66,20 +56,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       theme,
       toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
-      pack,
-      setPack,
-      siteId,
-      setSiteId,
+      projectId,
+      setProjectId,
       sidebarCollapsed,
       toggleSidebar: () => setSidebarCollapsed((v) => !v),
       mobileNavOpen,
       setMobileNavOpen,
       commandOpen,
       setCommandOpen,
-      user: currentUser,
-      scopedSites: siteId === ALL_SITES ? sites : sites.filter((s) => s.id === siteId),
     }),
-    [theme, pack, siteId, sidebarCollapsed, mobileNavOpen, commandOpen],
+    [theme, projectId, sidebarCollapsed, mobileNavOpen, commandOpen],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -89,9 +75,4 @@ export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error("useApp must be used within AppProvider");
   return ctx;
-}
-
-/** Фильтр по выбранному объекту для любых записей с siteId. */
-export function inScope<T extends { siteId: string | null }>(items: T[], siteId: string) {
-  return siteId === ALL_SITES ? items : items.filter((i) => i.siteId === siteId);
 }

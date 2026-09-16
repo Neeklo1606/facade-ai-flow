@@ -12,9 +12,9 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { ALL_SITES, useApp } from "@/lib/app-context";
+import { ALL_PROJECTS, useApp } from "@/lib/app-context";
 import { activeNavKey, navGroups, sectionHref, type BadgeKey } from "@/lib/navigation";
-import { siteIdOf, useProjectId } from "@/lib/project-scope";
+import { useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { specActions, useSpecStore } from "@/lib/spec-store";
 import {
   AlertDialog,
@@ -89,7 +89,8 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { siteId, setSiteId, theme, toggleTheme, user, setCommandOpen } = useApp();
+  const { setProjectId, theme, toggleTheme, setCommandOpen } = useApp();
+  const user = useCurrentUser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const view = useRouterState({
     select: (s) => String((s.location.search as Record<string, unknown>)["view"] ?? ""),
@@ -107,17 +108,16 @@ function SidebarInner({
   const navigate = useNavigate();
   /** Смена объекта на экране объекта открывает тот же раздел у выбранного объекта. */
   const changeProject = (value: string) => {
-    setSiteId(value);
+    setProjectId(value);
     const match = pathname.match(
       /^\/projects\/[^/]+(\/(documents|materials|procurement|field-reports|timeline))?/,
     );
     if (!match) return;
-    if (value === ALL_SITES) {
+    if (value === ALL_PROJECTS) {
       navigate({ to: "/projects" });
       return;
     }
-    const id = value.replace(/^s-/, "p-");
-    navigate({ to: `/projects/${id}${match[1] ?? ""}` });
+    navigate({ to: `/projects/${value}${match[1] ?? ""}` });
   };
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const activeKey = activeNavKey(pathname, view, pickSection);
@@ -157,13 +157,13 @@ function SidebarInner({
           >
             <span className="block text-overline text-text-muted">Объект</span>
             <select
-              value={siteId}
+              value={projectId ?? ALL_PROJECTS}
               onChange={(e) => changeProject(e.target.value)}
               className="focus-ring mt-0.5 h-6 w-full appearance-none overflow-hidden bg-transparent pr-6 text-ellipsis whitespace-nowrap text-sm font-medium text-text-primary"
             >
-              <option value={ALL_SITES}>Все объекты</option>
+              <option value={ALL_PROJECTS}>Все объекты</option>
               {projects.map((p) => (
-                <option key={p.id} value={siteIdOf(p.id)}>
+                <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}
@@ -285,7 +285,11 @@ function SidebarInner({
       <div className="shrink-0 border-t border-sidebar-border pt-3">
         <div className="flex items-center gap-2 rounded-[var(--r-sm)] px-2 py-1.5 hover:bg-[var(--sidebar-hover-bg)]">
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-pastel-violet text-[11px] font-medium text-pastel-violet-fg">
-            СИ
+            {user?.name
+              .split(" ")
+              .slice(0, 2)
+              .map((part) => part[0])
+              .join("")}
           </span>
           {!collapsed && (
             <div className="min-w-0 flex-1">
@@ -335,7 +339,7 @@ function SidebarInner({
                 <AlertDialogAction
                   onClick={() => {
                     specActions.resetDemo();
-                    setSiteId(ALL_SITES);
+                    setProjectId(ALL_PROJECTS);
                     onClose();
                     navigate({ to: "/projects" });
                     toast.success("Демо-данные сброшены");

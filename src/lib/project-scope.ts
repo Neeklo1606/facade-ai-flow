@@ -1,15 +1,17 @@
-import { ALL_SITES, useApp } from "@/lib/app-context";
+import { employeeRoleLabel } from "@/contracts";
+import { ALL_PROJECTS, CURRENT_USER_ID, useApp } from "@/lib/app-context";
 import { useSpecStore } from "@/lib/spec-store";
 
-/** Выбранный в шапке объект в терминах репозитория: p-… или null для всех объектов. */
+/** Выбранный в шапке объект или null для всех объектов; несуществующий id — тоже null. */
 export function useProjectId(): string | null {
-  const { siteId } = useApp();
-  const id = siteId === ALL_SITES ? null : siteId.replace(/^s-/, "p-");
+  const { projectId } = useApp();
+  const id = projectId === ALL_PROJECTS ? null : projectId;
   const exists = useSpecStore((s) => (id ? s.projects.some((item) => item.id === id) : false));
   return id && exists ? id : null;
 }
 
-/** Обратное преобразование: id проекта репозитория → значение селектора объекта в контексте. */
-export function siteIdOf(projectId: string) {
-  return projectId.replace(/^p-/, "s-");
+/** Текущий пользователь — сотрудник из справочника, с подписью роли. */
+export function useCurrentUser() {
+  const employee = useSpecStore((s) => s.employees.find((item) => item.id === CURRENT_USER_ID));
+  return employee ? { ...employee, roleLabel: employeeRoleLabel[employee.role] } : null;
 }

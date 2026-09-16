@@ -4,12 +4,11 @@ import { ChevronRight, Menu, Moon, Search, Sun } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { sectionLabels, type ProjectSection } from "@/lib/navigation";
 import { projectOf, useSpecStore } from "@/lib/spec-store";
-import { siteIdOf } from "@/lib/project-scope";
 import { screenStatesEnabled } from "@/lib/screen-state";
 import { StatePicker } from "./StatePicker";
 
 export function Topbar() {
-  const { setMobileNavOpen, setCommandOpen, theme, toggleTheme, setSiteId } = useApp();
+  const { setMobileNavOpen, setCommandOpen, theme, toggleTheme, setProjectId } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const detail = pathname.match(
     /^\/projects\/([^/]+)(?:\/(documents|materials|procurement|field-reports|timeline)(?:\/([^/]+))?)?/,
@@ -32,8 +31,8 @@ export function Topbar() {
 
   // Открыт экран объекта — селектор в сайдбаре показывает этот объект
   useEffect(() => {
-    if (detailProject) setSiteId(siteIdOf(detailProject.id));
-  }, [detailProject, setSiteId]);
+    if (detailProject) setProjectId(detailProject.id);
+  }, [detailProject, setProjectId]);
 
   return (
     <header className="sticky top-0 z-30 flex h-[52px] shrink-0 items-center gap-3 border-b border-border bg-[color:color-mix(in_oklab,var(--bg-shell)_92%,transparent)] px-3 backdrop-blur-xl lg:px-5">

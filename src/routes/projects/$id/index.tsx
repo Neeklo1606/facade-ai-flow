@@ -34,7 +34,6 @@ import {
   TeamPreview,
 } from "@/components/project/PreviewTabs";
 import { useApp } from "@/lib/app-context";
-import { siteIdOf } from "@/lib/project-scope";
 import { projectStatusMeta } from "@/lib/project-meta";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
@@ -96,7 +95,7 @@ function ProjectPage({ project, overview }: ProjectPageProps): React.JSX.Element
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   const { tab = "summary" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { setSiteId } = useApp();
+  const { setProjectId } = useApp();
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -110,7 +109,7 @@ function ProjectPage({ project, overview }: ProjectPageProps): React.JSX.Element
       replace: true,
       resetScroll: false,
     });
-  const scope = () => setSiteId(siteIdOf(project.id));
+  const scope = () => setProjectId(project.id);
   const shared = {
     projectId: project.id,
     overview,

@@ -30,7 +30,6 @@ import {
 import { specActions, useSpecStore } from "@/lib/spec-store";
 import { useApp } from "@/lib/app-context";
 import { sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
-import { siteIdOf } from "@/lib/project-scope";
 import { MOCK_NOW } from "@/lib/format";
 import { attentionBar, attentionOf, projectStatusMeta } from "@/lib/project-meta";
 import { exportXlsx } from "@/lib/export-xlsx";
@@ -120,7 +119,7 @@ function ProjectsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const { setSiteId } = useApp();
+  const { setProjectId } = useApp();
   const projects = useSpecStore((s) => s.projects);
   const overviews = useOverviews(projects.map((project) => project.id));
   const allRows = useMemo(
@@ -174,7 +173,7 @@ function ProjectsPage() {
       void navigate({ to: "/projects/$id", params: { id: row.id } });
       return;
     }
-    setSiteId(siteIdOf(row.id));
+    setProjectId(row.id);
     const href = sectionHref(row.id, search.section);
     void navigate({ to: href.to, search: href.search as never });
   };
@@ -429,7 +428,7 @@ function ProjectsPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onCreated={(id) => {
-          setSiteId(siteIdOf(id));
+          setProjectId(id);
           void navigate({ to: "/projects/$id", params: { id } });
         }}
       />
