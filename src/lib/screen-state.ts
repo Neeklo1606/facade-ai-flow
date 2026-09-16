@@ -44,6 +44,8 @@ export function useSimulatedLoading(ms = 350) {
 
 /** Итоговое состояние экрана: принудительное из адреса или вычисленное по данным. */
 export function useScreenState(natural: {
+  /** Данные ещё грузятся */
+  pending?: boolean;
   empty?: boolean;
   filtered?: boolean;
   partial?: boolean;
@@ -52,7 +54,7 @@ export function useScreenState(natural: {
   const forced = useForcedState();
   const loading = useSimulatedLoading();
   if (forced) return forced;
-  if (loading) return "loading";
+  if (loading || natural.pending) return "loading";
   if (natural.empty) return "empty";
   if (natural.filtered) return "filtered";
   if (natural.processing) return "processing";

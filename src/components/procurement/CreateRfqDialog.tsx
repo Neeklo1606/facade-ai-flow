@@ -13,12 +13,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
-import { isReadyForRequest, specActions, useSpecStore } from "@/lib/spec-store";
+import { isReadyForRequest, specActions } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { MOCK_NOW, fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type Project, type SupplierProfile } from "@/contracts";
-import { counterpartyById, employeeById } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 const steps = ["Позиции", "Поставщики", "Письмо", "Предпросмотр"] as const;
 
@@ -30,6 +32,8 @@ function fill(text: string, values: Record<string, string>) {
  * Создание запроса поставщикам: позиции → подбор поставщиков по категории и региону →
  * шаблон письма → предпросмотр для каждого получателя → отправка.
  */
+const EMPTY: never[] = [];
+
 export function CreateRfqDialog({
   open,
   onOpenChange,
@@ -45,8 +49,13 @@ export function CreateRfqDialog({
   initialIds: string[];
   onCreated?: (requestId: string) => void;
 }) {
-  const positions = useSpecStore((s) => s.positions);
-  const profiles = useSpecStore((s) => s.profiles);
+  const { employeeById, counterpartyById } = useDirectory();
+  // Позиции загружаются, только пока мастер открыт
+  const positions =
+    useQuery({ ...queries.positions({ projectId: project.id, limit: 5000 }), enabled: open }).data
+      ?.items ?? EMPTY;
+  const supplierList = useQuery({ ...queries.suppliers(), enabled: open }).data;
+  const profiles = useMemo(() => (supplierList ?? []).map((item) => item.profile), [supplierList]);
   const eligible = useMemo(
     () => positions.filter((item) => item.projectId === project.id && isReadyForRequest(item)),
     [positions, project.id],
@@ -56,7 +65,7 @@ export function CreateRfqDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [suppliers, setSuppliers] = useState<Set<string>>(new Set());
   const [showOtherRegions, setShowOtherRegions] = useState(false);
-  const emailTemplates = useSpecStore((s) => s.templates);
+  const emailTemplates = useQuery({ ...queries.templates(), enabled: open }).data ?? [];
   const [templateId, setTemplateId] = useState<string>(emailTemplates[0]?.id ?? "");
   const [subject, setSubject] = useState<string>(emailTemplates[0]?.subject ?? "");
   const [body, setBody] = useState<string>(emailTemplates[0]?.body ?? "");
@@ -436,6 +445,7 @@ function SupplierList({
   selected: Set<string>;
   onToggle: (update: (prev: Set<string>) => Set<string>) => void;
 }) {
+  const { counterpartyById } = useDirectory();
   return (
     <ul className="mt-3 divide-y divide-border rounded-[var(--r-md)] border border-border">
       {items.map(({ profile, categoryMatch, regionMatch }) => {

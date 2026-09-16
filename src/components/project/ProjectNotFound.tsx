@@ -1,40 +1,36 @@
 import { useEffect, type ComponentType } from "react";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ScreenSkeleton } from "@/components/common/ScreenStates";
-import { getSpecState, projectOf, useIsClient, useSpecStore } from "@/lib/spec-store";
-import { useProjectOverview } from "@/lib/project-overview";
-import { type Project, type ProjectOverview } from "@/contracts";
+import { queries } from "@/api/queries";
+import { prefetch } from "@/api/prefetch";
+import type { ProjectCard } from "@/api/types";
 
 /**
- * Загрузчик маршрутов объекта. Объект мог быть создан в этой вкладке и существовать только
- * в клиентском хранилище, поэтому сервер не отвечает 404 — решение принимает клиент.
+ * Загрузчик маршрутов объекта: предзагружает карточку объекта (заголовок страницы и шапка экрана).
+ * Объекта может не быть на сервере — он создан во вкладке демо, — поэтому 404 решает клиент.
  */
-export function loadProject(id: string) {
-  return { id, project: projectOf(getSpecState(), id) };
+export async function loadProject(queryClient: QueryClient, id: string) {
+  const card = await prefetch(queryClient, queries.project(id));
+  return { id, project: card?.project ?? null };
 }
 
-export interface ProjectPageProps {
-  project: Project;
-  overview: ProjectOverview;
-}
+export type ProjectPageProps = ProjectCard;
 
-/** Обёртка экрана объекта: берёт объект и сводку из хранилища, пока их нет — скелетон или 404. */
+/** Обёртка экрана объекта: карточка объекта из запроса; пока грузится — скелетон, нет объекта — 404. */
 export function withProject(Page: ComponentType<ProjectPageProps>) {
   return function ProjectRoute() {
     const { id } = useParams({ strict: false }) as { id: string };
-    const isClient = useIsClient();
-    const project = useSpecStore((s) => projectOf(s, id));
-    const overview = useProjectOverview(id);
-    const name = project?.name;
+    const { data: card, isPending } = useQuery(queries.project(id));
+    const name = card?.project.name;
     // Объект, созданный во вкладке, сервер не знает и подписывает заголовок «Объект» — уточняем на клиенте
     useEffect(() => {
       if (name) document.title = document.title.replace(/(^|— )Объект( —|$)/, `$1${name}$2`);
     }, [name]);
-    if (!project || !overview) {
-      return isClient ? <ProjectNotFound /> : <ScreenSkeleton kind="summary" />;
-    }
-    return <Page project={project} overview={overview} />;
+    if (isPending) return <ScreenSkeleton kind="summary" />;
+    if (!card) return <ProjectNotFound />;
+    return <Page {...card} />;
   };
 }
 

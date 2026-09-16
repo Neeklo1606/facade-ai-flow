@@ -14,8 +14,7 @@ import {
 import type { ColumnCalc } from "@/lib/procurement";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { counterpartyById } from "@/lib/directory";
-import { useSpecStore } from "@/lib/spec-store";
+import { useDirectory } from "@/api/directory";
 
 const approverRoles = new Set(["manager", "finance", "supply"]);
 const MIN_REASON = 15;
@@ -40,8 +39,8 @@ export function DecisionDialog({
   bestSupplierId: string | null;
   onSave: (input: DecisionInput) => void;
 }) {
+  const { counterpartyById, employees } = useDirectory();
   const answered = columns.filter((c) => c.offerId);
-  const employees = useSpecStore((s) => s.employees);
   const approvers = employees.filter((e) => approverRoles.has(e.role));
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [reason, setReason] = useState("");

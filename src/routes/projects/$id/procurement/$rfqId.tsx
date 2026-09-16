@@ -14,12 +14,12 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { decisionForRequest, specActions, useSpecStore } from "@/lib/spec-store";
-import { useProjectOverview } from "@/lib/project-overview";
+import { specActions } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import {
   compareOffers,
   itemsSummary,
-  rfqStatus,
   rfqStatusMeta,
   type CellCalc,
   type ColumnCalc,
@@ -29,10 +29,10 @@ import { fmtDateTime, fmtDue, fmtMoney, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type SupplyRequest } from "@/contracts";
-import { counterpartyById, employeeName } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -46,38 +46,43 @@ export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
   component: withProject(ComparisonPage),
 });
 
-function ComparisonPage({ project }: ProjectPageProps): React.JSX.Element {
+function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Element {
+  const { employeeName, counterpartyById } = useDirectory();
   const { rfqId } = Route.useParams();
   const navigate = useNavigate();
-  const overview = useProjectOverview(project.id);
-  const state = useSpecStore((s) => s);
-  const request = state.requests.find((r) => r.id === rfqId && r.projectId === project.id) ?? null;
+  const cardQuery = useQuery(queries.request(rfqId));
+  const card = cardQuery.data?.summary.request.projectId === project.id ? cardQuery.data : null;
+  const request = card?.summary.request ?? null;
   const [decisionOpen, setDecisionOpen] = useState(false);
   const [source, setSource] = useState<{ id: string; fragment: string } | null>(null);
 
-  const calc = useMemo(() => (request ? compareOffers(state, request) : null), [state, request]);
-  const pending = state.pendingReplies.filter((p) => p.requestId === rfqId);
-  const canRemind = request
-    ? request.sentTo.filter(
-        (id) =>
-          !state.offers.some((o) => o.requestId === request.id && o.supplierId === id) &&
-          !pending.some((p) => p.supplierId === id),
-      ).length
+  const calc = useMemo(
+    () =>
+      card
+        ? compareOffers({ offers: card.offers, offerLines: card.lines }, card.summary.request)
+        : null,
+    [card],
+  );
+  const pending = card?.summary.awaiting ?? [];
+  const canRemind = card
+    ? card.summary.request.sentTo.length - card.summary.answered - card.summary.awaiting.length
     : 0;
   const meta =
     request?.sentAt && request.replyDueAt
       ? { sentAt: request.sentAt, replyDueAt: request.replyDueAt }
       : null;
-  const decision = request ? decisionForRequest(state, request.id) : null;
-  const status = request ? rfqStatus(state, request) : null;
+  const decision = card?.decision ?? null;
+  const status = card?.summary.status ?? null;
   const silent = calc ? calc.columns.filter((c) => !c.offerId) : [];
 
   const screen = useScreenState({
+    pending: cardQuery.isPending,
     empty: !!calc && calc.answered === 0 && pending.length === 0,
     processing: pending.length > 0,
     partial: silent.length > 0,
   });
 
+  if (cardQuery.isPending) return <ScreenSkeleton kind="matrix" />;
   if (!request || !calc) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
@@ -369,6 +374,7 @@ function CellLines({
 }
 
 function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: MatrixProps) {
+  const { counterpartyById } = useDirectory();
   return (
     <div className="card-surface hidden overflow-x-auto lg:block">
       <table
@@ -499,6 +505,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
 
 /** Телефон: материал — карточкой, предложения поставщиков — друг под другом. */
 function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixProps) {
+  const { counterpartyById } = useDirectory();
   return (
     <div className="space-y-3 lg:hidden">
       <section className="card-surface divide-y divide-border">

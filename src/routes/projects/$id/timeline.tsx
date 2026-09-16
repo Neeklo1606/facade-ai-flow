@@ -29,12 +29,13 @@ import { FilterSelect } from "@/components/common/FilterSelect";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { Button } from "@/components/ui/button";
-import { timelineOf, useSpecStore } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDateTime, fmtDayTitle, fmtTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { timelineTypeLabel, type ProjectDecision, type TimelineEventType } from "@/contracts";
-import { employeeById, employeeName } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 interface TimelineSearch {
   type?: TimelineEventType | undefined;
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/projects/$id/timeline")({
         : undefined,
     author: typeof search["author"] === "string" && search["author"] ? search["author"] : undefined,
   }),
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [{ title: `История и решения — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
@@ -77,20 +78,16 @@ const typeStyle: Record<TimelineEventType, { icon: LucideIcon; tone: string }> =
 };
 
 function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
+  const { employeeById } = useDirectory();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const state = useSpecStore((s) => s);
+  const timeline = useQuery(queries.timeline(project.id));
+  const decisionsQuery = useQuery(queries.decisions(project.id));
   const [source, setSource] = useState<string | null>(null);
   const [showAllDecisions, setShowAllDecisions] = useState(false);
 
-  const events = useMemo(() => timelineOf(state, project.id), [state, project.id]);
-  const decisions = useMemo(
-    () =>
-      state.decisions
-        .filter((d) => d.projectId === project.id)
-        .sort((a, b) => b.approvedAt.localeCompare(a.approvedAt)),
-    [state.decisions, project.id],
-  );
+  const events = useMemo(() => timeline.data ?? [], [timeline.data]);
+  const decisions = useMemo(() => decisionsQuery.data ?? [], [decisionsQuery.data]);
   const filtered = events
     .filter((e) => (search.type ? e.type === search.type : true))
     .filter((e) => (search.author ? (e.actorId ?? SYSTEM) === search.author : true));
@@ -114,6 +111,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
   const reset = () => setSearch({ type: undefined, author: undefined });
 
   const screen = useScreenState({
+    pending: timeline.isPending || decisionsQuery.isPending,
     empty: events.length === 0,
     filtered: filtered.length === 0,
     partial: events.length > 0 && project.id !== "p-korona",
@@ -317,6 +315,7 @@ function DecisionCard({
   decision: ProjectDecision;
   onSource: (id: string) => void;
 }) {
+  const { employeeName } = useDirectory();
   const rows: { label: string; content: React.ReactNode }[] = [
     { label: "Что требовалось по проекту", content: decision.requirement },
     { label: "Какая возникла проблема", content: decision.problem },

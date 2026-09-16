@@ -28,8 +28,9 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { useScreenState } from "@/lib/screen-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { handedOverAt, isActive, isVerified, specActions, useSpecStore } from "@/lib/spec-store";
-import { useProjectOverview } from "@/lib/project-overview";
+import { isActive, isVerified, specActions } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/projects/$id/documents/$docId")({
   validateSearch: (search: Record<string, unknown>): { position?: string | undefined } => ({
     position: typeof search["position"] === "string" ? search["position"] : undefined,
   }),
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -88,27 +89,19 @@ function isTyping(target: EventTarget | null) {
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 }
 
-function ExtractionPage({ project }: ProjectPageProps): React.JSX.Element {
+function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Element {
   const { docId } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const overview = useProjectOverview(project.id);
 
-  const document = useSpecStore((s) => s.documents.find((doc) => doc.id === docId) ?? null);
-  const allPositions = useSpecStore((s) => s.positions);
-  const upload = useSpecStore((s) => s.uploads[docId]);
-  const sentAt = useSpecStore((s) => handedOverAt(s, docId));
-
-  const positions = useMemo(
-    () => allPositions.filter((item) => item.documentId === docId),
-    [allPositions, docId],
-  );
-  const allSheets = useSpecStore((s) => s.sheets);
-  const sheets = useMemo(
-    () =>
-      allSheets.filter((sheet) => sheet.documentId === docId).sort((a, b) => a.number - b.number),
-    [allSheets, docId],
-  );
+  const card = useQuery(queries.document(docId));
+  // До серверного пейджинга (P3-3) позиции ревизии загружаются целиком
+  const positionsQuery = useQuery(queries.positions({ revisionId: docId, limit: 5000 }));
+  const document = card.data?.document ?? null;
+  const upload = card.data?.stage === null || !card.data ? undefined : { stage: card.data.stage };
+  const sentAt = card.data?.handedOverAt ?? null;
+  const positions = useMemo(() => positionsQuery.data?.items ?? [], [positionsQuery.data]);
+  const sheets = useMemo(() => card.data?.sheets ?? [], [card.data]);
   const positionsBySheet = useMemo(() => {
     const map = new Map<string, ExtractedPosition[]>();
     for (const item of positions) {
@@ -145,6 +138,7 @@ function ExtractionPage({ project }: ProjectPageProps): React.JSX.Element {
   }, [positions]);
 
   const screen = useScreenState({
+    pending: card.isPending || positionsQuery.isPending,
     empty: false,
     filtered: false,
     partial: false,
@@ -390,6 +384,7 @@ function ExtractionPage({ project }: ProjectPageProps): React.JSX.Element {
     return () => window.removeEventListener("keydown", onKey);
   }, [moveBy, onAction, document]);
 
+  if (card.isPending) return <ScreenSkeleton kind="table" />;
   if (!document) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">

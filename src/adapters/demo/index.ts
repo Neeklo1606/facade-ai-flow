@@ -49,9 +49,20 @@ function requestSummary(s: SpecState, requestId: string): RequestSummary | null 
   if (!request) return null;
   const decision = decisionFor(s.decisions, request.id);
   const { best } = compareOffers(s, request);
+  const answeredBy = request.sentTo.filter((supplierId) =>
+    s.offers.some((offer) => offer.requestId === request.id && offer.supplierId === supplierId),
+  );
   return {
     request,
     answered: answeredCount(s.offers, request),
+    answeredBy,
+    awaiting: request.sentTo.filter(
+      (supplierId) =>
+        !answeredBy.includes(supplierId) &&
+        s.pendingReplies.some(
+          (item) => item.requestId === request.id && item.supplierId === supplierId,
+        ),
+    ),
     bestSupplierId: best?.supplierId ?? null,
     bestTotal: best?.total ?? null,
     status: rfqStatus(request, answeredCount(s.offers, request), Boolean(decision), demoNow()),
@@ -300,6 +311,7 @@ export function createDemoRepositories(): Repositories {
             .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
             .map((report) => ({
               report,
+              source: s.sources.find((item) => item.id === report.sourceId) ?? null,
               evidence: s.evidence.filter((item) => report.evidenceIds.includes(item.id)),
               extractions: s.extractions.filter((item) => item.sourceId === report.sourceId),
             })),

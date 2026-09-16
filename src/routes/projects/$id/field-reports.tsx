@@ -27,13 +27,15 @@ import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { sourceOf, specActions, useSpecStore } from "@/lib/spec-store";
+import { specActions } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDayTitle, fmtNum, fmtTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type FieldReport, reportKindLabel, reportStatusLabel } from "@/contracts";
-import { employeeById } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 type StatusFilter = FieldReport["status"] | "all";
 
@@ -52,7 +54,7 @@ export const Route = createFileRoute("/projects/$id/field-reports")({
         : undefined,
     zone: typeof search["zone"] === "string" && search["zone"] ? search["zone"] : undefined,
   }),
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [{ title: `Отчёты с площадки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
@@ -81,26 +83,21 @@ const kindMeta = {
   photo: { label: reportKindLabel.photo, icon: ImageIcon },
 };
 
-function FieldReportsPage({ project }: ProjectPageProps): React.JSX.Element {
+function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const allReports = useSpecStore((s) => s.reports);
+  const reportsQuery = useQuery(queries.reports(project.id));
   const [source, setSource] = useState<string | null>(null);
   const feed = useRef<HTMLOListElement>(null);
 
   const reports = useMemo(
-    () =>
-      allReports
-        .filter((r) => r.projectId === project.id)
-        .sort((a, b) => b.sentAt.localeCompare(a.sentAt)),
-    [allReports, project.id],
+    () => (reportsQuery.data ?? []).map((item) => item.report),
+    [reportsQuery.data],
   );
   const visible = reports
     .filter((r) => (search.status ? r.status === search.status : true))
     .filter((r) => (search.zone ? r.zoneId === search.zone : true));
   const toReview = reports.filter((r) => r.status === "review");
-  const allZones = useSpecStore((s) => s.zones);
-  const zones = allZones.filter((z) => z.projectId === project.id);
 
   const days = useMemo(() => {
     const map = new Map<string, FieldReport[]>();
@@ -116,6 +113,7 @@ function FieldReportsPage({ project }: ProjectPageProps): React.JSX.Element {
     });
 
   const screen = useScreenState({
+    pending: reportsQuery.isPending,
     empty: reports.length === 0,
     filtered: visible.length === 0,
     processing: false,
@@ -264,15 +262,20 @@ function ReportCard({
   onSource: (id: string) => void;
   partial: boolean;
 }) {
+  const { employeeById } = useDirectory();
   const author = employeeById(report.authorId);
-  const state = useSpecStore((s) => s);
-  const zone = state.zones.find((z) => z.id === report.zoneId);
-  const items = state.evidence.filter((e) => report.evidenceIds.includes(e.id));
+  const card = useQuery(queries.reports(report.projectId)).data?.find(
+    (item) => item.report.id === report.id,
+  );
+  const zone = useQuery(queries.project(report.projectId)).data?.zones.find(
+    (z) => z.id === report.zoneId,
+  );
+  const items = card?.evidence ?? [];
   const photos = partial
     ? items.filter((e) => e.kind === "photo").slice(0, 1)
     : items.filter((e) => e.kind === "photo");
   const audio = items.find((e) => e.kind === "audio");
-  const fields = state.extractions.filter((x) => x.sourceId === report.sourceId);
+  const fields = card?.extractions ?? [];
   const kind = kindMeta[report.kind];
   const [editing, setEditing] = useState(false);
   const [qty, setQty] = useState(String(report.acceptedQty ?? report.declaredQty ?? ""));
@@ -287,7 +290,7 @@ function ReportCard({
 
   const end = audio?.location.match(/(\d+):(\d+)$/);
   const duration = end ? Number(end[1]) * 60 + Number(end[2]) : 0;
-  const transcript = useSpecStore((st) => sourceOf(st, report.sourceId)?.excerpt ?? "");
+  const transcript = card?.source?.excerpt ?? "";
 
   return (
     <li id={`report-${report.id}`} className="scroll-mt-20">

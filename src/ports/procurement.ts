@@ -17,7 +17,6 @@ import {
   type ProjectDecision,
   type SupplierOffer,
   type SupplierProfile,
-  type SupplyRequest,
 } from "@/contracts";
 import type { Actor } from "./common";
 
@@ -44,6 +43,10 @@ export const supplierListItem = z.object({ supplier: counterparties, profile: su
 export const requestSummary = z.object({
   request: supplyRequest,
   answered: z.number().int().nonnegative(),
+  /** Кто из получателей прислал предложение */
+  answeredBy: z.array(id),
+  /** Кому напомнили и чей ответ ещё ждём */
+  awaiting: z.array(id),
   bestSupplierId: id.nullable(),
   /** Итог лучшего предложения с НДС и доставкой, копейки */
   bestTotal: z.number().int().nullable(),

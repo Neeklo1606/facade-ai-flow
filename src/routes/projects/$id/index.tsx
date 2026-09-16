@@ -6,7 +6,7 @@ import {
   withProject,
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
-import { specActions, useSpecStore } from "@/lib/spec-store";
+import { specActions } from "@/lib/spec-store";
 import { useScreenState } from "@/lib/screen-state";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
@@ -38,8 +38,10 @@ import { projectStatusMeta } from "@/lib/project-meta";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { employeeName } from "@/lib/directory";
-import { mainSpecification } from "@/domain/overview";
+import { mainSpecification } from "@/lib/documents";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
+import { useDirectory } from "@/api/directory";
 
 const tabs = [
   { id: "summary", label: "Сводка" },
@@ -61,7 +63,7 @@ export const Route = createFileRoute("/projects/$id/")({
         ? (search["tab"] as TabId)
         : undefined,
   }),
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -82,13 +84,16 @@ export const Route = createFileRoute("/projects/$id/")({
   component: withProject(ProjectPage),
 });
 
-function ProjectPage({ project, overview }: ProjectPageProps): React.JSX.Element {
-  const liveDocuments = useSpecStore((s) => s.documents);
+function ProjectPage({ project, overview, contract }: ProjectPageProps): React.JSX.Element {
+  const { employeeName } = useDirectory();
+  const documents = useQuery(queries.documents(project.id));
+  const liveDocuments = (documents.data ?? []).map((item) => item.document);
   const recognizingDocs = liveDocuments.filter(
-    (d) => d.projectId === project.id && (d.status === "recognizing" || d.status === "uploaded"),
+    (d) => d.status === "recognizing" || d.status === "uploaded",
   );
-  const hasDocuments = liveDocuments.some((d) => d.projectId === project.id);
+  const hasDocuments = liveDocuments.length > 0;
   const screen = useScreenState({
+    pending: documents.isPending,
     empty: !hasDocuments && overview.specTotal === 0,
     processing: recognizingDocs.length > 0 && project.id !== "p-korona",
   });
@@ -99,9 +104,8 @@ function ProjectPage({ project, overview }: ProjectPageProps): React.JSX.Element
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const contract = useSpecStore((s) => s.contracts.find((item) => item.projectId === project.id));
   const status = projectStatusMeta[project.status];
-  const latestVersion = useSpecStore((s) => mainSpecification(s, project.id));
+  const latestVersion = mainSpecification(documents.data ?? [])?.document;
 
   const setTab = (next: string) =>
     navigate({

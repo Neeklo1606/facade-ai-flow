@@ -26,6 +26,8 @@ export const reviewReportInput = z
 
 export const reportCard = z.object({
   report: fieldReport,
+  /** Первоисточник отчёта: расшифровка голосового сообщения или текст */
+  source: sources.nullable(),
   evidence: z.array(evidence),
   extractions: z.array(extractions),
 });
@@ -41,6 +43,7 @@ export type ReviewReportInput = z.infer<typeof reviewReportInput>;
 
 export interface ReportCard {
   report: FieldReport;
+  source: Source | null;
   evidence: Evidence[];
   extractions: Extraction[];
 }

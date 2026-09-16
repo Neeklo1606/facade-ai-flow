@@ -11,6 +11,6 @@ export async function prefetch<T, K extends QueryKey>(
   queryClient: QueryClient,
   options: FetchQueryOptions<T, Error, T, K>,
 ) {
-  if (dataSource === "demo" && typeof window === "undefined") return;
-  await queryClient.ensureQueryData(options);
+  if (dataSource === "demo" && typeof window === "undefined") return undefined;
+  return queryClient.ensureQueryData(options);
 }

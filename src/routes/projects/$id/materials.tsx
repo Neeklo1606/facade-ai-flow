@@ -18,8 +18,9 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterSelect } from "@/components/common/FilterSelect";
-import { isActive, isReadyForRequest, isVerified, useSpecStore } from "@/lib/spec-store";
-import { useProjectOverview } from "@/lib/project-overview";
+import { isActive, isReadyForRequest, isVerified } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -63,7 +64,7 @@ export const Route = createFileRoute("/projects/$id/materials")({
       position: str(search["position"]),
     };
   },
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [{ title: `Материалы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
@@ -100,16 +101,17 @@ function matchesReview(item: ExtractedPosition, filter: ReviewFilter | undefined
 
 const PAGE = 40;
 
-function MaterialsPage({ project }: ProjectPageProps): React.JSX.Element {
+function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const overview = useProjectOverview(project.id);
 
-  const allPositions = useSpecStore((s) => s.positions);
-  const documents = useSpecStore((s) => s.documents);
-  const positions = useMemo(
-    () => allPositions.filter((item) => item.projectId === project.id),
-    [allPositions, project.id],
+  // До серверного пейджинга и фильтров (P3-3) реестр материалов загружает позиции объекта целиком
+  const positionsQuery = useQuery(queries.positions({ projectId: project.id, limit: 5000 }));
+  const documentsQuery = useQuery(queries.documents(project.id));
+  const positions = useMemo(() => positionsQuery.data?.items ?? [], [positionsQuery.data]);
+  const documents = useMemo(
+    () => (documentsQuery.data ?? []).map((item) => item.document),
+    [documentsQuery.data],
   );
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -199,6 +201,7 @@ function MaterialsPage({ project }: ProjectPageProps): React.JSX.Element {
       doc.projectId === project.id && (doc.status === "uploaded" || doc.status === "recognizing"),
   );
   const screen = useScreenState({
+    pending: positionsQuery.isPending,
     empty: positions.length === 0,
     filtered: rows.length === 0,
     partial: pendingDocs.length > 0,

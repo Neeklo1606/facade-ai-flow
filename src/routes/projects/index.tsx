@@ -27,18 +27,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { specActions, useSpecStore } from "@/lib/spec-store";
+import { specActions } from "@/lib/spec-store";
 import { useApp } from "@/lib/app-context";
 import { sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
 import { MOCK_NOW } from "@/lib/format";
 import { attentionBar, attentionOf, projectStatusMeta } from "@/lib/project-meta";
 import { exportXlsx } from "@/lib/export-xlsx";
-import { useOverviews } from "@/lib/project-overview";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
+import { prefetch } from "@/api/prefetch";
 import { fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type Project, type ProjectOverview, type ProjectStatus } from "@/contracts";
-import { employeeName } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 interface ProjectsSearch {
   region?: string | undefined;
@@ -72,6 +74,7 @@ export const Route = createFileRoute("/projects/")({
       ? (search["section"] as ProjectSection)
       : undefined,
   }),
+  loader: ({ context }) => prefetch(context.queryClient, queries.projects()),
   head: () => ({
     meta: [
       { title: "Объекты — neeklo FieldOps" },
@@ -115,19 +118,17 @@ function Count({ value, tone }: { value: number; tone?: "danger" | "warn" | unde
 }
 
 function ProjectsPage() {
+  const { employeeName } = useDirectory();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { setProjectId } = useApp();
-  const projects = useSpecStore((s) => s.projects);
-  const overviews = useOverviews(projects.map((project) => project.id));
-  const allRows = useMemo(
+  const registry = useQuery(queries.projects());
+  const allRows = useMemo<Row[]>(
     () =>
-      projects
-        .map((project, index) => ({ id: project.id, project, overview: overviews[index] ?? null }))
-        .filter((row): row is Row => row.overview !== null),
-    [projects, overviews],
+      (registry.data ?? []).map(({ project, overview }) => ({ id: project.id, project, overview })),
+    [registry.data],
   );
   const regions = [...new Set(allRows.map((row) => row.overview.region))];
   const managers = [...new Set(allRows.map((row) => row.project.manager))];
@@ -153,7 +154,11 @@ function ProjectsPage() {
     [allRows, search.region, search.manager, search.status, search.unverified],
   );
 
-  const screen = useScreenState({ empty: allRows.length === 0, filtered: rows.length === 0 });
+  const screen = useScreenState({
+    pending: registry.isPending,
+    empty: allRows.length === 0,
+    filtered: rows.length === 0,
+  });
   const filtersActive = Boolean(
     search.region || search.manager || search.status || search.unverified,
   );
@@ -446,6 +451,7 @@ const numericHeaders = [
 ];
 
 function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => void }) {
+  const { employeeName } = useDirectory();
   return (
     <table className="w-full min-w-[980px] text-table">
       <thead>
@@ -539,6 +545,7 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
 }
 
 function ProjectCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
+  const { employeeName } = useDirectory();
   const attention = attentionOf(row.overview);
   const status = projectStatusMeta[row.project.status];
   const { overview } = row;
@@ -619,7 +626,7 @@ function CreateProjectDialog({
   onOpenChange: (v: boolean) => void;
   onCreated: (id: string) => void;
 }) {
-  const employees = useSpecStore((s) => s.employees);
+  const { employeeName, employees } = useDirectory();
   const managersList = employees.filter((item) => item.role === "manager");
   const [manager, setManager] = useState(managersList[0]?.id ?? "");
   const today = MOCK_NOW.slice(0, 10);

@@ -3,7 +3,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronRight, Menu, Moon, Search, Sun } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { sectionLabels, type ProjectSection } from "@/lib/navigation";
-import { projectOf, useSpecStore } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { screenStatesEnabled } from "@/lib/screen-state";
 import { StatePicker } from "./StatePicker";
 
@@ -14,20 +15,25 @@ export function Topbar() {
     /^\/projects\/([^/]+)(?:\/(documents|materials|procurement|field-reports|timeline)(?:\/([^/]+))?)?/,
   );
   const projectId = detail?.[1] ? decodeURIComponent(detail[1]) : null;
-  const detailProject = useSpecStore((s) => (projectId ? projectOf(s, projectId) : null));
+  const detailProject = useQuery({ ...queries.project(projectId ?? ""), enabled: !!projectId }).data
+    ?.project;
   const sectionKey = detail?.[2] as ProjectSection | undefined;
   const section = sectionKey ? sectionLabels[sectionKey] : null;
-  const childTitle = useSpecStore((s) => {
-    const child = detail?.[3] ? decodeURIComponent(detail[3]) : null;
-    if (!child) return null;
-    if (sectionKey === "documents")
-      return s.documents.find((doc) => doc.id === child)?.title ?? null;
-    if (sectionKey === "procurement") {
-      const number = s.requests.find((r) => r.id === child)?.number;
-      return number ? `Сравнение ${number}` : null;
-    }
-    return null;
-  });
+  const child = detail?.[3] ? decodeURIComponent(detail[3]) : null;
+  const documentTitle = useQuery({
+    ...queries.document(child ?? ""),
+    enabled: !!child && sectionKey === "documents",
+  }).data?.document.title;
+  const requestNumber = useQuery({
+    ...queries.request(child ?? ""),
+    enabled: !!child && sectionKey === "procurement",
+  }).data?.summary.request.number;
+  const childTitle =
+    sectionKey === "documents"
+      ? (documentTitle ?? null)
+      : requestNumber
+        ? `Сравнение ${requestNumber}`
+        : null;
 
   // Открыт экран объекта — селектор в сайдбаре показывает этот объект
   useEffect(() => {

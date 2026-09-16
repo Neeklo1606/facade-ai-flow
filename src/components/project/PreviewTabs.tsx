@@ -1,15 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Bot, Check, FileText, UserRound } from "lucide-react";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
-import { ConfidenceIndicator, confidenceLevel } from "@/components/common/ConfidenceIndicator";
-import {
-  documentStats,
-  isActive,
-  isVerified,
-  timelineOf,
-  useSpecStore,
-  type SpecState,
-} from "@/lib/spec-store";
+import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
+import { useQuery } from "@tanstack/react-query";
+import { isVerifiedPosition as isVerified } from "@/contracts";
+import { queries } from "@/api/queries";
+import { mainSpecification } from "@/lib/documents";
 import { docStatusTone } from "@/lib/project-meta";
 import { SourceRef } from "@/components/common/SourceRef";
 import {
@@ -22,12 +18,11 @@ import {
   type Milestone,
   type ProjectOverview,
 } from "@/contracts";
-import { currentRevisions, mainSpecification, revisionStats, revisionsOf } from "@/domain/overview";
-import { compareOffers, rfqStatus, rfqStatusMeta } from "@/lib/procurement";
-import { counterpartyName, employeeById, employeeName } from "@/lib/directory";
+import { rfqStatusMeta } from "@/lib/procurement";
 import { fmtDate, fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Bar, Block, BlockEmpty } from "./parts";
+import { useDirectory } from "@/api/directory";
 
 interface Props {
   projectId: string;
@@ -100,10 +95,13 @@ function More({ shown, total, unit }: { shown: number; total: number; unit: stri
 /* ---------- Документация ---------- */
 
 export function DocumentsPreview(props: Props) {
-  const state = useSpecStore((st) => st);
-  const docs = currentRevisions(state.documents, props.projectId);
-  const main = mainSpecification(state, props.projectId);
-  const versions = main ? revisionsOf(state.documents, main.documentId) : [];
+  const docs = useQuery(queries.documents(props.projectId)).data ?? [];
+  const main = mainSpecification(docs);
+  const versions =
+    useQuery({
+      ...queries.revisions(main?.document.documentId ?? ""),
+      enabled: !!main,
+    }).data ?? [];
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
@@ -130,8 +128,7 @@ export function DocumentsPreview(props: Props) {
                 </>
               }
             >
-              {docs.slice(0, PREVIEW).map((doc) => {
-                const stats = documentStats(state, doc.id);
+              {docs.slice(0, PREVIEW).map(({ document: doc, ...stats }) => {
                 return (
                   <tr key={doc.id}>
                     <Td className="max-w-[320px] truncate font-medium text-text-primary">
@@ -166,8 +163,8 @@ export function DocumentsPreview(props: Props) {
           <BlockEmpty>Спецификация не загружена</BlockEmpty>
         ) : (
           <ul className="divide-y divide-border">
-            {versions.map((version, index) => {
-              const stats = revisionStats(state.positions, version);
+            {versions.map(({ document: version, extracted, verified }, index) => {
+              const stats = { total: extracted, verified };
               return (
                 <li key={version.id} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
@@ -203,11 +200,10 @@ export function DocumentsPreview(props: Props) {
 /* ---------- Материалы ---------- */
 
 export function MaterialsPreview(props: Props) {
-  const livePositions = useSpecStore((st) => st.positions);
-  const positions = livePositions.filter(
-    (item) => item.projectId === props.projectId && isActive(item),
-  );
-  if (positions.length) return <LiveMaterialsPreview {...props} positions={positions} />;
+  const page = useQuery(
+    queries.positions({ projectId: props.projectId, order: "attention", limit: PREVIEW }),
+  ).data;
+  if (page?.total) return <LiveMaterialsPreview {...props} positions={page.items} />;
   return (
     <Block
       title="Спецификация материалов"
@@ -224,21 +220,15 @@ export function MaterialsPreview(props: Props) {
   );
 }
 
-const levelWeight = { low: 0, mid: 1, high: 2 } as const;
-
 function LiveMaterialsPreview({
   projectId,
   overview,
   scope,
   positions,
 }: Props & { positions: ExtractedPosition[] }) {
-  const items = [...positions]
-    .sort(
-      (a, b) =>
-        Number(isVerified(a)) - Number(isVerified(b)) ||
-        levelWeight[confidenceLevel(a.confidence)] - levelWeight[confidenceLevel(b.confidence)],
-    )
-    .slice(0, PREVIEW);
+  const { employeeName } = useDirectory();
+  // Порядок «сначала требующие разбора» задаёт запрос
+  const items = positions;
 
   return (
     <Block
@@ -315,13 +305,9 @@ const deliveryTone: Record<Delivery["status"], Tone> = {
 };
 
 export function PurchasesPreview({ projectId, overview, scope }: Props) {
-  const store = useSpecStore((st) => st);
-  const requests = [...store.requests.filter((r) => r.projectId === projectId)].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
-  );
-  const deliveries = [...store.deliveries.filter((d) => d.projectId === projectId)].sort((a, b) =>
-    b.expectedAt.localeCompare(a.expectedAt),
-  );
+  const { counterpartyName } = useDirectory();
+  const requests = useQuery(queries.requests(projectId)).data ?? [];
+  const deliveries = useQuery(queries.deliveries(projectId)).data ?? [];
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
@@ -345,9 +331,9 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
               </>
             }
           >
-            {requests.slice(0, PREVIEW).map((request) => {
-              const calc = compareOffers(store, request);
-              const status = rfqStatusMeta[rfqStatus(store, request)];
+            {requests.slice(0, PREVIEW).map((summary) => {
+              const { request } = summary;
+              const status = rfqStatusMeta[summary.status];
               return (
                 <tr key={request.id}>
                   <Td className="whitespace-nowrap font-medium text-text-primary">
@@ -360,10 +346,10 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
                     {request.items.map((item) => item.name).join(", ")}
                   </Td>
                   <Td right>
-                    {calc.answered} из {request.sentTo.length}
+                    {summary.answered} из {request.sentTo.length}
                   </Td>
                   <Td right className="whitespace-nowrap">
-                    {calc.best ? fmtMoney(calc.best.total) : "—"}
+                    {summary.bestTotal !== null ? fmtMoney(summary.bestTotal) : "—"}
                   </Td>
                   <Td>
                     <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
@@ -420,12 +406,9 @@ const milestoneTone: Record<Milestone["status"], Tone> = {
 };
 
 export function ProgressPreview({ projectId, scope, onSource }: Props) {
-  const allZones = useSpecStore((st) => st.zones);
-  const allMilestones = useSpecStore((st) => st.milestones);
-  const zones = allZones.filter((zone) => zone.projectId === projectId);
-  const milestones = allMilestones
-    .filter((milestone) => milestone.projectId === projectId)
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const card = useQuery(queries.project(projectId)).data;
+  const zones = card?.zones ?? [];
+  const milestones = card?.milestones ?? [];
   const planQty = zones.reduce((acc, zone) => acc + zone.planQty, 0);
   const factQty = zones.reduce((acc, zone) => acc + zone.factQty, 0);
 
@@ -495,46 +478,10 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
 
 /* ---------- Решения ---------- */
 
-interface PendingItem {
-  id: string;
-  title: string;
-  details: string;
-  link: string;
-  kind: "request" | "replacement";
-}
-
-/** «Ждут решения»: запросы, по которым ответили все, и предложенные замены материалов объекта */
-function pendingDecisions(state: SpecState, projectId: string): PendingItem[] {
-  const requests: PendingItem[] = state.requests
-    .filter((request) => request.projectId === projectId && rfqStatus(state, request) === "ready")
-    .map((request) => ({
-      id: request.id,
-      title: `Выбрать поставщика по запросу ${request.number}`,
-      details: `Ответили все ${request.sentTo.length}: ${request.items.map((item) => item.name).join(", ")}`,
-      link: `/projects/${projectId}/procurement/${request.id}`,
-      kind: "request",
-    }));
-  const families = new Set(
-    state.positions.filter((item) => item.projectId === projectId).map((item) => item.family),
-  );
-  const replacements: PendingItem[] = state.replacements
-    .filter((item) => item.status === "proposed" && families.has(item.family))
-    .map((item) => ({
-      id: item.id,
-      title: `Замена: ${item.name}`,
-      details: `${item.reason} · цена ${item.priceDeltaPct > 0 ? "+" : ""}${item.priceDeltaPct}%`,
-      link: `/projects/${projectId}/materials`,
-      kind: "replacement",
-    }));
-  return [...requests, ...replacements];
-}
-
 export function DecisionsPreview({ projectId, scope, onSource }: Props) {
-  const state = useSpecStore((st) => st);
-  const pending = pendingDecisions(state, projectId);
-  const decisions = state.decisions
-    .filter((item) => item.projectId === projectId)
-    .sort((a, b) => b.approvedAt.localeCompare(a.approvedAt));
+  const { employeeName } = useDirectory();
+  const pending = useQuery(queries.pendingDecisions(projectId)).data ?? [];
+  const decisions = useQuery(queries.decisions(projectId)).data ?? [];
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -605,8 +552,8 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
 /* ---------- История ---------- */
 
 export function HistoryPreview({ projectId, scope, onSource }: Props) {
-  const state = useSpecStore((st) => st);
-  const log = timelineOf(state, projectId);
+  const { employeeById } = useDirectory();
+  const log = useQuery(queries.timeline(projectId)).data ?? [];
 
   return (
     <Block
@@ -663,10 +610,10 @@ export function HistoryPreview({ projectId, scope, onSource }: Props) {
 /* ---------- Команда ---------- */
 
 export function TeamPreview({ projectId }: Props) {
-  const employees = useSpecStore((st) => st.employees);
-  const allCrews = useSpecStore((st) => st.crews);
-  const people = employees.filter((item) => item.projectIds.includes(projectId));
-  const crews = allCrews.filter((crew) => crew.projectId === projectId);
+  const { employeeName } = useDirectory();
+  const card = useQuery(queries.project(projectId)).data;
+  const people = card?.team ?? [];
+  const crews = card?.crews ?? [];
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">

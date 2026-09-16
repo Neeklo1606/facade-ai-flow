@@ -3,9 +3,6 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 /** Значение селектора объекта «Все объекты» */
 export const ALL_PROJECTS = "all";
 
-/** Сотрудник, от имени которого работает демо. В фазе 4 приходит из сессии (P4-2). */
-export const CURRENT_USER_ID = "e-sokolov";
-
 interface AppContextValue {
   theme: "light" | "dark";
   toggleTheme: () => void;

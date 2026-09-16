@@ -23,9 +23,10 @@ import {
   type ProjectOverview,
   type TimelineEventType,
 } from "@/contracts";
-import { employeeName } from "@/lib/directory";
-import { mainSpecification, revisionStats, revisionsOf } from "@/domain/overview";
-import { timelineOf, useSpecStore } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
+import { mainSpecification } from "@/lib/documents";
+import { useDirectory } from "@/api/directory";
 
 interface Props {
   projectId: string;
@@ -174,18 +175,19 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
 /* ---------- 2. Документация ---------- */
 
 function DocumentationBlock({ projectId, overview, scope, onSource }: Props) {
-  const state = useSpecStore((st) => st);
-  const main = mainSpecification(state, projectId);
+  const { employeeName } = useDirectory();
+  const main = mainSpecification(useQuery(queries.documents(projectId)).data ?? []);
   // Ревизии основной спецификации; цифры считаются по позициям, поэтому подтверждения видны сразу
-  const versions = (main ? revisionsOf(state.documents, main.documentId) : []).map((revision) => {
-    const stats = revisionStats(state.positions, revision);
-    return {
-      ...revision,
-      sheets: revision.sheetCount,
-      extracted: stats.total,
-      verified: stats.verified,
-    };
-  });
+  const revisions = useQuery({
+    ...queries.revisions(main?.document.documentId ?? ""),
+    enabled: !!main,
+  }).data;
+  const versions = (revisions ?? []).map(({ document, extracted, verified }) => ({
+    ...document,
+    sheets: document.sheetCount,
+    extracted,
+    verified,
+  }));
   const latest = versions[0];
 
   return (
@@ -358,8 +360,8 @@ const activityIcon: Record<TimelineEventType, LucideIcon> = {
 };
 
 function ActivityBlock({ projectId, onSource, onTab }: Props) {
-  const state = useSpecStore((st) => st);
-  const items = timelineOf(state, projectId).slice(0, 7);
+  const { employeeName } = useDirectory();
+  const items = (useQuery(queries.timeline(projectId)).data ?? []).slice(0, 7);
 
   return (
     <Block title="Последние события" linkLabel="Вся история" onLinkClick={() => onTab("history")}>

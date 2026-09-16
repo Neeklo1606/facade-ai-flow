@@ -5,9 +5,10 @@ import { ConfidenceIndicator } from "./ConfidenceIndicator";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { fmtDateTime } from "@/lib/format";
-import { sourceOf, useSpecStore } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { sourceKindLabel, type SourceKind } from "@/contracts";
-import { employeeById } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 const kindIcon: Record<SourceKind, typeof Mail> = {
   telegram: MessageSquare,
@@ -40,7 +41,8 @@ export function SourceRef({
   onOpen?: () => void;
   className?: string;
 }) {
-  const source = useSpecStore((st) => sourceOf(st, sourceId));
+  const { employeeById } = useDirectory();
+  const source = useQuery({ ...queries.source(sourceId ?? ""), enabled: !!sourceId }).data?.source;
   if (!source) {
     return (
       <Tooltip>
@@ -119,11 +121,10 @@ export function SourceDrawer({
   fragment?: string | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const state = useSpecStore((st) => st);
-  const source = sourceOf(state, sourceId);
-  if (!source) return null;
-  const fields = state.extractions.filter((item) => item.sourceId === source.id);
-  const decisions = state.decisions.filter((item) => item.basisSourceId === source.id);
+  const { employeeById } = useDirectory();
+  const card = useQuery({ ...queries.source(sourceId ?? ""), enabled: !!sourceId }).data;
+  if (!card) return null;
+  const { source, extractions: fields, decisions } = card;
 
   return (
     <EntityDrawer

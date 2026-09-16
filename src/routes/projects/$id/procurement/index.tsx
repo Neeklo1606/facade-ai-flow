@@ -16,9 +16,10 @@ import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { specActions, useSpecStore } from "@/lib/spec-store";
-import { useProjectOverview } from "@/lib/project-overview";
-import { compareOffers, rfqStatus, rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
+import { specActions } from "@/lib/spec-store";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
+import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDate, fmtDateTime, fmtDue, fmtMoney, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
@@ -30,7 +31,7 @@ import {
   type SupplierProfile,
   type SupplyRequest,
 } from "@/contracts";
-import { counterpartyById } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 type View = "requests" | "suppliers";
 
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/projects/$id/procurement/")({
     category: str(search["category"]),
     freshness: str(search["freshness"]) as ContactFreshness | undefined,
   }),
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -90,14 +91,20 @@ function matchesStatus(row: RequestRow, filter: ProcurementSearch["status"]) {
   return row.status === filter;
 }
 
-function ProcurementPage({ project }: ProjectPageProps): React.JSX.Element {
+function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Element {
+  const { counterpartyById } = useDirectory();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const overview = useProjectOverview(project.id);
   const view: View = search.view ?? "requests";
   const [createOpen, setCreateOpen] = useState(false);
 
-  const state = useSpecStore((s) => s);
+  const requestsQuery = useQuery(queries.requests(project.id));
+  const suppliersQuery = useQuery(queries.suppliers());
+  const summaries = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
+  const profiles = useMemo(
+    () => (suppliersQuery.data ?? []).map((item) => item.profile),
+    [suppliersQuery.data],
+  );
   const setSearch = (patch: Partial<ProcurementSearch>) =>
     navigate({
       search: (prev: ProcurementSearch) => ({ ...prev, ...patch }),
@@ -107,30 +114,21 @@ function ProcurementPage({ project }: ProjectPageProps): React.JSX.Element {
 
   const requestRows = useMemo<RequestRow[]>(
     () =>
-      state.requests
-        .filter((r) => r.projectId === project.id)
-        .map((request) => {
-          const { answered, best } = compareOffers(state, request);
-          return {
-            request,
-            answered,
-            bestTotal: best?.total ?? null,
-            due: request.replyDueAt,
-            status: rfqStatus(state, request),
-          };
-        })
-        .sort((a, b) => b.request.createdAt.localeCompare(a.request.createdAt)),
-    [state, project.id],
+      summaries.map((summary) => ({
+        request: summary.request,
+        answered: summary.answered,
+        bestTotal: summary.bestTotal,
+        due: summary.request.replyDueAt,
+        status: summary.status,
+      })),
+    [summaries],
   );
 
-  const projectRequests = requestRows.map((r) => r.request);
   const supplierRows = useMemo(
     () =>
-      state.profiles.map((profile) => {
-        const sent = projectRequests.filter((r) => r.sentTo.includes(profile.supplierId));
-        const replied = sent.filter((r) =>
-          state.offers.some((o) => o.requestId === r.id && o.supplierId === profile.supplierId),
-        );
+      profiles.map((profile) => {
+        const sent = summaries.filter((r) => r.request.sentTo.includes(profile.supplierId));
+        const replied = sent.filter((r) => r.answeredBy.includes(profile.supplierId));
         return {
           profile,
           supplier: counterpartyById(profile.supplierId),
@@ -139,7 +137,7 @@ function ProcurementPage({ project }: ProjectPageProps): React.JSX.Element {
         };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.profiles, requestRows],
+    [profiles, summaries],
   );
 
   const visibleRequests = requestRows.filter((row) => matchesStatus(row, search.status));
@@ -159,25 +157,24 @@ function ProcurementPage({ project }: ProjectPageProps): React.JSX.Element {
   const waitingForReminder = waiting.reduce(
     (acc, r) =>
       acc +
-      r.request.sentTo.filter(
-        (id) =>
-          !state.offers.some((o) => o.requestId === r.request.id && o.supplierId === id) &&
-          !state.pendingReplies.some((p) => p.requestId === r.request.id && p.supplierId === id),
-      ).length,
+      (summaries.find((s) => s.request.id === r.request.id)?.request.sentTo.length ?? 0) -
+      (summaries.find((s) => s.request.id === r.request.id)?.answeredBy.length ?? 0) -
+      (summaries.find((s) => s.request.id === r.request.id)?.awaiting.length ?? 0),
     0,
   );
   const silentSuppliers = waiting.reduce((acc, r) => acc + r.request.sentTo.length - r.answered, 0);
-  const staleContacts = state.profiles.filter((p) => p.contactStatus !== "verified").length;
+  const staleContacts = profiles.filter((p) => p.contactStatus !== "verified").length;
 
   const isRequests = view === "requests";
   const screen = useScreenState({
+    pending: requestsQuery.isPending || suppliersQuery.isPending,
     empty: isRequests ? requestRows.length === 0 : supplierRows.length === 0,
     filtered: isRequests ? visibleRequests.length === 0 : visibleSuppliers.length === 0,
     partial: isRequests ? waiting.length > 0 : staleContacts > 0,
   });
   const blocked = screen === "forbidden" || screen === "error" || screen === "loading";
-  const regions = [...new Set(state.profiles.map((p) => p.region))];
-  const categories = [...new Set(state.profiles.flatMap((p) => p.categories))];
+  const regions = [...new Set(profiles.map((p) => p.region))];
+  const categories = [...new Set(profiles.flatMap((p) => p.categories))];
   const resetFilters = () =>
     setSearch({ status: undefined, region: undefined, category: undefined, freshness: undefined });
 
@@ -388,6 +385,7 @@ function ProcurementPage({ project }: ProjectPageProps): React.JSX.Element {
 }
 
 function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: string }) {
+  const { counterpartyById } = useDirectory();
   const navigate = useNavigate();
   const open = (row: RequestRow) =>
     navigate({

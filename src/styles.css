@@ -529,10 +529,9 @@
     background: var(--bg-hover);
   }
   @media (min-width: 1024px) {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(
-        0,
-        0.9fr
-      ) 130px 32px;
+    grid-template-columns:
+      minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr)
+      130px 32px;
     padding: 14px 24px;
     gap: 16px;
   }

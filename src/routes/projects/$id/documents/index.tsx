@@ -1,4 +1,5 @@
-import { currentRevisions } from "@/domain/overview";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, FileSpreadsheet, FileText, FileType2, Upload } from "lucide-react";
@@ -18,7 +19,7 @@ import { useScreenState } from "@/lib/screen-state";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
-import { documentStats, specActions, useSpecStore } from "@/lib/spec-store";
+import { specActions } from "@/lib/spec-store";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -29,10 +30,10 @@ import {
   processingStatusLabel,
   processingStatusLabel as docStatusLabel,
 } from "@/contracts";
-import { employeeName } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 export const Route = createFileRoute("/projects/$id/documents/")({
-  loader: ({ params }) => loadProject(params.id),
+  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -59,21 +60,24 @@ const filters: { id: "all" | DocProcessingStatus; label: string }[] = [
 ];
 
 function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
+  const { employeeName } = useDirectory();
   const navigate = useNavigate();
   const zone = useRef<UploadZoneHandle>(null);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
 
-  const state = useSpecStore((s) => s);
-  const uploads = state.uploads;
-
   // Экран показывает действующие ревизии; прошлые — в карточке объекта, «Ревизии спецификации»
-  const documents = useMemo(
-    () => currentRevisions(state.documents, project.id),
-    [state.documents, project.id],
-  );
-  const stats = useMemo(
-    () => new Map(documents.map((doc) => [doc.id, documentStats(state, doc.id)])),
-    [documents, state],
+  const query = useQuery(queries.documents(project.id));
+  const items = useMemo(() => query.data ?? [], [query.data]);
+  const documents = useMemo(() => items.map((item) => item.document), [items]);
+  const stats = useMemo(() => new Map(items.map((item) => [item.document.id, item])), [items]);
+  const uploads = useMemo(
+    () =>
+      Object.fromEntries(
+        items.flatMap((item) =>
+          item.stage === null ? [] : [[item.document.id, { stage: item.stage }]],
+        ),
+      ) as Record<string, { stage: number }>,
+    [items],
   );
 
   const inProgress = documents.filter((doc) => uploads[doc.id] && uploads[doc.id]!.stage < 4);
@@ -99,6 +103,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const recognizing = documents.filter((doc) => doc.status === "recognizing" && !uploads[doc.id]);
   const queued = documents.filter((doc) => doc.status === "uploaded" && !uploads[doc.id]);
   const screen = useScreenState({
+    pending: query.isPending,
     empty: documents.length === 0,
     filtered: rows.length === 0,
     processing: inProgress.length > 0 || recognizing.length > 0,

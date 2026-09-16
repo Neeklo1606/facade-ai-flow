@@ -4,8 +4,9 @@ import { EntityDrawer } from "@/components/common/EntityDrawer";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
 import { Button } from "@/components/ui/button";
-import { useSpecStore } from "@/lib/spec-store";
-import { compareOffers, rfqStatus, rfqStatusMeta } from "@/lib/procurement";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
+import { compareOffers, rfqStatusMeta } from "@/lib/procurement";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,7 @@ import {
   type ExtractedPosition,
   type ReplacementSuggestion,
 } from "@/contracts";
-import { counterpartyName, employeeById } from "@/lib/directory";
+import { useDirectory } from "@/api/directory";
 
 const replacementTone: Record<ReplacementSuggestion["status"], "info" | "ok" | "neutral"> = {
   proposed: "info",
@@ -50,14 +51,12 @@ export function MaterialDrawer({
   documentTitle: string;
   onOpenChange: (open: boolean) => void;
 }) {
-  const changes = useSpecStore((s) => s.changes);
-  const store = useSpecStore((s) => s);
-  const requests = store.requests;
-  const history = changes
-    .filter((change) => change.positionId === item.id)
-    .sort((a, b) => b.at.localeCompare(a.at));
-  const related = requests.filter((request) => item.requestIds.includes(request.id));
-  const replacements = store.replacements.filter((r) => r.family === item.family);
+  const { employeeById } = useDirectory();
+  const history = useQuery(queries.positionHistory(item.id)).data ?? [];
+  const related = item.requestIds;
+  const replacements = (useQuery(queries.replacements()).data ?? []).filter(
+    (r) => r.family === item.family,
+  );
   const review = reviewLabel(item);
   const stage = purchaseOrder.indexOf(item.purchase);
 
@@ -192,49 +191,9 @@ export function MaterialDrawer({
             </p>
           ) : (
             <ul className="space-y-2">
-              {related.map((request) => {
-                const calc = compareOffers(store, request);
-                const offers = calc.columns
-                  .filter((column) => column.offerId)
-                  .sort((a, b) => a.total - b.total);
-                return (
-                  <li key={request.id} className="rounded-[var(--r-md)] border border-border">
-                    <div className="flex items-center justify-between gap-3 px-3 py-2">
-                      <span className="text-[13px] font-medium">{request.number}</span>
-                      <span className="text-caption text-text-muted">
-                        {rfqStatusMeta[rfqStatus(store, request)].label} ·{" "}
-                        {request.sentTo.map(counterpartyName).join(", ")}
-                      </span>
-                    </div>
-                    {offers.length > 0 ? (
-                      <ul className="divide-y divide-border border-t border-border">
-                        {offers.map((offer) => (
-                          <li
-                            key={offer.supplierId}
-                            className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
-                          >
-                            <span className="min-w-0 truncate">
-                              {counterpartyName(offer.supplierId)}
-                              {calc.best?.supplierId === offer.supplierId && (
-                                <StatusBadge tone="ok" className="ml-2 h-5">
-                                  Лучшее
-                                </StatusBadge>
-                              )}
-                            </span>
-                            <span className="tnum shrink-0 text-text-secondary">
-                              {fmtMoney(offer.total)} · {offer.maxLeadTime} дн.
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="border-t border-border px-3 py-2 text-caption text-text-muted">
-                        Предложений пока нет
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
+              {related.map((requestId) => (
+                <RelatedRequest key={requestId} requestId={requestId} />
+              ))}
             </ul>
           )}
         </Section>
@@ -316,5 +275,52 @@ export function MaterialDrawer({
         </Section>
       </div>
     </EntityDrawer>
+  );
+}
+
+/** Запрос, в который вошла позиция: статус, получатели и предложения по итогу */
+function RelatedRequest({ requestId }: { requestId: string }) {
+  const { counterpartyName } = useDirectory();
+  const card = useQuery(queries.request(requestId)).data;
+  if (!card) return null;
+  const { request } = card.summary;
+  const calc = compareOffers({ offers: card.offers, offerLines: card.lines }, request);
+  const offers = calc.columns.filter((column) => column.offerId).sort((a, b) => a.total - b.total);
+  return (
+    <li className="rounded-[var(--r-md)] border border-border">
+      <div className="flex items-center justify-between gap-3 px-3 py-2">
+        <span className="text-[13px] font-medium">{request.number}</span>
+        <span className="text-caption text-text-muted">
+          {rfqStatusMeta[card.summary.status].label} ·{" "}
+          {request.sentTo.map(counterpartyName).join(", ")}
+        </span>
+      </div>
+      {offers.length > 0 ? (
+        <ul className="divide-y divide-border border-t border-border">
+          {offers.map((offer) => (
+            <li
+              key={offer.supplierId}
+              className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
+            >
+              <span className="min-w-0 truncate">
+                {counterpartyName(offer.supplierId)}
+                {calc.best?.supplierId === offer.supplierId && (
+                  <StatusBadge tone="ok" className="ml-2 h-5">
+                    Лучшее
+                  </StatusBadge>
+                )}
+              </span>
+              <span className="tnum shrink-0 text-text-secondary">
+                {fmtMoney(offer.total)} · {offer.maxLeadTime} дн.
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="border-t border-border px-3 py-2 text-caption text-text-muted">
+          Предложений пока нет
+        </p>
+      )}
+    </li>
   );
 }

@@ -1,4 +1,3 @@
-import { currentRevisions } from "@/domain/overview";
 import { useNavigate } from "@tanstack/react-router";
 import {
   CommandDialog,
@@ -11,19 +10,30 @@ import {
 import { useApp } from "@/lib/app-context";
 import { allNavItems, sectionHref } from "@/lib/navigation";
 import { useProjectId } from "@/lib/project-scope";
-import { useSpecStore } from "@/lib/spec-store";
-import { counterpartyName } from "@/lib/directory";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
+import { useDirectory } from "@/api/directory";
 
 /** Поиск по системе: объекты, разделы, документы, запросы и поставщики — только экраны объекта. */
 export function CommandPalette() {
   const { commandOpen, setCommandOpen } = useApp();
   const navigate = useNavigate();
   const projectId = useProjectId();
-  const projects = useSpecStore((s) => s.projects);
-  const allDocuments = useSpecStore((s) => s.documents);
-  const documents = currentRevisions(allDocuments);
-  const requests = useSpecStore((s) => s.requests);
-  const profiles = useSpecStore((s) => s.profiles);
+  const { counterpartyName } = useDirectory();
+  // Поиск загружает данные только когда открыт
+  const enabled = commandOpen;
+  const projects = (useQuery({ ...queries.projects(), enabled }).data ?? []).map(
+    (item) => item.project,
+  );
+  const documents = (useQuery({ ...queries.documents(), enabled }).data ?? []).map(
+    (item) => item.document,
+  );
+  const requests = useQueries({
+    queries: projects.map((project) => ({ ...queries.requests(project.id), enabled })),
+  }).flatMap((result) => (result.data ?? []).map((item) => item.request));
+  const profiles = (useQuery({ ...queries.suppliers(), enabled }).data ?? []).map(
+    (item) => item.profile,
+  );
   const nameOf = (id: string) => projects.find((p) => p.id === id)?.name ?? "";
 
   const go = (to: string, search?: Record<string, string>) => {

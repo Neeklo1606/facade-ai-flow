@@ -1,6 +1,7 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
+import { dataSource } from "./api/config";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -26,4 +27,7 @@ const csrfMiddleware = createCsrfMiddleware({
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware, csrfMiddleware],
+  // Демо: данные живут во вкладке, сервер их не видит (ADR-004) — маршруты рендерятся на клиенте,
+  // иначе серверный скелетон и клиентские данные расходятся при гидратации. Рабочий режим — полный SSR.
+  defaultSsr: dataSource === "server",
 }));

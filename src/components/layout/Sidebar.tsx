@@ -15,7 +15,7 @@ import {
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
 import { activeNavKey, navGroups, sectionHref, type BadgeKey } from "@/lib/navigation";
 import { useCurrentUser, useProjectId } from "@/lib/project-scope";
-import { specActions, useSpecStore } from "@/lib/spec-store";
+import { specActions } from "@/lib/spec-store";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,19 +28,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/lib/toast";
-import { useOverviews } from "@/lib/project-overview";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
+import type { ProjectOverview } from "@/contracts";
 import { cn } from "@/lib/utils";
 
 const CRITICAL_BADGES: BadgeKey[] = ["overdueRequests"];
 
 function badgeCounts(
   projectId: string | null,
-  overviews: ReturnType<typeof useOverviews>,
+  overviews: ProjectOverview[],
 ): Record<BadgeKey, number> {
-  const scoped = overviews.filter(
-    (item): item is NonNullable<typeof item> =>
-      !!item && (projectId ? item.projectId === projectId : true),
-  );
+  const scoped = overviews.filter((item) => (projectId ? item.projectId === projectId : true));
   const total = (pick: (item: (typeof scoped)[number]) => number) =>
     scoped.reduce((acc, item) => acc + pick(item), 0);
   return {
@@ -102,8 +101,9 @@ function SidebarInner({
     },
   });
   const projectId = useProjectId();
-  const projects = useSpecStore((s) => s.projects);
-  const overviews = useOverviews(projects.map((p) => p.id));
+  const { data: registry = [] } = useQuery(queries.projects());
+  const projects = registry.map((item) => item.project);
+  const overviews = registry.map((item) => item.overview);
   const counts = badgeCounts(projectId, overviews);
   const navigate = useNavigate();
   /** Смена объекта на экране объекта открывает тот же раздел у выбранного объекта. */
