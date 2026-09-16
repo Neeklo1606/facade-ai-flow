@@ -31,7 +31,8 @@ export const Route = createFileRoute("/design-system")({
       { title: "Библиотека интерфейса — neeklo FieldOps" },
       {
         name: "description",
-        content: "Цвета двух тем, типографика, таблицы, бейджи, уверенность, источник, метрики и состояния экранов.",
+        content:
+          "Цвета двух тем, типографика, таблицы, бейджи, уверенность, источник, метрики и состояния экранов.",
       },
       { property: "og:title", content: "Библиотека интерфейса — neeklo FieldOps" },
       { property: "og:description", content: "Единая библиотека компонентов и токенов обеих тем." },
@@ -51,9 +52,27 @@ interface Row {
 }
 
 const rows: Row[] = [
-  { id: "z1", zone: "Захватка 1, оси А-Г, этажи 5-8", plan: "1 900 м²", fact: "1 900 м²", status: "ok" },
-  { id: "z2", zone: "Захватка 2, оси Г-К, этажи 9-11", plan: "2 400 м²", fact: "1 846 м²", status: "warn" },
-  { id: "z3", zone: "Захватка 3, оси К-Р, этажи 12-14", plan: "2 100 м²", fact: "840 м²", status: "danger" },
+  {
+    id: "z1",
+    zone: "Захватка 1, оси А-Г, этажи 5-8",
+    plan: "1 900 м²",
+    fact: "1 900 м²",
+    status: "ok",
+  },
+  {
+    id: "z2",
+    zone: "Захватка 2, оси Г-К, этажи 9-11",
+    plan: "2 400 м²",
+    fact: "1 846 м²",
+    status: "warn",
+  },
+  {
+    id: "z3",
+    zone: "Захватка 3, оси К-Р, этажи 12-14",
+    plan: "2 100 м²",
+    fact: "840 м²",
+    status: "danger",
+  },
 ];
 
 const statusLabel: Record<Row["status"], string> = {
@@ -92,7 +111,10 @@ const statusTokens = [
 function Swatch({ name, value }: { name: string; value: string }) {
   return (
     <li className="flex items-center gap-3">
-      <span className="size-9 shrink-0 rounded-[var(--r-sm)] border border-border" style={{ background: value }} />
+      <span
+        className="size-9 shrink-0 rounded-[var(--r-sm)] border border-border"
+        style={{ background: value }}
+      />
       <span className="min-w-0">
         <span className="block text-[13px]">{name}</span>
         <span className="block text-caption text-text-muted">{value}</span>
@@ -169,9 +191,13 @@ function DesignSystemPage() {
         <div className="space-y-3">
           <p className="text-[28px] leading-tight font-semibold">Заголовок страницы, 28 пунктов</p>
           <p className="text-[18px] font-semibold">Заголовок блока, 18 пунктов</p>
-          <p className="text-[14px]">Основной текст, 14 пунктов. Русский язык, предметные названия строителя.</p>
+          <p className="text-[14px]">
+            Основной текст, 14 пунктов. Русский язык, предметные названия строителя.
+          </p>
           <p className="text-table">Строка таблицы, 13 пунктов: захватка 2, оси Г-К, этажи 9-11.</p>
-          <p className="text-caption text-text-muted">Метаданные, 12 пунктов: обновлено вчера в 18:40.</p>
+          <p className="text-caption text-text-muted">
+            Метаданные, 12 пунктов: обновлено вчера в 18:40.
+          </p>
         </div>
       </Panel>
 
@@ -183,7 +209,9 @@ function DesignSystemPage() {
           <Button variant="ghost">Отмена</Button>
           <Button disabled>Недоступно</Button>
         </div>
-        <p className="mt-3 text-caption text-text-muted">Оранжевая кнопка на экране одна — она главное действие.</p>
+        <p className="mt-3 text-caption text-text-muted">
+          Оранжевая кнопка на экране одна — она главное действие.
+        </p>
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -215,8 +243,22 @@ function DesignSystemPage() {
           </div>
           <div className="mt-4 flex flex-wrap gap-6">
             <MetricRing value={68} caption="Готовность корпуса" ringLabel="%" status="accent" />
-            <MetricRing value={2} max={6} caption="Критичных рисков" ringLabel="риска" status="danger" threshold={2} />
-            <MetricRing value={5} max={5} caption="Поставок в срок" ringLabel="из 5" status="ok" threshold={5} />
+            <MetricRing
+              value={2}
+              max={6}
+              caption="Критичных рисков"
+              ringLabel="риска"
+              status="danger"
+              threshold={2}
+            />
+            <MetricRing
+              value={5}
+              max={5}
+              caption="Поставок в срок"
+              ringLabel="из 5"
+              status="ok"
+              threshold={5}
+            />
           </div>
         </Panel>
 
@@ -274,7 +316,11 @@ function DesignSystemPage() {
             </Button>
           }
         >
-          <FilterChip active={filter === "all"} count={rows.length} onClick={() => setFilter("all")}>
+          <FilterChip
+            active={filter === "all"}
+            count={rows.length}
+            onClick={() => setFilter("all")}
+          >
             Все захватки
           </FilterChip>
           <FilterChip active={filter === "open"} count={2} onClick={() => setFilter("open")}>
@@ -293,7 +339,9 @@ function DesignSystemPage() {
             <Skeleton className="h-6 w-2/3" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-4/5" />
-            <p className="text-caption text-text-muted">Скелетон повторяет геометрию будущего содержимого.</p>
+            <p className="text-caption text-text-muted">
+              Скелетон повторяет геометрию будущего содержимого.
+            </p>
           </div>
         </Panel>
         <Panel title="Пусто" bodyClassName="p-0">

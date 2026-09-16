@@ -7,7 +7,10 @@ export const Route = createFileRoute("/quality")({
       { title: "Качество извлечения — neeklo FieldOps" },
       { name: "description", content: "Насколько модели можно доверять и где она ошибается." },
       { property: "og:title", content: "Качество извлечения — neeklo FieldOps" },
-      { property: "og:description", content: "Насколько модели можно доверять и где она ошибается." },
+      {
+        property: "og:description",
+        content: "Насколько модели можно доверять и где она ошибается.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -20,7 +23,12 @@ function QualityPage() {
     <PagePlaceholder
       title="Качество извлечения"
       description={"Насколько модели можно доверять и где она ошибается."}
-      planned={["Точность по типам полей и каналам","Доля правок человеком","Динамика уверенности по неделям","Проблемные шаблоны документов"]}
+      planned={[
+        "Точность по типам полей и каналам",
+        "Доля правок человеком",
+        "Динамика уверенности по неделям",
+        "Проблемные шаблоны документов",
+      ]}
     />
   );
 }

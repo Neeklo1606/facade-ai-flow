@@ -10,11 +10,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-ink text-primary-foreground hover:bg-[var(--ink-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
-        accent: "bg-accent text-accent-foreground hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
+        default:
+          "bg-ink text-primary-foreground hover:bg-[var(--ink-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
+        accent:
+          "bg-accent text-accent-foreground hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
         destructive: "bg-transparent text-danger hover:bg-danger-bg",
-        outline: "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
-        secondary: "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
+        outline:
+          "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
+        secondary:
+          "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
         ghost: "bg-transparent text-text-secondary hover:bg-hover hover:text-text-primary",
         link: "text-primary underline-offset-4 hover:underline",
       },
@@ -39,7 +43,10 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
+  (
+    { className, variant, size, asChild = false, loading = false, disabled, children, ...props },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
     if (asChild) {
       return (

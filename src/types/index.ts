@@ -146,20 +146,10 @@ export interface Asset {
 export type EventChannel = "telegram" | "email" | "upload" | "web" | "telephony";
 
 export type EventType =
-  | "field_report"
-  | "supplier_reply"
-  | "contract"
-  | "checklist"
-  | "invoice"
-  | "other";
+  "field_report" | "supplier_reply" | "contract" | "checklist" | "invoice" | "other";
 
 export type ProcessingStatus =
-  | "received"
-  | "recognizing"
-  | "extracted"
-  | "review"
-  | "confirmed"
-  | "rejected";
+  "received" | "recognizing" | "extracted" | "review" | "confirmed" | "rejected";
 
 export interface ExtractedField {
   id: string;
@@ -204,7 +194,11 @@ export interface FieldEvent {
   original: EventOriginal;
   fields: ExtractedField[];
   confidence: number;
-  linkedRecord?: { kind: "work" | "request" | "issue" | "document" | "delivery"; id: string; label: string };
+  linkedRecord?: {
+    kind: "work" | "request" | "issue" | "document" | "delivery";
+    id: string;
+    label: string;
+  };
   log: ProcessingLogEntry[];
 }
 

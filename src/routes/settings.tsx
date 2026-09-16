@@ -5,9 +5,15 @@ export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
       { title: "Настройки — neeklo FieldOps" },
-      { name: "description", content: "Параметры рабочего пространства, уведомлений и отраслевого пакета." },
+      {
+        name: "description",
+        content: "Параметры рабочего пространства, уведомлений и отраслевого пакета.",
+      },
       { property: "og:title", content: "Настройки — neeklo FieldOps" },
-      { property: "og:description", content: "Параметры рабочего пространства, уведомлений и отраслевого пакета." },
+      {
+        property: "og:description",
+        content: "Параметры рабочего пространства, уведомлений и отраслевого пакета.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -20,7 +26,12 @@ function SettingsPage() {
     <PagePlaceholder
       title="Настройки"
       description={"Параметры рабочего пространства, уведомлений и отраслевого пакета."}
-      planned={["Отраслевой пакет и терминология","Правила уведомлений и эскалаций","Пороги уверенности для автопроведения","Оформление и тема интерфейса"]}
+      planned={[
+        "Отраслевой пакет и терминология",
+        "Правила уведомлений и эскалаций",
+        "Пороги уверенности для автопроведения",
+        "Оформление и тема интерфейса",
+      ]}
     />
   );
 }
