@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 
 export type ScreenState =
@@ -30,31 +29,23 @@ export function useForcedState(): ScreenState | null {
 }
 
 /**
- * Имитация ответа API: первые ~350 мс экран показывает скелетон.
- * Когда слой данных заменят запросами, сюда придёт isLoading из запроса.
+ * Состояние экрана из данных (ADR-002, п. 4): загрузка и ошибка — из запросов, пусто и отфильтровано —
+ * из результата. Принудительное состояние из адреса — только в сборке проверки макетов.
  */
-export function useSimulatedLoading(ms = 350) {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), ms);
-    return () => clearTimeout(timer);
-  }, [ms]);
-  return loading;
-}
-
-/** Итоговое состояние экрана: принудительное из адреса или вычисленное по данным. */
 export function useScreenState(natural: {
   /** Данные ещё грузятся */
   pending?: boolean;
+  /** Запрос завершился ошибкой */
+  error?: boolean;
   empty?: boolean;
   filtered?: boolean;
   partial?: boolean;
   processing?: boolean;
 }): ScreenState {
   const forced = useForcedState();
-  const loading = useSimulatedLoading();
   if (forced) return forced;
-  if (loading || natural.pending) return "loading";
+  if (natural.error) return "error";
+  if (natural.pending) return "loading";
   if (natural.empty) return "empty";
   if (natural.filtered) return "filtered";
   if (natural.processing) return "processing";

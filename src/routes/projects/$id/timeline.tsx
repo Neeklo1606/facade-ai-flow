@@ -36,6 +36,7 @@ import { fmtDateTime, fmtDayTitle, fmtTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { timelineTypeLabel, type ProjectDecision, type TimelineEventType } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { prefetch } from "@/api/prefetch";
 
 interface TimelineSearch {
   type?: TimelineEventType | undefined;
@@ -53,7 +54,14 @@ export const Route = createFileRoute("/projects/$id/timeline")({
         : undefined,
     author: typeof search["author"] === "string" && search["author"] ? search["author"] : undefined,
   }),
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.timeline(params.id)),
+      prefetch(context.queryClient, queries.decisions(params.id)),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [{ title: `История и решения — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
@@ -112,9 +120,10 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
 
   const screen = useScreenState({
     pending: timeline.isPending || decisionsQuery.isPending,
+    error: timeline.isError || decisionsQuery.isError,
     empty: events.length === 0,
     filtered: filtered.length === 0,
-    partial: events.length > 0 && project.id !== "p-korona",
+    partial: false,
   });
 
   return (
@@ -204,6 +213,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
 
         <ScreenGate
           state={screen}
+          onRetry={() => void Promise.all([timeline.refetch(), decisionsQuery.refetch()])}
           skeleton={
             <div className="p-4">
               <ScreenSkeleton kind="feed" />

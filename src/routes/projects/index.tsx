@@ -156,6 +156,7 @@ function ProjectsPage() {
 
   const screen = useScreenState({
     pending: registry.isPending,
+    error: registry.isError,
     empty: allRows.length === 0,
     filtered: rows.length === 0,
   });
@@ -377,6 +378,7 @@ function ProjectsPage() {
         </div>
         <ScreenGate
           state={screen}
+          onRetry={() => void registry.refetch()}
           skeleton={<ScreenSkeleton kind="cards" rows={6} />}
           copy={{
             section: "Объекты",

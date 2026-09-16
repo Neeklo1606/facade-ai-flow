@@ -31,9 +31,16 @@ import {
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useUploadDocument } from "@/api/mutations";
+import { prefetch } from "@/api/prefetch";
 
 export const Route = createFileRoute("/projects/$id/documents/")({
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.documents(params.id)),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -111,6 +118,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const queued = documents.filter((doc) => doc.status === "uploaded" && !uploads[doc.id]);
   const screen = useScreenState({
     pending: query.isPending,
+    error: query.isError,
     empty: documents.length === 0,
     filtered: rows.length === 0,
     processing: inProgress.length > 0 || recognizing.length > 0,
@@ -249,6 +257,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
 
         <ScreenGate
           state={screen}
+          onRetry={() => void query.refetch()}
           skeleton={<ScreenSkeleton kind="table" />}
           copy={{
             section: "Документация",

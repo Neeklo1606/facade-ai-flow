@@ -226,7 +226,8 @@ export function VoiceReport({
                   <span
                     key={i}
                     className={cn("flex-1 rounded-full", played ? "bg-accent" : "bg-border-strong")}
-                    style={{ height: `${Math.min(100, height)}%` }}
+                    // Округление: браузер сокращает длинную дробь в style, и SSR-разметка не совпала бы с клиентом
+                    style={{ height: `${Math.min(100, Math.round(height))}%` }}
                   />
                 );
               })}

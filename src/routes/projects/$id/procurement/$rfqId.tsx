@@ -30,9 +30,16 @@ import { cn } from "@/lib/utils";
 import { type SupplyRequest } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useRecordDecision, useRemindSuppliers } from "@/api/mutations";
+import { prefetch } from "@/api/prefetch";
 
 export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.request(params.rfqId)),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -79,6 +86,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
   const screen = useScreenState({
     pending: cardQuery.isPending,
+    error: cardQuery.isError,
     empty: !!calc && calc.answered === 0 && pending.length === 0,
     processing: pending.length > 0,
     partial: silent.length > 0,
@@ -255,6 +263,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
       <ScreenGate
         state={screen}
+        onRetry={() => void cardQuery.refetch()}
         skeleton={<ScreenSkeleton kind="matrix" />}
         copy={{
           section: "Сравнение предложений",

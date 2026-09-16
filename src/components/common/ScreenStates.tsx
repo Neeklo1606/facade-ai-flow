@@ -214,11 +214,14 @@ export function ScreenGate({
   state,
   skeleton,
   copy,
+  onRetry,
   children,
 }: {
   state: ScreenState;
   skeleton: ReactNode;
   copy: StateCopy;
+  /** Повторить загрузку после ошибки */
+  onRetry?: () => void;
   children: ReactNode;
 }) {
   const clear = useClearForcedState();
@@ -232,7 +235,7 @@ export function ScreenGate({
           title={copy.errorTitle}
           description="Сервер не ответил. Данные на экране не изменились — повторите загрузку. Если ошибка повторяется, напишите в поддержку."
           actionLabel="Повторить"
-          onAction={clear}
+          onAction={onRetry ?? clear}
         />
       );
     case "forbidden":

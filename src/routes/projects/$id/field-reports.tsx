@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { type FieldReport, reportKindLabel, reportStatusLabel } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useReviewReport } from "@/api/mutations";
+import { prefetch } from "@/api/prefetch";
 
 type StatusFilter = FieldReport["status"] | "all";
 
@@ -54,7 +55,13 @@ export const Route = createFileRoute("/projects/$id/field-reports")({
         : undefined,
     zone: typeof search["zone"] === "string" && search["zone"] ? search["zone"] : undefined,
   }),
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.reports(params.id)),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [{ title: `Отчёты с площадки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
@@ -114,6 +121,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
 
   const screen = useScreenState({
     pending: reportsQuery.isPending,
+    error: reportsQuery.isError,
     empty: reports.length === 0,
     filtered: visible.length === 0,
     processing: false,
@@ -201,6 +209,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
 
       <ScreenGate
         state={screen}
+        onRetry={() => void reportsQuery.refetch()}
         skeleton={<ScreenSkeleton kind="feed" />}
         copy={{
           section: "Отчёты с площадки",

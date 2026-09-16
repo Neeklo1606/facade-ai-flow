@@ -32,6 +32,7 @@ import {
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useRemindSuppliers, useVerifyContact } from "@/api/mutations";
+import { prefetch } from "@/api/prefetch";
 
 type View = "requests" | "suppliers";
 
@@ -53,7 +54,14 @@ export const Route = createFileRoute("/projects/$id/procurement/")({
     category: str(search["category"]),
     freshness: str(search["freshness"]) as ContactFreshness | undefined,
   }),
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.requests(params.id)),
+      prefetch(context.queryClient, queries.suppliers()),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -169,6 +177,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
   const isRequests = view === "requests";
   const screen = useScreenState({
     pending: requestsQuery.isPending || suppliersQuery.isPending,
+    error: requestsQuery.isError || suppliersQuery.isError,
     empty: isRequests ? requestRows.length === 0 : supplierRows.length === 0,
     filtered: isRequests ? visibleRequests.length === 0 : visibleSuppliers.length === 0,
     partial: isRequests ? waiting.length > 0 : staleContacts > 0,
@@ -324,6 +333,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
 
         <ScreenGate
           state={screen}
+          onRetry={() => void Promise.all([requestsQuery.refetch(), suppliersQuery.refetch()])}
           skeleton={<ScreenSkeleton kind="table" />}
           copy={{
             section: "Поставщики и запросы",

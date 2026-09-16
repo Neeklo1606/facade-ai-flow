@@ -15,6 +15,8 @@ import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { prefetch } from "@/api/prefetch";
+import { queries } from "@/api/queries";
 
 function NotFoundComponent() {
   return (
@@ -62,6 +64,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Справочники подписывают имена почти на каждом экране: без них SSR отдал бы «—» вместо имён
+  loader: ({ context }) =>
+    Promise.all([
+      prefetch(context.queryClient, queries.employees()),
+      prefetch(context.queryClient, queries.counterparties()),
+      prefetch(context.queryClient, queries.materials()),
+    ]),
   head: () => ({
     meta: [
       { charSet: "utf-8" },

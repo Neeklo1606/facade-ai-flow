@@ -42,6 +42,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useDirectory } from "@/api/directory";
 import { useUploadDocument } from "@/api/mutations";
+import { prefetch } from "@/api/prefetch";
 
 const tabs = [
   { id: "summary", label: "Сводка" },
@@ -63,7 +64,13 @@ export const Route = createFileRoute("/projects/$id/")({
         ? (search["tab"] as TabId)
         : undefined,
   }),
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.documents(params.id)),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -94,8 +101,9 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
   const hasDocuments = liveDocuments.length > 0;
   const screen = useScreenState({
     pending: documents.isPending,
+    error: documents.isError,
     empty: !hasDocuments && overview.specTotal === 0,
-    processing: recognizingDocs.length > 0 && project.id !== "p-korona",
+    processing: recognizingDocs.length > 0,
   });
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   const { tab = "summary" } = Route.useSearch();
@@ -302,6 +310,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         <div className="mt-4">
           <ScreenGate
             state={screen}
+            onRetry={() => void documents.refetch()}
             skeleton={<ScreenSkeleton kind="summary" />}
             copy={{
               section: "Карточка объекта",

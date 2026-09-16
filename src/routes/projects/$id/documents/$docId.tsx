@@ -37,12 +37,20 @@ import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { processingStatusLabel as docStatusLabel, type ExtractedPosition } from "@/contracts";
+import { prefetch } from "@/api/prefetch";
 
 export const Route = createFileRoute("/projects/$id/documents/$docId")({
   validateSearch: (search: Record<string, unknown>): { position?: string | undefined } => ({
     position: typeof search["position"] === "string" ? search["position"] : undefined,
   }),
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.document(params.docId)),
+      prefetch(context.queryClient, queries.positions({ revisionId: params.docId, limit: 5000 })),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -140,6 +148,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
   const screen = useScreenState({
     pending: card.isPending || positionsQuery.isPending,
+    error: card.isError || positionsQuery.isError,
     empty: false,
     filtered: false,
     partial: false,
@@ -487,6 +496,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         >
           <ScreenGate
             state={screen}
+            onRetry={() => void Promise.all([card.refetch(), positionsQuery.refetch()])}
             skeleton={<ScreenSkeleton kind="split" />}
             copy={{
               section: "Проверка позиций",

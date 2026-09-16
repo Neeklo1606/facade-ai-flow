@@ -30,6 +30,7 @@ import {
   type ExtractedPosition,
   type PurchaseStatus,
 } from "@/contracts";
+import { prefetch } from "@/api/prefetch";
 
 type ReviewFilter = "verified" | "pending" | "attention" | "check" | "excluded";
 type CharsFilter = "with" | "without";
@@ -64,7 +65,14 @@ export const Route = createFileRoute("/projects/$id/materials")({
       position: str(search["position"]),
     };
   },
-  loader: ({ params, context }) => loadProject(context.queryClient, params.id),
+  loader: async ({ params, context }) => {
+    const [result] = await Promise.all([
+      loadProject(context.queryClient, params.id),
+      prefetch(context.queryClient, queries.positions({ projectId: params.id, limit: 5000 })),
+      prefetch(context.queryClient, queries.documents(params.id)),
+    ]);
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [{ title: `Материалы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
@@ -202,6 +210,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
   );
   const screen = useScreenState({
     pending: positionsQuery.isPending,
+    error: positionsQuery.isError,
     empty: positions.length === 0,
     filtered: rows.length === 0,
     partial: pendingDocs.length > 0,
@@ -371,6 +380,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
 
         <ScreenGate
           state={screen}
+          onRetry={() => void positionsQuery.refetch()}
           skeleton={<ScreenSkeleton kind="table" rows={8} />}
           copy={{
             section: "Материалы",
