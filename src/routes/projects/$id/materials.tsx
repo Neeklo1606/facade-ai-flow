@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, FileText, PackageSearch, Send, X } from "lucide-react";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { MaterialDrawer } from "@/components/materials/MaterialDrawer";
 import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
@@ -19,11 +24,10 @@ import {
   type ExtractedPosition,
   type PurchaseStatus,
 } from "@/mock/repository";
-import { isActive, isVerified, specActions, useSpecStore } from "@/lib/spec-store";
+import { isActive, isReadyForRequest, isVerified, useSpecStore } from "@/lib/spec-store";
 import { useProjectOverview } from "@/lib/project-overview";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtNum } from "@/lib/format";
-import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type ReviewFilter = "verified" | "pending" | "attention" | "check" | "excluded";
@@ -61,10 +65,12 @@ export const Route = createFileRoute("/projects/$id/materials")({
   },
   loader: ({ params }) => loadProject(params.id),
   head: ({ loaderData }) => ({
-    meta: loaderData ? [{ title: `Материалы — ${loaderData.project.name} — neeklo FieldOps` }] : [],
+    meta: loaderData
+      ? [{ title: `Материалы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
+      : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: MaterialsPage,
+  component: withProject(MaterialsPage),
 });
 
 const reviewFilterLabel: Record<ReviewFilter, string> = {
@@ -94,8 +100,7 @@ function matchesReview(item: ExtractedPosition, filter: ReviewFilter | undefined
 
 const PAGE = 40;
 
-function MaterialsPage() {
-  const { project } = Route.useLoaderData();
+function MaterialsPage({ project }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const overview = useProjectOverview(project.id);
@@ -127,7 +132,9 @@ function MaterialsPage() {
         .filter((item) => matchesReview(item, search.review))
         .filter((item) => (search.group ? item.group === search.group : true))
         .filter((item) =>
-          search.purchase ? item.purchase === search.purchase && isVerified(item) : true,
+          search.purchase
+            ? item.purchase === search.purchase && isVerified(item) && item.handedOver
+            : true,
         )
         .filter((item) =>
           search.chars === "with"
@@ -150,7 +157,7 @@ function MaterialsPage() {
   }, [rows]);
 
   const purchaseCounts = useMemo(() => {
-    const verified = positions.filter(isVerified);
+    const verified = positions.filter((item) => isVerified(item) && item.handedOver);
     return Object.fromEntries(
       purchaseOrder.map((status) => [
         status,
@@ -163,9 +170,7 @@ function MaterialsPage() {
     () => positions.filter((item) => selected.has(item.id)),
     [positions, selected],
   );
-  const eligibleCount = selectedItems.filter(
-    (item) => isVerified(item) && item.purchase === "none",
-  ).length;
+  const eligibleCount = selectedItems.filter(isReadyForRequest).length;
   const filtersActive = Boolean(search.group || search.review || search.purchase || search.chars);
   const openItem = search.position
     ? (positions.find((item) => item.id === search.position) ?? null)
@@ -241,7 +246,7 @@ function MaterialsPage() {
           title={`Позиции из ${pendingDocs.length} ${pendingDocs.length === 1 ? "документа" : "документов"} ещё не извлечены`}
         >
           {pendingDocs.map((doc) => doc.title).join(", ")} — обрабатываются. Реестр дополнится
-          автоматически, закупать можно уже проверенное.
+          автоматически, запрашивать цены можно уже по переданным в закупку позициям.
         </StateBanner>
       )}
       {screen === "processing" && (
@@ -608,12 +613,14 @@ function MaterialRow({
         </Link>
       </td>
       <td className="px-2.5 pr-4 whitespace-nowrap">
-        {verified ? (
+        {verified && item.handedOver ? (
           <StatusBadge tone={purchaseTone[item.purchase]}>
             {purchaseStatusLabel[item.purchase]}
           </StatusBadge>
         ) : (
-          <span className="text-caption text-text-muted">после проверки</span>
+          <span className="text-caption text-text-muted">
+            {verified ? "не передано в закупку" : "после проверки"}
+          </span>
         )}
       </td>
     </tr>
@@ -680,7 +687,7 @@ function MobileMaterials({
                       ) : (
                         <ConfidenceLabel value={item.confidence} />
                       )}
-                      {isVerified(item) && (
+                      {isVerified(item) && item.handedOver && (
                         <StatusBadge tone={purchaseTone[item.purchase]}>
                           {purchaseStatusLabel[item.purchase]}
                         </StatusBadge>

@@ -1,27 +1,43 @@
 import { useSyncExternalStore } from "react";
 import {
+  counterpartyById,
   counterpartyName,
   emailTemplates,
   extractedPositions,
   fieldReports,
+  offerLines,
+  offerTerms,
   positionChanges,
   projectDecisions,
   projectDocuments,
+  projectOverviews,
+  projects,
   rfqMeta,
   simulatedPositions,
+  sources,
+  supplierOffers,
   supplierProfiles,
   supplyRequests,
   timelineSeed,
   type ExtractedPosition,
   type FieldReport,
+  type OfferLine,
+  type OfferTerms,
   type PositionChange,
+  type Project,
   type ProjectDecision,
   type ProjectDocument,
+  type ProjectOverview,
   type RfqMeta,
+  type Source,
+  type SupplierOffer,
   type SupplierProfile,
   type SupplyRequest,
   type TimelineEvent,
 } from "@/mock/repository";
+import { simulateReply } from "@/lib/demo-simulator";
+import { MOCK_NOW } from "@/lib/format";
+import { toast } from "@/lib/toast";
 
 /**
  * Клиентское состояние цепочки «документ → позиции → закупка».
@@ -33,42 +49,88 @@ import {
 export interface UploadProgress {
   /** Индекс пройденной стадии обработки, 0…4 */
   stage: number;
+  /** Когда начата обработка, мс — чтобы продолжить стадии после перезагрузки */
+  startedAt: number;
+}
+
+/** Ответ поставщика, который симулятор пришлёт позже. */
+export interface PendingReply {
+  requestId: string;
+  supplierId: string;
+  dueAt: number;
 }
 
 export interface SpecState {
+  version: number;
+  projects: Project[];
+  overviews: ProjectOverview[];
   documents: ProjectDocument[];
   positions: ExtractedPosition[];
   changes: PositionChange[];
   uploads: Record<string, UploadProgress>;
   requests: SupplyRequest[];
-  /** Документы, чьи проверенные позиции переданы в закупку */
+  /** Документы, чьи проверенные позиции переданы в закупку, и когда */
   sentDocuments: Record<string, string>;
   rfq: RfqMeta[];
+  offers: SupplierOffer[];
+  offerLines: OfferLine[];
+  offerTerms: OfferTerms[];
+  sources: Source[];
+  pendingReplies: PendingReply[];
   decisions: ProjectDecision[];
   reports: FieldReport[];
   profiles: SupplierProfile[];
 }
 
 const ACTOR = "e-sokolov";
+const STORAGE_KEY = "neeklo-fieldops-demo";
+const CLOCK_KEY = "neeklo-fieldops-demo-clock";
+/** Меняется при несовместимом изменении формы состояния: старое сохранение тогда игнорируется. */
+const STATE_VERSION = 2;
 
-let state: SpecState = {
-  documents: projectDocuments,
-  positions: extractedPositions,
-  changes: positionChanges,
-  uploads: {},
-  requests: supplyRequests,
-  sentDocuments: {},
-  rfq: rfqMeta,
-  decisions: projectDecisions,
-  reports: fieldReports,
-  profiles: supplierProfiles,
-};
+function createSeed(): SpecState {
+  return {
+    version: STATE_VERSION,
+    projects,
+    overviews: projectOverviews,
+    documents: projectDocuments,
+    positions: extractedPositions,
+    changes: positionChanges,
+    uploads: {},
+    requests: supplyRequests,
+    sentDocuments: {},
+    rfq: rfqMeta,
+    offers: supplierOffers,
+    offerLines,
+    offerTerms,
+    sources,
+    pendingReplies: [],
+    decisions: projectDecisions,
+    reports: fieldReports,
+    profiles: supplierProfiles,
+  };
+}
+
+/** Состояние, с которым рендерится сервер: гидратация идёт от него, а не от сохранения во вкладке. */
+const seedState = createSeed();
+let state: SpecState = seedState;
 
 const listeners = new Set<() => void>();
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function persist() {
+  saveTimer = null;
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Хранилище вкладки недоступно или переполнено — демо продолжит работать до перезагрузки
+  }
+}
 
 function set(next: (prev: SpecState) => SpecState) {
   state = next(state);
   listeners.forEach((listener) => listener());
+  if (typeof window !== "undefined" && !saveTimer) saveTimer = setTimeout(persist, 300);
 }
 
 function subscribe(listener: () => void) {
@@ -77,18 +139,190 @@ function subscribe(listener: () => void) {
 }
 
 const getSnapshot = () => state;
+const getServerSnapshot = () => seedState;
 
 /** Текущее состояние вне React — для действий и проверок. */
 export const getSpecState = getSnapshot;
 
 export function useSpecStore<T>(selector: (s: SpecState) => T): T {
-  return selector(useSyncExternalStore(subscribe, getSnapshot, getSnapshot));
+  return selector(useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot));
 }
 
-/** Локальное время без часового пояса — в том же формате, что даты в моках. */
-function now() {
-  const d = new Date();
+const noopSubscribe = () => () => {};
+/** true после гидратации: до неё экран видит только серверное состояние без сохранённых действий. */
+export function useIsClient() {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
+/* ---------- Отложенные процессы: стадии загрузки и ответы поставщиков ---------- */
+
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function schedule(key: string, dueAt: number, run: () => void) {
+  if (typeof window === "undefined" || timers.has(key)) return;
+  timers.set(
+    key,
+    setTimeout(
+      () => {
+        timers.delete(key);
+        run();
+      },
+      Math.max(0, dueAt - Date.now()),
+    ),
+  );
+}
+
+const UPLOAD_STAGE_MS = 1400;
+const uploadStatusByStage: ProjectDocument["status"][] = [
+  "uploaded",
+  "recognizing",
+  "recognizing",
+  "extracted",
+  "review",
+];
+
+function scheduleUpload(id: string) {
+  const upload = state.uploads[id];
+  if (!upload || upload.stage >= 4) return;
+  const stage = upload.stage + 1;
+  schedule(`upload:${id}:${stage}`, upload.startedAt + stage * UPLOAD_STAGE_MS, () => {
+    const doc = state.documents.find((item) => item.id === id);
+    if (!doc) return;
+    set((prev) => ({
+      ...prev,
+      uploads: { ...prev.uploads, [id]: { ...prev.uploads[id]!, stage } },
+      documents: prev.documents.map((item) =>
+        item.id === id ? { ...item, status: uploadStatusByStage[stage]! } : item,
+      ),
+      positions:
+        stage === 3 && !prev.positions.some((item) => item.documentId === id)
+          ? [...prev.positions, ...simulatedPositions(id, doc.projectId, 36)]
+          : prev.positions,
+    }));
+    scheduleUpload(id);
+  });
+}
+
+function deliverReply(requestId: string, supplierId: string) {
+  const request = state.requests.find((item) => item.id === requestId);
+  const profile = state.profiles.find((item) => item.supplierId === supplierId);
+  const alreadyAnswered = state.offers.some(
+    (item) => item.requestId === requestId && item.supplierId === supplierId,
+  );
+  const dropPending = (list: PendingReply[]) =>
+    list.filter((item) => !(item.requestId === requestId && item.supplierId === supplierId));
+  if (!request || !profile || alreadyAnswered) {
+    set((prev) => ({ ...prev, pendingReplies: dropPending(prev.pendingReplies) }));
+    return;
+  }
+  const supplierName = counterpartyById(supplierId)?.name ?? profile.contactName;
+  const reply = simulateReply(request, profile, supplierName, now());
+  set((prev) => {
+    const answered = new Set(
+      [...prev.offers, reply.offer]
+        .filter((o) => o.requestId === requestId)
+        .map((o) => o.supplierId),
+    );
+    return {
+      ...prev,
+      offers: [...prev.offers, reply.offer],
+      offerLines: [...prev.offerLines, ...reply.lines],
+      offerTerms: [...prev.offerTerms, reply.terms],
+      sources: [...prev.sources, reply.source],
+      pendingReplies: dropPending(prev.pendingReplies),
+      requests: prev.requests.map((item) =>
+        item.id === requestId && item.status !== "ordered"
+          ? { ...item, status: answered.size >= item.sentTo.length ? "compared" : "collecting" }
+          : item,
+      ),
+      positions: prev.positions.map((item) =>
+        item.requestIds.includes(requestId) && item.purchase === "requested"
+          ? { ...item, purchase: "offers" }
+          : item,
+      ),
+    };
+  });
+  toast.success(`Пришло предложение «${supplierName}»`, {
+    description: `Запрос ${request.number}: цены и сроки добавлены в сравнение.`,
+  });
+}
+
+function scheduleReplies(
+  requestId: string,
+  supplierIds: string[],
+  firstDelayMs: number,
+  stepMs: number,
+) {
+  const base = Date.now();
+  const planned: PendingReply[] = supplierIds.map((supplierId, index) => ({
+    requestId,
+    supplierId,
+    dueAt: base + firstDelayMs + index * stepMs,
+  }));
+  set((prev) => ({ ...prev, pendingReplies: [...prev.pendingReplies, ...planned] }));
+  for (const reply of planned) {
+    schedule(`reply:${reply.requestId}:${reply.supplierId}`, reply.dueAt, () =>
+      deliverReply(reply.requestId, reply.supplierId),
+    );
+  }
+}
+
+/** После перезагрузки: поднять сохранённое демо и продолжить незавершённые процессы. */
+function restore() {
+  try {
+    const clock = Number(sessionStorage.getItem(CLOCK_KEY));
+    if (clock > 0) clockStartedAt = clock;
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as SpecState;
+      if (parsed.version === STATE_VERSION) state = parsed;
+    }
+  } catch {
+    state = seedState;
+  }
+  Object.keys(state.uploads).forEach(scheduleUpload);
+  for (const reply of state.pendingReplies) {
+    schedule(`reply:${reply.requestId}:${reply.supplierId}`, reply.dueAt, () =>
+      deliverReply(reply.requestId, reply.supplierId),
+    );
+  }
+  window.addEventListener("pagehide", () => {
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      persist();
+    }
+  });
+}
+
+/**
+ * Часы демо: идут от «сегодня» моков (MOCK_NOW) с момента первого действия в сессии.
+ * Иначе новые записи получали бы реальную дату и спорили со сроками и историей в моках.
+ */
+let clockStartedAt: number | null = null;
+
+function demoTime() {
+  if (clockStartedAt === null) {
+    clockStartedAt = Date.now();
+    try {
+      sessionStorage.setItem(CLOCK_KEY, String(clockStartedAt));
+    } catch {
+      // без хранилища часы начнутся заново после перезагрузки
+    }
+  }
+  return new Date(new Date(MOCK_NOW).getTime() + (Date.now() - clockStartedAt));
+}
+
+function localIso(d: Date) {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 19);
+}
+
+/** Локальное время демо без часового пояса — в том же формате, что даты в моках. */
+function now() {
+  return localIso(demoTime());
 }
 
 let changeSeq = 0;
@@ -130,6 +364,11 @@ export function isActive(item: ExtractedPosition) {
 
 export function isVerified(item: ExtractedPosition) {
   return item.review === "confirmed" || item.review === "corrected";
+}
+
+/** По позиции можно запросить цены: проверена, передана в закупку и ещё не в работе. */
+export function isReadyForRequest(item: ExtractedPosition) {
+  return isVerified(item) && item.handedOver && item.purchase === "none";
 }
 
 export const specActions = {
@@ -298,8 +537,81 @@ export const specActions = {
     });
   },
 
+  /** Передать проверенные позиции документа в закупку: после этого по ним можно запрашивать цены. */
   sendToProcurement(documentId: string) {
-    set((prev) => ({ ...prev, sentDocuments: { ...prev.sentDocuments, [documentId]: now() } }));
+    const targets = state.positions.filter(
+      (item) => item.documentId === documentId && isVerified(item) && !item.handedOver,
+    );
+    const ids = new Set(targets.map((item) => item.id));
+    set((prev) => ({
+      ...prev,
+      sentDocuments: { ...prev.sentDocuments, [documentId]: now() },
+      positions: prev.positions.map((item) =>
+        ids.has(item.id) ? { ...item, handedOver: true } : item,
+      ),
+      changes: [...prev.changes, ...targets.map((item) => change(item.id, "Передано в закупку"))],
+    }));
+    return targets.length;
+  },
+
+  /* ---------- Объекты ---------- */
+
+  createProject(input: {
+    name: string;
+    code: string;
+    region: string;
+    customer: string;
+    contract: string;
+    startDate: string;
+    endDate: string;
+    manager: string;
+  }) {
+    const id = `p-live-${Date.now()}`;
+    const project: Project = {
+      id,
+      name: input.name,
+      code: input.code,
+      customer: input.customer,
+      contract: input.contract || "—",
+      startDate: input.startDate,
+      endDate: input.endDate,
+      plannedProgress: 0,
+      actualProgress: 0,
+      contractAmount: 0,
+      performedAmount: 0,
+      approvedAmount: 0,
+      closedAmount: 0,
+      paidAmount: 0,
+      unclosedAmount: 0,
+      unclosedValue: 0,
+      status: "active",
+      manager: input.manager,
+      teams: [],
+      workZones: [],
+    };
+    const overview: ProjectOverview = {
+      projectId: id,
+      region: input.region,
+      stage: "Подготовка: нет документации",
+      docVersion: "—",
+      specTotal: 0,
+      specUnverified: 0,
+      inRequests: 0,
+      offersReceived: 0,
+      ordered: 0,
+      inTransit: 0,
+      delivered: 0,
+      activeRequests: 0,
+      overdueRequests: 0,
+      openChanges: 0,
+      missingReports: 0,
+    };
+    set((prev) => ({
+      ...prev,
+      projects: [project, ...prev.projects],
+      overviews: [overview, ...prev.overviews],
+    }));
+    return id;
   },
 
   /* ---------- Закупка ---------- */
@@ -312,11 +624,32 @@ export const specActions = {
   ) {
     const wanted = new Set(ids);
     const targets = state.positions.filter(
-      (item) => wanted.has(item.id) && isVerified(item) && item.purchase === "none",
+      (item) => wanted.has(item.id) && isReadyForRequest(item),
     );
     if (!targets.length) return null;
     const number = `З-2026/${326 + state.requests.filter((r) => r.id.startsWith("sr-live")).length}`;
     const createdAt = now();
+
+    // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой
+    // Строка без нормализации берёт справочное наименование у позиции с тем же проектным названием,
+    // иначе один материал ушёл бы поставщику двумя строками под разными именами
+    const baseName = (item: ExtractedPosition) => item.projectName.split(",")[0]!.trim();
+    const dictionary = new Map<string, string>();
+    for (const item of state.positions) {
+      if (item.projectId === projectId && item.normalizedName) {
+        dictionary.set(`${item.family}:${baseName(item)}`, item.normalizedName);
+      }
+    }
+    const items = new Map<string, SupplyRequest["items"][number]>();
+    for (const item of targets) {
+      const name =
+        item.normalizedName ?? dictionary.get(`${item.family}:${baseName(item)}`) ?? baseName(item);
+      const key = `${item.family}:${name}:${item.unit}`;
+      const existing = items.get(key);
+      if (existing) existing.qty += item.qty;
+      else items.set(key, { materialId: key, name, qty: item.qty, unit: item.unit });
+    }
+
     const request: SupplyRequest = {
       id: `sr-live-${Date.now()}`,
       number,
@@ -324,19 +657,14 @@ export const specActions = {
       zoneId: null,
       createdAt,
       authorId: ACTOR,
-      items: targets.map((item) => ({
-        materialId: item.family,
-        name: item.normalizedName ?? item.projectName,
-        qty: item.qty,
-        unit: item.unit,
-      })),
+      items: [...items.values()],
       sentTo: supplierIds,
       status: "sent",
       sourceId: null,
     };
     const due =
       options.replyDueAt ??
-      new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10) + "T18:00:00";
+      localIso(new Date(demoTime().getTime() + 3 * 86_400_000)).slice(0, 10) + "T18:00:00";
     const targetIds = new Set(targets.map((item) => item.id));
     set((prev) => ({
       ...prev,
@@ -360,7 +688,39 @@ export const specActions = {
         ...targets.map((item) => change(item.id, `Добавлено в запрос ${number}`)),
       ],
     }));
-    return { request, count: targets.length };
+
+    // Демо: большинство поставщиков отвечает за несколько секунд, последний из трёх и более молчит —
+    // так видно и сравнение, и напоминание
+    const responders = supplierIds.length >= 3 ? supplierIds.slice(0, -1) : supplierIds;
+    scheduleReplies(request.id, responders, 5_000, 4_000);
+    return { request, count: targets.length, positions: request.items.length };
+  },
+
+  /** Напомнить молчащим поставщикам. Возвращает, скольким ушло напоминание. */
+  remindSuppliers(requestId: string) {
+    const request = state.requests.find((item) => item.id === requestId);
+    if (!request) return 0;
+    const silent = request.sentTo.filter(
+      (supplierId) =>
+        !state.offers.some((o) => o.requestId === requestId && o.supplierId === supplierId) &&
+        !state.pendingReplies.some((p) => p.requestId === requestId && p.supplierId === supplierId),
+    );
+    scheduleReplies(requestId, silent, 4_000, 3_000);
+    return silent.length;
+  },
+
+  /** Начать демо заново: сбросить все действия и сохранение вкладки. */
+  resetDemo() {
+    timers.forEach((timer) => clearTimeout(timer));
+    timers.clear();
+    clockStartedAt = null;
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(CLOCK_KEY);
+    } catch {
+      // нечего удалять
+    }
+    set(() => createSeed());
   },
 
   /** Зафиксировать выбор поставщика: решение уходит в историю объекта, позиции — в «Выбран поставщик». */
@@ -430,31 +790,9 @@ export const specActions = {
     set((prev) => ({
       ...prev,
       documents: [doc, ...prev.documents],
-      uploads: { ...prev.uploads, [id]: { stage: 0 } },
+      uploads: { ...prev.uploads, [id]: { stage: 0, startedAt: Date.now() } },
     }));
-
-    const statusByStage: ProjectDocument["status"][] = [
-      "uploaded",
-      "recognizing",
-      "recognizing",
-      "extracted",
-      "review",
-    ];
-    for (let stage = 1; stage <= 4; stage++) {
-      setTimeout(() => {
-        set((prev) => ({
-          ...prev,
-          uploads: { ...prev.uploads, [id]: { stage } },
-          documents: prev.documents.map((item) =>
-            item.id === id ? { ...item, status: statusByStage[stage]! } : item,
-          ),
-          positions:
-            stage === 3
-              ? [...prev.positions, ...simulatedPositions(id, projectId, 36)]
-              : prev.positions,
-        }));
-      }, stage * 1400);
-    }
+    scheduleUpload(id);
     return id;
   },
 };
@@ -485,6 +823,18 @@ export function projectSpecStats(s: SpecState, projectId: string) {
     inTransit: count(["ordered"]),
     delivered: count(["delivered"]),
   };
+}
+
+export function projectOf(s: SpecState, projectId: string) {
+  return s.projects.find((item) => item.id === projectId) ?? null;
+}
+
+export function sourceOf(s: SpecState, sourceId: string | null) {
+  return sourceId ? (s.sources.find((item) => item.id === sourceId) ?? null) : null;
+}
+
+export function offersOf(s: SpecState, requestId: string) {
+  return s.offers.filter((item) => item.requestId === requestId).sort((a, b) => a.total - b.total);
 }
 
 /** Решение по запросу, если оно уже зафиксировано. */
@@ -531,6 +881,25 @@ export function timelineOf(s: SpecState, projectId: string): TimelineEvent[] {
       link: { to: `/projects/${projectId}/procurement/${r.id}`, label: `Запрос ${r.number}` },
     });
   }
+  for (const o of s.offers) {
+    if (!o.id.startsWith("so-live")) continue;
+    const request = s.requests.find((r) => r.id === o.requestId);
+    if (!request || request.projectId !== projectId) continue;
+    live.push({
+      id: `tl-${o.id}`,
+      projectId,
+      at: o.receivedAt,
+      type: "offer_received",
+      title: `Получено предложение «${counterpartyName(o.supplierId)}» по запросу ${request.number}`,
+      details: `${o.prices.length} поз., срок до ${o.leadTimeDays} дн.`,
+      actorId: "agent-extract",
+      sourceId: o.sourceId,
+      link: {
+        to: `/projects/${projectId}/procurement/${request.id}`,
+        label: "Сравнение предложений",
+      },
+    });
+  }
   for (const d of s.decisions) {
     if (!d.id.startsWith("dec-live") || d.projectId !== projectId) continue;
     live.push({
@@ -561,3 +930,6 @@ export function timelineOf(s: SpecState, projectId: string): TimelineEvent[] {
   }
   return [...base, ...live].sort((a, b) => b.at.localeCompare(a.at));
 }
+
+// В конце модуля: восстановлению нужны все объявления выше (часы демо, таймеры, действия)
+if (typeof window !== "undefined") restore();

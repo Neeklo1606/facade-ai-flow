@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, BellRing, Crown, Gavel, Scale } from "lucide-react";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { DecisionDialog, type DecisionInput } from "@/components/procurement/DecisionDialog";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
@@ -14,6 +19,7 @@ import { decisionForRequest, specActions, useSpecStore } from "@/lib/spec-store"
 import { useProjectOverview } from "@/lib/project-overview";
 import {
   compareOffers,
+  itemsSummary,
   rfqStatus,
   rfqStatusMeta,
   type CellCalc,
@@ -28,15 +34,18 @@ export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
   loader: ({ params }) => loadProject(params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Сравнение предложений — ${loaderData.project.name} — neeklo FieldOps` }]
+      ? [
+          {
+            title: `Сравнение предложений — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
+        ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: ComparisonPage,
+  component: withProject(ComparisonPage),
 });
 
-function ComparisonPage() {
-  const { project } = Route.useLoaderData();
+function ComparisonPage({ project }: ProjectPageProps): React.JSX.Element {
   const { rfqId } = Route.useParams();
   const navigate = useNavigate();
   const overview = useProjectOverview(project.id);
@@ -45,14 +54,23 @@ function ComparisonPage() {
   const [decisionOpen, setDecisionOpen] = useState(false);
   const [source, setSource] = useState<{ id: string; fragment: string } | null>(null);
 
-  const calc = useMemo(() => (request ? compareOffers(request) : null), [request]);
+  const calc = useMemo(() => (request ? compareOffers(state, request) : null), [state, request]);
+  const pending = state.pendingReplies.filter((p) => p.requestId === rfqId);
+  const canRemind = request
+    ? request.sentTo.filter(
+        (id) =>
+          !state.offers.some((o) => o.requestId === request.id && o.supplierId === id) &&
+          !pending.some((p) => p.supplierId === id),
+      ).length
+    : 0;
   const meta = state.rfq.find((m) => m.requestId === rfqId);
   const decision = request ? decisionForRequest(state, request.id) : null;
   const status = request && calc ? rfqStatus(state, request, meta, calc.answered) : null;
   const silent = calc ? calc.columns.filter((c) => !c.offerId) : [];
 
   const screen = useScreenState({
-    empty: !!calc && calc.answered === 0,
+    empty: !!calc && calc.answered === 0 && pending.length === 0,
+    processing: pending.length > 0,
     partial: silent.length > 0,
   });
 
@@ -71,7 +89,11 @@ function ComparisonPage() {
   }
 
   const blocked =
-    screen === "loading" || screen === "error" || screen === "forbidden" || screen === "empty";
+    screen === "loading" ||
+    screen === "error" ||
+    screen === "forbidden" ||
+    screen === "empty" ||
+    calc.answered === 0;
   const due = meta ? fmtDue(meta.replyDueAt) : null;
 
   function save(input: DecisionInput) {
@@ -83,7 +105,7 @@ function ComparisonPage() {
       kind: "supplier",
       requestId: request.id,
       supplierId: input.supplierId,
-      title: `${request.items.map((i) => i.name).join(", ")} — «${supplier}»`,
+      title: `${itemsSummary(request.items)} — «${supplier}»`,
       requirement: request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join("; "),
       problem: `Получено ${calc.answered} ${calc.answered === 1 ? "предложение" : "предложения"} из ${request.sentTo.length}; цены и сроки различаются${calc.columns.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
       options: calc.columns
@@ -119,7 +141,11 @@ function ComparisonPage() {
       <SubpageHeader
         project={project}
         title={`Сравнение предложений · ${request.number}`}
-        description={request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join(" · ")}
+        description={itemsSummary(
+          request.items,
+          (i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`,
+          3,
+        )}
         meta={
           <>
             {status && (
@@ -181,13 +207,19 @@ function ComparisonPage() {
             <Button
               size="sm"
               variant="secondary"
-              onClick={() =>
-                toast.success("Напоминание отправлено", {
-                  description: "Письмо и звонок поставщику назначены снабженцу.",
-                })
-              }
+              disabled={canRemind === 0}
+              onClick={() => {
+                const sent = specActions.remindSuppliers(request.id);
+                toast.success(
+                  `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
+                  {
+                    description:
+                      "Предложение появится в колонке поставщика, как только придёт ответ.",
+                  },
+                );
+              }}
             >
-              <BellRing className="size-3.5" /> Напомнить
+              <BellRing className="size-3.5" /> {canRemind === 0 ? "Ждём ответ" : "Напомнить"}
             </Button>
           }
         >
@@ -195,8 +227,16 @@ function ComparisonPage() {
         </StateBanner>
       )}
       {screen === "processing" && (
-        <StateBanner tone="info" className="mb-4" title="Распознаём новое письмо поставщика">
-          Цены из вложения появятся в колонке через минуту.
+        <StateBanner
+          tone="info"
+          className="mb-4"
+          title={
+            pending.length
+              ? `Ждём ответы: ${pending.length} ${pending.length === 1 ? "поставщик" : "поставщика"}`
+              : "Распознаём новое письмо поставщика"
+          }
+        >
+          Цены, сроки и доступный объём из писем появятся в колонках поставщиков автоматически.
         </StateBanner>
       )}
 
@@ -212,7 +252,12 @@ function ComparisonPage() {
             title: "Предложений пока нет",
             description: `Запрос отправлен ${meta ? fmtDateTime(meta.sentAt) : ""} ${request.sentTo.length} поставщикам. Ответы из писем появятся здесь автоматически — если срок выходит, напомните поставщикам.`,
             actionLabel: "Напомнить поставщикам",
-            onAction: () => toast.success("Напоминание отправлено"),
+            onAction: () => {
+              const sent = specActions.remindSuppliers(request.id);
+              toast.success(
+                `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
+              );
+            },
           },
         }}
       >

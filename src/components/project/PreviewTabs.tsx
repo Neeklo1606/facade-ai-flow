@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Bot, Check, CircleSlash, FileText, PencilLine, UserRound } from "lucide-react";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator, confidenceLevel } from "@/components/common/ConfidenceIndicator";
-import { documentStats, isActive, isVerified, useSpecStore } from "@/lib/spec-store";
+import { documentStats, isActive, isVerified, offersOf, useSpecStore } from "@/lib/spec-store";
 import { docStatusTone } from "@/lib/project-meta";
 import { SourceRef } from "@/components/common/SourceRef";
 import {
@@ -15,7 +15,6 @@ import {
   employeeName,
   employees,
   historyOf,
-  offersFor,
   specItems,
   type Approval,
   type ExtractedPosition,
@@ -462,7 +461,8 @@ const deliveryStatus: Record<Delivery["status"], { label: string; tone: Tone }> 
 };
 
 export function PurchasesPreview({ projectId, overview, scope }: Props) {
-  const requests = [...byProject.requests(projectId)].sort((a, b) =>
+  const store = useSpecStore((st) => st);
+  const requests = [...store.requests.filter((r) => r.projectId === projectId)].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
   );
   const deliveries = [...byProject.deliveries(projectId)].sort((a, b) =>
@@ -492,7 +492,7 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
             }
           >
             {requests.slice(0, PREVIEW).map((request) => {
-              const offers = offersFor(request.id);
+              const offers = offersOf(store, request.id);
               return (
                 <tr key={request.id}>
                   <Td className="whitespace-nowrap font-medium text-text-primary">
@@ -576,12 +576,7 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-      <Block
-        title="Объёмы по захваткам"
-        count={`${fmtNum(factQty)} из ${fmtNum(planQty)} м²`}
-        to="/schedule"
-        onLinkClick={scope}
-      >
+      <Block title="Объёмы по захваткам" count={`${fmtNum(factQty)} из ${fmtNum(planQty)} м²`}>
         {zones.length === 0 ? (
           <BlockEmpty>Захватки не заведены</BlockEmpty>
         ) : (
@@ -807,13 +802,13 @@ export function HistoryPreview({ projectId, scope, onSource }: Props) {
 
 /* ---------- Команда ---------- */
 
-export function TeamPreview({ projectId, scope }: Props) {
+export function TeamPreview({ projectId }: Props) {
   const people = employees.filter((item) => item.projectIds.includes(projectId));
   const crews = byProject.crews(projectId);
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <Block title="Люди на объекте" count={people.length} to="/users" onLinkClick={scope}>
+      <Block title="Люди на объекте" count={people.length}>
         <ul className="divide-y divide-border">
           {people.map((person) => (
             <li key={person.id} className="flex items-center gap-3 px-4 py-2.5">

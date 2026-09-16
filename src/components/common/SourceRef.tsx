@@ -5,7 +5,8 @@ import { ConfidenceIndicator } from "./ConfidenceIndicator";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { fmtDateTime } from "@/lib/format";
-import { approvals, employeeById, extractions, sourceById } from "@/mock/repository";
+import { approvals, employeeById, extractions } from "@/mock/repository";
+import { sourceOf, useSpecStore } from "@/lib/spec-store";
 import type { SourceKind } from "@/mock/repository";
 
 const kindIcon: Record<SourceKind, typeof Mail> = {
@@ -45,12 +46,17 @@ export function SourceRef({
   onOpen?: () => void;
   className?: string;
 }) {
-  const source = sourceById(sourceId);
+  const source = useSpecStore((st) => sourceOf(st, sourceId));
   if (!source) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn("inline-flex size-11 items-center justify-center text-text-muted lg:size-6", className)}>
+          <span
+            className={cn(
+              "inline-flex size-11 items-center justify-center text-text-muted lg:size-6",
+              className,
+            )}
+          >
             <PenLine className="size-3.5" strokeWidth={1.5} />
           </span>
         </TooltipTrigger>
@@ -119,7 +125,7 @@ export function SourceDrawer({
   fragment?: string | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const source = sourceById(sourceId);
+  const source = useSpecStore((st) => sourceOf(st, sourceId));
   if (!source) return null;
   const fields = extractions.filter((item) => item.sourceId === source.id);
   const decisions = approvals.filter((item) =>
@@ -176,15 +182,21 @@ export function SourceDrawer({
             <p className="text-[12px] text-text-muted">Решения человека</p>
             <ul className="mt-2 space-y-2">
               {decisions.map((item) => (
-                <li key={item.id} className="rounded-[var(--r-md)] border border-border px-3 py-2.5">
+                <li
+                  key={item.id}
+                  className="rounded-[var(--r-md)] border border-border px-3 py-2.5"
+                >
                   <p className="text-[13px]">
                     {item.field}: {item.previousValue ? `${item.previousValue} → ` : ""}
                     <span className="font-medium">{item.newValue}</span>
                   </p>
                   <p className="mt-1 text-[12px] text-text-muted">
-                    {employeeById(item.approvedBy)?.name ?? item.approvedBy} · {fmtDateTime(item.approvedAt)}
+                    {employeeById(item.approvedBy)?.name ?? item.approvedBy} ·{" "}
+                    {fmtDateTime(item.approvedAt)}
                   </p>
-                  {item.comment && <p className="mt-1 text-[12px] text-text-secondary">{item.comment}</p>}
+                  {item.comment && (
+                    <p className="mt-1 text-[12px] text-text-secondary">{item.comment}</p>
+                  )}
                 </li>
               ))}
             </ul>

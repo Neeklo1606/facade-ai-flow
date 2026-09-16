@@ -23,8 +23,6 @@ interface AppContextValue {
   toggleSidebar: () => void;
   mobileNavOpen: boolean;
   setMobileNavOpen: (v: boolean) => void;
-  agentPanelOpen: boolean;
-  setAgentPanelOpen: (v: boolean) => void;
   commandOpen: boolean;
   setCommandOpen: (v: boolean) => void;
   user: typeof currentUser;
@@ -41,13 +39,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [siteId, setSiteId] = useState<string>(ALL_SITES);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [agentPanelOpen, setAgentPanelOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
 
   // На телефоне тема всегда светлая: экран читают на улице, при солнце
   useEffect(() => {
     const mobile = window.matchMedia("(max-width: 1023px)");
-    const apply = () => document.documentElement.classList.toggle("dark", theme === "dark" && !mobile.matches);
+    const apply = () =>
+      document.documentElement.classList.toggle("dark", theme === "dark" && !mobile.matches);
     apply();
     mobile.addEventListener("change", apply);
     return () => mobile.removeEventListener("change", apply);
@@ -76,14 +74,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleSidebar: () => setSidebarCollapsed((v) => !v),
       mobileNavOpen,
       setMobileNavOpen,
-      agentPanelOpen,
-      setAgentPanelOpen,
       commandOpen,
       setCommandOpen,
       user: currentUser,
       scopedSites: siteId === ALL_SITES ? sites : sites.filter((s) => s.id === siteId),
     }),
-    [theme, pack, siteId, sidebarCollapsed, mobileNavOpen, agentPanelOpen, commandOpen],
+    [theme, pack, siteId, sidebarCollapsed, mobileNavOpen, commandOpen],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

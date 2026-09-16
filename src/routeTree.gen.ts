@@ -11,28 +11,18 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
-import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as ContractsRouteImport } from './routes/contracts'
-import { Route as DeliveriesRouteImport } from './routes/deliveries'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
-import { Route as DocumentsRouteImport } from './routes/documents'
-import { Route as FieldReportsRouteImport } from './routes/field-reports'
-import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
-import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as QualityRouteImport } from './routes/quality'
-import { Route as QuotesRouteImport } from './routes/quotes'
-import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as RisksRouteImport } from './routes/risks'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsersRouteImport } from './routes/users'
-import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
@@ -54,11 +44,6 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuditRoute = AuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CatalogsRoute = CatalogsRouteImport.update({
   id: '/catalogs',
   path: '/catalogs',
@@ -69,29 +54,9 @@ const ContractsRoute = ContractsRouteImport.update({
   path: '/contracts',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DeliveriesRoute = DeliveriesRouteImport.update({
-  id: '/deliveries',
-  path: '/deliveries',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DesignSystemRoute = DesignSystemRouteImport.update({
   id: '/design-system',
   path: '/design-system',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocumentsRoute = DocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FieldReportsRoute = FieldReportsRouteImport.update({
-  id: '/field-reports',
-  path: '/field-reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InboxRoute = InboxRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegrationsRoute = IntegrationsRouteImport.update({
@@ -104,24 +69,9 @@ const KnowledgeRoute = KnowledgeRouteImport.update({
   path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MaterialsRoute = MaterialsRouteImport.update({
-  id: '/materials',
-  path: '/materials',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const QualityRoute = QualityRouteImport.update({
   id: '/quality',
   path: '/quality',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuotesRoute = QuotesRouteImport.update({
-  id: '/quotes',
-  path: '/quotes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RequestsRoute = RequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RisksRoute = RisksRouteImport.update({
@@ -139,11 +89,6 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SuppliersRoute = SuppliersRouteImport.update({
-  id: '/suppliers',
-  path: '/suppliers',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -157,11 +102,6 @@ const TemplatesRoute = TemplatesRouteImport.update({
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VerificationRoute = VerificationRouteImport.update({
-  id: '/verification',
-  path: '/verification',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZonesRoute = ZonesRouteImport.update({
@@ -222,28 +162,18 @@ const ProjectsIdProcurementRfqIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/audit': typeof AuditRoute
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
-  '/deliveries': typeof DeliveriesRoute
   '/design-system': typeof DesignSystemRoute
-  '/documents': typeof DocumentsRoute
-  '/field-reports': typeof FieldReportsRoute
-  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
-  '/materials': typeof MaterialsRoute
   '/quality': typeof QualityRoute
-  '/quotes': typeof QuotesRoute
-  '/requests': typeof RequestsRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
-  '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -258,28 +188,18 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/audit': typeof AuditRoute
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
-  '/deliveries': typeof DeliveriesRoute
   '/design-system': typeof DesignSystemRoute
-  '/documents': typeof DocumentsRoute
-  '/field-reports': typeof FieldReportsRoute
-  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
-  '/materials': typeof MaterialsRoute
   '/quality': typeof QualityRoute
-  '/quotes': typeof QuotesRoute
-  '/requests': typeof RequestsRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
-  '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -295,28 +215,18 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/audit': typeof AuditRoute
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
-  '/deliveries': typeof DeliveriesRoute
   '/design-system': typeof DesignSystemRoute
-  '/documents': typeof DocumentsRoute
-  '/field-reports': typeof FieldReportsRoute
-  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
-  '/materials': typeof MaterialsRoute
   '/quality': typeof QualityRoute
-  '/quotes': typeof QuotesRoute
-  '/requests': typeof RequestsRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/suppliers': typeof SuppliersRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
-  '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -333,28 +243,18 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analytics'
-    | '/audit'
     | '/catalogs'
     | '/contracts'
-    | '/deliveries'
     | '/design-system'
-    | '/documents'
-    | '/field-reports'
-    | '/inbox'
     | '/integrations'
     | '/knowledge'
-    | '/materials'
     | '/quality'
-    | '/quotes'
-    | '/requests'
     | '/risks'
     | '/schedule'
     | '/settings'
-    | '/suppliers'
     | '/tasks'
     | '/templates'
     | '/users'
-    | '/verification'
     | '/zones'
     | '/projects/'
     | '/projects/$id/field-reports'
@@ -369,28 +269,18 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analytics'
-    | '/audit'
     | '/catalogs'
     | '/contracts'
-    | '/deliveries'
     | '/design-system'
-    | '/documents'
-    | '/field-reports'
-    | '/inbox'
     | '/integrations'
     | '/knowledge'
-    | '/materials'
     | '/quality'
-    | '/quotes'
-    | '/requests'
     | '/risks'
     | '/schedule'
     | '/settings'
-    | '/suppliers'
     | '/tasks'
     | '/templates'
     | '/users'
-    | '/verification'
     | '/zones'
     | '/projects'
     | '/projects/$id/field-reports'
@@ -405,28 +295,18 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analytics'
-    | '/audit'
     | '/catalogs'
     | '/contracts'
-    | '/deliveries'
     | '/design-system'
-    | '/documents'
-    | '/field-reports'
-    | '/inbox'
     | '/integrations'
     | '/knowledge'
-    | '/materials'
     | '/quality'
-    | '/quotes'
-    | '/requests'
     | '/risks'
     | '/schedule'
     | '/settings'
-    | '/suppliers'
     | '/tasks'
     | '/templates'
     | '/users'
-    | '/verification'
     | '/zones'
     | '/projects/'
     | '/projects/$id/field-reports'
@@ -442,28 +322,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
-  AuditRoute: typeof AuditRoute
   CatalogsRoute: typeof CatalogsRoute
   ContractsRoute: typeof ContractsRoute
-  DeliveriesRoute: typeof DeliveriesRoute
   DesignSystemRoute: typeof DesignSystemRoute
-  DocumentsRoute: typeof DocumentsRoute
-  FieldReportsRoute: typeof FieldReportsRoute
-  InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
   KnowledgeRoute: typeof KnowledgeRoute
-  MaterialsRoute: typeof MaterialsRoute
   QualityRoute: typeof QualityRoute
-  QuotesRoute: typeof QuotesRoute
-  RequestsRoute: typeof RequestsRoute
   RisksRoute: typeof RisksRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
-  SuppliersRoute: typeof SuppliersRoute
   TasksRoute: typeof TasksRoute
   TemplatesRoute: typeof TemplatesRoute
   UsersRoute: typeof UsersRoute
-  VerificationRoute: typeof VerificationRoute
   ZonesRoute: typeof ZonesRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
@@ -492,13 +362,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/audit': {
-      id: '/audit'
-      path: '/audit'
-      fullPath: '/audit'
-      preLoaderRoute: typeof AuditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/catalogs': {
       id: '/catalogs'
       path: '/catalogs'
@@ -513,39 +376,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContractsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/deliveries': {
-      id: '/deliveries'
-      path: '/deliveries'
-      fullPath: '/deliveries'
-      preLoaderRoute: typeof DeliveriesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/design-system': {
       id: '/design-system'
       path: '/design-system'
       fullPath: '/design-system'
       preLoaderRoute: typeof DesignSystemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/documents': {
-      id: '/documents'
-      path: '/documents'
-      fullPath: '/documents'
-      preLoaderRoute: typeof DocumentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/field-reports': {
-      id: '/field-reports'
-      path: '/field-reports'
-      fullPath: '/field-reports'
-      preLoaderRoute: typeof FieldReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inbox': {
-      id: '/inbox'
-      path: '/inbox'
-      fullPath: '/inbox'
-      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/integrations': {
@@ -562,32 +397,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/materials': {
-      id: '/materials'
-      path: '/materials'
-      fullPath: '/materials'
-      preLoaderRoute: typeof MaterialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/quality': {
       id: '/quality'
       path: '/quality'
       fullPath: '/quality'
       preLoaderRoute: typeof QualityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quotes': {
-      id: '/quotes'
-      path: '/quotes'
-      fullPath: '/quotes'
-      preLoaderRoute: typeof QuotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/requests': {
-      id: '/requests'
-      path: '/requests'
-      fullPath: '/requests'
-      preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/risks': {
@@ -611,13 +425,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/suppliers': {
-      id: '/suppliers'
-      path: '/suppliers'
-      fullPath: '/suppliers'
-      preLoaderRoute: typeof SuppliersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tasks': {
       id: '/tasks'
       path: '/tasks'
@@ -637,13 +444,6 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/verification': {
-      id: '/verification'
-      path: '/verification'
-      fullPath: '/verification'
-      preLoaderRoute: typeof VerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/zones': {
@@ -722,28 +522,18 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
-  AuditRoute: AuditRoute,
   CatalogsRoute: CatalogsRoute,
   ContractsRoute: ContractsRoute,
-  DeliveriesRoute: DeliveriesRoute,
   DesignSystemRoute: DesignSystemRoute,
-  DocumentsRoute: DocumentsRoute,
-  FieldReportsRoute: FieldReportsRoute,
-  InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,
   KnowledgeRoute: KnowledgeRoute,
-  MaterialsRoute: MaterialsRoute,
   QualityRoute: QualityRoute,
-  QuotesRoute: QuotesRoute,
-  RequestsRoute: RequestsRoute,
   RisksRoute: RisksRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
-  SuppliersRoute: SuppliersRoute,
   TasksRoute: TasksRoute,
   TemplatesRoute: TemplatesRoute,
   UsersRoute: UsersRoute,
-  VerificationRoute: VerificationRoute,
   ZonesRoute: ZonesRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,

@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Building2, FileSpreadsheet, LayoutGrid, Plus, Rows3 } from "lucide-react";
+import { ArrowRight, Building2, FileSpreadsheet, LayoutGrid, Plus, Rows3, X } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Panel } from "@/components/common/Panel";
 import { FilterChip } from "@/components/common/FilterBar";
@@ -30,12 +30,15 @@ import {
 import {
   employeeName,
   employees,
-  overviewOf,
-  projects,
   type Project,
   type ProjectOverview,
   type ProjectStatus,
 } from "@/mock/repository";
+import { specActions, useSpecStore } from "@/lib/spec-store";
+import { useApp } from "@/lib/app-context";
+import { sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
+import { siteIdOf } from "@/lib/project-scope";
+import { MOCK_NOW } from "@/lib/format";
 import { attentionBar, attentionOf, projectStatusMeta } from "@/lib/project-meta";
 import { exportXlsx } from "@/lib/export-xlsx";
 import { useOverviews } from "@/lib/project-overview";
@@ -49,7 +52,18 @@ interface ProjectsSearch {
   status?: ProjectStatus | undefined;
   unverified?: boolean | undefined;
   view?: "table" | "cards" | undefined;
+  /** Раздел меню, для которого нужно выбрать объект */
+  section?: ProjectSection | undefined;
 }
+
+const sections: ProjectSection[] = [
+  "documents",
+  "materials",
+  "procurement",
+  "suppliers",
+  "field-reports",
+  "timeline",
+];
 
 const str = (value: unknown) => (typeof value === "string" && value ? value : undefined);
 
@@ -60,6 +74,9 @@ export const Route = createFileRoute("/projects/")({
     status: str(search["status"]) as ProjectStatus | undefined,
     unverified: search["unverified"] === true || search["unverified"] === "true" ? true : undefined,
     view: search["view"] === "cards" ? "cards" : undefined,
+    section: sections.includes(search["section"] as ProjectSection)
+      ? (search["section"] as ProjectSection)
+      : undefined,
   }),
   head: () => ({
     meta: [
@@ -87,14 +104,6 @@ interface Row {
   overview: ProjectOverview;
 }
 
-const staticRows: Row[] = projects
-  .map((project) => ({ id: project.id, project, overview: overviewOf(project.id) }))
-  .filter((row): row is Row => row.overview !== null);
-
-const regions = [...new Set(staticRows.map((row) => row.overview.region))];
-const managers = [...new Set(staticRows.map((row) => row.project.manager))];
-const statuses = [...new Set(staticRows.map((row) => row.project.status))];
-
 /** Число, которое требует реакции, выделяется цветом; ноль гасится. */
 function Count({ value, tone }: { value: number; tone?: "danger" | "warn" | undefined }) {
   return (
@@ -116,11 +125,19 @@ function ProjectsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const overviews = useOverviews(staticRows.map((row) => row.id));
+  const { setSiteId } = useApp();
+  const projects = useSpecStore((s) => s.projects);
+  const overviews = useOverviews(projects.map((project) => project.id));
   const allRows = useMemo(
-    () => staticRows.map((row, index) => ({ ...row, overview: overviews[index] ?? row.overview })),
-    [overviews],
+    () =>
+      projects
+        .map((project, index) => ({ id: project.id, project, overview: overviews[index] ?? null }))
+        .filter((row): row is Row => row.overview !== null),
+    [projects, overviews],
   );
+  const regions = [...new Set(allRows.map((row) => row.overview.region))];
+  const managers = [...new Set(allRows.map((row) => row.project.manager))];
+  const statuses = [...new Set(allRows.map((row) => row.project.status))];
   const view = search.view ?? "table";
 
   const setSearch = (patch: Partial<ProjectsSearch>) =>
@@ -142,7 +159,7 @@ function ProjectsPage() {
     [allRows, search.region, search.manager, search.status, search.unverified],
   );
 
-  const screen = useScreenState({ empty: staticRows.length === 0, filtered: rows.length === 0 });
+  const screen = useScreenState({ empty: allRows.length === 0, filtered: rows.length === 0 });
   const filtersActive = Boolean(
     search.region || search.manager || search.status || search.unverified,
   );
@@ -156,7 +173,16 @@ function ProjectsPage() {
     [rows],
   );
 
-  const open = (row: Row) => navigate({ to: "/projects/$id", params: { id: row.id } });
+  /** Пришли из меню раздела без выбранного объекта — открываем сразу этот раздел объекта. */
+  const open = (row: Row) => {
+    if (!search.section) {
+      void navigate({ to: "/projects/$id", params: { id: row.id } });
+      return;
+    }
+    setSiteId(siteIdOf(row.id));
+    const href = sectionHref(row.id, search.section);
+    void navigate({ to: href.to, search: href.search as never });
+  };
 
   async function handleExport() {
     setExporting(true);
@@ -197,6 +223,22 @@ function ProjectsPage() {
 
   return (
     <>
+      {search.section && (
+        <div
+          role="status"
+          className="mb-4 flex flex-wrap items-center gap-3 rounded-[var(--r-md)] border border-accent-border bg-accent-subtle px-4 py-3"
+        >
+          <ArrowRight className="size-4 shrink-0 text-accent" />
+          <p className="min-w-0 flex-1 text-[13px]">
+            <b className="font-semibold">{sectionLabels[search.section]}</b> ведётся по объекту.
+            Выберите объект — раздел откроется сразу.
+          </p>
+          <Button size="sm" variant="ghost" onClick={() => setSearch({ section: undefined })}>
+            <X className="size-3.5" /> Просто открыть реестр
+          </Button>
+        </div>
+      )}
+
       <PageHeader
         title="Объекты"
         description="Где требуется внимание: непроверенная спецификация, просроченные ответы поставщиков и неразобранные изменения документации."
@@ -388,7 +430,14 @@ function ProjectsPage() {
         </MobileActionBar>
       )}
 
-      <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateProjectDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(id) => {
+          setSiteId(siteIdOf(id));
+          void navigate({ to: "/projects/$id", params: { id } });
+        }}
+      />
     </>
   );
 }
@@ -570,20 +619,39 @@ function ProjectCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
 function CreateProjectDialog({
   open,
   onOpenChange,
+  onCreated,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onCreated: (id: string) => void;
 }) {
   const managersList = employees.filter((item) => item.role === "manager");
   const [manager, setManager] = useState(managersList[0]?.id ?? "");
+  const today = MOCK_NOW.slice(0, 10);
+  const [start, setStart] = useState(today);
+  const [end, setEnd] = useState(`${Number(today.slice(0, 4)) + 1}${today.slice(4)}`);
+  const datesInvalid = !start || !end || end < start;
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (datesInvalid) return;
     const data = new FormData(e.currentTarget);
+    const field = (name: string) => String(data.get(name) ?? "").trim();
+    const id = specActions.createProject({
+      name: field("name"),
+      code: field("code"),
+      region: field("region"),
+      customer: field("customer"),
+      contract: field("contract"),
+      startDate: start,
+      endDate: end,
+      manager,
+    });
     onOpenChange(false);
-    toast.success(`Объект «${data.get("name")}» создан`, {
+    toast.success(`Объект «${field("name")}» создан`, {
       description: "Загрузите проектную документацию, чтобы извлечь спецификацию материалов.",
     });
+    onCreated(id);
   }
 
   return (
@@ -592,7 +660,7 @@ function CreateProjectDialog({
         <DialogHeader>
           <DialogTitle>Новый объект</DialogTitle>
           <DialogDescription>
-            Спецификация, сроки и контрольные точки заполнятся после загрузки документации и
+            Спецификация, сроки этапов и контрольные точки заполнятся после загрузки документации и
             договора.
           </DialogDescription>
         </DialogHeader>
@@ -616,6 +684,28 @@ function CreateProjectDialog({
           <div className="grid gap-1.5">
             <Label htmlFor="p-contract">Договор</Label>
             <Input id="p-contract" name="contract" placeholder="№ договора" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="p-start">Начало работ</Label>
+            <Input
+              id="p-start"
+              type="date"
+              required
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="p-end">Срок сдачи</Label>
+            <Input
+              id="p-end"
+              type="date"
+              required
+              value={end}
+              min={start}
+              onChange={(e) => setEnd(e.target.value)}
+              aria-invalid={datesInvalid}
+            />
           </div>
           <div className="grid gap-1.5 sm:col-span-2">
             <Label>Ответственный</Label>

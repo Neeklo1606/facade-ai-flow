@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { AgentDock } from "@/components/agent/AgentDock";
 import { BottomTabs } from "./BottomTabs";
 import { CommandPalette } from "./CommandPalette";
 
@@ -16,7 +15,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5 pb-24 md:px-7 md:py-6 lg:pb-7">
               <div className="mx-auto w-full max-w-[1680px]">{children}</div>
             </main>
-            <AgentDock />
           </div>
         </div>
         <BottomTabs />

@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button";
 import {
   counterpartyName,
   employeeById,
-  offersFor,
   purchaseOrder,
   purchaseStatusLabel,
   replacementSuggestions,
   type ExtractedPosition,
 } from "@/mock/repository";
-import { useSpecStore } from "@/lib/spec-store";
+import { offersOf, useSpecStore } from "@/lib/spec-store";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -59,7 +58,8 @@ export function MaterialDrawer({
   onOpenChange: (open: boolean) => void;
 }) {
   const changes = useSpecStore((s) => s.changes);
-  const requests = useSpecStore((s) => s.requests);
+  const store = useSpecStore((s) => s);
+  const requests = store.requests;
   const history = changes
     .filter((change) => change.positionId === item.id)
     .sort((a, b) => b.at.localeCompare(a.at));
@@ -200,7 +200,7 @@ export function MaterialDrawer({
           ) : (
             <ul className="space-y-2">
               {related.map((request) => {
-                const offers = offersFor(request.id);
+                const offers = offersOf(store, request.id);
                 return (
                   <li key={request.id} className="rounded-[var(--r-md)] border border-border">
                     <div className="flex items-center justify-between gap-3 px-3 py-2">

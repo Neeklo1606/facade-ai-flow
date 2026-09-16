@@ -20,7 +20,7 @@ import {
   type Project,
   type SupplierProfile,
 } from "@/mock/repository";
-import { isVerified, specActions, useSpecStore } from "@/lib/spec-store";
+import { isReadyForRequest, specActions, useSpecStore } from "@/lib/spec-store";
 import { MOCK_NOW, fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -53,10 +53,7 @@ export function CreateRfqDialog({
   const positions = useSpecStore((s) => s.positions);
   const profiles = useSpecStore((s) => s.profiles);
   const eligible = useMemo(
-    () =>
-      positions.filter(
-        (item) => item.projectId === project.id && isVerified(item) && item.purchase === "none",
-      ),
+    () => positions.filter((item) => item.projectId === project.id && isReadyForRequest(item)),
     [positions, project.id],
   );
 
@@ -207,8 +204,8 @@ export function CreateRfqDialog({
             <>
               {eligible.length === 0 ? (
                 <p className="rounded-[var(--r-md)] bg-subtle px-4 py-6 text-center text-[13px] text-text-secondary">
-                  Нет проверенных позиций вне закупки. Подтвердите позиции на экране извлечения —
-                  они появятся здесь.
+                  Нет позиций, готовых к запросу. Проверьте позиции на экране извлечения и передайте
+                  их в закупку — они появятся здесь.
                 </p>
               ) : (
                 <>
@@ -216,7 +213,7 @@ export function CreateRfqDialog({
                     <p className="text-caption text-text-secondary">
                       Выбрано{" "}
                       <b className="tnum text-text-primary">{fmtNum(selectedItems.length)}</b> из{" "}
-                      {fmtNum(eligible.length)} проверенных позиций
+                      {fmtNum(eligible.length)} готовых к запросу
                     </p>
                     <Button
                       size="sm"

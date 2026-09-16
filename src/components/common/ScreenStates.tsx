@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "./EmptyState";
 import { SkeletonLine } from "./Skeletons";
 import type { ScreenState } from "@/lib/screen-state";
-import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 /** Снять принудительное состояние из адреса — «Повторить» после ошибки. */
@@ -143,13 +142,7 @@ export function ForbiddenState({ section, roles }: { section: string; roles: str
     <EmptyState
       icon={Lock}
       title={`Нет доступа к разделу «${section}»`}
-      description={`Раздел доступен: ${roles}. Запросите доступ у руководителя проекта — после выдачи права раздел откроется без перезагрузки.`}
-      actionLabel="Запросить доступ"
-      onAction={() =>
-        toast.success("Запрос доступа отправлен", {
-          description: "Соколов И. П. получит уведомление в Telegram.",
-        })
-      }
+      description={`Раздел доступен: ${roles}. Чтобы получить доступ, обратитесь к руководителю проекта.`}
     />
   );
 }

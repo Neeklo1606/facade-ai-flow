@@ -372,7 +372,7 @@ const clarifyNotes = [
 function buildSpecPositions(): ExtractedPosition[] {
   const rows: Omit<
     ExtractedPosition,
-    "review" | "reviewedBy" | "reviewedAt" | "purchase" | "requestIds"
+    "review" | "reviewedBy" | "reviewedAt" | "purchase" | "requestIds" | "handedOver"
   >[] = [];
   let g = 0;
   sheetPlan.forEach((group, groupIndex) => {
@@ -434,6 +434,7 @@ function buildSpecPositions(): ExtractedPosition[] {
         review: kk % 9 === 0 ? "corrected" : "confirmed",
         reviewedBy: kk % 4 === 0 ? "e-sokolov" : "e-volkova",
         reviewedAt: `2026-09-0${1 + (kk % 5)}T${String(9 + (kk % 8)).padStart(2, "0")}:${String((kk * 7) % 60).padStart(2, "0")}:00`,
+        handedOver: true,
         purchase,
         requestIds: purchase === "none" ? [] : plan.requestIds,
       } satisfies ExtractedPosition;
@@ -461,6 +462,7 @@ function buildSpecPositions(): ExtractedPosition[] {
       review: "pending",
       reviewedBy: null,
       reviewedAt: null,
+      handedOver: false,
       purchase: "none",
       requestIds: [],
     } satisfies ExtractedPosition;
@@ -507,6 +509,7 @@ export function simulatedPositions(
       reviewedBy: null,
       reviewedAt: null,
       note: r === 5 ? "Количество не распознано: ячейка пустая." : null,
+      handedOver: false,
       purchase: "none",
       requestIds: [],
       mergedInto: null,

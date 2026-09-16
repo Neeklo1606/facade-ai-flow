@@ -1,13 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Building2,
-  FileCheck2,
-  HardHat,
-  Menu,
-  PackageSearch,
-  Truck,
-  type LucideIcon,
-} from "lucide-react";
+import { Building2, FileCheck2, HardHat, Menu, Truck, type LucideIcon } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { useProjectId } from "@/lib/project-scope";
 import { cn } from "@/lib/utils";
@@ -29,6 +21,9 @@ export function BottomTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const view = useRouterState({
     select: (s) => String((s.location.search as Record<string, unknown>)["view"] ?? ""),
+  });
+  const pickSection = useRouterState({
+    select: (s) => String((s.location.search as Record<string, unknown>)["section"] ?? ""),
   });
   const { setMobileNavOpen } = useApp();
   const projectId = useProjectId();
@@ -72,28 +67,31 @@ export function BottomTabs() {
           label: "Объекты",
           icon: Building2,
           to: "/projects",
-          active: (p) => p === "/projects" || p === "/",
+          active: (p) => p === "/projects" && !pickSection,
         },
         {
           key: "reports",
           label: "Отчёты",
           icon: HardHat,
-          to: "/field-reports",
-          active: (p) => p.startsWith("/field-reports"),
+          to: "/projects",
+          search: { section: "field-reports" },
+          active: () => pickSection === "field-reports",
         },
         {
           key: "docs",
-          label: "Документы",
+          label: "Проверка",
           icon: FileCheck2,
-          to: "/documents",
-          active: (p) => p.startsWith("/documents"),
+          to: "/projects",
+          search: { section: "documents" },
+          active: () => pickSection === "documents",
         },
         {
-          key: "requests",
-          label: "Закупки",
-          icon: PackageSearch,
-          to: "/requests",
-          active: (p) => p.startsWith("/requests"),
+          key: "suppliers",
+          label: "Поставщики",
+          icon: Truck,
+          to: "/projects",
+          search: { section: "suppliers" },
+          active: () => pickSection === "suppliers",
         },
       ];
 

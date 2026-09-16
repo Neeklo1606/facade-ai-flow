@@ -18,7 +18,12 @@ import {
   Truck,
   type LucideIcon,
 } from "lucide-react";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
@@ -52,11 +57,11 @@ export const Route = createFileRoute("/projects/$id/timeline")({
   loader: ({ params }) => loadProject(params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `История и решения — ${loaderData.project.name} — neeklo FieldOps` }]
+      ? [{ title: `История и решения — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: TimelinePage,
+  component: withProject(TimelinePage),
 });
 
 const typeStyle: Record<TimelineEventType, { icon: LucideIcon; tone: string }> = {
@@ -73,8 +78,7 @@ const typeStyle: Record<TimelineEventType, { icon: LucideIcon; tone: string }> =
   decision: { icon: Gavel, tone: "bg-ok-bg text-ok" },
 };
 
-function TimelinePage() {
-  const { project } = Route.useLoaderData();
+function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const state = useSpecStore((s) => s);

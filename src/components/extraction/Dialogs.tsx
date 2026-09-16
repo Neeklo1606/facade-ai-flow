@@ -105,16 +105,19 @@ export function SendDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Отправить проверенные позиции в закупку</DialogTitle>
+          <DialogTitle>Передать проверенные позиции в закупку</DialogTitle>
           <DialogDescription>
-            Проверьте последствия: после отправки позиции появятся в реестре материалов и станут
-            доступны для запросов поставщикам.
+            Проверьте последствия: после передачи позиции можно включать в запросы поставщикам.
+            Непроверенные строки останутся на проверке.
           </DialogDescription>
         </DialogHeader>
         <ImpactPreview
           title="Что произойдёт"
           changes={[
-            { label: "Будет создано позиций материалов", after: fmtNum(summary.create) },
+            {
+              label: "Станут доступны для запросов поставщикам",
+              after: `${fmtNum(summary.create)} поз.`,
+            },
             {
               label: "Из них требуют нормализации",
               after: fmtNum(summary.needNormalization),
@@ -134,7 +137,7 @@ export function SendDialog({
         />
         {(summary.pendingLeft > 0 || summary.excluded > 0) && (
           <p className="text-caption text-text-muted">
-            Не будут отправлены: непроверенные — {fmtNum(summary.pendingLeft)}, исключённые и
+            Не будут переданы: непроверенные — {fmtNum(summary.pendingLeft)}, исключённые и
             объединённые — {fmtNum(summary.excluded)}.
           </p>
         )}
@@ -143,7 +146,7 @@ export function SendDialog({
             Вернуться к проверке
           </Button>
           <Button variant="accent" onClick={onConfirm} autoFocus>
-            <Send className="size-4" /> Отправить {fmtNum(summary.create)} поз.
+            <Send className="size-4" /> Передать {fmtNum(summary.create)} поз.
           </Button>
         </DialogFooter>
       </DialogContent>

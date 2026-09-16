@@ -21,12 +21,12 @@ function NotFoundComponent() {
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="max-w-md text-center">
         <h1 className="text-page-title">Раздел не найден</h1>
-        <p className="mt-2 text-text-secondary">Проверьте адрес или вернитесь на дашборд.</p>
+        <p className="mt-2 text-text-secondary">Проверьте адрес или вернитесь к списку объектов.</p>
         <Link
-          to="/"
+          to="/projects"
           className="mt-6 inline-flex h-[38px] items-center justify-center rounded-full bg-primary px-[18px] text-[13px] font-medium text-primary-foreground hover:bg-[var(--ink-hover)]"
         >
-          На дашборд
+          К объектам
         </Link>
       </div>
     </div>
@@ -44,7 +44,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="max-w-md text-center">
         <h1 className="text-section-title">Экран не загрузился</h1>
-        <p className="mt-2 text-text-secondary">Данные не удалось отобразить. Попробуйте повторить.</p>
+        <p className="mt-2 text-text-secondary">
+          Данные не удалось отобразить. Попробуйте повторить.
+        </p>
         <button
           onClick={() => {
             router.invalidate();
@@ -112,7 +114,8 @@ function RootComponent() {
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             <Outlet />
           </AppLayout>
-          <Toaster position="bottom-right" />
+          {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}
+          <Toaster position="top-center" offset={{ top: 64 }} mobileOffset={{ top: 64 }} />
         </TooltipProvider>
       </AppProvider>
     </QueryClientProvider>

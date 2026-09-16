@@ -11,7 +11,12 @@ import {
   PencilLine,
   Undo2,
 } from "lucide-react";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { PhotoGallery, VoiceReport } from "@/components/field/Media";
 import { FilterChip } from "@/components/common/FilterBar";
@@ -26,11 +31,10 @@ import {
   employeeById,
   evidence,
   extractions,
-  sourceById,
   workZones,
   type FieldReport,
 } from "@/mock/repository";
-import { specActions, useSpecStore } from "@/lib/spec-store";
+import { sourceOf, specActions, useSpecStore } from "@/lib/spec-store";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDayTitle, fmtNum, fmtTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
@@ -56,11 +60,11 @@ export const Route = createFileRoute("/projects/$id/field-reports")({
   loader: ({ params }) => loadProject(params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Отчёты с площадки — ${loaderData.project.name} — neeklo FieldOps` }]
+      ? [{ title: `Отчёты с площадки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: FieldReportsPage,
+  component: withProject(FieldReportsPage),
 });
 
 const statusMeta: Record<FieldReport["status"], { label: string; tone: Tone }> = {
@@ -75,8 +79,7 @@ const kindMeta = {
   photo: { label: "Только фото", icon: ImageIcon },
 };
 
-function FieldReportsPage() {
-  const { project } = Route.useLoaderData();
+function FieldReportsPage({ project }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const allReports = useSpecStore((s) => s.reports);
@@ -132,7 +135,7 @@ function FieldReportsPage() {
       <SubpageHeader
         project={project}
         title="Отчёты с площадки"
-        description="Отчёты прорабов из Telegram: объём, фото и проблемы. Проверьте и примите — объём уйдёт в ход работ."
+        description="Отчёты прорабов из Telegram: объём, фото и проблемы. Проверьте объём и примите отчёт или верните на уточнение."
         meta={
           <span className="text-caption text-text-secondary">
             На проверке <b className="tnum font-semibold text-warn">{toReview.length}</b> · всего{" "}
@@ -206,12 +209,7 @@ function FieldReportsPage() {
             icon: HardHat,
             title: "Отчётов с площадки пока нет",
             description:
-              "Прорабы отправляют отчёты в Telegram-бот голосом, текстом или фото. Пригласите прораба — после распознавания отчёт появится здесь с объёмом и проблемами.",
-            actionLabel: "Пригласить прораба",
-            onAction: () =>
-              toast.success("Ссылка на бота скопирована", {
-                description: "Отправьте её прорабу в Telegram.",
-              }),
+              "Прорабы отправляют отчёты в Telegram-бот голосом, текстом или фото. После распознавания отчёт появится здесь с объёмом и проблемами.",
           },
           filtered: {
             onReset: () => setSearch({ status: undefined, zone: undefined }),
@@ -279,13 +277,13 @@ function ReportCard({
     specActions.reviewReport(report.id, "accepted", value);
     setEditing(false);
     toast.success(`Отчёт принят: ${fmtNum(value)} ${report.unit}`, {
-      description: `${zone?.name} · объём добавлен в ход работ`,
+      description: zone?.name ?? "",
     });
   };
 
   const end = audio?.location.match(/(\d+):(\d+)$/);
   const duration = end ? Number(end[1]) * 60 + Number(end[2]) : 0;
-  const transcript = sourceById(report.sourceId)?.excerpt ?? "";
+  const transcript = useSpecStore((st) => sourceOf(st, report.sourceId)?.excerpt ?? "");
 
   return (
     <li id={`report-${report.id}`} className="scroll-mt-20">
@@ -428,8 +426,8 @@ function ReportCard({
                 variant="ghost"
                 onClick={() => {
                   specActions.reviewReport(report.id, "returned", null);
-                  toast("Отчёт возвращён прорабу", {
-                    description: "В Telegram ушёл вопрос: укажите объём и захватку.",
+                  toast("Отчёт возвращён на уточнение", {
+                    description: "Отчёт останется в ленте со статусом «Возвращён».",
                   });
                 }}
                 disabled={report.status === "returned"}

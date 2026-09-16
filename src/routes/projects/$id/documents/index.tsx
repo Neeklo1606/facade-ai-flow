@@ -2,7 +2,12 @@ import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, FileSpreadsheet, FileText, FileType2, Upload } from "lucide-react";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { UploadZone, type UploadZoneHandle } from "@/components/documents/UploadZone";
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
 import { FilterChip } from "@/components/common/FilterBar";
@@ -28,7 +33,7 @@ export const Route = createFileRoute("/projects/$id/documents/")({
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `Документация — ${loaderData.project.name} — neeklo FieldOps` },
+          { title: `Документация — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` },
           {
             name: "description",
             content:
@@ -38,7 +43,7 @@ export const Route = createFileRoute("/projects/$id/documents/")({
       : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: DocumentsPage,
+  component: withProject(DocumentsPage),
 });
 
 const fileIcon = { pdf: FileText, docx: FileType2, xlsx: FileSpreadsheet };
@@ -50,8 +55,7 @@ const filters: { id: "all" | DocProcessingStatus; label: string }[] = [
   { id: "verified", label: "Проверенные" },
 ];
 
-function DocumentsPage() {
-  const { project } = Route.useLoaderData();
+function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const navigate = useNavigate();
   const zone = useRef<UploadZoneHandle>(null);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");

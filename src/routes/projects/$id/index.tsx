@@ -1,7 +1,11 @@
 import { useRef, useState, type DragEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
-import { useProjectOverview } from "@/lib/project-overview";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { specActions, useSpecStore } from "@/lib/spec-store";
 import { useScreenState } from "@/lib/screen-state";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
@@ -61,28 +65,31 @@ export const Route = createFileRoute("/projects/$id/")({
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `${loaderData.project.name} — neeklo FieldOps` },
+          { title: `${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` },
           {
             name: "description",
-            content: `Карточка объекта ${loaderData.project.code}: что требует внимания, документация, материалы и закупки.`,
+            content: `Карточка объекта ${loaderData.project?.code ?? ""}: что требует внимания, документация, материалы и закупки.`,
           },
-          { property: "og:title", content: `${loaderData.project.name} — neeklo FieldOps` },
+          {
+            property: "og:title",
+            content: `${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
           { property: "og:type", content: "website" },
         ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: ProjectPage,
+  component: withProject(ProjectPage),
 });
 
-function ProjectPage() {
-  const { project, overview: staticOverview } = Route.useLoaderData();
-  const overview = useProjectOverview(project.id) ?? staticOverview;
+function ProjectPage({ project, overview }: ProjectPageProps): React.JSX.Element {
   const liveDocuments = useSpecStore((s) => s.documents);
   const recognizingDocs = liveDocuments.filter(
     (d) => d.projectId === project.id && (d.status === "recognizing" || d.status === "uploaded"),
   );
+  const hasDocuments = liveDocuments.some((d) => d.projectId === project.id);
   const screen = useScreenState({
+    empty: !hasDocuments && overview.specTotal === 0,
     processing: recognizingDocs.length > 0 && project.id !== "p-korona",
   });
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";

@@ -10,7 +10,12 @@ import {
   Send,
   X,
 } from "lucide-react";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { DocumentTree, type SheetCounts } from "@/components/extraction/DocumentTree";
 import { SheetViewer, type SheetViewerHandle } from "@/components/extraction/SheetViewer";
 import { PositionRow, type RowAction } from "@/components/extraction/PositionRow";
@@ -38,11 +43,15 @@ export const Route = createFileRoute("/projects/$id/documents/$docId")({
   loader: ({ params }) => loadProject(params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Извлечение позиций — ${loaderData.project.name} — neeklo FieldOps` }]
+      ? [
+          {
+            title: `Извлечение позиций — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
+        ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: ExtractionPage,
+  component: withProject(ExtractionPage),
 });
 
 type Filter = "all" | "attention" | "check" | "pending" | "verified" | "inactive";
@@ -79,8 +88,7 @@ function isTyping(target: EventTarget | null) {
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 }
 
-function ExtractionPage() {
-  const { project } = Route.useLoaderData();
+function ExtractionPage({ project }: ProjectPageProps): React.JSX.Element {
   const { docId } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
@@ -279,18 +287,22 @@ function ExtractionPage() {
   }, []);
   const onSelectOnPage = useCallback((id: string) => onActivate(id), [onActivate]);
 
-  const canSend = blocking === 0 && verifiedCount > 0 && !sentAt;
+  const toHandOver = useMemo(
+    () => positions.filter((item) => isVerified(item) && !item.handedOver),
+    [positions],
+  );
+  const canSend = blocking === 0 && toHandOver.length > 0;
+  const allHandedOver = verifiedCount > 0 && toHandOver.length === 0;
   const summary: SendSummary = useMemo(() => {
-    const verified = positions.filter(isVerified);
     return {
-      create: verified.length,
-      needNormalization: verified.filter((item) => !item.normalizedName).length,
-      withoutCharacteristics: verified.filter((item) => item.characteristics.length === 0).length,
+      create: toHandOver.length,
+      needNormalization: toHandOver.filter((item) => !item.normalizedName).length,
+      withoutCharacteristics: toHandOver.filter((item) => item.characteristics.length === 0).length,
       region: overview?.region ?? "—",
       pendingLeft: positions.filter((item) => item.review === "pending").length,
       excluded: positions.filter((item) => !isActive(item)).length,
     };
-  }, [positions, overview?.region]);
+  }, [positions, toHandOver, overview?.region]);
 
   function confirmAllVerified() {
     const snapshot = autoVerified;
@@ -305,8 +317,8 @@ function ExtractionPage() {
   function send() {
     specActions.sendToProcurement(docId);
     setSendOpen(false);
-    toast.success(`${fmtNum(summary.create)} позиций переданы в закупку`, {
-      description: `Нормализации требуют ${fmtNum(summary.needNormalization)}. Позиции доступны в реестре материалов.`,
+    toast.success(`В закупку переданы позиции: ${fmtNum(summary.create)}`, {
+      description: `По ним можно запрашивать цены у поставщиков. Нормализации требуют ${fmtNum(summary.needNormalization)}.`,
       action: {
         label: "Открыть материалы",
         onClick: () => navigate({ to: "/projects/$id/materials", params: { id: project.id } }),
@@ -326,7 +338,7 @@ function ExtractionPage() {
         e.preventDefault();
         if (k.canSend) setSendOpen(true);
         else
-          toast("Отправка недоступна", {
+          toast("Передача недоступна", {
             description: "Сначала разберите позиции «Не удалось определить».",
           });
         return;
@@ -657,7 +669,7 @@ function ExtractionPage() {
                       title="В этом фильтре позиций нет"
                       description={
                         filter === "check"
-                          ? "Все позиции «Не удалось определить» разобраны — можно отправлять в закупку."
+                          ? "Все позиции «Не удалось определить» разобраны — можно передавать в закупку."
                           : "Переключитесь на «Все», чтобы увидеть остальные позиции документа."
                       }
                       actionLabel="Показать все"
@@ -682,9 +694,12 @@ function ExtractionPage() {
                 </div>
 
                 <div className="shrink-0 border-t border-border p-3">
-                  {sentAt ? (
+                  {allHandedOver ? (
                     <div className="flex items-center justify-between gap-3 rounded-[var(--r-md)] bg-ok-bg px-3 py-2.5 text-[13px] text-ok">
-                      <span>Передано в закупку {fmtDateTime(sentAt)}</span>
+                      <span>
+                        Проверенные позиции переданы в закупку
+                        {sentAt ? ` · ${fmtDateTime(sentAt)}` : ""}
+                      </span>
                       <Link
                         to="/projects/$id/materials"
                         params={{ id: project.id }}
@@ -703,8 +718,8 @@ function ExtractionPage() {
                             disabled={!canSend}
                             onClick={() => setSendOpen(true)}
                           >
-                            <Send className="size-4" /> Отправить проверенные позиции в закупку
-                            <span className="tnum opacity-80">{fmtNum(verifiedCount)}</span>
+                            <Send className="size-4" /> Передать проверенные позиции в закупку
+                            <span className="tnum opacity-80">{fmtNum(toHandOver.length)}</span>
                           </Button>
                         </span>
                       </TooltipTrigger>
@@ -712,12 +727,12 @@ function ExtractionPage() {
                         <TooltipContent className="max-w-72">
                           {blocking > 0
                             ? `Осталось ${blocking} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
-                            : "Нет проверенных позиций для отправки."}
+                            : "Нет проверенных позиций, которые ещё не переданы в закупку."}
                         </TooltipContent>
                       )}
                     </Tooltip>
                   )}
-                  {!sentAt && blocking > 0 && (
+                  {!allHandedOver && blocking > 0 && (
                     <button
                       type="button"
                       onClick={() => setFilter("check")}
@@ -740,7 +755,7 @@ function ExtractionPage() {
           ["Enter", "", "подтвердить"],
           ["E", "", "исправить"],
           ["X", "", "исключить"],
-          ["Ctrl", "Enter", "отправить в закупку"],
+          ["Ctrl", "Enter", "передать в закупку"],
           ["Esc", "", "отменить объединение"],
         ].map(([a, b, label]) => (
           <span key={label} className="inline-flex items-center gap-1.5">

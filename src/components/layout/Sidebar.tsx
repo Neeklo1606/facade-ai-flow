@@ -1,33 +1,48 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, LogOut, Moon, PanelsTopLeft, Search, Sun, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Moon,
+  PanelsTopLeft,
+  RotateCcw,
+  Search,
+  Sun,
+  X,
+} from "lucide-react";
 import { ALL_SITES, useApp } from "@/lib/app-context";
-import { navGroups, type BadgeKey } from "@/lib/navigation";
+import { activeNavKey, navGroups, sectionHref, type BadgeKey } from "@/lib/navigation";
 import { siteIdOf, useProjectId } from "@/lib/project-scope";
-import { projects } from "@/mock/repository";
+import { specActions, useSpecStore } from "@/lib/spec-store";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/lib/toast";
 import { useOverviews } from "@/lib/project-overview";
 import { cn } from "@/lib/utils";
 
 const CRITICAL_BADGES: BadgeKey[] = ["overdueRequests"];
-
-/** Разделы, у которых есть экран внутри объекта: при выбранном объекте меню ведёт туда. */
-const projectScoped: Record<string, string> = {
-  "/documents": "documents",
-  "/materials": "materials",
-  "/requests": "procurement",
-  "/suppliers": "procurement?view=suppliers",
-  "/field-reports": "field-reports",
-  "/audit": "timeline",
-};
 
 function badgeCounts(
   projectId: string | null,
   overviews: ReturnType<typeof useOverviews>,
 ): Record<BadgeKey, number> {
   const scoped = overviews.filter(
-    (item): item is NonNullable<typeof item> => !!item && (projectId ? item.projectId === projectId : true),
+    (item): item is NonNullable<typeof item> =>
+      !!item && (projectId ? item.projectId === projectId : true),
   );
-  const total = (pick: (item: (typeof scoped)[number]) => number) => scoped.reduce((acc, item) => acc + pick(item), 0);
+  const total = (pick: (item: (typeof scoped)[number]) => number) =>
+    scoped.reduce((acc, item) => acc + pick(item), 0);
   return {
     unverifiedSpec: total((item) => item.specUnverified),
     overdueRequests: total((item) => item.overdueRequests),
@@ -55,7 +70,11 @@ export function Sidebar() {
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <SidebarInner collapsed={sidebarCollapsed} onToggle={toggleSidebar} onClose={() => setMobileNavOpen(false)} />
+        <SidebarInner
+          collapsed={sidebarCollapsed}
+          onToggle={toggleSidebar}
+          onClose={() => setMobileNavOpen(false)}
+        />
       </aside>
     </>
   );
@@ -72,15 +91,26 @@ function SidebarInner({
 }) {
   const { siteId, setSiteId, theme, toggleTheme, user, setCommandOpen } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const view = useRouterState({ select: (s) => String((s.location.search as Record<string, unknown>)["view"] ?? "") });
+  const view = useRouterState({
+    select: (s) => String((s.location.search as Record<string, unknown>)["view"] ?? ""),
+  });
+  const pickSection = useRouterState({
+    select: (s) => {
+      const value = (s.location.search as Record<string, unknown>)["section"];
+      return typeof value === "string" ? value : null;
+    },
+  });
   const projectId = useProjectId();
+  const projects = useSpecStore((s) => s.projects);
   const overviews = useOverviews(projects.map((p) => p.id));
   const counts = badgeCounts(projectId, overviews);
   const navigate = useNavigate();
   /** Смена объекта на экране объекта открывает тот же раздел у выбранного объекта. */
   const changeProject = (value: string) => {
     setSiteId(value);
-    const match = pathname.match(/^\/projects\/[^/]+(\/(documents|materials|procurement|field-reports|timeline))?/);
+    const match = pathname.match(
+      /^\/projects\/[^/]+(\/(documents|materials|procurement|field-reports|timeline))?/,
+    );
     if (!match) return;
     if (value === ALL_SITES) {
       navigate({ to: "/projects" });
@@ -89,31 +119,9 @@ function SidebarInner({
     const id = value.replace(/^s-/, "p-");
     navigate({ to: `/projects/${id}${match[1] ?? ""}` });
   };
-  const hrefOf = (to: string) => {
-    const scoped = projectId ? projectScoped[to] : undefined;
-    if (!scoped) return { to, search: undefined };
-    const [section, query] = scoped.split("?");
-    return {
-      to: `/projects/${projectId}/${section}`,
-      search: query ? Object.fromEntries(new URLSearchParams(query)) : undefined,
-    };
-  };
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
-
-  const isItemActive = (to: string) => {
-    if (to === "/") return pathname === "/";
-    const section = projectScoped[to]?.split("?")[0];
-    const inProject = pathname.match(/^\/projects\/[^/]+\/([^/?]+)/)?.[1];
-    if (section && inProject) {
-      if (section !== inProject) return false;
-      // Запросы и поставщики — один экран: подсвечиваем пункт по выбранному виду
-      if (section === "procurement") return (to === "/suppliers") === (view === "suppliers");
-      return true;
-    }
-    if (to === "/projects") return pathname === "/projects" || /^\/projects\/[^/]+\/?$/.test(pathname);
-    return pathname.startsWith(to);
-  };
-  const activeGroup = navGroups.find((g) => g.items.some((i) => isItemActive(i.to)))?.title;
+  const activeKey = activeNavKey(pathname, view, pickSection);
+  const activeGroup = navGroups.find((g) => g.items.some((i) => i.key === activeKey))?.title;
 
   const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
 
@@ -125,7 +133,9 @@ function SidebarInner({
         </span>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm leading-tight font-semibold text-sidebar-active-text">neeklo FieldOps</div>
+            <div className="truncate text-sm leading-tight font-semibold text-sidebar-active-text">
+              neeklo FieldOps
+            </div>
             <div className="truncate text-[11px] text-text-muted">СК «Фасад-Проект»</div>
           </div>
         )}
@@ -141,7 +151,10 @@ function SidebarInner({
 
       {!collapsed && (
         <div className="mt-3 shrink-0 space-y-2">
-          <label className="relative block rounded-[var(--r-sm)] bg-surface px-3 py-2 shadow-[var(--shadow-xs)]" title={siteLabel}>
+          <label
+            className="relative block rounded-[var(--r-sm)] bg-surface px-3 py-2 shadow-[var(--shadow-xs)]"
+            title={siteLabel}
+          >
             <span className="block text-overline text-text-muted">Объект</span>
             <select
               value={siteId}
@@ -177,14 +190,17 @@ function SidebarInner({
         {!collapsed && (
           <>
             <span className="min-w-0 flex-1 truncate text-left">Поиск</span>
-            <kbd className="shrink-0 rounded-[var(--r-xs)] bg-[var(--sidebar-hover-bg)] px-1.5 py-0.5 text-[11px]">Ctrl K</kbd>
+            <kbd className="shrink-0 rounded-[var(--r-xs)] bg-[var(--sidebar-hover-bg)] px-1.5 py-0.5 text-[11px]">
+              Ctrl K
+            </kbd>
           </>
         )}
       </button>
 
       <nav className="nav-scroll mt-2 min-h-0 flex-1 py-1">
         {navGroups.map((group) => {
-          const open = collapsed || !closedGroups.includes(group.title) || group.title === activeGroup;
+          const open =
+            collapsed || !closedGroups.includes(group.title) || group.title === activeGroup;
           const hiddenCritical = group.items.reduce(
             (sum, i) => sum + (i.badge && CRITICAL_BADGES.includes(i.badge) ? counts[i.badge] : 0),
             0,
@@ -196,14 +212,19 @@ function SidebarInner({
                   type="button"
                   onClick={() =>
                     setClosedGroups((prev) =>
-                      prev.includes(group.title) ? prev.filter((t) => t !== group.title) : [...prev, group.title],
+                      prev.includes(group.title)
+                        ? prev.filter((t) => t !== group.title)
+                        : [...prev, group.title],
                     )
                   }
                   aria-expanded={open}
                   className="focus-ring flex min-h-11 w-full items-center gap-1.5 rounded-[var(--r-xs)] px-2 py-1.5 text-overline lg:min-h-0 text-[var(--sidebar-section)] transition-fast hover:text-sidebar-item-hover"
                 >
                   <ChevronRight
-                    className={cn("size-3.5 shrink-0 transition-transform duration-150", open && "rotate-90")}
+                    className={cn(
+                      "size-3.5 shrink-0 transition-transform duration-150",
+                      open && "rotate-90",
+                    )}
                     strokeWidth={1.5}
                   />
                   <span className="min-w-0 flex-1 truncate text-left">{group.title}</span>
@@ -217,13 +238,14 @@ function SidebarInner({
               {open && (
                 <ul className="space-y-1">
                   {group.items.map((item) => {
-                    const active = isItemActive(item.to);
+                    const active = item.key === activeKey;
+                    const href = sectionHref(projectId, item.section);
                     const count = item.badge ? counts[item.badge] : 0;
                     return (
-                      <li key={item.to}>
+                      <li key={item.key}>
                         <Link
-                          to={hrefOf(item.to).to}
-                          search={hrefOf(item.to).search as never}
+                          to={href.to}
+                          search={href.search as never}
                           onClick={onClose}
                           title={item.label}
                           className={cn(
@@ -234,7 +256,9 @@ function SidebarInner({
                           )}
                         >
                           <item.icon className="size-[18px] shrink-0" strokeWidth={1.5} />
-                          {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+                          {!collapsed && (
+                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          )}
                           {!collapsed && count > 0 && (
                             <span
                               className={cn(
@@ -265,7 +289,10 @@ function SidebarInner({
           </span>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-medium text-sidebar-active-text" title={user?.name}>
+              <div
+                className="truncate text-[13px] font-medium text-sidebar-active-text"
+                title={user?.name}
+              >
                 {user?.name}
               </div>
               <div className="truncate text-[11px] text-text-muted">{user?.roleLabel}</div>
@@ -278,18 +305,48 @@ function SidebarInner({
             title={theme === "light" ? "Тёмная тема" : "Светлая тема"}
             className="focus-ring hidden size-9 shrink-0 place-items-center rounded-full text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:grid [@media(hover:none)]:hover:bg-transparent"
           >
-            {theme === "light" ? <Moon className="size-4 shrink-0" /> : <Sun className="size-4 shrink-0" />}
+            {theme === "light" ? (
+              <Moon className="size-4 shrink-0" />
+            ) : (
+              <Sun className="size-4 shrink-0" />
+            )}
           </button>
-          {!collapsed && (
-            <button
-              type="button"
-              aria-label="Выход"
-              className="focus-ring grid size-9 shrink-0 place-items-center rounded-full text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover [@media(hover:none)]:hover:bg-transparent"
-            >
-              <LogOut className="size-4 shrink-0" />
-            </button>
-          )}
         </div>
+        {!collapsed && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="focus-ring mt-1 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[var(--r-sm)] text-[11px] text-sidebar-item hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:min-h-8"
+              >
+                <RotateCcw className="size-3.5" /> Сбросить демо-данные
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Сбросить демо-данные?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Созданные объекты, проверенные позиции, запросы, предложения и решения удалятся.
+                  Данные вернутся к исходному состоянию демонстрации.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    specActions.resetDemo();
+                    setSiteId(ALL_SITES);
+                    onClose();
+                    navigate({ to: "/projects" });
+                    toast.success("Демо-данные сброшены");
+                  }}
+                >
+                  Сбросить
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
         <button
           type="button"
           onClick={onToggle}

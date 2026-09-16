@@ -17,11 +17,15 @@ export const screenStates: { id: ScreenState; label: string }[] = [
 
 const known = new Set(screenStates.map((item) => item.id));
 
-/** Принудительное состояние экрана из адреса: ?state=empty. Нужен для демонстрации и проверки макетов. */
+/** Переключатель состояний включается только в сборке для проверки макетов: VITE_SCREEN_STATES=1. */
+export const screenStatesEnabled = import.meta.env["VITE_SCREEN_STATES"] === "1";
+
+/** Принудительное состояние экрана из адреса: ?state=empty. В обычной сборке адрес игнорируется. */
 export function useForcedState(): ScreenState | null {
   const raw = useRouterState({
     select: (s) => (s.location.search as Record<string, unknown>)["state"],
   });
+  if (!screenStatesEnabled) return null;
   return typeof raw === "string" && known.has(raw as ScreenState) ? (raw as ScreenState) : null;
 }
 

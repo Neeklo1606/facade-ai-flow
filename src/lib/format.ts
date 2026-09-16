@@ -14,7 +14,10 @@ export function fmtAgo(value: string) {
 }
 
 export function fmtNum(value: number, digits = 0) {
-  return value.toLocaleString("ru-RU", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return value.toLocaleString("ru-RU", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
 }
 
 export function fmtMoney(value: number) {
@@ -57,5 +60,17 @@ export function fmtDue(value: string) {
   const diffHours = (parseISO(value).getTime() - parseISO(MOCK_NOW).getTime()) / 3_600_000;
   const abs = Math.abs(diffHours);
   const amount = abs < 24 ? `${Math.max(1, Math.round(abs))} ч` : `${Math.round(abs / 24)} дн.`;
-  return { overdue: diffHours < 0, label: diffHours < 0 ? `просрочено на ${amount}` : `осталось ${amount}` };
+  return {
+    overdue: diffHours < 0,
+    label: diffHours < 0 ? `просрочено на ${amount}` : `осталось ${amount}`,
+  };
+}
+
+/** Форма слова по числу: plural(3, "позиция", "позиции", "позиций"). */
+export function plural(n: number, one: string, few: string, many: string) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
 }

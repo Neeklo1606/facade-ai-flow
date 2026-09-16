@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, Mail, PackageSearch, Phone, Plus, Send, Truck } from "lucide-react";
-import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import {
+  loadProject,
+  ProjectNotFound,
+  withProject,
+  type ProjectPageProps,
+} from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
@@ -14,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import {
   contactFreshnessLabel,
   counterpartyById,
-  supplierOffers,
   type ContactFreshness,
   type Counterparty,
   type SupplierProfile,
@@ -24,7 +28,7 @@ import { specActions, useSpecStore } from "@/lib/spec-store";
 import { useProjectOverview } from "@/lib/project-overview";
 import { compareOffers, rfqStatus, rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
-import { fmtDate, fmtDateTime, fmtDue, fmtMoney, fmtNum } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtDue, fmtMoney, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -51,11 +55,15 @@ export const Route = createFileRoute("/projects/$id/procurement/")({
   loader: ({ params }) => loadProject(params.id),
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Поставщики и запросы — ${loaderData.project.name} — neeklo FieldOps` }]
+      ? [
+          {
+            title: `Поставщики и запросы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
+        ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
-  component: ProcurementPage,
+  component: withProject(ProcurementPage),
 });
 
 interface RequestRow {
@@ -82,8 +90,7 @@ function matchesStatus(row: RequestRow, filter: ProcurementSearch["status"]) {
   return row.status === filter;
 }
 
-function ProcurementPage() {
-  const { project } = Route.useLoaderData();
+function ProcurementPage({ project }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const overview = useProjectOverview(project.id);
@@ -104,7 +111,7 @@ function ProcurementPage() {
         .filter((r) => r.projectId === project.id)
         .map((request) => {
           const meta = state.rfq.find((m) => m.requestId === request.id);
-          const { answered, best } = compareOffers(request);
+          const { answered, best } = compareOffers(state, request);
           return {
             request,
             answered,
@@ -123,7 +130,7 @@ function ProcurementPage() {
       state.profiles.map((profile) => {
         const sent = projectRequests.filter((r) => r.sentTo.includes(profile.supplierId));
         const replied = sent.filter((r) =>
-          supplierOffers.some((o) => o.requestId === r.id && o.supplierId === profile.supplierId),
+          state.offers.some((o) => o.requestId === r.id && o.supplierId === profile.supplierId),
         );
         return {
           profile,
@@ -149,6 +156,16 @@ function ProcurementPage() {
 
   const waiting = requestRows.filter(
     (r) => r.answered < r.request.sentTo.length && r.status !== "decided" && r.status !== "ordered",
+  );
+  const waitingForReminder = waiting.reduce(
+    (acc, r) =>
+      acc +
+      r.request.sentTo.filter(
+        (id) =>
+          !state.offers.some((o) => o.requestId === r.request.id && o.supplierId === id) &&
+          !state.pendingReplies.some((p) => p.requestId === r.request.id && p.supplierId === id),
+      ).length,
+    0,
   );
   const silentSuppliers = waiting.reduce((acc, r) => acc + r.request.sentTo.length - r.answered, 0);
   const staleContacts = state.profiles.filter((p) => p.contactStatus !== "verified").length;
@@ -222,21 +239,31 @@ function ProcurementPage() {
           className="mb-3"
           title={
             isRequests
-              ? `Ответили не все: ${waiting.length} ${waiting.length === 1 ? "запрос ждёт" : "запроса ждут"} ответа от ${silentSuppliers || 1} поставщиков`
+              ? `Ответили не все: ${waiting.length} ${plural(waiting.length, "запрос ждёт", "запроса ждут", "запросов ждут")} ответа от ${silentSuppliers || 1} ${plural(silentSuppliers || 1, "поставщика", "поставщиков", "поставщиков")}`
               : `Контакты ${staleContacts} поставщиков не проверены`
           }
           action={
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() =>
-                toast.success("Напоминание отправлено", {
-                  description: "Поставщикам без ответа ушло письмо и сообщение в WhatsApp.",
-                })
-              }
-            >
-              {isRequests ? "Напомнить" : "Проверить все"}
-            </Button>
+            isRequests ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={waitingForReminder === 0}
+                onClick={() => {
+                  const sent = waiting.reduce(
+                    (acc, r) => acc + specActions.remindSuppliers(r.request.id),
+                    0,
+                  );
+                  toast.success(
+                    `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
+                    {
+                      description: "Ответы появятся в сравнении, как только придут.",
+                    },
+                  );
+                }}
+              >
+                {waitingForReminder === 0 ? "Ждём ответы" : "Напомнить"}
+              </Button>
+            ) : undefined
           }
         >
           {isRequests
@@ -321,8 +348,6 @@ function ProcurementPage() {
                   title: "Поставщиков в справочнике нет",
                   description:
                     "Добавьте поставщиков вручную или импортируйте реестр из Excel — после этого их можно выбирать при создании запроса.",
-                  actionLabel: "Добавить поставщика",
-                  onAction: () => toast("Форма добавления поставщика откроется в справочниках"),
                 },
             filtered: {
               onReset: resetFilters,

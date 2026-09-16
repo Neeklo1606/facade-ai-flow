@@ -1,10 +1,4 @@
-import {
-  offerLines,
-  offerTerms,
-  supplierOffers,
-  type RfqMeta,
-  type SupplyRequest,
-} from "@/mock/repository";
+import type { RfqMeta, SupplyRequest } from "@/mock/repository";
 import { MOCK_NOW } from "@/lib/format";
 import { decisionForRequest, type SpecState } from "@/lib/spec-store";
 
@@ -43,10 +37,13 @@ export interface ColumnCalc {
  * Сравнение предложений по запросу. Доставка распределяется по строкам пропорционально сумме,
  * НДС считается на товар и доставку, итог колонки — всё вместе.
  */
-export function compareOffers(request: SupplyRequest) {
+export function compareOffers(
+  s: Pick<SpecState, "offers" | "offerLines" | "offerTerms">,
+  request: SupplyRequest,
+) {
   const columns: ColumnCalc[] = request.sentTo.map((supplierId) => {
     const offer =
-      supplierOffers.find((o) => o.requestId === request.id && o.supplierId === supplierId) ?? null;
+      s.offers.find((o) => o.requestId === request.id && o.supplierId === supplierId) ?? null;
     const empty: ColumnCalc = {
       supplierId,
       offerId: null,
@@ -63,8 +60,8 @@ export function compareOffers(request: SupplyRequest) {
     };
     if (!offer) return empty;
 
-    const terms = offerTerms.find((t) => t.offerId === offer.id);
-    const lines = offerLines.filter((line) => line.offerId === offer.id);
+    const terms = s.offerTerms.find((t) => t.offerId === offer.id);
+    const lines = s.offerLines.filter((line) => line.offerId === offer.id);
     const deliveryCost = terms?.deliveryCost ?? 0;
     const vatPct = terms?.vatPct ?? 20;
     const amounts = request.items.map((item) => {
@@ -149,4 +146,15 @@ export function rfqStatus(
   if (answered >= request.sentTo.length && answered > 0) return "ready";
   if (overdue && answered < request.sentTo.length) return answered ? "collecting" : "overdue";
   return answered ? "collecting" : "sent";
+}
+
+/** Короткое перечисление материалов запроса: «A, B и ещё 10» — для заголовков, где полный список не помещается. */
+export function itemsSummary(
+  items: { name: string; qty: number; unit: string }[],
+  format: (item: { name: string; qty: number; unit: string }) => string = (item) => item.name,
+  limit = 2,
+) {
+  const shown = items.slice(0, limit).map(format).join(", ");
+  const rest = items.length - limit;
+  return rest > 0 ? `${shown} и ещё ${rest}` : shown;
 }

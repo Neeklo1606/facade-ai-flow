@@ -69,7 +69,8 @@ export interface AuditLog {
 
 /* ---------- Входящий поток ---------- */
 
-export type IncomingStatus = "received" | "recognizing" | "extracted" | "review" | "applied" | "rejected";
+export type IncomingStatus =
+  "received" | "recognizing" | "extracted" | "review" | "applied" | "rejected";
 
 export interface IncomingEvent {
   id: Id;
@@ -355,10 +356,12 @@ export interface DocumentSheet {
 }
 
 /** Решение человека по извлечённой позиции. */
-export type PositionReview = "pending" | "confirmed" | "corrected" | "excluded" | "merged" | "header";
+export type PositionReview =
+  "pending" | "confirmed" | "corrected" | "excluded" | "merged" | "header";
 
 /** Этап закупки позиции материала. */
-export type PurchaseStatus = "none" | "requested" | "offers" | "supplier_selected" | "ordered" | "delivered";
+export type PurchaseStatus =
+  "none" | "requested" | "offers" | "supplier_selected" | "ordered" | "delivered";
 
 export interface Characteristic {
   label: string;
@@ -399,6 +402,8 @@ export interface ExtractedPosition {
   reviewedAt: string | null;
   /** Почему извлечение неуверенное */
   note: string | null;
+  /** Проверенная позиция передана в закупку и доступна для запросов поставщикам */
+  handedOver: boolean;
   purchase: PurchaseStatus;
   requestIds: Id[];
   /** С какой позицией объединена */
@@ -644,14 +649,7 @@ export interface FieldReport {
 /* ---------- Документы, задачи, риски ---------- */
 
 export type DocumentKind =
-  | "contract"
-  | "annex"
-  | "design"
-  | "act_ks2"
-  | "act_ks3"
-  | "certificate"
-  | "checklist"
-  | "letter";
+  "contract" | "annex" | "design" | "act_ks2" | "act_ks3" | "certificate" | "checklist" | "letter";
 
 export interface DocumentRecord {
   id: Id;
@@ -682,12 +680,7 @@ export interface Task {
 }
 
 export type RiskKind =
-  | "deadline"
-  | "material"
-  | "overspend"
-  | "unclosed_volume"
-  | "quality"
-  | "document";
+  "deadline" | "material" | "overspend" | "unclosed_volume" | "quality" | "document";
 
 export interface Risk {
   id: Id;
