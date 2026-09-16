@@ -6,7 +6,9 @@ import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFou
 import { UploadZone, type UploadZoneHandle } from "@/components/documents/UploadZone";
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
 import { FilterChip } from "@/components/common/FilterBar";
-import { EmptyState } from "@/components/common/EmptyState";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
+import { useScreenState } from "@/lib/screen-state";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
@@ -90,6 +92,16 @@ function DocumentsPage() {
   const open = (doc: ProjectDocument) =>
     navigate({ to: "/projects/$id/documents/$docId", params: { id: project.id, docId: doc.id } });
 
+  const recognizing = documents.filter((doc) => doc.status === "recognizing" && !uploads[doc.id]);
+  const queued = documents.filter((doc) => doc.status === "uploaded" && !uploads[doc.id]);
+  const screen = useScreenState({
+    empty: documents.length === 0,
+    filtered: rows.length === 0,
+    processing: inProgress.length > 0 || recognizing.length > 0,
+    partial: queued.length > 0,
+  });
+  const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
+
   const totals = documents.reduce(
     (acc, doc) => {
       const s = stats.get(doc.id);
@@ -120,14 +132,46 @@ function DocumentsPage() {
           <Button
             variant="accent"
             onClick={() => zone.current?.open()}
-            className="w-full sm:w-auto"
+            className="hidden sm:inline-flex"
+            disabled={blocked}
           >
             <Upload className="size-4" /> Загрузить документ
           </Button>
         }
       />
 
-      <UploadZone ref={zone} onFiles={handleFiles} />
+      {!blocked && (
+        <UploadZone
+          ref={zone}
+          onFiles={handleFiles}
+          className={screen === "empty" ? "py-10" : ""}
+        />
+      )}
+
+      {screen === "processing" && recognizing.length > 0 && (
+        <StateBanner
+          tone="info"
+          className="mt-3"
+          title={`Распознаётся: ${recognizing.map((d) => `«${d.title}»`).join(", ")}`}
+        >
+          Текст и таблицы извлекаются на сервере. Позиции появятся в реестре и на экране проверки —
+          страницу можно закрыть.
+        </StateBanner>
+      )}
+      {screen === "processing" && recognizing.length === 0 && inProgress.length === 0 && (
+        <StateBanner tone="info" className="mt-3" title="Распознаём загруженные документы">
+          Стадии обработки видны в строке каждого документа.
+        </StateBanner>
+      )}
+      {screen === "partial" && (
+        <StateBanner
+          tone="warn"
+          className="mt-3"
+          title={`${queued.length} ${queued.length === 1 ? "документ ждёт" : "документа ждут"} очереди на распознавание`}
+        >
+          {queued.map((d) => d.title).join(", ")}. Остальные документы можно проверять уже сейчас.
+        </StateBanner>
+      )}
 
       {(inProgress.length > 0 || justFinished.length > 0) && (
         <section className="card-surface mt-3 divide-y divide-border" aria-live="polite">
@@ -187,13 +231,28 @@ function DocumentsPage() {
           ))}
         </div>
 
-        {rows.length === 0 ? (
-          <EmptyState
-            variant="filtered"
-            title="Документов с таким статусом нет"
-            onAction={() => setFilter("all")}
-          />
-        ) : (
+        <ScreenGate
+          state={screen}
+          skeleton={<ScreenSkeleton kind="table" />}
+          copy={{
+            section: "Документация",
+            roles: "руководителю проекта, ПТО и проектировщикам",
+            errorTitle: "Не удалось загрузить документацию",
+            empty: {
+              icon: FileText,
+              title: "Документации пока нет",
+              description:
+                "Загрузите проектную документацию, и система найдёт в ней материалы. Поддерживаются PDF, Word и Excel.",
+              actionLabel: "Загрузить документ",
+              onAction: () => zone.current?.open(),
+            },
+            filtered: {
+              title: "Документов с таким статусом нет",
+              description: "Смените статус или посмотрите все документы объекта.",
+              onReset: () => setFilter("all"),
+            },
+          }}
+        >
           <>
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[1040px] text-table">
@@ -346,8 +405,16 @@ function DocumentsPage() {
               })}
             </ul>
           </>
-        )}
+        </ScreenGate>
       </section>
+
+      {!blocked && (
+        <MobileActionBar>
+          <Button variant="accent" onClick={() => zone.current?.open()}>
+            <Upload className="size-4" /> Загрузить документ
+          </Button>
+        </MobileActionBar>
+      )}
     </>
   );
 }

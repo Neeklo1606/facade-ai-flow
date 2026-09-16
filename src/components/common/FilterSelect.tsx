@@ -34,7 +34,7 @@ export function FilterSelect({
       <SelectTrigger
         aria-label={label}
         className={cn(
-          "h-9 w-full min-w-0 gap-2 rounded-full text-[13px] sm:w-auto sm:min-w-[150px] sm:shrink-0",
+          "h-11 w-full min-w-0 gap-2 rounded-full text-[13px] sm:w-auto sm:min-w-[150px] sm:shrink-0 lg:h-9",
           value && "border-border-strong bg-subtle",
         )}
       >

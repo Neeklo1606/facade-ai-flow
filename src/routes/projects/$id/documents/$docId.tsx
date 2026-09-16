@@ -18,6 +18,9 @@ import { SendDialog, SplitDialog, type SendSummary } from "@/components/extracti
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
 import { confidenceLevel } from "@/components/common/ConfidenceIndicator";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { EmptyState } from "@/components/common/EmptyState";
+import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
+import { useScreenState } from "@/lib/screen-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { docStatusLabel, sheetsOfDocument, type ExtractedPosition } from "@/mock/repository";
@@ -127,6 +130,12 @@ function ExtractionPage() {
     });
     return result;
   }, [positions]);
+
+  const screen = useScreenState({
+    empty: false,
+    filtered: false,
+    partial: false,
+  });
 
   const [activeId, setActiveId] = useState<string | null>(search.position ?? null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -379,10 +388,13 @@ function ExtractionPage() {
   }
 
   const processing =
-    positions.length === 0 &&
-    (document.status === "uploaded" ||
-      document.status === "recognizing" ||
-      (upload && upload.stage < 3));
+    screen === "processing" ||
+    (positions.length === 0 &&
+      (document.status === "uploaded" ||
+        document.status === "recognizing" ||
+        (upload && upload.stage < 3)));
+  const gated =
+    screen === "loading" || screen === "error" || screen === "forbidden" || screen === "empty";
   const pct = activeTotal ? Math.round((verifiedCount / activeTotal) * 100) : 0;
   const splitItem = positions.find((item) => item.id === splitId) ?? null;
   const mergeSource = positions.find((item) => item.id === mergeSourceId) ?? null;
@@ -440,235 +452,286 @@ function ExtractionPage() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_460px]">
-        {/* Структура */}
-        <aside
-          className={cn(
-            "min-h-0 overflow-y-auto border-r border-border bg-surface",
-            mobilePanel === "tree" ? "block" : "hidden lg:block",
-          )}
-        >
-          <p className="px-3 pt-3 text-[11px] font-semibold tracking-[.04em] text-text-muted uppercase">
-            Структура документа
-          </p>
-          <DocumentTree
-            sheets={sheets}
-            counts={sheetCounts}
-            currentSheetId={currentSheetId}
-            onSelectSheet={onSelectSheet}
-          />
-        </aside>
-
-        {/* Документ */}
+      {gated ? (
         <div
-          className={cn("min-h-0 min-w-0", mobilePanel === "viewer" ? "block" : "hidden lg:block")}
-        >
-          <SheetViewer
-            ref={viewer}
-            document={document}
-            projectCode={project.contract}
-            sheets={sheets}
-            positionsBySheet={positionsBySheet}
-            activeId={activeId}
-            activeSheetId={active?.sheetId ?? null}
-            onSelect={onSelectOnPage}
-            onSheetChange={onSheetChange}
-          />
-        </div>
-
-        {/* Позиции */}
-        <aside
           className={cn(
-            "min-h-0 flex-col border-l border-border bg-surface",
-            mobilePanel === "list" ? "flex" : "hidden lg:flex",
+            "min-h-0 flex-1",
+            screen === "loading" ? "" : "grid place-items-center overflow-y-auto",
           )}
         >
-          {processing ? (
-            <div className="p-5">
-              <p className="text-[14px] font-medium">Документ обрабатывается</p>
-              <p className="mt-1 text-caption text-text-muted">
-                Позиции появятся здесь после извлечения таблиц. Страницу можно не обновлять.
-              </p>
-              <div className="mt-4">
-                <ProcessingStages stage={upload?.stage ?? stageOfStatus(document.status)} />
-              </div>
-            </div>
-          ) : positions.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-              <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
-              <p className="mt-3 text-[14px] font-medium">Таблиц спецификации не найдено</p>
-              <p className="mt-1 text-caption text-text-muted">
-                В документе {document.sheetCount} листов чертежей без таблиц материалов. Позиции для
-                закупки берутся из спецификаций.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="shrink-0 border-b border-border px-4 py-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-[15px]">
-                    Проверено <b className="tnum font-semibold">{fmtNum(verifiedCount)}</b> из{" "}
-                    <b className="tnum font-semibold">{fmtNum(activeTotal)}</b>
-                  </p>
-                  <span className="tnum text-caption text-text-muted">{pct}%</span>
-                </div>
-                <div
-                  className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-subtle"
-                  aria-label={`Проверено ${pct}%`}
-                >
-                  <div
-                    className="h-full bg-ok transition-[width] duration-300"
-                    style={{ width: `${pct}%` }}
-                  />
-                  <div
-                    className="h-full bg-warn/60"
-                    style={{
-                      width: `${activeTotal ? (counts.attention / activeTotal) * 100 : 0}%`,
-                      minWidth: counts.attention ? 3 : 0,
-                    }}
-                  />
-                  <div
-                    className="h-full bg-danger"
-                    style={{
-                      width: `${activeTotal ? (counts.check / activeTotal) * 100 : 0}%`,
-                      minWidth: counts.check ? 3 : 0,
-                    }}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="mt-3 h-8 w-full"
-                  disabled={autoVerified.length === 0}
-                  onClick={confirmAllVerified}
-                >
-                  <CheckCheck className="size-4" /> Подтвердить все проверенные
-                  {autoVerified.length > 0 && (
-                    <span className="tnum text-text-muted">{fmtNum(autoVerified.length)}</span>
-                  )}
-                </Button>
-                <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none]">
-                  {(
-                    ["all", "check", "attention", "pending", "verified", "inactive"] as Filter[]
-                  ).map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      aria-pressed={filter === key}
-                      onClick={() => setFilter(key)}
-                      className={cn(
-                        "focus-ring inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] transition-fast",
-                        filter === key
-                          ? "bg-ink text-primary-foreground"
-                          : "text-text-secondary hover:bg-hover",
-                        key === "check" && counts.check > 0 && filter !== key && "text-danger",
-                      )}
-                    >
-                      {filterLabels[key]}
-                      <span
-                        className={cn("tnum", filter === key ? "opacity-70" : "text-text-muted")}
-                      >
-                        {fmtNum(counts[key])}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <ScreenGate
+            state={screen}
+            skeleton={<ScreenSkeleton kind="split" />}
+            copy={{
+              section: "Проверка позиций",
+              roles: "руководителю проекта и ПТО",
+              errorTitle: "Не удалось загрузить позиции документа",
+              empty: {
+                icon: FileSearch,
+                title: "В документе не найдено позиций",
+                description:
+                  "Таблиц спецификации в документе нет. Загрузите лист спецификации или ведомость материалов в PDF, Word или Excel — позиции появятся здесь для проверки.",
+                actionLabel: "К документации",
+                onAction: () =>
+                  navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
+              },
+            }}
+          >
+            {null}
+          </ScreenGate>
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_460px]">
+          {/* Структура */}
+          <aside
+            className={cn(
+              "min-h-0 overflow-y-auto border-r border-border bg-surface",
+              mobilePanel === "tree" ? "block" : "hidden lg:block",
+            )}
+          >
+            <p className="px-3 pt-3 text-[11px] font-semibold tracking-[.04em] text-text-muted uppercase">
+              Структура документа
+            </p>
+            <DocumentTree
+              sheets={sheets}
+              counts={sheetCounts}
+              currentSheetId={currentSheetId}
+              onSelectSheet={onSelectSheet}
+            />
+          </aside>
 
-              {mergeSource && (
-                <div className="flex shrink-0 items-center gap-2 border-b border-accent-border bg-accent-subtle px-4 py-2 text-caption">
-                  <span className="min-w-0 flex-1">
-                    Выберите позицию, с которой объединить поз. <b>{mergeSource.position}</b>
-                  </span>
+          {/* Документ */}
+          <div
+            className={cn(
+              "min-h-0 min-w-0",
+              mobilePanel === "viewer" ? "block" : "hidden lg:block",
+            )}
+          >
+            <SheetViewer
+              ref={viewer}
+              document={document}
+              projectCode={project.contract}
+              sheets={sheets}
+              positionsBySheet={positionsBySheet}
+              activeId={activeId}
+              activeSheetId={active?.sheetId ?? null}
+              onSelect={onSelectOnPage}
+              onSheetChange={onSheetChange}
+            />
+          </div>
+
+          {/* Позиции */}
+          <aside
+            className={cn(
+              "min-h-0 flex-col border-l border-border bg-surface",
+              mobilePanel === "list" ? "flex" : "hidden lg:flex",
+            )}
+          >
+            {processing ? (
+              <div className="p-5">
+                <p className="text-[14px] font-medium">Документ обрабатывается</p>
+                <p className="mt-1 text-caption text-text-muted">
+                  Позиции появятся здесь после извлечения таблиц. Страницу можно не обновлять.
+                </p>
+                <div className="mt-4">
+                  <ProcessingStages stage={upload?.stage ?? stageOfStatus(document.status)} />
+                </div>
+              </div>
+            ) : positions.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
+                <p className="mt-3 text-[14px] font-medium">Таблиц спецификации не найдено</p>
+                <p className="mt-1 text-caption text-text-muted">
+                  В документе {document.sheetCount} листов чертежей без таблиц материалов. Позиции
+                  для закупки берутся из спецификаций.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="shrink-0 border-b border-border px-4 py-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-[15px]">
+                      Проверено <b className="tnum font-semibold">{fmtNum(verifiedCount)}</b> из{" "}
+                      <b className="tnum font-semibold">{fmtNum(activeTotal)}</b>
+                    </p>
+                    <span className="tnum text-caption text-text-muted">{pct}%</span>
+                  </div>
+                  <div
+                    className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-subtle"
+                    aria-label={`Проверено ${pct}%`}
+                  >
+                    <div
+                      className="h-full bg-ok transition-[width] duration-300"
+                      style={{ width: `${pct}%` }}
+                    />
+                    <div
+                      className="h-full bg-warn/60"
+                      style={{
+                        width: `${activeTotal ? (counts.attention / activeTotal) * 100 : 0}%`,
+                        minWidth: counts.attention ? 3 : 0,
+                      }}
+                    />
+                    <div
+                      className="h-full bg-danger"
+                      style={{
+                        width: `${activeTotal ? (counts.check / activeTotal) * 100 : 0}%`,
+                        minWidth: counts.check ? 3 : 0,
+                      }}
+                    />
+                  </div>
                   <Button
                     size="sm"
-                    variant="ghost"
-                    className="h-7 px-2"
-                    onClick={() => setMergeSourceId(null)}
+                    variant="secondary"
+                    className="mt-3 h-8 w-full"
+                    disabled={autoVerified.length === 0}
+                    onClick={confirmAllVerified}
                   >
-                    <X className="size-3.5" /> Отмена
-                  </Button>
-                </div>
-              )}
-
-              <div
-                ref={listRef}
-                role="listbox"
-                aria-label="Извлечённые позиции"
-                className="min-h-0 flex-1 overflow-y-auto"
-              >
-                {list.length === 0 ? (
-                  <p className="px-6 py-10 text-center text-[13px] text-text-muted">
-                    В этом фильтре позиций нет.
-                  </p>
-                ) : (
-                  list.map((item) => (
-                    <PositionRow
-                      key={item.id}
-                      item={item}
-                      active={item.id === activeId}
-                      editing={item.id === editingId}
-                      mergeTarget={!!mergeSourceId && item.id !== mergeSourceId}
-                      mergeSource={item.id === mergeSourceId}
-                      onActivate={onActivate}
-                      onAction={onAction}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                    />
-                  ))
-                )}
-              </div>
-
-              <div className="shrink-0 border-t border-border p-3">
-                {sentAt ? (
-                  <div className="flex items-center justify-between gap-3 rounded-[var(--r-md)] bg-ok-bg px-3 py-2.5 text-[13px] text-ok">
-                    <span>Передано в закупку {fmtDateTime(sentAt)}</span>
-                    <Link
-                      to="/projects/$id/materials"
-                      params={{ id: project.id }}
-                      className="font-medium underline-offset-2 hover:underline"
-                    >
-                      Открыть материалы
-                    </Link>
-                  </div>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="block">
-                        <Button
-                          variant="accent"
-                          className="w-full"
-                          disabled={!canSend}
-                          onClick={() => setSendOpen(true)}
-                        >
-                          <Send className="size-4" /> Отправить проверенные позиции в закупку
-                          <span className="tnum opacity-80">{fmtNum(verifiedCount)}</span>
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    {!canSend && (
-                      <TooltipContent className="max-w-72">
-                        {blocking > 0
-                          ? `Осталось ${blocking} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
-                          : "Нет проверенных позиций для отправки."}
-                      </TooltipContent>
+                    <CheckCheck className="size-4" /> Подтвердить все проверенные
+                    {autoVerified.length > 0 && (
+                      <span className="tnum text-text-muted">{fmtNum(autoVerified.length)}</span>
                     )}
-                  </Tooltip>
-                )}
-                {!sentAt && blocking > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setFilter("check")}
-                    className="mt-2 w-full text-center text-caption text-danger underline-offset-2 hover:underline"
+                  </Button>
+                  <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none]">
+                    {(
+                      ["all", "check", "attention", "pending", "verified", "inactive"] as Filter[]
+                    ).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-pressed={filter === key}
+                        onClick={() => setFilter(key)}
+                        className={cn(
+                          "focus-ring inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] transition-fast",
+                          filter === key
+                            ? "bg-ink text-primary-foreground"
+                            : "text-text-secondary hover:bg-hover",
+                          key === "check" && counts.check > 0 && filter !== key && "text-danger",
+                        )}
+                      >
+                        {filterLabels[key]}
+                        <span
+                          className={cn("tnum", filter === key ? "opacity-70" : "text-text-muted")}
+                        >
+                          {fmtNum(counts[key])}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {screen === "partial" && (
+                  <StateBanner
+                    tone="warn"
+                    className="m-3 mb-0"
+                    title="Листы 94–95 распознаны частично"
                   >
-                    Не удалось определить: {blocking} — показать
-                  </button>
+                    Скан плохого качества: часть строк могла не попасть в список. Сверьте количество
+                    позиций с оригиналом листа.
+                  </StateBanner>
                 )}
-              </div>
-            </>
-          )}
-        </aside>
-      </div>
+                {mergeSource && (
+                  <div className="flex shrink-0 items-center gap-2 border-b border-accent-border bg-accent-subtle px-4 py-2 text-caption">
+                    <span className="min-w-0 flex-1">
+                      Выберите позицию, с которой объединить поз. <b>{mergeSource.position}</b>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={() => setMergeSourceId(null)}
+                    >
+                      <X className="size-3.5" /> Отмена
+                    </Button>
+                  </div>
+                )}
+
+                <div
+                  ref={listRef}
+                  role="listbox"
+                  aria-label="Извлечённые позиции"
+                  className="min-h-0 flex-1 overflow-y-auto"
+                >
+                  {list.length === 0 || screen === "filtered" ? (
+                    <EmptyState
+                      variant="filtered"
+                      title="В этом фильтре позиций нет"
+                      description={
+                        filter === "check"
+                          ? "Все позиции «Не удалось определить» разобраны — можно отправлять в закупку."
+                          : "Переключитесь на «Все», чтобы увидеть остальные позиции документа."
+                      }
+                      actionLabel="Показать все"
+                      onAction={() => setFilter("all")}
+                    />
+                  ) : (
+                    list.map((item) => (
+                      <PositionRow
+                        key={item.id}
+                        item={item}
+                        active={item.id === activeId}
+                        editing={item.id === editingId}
+                        mergeTarget={!!mergeSourceId && item.id !== mergeSourceId}
+                        mergeSource={item.id === mergeSourceId}
+                        onActivate={onActivate}
+                        onAction={onAction}
+                        onSaveEdit={onSaveEdit}
+                        onCancelEdit={onCancelEdit}
+                      />
+                    ))
+                  )}
+                </div>
+
+                <div className="shrink-0 border-t border-border p-3">
+                  {sentAt ? (
+                    <div className="flex items-center justify-between gap-3 rounded-[var(--r-md)] bg-ok-bg px-3 py-2.5 text-[13px] text-ok">
+                      <span>Передано в закупку {fmtDateTime(sentAt)}</span>
+                      <Link
+                        to="/projects/$id/materials"
+                        params={{ id: project.id }}
+                        className="font-medium underline-offset-2 hover:underline"
+                      >
+                        Открыть материалы
+                      </Link>
+                    </div>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block">
+                          <Button
+                            variant="accent"
+                            className="w-full"
+                            disabled={!canSend}
+                            onClick={() => setSendOpen(true)}
+                          >
+                            <Send className="size-4" /> Отправить проверенные позиции в закупку
+                            <span className="tnum opacity-80">{fmtNum(verifiedCount)}</span>
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {!canSend && (
+                        <TooltipContent className="max-w-72">
+                          {blocking > 0
+                            ? `Осталось ${blocking} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
+                            : "Нет проверенных позиций для отправки."}
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  )}
+                  {!sentAt && blocking > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFilter("check")}
+                      className="mt-2 w-full text-center text-caption text-danger underline-offset-2 hover:underline"
+                    >
+                      Не удалось определить: {blocking} — показать
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </aside>
+        </div>
+      )}
 
       {/* Подсказки клавиатуры */}
       <footer className="hidden h-9 shrink-0 items-center gap-5 border-t border-border bg-surface px-5 text-caption text-text-muted lg:flex">

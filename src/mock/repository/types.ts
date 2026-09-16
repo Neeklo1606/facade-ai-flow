@@ -427,6 +427,104 @@ export interface ReplacementSuggestion {
   agreedBy: Id | null;
 }
 
+/* ---------- Поставщики, запросы, решения ---------- */
+
+export type ContactFreshness = "verified" | "needs_check" | "stale";
+
+/** Профиль поставщика для подбора по категории и региону. */
+export interface SupplierProfile {
+  supplierId: Id;
+  region: string;
+  /** Разделы спецификации, которые закрывает поставщик */
+  categories: string[];
+  contactName: string;
+  phone: string;
+  email: string;
+  /** Откуда взят контакт */
+  contactSource: string;
+  contactCheckedAt: string;
+  contactStatus: ContactFreshness;
+}
+
+/** Параметры рассылки запроса. */
+export interface RfqMeta {
+  requestId: Id;
+  sentAt: string;
+  /** До какого момента ждём ответы */
+  replyDueAt: string;
+  templateId: string;
+}
+
+/** Строка предложения поставщика по одному материалу. */
+export interface OfferLine {
+  offerId: Id;
+  materialId: Id;
+  /** Как назвал поставщик */
+  name: string;
+  /** Цена за единицу без НДС, ₽ */
+  price: number;
+  availableQty: number;
+  leadTimeDays: number;
+  /** Отклонение от требования спецификации */
+  deviation: string | null;
+  sourceId: Id | null;
+  /** Где в письме указана цена */
+  location: string;
+}
+
+export interface OfferTerms {
+  offerId: Id;
+  deliveryCost: number;
+  vatPct: number;
+  validUntil: string;
+}
+
+/** Зафиксированное решение по объекту: выбор поставщика, замена, правка количества. */
+export interface ProjectDecision {
+  id: Id;
+  projectId: Id;
+  kind: "supplier" | "replacement" | "quantity";
+  /** Запрос, по которому выбран поставщик */
+  requestId: Id | null;
+  supplierId: Id | null;
+  title: string;
+  requirement: string;
+  problem: string;
+  options: string[];
+  choice: string;
+  reason: string;
+  approvedBy: Id;
+  approvedAt: string;
+  basis: { label: string; sourceId: Id | null };
+  link: { to: string; label: string } | null;
+}
+
+export type TimelineEventType =
+  | "version_uploaded"
+  | "spec_extracted"
+  | "qty_corrected"
+  | "request_created"
+  | "offer_received"
+  | "replacement_proposed"
+  | "replacement_agreed"
+  | "material_ordered"
+  | "delivery_received"
+  | "report_added"
+  | "decision";
+
+/** Событие в истории объекта. */
+export interface TimelineEvent {
+  id: Id;
+  projectId: Id;
+  at: string;
+  type: TimelineEventType;
+  title: string;
+  details: string | null;
+  actorId: Id;
+  sourceId: Id | null;
+  link: { to: string; label: string } | null;
+}
+
 /* ---------- Снабжение ---------- */
 
 export interface Material {
@@ -511,6 +609,12 @@ export interface Evidence {
   location: string;
 }
 
+export interface FieldIssue {
+  id: Id;
+  text: string;
+  severity: "blocker" | "warning";
+}
+
 export interface FieldReport {
   id: Id;
   projectId: Id;
@@ -518,8 +622,14 @@ export interface FieldReport {
   authorId: Id;
   crewId: Id | null;
   date: string;
+  /** Время отправки отчёта из Telegram */
+  sentAt: string;
+  /** Как прислан отчёт: голосом, текстом или только фото */
+  kind: "voice" | "text" | "photo";
+  workType: string;
   status: "review" | "accepted" | "returned";
   summary: string;
+  issues: FieldIssue[];
   /** Заявленный бригадой объём */
   declaredQty: number;
   unit: string;

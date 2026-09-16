@@ -4,7 +4,9 @@ import { Building2, FileSpreadsheet, LayoutGrid, Plus, Rows3 } from "lucide-reac
 import { PageHeader } from "@/components/common/PageHeader";
 import { Panel } from "@/components/common/Panel";
 import { FilterChip } from "@/components/common/FilterBar";
-import { EmptyState } from "@/components/common/EmptyState";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
+import { useScreenState } from "@/lib/screen-state";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { Button } from "@/components/ui/button";
@@ -140,6 +142,7 @@ function ProjectsPage() {
     [allRows, search.region, search.manager, search.status, search.unverified],
   );
 
+  const screen = useScreenState({ empty: staticRows.length === 0, filtered: rows.length === 0 });
   const filtersActive = Boolean(
     search.region || search.manager || search.status || search.unverified,
   );
@@ -215,11 +218,31 @@ function ProjectsPage() {
           </>
         }
         actions={
-          <Button variant="accent" onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="accent"
+            className="hidden sm:inline-flex"
+            onClick={() => setCreateOpen(true)}
+          >
             <Plus className="size-4" /> Добавить объект
           </Button>
         }
       />
+
+      {screen === "partial" && (
+        <StateBanner tone="warn" className="mb-3" title="Сводка ТЦ «Галактика» не обновилась">
+          Показаны цифры на 05.09, 08:00 — нет связи с почтовым ящиком объекта. Остальные объекты
+          актуальны.
+        </StateBanner>
+      )}
+      {screen === "processing" && (
+        <StateBanner
+          tone="info"
+          className="mb-3"
+          title="Пересчитываем сводку после загрузки документации"
+        >
+          Число позиций и непроверенных строк обновится через минуту.
+        </StateBanner>
+      )}
 
       <Panel bodyClassName="p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
@@ -311,21 +334,34 @@ function ProjectsPage() {
             </Button>
           </div>
         </div>
-        {rows.length === 0 ? (
-          <EmptyState
-            variant="filtered"
-            icon={Building2}
-            title="Объектов по условиям нет"
-            onAction={() =>
-              setSearch({
-                region: undefined,
-                manager: undefined,
-                status: undefined,
-                unverified: undefined,
-              })
-            }
-          />
-        ) : (
+        <ScreenGate
+          state={screen}
+          skeleton={<ScreenSkeleton kind="cards" rows={6} />}
+          copy={{
+            section: "Объекты",
+            roles: "руководителям проектов и генеральному директору",
+            errorTitle: "Не удалось загрузить объекты",
+            empty: {
+              icon: Building2,
+              title: "Объектов пока нет",
+              description:
+                "Добавьте первый объект, затем загрузите договор и проектную документацию — система найдёт в них сроки и материалы.",
+              actionLabel: "Добавить объект",
+              onAction: () => setCreateOpen(true),
+            },
+            filtered: {
+              title: "Объектов по условиям нет",
+              description: "Под выбранные регион, ответственного и статус не попал ни один объект.",
+              onReset: () =>
+                setSearch({
+                  region: undefined,
+                  manager: undefined,
+                  status: undefined,
+                  unverified: undefined,
+                }),
+            },
+          }}
+        >
           <>
             <div className={cn("hidden overflow-x-auto", view === "table" && "lg:block")}>
               <ProjectsTable rows={rows} onOpen={open} />
@@ -341,8 +377,16 @@ function ProjectsPage() {
               ))}
             </div>
           </>
-        )}
+        </ScreenGate>
       </Panel>
+
+      {screen !== "forbidden" && screen !== "error" && (
+        <MobileActionBar>
+          <Button variant="accent" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" /> Добавить объект
+          </Button>
+        </MobileActionBar>
+      )}
 
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>

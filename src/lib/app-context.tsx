@@ -44,8 +44,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
 
+  // На телефоне тема всегда светлая: экран читают на улице, при солнце
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
+    const mobile = window.matchMedia("(max-width: 1023px)");
+    const apply = () => document.documentElement.classList.toggle("dark", theme === "dark" && !mobile.matches);
+    apply();
+    mobile.addEventListener("change", apply);
+    return () => mobile.removeEventListener("change", apply);
   }, [theme]);
 
   useEffect(() => {

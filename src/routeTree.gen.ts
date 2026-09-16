@@ -36,9 +36,13 @@ import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
+import { Route as ProjectsIdFieldReportsRouteImport } from './routes/projects/$id/field-reports'
 import { Route as ProjectsIdMaterialsRouteImport } from './routes/projects/$id/materials'
+import { Route as ProjectsIdTimelineRouteImport } from './routes/projects/$id/timeline'
 import { Route as ProjectsIdDocumentsIndexRouteImport } from './routes/projects/$id/documents/index'
 import { Route as ProjectsIdDocumentsDocIdRouteImport } from './routes/projects/$id/documents/$docId'
+import { Route as ProjectsIdProcurementIndexRouteImport } from './routes/projects/$id/procurement/index'
+import { Route as ProjectsIdProcurementRfqIdRouteImport } from './routes/projects/$id/procurement/$rfqId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -175,9 +179,19 @@ const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
   path: '/projects/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIdFieldReportsRoute = ProjectsIdFieldReportsRouteImport.update({
+  id: '/projects/$id/field-reports',
+  path: '/projects/$id/field-reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIdMaterialsRoute = ProjectsIdMaterialsRouteImport.update({
   id: '/projects/$id/materials',
   path: '/projects/$id/materials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdTimelineRoute = ProjectsIdTimelineRouteImport.update({
+  id: '/projects/$id/timeline',
+  path: '/projects/$id/timeline',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIdDocumentsIndexRoute =
@@ -190,6 +204,18 @@ const ProjectsIdDocumentsDocIdRoute =
   ProjectsIdDocumentsDocIdRouteImport.update({
     id: '/projects/$id/documents/$docId',
     path: '/projects/$id/documents/$docId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProjectsIdProcurementIndexRoute =
+  ProjectsIdProcurementIndexRouteImport.update({
+    id: '/projects/$id/procurement/',
+    path: '/projects/$id/procurement/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProjectsIdProcurementRfqIdRoute =
+  ProjectsIdProcurementRfqIdRouteImport.update({
+    id: '/projects/$id/procurement/$rfqId',
+    path: '/projects/$id/procurement/$rfqId',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -220,10 +246,14 @@ export interface FileRoutesByFullPath {
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
+  '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
   '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
+  '/projects/$id/procurement/$rfqId': typeof ProjectsIdProcurementRfqIdRoute
   '/projects/$id/documents/': typeof ProjectsIdDocumentsIndexRoute
+  '/projects/$id/procurement/': typeof ProjectsIdProcurementIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -252,10 +282,14 @@ export interface FileRoutesByTo {
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
   '/projects': typeof ProjectsIndexRoute
+  '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
+  '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
   '/projects/$id': typeof ProjectsIdIndexRoute
   '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
+  '/projects/$id/procurement/$rfqId': typeof ProjectsIdProcurementRfqIdRoute
   '/projects/$id/documents': typeof ProjectsIdDocumentsIndexRoute
+  '/projects/$id/procurement': typeof ProjectsIdProcurementIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -285,10 +319,14 @@ export interface FileRoutesById {
   '/verification': typeof VerificationRoute
   '/zones': typeof ZonesRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
+  '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
   '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
+  '/projects/$id/procurement/$rfqId': typeof ProjectsIdProcurementRfqIdRoute
   '/projects/$id/documents/': typeof ProjectsIdDocumentsIndexRoute
+  '/projects/$id/procurement/': typeof ProjectsIdProcurementIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -319,10 +357,14 @@ export interface FileRouteTypes {
     | '/verification'
     | '/zones'
     | '/projects/'
+    | '/projects/$id/field-reports'
     | '/projects/$id/materials'
+    | '/projects/$id/timeline'
     | '/projects/$id/'
     | '/projects/$id/documents/$docId'
+    | '/projects/$id/procurement/$rfqId'
     | '/projects/$id/documents/'
+    | '/projects/$id/procurement/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -351,10 +393,14 @@ export interface FileRouteTypes {
     | '/verification'
     | '/zones'
     | '/projects'
+    | '/projects/$id/field-reports'
     | '/projects/$id/materials'
+    | '/projects/$id/timeline'
     | '/projects/$id'
     | '/projects/$id/documents/$docId'
+    | '/projects/$id/procurement/$rfqId'
     | '/projects/$id/documents'
+    | '/projects/$id/procurement'
   id:
     | '__root__'
     | '/'
@@ -383,10 +429,14 @@ export interface FileRouteTypes {
     | '/verification'
     | '/zones'
     | '/projects/'
+    | '/projects/$id/field-reports'
     | '/projects/$id/materials'
+    | '/projects/$id/timeline'
     | '/projects/$id/'
     | '/projects/$id/documents/$docId'
+    | '/projects/$id/procurement/$rfqId'
     | '/projects/$id/documents/'
+    | '/projects/$id/procurement/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -416,10 +466,14 @@ export interface RootRouteChildren {
   VerificationRoute: typeof VerificationRoute
   ZonesRoute: typeof ZonesRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
   ProjectsIdMaterialsRoute: typeof ProjectsIdMaterialsRoute
+  ProjectsIdTimelineRoute: typeof ProjectsIdTimelineRoute
   ProjectsIdIndexRoute: typeof ProjectsIdIndexRoute
   ProjectsIdDocumentsDocIdRoute: typeof ProjectsIdDocumentsDocIdRoute
+  ProjectsIdProcurementRfqIdRoute: typeof ProjectsIdProcurementRfqIdRoute
   ProjectsIdDocumentsIndexRoute: typeof ProjectsIdDocumentsIndexRoute
+  ProjectsIdProcurementIndexRoute: typeof ProjectsIdProcurementIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -613,11 +667,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$id/field-reports': {
+      id: '/projects/$id/field-reports'
+      path: '/projects/$id/field-reports'
+      fullPath: '/projects/$id/field-reports'
+      preLoaderRoute: typeof ProjectsIdFieldReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$id/materials': {
       id: '/projects/$id/materials'
       path: '/projects/$id/materials'
       fullPath: '/projects/$id/materials'
       preLoaderRoute: typeof ProjectsIdMaterialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/timeline': {
+      id: '/projects/$id/timeline'
+      path: '/projects/$id/timeline'
+      fullPath: '/projects/$id/timeline'
+      preLoaderRoute: typeof ProjectsIdTimelineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$id/documents/': {
@@ -632,6 +700,20 @@ declare module '@tanstack/react-router' {
       path: '/projects/$id/documents/$docId'
       fullPath: '/projects/$id/documents/$docId'
       preLoaderRoute: typeof ProjectsIdDocumentsDocIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/procurement/': {
+      id: '/projects/$id/procurement/'
+      path: '/projects/$id/procurement'
+      fullPath: '/projects/$id/procurement/'
+      preLoaderRoute: typeof ProjectsIdProcurementIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/procurement/$rfqId': {
+      id: '/projects/$id/procurement/$rfqId'
+      path: '/projects/$id/procurement/$rfqId'
+      fullPath: '/projects/$id/procurement/$rfqId'
+      preLoaderRoute: typeof ProjectsIdProcurementRfqIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -664,10 +746,14 @@ const rootRouteChildren: RootRouteChildren = {
   VerificationRoute: VerificationRoute,
   ZonesRoute: ZonesRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,
   ProjectsIdMaterialsRoute: ProjectsIdMaterialsRoute,
+  ProjectsIdTimelineRoute: ProjectsIdTimelineRoute,
   ProjectsIdIndexRoute: ProjectsIdIndexRoute,
   ProjectsIdDocumentsDocIdRoute: ProjectsIdDocumentsDocIdRoute,
+  ProjectsIdProcurementRfqIdRoute: ProjectsIdProcurementRfqIdRoute,
   ProjectsIdDocumentsIndexRoute: ProjectsIdDocumentsIndexRoute,
+  ProjectsIdProcurementIndexRoute: ProjectsIdProcurementIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

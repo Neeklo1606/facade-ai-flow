@@ -22,7 +22,7 @@ export function SubpageHeader({
       <Link
         to="/projects/$id"
         params={{ id: project.id }}
-        className="focus-ring mb-2 inline-flex items-center gap-1.5 rounded-[var(--r-xs)] text-caption text-text-muted transition-fast hover:text-text-primary"
+        className="focus-ring mb-1 inline-flex min-h-11 items-center gap-1.5 lg:mb-2 lg:min-h-0 rounded-[var(--r-xs)] text-caption text-text-muted transition-fast hover:text-text-primary"
       >
         <ArrowLeft className="size-3.5" /> {project.name}
       </Link>

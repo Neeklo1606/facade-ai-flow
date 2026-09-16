@@ -9,6 +9,7 @@ import { events } from "@/mock/events";
 import { fmtAgo } from "@/lib/format";
 import { projectById } from "@/mock/repository";
 import { useSpecStore } from "@/lib/spec-store";
+import { StatePicker } from "./StatePicker";
 import { siteIdOf } from "@/lib/project-scope";
 
 /** Что агенты обрабатывают прямо сейчас. */
@@ -20,12 +21,28 @@ export function Topbar() {
   const { setMobileNavOpen, setAgentPanelOpen, agentPanelOpen, theme, toggleTheme, setSiteId } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const item = findNavItem(pathname);
-  const detail = pathname.match(/^\/projects\/([^/]+)(?:\/(documents|materials)(?:\/([^/]+))?)?/);
-  const detailProject = detail?.[1] ? projectById(decodeURIComponent(detail[1])) : null;
-  const section = detail?.[2] === "documents" ? "Документация" : detail?.[2] === "materials" ? "Материалы" : null;
-  const docTitle = useSpecStore((s) =>
-    detail?.[3] ? (s.documents.find((doc) => doc.id === decodeURIComponent(detail[3]!))?.title ?? null) : null,
+  const detail = pathname.match(
+    /^\/projects\/([^/]+)(?:\/(documents|materials|procurement|field-reports|timeline)(?:\/([^/]+))?)?/,
   );
+  const detailProject = detail?.[1] ? projectById(decodeURIComponent(detail[1])) : null;
+  const sectionLabels: Record<string, string> = {
+    documents: "Документация",
+    materials: "Материалы",
+    procurement: "Поставщики и запросы",
+    "field-reports": "Отчёты с площадки",
+    timeline: "История и решения",
+  };
+  const section = detail?.[2] ? sectionLabels[detail[2]] : null;
+  const docTitle = useSpecStore((s) => {
+    const child = detail?.[3] ? decodeURIComponent(detail[3]) : null;
+    if (!child) return null;
+    if (detail?.[2] === "documents") return s.documents.find((doc) => doc.id === child)?.title ?? null;
+    if (detail?.[2] === "procurement") {
+      const number = s.requests.find((r) => r.id === child)?.number;
+      return number ? `Сравнение ${number}` : null;
+    }
+    return null;
+  });
 
   // Открыт экран объекта — селектор в сайдбаре показывает этот объект
   useEffect(() => {
@@ -72,8 +89,7 @@ export function Topbar() {
                 {docTitle ? (
                   <>
                     <Link
-                      to={detail?.[2] === "documents" ? "/projects/$id/documents" : "/projects/$id/materials"}
-                      params={{ id: detailProject.id }}
+                      to={`/projects/${detailProject.id}/${detail?.[2]}` as string}
                       className="transition-fast hover:text-text-primary"
                     >
                       {section}
@@ -95,6 +111,7 @@ export function Topbar() {
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
+        <StatePicker />
         {jobs.length > 0 && (
           <Popover>
             <PopoverTrigger asChild>
@@ -131,7 +148,7 @@ export function Topbar() {
         <Button
           size="sm"
           variant="default"
-          className="h-8"
+          className="h-11 lg:h-8"
           onClick={() => setAgentPanelOpen(!agentPanelOpen)}
         >
           <Sparkle className="size-4" />
@@ -149,14 +166,14 @@ export function Topbar() {
           onClick={toggleTheme}
           aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
           title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-          className="grid size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover"
+          className="hidden size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover lg:grid"
         >
           {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
         </button>
         <button
           type="button"
           aria-label="Уведомления"
-          className="relative grid size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover"
+          className="relative grid size-11 place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover lg:size-[38px]"
         >
           <Bell className="size-4.5" />
           <span className="absolute top-0.5 right-0.5 size-[7px] rounded-full border-2 border-surface bg-accent" />

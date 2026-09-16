@@ -1,0 +1,530 @@
+import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { AlertTriangle, BellRing, Crown, Gavel, Scale } from "lucide-react";
+import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
+import { SubpageHeader } from "@/components/project/SubpageHeader";
+import { DecisionDialog, type DecisionInput } from "@/components/procurement/DecisionDialog";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
+import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { counterpartyById, employeeName, type SupplyRequest } from "@/mock/repository";
+import { decisionForRequest, specActions, useSpecStore } from "@/lib/spec-store";
+import { useProjectOverview } from "@/lib/project-overview";
+import {
+  compareOffers,
+  rfqStatus,
+  rfqStatusMeta,
+  type CellCalc,
+  type ColumnCalc,
+} from "@/lib/procurement";
+import { useScreenState } from "@/lib/screen-state";
+import { fmtDateTime, fmtDue, fmtMoney, fmtNum } from "@/lib/format";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
+  loader: ({ params }) => loadProject(params.id),
+  head: ({ loaderData }) => ({
+    meta: loaderData
+      ? [{ title: `Сравнение предложений — ${loaderData.project.name} — neeklo FieldOps` }]
+      : [],
+  }),
+  notFoundComponent: ProjectNotFound,
+  component: ComparisonPage,
+});
+
+function ComparisonPage() {
+  const { project } = Route.useLoaderData();
+  const { rfqId } = Route.useParams();
+  const navigate = useNavigate();
+  const overview = useProjectOverview(project.id);
+  const state = useSpecStore((s) => s);
+  const request = state.requests.find((r) => r.id === rfqId && r.projectId === project.id) ?? null;
+  const [decisionOpen, setDecisionOpen] = useState(false);
+  const [source, setSource] = useState<{ id: string; fragment: string } | null>(null);
+
+  const calc = useMemo(() => (request ? compareOffers(request) : null), [request]);
+  const meta = state.rfq.find((m) => m.requestId === rfqId);
+  const decision = request ? decisionForRequest(state, request.id) : null;
+  const status = request && calc ? rfqStatus(state, request, meta, calc.answered) : null;
+  const silent = calc ? calc.columns.filter((c) => !c.offerId) : [];
+
+  const screen = useScreenState({
+    empty: !!calc && calc.answered === 0,
+    partial: silent.length > 0,
+  });
+
+  if (!request || !calc) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <h1 className="text-section-title">Запрос не найден</h1>
+        <p className="mt-2 text-text-secondary">Возможно, он удалён или создан в другом объекте.</p>
+        <Button asChild className="mt-6" size="sm">
+          <Link to="/projects/$id/procurement" params={{ id: project.id }}>
+            К запросам объекта
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const blocked =
+    screen === "loading" || screen === "error" || screen === "forbidden" || screen === "empty";
+  const due = meta ? fmtDue(meta.replyDueAt) : null;
+
+  function save(input: DecisionInput) {
+    if (!request || !calc) return;
+    const chosen = calc.columns.find((c) => c.supplierId === input.supplierId)!;
+    const supplier = counterpartyById(input.supplierId)?.name ?? "";
+    const record = specActions.recordDecision({
+      projectId: project.id,
+      kind: "supplier",
+      requestId: request.id,
+      supplierId: input.supplierId,
+      title: `${request.items.map((i) => i.name).join(", ")} — «${supplier}»`,
+      requirement: request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join("; "),
+      problem: `Получено ${calc.answered} ${calc.answered === 1 ? "предложение" : "предложения"} из ${request.sentTo.length}; цены и сроки различаются${calc.columns.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
+      options: calc.columns
+        .filter((c) => c.offerId)
+        .map(
+          (c) =>
+            `«${counterpartyById(c.supplierId)?.name}» — ${fmtMoney(c.total)} с НДС и доставкой, до ${c.maxLeadTime} дн.${c.deviations ? `, отклонений: ${c.deviations}` : ""}`,
+        ),
+      choice: `«${supplier}», ${fmtMoney(chosen.total)}`,
+      reason: input.reason,
+      approvedBy: input.approvedBy,
+      basis: {
+        label: `Письма поставщиков по запросу ${request.number}`,
+        sourceId: [...chosen.cells.values()][0]?.sourceId ?? null,
+      },
+      link: {
+        to: `/projects/${project.id}/procurement/${request.id}`,
+        label: `Запрос ${request.number}`,
+      },
+    });
+    setDecisionOpen(false);
+    toast.success("Решение зафиксировано", {
+      description: `«${supplier}» · согласовал ${employeeName(record.approvedBy)}`,
+      action: {
+        label: "Открыть историю",
+        onClick: () => navigate({ to: "/projects/$id/timeline", params: { id: project.id } }),
+      },
+    });
+  }
+
+  return (
+    <>
+      <SubpageHeader
+        project={project}
+        title={`Сравнение предложений · ${request.number}`}
+        description={request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join(" · ")}
+        meta={
+          <>
+            {status && (
+              <StatusBadge tone={rfqStatusMeta[status].tone}>
+                {rfqStatusMeta[status].label}
+              </StatusBadge>
+            )}
+            <span className="text-caption text-text-secondary">
+              Отправлен {meta ? fmtDateTime(meta.sentAt) : "—"} · ответили{" "}
+              <b className="tnum text-text-primary">{calc.answered}</b> из {request.sentTo.length}
+              {meta && due && !decision && (
+                <>
+                  {" "}
+                  · ждём до {fmtDateTime(meta.replyDueAt)}{" "}
+                  <span className={due.overdue ? "text-danger" : ""}>({due.label})</span>
+                </>
+              )}
+            </span>
+          </>
+        }
+        actions={
+          <Button
+            variant="accent"
+            className="hidden sm:inline-flex"
+            disabled={blocked}
+            onClick={() => setDecisionOpen(true)}
+          >
+            <Gavel className="size-4" /> {decision ? "Изменить решение" : "Зафиксировать решение"}
+          </Button>
+        }
+      />
+
+      {decision && screen !== "loading" && (
+        <div className="mb-4 flex flex-wrap items-start gap-3 rounded-[var(--r-md)] border border-[color-mix(in_oklab,var(--ok)_30%,transparent)] bg-ok-bg px-4 py-3">
+          <Gavel className="mt-0.5 size-4 shrink-0 text-ok" />
+          <div className="min-w-0 flex-1 text-[13px]">
+            <p className="font-medium text-ok">
+              Выбран «{counterpartyById(decision.supplierId ?? "")?.name}»
+            </p>
+            <p className="mt-0.5 text-text-secondary">{decision.reason}</p>
+            <p className="mt-0.5 text-caption text-text-muted">
+              Согласовал {employeeName(decision.approvedBy)} · {fmtDateTime(decision.approvedAt)}
+            </p>
+          </div>
+          <Button size="sm" variant="ghost" asChild>
+            <Link to="/projects/$id/timeline" params={{ id: project.id }}>
+              В истории объекта
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {screen === "partial" && (
+        <StateBanner
+          tone="warn"
+          className="mb-4"
+          title={`Нет ответа от ${silent.map((c) => `«${counterpartyById(c.supplierId)?.name}»`).join(", ")}`}
+          action={
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                toast.success("Напоминание отправлено", {
+                  description: "Письмо и звонок поставщику назначены снабженцу.",
+                })
+              }
+            >
+              <BellRing className="size-3.5" /> Напомнить
+            </Button>
+          }
+        >
+          Сравнение неполное: лучшее предложение может измениться, когда придёт ответ.
+        </StateBanner>
+      )}
+      {screen === "processing" && (
+        <StateBanner tone="info" className="mb-4" title="Распознаём новое письмо поставщика">
+          Цены из вложения появятся в колонке через минуту.
+        </StateBanner>
+      )}
+
+      <ScreenGate
+        state={screen}
+        skeleton={<ScreenSkeleton kind="matrix" />}
+        copy={{
+          section: "Сравнение предложений",
+          roles: "руководителю проекта, снабжению и финансовому контролёру",
+          errorTitle: "Не удалось загрузить предложения",
+          empty: {
+            icon: Scale,
+            title: "Предложений пока нет",
+            description: `Запрос отправлен ${meta ? fmtDateTime(meta.sentAt) : ""} ${request.sentTo.length} поставщикам. Ответы из писем появятся здесь автоматически — если срок выходит, напомните поставщикам.`,
+            actionLabel: "Напомнить поставщикам",
+            onAction: () => toast.success("Напоминание отправлено"),
+          },
+        }}
+      >
+        <DesktopMatrix
+          request={request}
+          columns={calc.columns}
+          bestId={calc.best?.supplierId ?? null}
+          decidedId={decision?.supplierId ?? null}
+          onSource={setSource}
+        />
+        <MobileMatrix
+          request={request}
+          columns={calc.columns}
+          bestId={calc.best?.supplierId ?? null}
+          decidedId={decision?.supplierId ?? null}
+          onSource={setSource}
+        />
+        <p className="mt-3 text-caption text-text-muted">
+          Итог колонки — товар, доставка и НДС {calc.columns.find((c) => c.offerId)?.vatPct ?? 20}%.
+          Доставка распределена по строкам пропорционально сумме. Регион объекта —{" "}
+          {overview?.region}.
+        </p>
+      </ScreenGate>
+
+      {!blocked && (
+        <MobileActionBar>
+          <Button variant="accent" onClick={() => setDecisionOpen(true)}>
+            <Gavel className="size-4" /> {decision ? "Изменить решение" : "Зафиксировать решение"}
+          </Button>
+        </MobileActionBar>
+      )}
+
+      <DecisionDialog
+        open={decisionOpen}
+        onOpenChange={setDecisionOpen}
+        columns={calc.columns}
+        bestSupplierId={calc.best?.supplierId ?? null}
+        onSave={save}
+      />
+      {source && (
+        <SourceDrawer
+          sourceId={source.id}
+          fragment={source.fragment}
+          onOpenChange={() => setSource(null)}
+        />
+      )}
+    </>
+  );
+}
+
+interface MatrixProps {
+  request: SupplyRequest;
+  columns: ColumnCalc[];
+  bestId: string | null;
+  decidedId: string | null;
+  onSource: (s: { id: string; fragment: string }) => void;
+}
+
+function CellLines({
+  cell,
+  unit,
+  onSource,
+}: {
+  cell: CellCalc;
+  unit: string;
+  onSource: MatrixProps["onSource"];
+}) {
+  const rows: [string, string, boolean?][] = [
+    ["Цена", `${fmtMoney(cell.price)} / ${unit}`],
+    ["Доставка", cell.delivery ? fmtMoney(cell.delivery) : "включена"],
+    ["НДС", fmtMoney(cell.vat)],
+    ["Срок", `${cell.leadTimeDays} дн.`],
+    ["Объём", `${fmtNum(cell.availableQty)} из ${fmtNum(cell.qty)} ${unit}`, cell.shortage],
+  ];
+  return (
+    <div>
+      <div className="mb-1.5 flex items-start justify-between gap-2">
+        <span className="min-w-0 text-caption text-text-secondary">{cell.name}</span>
+        <SourceRef
+          sourceId={cell.sourceId}
+          onOpen={() => cell.sourceId && onSource({ id: cell.sourceId, fragment: `${cell.price}` })}
+          className="-mt-1 -mr-1"
+        />
+      </div>
+      <dl className="grid gap-0.5 text-[13px]">
+        {rows.map(([label, value, warn]) => (
+          <div key={label} className="flex items-baseline justify-between gap-3">
+            <dt className="text-text-muted">{label}</dt>
+            <dd
+              className={cn(
+                "tnum text-right",
+                label === "Цена" && "font-semibold text-text-primary",
+                warn && "font-medium text-warn",
+              )}
+            >
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {(cell.deviation || cell.shortage) && (
+        <p className="mt-2 flex gap-1.5 rounded-[var(--r-xs)] bg-warn-bg px-2 py-1.5 text-caption text-warn">
+          <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+          {cell.deviation ?? "Доступный объём меньше требуемого"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: MatrixProps) {
+  return (
+    <div className="card-surface hidden overflow-x-auto lg:block">
+      <table
+        className="w-full border-collapse text-table"
+        style={{ minWidth: 260 + columns.length * 260 }}
+      >
+        <thead>
+          <tr className="text-left align-top">
+            <th className="sticky left-0 z-10 w-[260px] border-r border-b border-border bg-subtle px-4 py-3 text-[11px] font-medium text-text-muted">
+              Материал и требование
+            </th>
+            {columns.map((c) => {
+              const best = c.supplierId === bestId;
+              return (
+                <th
+                  key={c.supplierId}
+                  className={cn(
+                    "min-w-[240px] border-b border-l border-border px-4 py-3",
+                    best ? "bg-ok-bg" : "bg-subtle",
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[14px] font-semibold text-text-primary">
+                      {counterpartyById(c.supplierId)?.name}
+                    </span>
+                    {best && (
+                      <span className="inline-flex h-5 items-center gap-1 rounded-full bg-ok px-2 text-[11px] font-medium text-white">
+                        <Crown className="size-3" /> Лучшее
+                      </span>
+                    )}
+                    {decidedId === c.supplierId && (
+                      <StatusBadge tone="ok" className="h-5">
+                        Выбран
+                      </StatusBadge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-caption font-normal text-text-muted">
+                    {c.receivedAt ? `Ответ ${fmtDateTime(c.receivedAt)}` : "Ответа нет"}
+                  </p>
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {request.items.map((item) => (
+            <tr key={item.materialId} className="align-top">
+              <th
+                scope="row"
+                className="sticky left-0 z-10 border-r border-b border-border bg-surface px-4 py-3 text-left font-normal"
+              >
+                <p className="text-[13px] font-medium">{item.name}</p>
+                <p className="tnum mt-0.5 text-caption text-text-muted">
+                  Нужно {fmtNum(item.qty)} {item.unit}
+                </p>
+              </th>
+              {columns.map((c) => {
+                const cell = c.cells.get(item.materialId);
+                const warn = cell && (cell.deviation || cell.shortage);
+                return (
+                  <td
+                    key={c.supplierId}
+                    className={cn(
+                      "border-b border-l border-border px-4 py-3",
+                      c.supplierId === bestId &&
+                        "bg-[color-mix(in_oklab,var(--ok-bg)_45%,transparent)]",
+                      warn && "bg-[color-mix(in_oklab,var(--warn-bg)_70%,transparent)]",
+                    )}
+                  >
+                    {cell ? (
+                      <CellLines cell={cell} unit={item.unit} onSource={onSource} />
+                    ) : (
+                      <p className="text-caption text-text-muted">
+                        {c.offerId ? "Позиция не предложена" : "Ждём ответ поставщика"}
+                      </p>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="align-top">
+            <th
+              scope="row"
+              className="sticky left-0 z-10 border-r border-border bg-raised px-4 py-3 text-left"
+            >
+              <p className="text-[13px] font-semibold">Итого с доставкой и НДС</p>
+            </th>
+            {columns.map((c) => (
+              <td
+                key={c.supplierId}
+                className={cn(
+                  "border-l border-border px-4 py-3",
+                  c.supplierId === bestId ? "bg-ok-bg" : "bg-raised",
+                )}
+              >
+                {c.offerId ? (
+                  <>
+                    <p
+                      className={cn(
+                        "tnum text-[20px] leading-tight font-semibold",
+                        c.supplierId === bestId && "text-ok",
+                      )}
+                    >
+                      {fmtMoney(c.total)}
+                    </p>
+                    <p className="tnum mt-1 text-caption text-text-muted">
+                      товар {fmtMoney(c.subtotal - c.deliveryCost)} · доставка{" "}
+                      {fmtMoney(c.deliveryCost)} · НДС {fmtMoney(c.vat)}
+                    </p>
+                    {!c.complete && (
+                      <p className="mt-1 text-caption text-warn">Предложены не все позиции</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-caption text-text-muted">—</p>
+                )}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+/** Телефон: материал — карточкой, предложения поставщиков — друг под другом. */
+function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixProps) {
+  return (
+    <div className="space-y-3 lg:hidden">
+      <section className="card-surface divide-y divide-border">
+        <h2 className="px-4 py-3 text-[14px] font-semibold">Итог по поставщикам</h2>
+        {columns.map((c) => (
+          <div
+            key={c.supplierId}
+            className={cn(
+              "flex items-center justify-between gap-3 px-4 py-3",
+              c.supplierId === bestId && "bg-ok-bg",
+            )}
+          >
+            <div className="min-w-0">
+              <p className="flex flex-wrap items-center gap-1.5 text-[14px] font-medium">
+                {counterpartyById(c.supplierId)?.name}
+                {c.supplierId === bestId && <Crown className="size-3.5 text-ok" />}
+                {decidedId === c.supplierId && (
+                  <StatusBadge tone="ok" className="h-5">
+                    Выбран
+                  </StatusBadge>
+                )}
+              </p>
+              <p className="text-caption text-text-muted">
+                {c.offerId ? `до ${c.maxLeadTime} дн. · отклонений ${c.deviations}` : "Ответа нет"}
+              </p>
+            </div>
+            <p
+              className={cn(
+                "tnum shrink-0 text-[15px] font-semibold",
+                c.supplierId === bestId && "text-ok",
+              )}
+            >
+              {c.offerId ? fmtMoney(c.total) : "—"}
+            </p>
+          </div>
+        ))}
+      </section>
+      {request.items.map((item) => (
+        <section key={item.materialId} className="card-surface">
+          <header className="border-b border-border px-4 py-3">
+            <p className="text-[14px] font-semibold">{item.name}</p>
+            <p className="tnum text-caption text-text-muted">
+              Нужно {fmtNum(item.qty)} {item.unit}
+            </p>
+          </header>
+          <ul className="divide-y divide-border">
+            {columns.map((c) => {
+              const cell = c.cells.get(item.materialId);
+              return (
+                <li
+                  key={c.supplierId}
+                  className={cn(
+                    "px-4 py-3",
+                    c.supplierId === bestId &&
+                      "bg-[color-mix(in_oklab,var(--ok-bg)_45%,transparent)]",
+                  )}
+                >
+                  <p className="mb-1 text-[13px] font-medium">
+                    {counterpartyById(c.supplierId)?.name}
+                  </p>
+                  {cell ? (
+                    <CellLines cell={cell} unit={item.unit} onSource={onSource} />
+                  ) : (
+                    <p className="text-caption text-text-muted">Ждём ответ</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}

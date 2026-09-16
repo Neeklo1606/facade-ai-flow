@@ -78,8 +78,8 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
       hint: "Поставщик не прислал предложение в срок",
       value: overview.overdueRequests,
       tone: "danger",
-      to: "/requests",
-      search: { status: "collecting" },
+      to: `/projects/${projectId}/procurement`,
+      search: { status: "open" },
     },
     {
       key: "changes",
@@ -97,7 +97,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
       hint: "Смены за неделю без отчёта прораба",
       value: overview.missingReports,
       tone: "warn",
-      to: "/field-reports",
+      to: `/projects/${projectId}/field-reports`,
     },
   ];
   const open = rows.filter((row) => row.value > 0);

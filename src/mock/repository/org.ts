@@ -9,6 +9,10 @@ export const counterparties: Counterparty[] = [
   { id: "c-mp", name: "МеталлПрофиль Групп", role: "supplier", inn: "7805440218", contactName: "Романова Т. И.", email: "zakaz@mp-group.ru", phone: "+7 812 336-88-10", avgReplyHours: 11, rating: 4.1 },
   { id: "c-kt", name: "Керамика Трейд", role: "supplier", inn: "7816003994", contactName: "Абрамов Д. С.", email: "info@keramika-trade.ru", phone: "+7 812 244-51-63", avgReplyHours: 21, rating: 3.4 },
   { id: "c-sk", name: "СтройКрепёж", role: "supplier", inn: "7813551200", contactName: "Ушакова Н. В.", email: "opt@stroykrepezh.ru", phone: "+7 812 777-12-08", avgReplyHours: 4, rating: 4.8 },
+  { id: "c-ti", name: "ТехноИзоляция Центр", role: "supplier", inn: "7719402256", contactName: "Белова И. Г.", email: "belova@tehnoizol.ru", phone: "+7 495 118-40-22", avgReplyHours: 14, rating: 4.3 },
+  { id: "c-alp", name: "АлюПрофиль Регион", role: "supplier", inn: "5024188130", contactName: "Ефимов Р. С.", email: "sales@aluprofil-region.ru", phone: "+7 495 902-17-60", avgReplyHours: 30, rating: 3.8 },
+  { id: "c-szm", name: "Северо-Запад Металл", role: "supplier", inn: "7810553918", contactName: "Крылов А. П.", email: "krylov@szmetall.ru", phone: "+7 812 603-55-17", avgReplyHours: 8, rating: 4.4 },
+  { id: "c-kfs", name: "КазаньФасадСнаб", role: "supplier", inn: "1655321907", contactName: "Хабибуллин Р. Ф.", email: "zakaz@kfsnab.ru", phone: "+7 843 211-09-48", avgReplyHours: 16, rating: 4.0 },
   { id: "c-vysota", name: "Высота-Монтаж", role: "subcontractor", inn: "7802664301", contactName: "Панин С. Ю.", email: "panin@vysota-montazh.ru", phone: "+7 921 330-45-19", avgReplyHours: 9, rating: 4.3 },
 ];
 

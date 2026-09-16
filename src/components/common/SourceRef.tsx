@@ -50,7 +50,7 @@ export function SourceRef({
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn("inline-flex size-6 items-center justify-center text-text-muted", className)}>
+          <span className={cn("inline-flex size-11 items-center justify-center text-text-muted lg:size-6", className)}>
             <PenLine className="size-3.5" strokeWidth={1.5} />
           </span>
         </TooltipTrigger>
@@ -69,7 +69,7 @@ export function SourceRef({
           onClick={onOpen}
           aria-label={`Источник: ${source.title}, ${source.location}`}
           className={cn(
-            "focus-ring inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--r-xs)] text-info transition-fast hover:bg-info-bg",
+            "focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--r-xs)] text-info transition-fast hover:bg-info-bg lg:size-6",
             className,
           )}
         >

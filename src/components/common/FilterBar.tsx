@@ -47,7 +47,7 @@ export function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "focus-ring inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-fast",
+        "focus-ring inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-fast lg:h-9",
         active
           ? "border-border-strong bg-subtle text-text-primary"
           : "border-border bg-surface text-text-secondary hover:bg-hover hover:text-text-primary",

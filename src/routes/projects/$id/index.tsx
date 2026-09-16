@@ -2,7 +2,10 @@ import { useRef, useState, type DragEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
 import { useProjectOverview } from "@/lib/project-overview";
-import { specActions } from "@/lib/spec-store";
+import { specActions, useSpecStore } from "@/lib/spec-store";
+import { useScreenState } from "@/lib/screen-state";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { ArrowLeft, CalendarRange, FileUp, Upload } from "lucide-react";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { SourceDrawer } from "@/components/common/SourceRef";
@@ -75,6 +78,14 @@ export const Route = createFileRoute("/projects/$id/")({
 function ProjectPage() {
   const { project, overview: staticOverview } = Route.useLoaderData();
   const overview = useProjectOverview(project.id) ?? staticOverview;
+  const liveDocuments = useSpecStore((s) => s.documents);
+  const recognizingDocs = liveDocuments.filter(
+    (d) => d.projectId === project.id && (d.status === "recognizing" || d.status === "uploaded"),
+  );
+  const screen = useScreenState({
+    processing: recognizingDocs.length > 0 && project.id !== "p-korona",
+  });
+  const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   const { tab = "summary" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { setSiteId } = useApp();
@@ -133,7 +144,7 @@ function ProjectPage() {
     <>
       <Link
         to="/projects"
-        className="focus-ring mb-3 inline-flex items-center gap-1.5 rounded-[var(--r-xs)] text-caption text-text-muted transition-fast hover:text-text-primary"
+        className="focus-ring mb-1 inline-flex min-h-11 items-center gap-1.5 lg:mb-3 lg:min-h-0 rounded-[var(--r-xs)] text-caption text-text-muted transition-fast hover:text-text-primary"
       >
         <ArrowLeft className="size-3.5" /> Все объекты
       </Link>
@@ -156,7 +167,12 @@ function ProjectPage() {
               {project.name}
             </h1>
           </div>
-          <Button variant="accent" onClick={() => setUploadOpen(true)} className="w-full sm:w-auto">
+          <Button
+            variant="accent"
+            onClick={() => setUploadOpen(true)}
+            className="hidden sm:inline-flex"
+            disabled={blocked}
+          >
             <Upload className="size-4" /> Загрузить документацию
           </Button>
         </div>
@@ -238,7 +254,7 @@ function ProjectPage() {
               <TabsTrigger
                 key={item.id}
                 value={item.id}
-                className="relative h-10 rounded-none border-0 bg-transparent px-3 text-[13px] text-text-secondary shadow-none after:absolute after:inset-x-2 after:bottom-[-1px] after:h-[2px] after:rounded-full hover:text-text-primary data-[state=active]:bg-transparent data-[state=active]:text-text-primary data-[state=active]:shadow-none data-[state=active]:after:bg-accent"
+                className="relative h-11 rounded-none lg:h-10 border-0 bg-transparent px-3 text-[13px] text-text-secondary shadow-none after:absolute after:inset-x-2 after:bottom-[-1px] after:h-[2px] after:rounded-full hover:text-text-primary data-[state=active]:bg-transparent data-[state=active]:text-text-primary data-[state=active]:shadow-none data-[state=active]:after:bg-accent"
               >
                 {item.label}
                 {item.id === "materials" && overview.specUnverified > 0 && (
@@ -256,33 +272,79 @@ function ProjectPage() {
           </TabsList>
         </div>
 
+        {screen === "partial" && (
+          <StateBanner tone="warn" className="mt-4" title="Часть данных объекта не загрузилась">
+            Отчёты с площадки за 04.09 ещё не пришли из Telegram — цифры хода работ могут быть
+            неполными.
+          </StateBanner>
+        )}
+        {screen === "processing" && (
+          <StateBanner tone="info" className="mt-4" title="Документация объекта распознаётся">
+            {recognizingDocs.length
+              ? recognizingDocs.map((d) => `«${d.title}»`).join(", ")
+              : "Новая ревизия"}{" "}
+            — позиции и расхождения появятся в сводке автоматически.
+          </StateBanner>
+        )}
+
         <div className="mt-4">
-          <TabsContent value="summary">
-            <SummaryTab {...shared} onTab={setTab} />
-          </TabsContent>
-          <TabsContent value="documents">
-            <DocumentsPreview {...shared} />
-          </TabsContent>
-          <TabsContent value="materials">
-            <MaterialsPreview {...shared} />
-          </TabsContent>
-          <TabsContent value="purchases">
-            <PurchasesPreview {...shared} />
-          </TabsContent>
-          <TabsContent value="progress">
-            <ProgressPreview {...shared} />
-          </TabsContent>
-          <TabsContent value="decisions">
-            <DecisionsPreview {...shared} />
-          </TabsContent>
-          <TabsContent value="history">
-            <HistoryPreview {...shared} />
-          </TabsContent>
-          <TabsContent value="team">
-            <TeamPreview {...shared} />
-          </TabsContent>
+          <ScreenGate
+            state={screen}
+            skeleton={<ScreenSkeleton kind="summary" />}
+            copy={{
+              section: "Карточка объекта",
+              roles: "руководителю проекта, ПТО и генеральному директору",
+              errorTitle: "Не удалось загрузить данные объекта",
+              empty: {
+                icon: FileUp,
+                title: "По объекту ещё нет данных",
+                description:
+                  "Загрузите проектную документацию, и система найдёт в ней материалы. Затем подключите прорабов к Telegram-боту — отчёты и сроки появятся в сводке.",
+                actionLabel: "Загрузить документацию",
+                onAction: () => setUploadOpen(true),
+              },
+              filtered: {
+                title: "В этой вкладке нет записей",
+                description: "Переключитесь на «Сводку», чтобы увидеть всё по объекту.",
+                onReset: () => setTab("summary"),
+              },
+            }}
+          >
+            <TabsContent value="summary">
+              <SummaryTab {...shared} onTab={setTab} />
+            </TabsContent>
+            <TabsContent value="documents">
+              <DocumentsPreview {...shared} />
+            </TabsContent>
+            <TabsContent value="materials">
+              <MaterialsPreview {...shared} />
+            </TabsContent>
+            <TabsContent value="purchases">
+              <PurchasesPreview {...shared} />
+            </TabsContent>
+            <TabsContent value="progress">
+              <ProgressPreview {...shared} />
+            </TabsContent>
+            <TabsContent value="decisions">
+              <DecisionsPreview {...shared} />
+            </TabsContent>
+            <TabsContent value="history">
+              <HistoryPreview {...shared} />
+            </TabsContent>
+            <TabsContent value="team">
+              <TeamPreview {...shared} />
+            </TabsContent>
+          </ScreenGate>
         </div>
       </Tabs>
+
+      {!blocked && (
+        <MobileActionBar>
+          <Button variant="accent" onClick={() => setUploadOpen(true)}>
+            <Upload className="size-4" /> Загрузить документацию
+          </Button>
+        </MobileActionBar>
+      )}
 
       <UploadDialog
         open={uploadOpen}

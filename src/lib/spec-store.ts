@@ -1,14 +1,26 @@
 import { useSyncExternalStore } from "react";
 import {
+  counterpartyName,
+  emailTemplates,
   extractedPositions,
+  fieldReports,
   positionChanges,
+  projectDecisions,
   projectDocuments,
+  rfqMeta,
   simulatedPositions,
+  supplierProfiles,
   supplyRequests,
+  timelineSeed,
   type ExtractedPosition,
+  type FieldReport,
   type PositionChange,
+  type ProjectDecision,
   type ProjectDocument,
+  type RfqMeta,
+  type SupplierProfile,
   type SupplyRequest,
+  type TimelineEvent,
 } from "@/mock/repository";
 
 /**
@@ -31,6 +43,10 @@ export interface SpecState {
   requests: SupplyRequest[];
   /** Документы, чьи проверенные позиции переданы в закупку */
   sentDocuments: Record<string, string>;
+  rfq: RfqMeta[];
+  decisions: ProjectDecision[];
+  reports: FieldReport[];
+  profiles: SupplierProfile[];
 }
 
 const ACTOR = "e-sokolov";
@@ -42,6 +58,10 @@ let state: SpecState = {
   uploads: {},
   requests: supplyRequests,
   sentDocuments: {},
+  rfq: rfqMeta,
+  decisions: projectDecisions,
+  reports: fieldReports,
+  profiles: supplierProfiles,
 };
 
 const listeners = new Set<() => void>();
@@ -284,19 +304,25 @@ export const specActions = {
 
   /* ---------- Закупка ---------- */
 
-  createRequest(projectId: string, ids: string[], supplierIds: string[]) {
+  createRequest(
+    projectId: string,
+    ids: string[],
+    supplierIds: string[],
+    options: { templateId?: string; replyDueAt?: string } = {},
+  ) {
     const wanted = new Set(ids);
     const targets = state.positions.filter(
       (item) => wanted.has(item.id) && isVerified(item) && item.purchase === "none",
     );
     if (!targets.length) return null;
     const number = `З-2026/${326 + state.requests.filter((r) => r.id.startsWith("sr-live")).length}`;
+    const createdAt = now();
     const request: SupplyRequest = {
       id: `sr-live-${Date.now()}`,
       number,
       projectId,
       zoneId: null,
-      createdAt: now(),
+      createdAt,
       authorId: ACTOR,
       items: targets.map((item) => ({
         materialId: item.family,
@@ -308,10 +334,22 @@ export const specActions = {
       status: "sent",
       sourceId: null,
     };
+    const due =
+      options.replyDueAt ??
+      new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10) + "T18:00:00";
     const targetIds = new Set(targets.map((item) => item.id));
     set((prev) => ({
       ...prev,
       requests: [request, ...prev.requests],
+      rfq: [
+        ...prev.rfq,
+        {
+          requestId: request.id,
+          sentAt: createdAt,
+          replyDueAt: due,
+          templateId: options.templateId ?? emailTemplates[0].id,
+        },
+      ],
       positions: prev.positions.map((item) =>
         targetIds.has(item.id)
           ? { ...item, purchase: "requested", requestIds: [...item.requestIds, request.id] }
@@ -323,6 +361,48 @@ export const specActions = {
       ],
     }));
     return { request, count: targets.length };
+  },
+
+  /** Зафиксировать выбор поставщика: решение уходит в историю объекта, позиции — в «Выбран поставщик». */
+  recordDecision(decision: Omit<ProjectDecision, "id" | "approvedAt">) {
+    const record: ProjectDecision = {
+      ...decision,
+      id: `dec-live-${Date.now()}`,
+      approvedAt: now(),
+    };
+    set((prev) => ({
+      ...prev,
+      decisions: [record, ...prev.decisions],
+      requests: prev.requests.map((r) =>
+        r.id === decision.requestId ? { ...r, status: "compared" } : r,
+      ),
+      positions: prev.positions.map((item) =>
+        decision.requestId &&
+        item.requestIds.includes(decision.requestId) &&
+        (item.purchase === "requested" || item.purchase === "offers")
+          ? { ...item, purchase: "supplier_selected" }
+          : item,
+      ),
+    }));
+    return record;
+  },
+
+  verifyContact(supplierId: string) {
+    set((prev) => ({
+      ...prev,
+      profiles: prev.profiles.map((p) =>
+        p.supplierId === supplierId
+          ? { ...p, contactStatus: "verified", contactCheckedAt: now().slice(0, 10) }
+          : p,
+      ),
+    }));
+  },
+
+  reviewReport(id: string, status: FieldReport["status"], acceptedQty: number | null) {
+    set((prev) => ({
+      ...prev,
+      reports: prev.reports.map((r) => (r.id === id ? { ...r, status, acceptedQty } : r)),
+    }));
   },
 
   /* ---------- Загрузка ---------- */
@@ -405,4 +485,79 @@ export function projectSpecStats(s: SpecState, projectId: string) {
     inTransit: count(["ordered"]),
     delivered: count(["delivered"]),
   };
+}
+
+/** Решение по запросу, если оно уже зафиксировано. */
+export function decisionForRequest(s: SpecState, requestId: string) {
+  return s.decisions.find((item) => item.requestId === requestId) ?? null;
+}
+
+/** История объекта: исходные события плюс то, что произошло в этой сессии. */
+export function timelineOf(s: SpecState, projectId: string): TimelineEvent[] {
+  const base = timelineSeed.filter((item) => item.projectId === projectId);
+  const live: TimelineEvent[] = [];
+  const positionsById = new Map(s.positions.map((item) => [item.id, item]));
+
+  for (const c of s.changes) {
+    if (!c.id.startsWith("pc-live") || !c.action.startsWith("Исправлено количество")) continue;
+    const item = positionsById.get(c.positionId);
+    if (!item || item.projectId !== projectId) continue;
+    live.push({
+      id: `tl-${c.id}`,
+      projectId,
+      at: c.at,
+      type: "qty_corrected",
+      title: `Исправлено количество, поз. ${item.position}: ${c.before} → ${c.after}`,
+      details: item.projectName,
+      actorId: c.actorId,
+      sourceId: null,
+      link: {
+        to: `/projects/${projectId}/documents/${item.documentId}?position=${item.id}`,
+        label: `Лист ${item.sheetNumber}`,
+      },
+    });
+  }
+  for (const r of s.requests) {
+    if (!r.id.startsWith("sr-live") || r.projectId !== projectId) continue;
+    live.push({
+      id: `tl-${r.id}`,
+      projectId,
+      at: r.createdAt,
+      type: "request_created",
+      title: `Создан запрос ${r.number}`,
+      details: `${r.items.length} поз. · ${r.sentTo.map(counterpartyName).join(", ")}`,
+      actorId: r.authorId,
+      sourceId: null,
+      link: { to: `/projects/${projectId}/procurement/${r.id}`, label: `Запрос ${r.number}` },
+    });
+  }
+  for (const d of s.decisions) {
+    if (!d.id.startsWith("dec-live") || d.projectId !== projectId) continue;
+    live.push({
+      id: `tl-${d.id}`,
+      projectId,
+      at: d.approvedAt,
+      type: "decision",
+      title: d.title,
+      details: d.reason,
+      actorId: d.approvedBy,
+      sourceId: d.basis.sourceId,
+      link: d.link,
+    });
+  }
+  for (const doc of s.documents) {
+    if (!doc.id.startsWith("pd-live") || doc.projectId !== projectId) continue;
+    live.push({
+      id: `tl-${doc.id}`,
+      projectId,
+      at: doc.uploadedAt,
+      type: "version_uploaded",
+      title: `Загружен документ «${doc.title}»`,
+      details: `${doc.fileName}, ${doc.version}`,
+      actorId: doc.uploadedBy,
+      sourceId: null,
+      link: { to: `/projects/${projectId}/documents/${doc.id}`, label: "Документ" },
+    });
+  }
+  return [...base, ...live].sort((a, b) => b.at.localeCompare(a.at));
 }

@@ -4,9 +4,11 @@ import { ChevronRight, FileText, PackageSearch, Send, X } from "lucide-react";
 import { loadProject, ProjectNotFound } from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { MaterialDrawer } from "@/components/materials/MaterialDrawer";
-import { CreateRequestDialog } from "@/components/materials/CreateRequestDialog";
+import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
+import { useScreenState } from "@/lib/screen-state";
 import { ConfidenceLabel, confidenceLevel } from "@/components/common/ConfidenceIndicator";
-import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -184,18 +186,20 @@ function MaterialsPage() {
       return next;
     });
 
-  function createRequest(supplierIds: string[]) {
-    const result = specActions.createRequest(project.id, [...selected], supplierIds);
-    setRequestOpen(false);
-    if (!result) return;
-    setSelected(new Set());
-    toast.success(`Запрос ${result.request.number} отправлен`, {
-      description: `${fmtNum(result.count)} поз. · ${supplierIds.length} ${supplierIds.length === 1 ? "поставщику" : "поставщикам"}. Статус позиций — «В запросе».`,
-    });
-  }
-
   const resetFilters = () =>
     setSearch({ group: undefined, review: undefined, purchase: undefined, chars: undefined });
+
+  const pendingDocs = documents.filter(
+    (doc) =>
+      doc.projectId === project.id && (doc.status === "uploaded" || doc.status === "recognizing"),
+  );
+  const screen = useScreenState({
+    empty: positions.length === 0,
+    filtered: rows.length === 0,
+    partial: pendingDocs.length > 0,
+  });
+  const blocked =
+    screen === "loading" || screen === "error" || screen === "forbidden" || screen === "empty";
 
   return (
     <>
@@ -220,15 +224,35 @@ function MaterialsPage() {
         actions={
           <Button
             variant="accent"
-            disabled={eligibleCount === 0}
+            disabled={blocked || (eligibleCount === 0 && purchaseCounts.none === 0)}
             onClick={() => setRequestOpen(true)}
-            className="w-full sm:w-auto"
+            className="hidden sm:inline-flex"
           >
             <Send className="size-4" /> Создать запрос поставщикам
             {selected.size > 0 && <span className="tnum opacity-80">{fmtNum(eligibleCount)}</span>}
           </Button>
         }
       />
+
+      {screen === "partial" && (
+        <StateBanner
+          tone="warn"
+          className="mb-3"
+          title={`Позиции из ${pendingDocs.length} ${pendingDocs.length === 1 ? "документа" : "документов"} ещё не извлечены`}
+        >
+          {pendingDocs.map((doc) => doc.title).join(", ")} — обрабатываются. Реестр дополнится
+          автоматически, закупать можно уже проверенное.
+        </StateBanner>
+      )}
+      {screen === "processing" && (
+        <StateBanner
+          tone="info"
+          className="mb-3"
+          title="Пересчитываем этапы закупки после новых ответов поставщиков"
+        >
+          Статусы позиций обновятся через несколько секунд.
+        </StateBanner>
+      )}
 
       {/* Этапы закупки проверенных позиций */}
       <div className="card-surface mb-4 grid grid-cols-2 gap-px overflow-hidden bg-border sm:grid-cols-3 xl:grid-cols-6">
@@ -337,20 +361,37 @@ function MaterialsPage() {
           </div>
         )}
 
-        {rows.length === 0 ? (
-          <EmptyState
-            variant={filtersActive ? "filtered" : "empty"}
-            icon={PackageSearch}
-            title={filtersActive ? "Позиций по условиям нет" : "Позиций материалов пока нет"}
-            description={
-              filtersActive
-                ? "Измените условия или сбросьте фильтры."
-                : "Загрузите спецификацию в документации объекта — позиции извлекутся автоматически."
-            }
-            {...(filtersActive ? { onAction: () => void resetFilters() } : {})}
+        <ScreenGate
+          state={screen}
+          skeleton={<ScreenSkeleton kind="table" rows={8} />}
+          copy={{
+            section: "Материалы",
+            roles: "руководителю проекта, ПТО и снабжению",
+            errorTitle: "Не удалось загрузить материалы",
+            empty: {
+              icon: PackageSearch,
+              title: "Материалов пока нет",
+              description:
+                "Загрузите спецификацию в документации объекта и подтвердите извлечённые позиции — они появятся здесь, и по ним можно будет запросить цены.",
+              actionLabel: "Загрузить спецификацию",
+              onAction: () =>
+                navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
+            },
+            filtered: {
+              onReset: resetFilters,
+              description:
+                "Под выбранные раздел, проверку и этап закупки не попала ни одна позиция. Сбросьте фильтры.",
+            },
+          }}
+        >
+          <MobileMaterials
+            grouped={grouped}
+            selected={selected}
+            onToggle={toggle}
+            onOpen={(id) => setSearch({ position: id })}
+            projectId={project.id}
           />
-        ) : (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1240px] text-table">
               <thead className="sticky top-0 z-10">
                 <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
@@ -442,15 +483,29 @@ function MaterialsPage() {
               })}
             </table>
           </div>
-        )}
+        </ScreenGate>
       </section>
 
-      <CreateRequestDialog
+      {!blocked && (
+        <MobileActionBar>
+          <Button
+            variant="accent"
+            disabled={eligibleCount === 0 && purchaseCounts.none === 0}
+            onClick={() => setRequestOpen(true)}
+          >
+            <Send className="size-4" /> Запросить цены
+            {selected.size > 0 ? ` · ${fmtNum(eligibleCount)}` : ""}
+          </Button>
+        </MobileActionBar>
+      )}
+
+      <CreateRfqDialog
         open={requestOpen}
-        selected={selectedItems}
-        region={overview?.region ?? "—"}
         onOpenChange={setRequestOpen}
-        onCreate={createRequest}
+        project={project}
+        region={overview?.region ?? "—"}
+        initialIds={[...selected]}
+        onCreated={() => setSelected(new Set())}
       />
       {openItem && (
         <MaterialDrawer
@@ -562,5 +617,98 @@ function MaterialRow({
         )}
       </td>
     </tr>
+  );
+}
+
+/** Телефон: позиции карточками, выделение и источник — крупными областями нажатия. */
+function MobileMaterials({
+  grouped,
+  selected,
+  onToggle,
+  onOpen,
+  projectId,
+}: {
+  grouped: [string, ExtractedPosition[]][];
+  selected: Set<string>;
+  onToggle: (id: string, value: boolean) => void;
+  onOpen: (id: string) => void;
+  projectId: string;
+}) {
+  const [limit, setLimit] = useState(30);
+  return (
+    <div className="lg:hidden">
+      {grouped.map(([group, items]) => (
+        <section key={group}>
+          <h3 className="sticky top-0 z-10 border-y border-border bg-raised px-4 py-2 text-[13px] font-semibold">
+            {group} <span className="tnum font-normal text-text-muted">{fmtNum(items.length)}</span>
+          </h3>
+          <ul className="divide-y divide-border">
+            {items.slice(0, limit).map((item) => {
+              const review = reviewLabel(item);
+              return (
+                <li
+                  key={item.id}
+                  className={cn("flex gap-1 pr-4", selected.has(item.id) && "bg-accent-subtle")}
+                >
+                  <label className="grid w-12 shrink-0 cursor-pointer place-items-center self-stretch">
+                    <Checkbox
+                      checked={selected.has(item.id)}
+                      onCheckedChange={(v) => onToggle(item.id, v === true)}
+                      aria-label={`Выделить поз. ${item.position}`}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(item.id)}
+                    className="min-w-0 flex-1 py-3 text-left"
+                  >
+                    <p
+                      className={cn("text-[14px] font-medium", !item.normalizedName && "text-warn")}
+                    >
+                      {item.normalizedName ?? "Требует нормализации"}
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-caption text-text-muted">
+                      {item.position} · {item.projectName}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span className="tnum text-[14px] font-semibold">
+                        {item.qty ? fmtNum(item.qty) : "—"}{" "}
+                        <span className="font-normal text-text-secondary">{item.unit}</span>
+                      </span>
+                      {review ? (
+                        <StatusBadge tone={review.tone}>{review.label}</StatusBadge>
+                      ) : (
+                        <ConfidenceLabel value={item.confidence} />
+                      )}
+                      {isVerified(item) && (
+                        <StatusBadge tone={purchaseTone[item.purchase]}>
+                          {purchaseStatusLabel[item.purchase]}
+                        </StatusBadge>
+                      )}
+                    </div>
+                  </button>
+                  <Link
+                    to="/projects/$id/documents/$docId"
+                    params={{ id: projectId, docId: item.documentId }}
+                    search={{ position: item.id }}
+                    className="grid size-11 shrink-0 place-items-center self-center rounded-[var(--r-sm)] text-info"
+                    aria-label={`Лист ${item.sheetNumber}`}
+                  >
+                    <FileText className="size-4" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+      {grouped.reduce((acc, [, items]) => acc + items.length, 0) > limit && (
+        <div className="p-3">
+          <Button variant="secondary" className="w-full" onClick={() => setLimit((l) => l + 60)}>
+            Показать ещё
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

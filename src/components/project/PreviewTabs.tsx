@@ -474,7 +474,7 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
       <Block
         title="Запросы поставщикам"
         count={`активных ${overview.activeRequests} · просрочено ${overview.overdueRequests}`}
-        to="/requests"
+        to={`/projects/${projectId}/procurement`}
         onLinkClick={scope}
       >
         {requests.length === 0 ? (
@@ -525,7 +525,7 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
       <Block
         title="Поставки"
         count={`в пути ${overview.inTransit} поз.`}
-        to="/requests"
+        to={`/projects/${projectId}/procurement`}
         onLinkClick={scope}
       >
         {deliveries.length === 0 ? (
@@ -666,7 +666,12 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <Block title="Ждут решения" count={pending.length} to="/audit" onLinkClick={scope}>
+      <Block
+        title="Ждут решения"
+        count={pending.length}
+        to={`/projects/${projectId}/timeline`}
+        onLinkClick={scope}
+      >
         {pending.length === 0 ? (
           <BlockEmpty>Открытых вопросов нет</BlockEmpty>
         ) : (
@@ -693,7 +698,12 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
         )}
       </Block>
 
-      <Block title="Принятые решения" count={decisions.length} to="/audit" onLinkClick={scope}>
+      <Block
+        title="Принятые решения"
+        count={decisions.length}
+        to={`/projects/${projectId}/timeline`}
+        onLinkClick={scope}
+      >
         {decisions.length === 0 ? (
           <BlockEmpty>Решений по объекту пока нет</BlockEmpty>
         ) : (
@@ -745,7 +755,12 @@ export function HistoryPreview({ projectId, scope, onSource }: Props) {
   const log = historyOf(projectId);
 
   return (
-    <Block title="Журнал действий" count={log.length} to="/audit" onLinkClick={scope}>
+    <Block
+      title="Журнал действий"
+      count={log.length}
+      to={`/projects/${projectId}/timeline`}
+      onLinkClick={scope}
+    >
       {log.length === 0 ? (
         <BlockEmpty>Записей в журнале нет</BlockEmpty>
       ) : (

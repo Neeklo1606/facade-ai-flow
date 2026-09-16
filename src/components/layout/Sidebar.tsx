@@ -14,6 +14,10 @@ const CRITICAL_BADGES: BadgeKey[] = ["overdueRequests"];
 const projectScoped: Record<string, string> = {
   "/documents": "documents",
   "/materials": "materials",
+  "/requests": "procurement",
+  "/suppliers": "procurement?view=suppliers",
+  "/field-reports": "field-reports",
+  "/audit": "timeline",
 };
 
 function badgeCounts(
@@ -68,6 +72,7 @@ function SidebarInner({
 }) {
   const { siteId, setSiteId, theme, toggleTheme, user, setCommandOpen } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const view = useRouterState({ select: (s) => String((s.location.search as Record<string, unknown>)["view"] ?? "") });
   const projectId = useProjectId();
   const overviews = useOverviews(projects.map((p) => p.id));
   const counts = badgeCounts(projectId, overviews);
@@ -75,7 +80,7 @@ function SidebarInner({
   /** Смена объекта на экране объекта открывает тот же раздел у выбранного объекта. */
   const changeProject = (value: string) => {
     setSiteId(value);
-    const match = pathname.match(/^\/projects\/[^/]+(\/(documents|materials))?/);
+    const match = pathname.match(/^\/projects\/[^/]+(\/(documents|materials|procurement|field-reports|timeline))?/);
     if (!match) return;
     if (value === ALL_SITES) {
       navigate({ to: "/projects" });
@@ -84,13 +89,27 @@ function SidebarInner({
     const id = value.replace(/^s-/, "p-");
     navigate({ to: `/projects/${id}${match[1] ?? ""}` });
   };
-  const hrefOf = (to: string) => (projectId && projectScoped[to] ? `/projects/${projectId}/${projectScoped[to]}` : to);
+  const hrefOf = (to: string) => {
+    const scoped = projectId ? projectScoped[to] : undefined;
+    if (!scoped) return { to, search: undefined };
+    const [section, query] = scoped.split("?");
+    return {
+      to: `/projects/${projectId}/${section}`,
+      search: query ? Object.fromEntries(new URLSearchParams(query)) : undefined,
+    };
+  };
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
 
   const isItemActive = (to: string) => {
     if (to === "/") return pathname === "/";
-    const section = projectScoped[to];
-    if (section && new RegExp(`^/projects/[^/]+/${section}`).test(pathname)) return true;
+    const section = projectScoped[to]?.split("?")[0];
+    const inProject = pathname.match(/^\/projects\/[^/]+\/([^/?]+)/)?.[1];
+    if (section && inProject) {
+      if (section !== inProject) return false;
+      // Запросы и поставщики — один экран: подсвечиваем пункт по выбранному виду
+      if (section === "procurement") return (to === "/suppliers") === (view === "suppliers");
+      return true;
+    }
     if (to === "/projects") return pathname === "/projects" || /^\/projects\/[^/]+\/?$/.test(pathname);
     return pathname.startsWith(to);
   };
@@ -181,7 +200,7 @@ function SidebarInner({
                     )
                   }
                   aria-expanded={open}
-                  className="focus-ring flex w-full items-center gap-1.5 rounded-[var(--r-xs)] px-2 py-1.5 text-overline text-[var(--sidebar-section)] transition-fast hover:text-sidebar-item-hover"
+                  className="focus-ring flex min-h-11 w-full items-center gap-1.5 rounded-[var(--r-xs)] px-2 py-1.5 text-overline lg:min-h-0 text-[var(--sidebar-section)] transition-fast hover:text-sidebar-item-hover"
                 >
                   <ChevronRight
                     className={cn("size-3.5 shrink-0 transition-transform duration-150", open && "rotate-90")}
@@ -203,7 +222,8 @@ function SidebarInner({
                     return (
                       <li key={item.to}>
                         <Link
-                          to={hrefOf(item.to)}
+                          to={hrefOf(item.to).to}
+                          search={hrefOf(item.to).search as never}
                           onClick={onClose}
                           title={item.label}
                           className={cn(
@@ -256,7 +276,7 @@ function SidebarInner({
             onClick={toggleTheme}
             aria-label="Переключить тему"
             title={theme === "light" ? "Тёмная тема" : "Светлая тема"}
-            className="focus-ring grid size-9 shrink-0 place-items-center rounded-full text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover [@media(hover:none)]:hover:bg-transparent"
+            className="focus-ring hidden size-9 shrink-0 place-items-center rounded-full text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:grid [@media(hover:none)]:hover:bg-transparent"
           >
             {theme === "light" ? <Moon className="size-4 shrink-0" /> : <Sun className="size-4 shrink-0" />}
           </button>

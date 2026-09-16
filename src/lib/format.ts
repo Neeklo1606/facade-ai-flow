@@ -34,3 +34,28 @@ export function fmtSec(sec: number) {
   const s = sec % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
 }
+
+/** «Сегодня» демо-данных: все сроки и отметки времени в моках отсчитываются от него. */
+export const MOCK_NOW = "2026-09-05T12:00:00";
+
+export function fmtDayTitle(value: string) {
+  const day = value.slice(0, 10);
+  const today = MOCK_NOW.slice(0, 10);
+  const yesterday = format(new Date(parseISO(MOCK_NOW).getTime() - 86_400_000), "yyyy-MM-dd");
+  const label = format(parseISO(day), "d MMMM, EEEE", { locale: ru });
+  if (day === today) return `Сегодня, ${label}`;
+  if (day === yesterday) return `Вчера, ${label}`;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+export function fmtTime(value: string) {
+  return format(parseISO(value), "HH:mm", { locale: ru });
+}
+
+/** «через 3 дня», «просрочено на 2 дня» относительно MOCK_NOW. */
+export function fmtDue(value: string) {
+  const diffHours = (parseISO(value).getTime() - parseISO(MOCK_NOW).getTime()) / 3_600_000;
+  const abs = Math.abs(diffHours);
+  const amount = abs < 24 ? `${Math.max(1, Math.round(abs))} ч` : `${Math.round(abs / 24)} дн.`;
+  return { overdue: diffHours < 0, label: diffHours < 0 ? `просрочено на ${amount}` : `осталось ${amount}` };
+}
