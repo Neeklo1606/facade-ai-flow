@@ -5,9 +5,13 @@
 import type { z } from "zod";
 import * as contracts from "../src/contracts";
 import { tables } from "../src/contracts";
-import { buildSnapshot, fixtureTables, type FixtureSnapshot } from "../src/adapters/fixtures";
+import {
+  buildSnapshot,
+  fixtureTables,
+  FIXTURES_NOW,
+  type FixtureSnapshot,
+} from "../src/adapters/fixtures";
 import { projectOverview } from "../src/domain/overview";
-import { MOCK_NOW } from "../src/lib/format";
 
 const data = fixtureTables as unknown as Record<string, Record<string, unknown>[]>;
 const problems: string[] = [];
@@ -104,7 +108,7 @@ for (const [key, schema] of Object.entries(viewSchemas)) {
 /* ---------- Сводка объекта: формулы глоссария на фикстурах ---------- */
 
 for (const project of snapshot.projects) {
-  const overview = projectOverview(snapshot, project.id, MOCK_NOW);
+  const overview = projectOverview(snapshot, project.id, FIXTURES_NOW);
   const parsed = contracts.projectOverview.safeParse(overview);
   if (!parsed.success) problems.push(`сводка ${project.id}: ${parsed.error.issues[0]!.message}`);
   else if (overview!.specUnverified > overview!.specTotal) {

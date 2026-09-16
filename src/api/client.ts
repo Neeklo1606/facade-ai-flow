@@ -1,4 +1,4 @@
-import { createDemoRepositories, resetDemo } from "@/adapters/demo";
+import { createDemoRepositories, onDemoEvent, resetDemo, type DemoEvent } from "@/adapters/demo";
 import type {
   CorrectPositionInput,
   CreateProjectInput,
@@ -24,7 +24,7 @@ import * as fn from "./functions";
  */
 
 let demo: Repositories | null = null;
-const local = () => (demo ??= createDemoRepositories());
+const local = () => (demo ??= createDemoRepositories({ persist: true }));
 const actor = { actorId: CURRENT_USER_ID };
 const server = dataSource === "server";
 
@@ -35,6 +35,15 @@ export const api = {
       if (server) throw new Error("Сброс доступен только в демо-режиме");
       resetDemo();
     },
+    /** События симулятора: ответ поставщика, стадия распознавания, заказ. В рабочем режиме их нет */
+    onEvent: (listener: (event: DemoEvent) => void) => {
+      if (server || typeof window === "undefined") return () => {};
+      local();
+      return onDemoEvent(listener);
+    },
+  },
+  clock: {
+    now: () => (server ? fn.nowFn() : local().clock.now()),
   },
   directory: {
     employees: () => (server ? fn.employeesFn() : local().directory.employees()),

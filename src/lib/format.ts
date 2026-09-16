@@ -43,13 +43,11 @@ export function fmtSec(sec: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-/** «Сегодня» демо-данных: все сроки и отметки времени в моках отсчитываются от него. */
-export const MOCK_NOW = "2026-09-05T12:00:00";
-
-export function fmtDayTitle(value: string) {
+/** Заголовок дня в ленте. `now` — время источника данных (useNow), а не устройства. */
+export function fmtDayTitle(value: string, now: string) {
   const day = value.slice(0, 10);
-  const today = MOCK_NOW.slice(0, 10);
-  const yesterday = format(new Date(parseISO(MOCK_NOW).getTime() - 86_400_000), "yyyy-MM-dd");
+  const today = now.slice(0, 10);
+  const yesterday = format(new Date(parseISO(now).getTime() - 86_400_000), "yyyy-MM-dd");
   const label = format(parseISO(day), "d MMMM, EEEE", { locale: ru });
   if (day === today) return `Сегодня, ${label}`;
   if (day === yesterday) return `Вчера, ${label}`;
@@ -60,9 +58,9 @@ export function fmtTime(value: string) {
   return format(parseISO(value), "HH:mm", { locale: ru });
 }
 
-/** «через 3 дня», «просрочено на 2 дня» относительно MOCK_NOW. */
-export function fmtDue(value: string) {
-  const diffHours = (parseISO(value).getTime() - parseISO(MOCK_NOW).getTime()) / 3_600_000;
+/** «осталось 3 дн.», «просрочено на 2 ч» относительно `now` — времени источника данных (useNow). */
+export function fmtDue(value: string, now: string) {
+  const diffHours = (parseISO(value).getTime() - parseISO(now).getTime()) / 3_600_000;
   const abs = Math.abs(diffHours);
   const amount = abs < 24 ? `${Math.max(1, Math.round(abs))} ч` : `${Math.round(abs / 24)} дн.`;
   return {

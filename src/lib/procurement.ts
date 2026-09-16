@@ -1,7 +1,5 @@
-import { rfqStatusLabel, type RfqStatus, type SupplyRequest } from "@/contracts";
-import { answeredCount, rfqStatus as displayStatus } from "@/domain/procurement";
+import { rfqStatusLabel, type RfqStatus } from "@/contracts";
 export { compareOffers, type CellCalc, type ColumnCalc } from "@/domain/procurement";
-import { decisionForRequest, demoNow, type SpecState } from "@/lib/spec-store";
 
 export type { RfqStatus } from "@/contracts";
 
@@ -23,16 +21,6 @@ export const rfqStatusMeta = Object.fromEntries(
     { label: rfqStatusLabel[status], tone: rfqStatusTone[status] },
   ]),
 ) as Record<RfqStatus, { label: string; tone: Tone }>;
-
-/** Статус запроса на экране — та же функция, что считает «Просрочено» в реестре */
-export function rfqStatus(s: SpecState, request: SupplyRequest) {
-  return displayStatus(
-    request,
-    answeredCount(s.offers, request),
-    Boolean(decisionForRequest(s, request.id)),
-    demoNow(),
-  );
-}
 
 /** Короткое перечисление материалов запроса: «A, B и ещё 10» — для заголовков, где полный список не помещается. */
 export function itemsSummary(

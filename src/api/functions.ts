@@ -12,6 +12,7 @@ import {
   deliveryList,
   documentCard,
   documentListItem,
+  clockNow,
   employeeList,
   handOverInput,
   idInput,
@@ -52,12 +53,18 @@ import { CURRENT_USER_ID } from "./config";
  */
 
 let repositories: Repositories | null = null;
-const repos = () => (repositories ??= createDemoRepositories());
+const repos = () => (repositories ??= createDemoRepositories({ persist: false }));
 const actor = () => ({ actorId: CURRENT_USER_ID });
 
 const projectId = z.object({ projectId: z.string().min(1) });
 const byId = z.object({ id: z.string().min(1) });
 const ok = z.object({ ok: z.literal(true) });
+
+/* ---------- Часы ---------- */
+
+export const nowFn = createServerFn({ method: "GET" }).handler(async () =>
+  clockNow.parse(await repos().clock.now()),
+);
 
 /* ---------- Справочники ---------- */
 

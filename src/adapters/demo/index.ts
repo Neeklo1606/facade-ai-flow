@@ -4,17 +4,9 @@ import {
   type ExtractedPosition,
   type ProjectDocument,
 } from "@/contracts";
-import { currentRevisions, revisionStats, revisionsOf } from "@/domain/overview";
+import { currentRevisions, projectOverview, revisionStats, revisionsOf } from "@/domain/overview";
 import { answeredCount, compareOffers, decisionFor, rfqStatus } from "@/domain/procurement";
 import { timelineOf } from "@/domain/timeline";
-import {
-  demoNow,
-  getSpecState,
-  handedOverAt,
-  overviewOf,
-  specActions,
-  type SpecState,
-} from "@/lib/spec-store";
 import {
   ConflictError,
   NotFoundError,
@@ -23,28 +15,46 @@ import {
   type Repositories,
   type RequestSummary,
 } from "@/ports";
+import * as actions from "./actions";
+import { peek, resetClock, restoreClock } from "./clock";
+import { startSimulator, stopSimulator } from "./simulator";
+import { getState, resetState, restoreState, type DemoState } from "./state";
+import { enableStorage } from "./storage";
+
+export { onDemoEvent, type DemoEvent, type DemoEventArea } from "./state";
 
 /**
- * Демо-адаптер: порты поверх состояния демо в браузере (ADR-004).
- * На этом шаге (P2-1) он читает и меняет хранилище lib/spec-store; в P2-6 состояние,
- * часы и симулятор событий переезжают внутрь адаптера, а хранилище удаляется.
+ * Демо-адаптер (ADR-004): порты поверх состояния демо — снимка фикстур, изменённого действиями
+ * и симулятором событий. В браузере состояние и часы сохраняются во вкладке и переживают
+ * перезагрузку; на сервере адаптер живёт в памяти процесса до появления PostgreSQL (фаза 3).
  */
+
+export interface DemoOptions {
+  /** Сохранять состояние во вкладке и поднимать его после перезагрузки — только в браузере */
+  persist: boolean;
+}
 
 const done = <T>(value: T) => Promise.resolve(value);
 
-function documentItem(s: SpecState, document: ProjectDocument): DocumentListItem {
+function documentItem(s: DemoState, document: ProjectDocument): DocumentListItem {
   const stats = revisionStats(s.positions, document);
-  const upload = s.uploads[document.id];
   return {
     document,
     extracted: stats.total,
     verified: stats.verified,
     loaded: stats.loaded,
-    stage: upload ? upload.stage : null,
+    stage: s.uploads[document.id] ?? null,
   };
 }
 
-function requestSummary(s: SpecState, requestId: string): RequestSummary | null {
+/** Ответ поставщика ещё в пути: симулятор пришлёт его позже */
+function awaitingReply(s: DemoState, requestId: string, supplierId: string) {
+  return s.jobs.some(
+    (job) => job.kind === "reply" && job.requestId === requestId && job.supplierId === supplierId,
+  );
+}
+
+function requestSummary(s: DemoState, requestId: string): RequestSummary | null {
   const request = s.requests.find((item) => item.id === requestId);
   if (!request) return null;
   const decision = decisionFor(s.decisions, request.id);
@@ -57,15 +67,11 @@ function requestSummary(s: SpecState, requestId: string): RequestSummary | null 
     answered: answeredCount(s.offers, request),
     answeredBy,
     awaiting: request.sentTo.filter(
-      (supplierId) =>
-        !answeredBy.includes(supplierId) &&
-        s.pendingReplies.some(
-          (item) => item.requestId === request.id && item.supplierId === supplierId,
-        ),
+      (supplierId) => !answeredBy.includes(supplierId) && awaitingReply(s, request.id, supplierId),
     ),
     bestSupplierId: best?.supplierId ?? null,
     bestTotal: best?.total ?? null,
-    status: rfqStatus(request, answeredCount(s.offers, request), Boolean(decision), demoNow()),
+    status: rfqStatus(request, answeredCount(s.offers, request), Boolean(decision), peek()),
     decisionId: decision?.id ?? null,
   };
 }
@@ -79,10 +85,39 @@ function byAttention(a: ExtractedPosition, b: ExtractedPosition) {
   );
 }
 
-export function createDemoRepositories(): Repositories {
-  const state = getSpecState;
+/** Когда проверенные позиции ревизии переданы в закупку: время последней передачи */
+function handedOverAt(s: DemoState, revisionId: string) {
+  return s.positions
+    .filter((item) => item.documentId === revisionId && item.handedOverAt)
+    .reduce<string | null>(
+      (acc, item) => (!acc || item.handedOverAt! > acc ? item.handedOverAt : acc),
+      null,
+    );
+}
+
+let started = false;
+
+/** Один раз на среду выполнения: поднять сохранение вкладки и продолжить отложенные события */
+function start(options: DemoOptions) {
+  if (started) return;
+  started = true;
+  if (options.persist && typeof window !== "undefined") {
+    enableStorage();
+    restoreClock();
+    restoreState();
+  }
+  startSimulator();
+}
+
+export function createDemoRepositories(options: DemoOptions): Repositories {
+  start(options);
+  const state = getState;
 
   return {
+    clock: {
+      now: () => done(peek()),
+    },
+
     directory: {
       employees: () => done(state().employees),
       counterparties: () => done(state().counterparties),
@@ -92,7 +127,10 @@ export function createDemoRepositories(): Repositories {
       list: () => {
         const s = state();
         return done(
-          s.projects.map((project) => ({ project, overview: overviewOf(s, project.id)! })),
+          s.projects.map((project) => ({
+            project,
+            overview: projectOverview(s, project.id, peek())!,
+          })),
         );
       },
       card: (projectId) => {
@@ -101,7 +139,7 @@ export function createDemoRepositories(): Repositories {
         if (!project) return done(null);
         return done({
           project,
-          overview: overviewOf(s, projectId)!,
+          overview: projectOverview(s, projectId, peek())!,
           contract: s.contracts.find((item) => item.projectId === projectId) ?? null,
           milestones: s.milestones
             .filter((item) => item.projectId === projectId)
@@ -115,17 +153,7 @@ export function createDemoRepositories(): Repositories {
         if (state().projects.some((item) => item.code === input.code)) {
           return Promise.reject(new ConflictError(`Объект с кодом ${input.code} уже есть`));
         }
-        const id = specActions.createProject({
-          name: input.name,
-          code: input.code,
-          region: input.region,
-          customer: input.customer,
-          contract: input.contractNumber,
-          startDate: input.startDate,
-          endDate: input.endDate,
-          manager: input.managerId,
-        });
-        return done(state().projects.find((item) => item.id === id)!);
+        return done(actions.createProject(input));
       },
     },
 
@@ -148,16 +176,10 @@ export function createDemoRepositories(): Repositories {
             .filter((sheet) => sheet.documentId === revisionId)
             .sort((a, b) => a.number - b.number),
           handedOverAt: handedOverAt(s, revisionId),
-          stage: s.uploads[revisionId]?.stage ?? null,
+          stage: s.uploads[revisionId] ?? null,
         });
       },
-      upload: (input) => {
-        const id = specActions.upload(input.projectId, {
-          name: input.fileName,
-          size: input.sizeKb * 1024,
-        });
-        return done(state().documents.find((item) => item.id === id)!);
-      },
+      upload: (input, { actorId }) => done(actions.upload(input, actorId)),
       changes: ({ projectId, status }) => {
         const s = state();
         const documentIds = new Set(
@@ -186,9 +208,8 @@ export function createDemoRepositories(): Repositories {
         }
         const offset = Number(input.cursor ?? 0);
         const limit = input.limit ?? 100;
-        const page = items.slice(offset, offset + limit);
         return done({
-          items: page,
+          items: items.slice(offset, offset + limit),
           nextCursor: offset + limit < items.length ? String(offset + limit) : null,
           total: items.length,
         });
@@ -199,24 +220,18 @@ export function createDemoRepositories(): Repositories {
             .changes.filter((item) => item.positionId === positionId)
             .sort((a, b) => b.at.localeCompare(a.at)),
         ),
-      confirm: ({ ids }) => done(specActions.confirm(ids)),
-      correct: ({ id, ...patch }) => done(specActions.correct(id, patch)),
-      exclude: ({ id }) => done(specActions.exclude(id)),
-      markHeader: ({ id }) => done(specActions.markHeader(id)),
-      reopen: ({ id }) => done(specActions.reopen(id)),
-      restoreReview: ({ items }) => {
-        const current = new Map(state().positions.map((item) => [item.id, item]));
-        specActions.restore(
-          items.flatMap((item) => {
-            const position = current.get(item.id);
-            return position ? [{ ...position, ...item }] : [];
-          }),
-        );
-        return done(undefined);
-      },
-      merge: ({ sourceId, targetId }) => done(specActions.merge(sourceId, targetId)),
-      split: ({ id, firstQty }) => done(specActions.split(id, firstQty)),
-      handOver: ({ revisionId }) => done(specActions.sendToProcurement(revisionId)),
+      confirm: ({ ids }, { actorId }) => done(actions.confirm(ids, actorId)),
+      correct: (input, { actorId }) => done(actions.correct(input, actorId)),
+      exclude: ({ id }, { actorId }) =>
+        done(actions.setReview(id, "excluded", "Исключено из спецификации", actorId)),
+      markHeader: ({ id }, { actorId }) =>
+        done(actions.setReview(id, "header", "Отмечено как заголовок раздела", actorId)),
+      reopen: ({ id }, { actorId }) => done(actions.reopen(id, actorId)),
+      restoreReview: ({ items }) => done(actions.restoreReview(items)),
+      merge: ({ sourceId, targetId }, { actorId }) =>
+        done(actions.merge(sourceId, targetId, actorId)),
+      split: ({ id, firstQty }, { actorId }) => done(actions.split(id, firstQty, actorId)),
+      handOver: ({ revisionId }, { actorId }) => done(actions.handOver(revisionId, actorId)),
       materials: () => done(state().materials),
       replacements: () => done(state().replacements),
     },
@@ -231,7 +246,7 @@ export function createDemoRepositories(): Repositories {
           }),
         );
       },
-      verifyContact: ({ supplierId }) => done(specActions.verifyContact(supplierId)),
+      verifyContact: ({ supplierId }) => done(actions.verifyContact(supplierId)),
       templates: () => done(state().templates),
       requests: (projectId) => {
         const s = state();
@@ -252,47 +267,29 @@ export function createDemoRepositories(): Repositories {
           summary,
           recipients: summary.request.sentTo.map((supplierId) => ({
             supplierId,
-            remindedAt: s.pendingReplies.some(
-              (item) => item.requestId === requestId && item.supplierId === supplierId,
-            )
-              ? demoNow()
-              : null,
+            remindedAt: awaitingReply(s, requestId, supplierId) ? peek() : null,
           })),
           offers,
           lines: s.offerLines.filter((item) => offerIds.has(item.offerId)),
           decision: decisionFor(s.decisions, requestId),
         });
       },
-      createRequest: (input) => {
-        const result = specActions.createRequest(
-          input.projectId,
-          input.positionIds,
-          input.supplierIds,
-          {
-            ...(input.templateId ? { templateId: input.templateId } : {}),
-            replyDueAt: input.replyDueAt,
-          },
-        );
+      createRequest: (input, { actorId }) => {
+        const result = actions.createRequest(input, actorId);
         if (!result) return Promise.reject(new ConflictError("Нет позиций, готовых к запросу"));
-        return done({ request: result.request, positions: result.count });
+        return done(result);
       },
       remind: ({ requestId }) => {
-        const s = state();
-        const request = s.requests.find((item) => item.id === requestId);
-        if (!request) return Promise.reject(new NotFoundError("Запрос", requestId));
-        const silent = request.sentTo.filter(
-          (supplierId) =>
-            !s.offers.some((o) => o.requestId === requestId && o.supplierId === supplierId) &&
-            !s.pendingReplies.some((p) => p.requestId === requestId && p.supplierId === supplierId),
-        );
-        specActions.remindSuppliers(requestId);
-        return done({ reminded: silent });
+        if (!state().requests.some((item) => item.id === requestId)) {
+          return Promise.reject(new NotFoundError("Запрос", requestId));
+        }
+        return done({ reminded: actions.remind(requestId) });
       },
       recordDecision: (input) => {
         if (input.requestId && decisionFor(state().decisions, input.requestId)) {
           return Promise.reject(new ConflictError("Решение по запросу уже зафиксировано"));
         }
-        return done(specActions.recordDecision(input));
+        return done(actions.recordDecision(input));
       },
       deliveries: (projectId) =>
         done(
@@ -317,8 +314,7 @@ export function createDemoRepositories(): Repositories {
             })),
         );
       },
-      review: ({ id, status, acceptedQty }) =>
-        done(specActions.reviewReport(id, status, acceptedQty)),
+      review: (input) => done(actions.reviewReport(input)),
       source: (sourceId) => {
         const s = state();
         const source = s.sources.find((item) => item.id === sourceId);
@@ -370,7 +366,9 @@ export function createDemoRepositories(): Repositories {
   };
 }
 
-/** Сброс демо: стартовые данные, часы и сохранение вкладки */
+/** Сброс демо: остановить симулятор, вернуть стартовые данные, часы и очистить сохранение */
 export function resetDemo() {
-  specActions.resetDemo();
+  stopSimulator();
+  resetClock();
+  resetState();
 }

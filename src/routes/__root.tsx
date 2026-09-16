@@ -17,6 +17,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { prefetch } from "@/api/prefetch";
 import { queries } from "@/api/queries";
+import { useDemoEvents } from "@/api/demo-events";
+import { toast } from "@/lib/toast";
 
 function NotFoundComponent() {
   return (
@@ -64,9 +66,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  // Справочники подписывают имена почти на каждом экране: без них SSR отдал бы «—» вместо имён
+  // Часы и справочники нужны почти каждому экрану: без них SSR отдал бы «—» вместо имён и сроков
   loader: ({ context }) =>
     Promise.all([
+      prefetch(context.queryClient, queries.now()),
       prefetch(context.queryClient, queries.employees()),
       prefetch(context.queryClient, queries.counterparties()),
       prefetch(context.queryClient, queries.materials()),
@@ -114,6 +117,9 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useDemoEvents(queryClient, (notice) =>
+    toast.success(notice.title, { description: notice.description }),
+  );
 
   return (
     <QueryClientProvider client={queryClient}>

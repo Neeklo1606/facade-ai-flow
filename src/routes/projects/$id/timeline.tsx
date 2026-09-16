@@ -30,6 +30,7 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDateTime, fmtDayTitle, fmtTime } from "@/lib/format";
@@ -118,6 +119,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
     });
   const reset = () => setSearch({ type: undefined, author: undefined });
 
+  const now = useNow();
   const screen = useScreenState({
     pending: timeline.isPending || decisionsQuery.isPending,
     error: timeline.isError || decisionsQuery.isError,
@@ -243,7 +245,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
             {days.map(([day, list]) => (
               <li key={day} className="mb-5 last:mb-0">
                 <h3 className="sticky top-0 z-[1] -mx-4 mb-2 bg-surface/95 px-4 py-1.5 text-[12px] font-semibold text-text-secondary backdrop-blur md:-mx-6 md:px-6">
-                  {fmtDayTitle(day)}
+                  {fmtDayTitle(day, now)}
                 </h3>
                 <ol className="relative">
                   {list.map((event, index) => {

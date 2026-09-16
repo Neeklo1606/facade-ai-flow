@@ -17,6 +17,8 @@ import type { ListPositionsInput } from "@/ports";
  * | новый объект                       | projects, directory                                     |
  */
 export const keys = {
+  /** Время источника данных: сроки на экранах считаются от него */
+  clock: () => ["clock"] as const,
   directory: {
     employees: () => ["directory", "employees"] as const,
     counterparties: () => ["directory", "counterparties"] as const,

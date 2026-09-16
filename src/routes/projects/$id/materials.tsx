@@ -18,7 +18,11 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterSelect } from "@/components/common/FilterSelect";
-import { isActive, isReadyForRequest, isVerified } from "@/lib/spec-store";
+import {
+  isActivePosition as isActive,
+  isReadyForRequest,
+  isVerifiedPosition as isVerified,
+} from "@/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";

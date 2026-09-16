@@ -9,6 +9,15 @@ import { keys } from "./keys";
 const reference = { staleTime: 5 * 60_000 } as const;
 
 export const queries = {
+  /** Часы идут: «осталось 3 ч» пересчитывается раз в минуту */
+  now: () =>
+    queryOptions({
+      queryKey: keys.clock(),
+      queryFn: api.clock.now,
+      staleTime: 30_000,
+      refetchInterval: 60_000,
+    }),
+
   employees: () =>
     queryOptions({
       queryKey: keys.directory.employees(),

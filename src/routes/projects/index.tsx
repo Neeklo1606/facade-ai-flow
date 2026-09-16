@@ -29,10 +29,10 @@ import {
 } from "@/components/ui/dialog";
 import { useApp } from "@/lib/app-context";
 import { sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
-import { MOCK_NOW } from "@/lib/format";
 import { attentionBar, attentionOf, projectStatusMeta } from "@/lib/project-meta";
 import { exportXlsx } from "@/lib/export-xlsx";
 import { useQuery } from "@tanstack/react-query";
+import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { prefetch } from "@/api/prefetch";
 import { fmtNum } from "@/lib/format";
@@ -632,7 +632,7 @@ function CreateProjectDialog({
   const createProject = useCreateProject();
   const managersList = employees.filter((item) => item.role === "manager");
   const [manager, setManager] = useState(managersList[0]?.id ?? "");
-  const today = MOCK_NOW.slice(0, 10);
+  const today = useNow().slice(0, 10);
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(`${Number(today.slice(0, 4)) + 1}${today.slice(4)}`);
   const datesInvalid = !start || !end || end < start;

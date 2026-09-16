@@ -28,6 +28,7 @@ import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
+import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDayTitle, fmtNum, fmtTime } from "@/lib/format";
@@ -119,6 +120,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
       resetScroll: false,
     });
 
+  const now = useNow();
   const screen = useScreenState({
     pending: reportsQuery.isPending,
     error: reportsQuery.isError,
@@ -232,7 +234,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
           {days.map(([day, list]) => (
             <li key={day}>
               <h2 className="mb-2 text-[12px] font-semibold text-text-secondary">
-                {fmtDayTitle(day)}
+                {fmtDayTitle(day, now)}
               </h2>
               <ol className="space-y-3">
                 {list.map((report) => (

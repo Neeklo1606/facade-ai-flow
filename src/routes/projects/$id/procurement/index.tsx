@@ -17,6 +17,7 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
@@ -398,6 +399,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
 function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: string }) {
   const { counterpartyById } = useDirectory();
   const navigate = useNavigate();
+  const now = useNow();
   const open = (row: RequestRow) =>
     navigate({
       to: "/projects/$id/procurement/$rfqId",
@@ -422,7 +424,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
           </thead>
           <tbody>
             {rows.map((row) => {
-              const due = row.due ? fmtDue(row.due) : null;
+              const due = row.due ? fmtDue(row.due, now) : null;
               const meta = rfqStatusMeta[row.status];
               return (
                 <tr
@@ -499,7 +501,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
 
       <ul className="divide-y divide-border lg:hidden">
         {rows.map((row) => {
-          const due = row.due ? fmtDue(row.due) : null;
+          const due = row.due ? fmtDue(row.due, now) : null;
           const meta = rfqStatusMeta[row.status];
           return (
             <li key={row.request.id}>

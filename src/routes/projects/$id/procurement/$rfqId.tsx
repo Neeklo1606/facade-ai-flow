@@ -15,6 +15,7 @@ import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import {
   compareOffers,
@@ -84,6 +85,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const status = card?.summary.status ?? null;
   const silent = calc ? calc.columns.filter((c) => !c.offerId) : [];
 
+  const now = useNow();
   const screen = useScreenState({
     pending: cardQuery.isPending,
     error: cardQuery.isError,
@@ -113,7 +115,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     screen === "forbidden" ||
     screen === "empty" ||
     calc.answered === 0;
-  const due = meta ? fmtDue(meta.replyDueAt) : null;
+  const due = meta ? fmtDue(meta.replyDueAt, now) : null;
 
   function save(input: DecisionInput) {
     if (!request || !calc) return;

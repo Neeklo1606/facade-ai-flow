@@ -15,8 +15,9 @@ import {
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
 import { isReadyForRequest } from "@/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
-import { MOCK_NOW, fmtDate, fmtNum } from "@/lib/format";
+import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type Project, type SupplierProfile } from "@/contracts";
@@ -71,8 +72,9 @@ export function CreateRfqDialog({
   const [templateId, setTemplateId] = useState<string>(emailTemplates[0]?.id ?? "");
   const [subject, setSubject] = useState<string>(emailTemplates[0]?.subject ?? "");
   const [body, setBody] = useState<string>(emailTemplates[0]?.body ?? "");
+  const now = useNow();
   const [dueDate, setDueDate] = useState(() =>
-    new Date(new Date(MOCK_NOW).getTime() + 3 * 86_400_000).toISOString().slice(0, 10),
+    new Date(new Date(now).getTime() + 3 * 86_400_000).toISOString().slice(0, 10),
   );
   const [previewFor, setPreviewFor] = useState<string | null>(null);
 

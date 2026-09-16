@@ -8,7 +8,6 @@ import {
 import { wasPrefetched } from "@/api/prefetch";
 import { createRouter } from "@tanstack/react-router";
 import { dataSource } from "@/api/config";
-import { onDemoEvent } from "@/lib/spec-store";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -23,14 +22,6 @@ export const getRouter = () => {
       mutations: { networkMode: dataSource === "demo" ? "always" : "online" },
     },
   });
-
-  // Демо: события симулятора (ответы поставщиков, стадии распознавания) меняют данные без действия
-  // пользователя — обновляем только затронутые области
-  if (dataSource === "demo" && typeof window !== "undefined") {
-    onDemoEvent((areas) => {
-      areas.forEach((area) => void queryClient.invalidateQueries({ queryKey: [area] }));
-    });
-  }
 
   const router = createRouter({
     routeTree,

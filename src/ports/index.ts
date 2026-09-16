@@ -1,3 +1,4 @@
+import type { ClockPort } from "./clock";
 import type { DirectoryPort } from "./directory";
 import type { DocumentsPort } from "./documents";
 import type { PositionsPort } from "./positions";
@@ -6,6 +7,7 @@ import type { ProjectsPort } from "./projects";
 import type { ReportsPort } from "./reports";
 import type { TimelinePort } from "./timeline";
 
+export * from "./clock";
 export * from "./common";
 export * from "./directory";
 export * from "./documents";
@@ -17,6 +19,7 @@ export * from "./timeline";
 
 /** Все порты приложения. Адаптер (фикстуры или БД) реализует этот набор целиком. */
 export interface Repositories {
+  clock: ClockPort;
   directory: DirectoryPort;
   projects: ProjectsPort;
   documents: DocumentsPort;
