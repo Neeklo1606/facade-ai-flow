@@ -5,8 +5,14 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
+const serverOnly = {
+  name: "server-only",
+  message:
+    "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
+};
+
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  { ignores: ["dist", ".output", ".vinxi", ".wrangler"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -20,20 +26,36 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      "no-restricted-imports": ["error", { paths: [serverOnly] }],
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+  {
+    // ADR-001, п. 5: экраны и компоненты получают данные через слой данных, а не из фикстур и адаптеров
+    files: ["src/components/**/*.{ts,tsx}", "src/routes/**/*.{ts,tsx}"],
+    rules: {
       "no-restricted-imports": [
         "error",
         {
-          paths: [
+          paths: [serverOnly],
+          patterns: [
             {
-              name: "server-only",
+              group: ["@/mock", "@/mock/*", "**/mock/*"],
               message:
-                "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
+                "Демо-данные не импортируются в экраны: данные приходят из слоя данных (ADR-001).",
+            },
+            {
+              group: ["@/adapters", "@/adapters/*", "**/adapters/*"],
+              message: "Адаптеры доступны только слою данных и серверным функциям (ADR-001).",
+            },
+            {
+              group: ["@/ports", "@/ports/*"],
+              message: "Порты вызываются из серверных функций, а не из интерфейса (ADR-001).",
             },
           ],
         },
       ],
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": "off",
     },
   },
   eslintPluginPrettier,
