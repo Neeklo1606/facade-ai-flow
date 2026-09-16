@@ -18,8 +18,21 @@ function Sparkline({ data, stroke }: { data: number[]; stroke: string }) {
     })
     .join(" ");
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className="shrink-0 overflow-visible">
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      aria-hidden
+      className="shrink-0 overflow-visible"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -60,9 +73,16 @@ export function MetricTile({
   onClick?: () => void;
 }) {
   const dTone = deltaTone(delta, polarity);
-  const lineColor = dTone === "good" ? "var(--ok)" : dTone === "bad" ? "var(--danger)" : "var(--text-muted)";
+  const lineColor =
+    dTone === "good" ? "var(--ok)" : dTone === "bad" ? "var(--danger)" : "var(--text-muted)";
   const valueTone =
-    tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : tone === "ok" ? "text-ok" : "text-text-primary";
+    tone === "danger"
+      ? "text-danger"
+      : tone === "warn"
+        ? "text-warn"
+        : tone === "ok"
+          ? "text-ok"
+          : "text-text-primary";
   const stripe = tone === "danger" ? "bg-danger" : tone === "warn" ? "bg-warn" : "bg-accent";
 
   return (
@@ -77,7 +97,9 @@ export function MetricTile({
         active && "border-border-strong shadow-[var(--shadow-sm)]",
       )}
     >
-      {variant === "accent" && <span className={cn("absolute inset-y-0 left-0 w-[3px]", stripe)} aria-hidden />}
+      {variant === "accent" && (
+        <span className={cn("absolute inset-y-0 left-0 w-[3px]", stripe)} aria-hidden />
+      )}
       <div className="flex items-start justify-between gap-3">
         <span className="truncate text-caption text-text-secondary" title={label}>
           {label}
@@ -98,7 +120,11 @@ export function MetricTile({
           </span>
           {unit && <span className="text-[13px] text-text-secondary">{unit}</span>}
         </span>
-        {trend && trend.length > 1 && <span className="hidden sm:block"><Sparkline data={trend} stroke={lineColor} /></span>}
+        {trend && trend.length > 1 && (
+          <span className="hidden sm:block">
+            <Sparkline data={trend} stroke={lineColor} />
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5 text-caption">
@@ -108,7 +134,8 @@ export function MetricTile({
             dTone === "good" ? "text-ok" : dTone === "bad" ? "text-danger" : "text-text-muted",
           )}
         >
-          {delta === 0 ? "→" : delta > 0 ? "↑" : "↓"} {deltaText ?? `${delta > 0 ? "+" : ""}${delta}`}
+          {delta === 0 ? "→" : delta > 0 ? "↑" : "↓"}{" "}
+          {deltaText ?? `${delta > 0 ? "+" : ""}${delta}`}
         </span>
         <span className="text-text-muted">{periodLabel}</span>
       </div>

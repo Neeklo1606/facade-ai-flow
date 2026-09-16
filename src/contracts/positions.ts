@@ -241,7 +241,7 @@ export const positionReviewLabel: Record<PositionReview, string> = {
   corrected: "Исправлено",
   excluded: "Исключено",
   merged: "Объединено",
-  header: "Заголовок",
+  header: "Заголовок раздела",
 };
 
 export const purchaseStatusLabel: Record<PurchaseStatus, string> = {

@@ -42,7 +42,8 @@ export function EmptyState({
   }[variant];
 
   const label =
-    actionLabel ?? (variant === "filtered" ? "Сбросить фильтры" : variant === "error" ? "Повторить" : undefined);
+    actionLabel ??
+    (variant === "filtered" ? "Сбросить фильтры" : variant === "error" ? "Повторить" : undefined);
 
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -50,9 +51,16 @@ export function EmptyState({
         <Icon className="size-10 text-text-muted" strokeWidth={1.5} />
       </span>
       <h3 className="mt-4 text-[15px] font-medium">{title ?? defaults.title}</h3>
-      <p className="mt-2 max-w-md text-[13px] text-text-secondary">{description ?? defaults.description}</p>
+      <p className="mt-2 max-w-md text-[13px] text-text-secondary">
+        {description ?? defaults.description}
+      </p>
       {label && onAction && (
-        <Button className="mt-4" size="sm" variant={variant === "empty" ? "default" : "secondary"} onClick={onAction}>
+        <Button
+          className="mt-4"
+          size="sm"
+          variant={variant === "empty" ? "default" : "secondary"}
+          onClick={onAction}
+        >
           {label}
         </Button>
       )}

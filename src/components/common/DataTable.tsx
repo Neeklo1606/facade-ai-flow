@@ -50,7 +50,13 @@ export function DataTable<T extends { id: string }>({
                 )}
               >
                 {columns.map((c) => (
-                  <td key={c.key} className={cn("px-4 py-3 align-middle text-text-secondary first:font-medium first:text-text-primary", c.className)}>
+                  <td
+                    key={c.key}
+                    className={cn(
+                      "px-4 py-3 align-middle text-text-secondary first:font-medium first:text-text-primary",
+                      c.className,
+                    )}
+                  >
                     {c.cell(row)}
                   </td>
                 ))}

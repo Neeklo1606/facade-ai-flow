@@ -23,9 +23,11 @@ import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
-  processingStatusLabel as docStatusLabel,
   type DocProcessingStatus,
   type ProjectDocument,
+  processingStages,
+  processingStatusLabel,
+  processingStatusLabel as docStatusLabel,
 } from "@/contracts";
 import { employeeName } from "@/lib/directory";
 
@@ -51,7 +53,7 @@ const fileIcon = { pdf: FileText, docx: FileType2, xlsx: FileSpreadsheet };
 
 const filters: { id: "all" | DocProcessingStatus; label: string }[] = [
   { id: "all", label: "Все" },
-  { id: "review", label: "На проверке" },
+  { id: "review", label: processingStatusLabel.review },
   { id: "recognizing", label: "Распознаются" },
   { id: "verified", label: "Проверенные" },
 ];
@@ -347,14 +349,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                                 className="pulse-dot size-1.5 rounded-full bg-info"
                                 aria-hidden
                               />
-                              {
-                                [
-                                  "Загружен",
-                                  "Распознан текст",
-                                  "Найдены таблицы",
-                                  "Извлечены позиции",
-                                ][live.stage]
-                              }
+                              {processingStages[live.stage]}
                             </span>
                           ) : (
                             <StatusBadge tone={docStatusTone[doc.status]}>

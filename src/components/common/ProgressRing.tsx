@@ -63,10 +63,20 @@ export function ProgressRing({
 
   return (
     <div
-      className={cn("relative inline-flex items-center justify-center", above && "ring-glow", className)}
+      className={cn(
+        "relative inline-flex items-center justify-center",
+        above && "ring-glow",
+        className,
+      )}
       style={{ width: size, height: size }}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="-rotate-90"
+        aria-hidden
+      >
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -92,7 +102,9 @@ export function ProgressRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center leading-none">
-        <span className="mono text-[20px] font-semibold tabular-nums text-text-primary">{value}</span>
+        <span className="mono text-[20px] font-semibold tabular-nums text-text-primary">
+          {value}
+        </span>
         {label && <span className="mt-0.5 text-micro text-text-muted">{label}</span>}
       </div>
     </div>

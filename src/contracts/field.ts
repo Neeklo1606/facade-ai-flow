@@ -190,5 +190,5 @@ export const reportStatusLabel: Record<FieldReport["status"], string> = {
 export const reportKindLabel: Record<FieldReport["kind"], string> = {
   voice: "Голос",
   text: "Текст",
-  photo: "Фото",
+  photo: "Только фото",
 };

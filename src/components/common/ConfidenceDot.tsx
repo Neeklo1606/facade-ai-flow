@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { confidenceLevel } from "./ConfidenceIndicator";
+import { confidenceLevel, confidenceLevelLabel } from "./ConfidenceIndicator";
 
 const dotClass: Record<"high" | "mid" | "low", string> = {
   high: "bg-conf-high",
@@ -8,11 +8,7 @@ const dotClass: Record<"high" | "mid" | "low", string> = {
   low: "bg-conf-low",
 };
 
-const wordLabel: Record<"high" | "mid" | "low", string> = {
-  high: "Проверено",
-  mid: "Требует внимания",
-  low: "Не удалось определить",
-};
+const wordLabel = confidenceLevelLabel;
 
 /**
  * Компактная точка уверенности рядом с извлечённым полем.
@@ -26,11 +22,16 @@ export function ConfidenceDot({ value, className }: { value: number; className?:
         <span
           role="img"
           aria-label={`Уверенность: ${wordLabel[level]}`}
-          className={cn("inline-block size-2 shrink-0 cursor-help rounded-full align-middle", dotClass[level], className)}
+          className={cn(
+            "inline-block size-2 shrink-0 cursor-help rounded-full align-middle",
+            dotClass[level],
+            className,
+          )}
         />
       </TooltipTrigger>
       <TooltipContent>
-        {wordLabel[level]} · уверенность <span className="tnum font-medium">{Math.round(value * 100)}%</span>
+        {wordLabel[level]} · уверенность{" "}
+        <span className="tnum font-medium">{Math.round(value * 100)}%</span>
       </TooltipContent>
     </Tooltip>
   );

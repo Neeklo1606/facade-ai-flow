@@ -50,14 +50,19 @@ export function ExplainPopover({
                 <FileText className="mt-0.5 size-3.5 shrink-0 text-text-muted" strokeWidth={1.5} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px]">{s.label}</span>
-                  {s.hint && <span className="block truncate text-caption text-text-muted">{s.hint}</span>}
+                  {s.hint && (
+                    <span className="block truncate text-caption text-text-muted">{s.hint}</span>
+                  )}
                 </span>
               </button>
             </li>
           ))}
         </ul>
         <div className="border-t border-border px-4 py-2.5">
-          <button type="button" className="focus-ring inline-flex items-center gap-1 text-caption text-info hover:underline">
+          <button
+            type="button"
+            className="focus-ring inline-flex items-center gap-1 text-caption text-info hover:underline"
+          >
             Открыть полный разбор <ArrowUpRight className="size-3.5" />
           </button>
         </div>

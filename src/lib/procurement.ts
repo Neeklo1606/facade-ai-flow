@@ -1,4 +1,10 @@
-import type { OfferLine, SupplierOffer, SupplyRequest } from "@/contracts";
+import {
+  rfqStatusLabel,
+  type OfferLine,
+  type RfqStatus,
+  type SupplierOffer,
+  type SupplyRequest,
+} from "@/contracts";
 import { answeredCount, rfqStatus as displayStatus } from "@/domain/procurement";
 import { decisionForRequest, demoNow, type SpecState } from "@/lib/spec-store";
 
@@ -119,17 +125,24 @@ export function compareOffers(
 
 export type { RfqStatus } from "@/contracts";
 
-export const rfqStatusMeta: Record<
-  import("@/contracts").RfqStatus,
-  { label: string; tone: "ok" | "warn" | "danger" | "info" | "accent" | "neutral" }
-> = {
-  decided: { label: "Решение принято", tone: "ok" },
-  ordered: { label: "Заказано", tone: "ok" },
-  overdue: { label: "Ответы просрочены", tone: "danger" },
-  collecting: { label: "Собираем ответы", tone: "warn" },
-  ready: { label: "Готово к сравнению", tone: "accent" },
-  sent: { label: "Отправлен", tone: "info" },
+type Tone = "ok" | "warn" | "danger" | "info" | "accent" | "neutral";
+
+const rfqStatusTone: Record<RfqStatus, Tone> = {
+  decided: "ok",
+  ordered: "ok",
+  overdue: "danger",
+  collecting: "warn",
+  ready: "accent",
+  sent: "info",
 };
+
+/** Подпись из словаря контрактов, цвет — решение интерфейса */
+export const rfqStatusMeta = Object.fromEntries(
+  (Object.keys(rfqStatusTone) as RfqStatus[]).map((status) => [
+    status,
+    { label: rfqStatusLabel[status], tone: rfqStatusTone[status] },
+  ]),
+) as Record<RfqStatus, { label: string; tone: Tone }>;
 
 /** Статус запроса на экране — та же функция, что считает «Просрочено» в реестре */
 export function rfqStatus(s: SpecState, request: SupplyRequest) {

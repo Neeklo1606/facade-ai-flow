@@ -17,7 +17,10 @@ export function PagePlaceholder({
       <Panel title="Что будет на экране">
         <ul className="grid gap-2 sm:grid-cols-2">
           {planned.map((p) => (
-            <li key={p} className="flex items-start gap-2 rounded-md border border-border bg-subtle px-3 py-2 text-[13px]">
+            <li
+              key={p}
+              className="flex items-start gap-2 rounded-md border border-border bg-subtle px-3 py-2 text-[13px]"
+            >
               <span className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
               <span className="min-w-0">{p}</span>
             </li>

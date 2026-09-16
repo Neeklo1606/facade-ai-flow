@@ -17,7 +17,12 @@ import { SourceRef } from "@/components/common/SourceRef";
 import { fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Bar, Block, BlockEmpty } from "./parts";
-import { timelineTypeLabel, type ProjectOverview, type TimelineEventType } from "@/contracts";
+import {
+  purchaseStatusLabel,
+  timelineTypeLabel,
+  type ProjectOverview,
+  type TimelineEventType,
+} from "@/contracts";
 import { employeeName } from "@/lib/directory";
 import { mainSpecification, revisionStats, revisionsOf } from "@/domain/overview";
 import { timelineOf, useSpecStore } from "@/lib/spec-store";
@@ -281,8 +286,8 @@ function MaterialsBlock({ projectId, overview, scope }: Props) {
     },
     { label: "В запросах", value: overview.inRequests, tone: "accent" as const },
     { label: "Получено предложений", value: overview.offersReceived, tone: "accent" as const },
-    { label: "Заказано", value: overview.ordered, tone: "accent" as const },
-    { label: "Поставлено", value: overview.delivered, tone: "ok" as const },
+    { label: purchaseStatusLabel.ordered, value: overview.ordered, tone: "accent" as const },
+    { label: purchaseStatusLabel.delivered, value: overview.delivered, tone: "ok" as const },
   ];
 
   return (

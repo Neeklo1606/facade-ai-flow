@@ -13,7 +13,14 @@ export interface SourceInfo {
 }
 
 /** Значок происхождения данных: какой агент, когда, из какого источника, с какой уверенностью. */
-export function SourceBadge({ agent, at, source, confidence, onOpen, className }: SourceInfo & { className?: string }) {
+export function SourceBadge({
+  agent,
+  at,
+  source,
+  confidence,
+  onOpen,
+  className,
+}: SourceInfo & { className?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>

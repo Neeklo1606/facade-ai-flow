@@ -17,5 +17,11 @@ export { ExplainPopover } from "./ExplainPopover";
 export { ImpactPreview, type ImpactChange } from "./ImpactPreview";
 export { EmptyState } from "./EmptyState";
 export { ErrorState } from "./ErrorState";
-export { Skeleton, SkeletonLine, MetricTileSkeleton, ListRowSkeleton, TableSkeleton } from "./Skeleton";
+export {
+  Skeleton,
+  SkeletonLine,
+  MetricTileSkeleton,
+  ListRowSkeleton,
+  TableSkeleton,
+} from "./Skeleton";
 export { Panel } from "./Panel";

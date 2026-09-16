@@ -32,7 +32,7 @@ import { useScreenState } from "@/lib/screen-state";
 import { fmtDayTitle, fmtNum, fmtTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { type FieldReport } from "@/contracts";
+import { type FieldReport, reportKindLabel, reportStatusLabel } from "@/contracts";
 import { employeeById } from "@/lib/directory";
 
 type StatusFilter = FieldReport["status"] | "all";
@@ -62,16 +62,23 @@ export const Route = createFileRoute("/projects/$id/field-reports")({
   component: withProject(FieldReportsPage),
 });
 
-const statusMeta: Record<FieldReport["status"], { label: string; tone: Tone }> = {
-  review: { label: "На проверке", tone: "warn" },
-  accepted: { label: "Принят", tone: "ok" },
-  returned: { label: "Возвращён", tone: "danger" },
+const statusTone: Record<FieldReport["status"], Tone> = {
+  review: "warn",
+  accepted: "ok",
+  returned: "danger",
 };
 
+const statusMeta = Object.fromEntries(
+  (Object.keys(statusTone) as FieldReport["status"][]).map((status) => [
+    status,
+    { label: reportStatusLabel[status], tone: statusTone[status] },
+  ]),
+) as Record<FieldReport["status"], { label: string; tone: Tone }>;
+
 const kindMeta = {
-  voice: { label: "Голос", icon: Mic },
-  text: { label: "Текст", icon: FileText },
-  photo: { label: "Только фото", icon: ImageIcon },
+  voice: { label: reportKindLabel.voice, icon: Mic },
+  text: { label: reportKindLabel.text, icon: FileText },
+  photo: { label: reportKindLabel.photo, icon: ImageIcon },
 };
 
 function FieldReportsPage({ project }: ProjectPageProps): React.JSX.Element {

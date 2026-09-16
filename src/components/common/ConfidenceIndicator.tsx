@@ -1,10 +1,12 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { confidenceBand, confidenceBandLabel } from "@/contracts";
 import { cn } from "@/lib/utils";
 
+const levelOfBand = { verified: "high", clarify: "mid", check: "low" } as const;
+
+/** Уровень уверенности для оформления; пороги — confidenceBand из контрактов (глоссарий, §2) */
 export function confidenceLevel(value: number) {
-  if (value >= 0.85) return "high" as const;
-  if (value >= 0.7) return "mid" as const;
-  return "low" as const;
+  return levelOfBand[confidenceBand(value)];
 }
 
 const dot: Record<"high" | "mid" | "low", string> = {
@@ -14,9 +16,9 @@ const dot: Record<"high" | "mid" | "low", string> = {
 };
 
 const label: Record<"high" | "mid" | "low", string> = {
-  high: "Проверено",
-  mid: "Требует внимания",
-  low: "Не удалось определить",
+  high: confidenceBandLabel.verified,
+  mid: confidenceBandLabel.clarify,
+  low: confidenceBandLabel.check,
 };
 
 const textTone: Record<"high" | "mid" | "low", string> = {
@@ -34,7 +36,10 @@ export { label as confidenceLevelLabel };
 export function ConfidenceLabel({ value, className }: { value: number; className?: string }) {
   const level = confidenceLevel(value);
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-caption", className)} title={`Уверенность ${Math.round(value * 100)}%`}>
+    <span
+      className={cn("inline-flex items-center gap-1.5 text-caption", className)}
+      title={`Уверенность ${Math.round(value * 100)}%`}
+    >
       <span className={cn("size-2 shrink-0 rounded-full", dot[level])} aria-hidden />
       <span className={cn("font-medium", textTone[level])}>{label[level]}</span>
     </span>
@@ -55,7 +60,9 @@ export function ConfidenceIndicator({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={cn("inline-flex cursor-help items-center gap-1.5 text-caption", className)}>
+        <span
+          className={cn("inline-flex cursor-help items-center gap-1.5 text-caption", className)}
+        >
           <span className={cn("size-2 shrink-0 rounded-full", dot[level])} aria-hidden />
           <span className={cn("font-medium", textTone[level])}>{label[level]}</span>
           {showValue && <span className="tnum text-text-muted">{value.toFixed(2)}</span>}

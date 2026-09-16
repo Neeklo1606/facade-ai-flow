@@ -1,5 +1,7 @@
 import type { Tone } from "@/components/common/StatusBadge";
 import {
+  positionReviewLabel,
+  projectStatusLabel,
   type DocProcessingStatus,
   type ExtractedPosition,
   type ProjectOverview,
@@ -7,12 +9,20 @@ import {
   type PurchaseStatus,
 } from "@/contracts";
 
-export const projectStatusMeta: Record<ProjectStatus, { label: string; tone: Tone }> = {
-  active: { label: "В работе", tone: "ok" },
-  at_risk: { label: "Под риском", tone: "danger" },
-  paused: { label: "Приостановлен", tone: "warn" },
-  done: { label: "Завершён", tone: "neutral" },
+const projectStatusTone: Record<ProjectStatus, Tone> = {
+  active: "ok",
+  at_risk: "danger",
+  paused: "warn",
+  done: "neutral",
 };
+
+/** Подпись из словаря контрактов, цвет — решение интерфейса */
+export const projectStatusMeta = Object.fromEntries(
+  (Object.keys(projectStatusTone) as ProjectStatus[]).map((status) => [
+    status,
+    { label: projectStatusLabel[status], tone: projectStatusTone[status] },
+  ]),
+) as Record<ProjectStatus, { label: string; tone: Tone }>;
 
 export type Attention = "critical" | "warning" | null;
 
@@ -55,20 +65,16 @@ export function stageOfStatus(status: string) {
   return { uploaded: 0, recognizing: 1, extracted: 3, review: 4, verified: 4 }[status] ?? 0;
 }
 
+const reviewTone: Partial<Record<ExtractedPosition["review"], Tone>> = {
+  confirmed: "ok",
+  corrected: "info",
+  excluded: "neutral",
+  merged: "neutral",
+  header: "neutral",
+};
+
 /** Решение человека по позиции словами; null — позиция ещё не разобрана. */
 export function reviewLabel(item: ExtractedPosition) {
-  switch (item.review) {
-    case "confirmed":
-      return { label: "Подтверждено", tone: "ok" as const };
-    case "corrected":
-      return { label: "Исправлено", tone: "info" as const };
-    case "excluded":
-      return { label: "Исключено", tone: "neutral" as const };
-    case "merged":
-      return { label: "Объединено", tone: "neutral" as const };
-    case "header":
-      return { label: "Заголовок", tone: "neutral" as const };
-    default:
-      return null;
-  }
+  const tone = reviewTone[item.review];
+  return tone ? { label: positionReviewLabel[item.review], tone } : null;
 }

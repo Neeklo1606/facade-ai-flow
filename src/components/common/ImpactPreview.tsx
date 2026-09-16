@@ -26,7 +26,9 @@ export function ImpactPreview({
 }) {
   return (
     <div className={cn("rounded-[var(--r-md)] border border-border bg-subtle", className)}>
-      <p className="border-b border-border px-4 py-2.5 text-caption font-medium text-text-secondary">{title}</p>
+      <p className="border-b border-border px-4 py-2.5 text-caption font-medium text-text-secondary">
+        {title}
+      </p>
       <ul className="divide-y divide-border">
         {changes.map((c) => (
           <li key={c.label} className="px-4 py-3">

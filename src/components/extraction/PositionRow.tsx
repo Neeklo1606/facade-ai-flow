@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ConfidenceLabel, confidenceLevel } from "@/components/common/ConfidenceIndicator";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { type Characteristic, type ExtractedPosition } from "@/contracts";
+import { type Characteristic, type ExtractedPosition, positionReviewLabel } from "@/contracts";
 
 export type RowAction =
   "confirm" | "edit" | "exclude" | "merge" | "split" | "header" | "restore" | "source";
@@ -27,14 +27,12 @@ interface Props {
   onCancelEdit: () => void;
 }
 
-const reviewBadge: Partial<
-  Record<ExtractedPosition["review"], { label: string; className: string }>
-> = {
-  confirmed: { label: "Подтверждено", className: "bg-ok-bg text-ok" },
-  corrected: { label: "Исправлено", className: "bg-info-bg text-info" },
-  excluded: { label: "Исключено", className: "bg-subtle text-text-muted" },
-  merged: { label: "Объединено", className: "bg-subtle text-text-muted" },
-  header: { label: "Заголовок раздела", className: "bg-subtle text-text-secondary" },
+const reviewBadgeClass: Partial<Record<ExtractedPosition["review"], string>> = {
+  confirmed: "bg-ok-bg text-ok",
+  corrected: "bg-info-bg text-info",
+  excluded: "bg-subtle text-text-muted",
+  merged: "bg-subtle text-text-muted",
+  header: "bg-subtle text-text-secondary",
 };
 
 /** Строка извлечённой позиции. Действия видны у активной строки и по наведению. */
@@ -50,7 +48,10 @@ export const PositionRow = memo(function PositionRow({
   onCancelEdit,
 }: Props) {
   const level = confidenceLevel(item.confidence);
-  const badge = reviewBadge[item.review];
+  const badgeClass = reviewBadgeClass[item.review];
+  const badge = badgeClass
+    ? { label: positionReviewLabel[item.review], className: badgeClass }
+    : null;
   const inactive =
     item.review === "excluded" || item.review === "merged" || item.review === "header";
   const pending = item.review === "pending";

@@ -6,7 +6,7 @@ import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { fmtDateTime } from "@/lib/format";
 import { sourceOf, useSpecStore } from "@/lib/spec-store";
-import { type SourceKind } from "@/contracts";
+import { sourceKindLabel, type SourceKind } from "@/contracts";
 import { employeeById } from "@/lib/directory";
 
 const kindIcon: Record<SourceKind, typeof Mail> = {
@@ -17,13 +17,7 @@ const kindIcon: Record<SourceKind, typeof Mail> = {
   manual: PenLine,
 };
 
-export const sourceKindLabel: Record<SourceKind, string> = {
-  telegram: "Сообщение с площадки",
-  email: "Письмо",
-  upload: "Загруженный документ",
-  call: "Звонок",
-  manual: "Введено вручную",
-};
+export { sourceKindLabel } from "@/contracts";
 
 export function sourceKindIcon(kind: SourceKind) {
   return kindIcon[kind];

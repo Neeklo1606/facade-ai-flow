@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 /**
  * Боковая карточка сущности: заголовок, подзаголовок, содержимое и нижняя панель действий.
@@ -31,7 +37,11 @@ export function EntityDrawer({
           {badges && <div className="mt-2 flex flex-wrap items-center gap-2">{badges}</div>}
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">{footer}</div>}
+        {footer && (
+          <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+            {footer}
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

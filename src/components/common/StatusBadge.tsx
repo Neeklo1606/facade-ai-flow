@@ -11,7 +11,15 @@ const tones: Record<Tone, string> = {
   accent: "bg-accent-subtle text-accent",
 };
 
-export function StatusBadge({ tone = "neutral", children, className }: { tone?: Tone; children: React.ReactNode; className?: string }) {
+export function StatusBadge({
+  tone = "neutral",
+  children,
+  className,
+}: {
+  tone?: Tone;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <span
       className={cn(
@@ -24,44 +32,3 @@ export function StatusBadge({ tone = "neutral", children, className }: { tone?: 
     </span>
   );
 }
-
-export const processingStatusMeta: Record<string, { label: string; tone: Tone }> = {
-  received: { label: "Получено", tone: "neutral" },
-  recognizing: { label: "Распознаётся", tone: "info" },
-  extracted: { label: "Извлечено", tone: "info" },
-  review: { label: "На проверке", tone: "warn" },
-  confirmed: { label: "Подтверждено", tone: "ok" },
-  rejected: { label: "Отклонено", tone: "danger" },
-};
-
-export const siteStatusMeta: Record<string, { label: string; tone: Tone }> = {
-  active: { label: "В работе", tone: "ok" },
-  risk: { label: "Риск", tone: "danger" },
-  paused: { label: "Приостановлен", tone: "warn" },
-  done: { label: "Завершён", tone: "neutral" },
-};
-
-export const taskStatusMeta: Record<string, { label: string; tone: Tone }> = {
-  open: { label: "Открыта", tone: "neutral" },
-  in_progress: { label: "В работе", tone: "info" },
-  review: { label: "На проверке", tone: "warn" },
-  done: { label: "Выполнена", tone: "ok" },
-  overdue: { label: "Просрочена", tone: "danger" },
-};
-
-export const eventTypeLabels: Record<string, string> = {
-  field_report: "Отчёт с площадки",
-  supplier_reply: "Ответ поставщика",
-  contract: "Договор",
-  checklist: "Чек-лист",
-  invoice: "Счёт",
-  other: "Прочее",
-};
-
-export const channelLabels: Record<string, string> = {
-  telegram: "Telegram",
-  email: "Почта",
-  upload: "Загрузка",
-  web: "Веб",
-  telephony: "Телефония",
-};

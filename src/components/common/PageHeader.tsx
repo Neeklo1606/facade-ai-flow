@@ -46,7 +46,11 @@ export function PageHeader({
         )}
         {meta && <div className="mt-2 flex flex-wrap items-center gap-2">{meta}</div>}
       </div>
-      {actions && <div className="flex w-full max-w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
+      {actions && (
+        <div className="flex w-full max-w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
