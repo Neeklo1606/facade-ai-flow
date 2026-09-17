@@ -104,6 +104,13 @@ function assertNoMergedSources(positions: ExtractedPosition[], item: ExtractedPo
   }
 }
 
+/** Количество позиции в закупке уже ушло в запросы поставщикам: менять его задним числом нельзя */
+function assertNotInProcurement(item: ExtractedPosition, what: string) {
+  if (inProcurement(item)) {
+    throw new ConflictError(`Поз. ${item.position} уже передана в закупку — ${what} нельзя`);
+  }
+}
+
 export function confirm(ids: string[], actorId: string) {
   const wanted = new Set(ids);
   const targets = getState().positions.filter(
@@ -123,7 +130,10 @@ export function correct({ id, ...patch }: CorrectPositionInput, actorId: string)
   const item = requirePosition(positions, id);
   assertNotMerged(item);
   patch = { ...patch, qty: round3(patch.qty) };
-  if (item.qty !== patch.qty || item.unit !== patch.unit) assertNoMergedSources(positions, item);
+  if (item.qty !== patch.qty || item.unit !== patch.unit) {
+    assertNoMergedSources(positions, item);
+    assertNotInProcurement(item, "менять количество");
+  }
   const changes: PositionChange[] = [];
   const events: ProjectEvent[] = [];
   if (item.qty !== patch.qty || item.unit !== patch.unit) {
@@ -187,6 +197,7 @@ export function setReview(
   const item = requirePosition(positions, id);
   assertNotMerged(item);
   assertNoMergedSources(positions, item);
+  assertNotInProcurement(item, review === "excluded" ? "исключать" : "отмечать заголовком");
   patchPositions(
     new Set([id]),
     (p) => ({ ...p, review, reviewedBy: actorId, reviewedAt: tick() }),
@@ -311,8 +322,9 @@ export function undoReview(items: UndoReviewInput["items"], actorId: string) {
     // Последняя смена решения этой позиции должна быть именно «to → from»
     const last = lastByPositionAndAfter.get(`${id}|${label(from)}`);
     if (!last || last.before !== label(to)) continue;
-    const inProcurement = item.handedOverAt !== null || item.purchase !== "none";
-    if (inProcurement && !isVerifiedPosition({ ...item, review: to })) continue;
+    if (inProcurement(item) && !isVerifiedPosition({ ...item, review: to })) continue;
+    // Недействующим решением нельзя «отменить» позицию, к которой присоединены другие: они выпали бы из итогов
+    if (!isActivePosition({ ...item, review: to }) && hasMergedSources(s.positions, id)) continue;
 
     let split: Exclude<ReturnType<typeof unmerge>, string> | null = null;
     if (from === "merged") {

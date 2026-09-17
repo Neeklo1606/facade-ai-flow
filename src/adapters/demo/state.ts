@@ -20,7 +20,7 @@ export interface DemoState extends FixtureSnapshot {
 
 const STORAGE_KEY = "neeklo-fieldops-demo";
 /** Меняется при несовместимом изменении формы состояния: старое сохранение тогда игнорируется */
-const STATE_VERSION = 5;
+const STATE_VERSION = 6;
 const SAVE_DELAY_MS = 300;
 
 const seed = (): DemoState => ({

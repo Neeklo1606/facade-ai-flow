@@ -309,16 +309,21 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           return;
         case "exclude":
           advanceFrom(id);
-          m.exclude.mutate(id);
-          toastUndo(`Поз. ${item.position} исключена`, () =>
-            m.undoReview.mutate(undoInput([item], "excluded")),
-          );
+          // «Отменить» — только после ответа: сервер может отказать (позиция в закупке, есть присоединённые)
+          m.exclude.mutate(id, {
+            onSuccess: () =>
+              toastUndo(`Поз. ${item.position} исключена`, () =>
+                m.undoReview.mutate(undoInput([item], "excluded")),
+              ),
+          });
           return;
         case "header":
-          m.markHeader.mutate(id);
-          toastUndo(`Поз. ${item.position} отмечена как заголовок`, () =>
-            m.undoReview.mutate(undoInput([item], "header")),
-          );
+          m.markHeader.mutate(id, {
+            onSuccess: () =>
+              toastUndo(`Поз. ${item.position} отмечена как заголовок`, () =>
+                m.undoReview.mutate(undoInput([item], "header")),
+              ),
+          });
           return;
         case "merge":
           setMergeSourceId(id);

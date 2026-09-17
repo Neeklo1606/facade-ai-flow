@@ -1,5 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import type { ListPositionsInput, ListProjectsInput, PositionFilterInput } from "@/ports";
+import type { ExtractionJob } from "@/contracts";
 import { isActiveJob } from "@/domain/extraction";
 import { api } from "./client";
 import { keys } from "./keys";
@@ -8,8 +9,17 @@ import { keys } from "./keys";
 
 /** Как часто спрашивать статус задачи извлечения, пока она идёт */
 const JOB_POLL_MS = 2_000;
-/** Не опрашивать бесконечно зависшую задачу: около 10 минут, дальше — по возвращению на экран */
-const JOB_POLL_LIMIT = 300;
+/** Не опрашивать бесконечно зависшую задачу: 10 минут с момента, как вкладка её увидела */
+const JOB_POLL_WINDOW_MS = 10 * 60_000;
+const jobFirstSeen = new Map<string, number>();
+
+/** Идёт ли ещё опрос задачи: активна и вкладка видит её меньше 10 минут */
+function shouldPollJob(job: ExtractionJob | null | undefined) {
+  if (!job || !isActiveJob(job)) return false;
+  const seen = jobFirstSeen.get(job.id) ?? Date.now();
+  jobFirstSeen.set(job.id, seen);
+  return Date.now() - seen < JOB_POLL_WINDOW_MS;
+}
 /** Срок ответа поставщиков («осталось 3 ч») считается от времени сервера — перечитываем раз в минуту */
 const REPLY_DUE_REFRESH_MS = 60_000;
 
@@ -54,10 +64,7 @@ export const queries = {
       queryFn: () => api.documents.list(projectId ? { projectId } : {}),
       // Пока идёт извлечение, опрашиваем статус задач (P3-4)
       refetchInterval: (query) =>
-        query.state.data?.some((item) => item.job && isActiveJob(item.job)) &&
-        query.state.dataUpdateCount < JOB_POLL_LIMIT
-          ? JOB_POLL_MS
-          : false,
+        query.state.data?.some((item) => shouldPollJob(item.job)) ? JOB_POLL_MS : false,
     }),
   revisions: (documentId: string) =>
     queryOptions({
@@ -68,12 +75,7 @@ export const queries = {
     queryOptions({
       queryKey: keys.documents.card(revisionId),
       queryFn: () => api.documents.card(revisionId),
-      refetchInterval: (query) =>
-        query.state.data?.job &&
-        isActiveJob(query.state.data.job) &&
-        query.state.dataUpdateCount < JOB_POLL_LIMIT
-          ? JOB_POLL_MS
-          : false,
+      refetchInterval: (query) => (shouldPollJob(query.state.data?.job) ? JOB_POLL_MS : false),
     }),
 
   positions: (input: ListPositionsInput) =>
