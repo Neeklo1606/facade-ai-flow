@@ -342,8 +342,8 @@ export function useReviewReport(notices: Pick<MutationNotices, "onFailed"> = {})
 /** Сброс демо-данных: после него весь кеш запросов устарел */
 export function useResetDemo() {
   const queryClient = useQueryClient();
-  return () => {
-    api.demo.reset();
+  return async () => {
+    await api.demo.reset();
     // Сбросить к исходному состоянию и перезапросить активные запросы: removeQueries отцепил бы их от кеша
     void queryClient.resetQueries();
   };

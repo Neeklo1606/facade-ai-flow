@@ -161,14 +161,17 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           </>
         }
         actions={
-          <Button
-            variant="accent"
-            className="hidden sm:inline-flex"
-            disabled={blocked}
-            onClick={() => setDecisionOpen(true)}
-          >
-            <Gavel className="size-4" /> {decision ? "Изменить решение" : "Зафиксировать решение"}
-          </Button>
+          // Решение по запросу одно и не редактируется: журнал решений только дописывается
+          !decision && (
+            <Button
+              variant="accent"
+              className="hidden sm:inline-flex"
+              disabled={blocked}
+              onClick={() => setDecisionOpen(true)}
+            >
+              <Gavel className="size-4" /> Зафиксировать решение
+            </Button>
+          )
         }
       />
 
@@ -277,10 +280,10 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         </p>
       </ScreenGate>
 
-      {!blocked && (
+      {!blocked && !decision && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setDecisionOpen(true)}>
-            <Gavel className="size-4" /> {decision ? "Изменить решение" : "Зафиксировать решение"}
+            <Gavel className="size-4" /> Зафиксировать решение
           </Button>
         </MobileActionBar>
       )}

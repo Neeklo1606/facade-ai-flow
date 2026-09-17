@@ -1,4 +1,4 @@
-import { createDemoRepositories, onDemoEvent, resetDemo, type DemoEvent } from "@/adapters/demo";
+import type { DemoEvent } from "@/adapters/demo";
 import type {
   ChooseSupplierInput,
   CorrectPositionInput,
@@ -26,141 +26,180 @@ import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
  * Действующий сотрудник подставляется здесь (демо) или на сервере (рабочий режим).
  */
 
-let demo: Repositories | null = null;
-const local = () => (demo ??= createDemoRepositories({ persist: true }));
+// Демо-адаптер с фикстурами грузится только в демо и только по первому обращению:
+// в рабочем режиме его нет в стартовом бандле вкладки
+let demoModule: Promise<typeof import("@/adapters/demo")> | null = null;
+const demoAdapter = () => (demoModule ??= import("@/adapters/demo"));
+let demo: Promise<Repositories> | null = null;
+const local = () =>
+  (demo ??= demoAdapter().then((module) => module.createDemoRepositories({ persist: true })));
 const actor = { actorId: CURRENT_USER_ID };
 const server = dataSource === "server";
 
 export const api = {
   /** Действия, которые есть только в демо */
   demo: {
-    reset: () => {
+    reset: async () => {
       if (server) throw new Error("Сброс доступен только в демо-режиме");
-      resetDemo();
+      (await demoAdapter()).resetDemo();
     },
     /** События симулятора: ответ поставщика, стадия распознавания, заказ. В рабочем режиме их нет */
     onEvent: (listener: (event: DemoEvent) => void) => {
       if (server || typeof window === "undefined") return () => {};
-      local();
-      return onDemoEvent(listener);
+      let unsubscribe: (() => void) | null = null;
+      let cancelled = false;
+      void Promise.all([demoAdapter(), local()]).then(([module]) => {
+        if (!cancelled) unsubscribe = module.onDemoEvent(listener);
+      });
+      return () => {
+        cancelled = true;
+        unsubscribe?.();
+      };
     },
   },
   clock: {
-    now: () => (server ? fn.nowFn() : local().clock.now()),
+    now: () => (server ? fn.nowFn() : local().then((r) => r.clock.now())),
   },
   directory: {
-    employees: () => (server ? fn.employeesFn() : local().directory.employees()),
-    counterparties: () => (server ? fn.counterpartiesFn() : local().directory.counterparties()),
+    employees: () => (server ? fn.employeesFn() : local().then((r) => r.directory.employees())),
+    counterparties: () =>
+      server ? fn.counterpartiesFn() : local().then((r) => r.directory.counterparties()),
   },
   projects: {
     list: (data: ListProjectsInput = {}) =>
-      server ? fn.projectsFn({ data }) : local().projects.list(data),
+      server ? fn.projectsFn({ data }) : local().then((r) => r.projects.list(data)),
     /** Файл Excel: в рабочем режиме строит сервер, в демо — адаптер во вкладке (ADR-004) */
     exportRegistry: async (data: ListProjectsInput) => {
-      if (!server) return local().projects.exportRegistry(data);
+      if (!server) return local().then((r) => r.projects.exportRegistry(data));
       const response = await fetch(`${REGISTRY_EXPORT_PATH}?${registryExportQuery(data)}`);
       if (!response.ok) throw new Error(`Выгрузка не сформирована: ${response.status}`);
       return response.blob();
     },
-    card: (id: string) => (server ? fn.projectCardFn({ data: { id } }) : local().projects.card(id)),
+    card: (id: string) =>
+      server ? fn.projectCardFn({ data: { id } }) : local().then((r) => r.projects.card(id)),
     create: (data: CreateProjectInput) =>
-      server ? fn.createProjectFn({ data }) : local().projects.create(data, actor),
+      server ? fn.createProjectFn({ data }) : local().then((r) => r.projects.create(data, actor)),
   },
   documents: {
     list: (data: ListDocumentsInput) =>
-      server ? fn.documentsFn({ data }) : local().documents.list(data),
+      server ? fn.documentsFn({ data }) : local().then((r) => r.documents.list(data)),
     revisions: (id: string) =>
-      server ? fn.revisionsFn({ data: { id } }) : local().documents.revisions(id),
+      server ? fn.revisionsFn({ data: { id } }) : local().then((r) => r.documents.revisions(id)),
     card: (id: string) =>
-      server ? fn.documentCardFn({ data: { id } }) : local().documents.card(id),
+      server ? fn.documentCardFn({ data: { id } }) : local().then((r) => r.documents.card(id)),
     upload: (data: UploadRevisionInput) =>
-      server ? fn.uploadFn({ data }) : local().documents.upload(data, actor),
+      server ? fn.uploadFn({ data }) : local().then((r) => r.documents.upload(data, actor)),
     changes: (data: ListChangesInput) =>
-      server ? fn.revisionChangesFn({ data }) : local().documents.changes(data),
+      server ? fn.revisionChangesFn({ data }) : local().then((r) => r.documents.changes(data)),
   },
   positions: {
     list: (data: ListPositionsInput) =>
-      server ? fn.positionsFn({ data }) : local().positions.list(data),
+      server ? fn.positionsFn({ data }) : local().then((r) => r.positions.list(data)),
     facets: (data: PositionFilterInput) =>
-      server ? fn.positionFacetsFn({ data }) : local().positions.facets(data),
+      server ? fn.positionFacetsFn({ data }) : local().then((r) => r.positions.facets(data)),
     selection: (data: PositionFilterInput) =>
-      server ? fn.positionSelectionFn({ data }) : local().positions.selection(data),
-    item: (id: string) => (server ? fn.positionFn({ data: { id } }) : local().positions.item(id)),
+      server ? fn.positionSelectionFn({ data }) : local().then((r) => r.positions.selection(data)),
+    item: (id: string) =>
+      server ? fn.positionFn({ data: { id } }) : local().then((r) => r.positions.item(id)),
     confirmAutoVerified: (revisionId: string) =>
       server
         ? fn.confirmAutoVerifiedFn({ data: { revisionId } })
-        : local().positions.confirmAutoVerified({ revisionId }, actor),
+        : local().then((r) => r.positions.confirmAutoVerified({ revisionId }, actor)),
     history: (id: string) =>
-      server ? fn.positionHistoryFn({ data: { id } }) : local().positions.history(id),
+      server
+        ? fn.positionHistoryFn({ data: { id } })
+        : local().then((r) => r.positions.history(id)),
     confirm: (ids: string[]) =>
-      server ? fn.confirmFn({ data: { ids } }) : local().positions.confirm({ ids }, actor),
+      server
+        ? fn.confirmFn({ data: { ids } })
+        : local().then((r) => r.positions.confirm({ ids }, actor)),
     correct: (data: CorrectPositionInput) =>
       server
         ? fn.correctFn({ data }).then(() => undefined)
-        : local().positions.correct(data, actor),
+        : local().then((r) => r.positions.correct(data, actor)),
     exclude: (id: string) =>
       server
         ? fn.excludeFn({ data: { id } }).then(() => undefined)
-        : local().positions.exclude({ id }, actor),
+        : local().then((r) => r.positions.exclude({ id }, actor)),
     markHeader: (id: string) =>
       server
         ? fn.markHeaderFn({ data: { id } }).then(() => undefined)
-        : local().positions.markHeader({ id }, actor),
+        : local().then((r) => r.positions.markHeader({ id }, actor)),
     reopen: (id: string) =>
       server
         ? fn.reopenFn({ data: { id } }).then(() => undefined)
-        : local().positions.reopen({ id }, actor),
+        : local().then((r) => r.positions.reopen({ id }, actor)),
     undoReview: (data: UndoReviewInput) =>
-      server ? fn.undoReviewFn({ data }) : local().positions.undoReview(data, actor),
+      server ? fn.undoReviewFn({ data }) : local().then((r) => r.positions.undoReview(data, actor)),
     merge: (data: MergePositionsInput) =>
-      server ? fn.mergeFn({ data }) : local().positions.merge(data, actor),
+      server ? fn.mergeFn({ data }) : local().then((r) => r.positions.merge(data, actor)),
     split: (data: SplitPositionInput) =>
-      server ? fn.splitFn({ data }).then(() => undefined) : local().positions.split(data, actor),
+      server
+        ? fn.splitFn({ data }).then(() => undefined)
+        : local().then((r) => r.positions.split(data, actor)),
     handOver: (revisionId: string) =>
       server
         ? fn.handOverFn({ data: { revisionId } })
-        : local().positions.handOver({ revisionId }, actor),
-    materials: () => (server ? fn.materialsFn() : local().positions.materials()),
-    replacements: () => (server ? fn.replacementsFn() : local().positions.replacements()),
+        : local().then((r) => r.positions.handOver({ revisionId }, actor)),
+    materials: () => (server ? fn.materialsFn() : local().then((r) => r.positions.materials())),
+    replacements: () =>
+      server ? fn.replacementsFn() : local().then((r) => r.positions.replacements()),
   },
   procurement: {
-    suppliers: () => (server ? fn.suppliersFn() : local().procurement.suppliers()),
+    suppliers: () => (server ? fn.suppliersFn() : local().then((r) => r.procurement.suppliers())),
     verifyContact: (supplierId: string) =>
       server
         ? fn.verifyContactFn({ data: { supplierId } }).then(() => undefined)
-        : local().procurement.verifyContact({ supplierId }, actor),
-    templates: () => (server ? fn.templatesFn() : local().procurement.templates()),
+        : local().then((r) => r.procurement.verifyContact({ supplierId }, actor)),
+    templates: () => (server ? fn.templatesFn() : local().then((r) => r.procurement.templates())),
     requests: (projectId: string) =>
-      server ? fn.requestsFn({ data: { projectId } }) : local().procurement.requests(projectId),
+      server
+        ? fn.requestsFn({ data: { projectId } })
+        : local().then((r) => r.procurement.requests(projectId)),
     request: (id: string) =>
-      server ? fn.requestCardFn({ data: { id } }) : local().procurement.request(id),
+      server ? fn.requestCardFn({ data: { id } }) : local().then((r) => r.procurement.request(id)),
     createRequest: (data: CreateRequestInput) =>
-      server ? fn.createRequestFn({ data }) : local().procurement.createRequest(data, actor),
+      server
+        ? fn.createRequestFn({ data })
+        : local().then((r) => r.procurement.createRequest(data, actor)),
     remind: (requestId: string) =>
       server
         ? fn.remindFn({ data: { requestId } })
-        : local().procurement.remind({ requestId }, actor),
+        : local().then((r) => r.procurement.remind({ requestId }, actor)),
     chooseSupplier: (data: ChooseSupplierInput) =>
-      server ? fn.chooseSupplierFn({ data }) : local().procurement.chooseSupplier(data, actor),
+      server
+        ? fn.chooseSupplierFn({ data })
+        : local().then((r) => r.procurement.chooseSupplier(data, actor)),
     deliveries: (projectId: string) =>
-      server ? fn.deliveriesFn({ data: { projectId } }) : local().procurement.deliveries(projectId),
+      server
+        ? fn.deliveriesFn({ data: { projectId } })
+        : local().then((r) => r.procurement.deliveries(projectId)),
   },
   reports: {
     list: (projectId: string) =>
-      server ? fn.reportsFn({ data: { projectId } }) : local().reports.list(projectId),
+      server
+        ? fn.reportsFn({ data: { projectId } })
+        : local().then((r) => r.reports.list(projectId)),
     review: (data: ReviewReportInput) =>
       server
         ? fn.reviewReportFn({ data }).then(() => undefined)
-        : local().reports.review(data, actor),
-    source: (id: string) => (server ? fn.sourceFn({ data: { id } }) : local().reports.source(id)),
+        : local().then((r) => r.reports.review(data, actor)),
+    source: (id: string) =>
+      server ? fn.sourceFn({ data: { id } }) : local().then((r) => r.reports.source(id)),
   },
   timeline: {
     list: (projectId: string) =>
-      server ? fn.timelineFn({ data: { projectId } }) : local().timeline.list(projectId),
+      server
+        ? fn.timelineFn({ data: { projectId } })
+        : local().then((r) => r.timeline.list(projectId)),
     decisions: (projectId: string) =>
-      server ? fn.decisionsFn({ data: { projectId } }) : local().timeline.decisions(projectId),
+      server
+        ? fn.decisionsFn({ data: { projectId } })
+        : local().then((r) => r.timeline.decisions(projectId)),
     pending: (projectId: string) =>
-      server ? fn.pendingDecisionsFn({ data: { projectId } }) : local().timeline.pending(projectId),
+      server
+        ? fn.pendingDecisionsFn({ data: { projectId } })
+        : local().then((r) => r.timeline.pending(projectId)),
   },
 };
 

@@ -339,8 +339,8 @@ function SidebarInner({
               <AlertDialogFooter>
                 <AlertDialogCancel>Отмена</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={() => {
-                    resetDemo();
+                  onClick={async () => {
+                    await resetDemo();
                     setProjectId(ALL_PROJECTS);
                     onClose();
                     navigate({ to: "/projects" });
