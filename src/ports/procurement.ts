@@ -51,6 +51,8 @@ export const requestSummary = z.object({
   /** Итог лучшего предложения с НДС и доставкой, копейки */
   bestTotal: z.number().int().nullable(),
   status: rfqDisplayStatus,
+  /** Срок ответа от времени сервера; null — ответов уже не ждём */
+  replyDue: z.object({ hours: z.number().int(), overdue: z.boolean() }).nullable(),
   decisionId: id.nullable(),
 });
 

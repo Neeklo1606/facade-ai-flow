@@ -58,15 +58,11 @@ export function fmtTime(value: string) {
   return format(parseISO(value), "HH:mm", { locale: ru });
 }
 
-/** «осталось 3 дн.», «просрочено на 2 ч» относительно `now` — времени источника данных (useNow). */
-export function fmtDue(value: string, now: string) {
-  const diffHours = (parseISO(value).getTime() - parseISO(now).getTime()) / 3_600_000;
-  const abs = Math.abs(diffHours);
-  const amount = abs < 24 ? `${Math.max(1, Math.round(abs))} ч` : `${Math.round(abs / 24)} дн.`;
-  return {
-    overdue: diffHours < 0,
-    label: diffHours < 0 ? `просрочено на ${amount}` : `осталось ${amount}`,
-  };
+/** «осталось 3 дн.», «просрочено на 2 ч» — по сроку, который посчитал сервер (`replyDue`). */
+export function fmtReplyDue(due: { hours: number; overdue: boolean }) {
+  const abs = Math.abs(due.hours);
+  const amount = abs < 24 ? `${Math.max(1, abs)} ч` : `${Math.round(abs / 24)} дн.`;
+  return due.overdue || due.hours < 0 ? `просрочено на ${amount}` : `осталось ${amount}`;
 }
 
 /** Форма слова по числу: plural(3, "позиция", "позиции", "позиций"). */

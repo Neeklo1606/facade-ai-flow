@@ -46,6 +46,19 @@ export function rfqStatus(
   return answered ? "collecting" : "sent";
 }
 
+/**
+ * Срок ответа поставщиков для экрана: сколько часов осталось (отрицательное — просрочено).
+ * Только пока ответы ждём; у готового к сравнению, решённого и заказанного запроса срока нет.
+ */
+export function replyDue(request: SupplyRequest, status: RfqStatus, now: string) {
+  const waiting = status === "sent" || status === "collecting" || status === "overdue";
+  if (!waiting || !request.replyDueAt) return null;
+  const hours = Math.round(
+    (new Date(request.replyDueAt).getTime() - new Date(now).getTime()) / 3_600_000,
+  );
+  return { hours, overdue: status === "overdue" };
+}
+
 /** Расчёт ячейки сравнения. Все суммы в копейках. */
 export interface CellCalc {
   price: number;

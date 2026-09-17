@@ -9,6 +9,7 @@ import {
   answeredCount,
   compareOffers,
   decisionFor,
+  replyDue,
   rfqStatus,
   supplierDecision,
 } from "@/domain/procurement";
@@ -66,6 +67,8 @@ function requestSummary(s: DemoState, requestId: string): RequestSummary | null 
   const decision = decisionFor(s.decisions, request.id);
   const { columns, bestSupplierId } = compareOffers(s, request);
   const best = columns.find((column) => column.supplierId === bestSupplierId) ?? null;
+  const now = peek();
+  const status = rfqStatus(request, answeredCount(s.offers, request), Boolean(decision), now);
   const answeredBy = request.sentTo.filter((supplierId) =>
     s.offers.some((offer) => offer.requestId === request.id && offer.supplierId === supplierId),
   );
@@ -78,7 +81,8 @@ function requestSummary(s: DemoState, requestId: string): RequestSummary | null 
     ),
     bestSupplierId: best?.supplierId ?? null,
     bestTotal: best?.total ?? null,
-    status: rfqStatus(request, answeredCount(s.offers, request), Boolean(decision), peek()),
+    status,
+    replyDue: replyDue(request, status, now),
     decisionId: decision?.id ?? null,
   };
 }

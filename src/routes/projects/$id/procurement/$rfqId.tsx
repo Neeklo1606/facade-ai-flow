@@ -15,12 +15,11 @@ import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { itemsSummary, rfqStatusMeta } from "@/lib/procurement";
 import type { ComparisonCell as CellCalc, ComparisonColumn as ColumnCalc } from "@/api/types";
 import { useScreenState } from "@/lib/screen-state";
-import { fmtDateTime, fmtDue, fmtMoney, fmtNum } from "@/lib/format";
+import { fmtDateTime, fmtMoney, fmtNum, fmtReplyDue } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type SupplyRequest } from "@/contracts";
@@ -74,7 +73,6 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const status = card?.summary.status ?? null;
   const silent = calc ? calc.columns.filter((c) => !c.offerId) : [];
 
-  const now = useNow();
   const screen = useScreenState({
     pending: cardQuery.isPending,
     error: cardQuery.isError,
@@ -104,7 +102,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     screen === "forbidden" ||
     screen === "empty" ||
     calc.answered === 0;
-  const due = meta ? fmtDue(meta.replyDueAt, now) : null;
+  const due = card?.summary.replyDue ?? null;
 
   function save(input: DecisionInput) {
     if (!request) return;
@@ -156,7 +154,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                 <>
                   {" "}
                   · ждём до {fmtDateTime(meta.replyDueAt)}{" "}
-                  <span className={due.overdue ? "text-danger" : ""}>({due.label})</span>
+                  <span className={due.overdue ? "text-danger" : ""}>({fmtReplyDue(due)})</span>
                 </>
               )}
             </span>

@@ -17,11 +17,11 @@ import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/Scr
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
+import type { RequestSummary } from "@/api/types";
 import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
-import { fmtDate, fmtDateTime, fmtDue, fmtMoney, fmtNum, plural } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtMoney, fmtReplyDue, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -81,6 +81,8 @@ interface RequestRow {
   answered: number;
   bestTotal: number | null;
   due: string | null;
+  /** Срок ответа от сервера; null — ответов уже не ждём */
+  replyDue: RequestSummary["replyDue"];
   status: RfqStatus;
 }
 
@@ -129,6 +131,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         answered: summary.answered,
         bestTotal: summary.bestTotal,
         due: summary.request.replyDueAt,
+        replyDue: summary.replyDue,
         status: summary.status,
       })),
     [summaries],
@@ -399,7 +402,6 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
 function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: string }) {
   const { counterpartyById } = useDirectory();
   const navigate = useNavigate();
-  const now = useNow();
   const open = (row: RequestRow) =>
     navigate({
       to: "/projects/$id/procurement/$rfqId",
@@ -424,7 +426,6 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
           </thead>
           <tbody>
             {rows.map((row) => {
-              const due = row.due ? fmtDue(row.due, now) : null;
               const meta = rfqStatusMeta[row.status];
               return (
                 <tr
@@ -471,17 +472,17 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
                     )}
                   </td>
                   <td className="px-2.5 whitespace-nowrap">
-                    {row.due && due ? (
+                    {row.due ? (
                       <>
                         <div className="tnum text-text-secondary">до {fmtDateTime(row.due)}</div>
-                        {row.status !== "decided" && row.status !== "ordered" && (
+                        {row.replyDue && (
                           <div
                             className={cn(
                               "text-caption",
-                              due.overdue ? "text-danger" : "text-text-muted",
+                              row.replyDue.overdue ? "text-danger" : "text-text-muted",
                             )}
                           >
-                            {due.label}
+                            {fmtReplyDue(row.replyDue)}
                           </div>
                         )}
                       </>
@@ -501,7 +502,6 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
 
       <ul className="divide-y divide-border lg:hidden">
         {rows.map((row) => {
-          const due = row.due ? fmtDue(row.due, now) : null;
           const meta = rfqStatusMeta[row.status];
           return (
             <li key={row.request.id}>
@@ -538,10 +538,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
                     <dd
                       className={cn(
                         "tnum text-[14px] font-medium",
-                        due?.overdue &&
-                          row.status !== "decided" &&
-                          row.status !== "ordered" &&
-                          "text-danger",
+                        row.replyDue?.overdue && "text-danger",
                       )}
                     >
                       {row.due ? fmtDate(row.due) : "—"}
