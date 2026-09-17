@@ -84,6 +84,9 @@ export function AgentAnswer({
   return (
     <article className="group">
       <SystemHeader time={time} />
+      {reply.scopeNote && (
+        <p className="mt-2 text-[13px] leading-[1.45] text-text-3">{reply.scopeNote}</p>
+      )}
       <div className="mt-2.5 space-y-2 text-[15px] leading-[1.6] text-text">
         {reply.text.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>

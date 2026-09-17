@@ -17,7 +17,7 @@ export const agentIntent = z.enum([
 export const askAgentInput = z.object({
   prompt: z.string().trim().min(1).max(2000),
   /** Объект из селектора; null — ассистент выберет объект из вопроса или самый требующий внимания */
-  projectId: z.string().min(1).nullable().default(null),
+  projectId: z.string().min(1).max(200).nullable().default(null),
   /** Быстрое действие передаёт сценарий явно; вопрос от руки распознаётся по словам */
   intent: agentIntent.optional(),
 });
@@ -32,6 +32,9 @@ export const agentSource = z.object({
 export const agentReply = z.object({
   intent: agentIntent,
   projectId: z.string().min(1).nullable(),
+  projectName: z.string().min(1),
+  /** Объект не выбран и не назван: по какому объекту ответ и как выбрать другой */
+  scopeNote: z.string().min(1).nullable(),
   /** Абзацы ответа */
   text: z.array(z.string().min(1)).min(1),
   /** Показатели ответа: подпись и значение */

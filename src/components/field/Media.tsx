@@ -82,7 +82,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
             >
               <PhotoArt
                 caption={photo.caption}
-                className="transition-transform duration-300 group-hover:scale-105"
+                className="transition-opacity duration-150 group-hover:opacity-90"
               />
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-2 pt-5 pb-1.5 text-left text-[11px] leading-tight text-white">
                 {photo.caption}

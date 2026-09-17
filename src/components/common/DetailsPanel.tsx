@@ -36,7 +36,15 @@ export function DetailsLayout({
     // Фокус в панель при открытии, чтобы Esc и Tab работали сразу
     panelRef.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeRef.current();
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      // Esc принадлежит верхнему слою: открытый диалог, палитра команд или меню закрываются первыми
+      if (
+        document.querySelector(
+          '[role="dialog"][data-state="open"], [role="alertdialog"], [data-radix-popper-content-wrapper]',
+        )
+      )
+        return;
+      closeRef.current();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
