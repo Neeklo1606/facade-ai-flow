@@ -1,4 +1,4 @@
-import type { ListPositionsInput, PositionFilterInput } from "@/ports";
+import type { ListPositionsInput, ListProjectsInput, PositionFilterInput } from "@/ports";
 
 /**
  * Единая таблица ключей запросов (ADR-002, п. 1). Первый элемент — область: по нему мутации
@@ -26,7 +26,7 @@ export const keys = {
     counterparties: () => ["directory", "counterparties"] as const,
   },
   projects: {
-    list: () => ["projects", "list"] as const,
+    list: (filter: ListProjectsInput = {}) => ["projects", "list", filter] as const,
     card: (id: string) => ["projects", "card", id] as const,
   },
   documents: {

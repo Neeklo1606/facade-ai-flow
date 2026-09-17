@@ -1,5 +1,5 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
-import type { ListPositionsInput, PositionFilterInput } from "@/ports";
+import type { ListPositionsInput, ListProjectsInput, PositionFilterInput } from "@/ports";
 import { isActiveJob } from "@/domain/extraction";
 import { api } from "./client";
 import { keys } from "./keys";
@@ -35,7 +35,12 @@ export const queries = {
       ...reference,
     }),
 
-  projects: () => queryOptions({ queryKey: keys.projects.list(), queryFn: api.projects.list }),
+  /** Реестр объектов; фильтр применяет сервер. Без фильтра — все объекты (меню, поиск, выбор объекта) */
+  projects: (filter: ListProjectsInput = {}) =>
+    queryOptions({
+      queryKey: keys.projects.list(filter),
+      queryFn: () => api.projects.list(filter),
+    }),
   project: (id: string) =>
     queryOptions({ queryKey: keys.projects.card(id), queryFn: () => api.projects.card(id) }),
 

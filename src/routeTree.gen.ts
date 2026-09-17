@@ -25,6 +25,7 @@ import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
 import { Route as ProjectsIdFieldReportsRouteImport } from './routes/projects/$id/field-reports'
 import { Route as ProjectsIdMaterialsRouteImport } from './routes/projects/$id/materials'
@@ -114,6 +115,11 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   path: '/projects/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiExportProjectsRoute = ApiExportProjectsRouteImport.update({
+  id: '/api/export/projects',
+  path: '/api/export/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
   id: '/projects/$id/',
   path: '/projects/$id/',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/projects': typeof ProjectsIndexRoute
+  '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/zones'
     | '/projects/'
+    | '/api/export/projects'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/zones'
     | '/projects'
+    | '/api/export/projects'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/zones'
     | '/projects/'
+    | '/api/export/projects'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
@@ -336,6 +348,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRoute
   ZonesRoute: typeof ZonesRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
   ProjectsIdMaterialsRoute: typeof ProjectsIdMaterialsRoute
   ProjectsIdTimelineRoute: typeof ProjectsIdTimelineRoute
@@ -460,6 +473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/export/projects': {
+      id: '/api/export/projects'
+      path: '/api/export/projects'
+      fullPath: '/api/export/projects'
+      preLoaderRoute: typeof ApiExportProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$id/': {
       id: '/projects/$id/'
       path: '/projects/$id'
@@ -536,6 +556,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRoute,
   ZonesRoute: ZonesRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ApiExportProjectsRoute: ApiExportProjectsRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,
   ProjectsIdMaterialsRoute: ProjectsIdMaterialsRoute,
   ProjectsIdTimelineRoute: ProjectsIdTimelineRoute,

@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { extractedPosition, projectDecision, projectDocument, projectView } from "@/contracts";
-import { createDemoRepositories } from "@/adapters/demo";
 import {
   correctPositionInput,
   counterpartyList,
@@ -30,6 +29,7 @@ import {
   positionPage,
   positionSelection,
   projectCard,
+  listProjectsInput,
   projectList,
   remindResult,
   replacementList,
@@ -45,9 +45,8 @@ import {
   templateList,
   timelineList,
   uploadRevisionInput,
-  type Repositories,
 } from "@/ports";
-import { CURRENT_USER_ID } from "./config";
+import { serverActor, serverRepositories } from "./server-repositories";
 
 /**
  * Серверные функции поверх портов (ADR-001, п. 4). Вход проверяется схемой до обработчика,
@@ -55,9 +54,8 @@ import { CURRENT_USER_ID } from "./config";
  * Адаптер сервера — фикстуры в памяти процесса; в фазе 3 его заменит адаптер PostgreSQL.
  */
 
-let repositories: Repositories | null = null;
-const repos = () => (repositories ??= createDemoRepositories({ persist: false }));
-const actor = () => ({ actorId: CURRENT_USER_ID });
+const repos = serverRepositories;
+const actor = serverActor;
 
 const projectId = z.object({ projectId: z.string().min(1) });
 const byId = z.object({ id: z.string().min(1) });
@@ -81,9 +79,9 @@ export const counterpartiesFn = createServerFn({ method: "GET" }).handler(async 
 
 /* ---------- Объекты ---------- */
 
-export const projectsFn = createServerFn({ method: "GET" }).handler(async () =>
-  projectList.parse(await repos().projects.list()),
-);
+export const projectsFn = createServerFn({ method: "GET" })
+  .validator(listProjectsInput)
+  .handler(async ({ data }) => projectList.parse(await repos().projects.list(data)));
 
 export const projectCardFn = createServerFn({ method: "GET" })
   .validator(byId)

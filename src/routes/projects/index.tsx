@@ -30,7 +30,10 @@ import {
 import { useApp } from "@/lib/app-context";
 import { sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
 import { attentionBar, attentionOf, projectStatusMeta } from "@/lib/project-meta";
-import { exportXlsx } from "@/lib/export-xlsx";
+import { api } from "@/api/client";
+import { registryFileName } from "@/api/export-paths";
+import type { ProjectListItem } from "@/api/types";
+import { saveFile } from "@/lib/download";
 import { useQuery } from "@tanstack/react-query";
 import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
@@ -101,6 +104,11 @@ interface Row {
   overview: ProjectOverview;
 }
 
+/** Строки таблицы из ответа реестра */
+function toRows(items: ProjectListItem[] | undefined): Row[] {
+  return (items ?? []).map(({ project, overview }) => ({ id: project.id, project, overview }));
+}
+
 /** Число, которое требует реакции, выделяется цветом; ноль гасится. */
 function Count({ value, tone }: { value: number; tone?: "danger" | "warn" | undefined }) {
   return (
@@ -124,12 +132,17 @@ function ProjectsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { setProjectId } = useApp();
+  // Все объекты — для списков фильтров и пустого состояния; строки таблицы фильтрует сервер
   const registry = useQuery(queries.projects());
-  const allRows = useMemo<Row[]>(
-    () =>
-      (registry.data ?? []).map(({ project, overview }) => ({ id: project.id, project, overview })),
-    [registry.data],
-  );
+  const filter = {
+    ...(search.region ? { region: search.region } : {}),
+    ...(search.manager ? { managerId: search.manager } : {}),
+    ...(search.status ? { status: search.status } : {}),
+    ...(search.unverified ? { unverified: true } : {}),
+  };
+  const filtered = useQuery(queries.projects(filter));
+  const allRows = useMemo<Row[]>(() => toRows(registry.data), [registry.data]);
+  const rows = useMemo<Row[]>(() => toRows(filtered.data), [filtered.data]);
   const regions = [...new Set(allRows.map((row) => row.overview.region))];
   const managers = [...new Set(allRows.map((row) => row.project.manager))];
   const statuses = [...new Set(allRows.map((row) => row.project.status))];
@@ -138,25 +151,9 @@ function ProjectsPage() {
   const setSearch = (patch: Partial<ProjectsSearch>) =>
     navigate({ search: (prev: ProjectsSearch) => ({ ...prev, ...patch }), replace: true });
 
-  const rows = useMemo(
-    () =>
-      allRows
-        .filter((row) => (search.region ? row.overview.region === search.region : true))
-        .filter((row) => (search.manager ? row.project.manager === search.manager : true))
-        .filter((row) => (search.status ? row.project.status === search.status : true))
-        .filter((row) => (search.unverified ? row.overview.specUnverified > 0 : true))
-        .sort((a, b) => {
-          // Сначала то, что горит: просроченные ответы, затем непроверенные строки
-          const weight = (row: Row) =>
-            row.overview.overdueRequests * 10_000 + row.overview.specUnverified;
-          return weight(b) - weight(a);
-        }),
-    [allRows, search.region, search.manager, search.status, search.unverified],
-  );
-
   const screen = useScreenState({
-    pending: registry.isPending,
-    error: registry.isError,
+    pending: registry.isPending || filtered.isPending,
+    error: registry.isError || filtered.isError,
     empty: allRows.length === 0,
     filtered: rows.length === 0,
   });
@@ -184,35 +181,11 @@ function ProjectsPage() {
     void navigate({ to: href.to, search: href.search as never });
   };
 
+  /** Файл строит сервер по тому же фильтру, что у таблицы: не из данных, загруженных во вкладку */
   async function handleExport() {
     setExporting(true);
     try {
-      await exportXlsx(
-        `Объекты_${new Date().toISOString().slice(0, 10)}.xlsx`,
-        [
-          { header: "Объект", width: 38, value: (row: Row) => row.project.name },
-          { header: "Код", width: 10, value: (row) => row.project.code },
-          { header: "Регион", width: 18, value: (row) => row.overview.region },
-          { header: "Заказчик", width: 22, value: (row) => row.project.customer },
-          { header: "Ответственный", width: 18, value: (row) => employeeName(row.project.manager) },
-          { header: "Версия документации", width: 12, value: (row) => row.overview.docVersion },
-          { header: "Позиций материалов", width: 12, value: (row) => row.overview.specTotal },
-          { header: "Непроверенных строк", width: 12, value: (row) => row.overview.specUnverified },
-          { header: "Активных запросов", width: 12, value: (row) => row.overview.activeRequests },
-          {
-            header: "Просроченных ответов",
-            width: 12,
-            value: (row) => row.overview.overdueRequests,
-          },
-          { header: "Открытых изменений", width: 12, value: (row) => row.overview.openChanges },
-          {
-            header: "Статус",
-            width: 14,
-            value: (row) => projectStatusMeta[row.project.status].label,
-          },
-        ],
-        rows,
-      );
+      saveFile(await api.projects.exportRegistry(filter), registryFileName());
       toast.success("Реестр выгружен", { description: `${rows.length} объектов в файле Excel` });
     } catch {
       toast.error("Не удалось сформировать файл Excel");
@@ -378,7 +351,7 @@ function ProjectsPage() {
         </div>
         <ScreenGate
           state={screen}
-          onRetry={() => void registry.refetch()}
+          onRetry={() => void Promise.all([registry.refetch(), filtered.refetch()])}
           skeleton={<ScreenSkeleton kind="cards" rows={6} />}
           copy={{
             section: "Объекты",

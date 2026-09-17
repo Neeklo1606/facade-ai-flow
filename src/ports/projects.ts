@@ -5,6 +5,7 @@ import {
   employeeView,
   milestoneView,
   projectOverview,
+  projectStatus,
   projectView,
   workZoneView,
   type Contract,
@@ -19,6 +20,14 @@ import type { Actor } from "./common";
 
 export const projectList = z.array(z.object({ project: projectView, overview: projectOverview }));
 export const projectListItem = z.object({ project: projectView, overview: projectOverview });
+
+/** Фильтр реестра объектов: на экране и в выгрузке одинаковый */
+export const listProjectsInput = z.object({
+  region: z.string().min(1).optional(),
+  managerId: z.string().min(1).optional(),
+  status: projectStatus.schema.optional(),
+  unverified: z.boolean().optional(),
+});
 
 export const projectCard = z.object({
   project: projectView,
@@ -49,6 +58,7 @@ export const createProjectInput = z
   });
 
 export type ProjectListItem = z.infer<typeof projectListItem>;
+export type ListProjectsInput = z.infer<typeof listProjectsInput>;
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
 
 export interface ProjectCard {
@@ -63,7 +73,10 @@ export interface ProjectCard {
 
 /** Объекты, договоры, захватки, команда. Сводка считается представлением `project_overview`. */
 export interface ProjectsPort {
-  list(): Promise<ProjectListItem[]>;
+  /** Реестр: отфильтрован и упорядочен — сначала просроченные ответы, затем непроверенные строки */
+  list(input?: ListProjectsInput): Promise<ProjectListItem[]>;
+  /** Выгрузка реестра в Excel с тем же фильтром (P3-5) */
+  exportRegistry(input: ListProjectsInput): Promise<Blob>;
   /** null — объекта нет */
   card(projectId: string): Promise<ProjectCard | null>;
   /** Код объекта уникален: при повторе — ConflictError */

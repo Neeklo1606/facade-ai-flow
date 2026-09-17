@@ -7,6 +7,7 @@ import type {
   ListChangesInput,
   ListDocumentsInput,
   ListPositionsInput,
+  ListProjectsInput,
   MergePositionsInput,
   PositionFilterInput,
   Repositories,
@@ -17,6 +18,7 @@ import type {
 } from "@/ports";
 import { CURRENT_USER_ID, dataSource } from "./config";
 import * as fn from "./functions";
+import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
 /**
  * Клиент данных для экранов. Одинаковые методы при любом источнике (ADR-004):
@@ -51,7 +53,15 @@ export const api = {
     counterparties: () => (server ? fn.counterpartiesFn() : local().directory.counterparties()),
   },
   projects: {
-    list: () => (server ? fn.projectsFn() : local().projects.list()),
+    list: (data: ListProjectsInput = {}) =>
+      server ? fn.projectsFn({ data }) : local().projects.list(data),
+    /** Файл Excel: в рабочем режиме строит сервер, в демо — адаптер во вкладке (ADR-004) */
+    exportRegistry: async (data: ListProjectsInput) => {
+      if (!server) return local().projects.exportRegistry(data);
+      const response = await fetch(`${REGISTRY_EXPORT_PATH}?${registryExportQuery(data)}`);
+      if (!response.ok) throw new Error(`Выгрузка не сформирована: ${response.status}`);
+      return response.blob();
+    },
     card: (id: string) => (server ? fn.projectCardFn({ data: { id } }) : local().projects.card(id)),
     create: (data: CreateProjectInput) =>
       server ? fn.createProjectFn({ data }) : local().projects.create(data, actor),

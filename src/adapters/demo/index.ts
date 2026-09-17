@@ -10,7 +10,9 @@ import {
   supplierDecision,
 } from "@/domain/procurement";
 import { latestJob, visibleStage } from "@/domain/extraction";
+import { registryColumns, registryRows, type RegistryFilter } from "@/domain/registry";
 import { timelineOf } from "@/domain/timeline";
+import { buildXlsx } from "@/adapters/export/xlsx";
 import {
   ConflictError,
   NotFoundError,
@@ -88,6 +90,14 @@ function requestSummary(s: DemoState, requestId: string): RequestSummary | null 
   };
 }
 
+function registry(s: DemoState, filter: RegistryFilter) {
+  const now = peek();
+  return registryRows(
+    s.projects.map((project) => ({ project, overview: projectOverview(s, project.id, now)! })),
+    filter,
+  );
+}
+
 /** Когда проверенные позиции ревизии переданы в закупку: время последней передачи */
 function handedOverAt(s: DemoState, revisionId: string) {
   return s.positions
@@ -127,14 +137,12 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
     },
 
     projects: {
-      list: () => {
+      list: (input) => done(registry(state(), input ?? {})),
+      exportRegistry: (input) => {
         const s = state();
-        return done(
-          s.projects.map((project) => ({
-            project,
-            overview: projectOverview(s, project.id, peek())!,
-          })),
-        );
+        const employeeName = (id: string) =>
+          s.employees.find((item) => item.id === id)?.name ?? "—";
+        return buildXlsx(registryColumns(employeeName), registry(s, input));
       },
       card: (projectId) => {
         const s = state();
