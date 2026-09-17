@@ -248,7 +248,14 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         done(actions.setReview(id, "excluded", "Исключено из спецификации", actorId)),
       markHeader: ({ id }, { actorId }) =>
         done(actions.setReview(id, "header", "Отмечено как заголовок раздела", actorId)),
-      reopen: ({ id }, { actorId }) => done(actions.reopen(id, actorId)),
+      reopen: ({ id }, { actorId }) =>
+        actions.reopen(id, actorId)
+          ? done(undefined)
+          : Promise.reject(
+              new ConflictError(
+                "Количество позиции, с которой объединяли, уже меняли — верните позицию вручную",
+              ),
+            ),
       undoReview: ({ items }, { actorId }) => done(actions.undoReview(items, actorId)),
       merge: ({ sourceId, targetId }, { actorId }) =>
         done(actions.merge(sourceId, targetId, actorId)),

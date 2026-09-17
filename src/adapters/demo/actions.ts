@@ -49,6 +49,23 @@ function patchPositions(
 
 /* ---------- Проверка позиций ---------- */
 
+/** Количество как numeric(14,3): без хвостов двоичной арифметики */
+const round3 = (value: number) => Math.round(value * 1000) / 1000;
+const label = (review: ExtractedPosition["review"]) => positionReviewLabel[review];
+
+/**
+ * Запись журнала о смене решения проверки: «до» и «после» — подписи решений.
+ * По ней отмена проверяет, что возвращает именно то решение, которое было до действия.
+ */
+function reviewChange(
+  item: ExtractedPosition,
+  next: ExtractedPosition["review"],
+  actorId: string,
+  action: string,
+) {
+  return positionChange(item.id, actorId, action, label(item.review), label(next));
+}
+
 export function confirm(ids: string[], actorId: string) {
   const wanted = new Set(ids);
   const targets = getState().positions.filter(
@@ -58,7 +75,7 @@ export function confirm(ids: string[], actorId: string) {
   patchPositions(
     new Set(targets.map((item) => item.id)),
     (item) => ({ ...item, review: "confirmed", reviewedBy: actorId, reviewedAt: at }),
-    targets.map((item) => positionChange(item.id, actorId, "Подтверждено")),
+    targets.map((item) => reviewChange(item, "confirmed", actorId, "Подтверждено")),
   );
   return targets.map((item) => item.id);
 }
@@ -125,97 +142,143 @@ export function setReview(
   action: string,
   actorId: string,
 ) {
+  const item = getState().positions.find((p) => p.id === id);
+  if (!item) return;
   patchPositions(
     new Set([id]),
     (p) => ({ ...p, review, reviewedBy: actorId, reviewedAt: tick() }),
-    [positionChange(id, actorId, action)],
+    [reviewChange(item, review, actorId, action)],
   );
 }
 
-/** Вернуть исключённую, объединённую или заголовок обратно на проверку */
+type Patches = Map<string, Partial<ExtractedPosition>>;
+
+/**
+ * Разъединить объединённую позицию: вычесть её количество из цели. Возможно, только если цель
+ * не объединена дальше и её количество — ровно то, что записано в журнал при объединении.
+ * null — разъединять нельзя, количество цели с тех пор меняли.
+ */
+function unmerge(
+  item: ExtractedPosition,
+  current: (id: string) => ExtractedPosition | undefined,
+  changes: PositionChange[],
+  actorId: string,
+): { patches: Patches; changes: PositionChange[] } | null {
+  const target = item.mergedInto ? current(item.mergedInto) : undefined;
+  if (!target || target.review === "merged") return null;
+  // Запись на источнике и на цели сделаны одним действием — в одну и ту же секунду
+  const merged = [...changes]
+    .reverse()
+    .find((change) => change.positionId === item.id && change.after === label("merged"));
+  const joined = merged
+    ? [...changes]
+        .reverse()
+        .find(
+          (change) =>
+            change.positionId === target.id &&
+            change.at === merged.at &&
+            change.action === `Присоединена поз. ${item.position}`,
+        )
+    : undefined;
+  if (!joined || joined.after !== `${target.qty} ${target.unit}`) return null;
+  const patches: Patches = new Map();
+  const result: PositionChange[] = [];
+  if (joined.before !== joined.after) {
+    const qty = round3(target.qty - item.qty);
+    if (qty < 0) return null;
+    patches.set(target.id, { qty });
+    result.push(
+      positionChange(
+        target.id,
+        actorId,
+        `Отменено присоединение поз. ${item.position}`,
+        `${target.qty} ${target.unit}`,
+        `${qty} ${target.unit}`,
+      ),
+    );
+  }
+  return { patches, changes: result };
+}
+
+/**
+ * Вернуть исключённую, объединённую или заголовок обратно на проверку. Объединённую — вместе
+ * с вычитанием её количества из цели; если цель с тех пор меняли, возвращать нельзя: false.
+ */
 export function reopen(id: string, actorId: string) {
-  if (!getState().positions.some((p) => p.id === id)) return;
-  patchPositions(
-    new Set([id]),
-    (p) => ({ ...p, review: "pending", reviewedBy: null, reviewedAt: null, mergedInto: null }),
-    [positionChange(id, actorId, "Возвращено на проверку")],
-  );
+  const s = getState();
+  const item = s.positions.find((p) => p.id === id);
+  if (!item) return true;
+  const byId = new Map(s.positions.map((p) => [p.id, p]));
+  const split =
+    item.review === "merged" ? unmerge(item, (key) => byId.get(key), s.changes, actorId) : null;
+  if (item.review === "merged" && !split) return false;
+  update((prev) => ({
+    ...prev,
+    positions: prev.positions.map((p) => {
+      if (p.id === id)
+        return { ...p, review: "pending", reviewedBy: null, reviewedAt: null, mergedInto: null };
+      const patch = split?.patches.get(p.id);
+      return patch ? { ...p, ...patch } : p;
+    }),
+    changes: [
+      ...prev.changes,
+      reviewChange(item, "pending", actorId, "Возвращено на проверку"),
+      ...(split?.changes ?? []),
+    ],
+  }));
+  return true;
 }
 
 /**
  * «Отменить»: вернуть решение проверки, которое было до действия. Отмена пишется в журнал.
- * Позиция не трогается, если её успели изменить после действия: другое решение, передана в закупку
- * (и отмена сделала бы её непроверенной),
- * цель объединения уже объединена дальше или её количество не то, что получилось при объединении.
+ * Позиция не трогается, если её успели изменить после действия: другое решение; «до» в журнале
+ * не совпадает с тем, что просит вернуть клиент; передана в закупку и стала бы непроверенной;
+ * объединение нельзя разъединить (см. unmerge).
  */
 export function undoReview(items: UndoReviewInput["items"], actorId: string) {
   const s = getState();
   const byId = new Map(s.positions.map((item) => [item.id, item]));
-  const patches = new Map<string, Partial<ExtractedPosition>>();
+  const patches: Patches = new Map();
   const changes: PositionChange[] = [];
   const at = tick();
   let undone = 0;
 
-  const current = (item: ExtractedPosition) => ({ ...item, ...patches.get(item.id) });
+  const current = (id: string) => {
+    const item = byId.get(id);
+    return item ? { ...item, ...patches.get(id) } : undefined;
+  };
+  const touched = new Set<string>();
 
   for (const { id, from, to } of items) {
-    const found = byId.get(id);
-    if (!found || patches.has(id) || from === to) continue;
-    const item = current(found);
-    if (item.review !== from) continue;
-    // Переданную в закупку позицию нельзя вернуть в непроверенные: она уже числится в закупке
+    const item = current(id);
+    if (!item || touched.has(id) || from === to || item.review !== from) continue;
+    // Последняя смена решения этой позиции должна быть именно «to → from»
+    const last = [...s.changes]
+      .reverse()
+      .find((change) => change.positionId === id && change.after === label(from));
+    if (!last || last.before !== label(to)) continue;
     const inProcurement = item.handedOverAt !== null || item.purchase !== "none";
     if (inProcurement && !isVerifiedPosition({ ...item, review: to })) continue;
 
-    let targetQty: { id: string; before: string; after: string; qty: number } | null = null;
+    let split: ReturnType<typeof unmerge> = null;
     if (from === "merged") {
-      const target = item.mergedInto ? byId.get(item.mergedInto) : undefined;
-      if (!target) continue;
-      const t = current(target);
-      if (t.review === "merged") continue;
-      // Запись объединения на цели хранит, каким стало количество; если цель с тех пор меняли — не отменяем
-      const joined = [...s.changes]
-        .reverse()
-        .find(
-          (change) =>
-            change.positionId === t.id && change.action === `Присоединена поз. ${item.position}`,
-        );
-      const now = `${t.qty} ${t.unit}`;
-      if (!joined || joined.after !== now) continue;
-      if (joined.before !== joined.after) {
-        const qty = t.qty - item.qty;
-        if (qty < 0) continue;
-        targetQty = { id: t.id, before: now, after: `${qty} ${t.unit}`, qty };
-      }
+      split = unmerge(item, current, s.changes, actorId);
+      if (!split) continue;
     }
 
+    touched.add(id);
     patches.set(id, {
+      ...patches.get(id),
       review: to,
       mergedInto: null,
       reviewedBy: to === "pending" ? null : actorId,
       reviewedAt: to === "pending" ? null : at,
     });
-    changes.push(
-      positionChange(
-        id,
-        actorId,
-        "Действие отменено",
-        positionReviewLabel[from],
-        positionReviewLabel[to],
-      ),
-    );
-    if (targetQty) {
-      patches.set(targetQty.id, { ...patches.get(targetQty.id), qty: targetQty.qty });
-      changes.push(
-        positionChange(
-          targetQty.id,
-          actorId,
-          `Отменено присоединение поз. ${item.position}`,
-          targetQty.before,
-          targetQty.after,
-        ),
-      );
+    changes.push(positionChange(id, actorId, "Действие отменено", label(from), label(to)));
+    for (const [targetId, patch] of split?.patches ?? []) {
+      patches.set(targetId, { ...patches.get(targetId), ...patch });
     }
+    changes.push(...(split?.changes ?? []));
     undone += 1;
   }
 
@@ -237,6 +300,8 @@ export function merge(sourceId: string, targetId: string, actorId: string) {
   const target = positions.find((p) => p.id === targetId);
   if (!source || !target) return false;
   const sameUnit = source.unit === target.unit;
+  const at = tick();
+  const summed = round3(target.qty + source.qty);
   update((prev) => ({
     ...prev,
     positions: prev.positions.map((item) => {
@@ -246,21 +311,25 @@ export function merge(sourceId: string, targetId: string, actorId: string) {
           review: "merged",
           mergedInto: targetId,
           reviewedBy: actorId,
-          reviewedAt: tick(),
+          reviewedAt: at,
         };
-      if (item.id === targetId && sameUnit) return { ...item, qty: item.qty + source.qty };
+      if (item.id === targetId && sameUnit) return { ...item, qty: summed };
       return item;
     }),
     changes: [
       ...prev.changes,
-      positionChange(sourceId, actorId, `Объединено с поз. ${target.position}`),
-      positionChange(
-        targetId,
-        actorId,
-        `Присоединена поз. ${source.position}`,
-        `${target.qty} ${target.unit}`,
-        sameUnit ? `${target.qty + source.qty} ${target.unit}` : `${target.qty} ${target.unit}`,
-      ),
+      // Обе записи с одним временем: по нему отмена находит пару «источник — цель»
+      { ...reviewChange(source, "merged", actorId, `Объединено с поз. ${target.position}`), at },
+      {
+        ...positionChange(
+          targetId,
+          actorId,
+          `Присоединена поз. ${source.position}`,
+          `${target.qty} ${target.unit}`,
+          sameUnit ? `${summed} ${target.unit}` : `${target.qty} ${target.unit}`,
+        ),
+        at,
+      },
     ],
   }));
   return sameUnit;

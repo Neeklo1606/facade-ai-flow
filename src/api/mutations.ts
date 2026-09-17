@@ -52,8 +52,8 @@ function rollback(queryClient: QueryClient, snapshot: Snapshot | undefined) {
 
 /** Что экран показывает пользователю: слой данных сам уведомлений не рисует */
 export interface MutationNotices {
-  /** Изменение не сохранилось, список возвращён к прежнему виду */
-  onFailed?: () => void;
+  /** Изменение не сохранилось, список возвращён к прежнему виду; error.message — причина от сервера */
+  onFailed?: (error: Error) => void;
   /** «Отменить» ничего не отменила: позицию успели изменить другим действием */
   onNothingUndone?: () => void;
 }
@@ -118,16 +118,16 @@ export function usePositionMutations(notices: MutationNotices = {}) {
         : areas.filter((area) => area !== "positions"),
     );
   };
-  const failed = (snapshot: Snapshot | undefined) => {
+  const failed = (error: Error, snapshot: Snapshot | undefined) => {
     rollback(queryClient, snapshot);
-    notices.onFailed?.();
+    notices.onFailed?.(error);
   };
 
   const confirm = useMutation({
     mutationKey: REVIEW_MUTATION,
     mutationFn: (ids: string[]) => api.positions.confirm(ids),
     onMutate: (ids) => patchPositions(new Set(ids), reviewed("confirmed")),
-    onError: (_error, _ids, snapshot) => failed(snapshot),
+    onError: (error, _ids, snapshot) => failed(error, snapshot),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
@@ -143,7 +143,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
           confidenceBand(item.confidence) === "verified",
         reviewed("confirmed"),
       ),
-    onError: (_error, _revisionId, snapshot) => failed(snapshot),
+    onError: (error, _revisionId, snapshot) => failed(error, snapshot),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
@@ -152,7 +152,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
     mutationFn: (input: CorrectPositionInput) => api.positions.correct(input),
     onMutate: ({ id, ...patch }) =>
       patchPositions(new Set([id]), (item) => ({ ...reviewed("corrected")(item), ...patch })),
-    onError: (_error, _input, snapshot) => failed(snapshot),
+    onError: (error, _input, snapshot) => failed(error, snapshot),
     // Исправленное количество попадает в историю объекта
     onSettled: () => settle([...REVIEW_AREAS, "timeline"]),
   });
@@ -161,7 +161,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
     mutationKey: REVIEW_MUTATION,
     mutationFn: (id: string) => api.positions.exclude(id),
     onMutate: (id) => patchPositions(new Set([id]), reviewed("excluded")),
-    onError: (_error, _id, snapshot) => failed(snapshot),
+    onError: (error, _id, snapshot) => failed(error, snapshot),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
@@ -169,7 +169,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
     mutationKey: REVIEW_MUTATION,
     mutationFn: (id: string) => api.positions.markHeader(id),
     onMutate: (id) => patchPositions(new Set([id]), reviewed("header")),
-    onError: (_error, _id, snapshot) => failed(snapshot),
+    onError: (error, _id, snapshot) => failed(error, snapshot),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
@@ -184,7 +184,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
         reviewedAt: null,
         mergedInto: null,
       })),
-    onError: (_error, _id, snapshot) => failed(snapshot),
+    onError: (error, _id, snapshot) => failed(error, snapshot),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
@@ -208,21 +208,21 @@ export function usePositionMutations(notices: MutationNotices = {}) {
     onSuccess: (undone) => {
       if (undone === 0) notices.onNothingUndone?.();
     },
-    onError: (_error, _input, snapshot) => failed(snapshot),
+    onError: (error, _input, snapshot) => failed(error, snapshot),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
   const merge = useMutation({
     mutationKey: REVIEW_MUTATION,
     mutationFn: (input: MergePositionsInput) => api.positions.merge(input),
-    onError: () => notices.onFailed?.(),
+    onError: (error) => notices.onFailed?.(error),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
   const split = useMutation({
     mutationKey: REVIEW_MUTATION,
     mutationFn: (input: SplitPositionInput) => api.positions.split(input),
-    onError: () => notices.onFailed?.(),
+    onError: (error) => notices.onFailed?.(error),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
@@ -331,9 +331,9 @@ export function useReviewReport(notices: Pick<MutationNotices, "onFailed"> = {})
             : card,
         ),
       ),
-    onError: (_error, _input, snapshot) => {
+    onError: (error, _input, snapshot) => {
       rollback(queryClient, snapshot);
-      notices.onFailed?.();
+      notices.onFailed?.(error);
     },
     onSettled: () => invalidate(queryClient, ["reports"]),
   });

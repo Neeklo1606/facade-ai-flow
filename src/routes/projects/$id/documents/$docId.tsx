@@ -217,9 +217,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   }, [active, list.length]);
 
   const mutations = usePositionMutations({
-    onFailed: () =>
+    onFailed: (error) =>
       toast.error("Изменение не сохранилось", {
-        description: "Список возвращён к прежнему виду.",
+        description: `${error.message} Список возвращён к прежнему виду.`,
       }),
     onNothingUndone: () =>
       toast("Отменить не получилось", {
