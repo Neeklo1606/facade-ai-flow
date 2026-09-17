@@ -223,6 +223,24 @@ export function WidgetGallery() {
             { icon: Truck, label: "В пути", value: "43", delta: worse("−5", "down") },
           ]}
         />
+        <State
+          label="Четыре метрики: капсула справа. При пяти-шести узкая ячейка ставит капсулу к значению"
+          className="w-full items-stretch"
+        >
+          <MetricStrip
+            items={[
+              { icon: FileSpreadsheet, label: "Позиций в спецификации", value: "847", delta: flat },
+              { icon: CircleCheck, label: "Проверено позиций", value: "312", delta: better("+48") },
+              {
+                icon: AlertTriangle,
+                label: "Просроченных ответов",
+                value: "2",
+                delta: worse("+1"),
+              },
+              { icon: Truck, label: "Поставок в пути", value: "43", delta: worse("−5", "down") },
+            ]}
+          />
+        </State>
         <div className="flex flex-wrap gap-x-8 gap-y-4">
           <State label="Проверено выросло — улучшение">
             <DeltaPill delta={better("+48")} />

@@ -61,17 +61,25 @@ export interface MetricStripItemProps {
 
 export function MetricStripItem({ icon: Icon, label, value, delta }: MetricStripItemProps) {
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3">
-      <span className="grid size-10 shrink-0 place-items-center rounded-[var(--r-sm)] bg-surface-2">
-        <Icon className="size-[18px] text-text-2" strokeWidth={1.5} aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[12px] leading-[1.4] text-text-3" title={label}>
-          {label}
+    // Контейнер: в узкой ячейке (5–6 метрик) капсула встаёт рядом со значением, чтобы не резать подпись
+    <div className="@container min-w-0 flex-1">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-[var(--r-sm)] bg-surface-2">
+          <Icon className="size-[18px] text-text-2" strokeWidth={1.5} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[12px] leading-[1.4] text-text-3" title={label}>
+            {label}
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-[26px] leading-[1.15] font-semibold text-text">
+              {value}
+            </span>
+            {delta && <DeltaPill delta={delta} className="@3xs:hidden" />}
+          </div>
         </div>
-        <div className="truncate text-[26px] leading-[1.15] font-semibold text-text">{value}</div>
+        {delta && <DeltaPill delta={delta} className="hidden @3xs:inline-flex" />}
       </div>
-      {delta && <DeltaPill delta={delta} />}
     </div>
   );
 }
