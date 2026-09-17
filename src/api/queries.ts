@@ -8,6 +8,10 @@ import { keys } from "./keys";
 
 /** Как часто спрашивать статус задачи извлечения, пока она идёт */
 const JOB_POLL_MS = 2_000;
+/** Не опрашивать бесконечно зависшую задачу: около 10 минут, дальше — по возвращению на экран */
+const JOB_POLL_LIMIT = 300;
+/** Срок ответа поставщиков («осталось 3 ч») считается от времени сервера — перечитываем раз в минуту */
+const REPLY_DUE_REFRESH_MS = 60_000;
 
 /** Справочники меняются редко: не перезапрашиваем их при каждом монтировании */
 const reference = { staleTime: 5 * 60_000 } as const;
@@ -50,7 +54,10 @@ export const queries = {
       queryFn: () => api.documents.list(projectId ? { projectId } : {}),
       // Пока идёт извлечение, опрашиваем статус задач (P3-4)
       refetchInterval: (query) =>
-        query.state.data?.some((item) => item.job && isActiveJob(item.job)) ? JOB_POLL_MS : false,
+        query.state.data?.some((item) => item.job && isActiveJob(item.job)) &&
+        query.state.dataUpdateCount < JOB_POLL_LIMIT
+          ? JOB_POLL_MS
+          : false,
     }),
   revisions: (documentId: string) =>
     queryOptions({
@@ -62,7 +69,11 @@ export const queries = {
       queryKey: keys.documents.card(revisionId),
       queryFn: () => api.documents.card(revisionId),
       refetchInterval: (query) =>
-        query.state.data?.job && isActiveJob(query.state.data.job) ? JOB_POLL_MS : false,
+        query.state.data?.job &&
+        isActiveJob(query.state.data.job) &&
+        query.state.dataUpdateCount < JOB_POLL_LIMIT
+          ? JOB_POLL_MS
+          : false,
     }),
 
   positions: (input: ListPositionsInput) =>
@@ -118,11 +129,13 @@ export const queries = {
     queryOptions({
       queryKey: keys.procurement.requests(projectId),
       queryFn: () => api.procurement.requests(projectId),
+      refetchInterval: REPLY_DUE_REFRESH_MS,
     }),
   request: (requestId: string) =>
     queryOptions({
       queryKey: keys.procurement.request(requestId),
       queryFn: () => api.procurement.request(requestId),
+      refetchInterval: REPLY_DUE_REFRESH_MS,
     }),
   deliveries: (projectId: string) =>
     queryOptions({

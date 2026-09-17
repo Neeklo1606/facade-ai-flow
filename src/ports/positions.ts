@@ -39,7 +39,12 @@ export const positionFilter = z
 export const listPositionsInput = z
   .object({
     ...positionFilter.innerType().shape,
-    cursor: z.string().nullable().default(null),
+    /** Смещение следующей страницы из nextCursor; только цифры */
+    cursor: z
+      .string()
+      .regex(/^\d{1,9}$/)
+      .nullable()
+      .default(null),
     /** Страница не больше 200 строк: весь список позиций клиенту не отдаётся */
     limit: z.number().int().min(1).max(200).default(100),
     /** Порядок: по номеру позиции в документе или сначала требующие разбора */
@@ -94,7 +99,14 @@ export const idInput = z.object({ id });
 export const correctPositionInput = z.object({
   id,
   projectName: z.string().trim().min(1),
-  qty: z.number().nonnegative(),
+  /** Количество как numeric(14,3): не больше трёх знаков после запятой */
+  qty: z
+    .number()
+    .nonnegative()
+    .max(99_999_999_999)
+    .refine((value) => Math.abs(Math.round(value * 1000) - value * 1000) < 1e-6, {
+      message: "Не больше трёх знаков после запятой",
+    }),
   unit: z.string().trim().min(1),
   characteristics: z.array(characteristic),
 });

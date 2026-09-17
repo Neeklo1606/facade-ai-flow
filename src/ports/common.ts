@@ -35,8 +35,12 @@ export interface Page<T> {
 
 /** Ошибки портов, которые серверная функция превращает в ответ 404, 409, 422 */
 export class NotFoundError extends Error {
+  readonly id: string;
+
   constructor(entity: string, id: string) {
-    super(`${entity} ${id} не найден`);
+    // id в сообщение не кладём: текст уходит пользователю
+    super(`Не найдено: ${entity.toLowerCase()}`);
+    this.id = id;
     this.name = "NotFoundError";
   }
 }

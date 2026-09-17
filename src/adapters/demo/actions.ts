@@ -1,4 +1,5 @@
 import {
+  isActivePosition,
   positionReviewLabel,
   isReadyForRequest,
   isVerifiedPosition,
@@ -15,6 +16,7 @@ import {
 } from "@/contracts";
 import { sheetsOf } from "@/adapters/fixtures";
 import { decisionLink } from "@/domain/timeline";
+import { ConflictError, NotFoundError } from "@/ports";
 import type {
   CorrectPositionInput,
   CreateProjectInput,
@@ -66,6 +68,42 @@ function reviewChange(
   return positionChange(item.id, actorId, action, label(item.review), label(next));
 }
 
+/* ---------- Целостность количества (объединения) ---------- */
+
+/** Позиция в закупке: её количество уже ушло в запросы, менять его задним числом нельзя */
+const inProcurement = (item: ExtractedPosition) =>
+  item.handedOverAt !== null || item.purchase !== "none";
+
+const hasMergedSources = (positions: ExtractedPosition[], id: string) =>
+  positions.some((item) => item.review === "merged" && item.mergedInto === id);
+
+function requirePosition(positions: ExtractedPosition[], id: string) {
+  const item = positions.find((p) => p.id === id);
+  if (!item) throw new NotFoundError("Позиция", id);
+  return item;
+}
+
+/**
+ * Правило объединений: количество цели = её собственное + присоединённые позиции. Поэтому объединённую
+ * позицию нельзя править, а у позиции с присоединёнными нельзя менять количество и единицу, делить
+ * и исключать, пока присоединённые не возвращены на проверку.
+ */
+function assertNotMerged(item: ExtractedPosition) {
+  if (item.review === "merged") {
+    throw new ConflictError(
+      `Поз. ${item.position} объединена с другой позицией — сначала верните её на проверку`,
+    );
+  }
+}
+
+function assertNoMergedSources(positions: ExtractedPosition[], item: ExtractedPosition) {
+  if (hasMergedSources(positions, item.id)) {
+    throw new ConflictError(
+      `К поз. ${item.position} присоединены другие позиции — сначала верните их на проверку`,
+    );
+  }
+}
+
 export function confirm(ids: string[], actorId: string) {
   const wanted = new Set(ids);
   const targets = getState().positions.filter(
@@ -81,8 +119,11 @@ export function confirm(ids: string[], actorId: string) {
 }
 
 export function correct({ id, ...patch }: CorrectPositionInput, actorId: string) {
-  const item = getState().positions.find((p) => p.id === id);
-  if (!item) return;
+  const { positions } = getState();
+  const item = requirePosition(positions, id);
+  assertNotMerged(item);
+  patch = { ...patch, qty: round3(patch.qty) };
+  if (item.qty !== patch.qty || item.unit !== patch.unit) assertNoMergedSources(positions, item);
   const changes: PositionChange[] = [];
   const events: ProjectEvent[] = [];
   if (item.qty !== patch.qty || item.unit !== patch.unit) {
@@ -142,8 +183,10 @@ export function setReview(
   action: string,
   actorId: string,
 ) {
-  const item = getState().positions.find((p) => p.id === id);
-  if (!item) return;
+  const { positions } = getState();
+  const item = requirePosition(positions, id);
+  assertNotMerged(item);
+  assertNoMergedSources(positions, item);
   patchPositions(
     new Set([id]),
     (p) => ({ ...p, review, reviewedBy: actorId, reviewedAt: tick() }),
@@ -154,38 +197,43 @@ export function setReview(
 type Patches = Map<string, Partial<ExtractedPosition>>;
 
 /**
- * Разъединить объединённую позицию: вычесть её количество из цели. Возможно, только если цель
- * не объединена дальше и её количество — ровно то, что записано в журнал при объединении.
- * null — разъединять нельзя, количество цели с тех пор меняли.
+ * Разъединить объединённую позицию: вычесть её количество из цели. Количество цели с присоединёнными
+ * менять нельзя (см. assertNoMergedSources), поэтому вычитание всегда возвращает цель к прежнему.
+ * Строка — причина, по которой разъединять нельзя.
  */
 function unmerge(
   item: ExtractedPosition,
   current: (id: string) => ExtractedPosition | undefined,
   changes: PositionChange[],
   actorId: string,
-): { patches: Patches; changes: PositionChange[] } | null {
+): { patches: Patches; changes: PositionChange[] } | string {
   const target = item.mergedInto ? current(item.mergedInto) : undefined;
-  if (!target || target.review === "merged") return null;
+  if (!target) return "позиции, с которой объединяли, больше нет";
+  if (target.review === "merged") {
+    return `поз. ${target.position} сама объединена дальше — сначала верните её на проверку`;
+  }
+  if (inProcurement(target)) {
+    return `поз. ${target.position} уже передана в закупку — её количество ушло в запросы`;
+  }
   // Запись на источнике и на цели сделаны одним действием — в одну и ту же секунду
   const merged = [...changes]
     .reverse()
     .find((change) => change.positionId === item.id && change.after === label("merged"));
   const joined = merged
-    ? [...changes]
-        .reverse()
-        .find(
-          (change) =>
-            change.positionId === target.id &&
-            change.at === merged.at &&
-            change.action === `Присоединена поз. ${item.position}`,
-        )
+    ? changes.find(
+        (change) =>
+          change.positionId === target.id &&
+          change.at === merged.at &&
+          change.action === `Присоединена поз. ${item.position}`,
+      )
     : undefined;
-  if (!joined || joined.after !== `${target.qty} ${target.unit}`) return null;
+  if (!joined) return "в журнале нет записи об объединении";
   const patches: Patches = new Map();
   const result: PositionChange[] = [];
+  // Единицы разные — при объединении количество не складывали, вычитать нечего
   if (joined.before !== joined.after) {
     const qty = round3(target.qty - item.qty);
-    if (qty < 0) return null;
+    if (qty < 0) return `у поз. ${target.position} меньше, чем присоединяли`;
     patches.set(target.id, { qty });
     result.push(
       positionChange(
@@ -202,16 +250,18 @@ function unmerge(
 
 /**
  * Вернуть исключённую, объединённую или заголовок обратно на проверку. Объединённую — вместе
- * с вычитанием её количества из цели; если цель с тех пор меняли, возвращать нельзя: false.
+ * с вычитанием её количества из цели; если разъединить нельзя — ConflictError с причиной.
  */
 export function reopen(id: string, actorId: string) {
   const s = getState();
-  const item = s.positions.find((p) => p.id === id);
-  if (!item) return true;
+  const item = requirePosition(s.positions, id);
   const byId = new Map(s.positions.map((p) => [p.id, p]));
-  const split =
+  const result =
     item.review === "merged" ? unmerge(item, (key) => byId.get(key), s.changes, actorId) : null;
-  if (item.review === "merged" && !split) return false;
+  if (typeof result === "string") {
+    throw new ConflictError(`Вернуть поз. ${item.position} нельзя: ${result}`);
+  }
+  const split = result;
   update((prev) => ({
     ...prev,
     positions: prev.positions.map((p) => {
@@ -248,22 +298,27 @@ export function undoReview(items: UndoReviewInput["items"], actorId: string) {
     return item ? { ...item, ...patches.get(id) } : undefined;
   };
   const touched = new Set<string>();
+  // Один проход по журналу вместо поиска на каждую позицию: последняя запись «после» по позиции
+  const lastByPositionAndAfter = new Map<string, PositionChange>();
+  for (const change of s.changes) {
+    if (change.after !== null)
+      lastByPositionAndAfter.set(`${change.positionId}|${change.after}`, change);
+  }
 
   for (const { id, from, to } of items) {
     const item = current(id);
     if (!item || touched.has(id) || from === to || item.review !== from) continue;
     // Последняя смена решения этой позиции должна быть именно «to → from»
-    const last = [...s.changes]
-      .reverse()
-      .find((change) => change.positionId === id && change.after === label(from));
+    const last = lastByPositionAndAfter.get(`${id}|${label(from)}`);
     if (!last || last.before !== label(to)) continue;
     const inProcurement = item.handedOverAt !== null || item.purchase !== "none";
     if (inProcurement && !isVerifiedPosition({ ...item, review: to })) continue;
 
-    let split: ReturnType<typeof unmerge> = null;
+    let split: Exclude<ReturnType<typeof unmerge>, string> | null = null;
     if (from === "merged") {
-      split = unmerge(item, current, s.changes, actorId);
-      if (!split) continue;
+      const result = unmerge(item, current, s.changes, actorId);
+      if (typeof result === "string") continue;
+      split = result;
     }
 
     touched.add(id);
@@ -296,9 +351,19 @@ export function undoReview(items: UndoReviewInput["items"], actorId: string) {
 
 export function merge(sourceId: string, targetId: string, actorId: string) {
   const { positions } = getState();
-  const source = positions.find((p) => p.id === sourceId);
-  const target = positions.find((p) => p.id === targetId);
-  if (!source || !target) return false;
+  if (sourceId === targetId) throw new ConflictError("Позицию нельзя объединить саму с собой");
+  const source = requirePosition(positions, sourceId);
+  const target = requirePosition(positions, targetId);
+  for (const item of [source, target]) {
+    if (!isActivePosition(item)) {
+      throw new ConflictError(
+        `Поз. ${item.position} не действует (исключена, объединена или заголовок) — объединять нельзя`,
+      );
+    }
+    if (inProcurement(item)) {
+      throw new ConflictError(`Поз. ${item.position} уже передана в закупку — объединять нельзя`);
+    }
+  }
   const sameUnit = source.unit === target.unit;
   const at = tick();
   const summed = round3(target.qty + source.qty);
@@ -336,12 +401,21 @@ export function merge(sourceId: string, targetId: string, actorId: string) {
 }
 
 export function split(id: string, firstQty: number, actorId: string) {
-  const item = getState().positions.find((p) => p.id === id);
-  if (!item || firstQty <= 0 || firstQty >= item.qty) return;
-  const secondQty = item.qty - firstQty;
+  const { positions } = getState();
+  const item = requirePosition(positions, id);
+  assertNotMerged(item);
+  assertNoMergedSources(positions, item);
+  if (inProcurement(item)) {
+    throw new ConflictError(`Поз. ${item.position} уже передана в закупку — делить нельзя`);
+  }
+  firstQty = round3(firstQty);
+  if (firstQty <= 0 || firstQty >= item.qty) {
+    throw new ConflictError("Первая часть должна быть больше нуля и меньше количества позиции");
+  }
+  const secondQty = round3(item.qty - firstQty);
   const copy: ExtractedPosition = {
     ...item,
-    id: `${item.id}-split`,
+    id: liveId(`${item.id}-part`),
     position: `${item.position}.2`,
     qty: secondQty,
     review: "pending",

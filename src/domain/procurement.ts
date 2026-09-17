@@ -5,7 +5,7 @@ import type {
   SupplierOffer,
   SupplyRequest,
 } from "@/contracts";
-import { fmtMoney, fmtNum } from "@/lib/format";
+import { fmtMoney, fmtNum } from "@/shared/number-format";
 
 /** Сколько получателей запроса ответили */
 export function answeredCount(

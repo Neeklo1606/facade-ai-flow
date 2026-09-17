@@ -5,8 +5,9 @@
  */
 export type DataSource = "demo" | "server";
 
+// Через точку, а не через скобки: сборка подставляет значение константой и вырезает ветку другого режима
 export const dataSource: DataSource =
-  import.meta.env["VITE_DATA_SOURCE"] === "server" ? "server" : "demo";
+  import.meta.env.VITE_DATA_SOURCE === "server" ? "server" : "demo";
 
 /** Сотрудник, от имени которого выполняются действия до появления сессии (P4-2) */
 export const CURRENT_USER_ID = "e-sokolov";

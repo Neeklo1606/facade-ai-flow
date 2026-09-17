@@ -11,6 +11,15 @@ class ResponseContractError extends Error {
   }
 }
 
+/**
+ * Проверка входа серверной функции. Схему передаём функцией, а не объектом: объект zod TanStack проверяет
+ * через Standard Schema и бросает обычный Error с текстом ошибок схемы — middleware не отличил бы его
+ * от сбоя сервера. Здесь вылетает ZodError, и ответ — 400 без деталей.
+ */
+export function input<S extends ZodTypeAny>(schema: S) {
+  return (data: z.input<S>): z.output<S> => schema.parse(data);
+}
+
 /** Проверка ответа серверной функции схемой контракта */
 export function respond<S extends ZodTypeAny>(schema: S, value: unknown): z.infer<S> {
   const parsed = schema.safeParse(value);

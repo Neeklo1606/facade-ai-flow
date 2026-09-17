@@ -37,7 +37,11 @@ import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { processingStatusLabel as docStatusLabel, type ExtractedPosition } from "@/contracts";
+import {
+  isActivePosition,
+  processingStatusLabel as docStatusLabel,
+  type ExtractedPosition,
+} from "@/contracts";
 import { prefetch } from "@/api/prefetch";
 
 export const Route = createFileRoute("/projects/$id/documents/$docId")({
@@ -257,6 +261,14 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       const target = find(id);
       const sourceItem = find(source);
       if (!target || !sourceItem) return;
+      // Объединять можно только с действующей позицией: исключённые, объединённые и заголовки не цели
+      if (!isActivePosition(target)) {
+        toast("С этой позицией объединить нельзя", {
+          description:
+            "Выберите действующую позицию — не исключённую, не объединённую и не заголовок.",
+        });
+        return;
+      }
       setMergeSourceId(null);
       setActiveId(id);
       m.merge.mutate(
@@ -283,6 +295,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       const item = find(id);
       if (!item) return;
       setActiveId(id);
+      // У недействующей строки (исключена, объединена, заголовок) есть только «Вернуть» и переход к листу:
+      // клавиши E, X и Enter на ней ничего не делают
+      if (!isActivePosition(item) && action !== "restore" && action !== "source") return;
       switch (action) {
         case "confirm":
           if (item.review !== "pending") return;

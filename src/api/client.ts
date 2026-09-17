@@ -29,7 +29,13 @@ import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 // Демо-адаптер с фикстурами грузится только в демо и только по первому обращению:
 // в рабочем режиме его нет в стартовом бандле вкладки
 let demoModule: Promise<typeof import("@/adapters/demo")> | null = null;
-const demoAdapter = () => (demoModule ??= import("@/adapters/demo"));
+// Условие прямо здесь, а не через dataSource: сборка сворачивает сравнение констант и в режиме server
+// выбрасывает import() вместе с чанком фикстур
+const demoAdapter = () =>
+  (demoModule ??=
+    import.meta.env.VITE_DATA_SOURCE === "server"
+      ? Promise.reject(new Error("Демо-адаптер недоступен в рабочем режиме"))
+      : import("@/adapters/demo"));
 let demo: Promise<Repositories> | null = null;
 const local = () =>
   (demo ??= demoAdapter().then((module) => module.createDemoRepositories({ persist: true })));

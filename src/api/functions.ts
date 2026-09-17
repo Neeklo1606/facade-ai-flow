@@ -46,7 +46,7 @@ import {
   timelineList,
   uploadRevisionInput,
 } from "@/ports";
-import { respond } from "./errors";
+import { input, respond } from "./errors";
 import { serverActor, serverRepositories } from "./server-repositories";
 
 /**
@@ -81,47 +81,47 @@ export const counterpartiesFn = createServerFn({ method: "GET" }).handler(async 
 /* ---------- Объекты ---------- */
 
 export const projectsFn = createServerFn({ method: "GET" })
-  .validator(listProjectsInput)
+  .validator(input(listProjectsInput))
   .handler(async ({ data }) => respond(projectList, await repos().projects.list(data)));
 
 export const projectCardFn = createServerFn({ method: "GET" })
-  .validator(byId)
+  .validator(input(byId))
   .handler(async ({ data }) =>
     respond(projectCard.nullable(), await repos().projects.card(data.id)),
   );
 
 export const createProjectFn = createServerFn({ method: "POST" })
-  .validator(createProjectInput)
+  .validator(input(createProjectInput))
   .handler(async ({ data }) => respond(projectView, await repos().projects.create(data, actor())));
 
 /* ---------- Документы ---------- */
 
 export const documentsFn = createServerFn({ method: "GET" })
-  .validator(listDocumentsInput)
+  .validator(input(listDocumentsInput))
   .handler(async ({ data }) =>
     respond(z.array(documentListItem), await repos().documents.list(data)),
   );
 
 export const revisionsFn = createServerFn({ method: "GET" })
-  .validator(byId)
+  .validator(input(byId))
   .handler(async ({ data }) =>
     respond(z.array(documentListItem), await repos().documents.revisions(data.id)),
   );
 
 export const documentCardFn = createServerFn({ method: "GET" })
-  .validator(byId)
+  .validator(input(byId))
   .handler(async ({ data }) =>
     respond(documentCard.nullable(), await repos().documents.card(data.id)),
   );
 
 export const uploadFn = createServerFn({ method: "POST" })
-  .validator(uploadRevisionInput)
+  .validator(input(uploadRevisionInput))
   .handler(async ({ data }) =>
     respond(projectDocument, await repos().documents.upload(data, actor())),
   );
 
 export const revisionChangesFn = createServerFn({ method: "GET" })
-  .validator(listChangesInput)
+  .validator(input(listChangesInput))
   .handler(async ({ data }) =>
     respond(z.array(revisionChangeView), await repos().documents.changes(data)),
   );
@@ -129,86 +129,86 @@ export const revisionChangesFn = createServerFn({ method: "GET" })
 /* ---------- Позиции ---------- */
 
 export const positionsFn = createServerFn({ method: "GET" })
-  .validator(listPositionsInput)
+  .validator(input(listPositionsInput))
   .handler(async ({ data }) => respond(positionPage, await repos().positions.list(data)));
 
 export const positionFacetsFn = createServerFn({ method: "GET" })
-  .validator(positionFilter)
+  .validator(input(positionFilter))
   .handler(async ({ data }) => respond(positionFacets, await repos().positions.facets(data)));
 
 export const positionSelectionFn = createServerFn({ method: "GET" })
-  .validator(positionFilter)
+  .validator(input(positionFilter))
   .handler(async ({ data }) => respond(positionSelection, await repos().positions.selection(data)));
 
 export const positionFn = createServerFn({ method: "GET" })
-  .validator(byId)
+  .validator(input(byId))
   .handler(async ({ data }) =>
     respond(extractedPosition.nullable(), await repos().positions.item(data.id)),
   );
 
 export const confirmAutoVerifiedFn = createServerFn({ method: "POST" })
-  .validator(handOverInput)
+  .validator(input(handOverInput))
   .handler(async ({ data }) =>
     respond(z.array(z.string()), await repos().positions.confirmAutoVerified(data, actor())),
   );
 
 export const positionHistoryFn = createServerFn({ method: "GET" })
-  .validator(byId)
+  .validator(input(byId))
   .handler(async ({ data }) => respond(positionHistory, await repos().positions.history(data.id)));
 
 export const confirmFn = createServerFn({ method: "POST" })
-  .validator(idsInput)
+  .validator(input(idsInput))
   .handler(async ({ data }) =>
     respond(z.array(z.string()), await repos().positions.confirm(data, actor())),
   );
 
 export const correctFn = createServerFn({ method: "POST" })
-  .validator(correctPositionInput)
+  .validator(input(correctPositionInput))
   .handler(async ({ data }) => {
     await repos().positions.correct(data, actor());
     return ok.parse({ ok: true });
   });
 
 export const excludeFn = createServerFn({ method: "POST" })
-  .validator(idInput)
+  .validator(input(idInput))
   .handler(async ({ data }) => {
     await repos().positions.exclude(data, actor());
     return ok.parse({ ok: true });
   });
 
 export const markHeaderFn = createServerFn({ method: "POST" })
-  .validator(idInput)
+  .validator(input(idInput))
   .handler(async ({ data }) => {
     await repos().positions.markHeader(data, actor());
     return ok.parse({ ok: true });
   });
 
 export const reopenFn = createServerFn({ method: "POST" })
-  .validator(idInput)
+  .validator(input(idInput))
   .handler(async ({ data }) => {
     await repos().positions.reopen(data, actor());
     return ok.parse({ ok: true });
   });
 
 export const undoReviewFn = createServerFn({ method: "POST" })
-  .validator(undoReviewInput)
+  .validator(input(undoReviewInput))
   .handler(async ({ data }) =>
     respond(z.number().int().nonnegative(), await repos().positions.undoReview(data, actor())),
   );
 
 export const mergeFn = createServerFn({ method: "POST" })
-  .validator(mergePositionsInput)
+  .validator(input(mergePositionsInput))
   .handler(async ({ data }) => respond(z.boolean(), await repos().positions.merge(data, actor())));
 
 export const splitFn = createServerFn({ method: "POST" })
-  .validator(splitPositionInput)
+  .validator(input(splitPositionInput))
   .handler(async ({ data }) => {
     await repos().positions.split(data, actor());
     return ok.parse({ ok: true });
   });
 
 export const handOverFn = createServerFn({ method: "POST" })
-  .validator(handOverInput)
+  .validator(input(handOverInput))
   .handler(async ({ data }) =>
     respond(z.number().int(), await repos().positions.handOver(data, actor())),
   );
@@ -228,7 +228,7 @@ export const suppliersFn = createServerFn({ method: "GET" }).handler(async () =>
 );
 
 export const verifyContactFn = createServerFn({ method: "POST" })
-  .validator(z.object({ supplierId: z.string().min(1) }))
+  .validator(input(z.object({ supplierId: z.string().min(1) })))
   .handler(async ({ data }) => {
     await repos().procurement.verifyContact(data, actor());
     return ok.parse({ ok: true });
@@ -239,37 +239,37 @@ export const templatesFn = createServerFn({ method: "GET" }).handler(async () =>
 );
 
 export const requestsFn = createServerFn({ method: "GET" })
-  .validator(projectId)
+  .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(z.array(requestSummary), await repos().procurement.requests(data.projectId)),
   );
 
 export const requestCardFn = createServerFn({ method: "GET" })
-  .validator(byId)
+  .validator(input(byId))
   .handler(async ({ data }) =>
     respond(requestCard.nullable(), await repos().procurement.request(data.id)),
   );
 
 export const createRequestFn = createServerFn({ method: "POST" })
-  .validator(createRequestInput)
+  .validator(input(createRequestInput))
   .handler(async ({ data }) =>
     respond(createRequestResult, await repos().procurement.createRequest(data, actor())),
   );
 
 export const remindFn = createServerFn({ method: "POST" })
-  .validator(z.object({ requestId: z.string().min(1) }))
+  .validator(input(z.object({ requestId: z.string().min(1) })))
   .handler(async ({ data }) =>
     respond(remindResult, await repos().procurement.remind(data, actor())),
   );
 
 export const chooseSupplierFn = createServerFn({ method: "POST" })
-  .validator(chooseSupplierInput)
+  .validator(input(chooseSupplierInput))
   .handler(async ({ data }) =>
     respond(projectDecision, await repos().procurement.chooseSupplier(data, actor())),
   );
 
 export const deliveriesFn = createServerFn({ method: "GET" })
-  .validator(projectId)
+  .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(deliveryList, await repos().procurement.deliveries(data.projectId)),
   );
@@ -277,36 +277,36 @@ export const deliveriesFn = createServerFn({ method: "GET" })
 /* ---------- Площадка и история ---------- */
 
 export const reportsFn = createServerFn({ method: "GET" })
-  .validator(projectId)
+  .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(z.array(reportCard), await repos().reports.list(data.projectId)),
   );
 
 export const reviewReportFn = createServerFn({ method: "POST" })
-  .validator(reviewReportInput)
+  .validator(input(reviewReportInput))
   .handler(async ({ data }) => {
     await repos().reports.review(data, actor());
     return ok.parse({ ok: true });
   });
 
 export const sourceFn = createServerFn({ method: "GET" })
-  .validator(byId)
+  .validator(input(byId))
   .handler(async ({ data }) =>
     respond(sourceCard.nullable(), await repos().reports.source(data.id)),
   );
 
 export const timelineFn = createServerFn({ method: "GET" })
-  .validator(projectId)
+  .validator(input(projectId))
   .handler(async ({ data }) => respond(timelineList, await repos().timeline.list(data.projectId)));
 
 export const decisionsFn = createServerFn({ method: "GET" })
-  .validator(projectId)
+  .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(decisionList, await repos().timeline.decisions(data.projectId)),
   );
 
 export const pendingDecisionsFn = createServerFn({ method: "GET" })
-  .validator(projectId)
+  .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(pendingList, await repos().timeline.pending(data.projectId)),
   );
