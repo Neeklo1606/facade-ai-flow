@@ -1,5 +1,4 @@
 import { rfqStatusLabel, type RfqStatus } from "@/contracts";
-export { compareOffers, type CellCalc, type ColumnCalc } from "@/domain/procurement";
 
 export type { RfqStatus } from "@/contracts";
 

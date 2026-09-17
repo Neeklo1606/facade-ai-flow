@@ -56,15 +56,69 @@ export const requestSummary = z.object({
 
 export const recipientView = z.object({ supplierId: id, remindedAt: timestampSchema.nullable() });
 
+const money = z.number().int();
+
+/** Ячейка сравнения: строка запроса у одного поставщика. Суммы в копейках */
+export const comparisonCell = z.object({
+  price: z.number().nonnegative(),
+  qty: z.number().nonnegative(),
+  amount: money,
+  delivery: money,
+  vat: money,
+  total: money,
+  leadTimeDays: z.number().int().nonnegative(),
+  availableQty: z.number().nonnegative(),
+  shortage: z.boolean(),
+  deviation: z.string().nullable(),
+  sourceId: id.nullable(),
+  location: z.string(),
+  name: z.string(),
+});
+
+/** Колонка сравнения: итог поставщика по запросу */
+export const comparisonColumn = z.object({
+  supplierId: id,
+  offerId: id.nullable(),
+  receivedAt: timestampSchema.nullable(),
+  /** Ключ — id строки запроса; строки, на которые поставщик не ответил, отсутствуют */
+  cells: z.record(comparisonCell),
+  goods: money,
+  deliveryCost: money,
+  vatPct: z.number().nonnegative(),
+  subtotal: money,
+  vat: money,
+  total: money,
+  complete: z.boolean(),
+  deviations: z.number().int().nonnegative(),
+  maxLeadTime: z.number().int().nonnegative(),
+});
+
+/** Сравнение предложений: считается на сервере (P3-1), экран только показывает */
+export const offerComparison = z.object({
+  columns: z.array(comparisonColumn),
+  answered: z.number().int().nonnegative(),
+  bestSupplierId: id.nullable(),
+});
+
 export const requestCard = z.object({
   summary: requestSummary,
   recipients: z.array(recipientView),
   offers: z.array(supplierOffer),
   lines: z.array(offerLine),
+  comparison: offerComparison,
   decision: projectDecision.nullable(),
 });
 
-export const recordDecisionInput = projectDecision.omit({ id: true, approvedAt: true, link: true });
+/**
+ * Выбор поставщика по запросу. Требование, варианты, цены и основание решения сервер собирает сам
+ * из запроса и сравнения; от формы — только выбор, причина и кто согласовал.
+ */
+export const chooseSupplierInput = z.object({
+  requestId: id,
+  supplierId: id,
+  reason: z.string().trim().min(15).max(2000),
+  approvedBy: id,
+});
 
 export const remindResult = z.object({ reminded: z.array(id) });
 export const templateList = z.array(emailTemplates);
@@ -72,7 +126,10 @@ export const deliveryList = z.array(delivery);
 
 export type CreateRequestInput = z.infer<typeof createRequestInput>;
 export type CreateRequestResult = z.infer<typeof createRequestResult>;
-export type RecordDecisionInput = z.infer<typeof recordDecisionInput>;
+export type ChooseSupplierInput = z.infer<typeof chooseSupplierInput>;
+export type OfferComparison = z.infer<typeof offerComparison>;
+export type ComparisonColumn = z.infer<typeof comparisonColumn>;
+export type ComparisonCell = z.infer<typeof comparisonCell>;
 export type RequestSummary = z.infer<typeof requestSummary>;
 
 export interface SupplierListItem {
@@ -85,6 +142,7 @@ export interface RequestCard {
   recipients: { supplierId: string; remindedAt: string | null }[];
   offers: SupplierOffer[];
   lines: OfferLine[];
+  comparison: OfferComparison;
   decision: ProjectDecision | null;
 }
 
@@ -104,8 +162,11 @@ export interface ProcurementPort {
   createRequest(input: CreateRequestInput, actor: Actor): Promise<CreateRequestResult>;
   /** Напоминает поставщикам без ответа; возвращает их id */
   remind(input: { requestId: string }, actor: Actor): Promise<{ reminded: string[] }>;
-  /** Решение по запросу одно: повтор — ConflictError. Позиции переходят в `supplier_selected` */
-  recordDecision(input: RecordDecisionInput, actor: Actor): Promise<ProjectDecision>;
+  /**
+   * Фиксирует выбор поставщика. Решение по запросу одно: повтор — ConflictError; поставщик без
+   * предложения — ConflictError. Позиции переходят в `supplier_selected`
+   */
+  chooseSupplier(input: ChooseSupplierInput, actor: Actor): Promise<ProjectDecision>;
 
   deliveries(projectId: string): Promise<Delivery[]>;
 }

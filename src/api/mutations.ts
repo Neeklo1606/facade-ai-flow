@@ -6,12 +6,12 @@ import {
 } from "@tanstack/react-query";
 import type { ExtractedPosition } from "@/contracts";
 import type {
+  ChooseSupplierInput,
   CorrectPositionInput,
   CreateProjectInput,
   CreateRequestInput,
   MergePositionsInput,
   Page,
-  RecordDecisionInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -241,10 +241,10 @@ export function useRemindSuppliers() {
   });
 }
 
-export function useRecordDecision() {
+export function useChooseSupplier() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: RecordDecisionInput) => api.procurement.recordDecision(input),
+    mutationFn: (input: ChooseSupplierInput) => api.procurement.chooseSupplier(input),
     // reports: карточка источника показывает решения, принятые на его основании
     onSettled: () => invalidate(queryClient, [...PROCUREMENT_AREAS, "reports"]),
   });

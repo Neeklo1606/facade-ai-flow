@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, BellRing, Crown, Gavel, Scale } from "lucide-react";
 import {
@@ -17,20 +17,15 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
-import {
-  compareOffers,
-  itemsSummary,
-  rfqStatusMeta,
-  type CellCalc,
-  type ColumnCalc,
-} from "@/lib/procurement";
+import { itemsSummary, rfqStatusMeta } from "@/lib/procurement";
+import type { ComparisonCell as CellCalc, ComparisonColumn as ColumnCalc } from "@/api/types";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDateTime, fmtDue, fmtMoney, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type SupplyRequest } from "@/contracts";
 import { useDirectory } from "@/api/directory";
-import { useRecordDecision, useRemindSuppliers } from "@/api/mutations";
+import { useChooseSupplier, useRemindSuppliers } from "@/api/mutations";
 import { prefetch } from "@/api/prefetch";
 
 export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
@@ -59,20 +54,14 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const { rfqId } = Route.useParams();
   const navigate = useNavigate();
   const cardQuery = useQuery(queries.request(rfqId));
-  const recordDecision = useRecordDecision();
+  const chooseSupplier = useChooseSupplier();
   const remind = useRemindSuppliers();
   const card = cardQuery.data?.summary.request.projectId === project.id ? cardQuery.data : null;
   const request = card?.summary.request ?? null;
   const [decisionOpen, setDecisionOpen] = useState(false);
   const [source, setSource] = useState<{ id: string; fragment: string } | null>(null);
 
-  const calc = useMemo(
-    () =>
-      card
-        ? compareOffers({ offers: card.offers, offerLines: card.lines }, card.summary.request)
-        : null,
-    [card],
-  );
+  const calc = card?.comparison ?? null;
   const pending = card?.summary.awaiting ?? [];
   const canRemind = card
     ? card.summary.request.sentTo.length - card.summary.answered - card.summary.awaiting.length
@@ -118,31 +107,15 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const due = meta ? fmtDue(meta.replyDueAt, now) : null;
 
   function save(input: DecisionInput) {
-    if (!request || !calc) return;
-    const chosen = calc.columns.find((c) => c.supplierId === input.supplierId)!;
+    if (!request) return;
     const supplier = counterpartyById(input.supplierId)?.name ?? "";
-    recordDecision.mutate(
+    // Требование, варианты и цены решения сервер собирает сам из запроса и сравнения
+    chooseSupplier.mutate(
       {
-        projectId: project.id,
-        kind: "supplier",
         requestId: request.id,
         supplierId: input.supplierId,
-        title: `${itemsSummary(request.items)} — «${supplier}»`,
-        requirement: request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join("; "),
-        problem: `Получено ${calc.answered} ${calc.answered === 1 ? "предложение" : "предложения"} из ${request.sentTo.length}; цены и сроки различаются${calc.columns.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
-        options: calc.columns
-          .filter((c) => c.offerId)
-          .map(
-            (c) =>
-              `«${counterpartyById(c.supplierId)?.name}» — ${fmtMoney(c.total)} с НДС и доставкой, до ${c.maxLeadTime} дн.${c.deviations ? `, отклонений: ${c.deviations}` : ""}`,
-          ),
-        choice: `«${supplier}», ${fmtMoney(chosen.total)}`,
         reason: input.reason,
         approvedBy: input.approvedBy,
-        reportId: null,
-        materialFamily: null,
-        basisLabel: `Письма поставщиков по запросу ${request.number}`,
-        basisSourceId: [...chosen.cells.values()][0]?.sourceId ?? null,
       },
       {
         onSuccess: (record) =>
@@ -288,14 +261,14 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         <DesktopMatrix
           request={request}
           columns={calc.columns}
-          bestId={calc.best?.supplierId ?? null}
+          bestId={calc.bestSupplierId}
           decidedId={decision?.supplierId ?? null}
           onSource={setSource}
         />
         <MobileMatrix
           request={request}
           columns={calc.columns}
-          bestId={calc.best?.supplierId ?? null}
+          bestId={calc.bestSupplierId}
           decidedId={decision?.supplierId ?? null}
           onSource={setSource}
         />
@@ -318,7 +291,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         open={decisionOpen}
         onOpenChange={setDecisionOpen}
         columns={calc.columns}
-        bestSupplierId={calc.best?.supplierId ?? null}
+        bestSupplierId={calc.bestSupplierId}
         onSave={save}
       />
       {source && (
@@ -451,7 +424,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
                 </p>
               </th>
               {columns.map((c) => {
-                const cell = c.cells.get(item.id);
+                const cell = c.cells[item.id];
                 const warn = cell && (cell.deviation || cell.shortage);
                 return (
                   <td
@@ -503,8 +476,8 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
                       {fmtMoney(c.total)}
                     </p>
                     <p className="tnum mt-1 text-caption text-text-muted">
-                      товар {fmtMoney(c.subtotal - c.deliveryCost)} · доставка{" "}
-                      {fmtMoney(c.deliveryCost)} · НДС {fmtMoney(c.vat)}
+                      товар {fmtMoney(c.goods)} · доставка {fmtMoney(c.deliveryCost)} · НДС{" "}
+                      {fmtMoney(c.vat)}
                     </p>
                     {!c.complete && (
                       <p className="mt-1 text-caption text-warn">Предложены не все позиции</p>
@@ -572,7 +545,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
           </header>
           <ul className="divide-y divide-border">
             {columns.map((c) => {
-              const cell = c.cells.get(item.id);
+              const cell = c.cells[item.id];
               return (
                 <li
                   key={c.supplierId}

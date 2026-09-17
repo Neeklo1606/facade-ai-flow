@@ -5,6 +5,7 @@ import type {
   SupplierOffer,
   SupplyRequest,
 } from "@/contracts";
+import { fmtMoney, fmtNum } from "@/lib/format";
 
 /** Сколько получателей запроса ответили */
 export function answeredCount(
@@ -67,9 +68,12 @@ export interface ColumnCalc {
   offerId: string | null;
   receivedAt: string | null;
   /** Ключ — id строки запроса */
-  cells: Map<string, CellCalc>;
+  cells: Record<string, CellCalc>;
+  /** Товар без доставки и НДС */
+  goods: number;
   deliveryCost: number;
   vatPct: number;
+  /** Товар и доставка без НДС */
   subtotal: number;
   vat: number;
   total: number;
@@ -81,7 +85,7 @@ export interface ColumnCalc {
 /**
  * Сравнение предложений по запросу. Доставка распределяется по строкам пропорционально сумме,
  * НДС считается на товар и доставку, итог колонки — всё вместе. Суммы в копейках.
- * Одна реализация для адаптеров и интерфейса (P3-1 переносит вызов на сервер).
+ * Считается в адаптере и приходит в карточке запроса: экраны деньги не считают (P3-1).
  */
 export function compareOffers(
   s: { offers: SupplierOffer[]; offerLines: OfferLine[] },
@@ -94,7 +98,8 @@ export function compareOffers(
       supplierId,
       offerId: null,
       receivedAt: null,
-      cells: new Map(),
+      cells: {},
+      goods: 0,
       deliveryCost: 0,
       vatPct: 20,
       subtotal: 0,
@@ -113,11 +118,11 @@ export function compareOffers(
       return line ? [{ item, line, amount: Math.round(line.price * item.qty) }] : [];
     });
     const goods = amounts.reduce((acc, a) => acc + a.amount, 0);
-    const cells = new Map<string, CellCalc>();
+    const cells: Record<string, CellCalc> = {};
     for (const { item, line, amount } of amounts) {
       const delivery = goods ? Math.round((deliveryCost * amount) / goods) : 0;
       const vat = Math.round(((amount + delivery) * vatPct) / 100);
-      cells.set(item.id, {
+      cells[item.id] = {
         price: line.price,
         qty: item.qty,
         amount,
@@ -131,23 +136,25 @@ export function compareOffers(
         sourceId: line.sourceId ?? offer.sourceId,
         location: line.location,
         name: line.name,
-      });
+      };
     }
     const subtotal = goods + deliveryCost;
+    const list = Object.values(cells);
     const vat = Math.round((subtotal * vatPct) / 100);
     return {
       supplierId,
       offerId: offer.id,
       receivedAt: offer.receivedAt,
       cells,
+      goods,
       deliveryCost,
       vatPct,
       subtotal,
       vat,
       total: subtotal + vat,
-      complete: cells.size === request.items.length,
-      deviations: [...cells.values()].filter((c) => c.deviation || c.shortage).length,
-      maxLeadTime: Math.max(0, ...[...cells.values()].map((c) => c.leadTimeDays)),
+      complete: list.length === request.items.length,
+      deviations: list.filter((c) => c.deviation || c.shortage).length,
+      maxLeadTime: Math.max(0, ...list.map((c) => c.leadTimeDays)),
     };
   });
 
@@ -157,5 +164,48 @@ export function compareOffers(
     (acc, c) => (!acc || c.total < acc.total ? c : acc),
     null,
   );
-  return { columns, answered: answered.length, best };
+  return { columns, answered: answered.length, bestSupplierId: best?.supplierId ?? null };
+}
+
+export type OfferComparison = ReturnType<typeof compareOffers>;
+
+/**
+ * Решение «выбор поставщика»: требование, варианты и выбор собираются из запроса и сравнения,
+ * а не из формы — в истории остаются те цифры, которые видел сервер в момент решения.
+ */
+export function supplierDecision(input: {
+  request: SupplyRequest;
+  comparison: OfferComparison;
+  supplierId: string;
+  reason: string;
+  approvedBy: string;
+  supplierName: (id: string) => string;
+}): Omit<ProjectDecision, "id" | "approvedAt" | "link"> {
+  const { request, comparison, supplierId, supplierName } = input;
+  const chosen = comparison.columns.find((c) => c.supplierId === supplierId);
+  if (!chosen?.offerId) throw new Error("Поставщик не прислал предложение по запросу");
+  const answered = comparison.answered;
+  const offered = comparison.columns.filter((c) => c.offerId);
+  const names = request.items.slice(0, 2).map((item) => item.name);
+  const rest = request.items.length - names.length;
+  return {
+    projectId: request.projectId,
+    kind: "supplier",
+    requestId: request.id,
+    supplierId,
+    reportId: null,
+    materialFamily: null,
+    title: `${names.join(", ")}${rest > 0 ? ` и ещё ${rest}` : ""} — «${supplierName(supplierId)}»`,
+    requirement: request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join("; "),
+    problem: `Получено ${answered} ${answered === 1 ? "предложение" : "предложения"} из ${request.sentTo.length}; цены и сроки различаются${offered.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
+    options: offered.map(
+      (c) =>
+        `«${supplierName(c.supplierId)}» — ${fmtMoney(c.total)} с НДС и доставкой, до ${c.maxLeadTime} дн.${c.deviations ? `, отклонений: ${c.deviations}` : ""}`,
+    ),
+    choice: `«${supplierName(supplierId)}», ${fmtMoney(chosen.total)}`,
+    reason: input.reason,
+    approvedBy: input.approvedBy,
+    basisLabel: `Письма поставщиков по запросу ${request.number}`,
+    basisSourceId: Object.values(chosen.cells)[0]?.sourceId ?? null,
+  };
 }

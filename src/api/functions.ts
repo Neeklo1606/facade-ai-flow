@@ -8,6 +8,7 @@ import {
   createProjectInput,
   createRequestInput,
   createRequestResult,
+  chooseSupplierInput,
   decisionList,
   deliveryList,
   documentCard,
@@ -27,7 +28,6 @@ import {
   positionPage,
   projectCard,
   projectList,
-  recordDecisionInput,
   remindResult,
   replacementList,
   reportCard,
@@ -241,10 +241,10 @@ export const remindFn = createServerFn({ method: "POST" })
   .validator(z.object({ requestId: z.string().min(1) }))
   .handler(async ({ data }) => remindResult.parse(await repos().procurement.remind(data, actor())));
 
-export const recordDecisionFn = createServerFn({ method: "POST" })
-  .validator(recordDecisionInput)
+export const chooseSupplierFn = createServerFn({ method: "POST" })
+  .validator(chooseSupplierInput)
   .handler(async ({ data }) =>
-    projectDecision.parse(await repos().procurement.recordDecision(data, actor())),
+    projectDecision.parse(await repos().procurement.chooseSupplier(data, actor())),
   );
 
 export const deliveriesFn = createServerFn({ method: "GET" })

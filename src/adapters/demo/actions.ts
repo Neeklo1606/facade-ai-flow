@@ -19,7 +19,6 @@ import type {
   CorrectPositionInput,
   CreateProjectInput,
   CreateRequestInput,
-  RecordDecisionInput,
   UndoReviewInput,
   ReviewReportInput,
   UploadRevisionInput,
@@ -568,7 +567,7 @@ export function remind(requestId: string) {
 }
 
 /** Решение фиксируется в истории объекта; выбор поставщика запускает заказ и отгрузку */
-export function recordDecision(input: RecordDecisionInput) {
+export function recordDecision(input: Omit<ProjectDecision, "id" | "approvedAt" | "link">) {
   const s = getState();
   const record: ProjectDecision = {
     ...input,

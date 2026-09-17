@@ -5,7 +5,13 @@ import {
   type ProjectDocument,
 } from "@/contracts";
 import { currentRevisions, projectOverview, revisionStats, revisionsOf } from "@/domain/overview";
-import { answeredCount, compareOffers, decisionFor, rfqStatus } from "@/domain/procurement";
+import {
+  answeredCount,
+  compareOffers,
+  decisionFor,
+  rfqStatus,
+  supplierDecision,
+} from "@/domain/procurement";
 import { timelineOf } from "@/domain/timeline";
 import {
   ConflictError,
@@ -58,7 +64,8 @@ function requestSummary(s: DemoState, requestId: string): RequestSummary | null 
   const request = s.requests.find((item) => item.id === requestId);
   if (!request) return null;
   const decision = decisionFor(s.decisions, request.id);
-  const { best } = compareOffers(s, request);
+  const { columns, bestSupplierId } = compareOffers(s, request);
+  const best = columns.find((column) => column.supplierId === bestSupplierId) ?? null;
   const answeredBy = request.sentTo.filter((supplierId) =>
     s.offers.some((offer) => offer.requestId === request.id && offer.supplierId === supplierId),
   );
@@ -265,6 +272,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         const offerIds = new Set(offers.map((item) => item.id));
         return done({
           summary,
+          comparison: compareOffers(s, summary.request),
           recipients: summary.request.sentTo.map((supplierId) => ({
             supplierId,
             remindedAt: awaitingReply(s, requestId, supplierId) ? peek() : null,
@@ -298,34 +306,30 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         }
         return done({ reminded: actions.remind(requestId) });
       },
-      recordDecision: (input) => {
+      chooseSupplier: (input) => {
         const s = state();
-        if (!s.projects.some((item) => item.id === input.projectId)) {
-          return Promise.reject(new NotFoundError("Объект", input.projectId));
-        }
-        // Как проверка таблицы project_decisions: выбор поставщика всегда по запросу и с поставщиком
-        if (input.kind === "supplier" && (!input.requestId || !input.supplierId)) {
-          return Promise.reject(new ConflictError("Выбор поставщика требует запроса и поставщика"));
+        const request = s.requests.find((item) => item.id === input.requestId);
+        if (!request) return Promise.reject(new NotFoundError("Запрос", input.requestId));
+        if (!request.sentTo.includes(input.supplierId)) {
+          return Promise.reject(new ConflictError("Поставщику не отправляли этот запрос"));
         }
         if (!s.employees.some((item) => item.id === input.approvedBy && item.status === "active")) {
           return Promise.reject(new ConflictError("Согласующий не найден среди сотрудников"));
         }
-        const request = input.requestId
-          ? s.requests.find((item) => item.id === input.requestId)
-          : null;
-        if (input.requestId && !request) {
-          return Promise.reject(new NotFoundError("Запрос", input.requestId));
-        }
-        if (request && request.projectId !== input.projectId) {
-          return Promise.reject(new ConflictError("Запрос относится к другому объекту"));
-        }
-        if (input.supplierId && request && !request.sentTo.includes(input.supplierId)) {
-          return Promise.reject(new ConflictError("Поставщику не отправляли этот запрос"));
-        }
-        if (input.requestId && decisionFor(s.decisions, input.requestId)) {
+        if (decisionFor(s.decisions, request.id)) {
           return Promise.reject(new ConflictError("Решение по запросу уже зафиксировано"));
         }
-        return done(actions.recordDecision(input));
+        const comparison = compareOffers(s, request);
+        if (!comparison.columns.some((c) => c.supplierId === input.supplierId && c.offerId)) {
+          return Promise.reject(new ConflictError("Поставщик не прислал предложение по запросу"));
+        }
+        const counterpartyName = (id: string) =>
+          s.counterparties.find((item) => item.id === id)?.name ?? "—";
+        return done(
+          actions.recordDecision(
+            supplierDecision({ ...input, request, comparison, supplierName: counterpartyName }),
+          ),
+        );
       },
       deliveries: (projectId) =>
         done(

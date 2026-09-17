@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { ColumnCalc } from "@/lib/procurement";
+import type { ComparisonColumn as ColumnCalc } from "@/api/types";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useDirectory } from "@/api/directory";

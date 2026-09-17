@@ -1,5 +1,6 @@
 import { createDemoRepositories, onDemoEvent, resetDemo, type DemoEvent } from "@/adapters/demo";
 import type {
+  ChooseSupplierInput,
   CorrectPositionInput,
   CreateProjectInput,
   CreateRequestInput,
@@ -7,7 +8,6 @@ import type {
   ListDocumentsInput,
   ListPositionsInput,
   MergePositionsInput,
-  RecordDecisionInput,
   Repositories,
   ReviewReportInput,
   SplitPositionInput,
@@ -120,8 +120,8 @@ export const api = {
       server
         ? fn.remindFn({ data: { requestId } })
         : local().procurement.remind({ requestId }, actor),
-    recordDecision: (data: RecordDecisionInput) =>
-      server ? fn.recordDecisionFn({ data }) : local().procurement.recordDecision(data, actor),
+    chooseSupplier: (data: ChooseSupplierInput) =>
+      server ? fn.chooseSupplierFn({ data }) : local().procurement.chooseSupplier(data, actor),
     deliveries: (projectId: string) =>
       server ? fn.deliveriesFn({ data: { projectId } }) : local().procurement.deliveries(projectId),
   },

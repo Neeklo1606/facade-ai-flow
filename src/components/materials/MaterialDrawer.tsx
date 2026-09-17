@@ -6,7 +6,7 @@ import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
-import { compareOffers, rfqStatusMeta } from "@/lib/procurement";
+import { rfqStatusMeta } from "@/lib/procurement";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -284,7 +284,7 @@ function RelatedRequest({ requestId }: { requestId: string }) {
   const card = useQuery(queries.request(requestId)).data;
   if (!card) return null;
   const { request } = card.summary;
-  const calc = compareOffers({ offers: card.offers, offerLines: card.lines }, request);
+  const calc = card.comparison;
   const offers = calc.columns.filter((column) => column.offerId).sort((a, b) => a.total - b.total);
   return (
     <li className="rounded-[var(--r-md)] border border-border">
@@ -304,7 +304,7 @@ function RelatedRequest({ requestId }: { requestId: string }) {
             >
               <span className="min-w-0 truncate">
                 {counterpartyName(offer.supplierId)}
-                {calc.best?.supplierId === offer.supplierId && (
+                {calc.bestSupplierId === offer.supplierId && (
                   <StatusBadge tone="ok" className="ml-2 h-5">
                     Лучшее
                   </StatusBadge>
