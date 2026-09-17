@@ -1,5 +1,6 @@
 import type { DemoEvent } from "@/adapters/demo";
 import type {
+  AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
   CreateProjectInput,
@@ -206,6 +207,10 @@ export const api = {
       server
         ? fn.pendingDecisionsFn({ data: { projectId } })
         : local().then((r) => r.timeline.pending(projectId)),
+  },
+  agent: {
+    ask: (data: AskAgentInput) =>
+      server ? fn.askAgentFn({ data }) : local().then((r) => r.agent.ask(data)),
   },
 };
 

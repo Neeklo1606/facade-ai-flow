@@ -1,5 +1,8 @@
 /** Типы ответов слоя данных для экранов: экраны не импортируют порты напрямую (P1-7). */
 export type {
+  AgentIntent,
+  AgentReply,
+  AgentSource,
   ComparisonCell,
   ComparisonColumn,
   DocumentCard,

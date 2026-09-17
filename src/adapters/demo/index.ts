@@ -13,6 +13,7 @@ import { latestJob, visibleStage } from "@/domain/extraction";
 import { registryColumns, registryRows, type RegistryFilter } from "@/domain/registry";
 import { timelineOf } from "@/domain/timeline";
 import { buildXlsx } from "@/adapters/export/xlsx";
+import { createAgentPort } from "@/adapters/agent";
 import {
   ConflictError,
   NotFoundError,
@@ -126,7 +127,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
   start(options);
   const state = getState;
 
-  return {
+  const repositories: Repositories = {
     clock: {
       now: () => done(peek()),
     },
@@ -418,7 +419,10 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         return done([...requests, ...replacements]);
       },
     },
+    // Ассистент собирает ответы из портов выше, а не из состояния демо (ADR-006)
+    agent: { ask: (input) => createAgentPort(repositories).ask(input) },
   };
+  return repositories;
 }
 
 /** Сброс демо: остановить симулятор, вернуть стартовые данные, часы и очистить сохранение */

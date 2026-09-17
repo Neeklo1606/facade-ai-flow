@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { confidenceBand, type ExtractedPosition } from "@/contracts";
 import type {
+  AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
   CreateProjectInput,
@@ -347,4 +348,9 @@ export function useResetDemo() {
     // Сбросить к исходному состоянию и перезапросить активные запросы: removeQueries отцепил бы их от кеша
     void queryClient.resetQueries();
   };
+}
+
+/** Вопрос ассистенту (ADR-006): ответ не кешируется — каждый вопрос считается заново */
+export function useAskAgent() {
+  return useMutation({ mutationFn: (input: AskAgentInput) => api.agent.ask(input) });
 }

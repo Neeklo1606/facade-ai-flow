@@ -1,3 +1,4 @@
+import type { AgentPort } from "./agent";
 import type { ClockPort } from "./clock";
 import type { DirectoryPort } from "./directory";
 import type { DocumentsPort } from "./documents";
@@ -7,6 +8,7 @@ import type { ProjectsPort } from "./projects";
 import type { ReportsPort } from "./reports";
 import type { TimelinePort } from "./timeline";
 
+export * from "./agent";
 export * from "./clock";
 export * from "./common";
 export * from "./directory";
@@ -27,4 +29,6 @@ export interface Repositories {
   procurement: ProcurementPort;
   reports: ReportsPort;
   timeline: TimelinePort;
+  /** Ассистент поверх остальных портов (ADR-006) */
+  agent: AgentPort;
 }

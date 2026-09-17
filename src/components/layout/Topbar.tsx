@@ -58,9 +58,11 @@ export function Topbar() {
     ? (childTitle ?? section ?? detailProject.name)
     : pathname.startsWith("/projects")
       ? "Объекты"
-      : pathname === "/design-system"
-        ? "Дизайн-система EMBER"
-        : "neeklo FieldOps";
+      : pathname === "/agent"
+        ? "Ассистент"
+        : pathname === "/design-system"
+          ? "Дизайн-система EMBER"
+          : "neeklo FieldOps";
 
   return (
     <header className="content-header">

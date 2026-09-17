@@ -65,7 +65,7 @@ export function CommandPalette() {
         </CommandGroup>
         <CommandGroup heading={projectId ? `Разделы · ${nameOf(projectId)}` : "Разделы"}>
           {allNavItems.map((item) => {
-            const href = sectionHref(projectId, item.section);
+            const href = sectionHref(projectId, item.section, item.to);
             return (
               <CommandItem
                 key={item.key}

@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { extractedPosition, projectDecision, projectDocument, projectView } from "@/contracts";
 import {
+  agentReply,
+  askAgentInput,
   correctPositionInput,
   counterpartyList,
   createProjectInput,
@@ -294,6 +296,12 @@ export const sourceFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) =>
     respond(sourceCard.nullable(), await repos().reports.source(data.id)),
   );
+
+/* ---------- Ассистент ---------- */
+
+export const askAgentFn = createServerFn({ method: "POST" })
+  .validator(input(askAgentInput))
+  .handler(async ({ data }) => respond(agentReply.nullable(), await repos().agent.ask(data)));
 
 export const timelineFn = createServerFn({ method: "GET" })
   .validator(input(projectId))

@@ -35,7 +35,13 @@ export { StatusBadge } from "./StatusBadge";
 export { ConfidenceIndicator, confidenceLevel } from "./ConfidenceIndicator";
 export { ConfidenceDot } from "./ConfidenceDot";
 export { SourceBadge } from "./SourceBadge";
-export { SourceRef, SourceDrawer, sourceKindLabel, sourceKindIcon } from "./SourceRef";
+export {
+  SourceRef,
+  SourceDrawer,
+  SourceCardBody,
+  sourceKindLabel,
+  sourceKindIcon,
+} from "./SourceRef";
 export { ExplainPopover } from "./ExplainPopover";
 export { ImpactPreview, type ImpactChange } from "./ImpactPreview";
 export { EmptyState } from "./EmptyState";

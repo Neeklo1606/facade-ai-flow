@@ -877,6 +877,24 @@
   background-size: 200% 100%;
   animation: fo-shimmer 1.6s ease-in-out infinite;
 }
+/* Набор ответа ассистента: три точки гаснут и загораются по очереди */
+@keyframes agent-typing {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@utility typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  animation: agent-typing 1.4s ease-in-out infinite;
+}
 @utility pulse-dot {
   animation: fo-pulse-dot 1.4s ease-in-out infinite;
 }

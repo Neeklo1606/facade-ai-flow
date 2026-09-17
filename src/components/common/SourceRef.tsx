@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { sourceKindLabel, type SourceKind } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import type { SourceCard } from "@/api/types";
 
 const kindIcon: Record<SourceKind, typeof Mail> = {
   telegram: MessageSquare,
@@ -121,10 +122,9 @@ export function SourceDrawer({
   fragment?: string | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { employeeById } = useDirectory();
   const card = useQuery({ ...queries.source(sourceId ?? ""), enabled: !!sourceId }).data;
   if (!card) return null;
-  const { source, extractions: fields, decisions } = card;
+  const { source } = card;
 
   return (
     <EntityDrawer
@@ -139,58 +139,70 @@ export function SourceDrawer({
         </>
       }
     >
-      <div className="space-y-5">
-        <section className="rounded-[var(--r-md)] border border-border bg-subtle p-4">
-          <p className="text-[12px] text-text-muted">Оригинал, {source.location}</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
-            {highlight(source.excerpt, fragment)}
-          </p>
-        </section>
-
-        {fields.length > 0 && (
-          <section>
-            <p className="text-[12px] text-text-muted">Что извлечено из этого источника</p>
-            <ul className="mt-2 divide-y divide-border rounded-[var(--r-md)] border border-border">
-              {fields.map((field) => (
-                <li key={field.id} className="px-3 py-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[12px] text-text-muted">{field.label}</p>
-                      <p className="text-[14px] font-medium">{field.value}</p>
-                    </div>
-                    <ConfidenceIndicator value={field.confidence} />
-                  </div>
-                  {field.quote && (
-                    <p className="mt-1 border-l-2 border-border pl-2 text-[12px] text-text-muted">
-                      «{field.quote}» · {field.location}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {decisions.length > 0 && (
-          <section>
-            <p className="text-[12px] text-text-muted">Решения на основании источника</p>
-            <ul className="mt-2 space-y-2">
-              {decisions.map((item) => (
-                <li
-                  key={item.id}
-                  className="rounded-[var(--r-md)] border border-border px-3 py-2.5"
-                >
-                  <p className="text-[13px] font-medium">{item.title}</p>
-                  <p className="mt-1 text-[12px] text-text-muted">
-                    {employeeById(item.approvedBy)?.name ?? "—"} · {fmtDateTime(item.approvedAt)}
-                  </p>
-                  <p className="mt-1 text-[12px] text-text-secondary">{item.reason}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
+      <SourceCardBody card={card} fragment={fragment} />
     </EntityDrawer>
+  );
+}
+
+/** Содержимое оригинала: цитата, извлечённые поля и решения — в боковой карточке и в панели деталей */
+export function SourceCardBody({
+  card,
+  fragment,
+}: {
+  card: SourceCard;
+  fragment?: string | null | undefined;
+}) {
+  const { employeeById } = useDirectory();
+  const { source, extractions: fields, decisions } = card;
+  return (
+    <div className="space-y-5">
+      <section className="rounded-[var(--r-md)] border border-border bg-subtle p-4">
+        <p className="text-[12px] text-text-muted">Оригинал, {source.location}</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
+          {highlight(source.excerpt, fragment)}
+        </p>
+      </section>
+
+      {fields.length > 0 && (
+        <section>
+          <p className="text-[12px] text-text-muted">Что извлечено из этого источника</p>
+          <ul className="mt-2 divide-y divide-border rounded-[var(--r-md)] border border-border">
+            {fields.map((field) => (
+              <li key={field.id} className="px-3 py-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[12px] text-text-muted">{field.label}</p>
+                    <p className="text-[14px] font-medium">{field.value}</p>
+                  </div>
+                  <ConfidenceIndicator value={field.confidence} />
+                </div>
+                {field.quote && (
+                  <p className="mt-1 border-l-2 border-border pl-2 text-[12px] text-text-muted">
+                    «{field.quote}» · {field.location}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {decisions.length > 0 && (
+        <section>
+          <p className="text-[12px] text-text-muted">Решения на основании источника</p>
+          <ul className="mt-2 space-y-2">
+            {decisions.map((item) => (
+              <li key={item.id} className="rounded-[var(--r-md)] border border-border px-3 py-2.5">
+                <p className="text-[13px] font-medium">{item.title}</p>
+                <p className="mt-1 text-[12px] text-text-muted">
+                  {employeeById(item.approvedBy)?.name ?? "—"} · {fmtDateTime(item.approvedAt)}
+                </p>
+                <p className="mt-1 text-[12px] text-text-secondary">{item.reason}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }

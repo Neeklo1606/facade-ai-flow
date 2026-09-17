@@ -248,7 +248,7 @@ function SidebarInner({
                 <ul className="space-y-1">
                   {group.items.map((item) => {
                     const active = item.key === activeKey;
-                    const href = sectionHref(projectId, item.section);
+                    const href = sectionHref(projectId, item.section, item.to);
                     const count = item.badge ? counts[item.badge] : 0;
                     return (
                       <li key={item.key}>

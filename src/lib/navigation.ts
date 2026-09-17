@@ -5,6 +5,7 @@ import {
   HardHat,
   History,
   PackageSearch,
+  Sparkles,
   Truck,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +23,8 @@ export interface NavItem {
   badge?: BadgeKey;
   /** Раздел объекта; без выбранного объекта пункт ведёт в реестр с просьбой выбрать объект */
   section?: ProjectSection;
+  /** Экран вне объекта: ведёт по этому адресу, а не в раздел объекта */
+  to?: string;
 }
 
 export interface NavGroup {
@@ -32,7 +35,10 @@ export interface NavGroup {
 export const navGroups: NavGroup[] = [
   {
     title: "Обзор",
-    items: [{ key: "projects", label: "Объекты", icon: Building2 }],
+    items: [
+      { key: "projects", label: "Объекты", icon: Building2 },
+      { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent" },
+    ],
   },
   {
     title: "Работа",
@@ -82,7 +88,12 @@ export const sectionLabels: Record<ProjectSection, string> = {
  * Куда ведёт раздел. При выбранном объекте — на экран объекта, иначе в реестр,
  * который попросит выбрать объект и откроет нужный раздел.
  */
-export function sectionHref(projectId: string | null, section: ProjectSection | undefined) {
+export function sectionHref(
+  projectId: string | null,
+  section: ProjectSection | undefined,
+  to?: string,
+) {
+  if (to) return { to, search: {} };
   if (!section) return { to: "/projects", search: {} };
   if (!projectId) return { to: "/projects", search: { section } };
   if (section === "suppliers")
@@ -92,6 +103,7 @@ export function sectionHref(projectId: string | null, section: ProjectSection | 
 
 /** Какой пункт меню подсвечивать на текущем адресе. */
 export function activeNavKey(pathname: string, view: string, pickSection: string | null) {
+  if (pathname === "/agent") return "agent";
   if (pathname === "/projects" && pickSection) return pickSection;
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);
   if (!match) return pathname.startsWith("/projects") ? "projects" : null;

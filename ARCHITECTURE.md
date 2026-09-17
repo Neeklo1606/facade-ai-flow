@@ -2,7 +2,8 @@
 
 Состояние на коммит `ef7a93f`. Документ описывает, как система устроена сейчас, куда она должна прийти
 и какие правила удерживают её от расползания. Решения, на которые он опирается: [ADR-001](docs/adr/ADR-001-data-layer.md),
-[ADR-002](docs/adr/ADR-002-state-and-persistence.md), [ADR-003](docs/adr/ADR-003-remove-legacy-screens.md).
+[ADR-002](docs/adr/ADR-002-state-and-persistence.md), [ADR-003](docs/adr/ADR-003-remove-legacy-screens.md),
+[ADR-006](docs/adr/ADR-006-agent-on-unified-model.md).
 План работ: [TASKS.md](TASKS.md).
 
 ## 1. Что это за система
