@@ -1,4 +1,4 @@
-import type { DocumentRevisionRow, DocumentRow, RevisionChange } from "@/contracts";
+import type { DocumentRevisionRow, DocumentRow, ExtractionJob, RevisionChange } from "@/contracts";
 
 /** Документы, ревизии и изменения между ревизиями. Листы генерируются в sheets.ts. */
 
@@ -237,6 +237,41 @@ export const documentRevisions = [
     positionsVerified: 357,
   },
 ] satisfies DocumentRevisionRow[];
+
+const minutesAfter = (value: string, minutes: number) => {
+  const date = new Date(`${value}Z`);
+  date.setUTCMinutes(date.getUTCMinutes() + minutes);
+  return date.toISOString().slice(0, 19);
+};
+
+/**
+ * Задачи извлечения: у обработанных ревизий — завершённая задача, у двух свежих «Короны» — в работе.
+ * Демо-симулятор эти две не двигает: цифры сценария показа не должны меняться сами.
+ */
+export const extractionJobs = documentRevisions.map((revision): ExtractionJob => {
+  const base = { id: `ej-${revision.id}`, revisionId: revision.id, queuedAt: revision.uploadedAt };
+  if (revision.status === "uploaded") {
+    return { ...base, status: "queued", stage: 0, startedAt: null, finishedAt: null, error: null };
+  }
+  if (revision.status === "recognizing") {
+    return {
+      ...base,
+      status: "recognizing",
+      stage: 1,
+      startedAt: minutesAfter(revision.uploadedAt, 1),
+      finishedAt: null,
+      error: null,
+    };
+  }
+  return {
+    ...base,
+    status: "review",
+    stage: 4,
+    startedAt: minutesAfter(revision.uploadedAt, 1),
+    finishedAt: minutesAfter(revision.uploadedAt, 6),
+    error: null,
+  };
+});
 
 export const revisionChanges = [
   {

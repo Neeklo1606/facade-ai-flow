@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { undoConfirmInput, undoInput, usePositionMutations } from "@/api/mutations";
 import { usePositionLookup } from "@/api/positions";
+import { useExtractionJobsWatch } from "@/api/extraction";
 import type { PositionView } from "@/api/types";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
@@ -89,6 +90,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const navigate = useNavigate();
 
   const card = useQuery(queries.document(docId));
+  useExtractionJobsWatch([card.data?.job]);
   // Счётчики ревизии считает сервер; список позиций приходит страницами
   const facetsQuery = useQuery(queries.positionFacets({ revisionId: docId }));
   const facets = facetsQuery.data;

@@ -15,20 +15,17 @@ export type DemoJob =
 
 export interface DemoState extends FixtureSnapshot {
   version: number;
-  /** Стадия обработки загруженной ревизии, 0…4 */
-  uploads: Record<string, number>;
   jobs: DemoJob[];
 }
 
 const STORAGE_KEY = "neeklo-fieldops-demo";
 /** Меняется при несовместимом изменении формы состояния: старое сохранение тогда игнорируется */
-const STATE_VERSION = 4;
+const STATE_VERSION = 5;
 const SAVE_DELAY_MS = 300;
 
 const seed = (): DemoState => ({
   version: STATE_VERSION,
   ...buildSnapshot(),
-  uploads: {},
   jobs: [],
 });
 

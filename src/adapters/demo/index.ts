@@ -9,6 +9,7 @@ import {
   rfqStatus,
   supplierDecision,
 } from "@/domain/procurement";
+import { latestJob, visibleStage } from "@/domain/extraction";
 import { timelineOf } from "@/domain/timeline";
 import {
   ConflictError,
@@ -42,13 +43,15 @@ export interface DemoOptions {
 const done = <T>(value: T) => Promise.resolve(value);
 
 function documentItem(s: DemoState, document: ProjectDocument): DocumentListItem {
+  const job = latestJob(s.extractionJobs, document.id);
   const stats = revisionStats(s.positions, document);
   return {
     document,
     extracted: stats.total,
     verified: stats.verified,
     loaded: stats.loaded,
-    stage: s.uploads[document.id] ?? null,
+    stage: visibleStage(job, peek()),
+    job,
   };
 }
 
@@ -176,7 +179,8 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             .filter((sheet) => sheet.documentId === revisionId)
             .sort((a, b) => a.number - b.number),
           handedOverAt: handedOverAt(s, revisionId),
-          stage: s.uploads[revisionId] ?? null,
+          stage: visibleStage(latestJob(s.extractionJobs, revisionId), peek()),
+          job: latestJob(s.extractionJobs, revisionId),
         });
       },
       upload: (input, { actorId }) => done(actions.upload(input, actorId)),

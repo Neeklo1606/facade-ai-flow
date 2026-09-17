@@ -33,6 +33,9 @@ create type file_type as enum ('pdf', 'docx', 'xlsx');
 -- Обработка ревизии: распознавание, извлечение позиций, проверка человеком
 create type processing_status as enum ('uploaded', 'recognizing', 'extracted', 'review', 'verified');
 
+-- Задача распознавания ревизии: очередь, распознавание, извлечение позиций, готово к проверке, ошибка
+create type extraction_job_status as enum ('queued', 'recognizing', 'extracted', 'review', 'failed');
+
 -- Разобрано ли изменение документации
 create type change_status as enum ('open', 'resolved');
 
@@ -304,6 +307,26 @@ comment on column document_revisions.positions_total is 'счётчик, пок�
 create unique index document_revisions_document_id_revision_key on document_revisions (document_id, revision); -- ревизия уникальна в документе
 create index document_revisions_document_id_uploaded_at_idx on document_revisions (document_id, uploaded_at desc); -- список документации, последние сверху
 create index document_revisions_status_idx on document_revisions (status) where status <> 'verified'; -- очередь обработки и проверки
+
+-- Задача распознавания и извлечения позиций ревизии. Выполняет обработчик на сервере, интерфейс опрашивает статус (P3-4)
+create table extraction_jobs (
+  id uuid not null default gen_random_uuid(),
+  revision_id uuid not null,
+  status extraction_job_status not null,
+  stage smallint not null,
+  queued_at timestamptz not null,
+  started_at timestamptz,
+  finished_at timestamptz,
+  error text,
+  primary key (id),
+  check (stage between 0 and 4),
+  check ((status in ('review', 'failed')) = (finished_at is not null)),
+  check ((status = 'failed') = (error is not null))
+);
+comment on column extraction_jobs.stage is 'пройденная стадия: 0 загружен, 1 распознан текст, 2 найдены таблицы, 3 извлечены позиции, 4 готов к проверке';
+comment on column extraction_jobs.error is 'почему не удалось обработать файл';
+create index extraction_jobs_revision_id_queued_at_idx on extraction_jobs (revision_id, queued_at desc); -- последняя задача ревизии
+create index extraction_jobs_status_queued_at_idx on extraction_jobs (status, queued_at) where status in ('queued', 'recognizing', 'extracted'); -- очередь обработчика
 
 -- Лист ревизии в дереве структуры документа
 create table document_sheets (
@@ -746,6 +769,7 @@ alter table document_revisions add foreign key (document_id) references document
 alter table document_revisions add foreign key (uploaded_by) references employees (id) on delete restrict;
 alter table document_revisions add foreign key (source_id) references sources (id) on delete set null;
 alter table document_revisions add foreign key (created_by) references employees (id) on delete restrict;
+alter table extraction_jobs add foreign key (revision_id) references document_revisions (id) on delete cascade;
 alter table document_sheets add foreign key (revision_id) references document_revisions (id) on delete cascade;
 alter table revision_changes add foreign key (document_id) references documents (id) on delete cascade;
 alter table revision_changes add foreign key (from_revision_id) references document_revisions (id) on delete restrict;

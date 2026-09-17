@@ -34,6 +34,7 @@ export const fixtureTables = {
 
   documents: documentsData.documents,
   document_revisions: documentsData.documentRevisions,
+  extraction_jobs: documentsData.extractionJobs,
   document_sheets: documentSheets,
   revision_changes: documentsData.revisionChanges,
   materials: spec.materials,

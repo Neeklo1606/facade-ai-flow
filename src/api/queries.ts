@@ -1,9 +1,13 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import type { ListPositionsInput, PositionFilterInput } from "@/ports";
+import { isActiveJob } from "@/domain/extraction";
 import { api } from "./client";
 import { keys } from "./keys";
 
 /** Опции запросов для useQuery и loader (ensureQueryData). Один объект — один ключ и одна функция. */
+
+/** Как часто спрашивать статус задачи извлечения, пока она идёт */
+const JOB_POLL_MS = 2_000;
 
 /** Справочники меняются редко: не перезапрашиваем их при каждом монтировании */
 const reference = { staleTime: 5 * 60_000 } as const;
@@ -39,6 +43,9 @@ export const queries = {
     queryOptions({
       queryKey: keys.documents.list(projectId),
       queryFn: () => api.documents.list(projectId ? { projectId } : {}),
+      // Пока идёт извлечение, опрашиваем статус задач (P3-4)
+      refetchInterval: (query) =>
+        query.state.data?.some((item) => item.job && isActiveJob(item.job)) ? JOB_POLL_MS : false,
     }),
   revisions: (documentId: string) =>
     queryOptions({
@@ -49,6 +56,8 @@ export const queries = {
     queryOptions({
       queryKey: keys.documents.card(revisionId),
       queryFn: () => api.documents.card(revisionId),
+      refetchInterval: (query) =>
+        query.state.data?.job && isActiveJob(query.state.data.job) ? JOB_POLL_MS : false,
     }),
 
   positions: (input: ListPositionsInput) =>

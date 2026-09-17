@@ -1,4 +1,5 @@
 import type {
+  ExtractionJob,
   Contract,
   Counterparty,
   Crew,
@@ -46,6 +47,7 @@ export interface FixtureSnapshot {
   milestones: Milestone[];
   zones: WorkZone[];
   documents: ProjectDocument[];
+  extractionJobs: ExtractionJob[];
   sheets: DocumentSheet[];
   revisionChanges: RevisionChange[];
   positions: ExtractedPosition[];
@@ -213,6 +215,7 @@ export function buildSnapshot(): FixtureSnapshot {
     evidence: t.evidence,
     sources: t.sources,
     extractions: t.extractions,
+    extractionJobs: t.extraction_jobs,
     events: t.project_events,
   };
 }

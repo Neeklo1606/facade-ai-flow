@@ -79,6 +79,54 @@ export const documentRevisions = table(
   },
 );
 
+/* ---------- Задачи извлечения ---------- */
+
+export const extractionJobStatus = pgEnum(
+  "extraction_job_status",
+  ["queued", "recognizing", "extracted", "review", "failed"],
+  "Задача распознавания ревизии: очередь, распознавание, извлечение позиций, готово к проверке, ошибка",
+  {
+    queued: ["recognizing", "failed"],
+    recognizing: ["extracted", "failed"],
+    extracted: ["review", "failed"],
+  },
+);
+
+export const extractionJobs = table(
+  {
+    name: "extraction_jobs",
+    comment:
+      "Задача распознавания и извлечения позиций ревизии. Выполняет обработчик на сервере, интерфейс опрашивает статус (P3-4)",
+    primaryKey: ["id"],
+    indexes: [
+      { columns: ["revisionId", "queuedAt desc"], purpose: "последняя задача ревизии" },
+      {
+        columns: ["status", "queuedAt"],
+        where: "status in ('queued', 'recognizing', 'extracted')",
+        purpose: "очередь обработчика",
+      },
+    ],
+    checks: [
+      "stage between 0 and 4",
+      "(status in ('review', 'failed')) = (finished_at is not null)",
+      "(status = 'failed') = (error is not null)",
+    ],
+  },
+  {
+    id: col.id(),
+    revisionId: col.ref("document_revisions", "cascade"),
+    status: col.enum(extractionJobStatus),
+    stage: col.smallint({
+      comment:
+        "пройденная стадия: 0 загружен, 1 распознан текст, 2 найдены таблицы, 3 извлечены позиции, 4 готов к проверке",
+    }),
+    queuedAt: col.timestamp(),
+    startedAt: col.timestamp({ nullable: true }),
+    finishedAt: col.timestamp({ nullable: true }),
+    error: col.text({ nullable: true, comment: "почему не удалось обработать файл" }),
+  },
+);
+
 export const documentSheets = table(
   {
     name: "document_sheets",
@@ -173,6 +221,8 @@ export const documentSheet = z.object({
 export type DocumentRow = z.infer<typeof documents>;
 export type DocumentRevisionRow = z.infer<typeof documentRevisions>;
 export type DocumentSheetRow = z.infer<typeof documentSheets>;
+export type ExtractionJob = z.infer<typeof extractionJobs>;
+export type ExtractionJobStatus = z.infer<typeof extractionJobStatus.schema>;
 export type RevisionChange = z.infer<typeof revisionChanges>;
 export type ProjectDocument = z.infer<typeof projectDocument>;
 export type DocumentSheet = z.infer<typeof documentSheet>;

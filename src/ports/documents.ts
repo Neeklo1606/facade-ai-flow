@@ -2,11 +2,13 @@ import { z } from "zod";
 import {
   changeStatus,
   documentSheet,
+  extractionJobs,
   fileType,
   projectDocument,
   revisionChanges,
   timestampSchema,
   type DocumentSheet,
+  type ExtractionJob,
   type ProjectDocument,
   type RevisionChange,
 } from "@/contracts";
@@ -19,8 +21,10 @@ export const documentListItem = z.object({
   verified: z.number().int().nonnegative(),
   /** false — позиции ревизии не загружены, числа взяты из счётчика ревизии (R20) */
   loaded: z.boolean(),
-  /** Пройденная стадия обработки 0…4, пока файл обрабатывается; иначе null */
+  /** Стадия 0…4 для индикатора: пока идёт задача и час после неё; иначе null */
   stage: z.number().int().min(0).max(4).nullable(),
+  /** Последняя задача извлечения; интерфейс опрашивает, пока она не завершена (P3-4) */
+  job: extractionJobs.nullable(),
 });
 
 export const documentCard = z.object({
@@ -29,6 +33,7 @@ export const documentCard = z.object({
   /** Когда проверенные позиции ревизии последний раз передавали в закупку */
   handedOverAt: timestampSchema.nullable(),
   stage: z.number().int().min(0).max(4).nullable(),
+  job: extractionJobs.nullable(),
 });
 
 export const listDocumentsInput = z.object({
@@ -64,6 +69,7 @@ export interface DocumentCard {
   sheets: DocumentSheet[];
   handedOverAt: string | null;
   stage: number | null;
+  job: ExtractionJob | null;
 }
 
 /** Документы, ревизии, листы и изменения между ревизиями. */

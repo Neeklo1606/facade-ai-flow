@@ -430,7 +430,20 @@ export function upload(input: UploadRevisionInput, actorId: string) {
     ...prev,
     documents: [doc, ...prev.documents],
     sheets: [...prev.sheets, ...sheets],
-    uploads: { ...prev.uploads, [id]: 0 },
+    // Задача извлечения в очереди; стадии проводит симулятор, как обработчик на сервере
+    extractionJobs: [
+      ...prev.extractionJobs,
+      {
+        id: liveId("ej"),
+        revisionId: id,
+        status: "queued",
+        stage: 0,
+        queuedAt: doc.uploadedAt,
+        startedAt: null,
+        finishedAt: null,
+        error: null,
+      },
+    ],
     events: [
       ...prev.events,
       projectEvent(

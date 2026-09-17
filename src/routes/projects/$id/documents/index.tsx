@@ -31,6 +31,7 @@ import {
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useUploadDocument } from "@/api/mutations";
+import { useExtractionJobsWatch } from "@/api/extraction";
 import { prefetch } from "@/api/prefetch";
 
 export const Route = createFileRoute("/projects/$id/documents/")({
@@ -76,6 +77,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   // Экран показывает действующие ревизии; прошлые — в карточке объекта, «Ревизии спецификации»
   const query = useQuery(queries.documents(project.id));
   const items = useMemo(() => query.data ?? [], [query.data]);
+  useExtractionJobsWatch(items.map((item) => item.job));
   const documents = useMemo(() => items.map((item) => item.document), [items]);
   const stats = useMemo(() => new Map(items.map((item) => [item.document.id, item])), [items]);
   const uploads = useMemo(

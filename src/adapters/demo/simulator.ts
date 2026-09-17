@@ -1,4 +1,4 @@
-import type { Delivery, ProjectDocument, RequestLine } from "@/contracts";
+import type { Delivery, ExtractionJob, ProjectDocument, RequestLine } from "@/contracts";
 import { simulatedPositions } from "@/adapters/fixtures";
 import { addDays, tick } from "./clock";
 import { projectEvent } from "./records";
@@ -18,6 +18,15 @@ const SHIPMENT_DELAY_MS = 10_000;
 
 const uploadStatusByStage: ProjectDocument["status"][] = [
   "uploaded",
+  "recognizing",
+  "recognizing",
+  "extracted",
+  "review",
+];
+
+/** Статус задачи извлечения после стадии: 1–2 распознавание, 3 позиции извлечены, 4 готово к проверке */
+const jobStatusByStage: ExtractionJob["status"][] = [
+  "queued",
   "recognizing",
   "recognizing",
   "extracted",
@@ -98,7 +107,17 @@ function advanceUpload(revisionId: string, stage: number) {
   if (!doc) return;
   update((prev) => ({
     ...prev,
-    uploads: { ...prev.uploads, [revisionId]: stage },
+    extractionJobs: prev.extractionJobs.map((job) =>
+      job.revisionId === revisionId && job.status !== "review" && job.status !== "failed"
+        ? {
+            ...job,
+            stage,
+            status: jobStatusByStage[stage]!,
+            startedAt: job.startedAt ?? tick(),
+            finishedAt: stage === 4 ? tick() : null,
+          }
+        : job,
+    ),
     documents: prev.documents.map((item) =>
       item.id === revisionId ? { ...item, status: uploadStatusByStage[stage]! } : item,
     ),
