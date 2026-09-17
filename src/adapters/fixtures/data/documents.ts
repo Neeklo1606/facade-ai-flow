@@ -28,12 +28,6 @@ export const documents = [
     title: "Расчёт кронштейнов на ветровую нагрузку",
   },
   {
-    id: "doc-korona-vedomost",
-    projectId: "p-korona",
-    section: "АР",
-    title: "Ведомость отделки фасадов, корпус 3",
-  },
-  {
     id: "doc-meridian-spec",
     projectId: "p-meridian",
     section: "НВФ",
@@ -116,26 +110,11 @@ export const documentRevisions = [
     fileName: "ДСК-2026-008_КМ_расчёт.docx",
     fileType: "docx",
     sizeKb: 1480,
-    uploadedAt: "2026-09-05T11:30:00",
+    // Расчётный документ без таблиц материалов: распознан накануне, позиций для закупки в нём нет
+    uploadedAt: "2026-09-04T16:20:00",
     uploadedBy: "e-volkova",
     sheetCount: 14,
-    status: "recognizing",
-    sourceId: null,
-    positionsTotal: null,
-    positionsVerified: null,
-  },
-  {
-    id: "pd-korona-vedomost",
-    documentId: "doc-korona-vedomost",
-    revision: 1,
-    label: "Рев. 1",
-    fileName: "Ведомость_отделки_К3.xlsx",
-    fileType: "xlsx",
-    sizeKb: 212,
-    uploadedAt: "2026-09-05T12:04:00",
-    uploadedBy: "e-sokolov",
-    sheetCount: 3,
-    status: "uploaded",
+    status: "review",
     sourceId: null,
     positionsTotal: null,
     positionsVerified: null,
@@ -245,33 +224,19 @@ const minutesAfter = (value: string, minutes: number) => {
 };
 
 /**
- * Задачи извлечения: у обработанных ревизий — завершённая задача, у двух свежих «Короны» — в работе.
- * Демо-симулятор эти две не двигает: цифры сценария показа не должны меняться сами.
+ * Задачи извлечения: у всех ревизий демо-набора обработка завершена. Незавершённые задачи появляются
+ * только у файлов, загруженных во время показа, — их стадии проводит симулятор.
  */
-export const extractionJobs = documentRevisions.map((revision): ExtractionJob => {
-  const base = { id: `ej-${revision.id}`, revisionId: revision.id, queuedAt: revision.uploadedAt };
-  if (revision.status === "uploaded") {
-    return { ...base, status: "queued", stage: 0, startedAt: null, finishedAt: null, error: null };
-  }
-  if (revision.status === "recognizing") {
-    return {
-      ...base,
-      status: "recognizing",
-      stage: 1,
-      startedAt: minutesAfter(revision.uploadedAt, 1),
-      finishedAt: null,
-      error: null,
-    };
-  }
-  return {
-    ...base,
-    status: "review",
-    stage: 4,
-    startedAt: minutesAfter(revision.uploadedAt, 1),
-    finishedAt: minutesAfter(revision.uploadedAt, 6),
-    error: null,
-  };
-});
+export const extractionJobs = documentRevisions.map((revision): ExtractionJob => ({
+  id: `ej-${revision.id}`,
+  revisionId: revision.id,
+  status: "review",
+  stage: 4,
+  queuedAt: revision.uploadedAt,
+  startedAt: minutesAfter(revision.uploadedAt, 1),
+  finishedAt: minutesAfter(revision.uploadedAt, 6),
+  error: null,
+}));
 
 export const revisionChanges = [
   {

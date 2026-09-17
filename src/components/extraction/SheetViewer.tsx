@@ -193,8 +193,10 @@ export const SheetViewer = forwardRef<SheetViewerHandle, Props>(function SheetVi
             className="h-8 px-2.5 text-caption"
             onClick={() => setZoom("fit")}
             aria-pressed={zoom === "fit"}
+            aria-label="По ширине"
           >
-            <Maximize2 className="size-3.5" /> По ширине
+            {/* На телефоне — только значок: подпись не помещалась в панель листа */}
+            <Maximize2 className="size-3.5" /> <span className="hidden sm:inline">По ширине</span>
           </Button>
         </div>
       </div>
