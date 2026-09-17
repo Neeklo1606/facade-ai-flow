@@ -26,8 +26,7 @@ export function StatePicker() {
           aria-label="Состояние экрана"
           className={cn(
             "icon-button focus-ring w-auto gap-2 px-2.5 text-[13px] transition-fast [grid-auto-flow:column]",
-            forced !== "normal" &&
-              "bg-orange-dim text-orange hover:bg-orange-dim hover:text-orange",
+            forced !== "normal" && "bg-info-bg text-info hover:bg-info-bg hover:text-info",
           )}
         >
           <Layers strokeWidth={1.5} />
@@ -44,7 +43,7 @@ export function StatePicker() {
             className="flex min-h-11 w-full items-center gap-2 rounded-[var(--r-sm)] px-3 text-left text-[13px] hover:bg-hover lg:min-h-9"
           >
             <span className="flex-1">{item.label}</span>
-            {item.id === forced && <Check className="size-4 text-accent" />}
+            {item.id === forced && <Check className="size-4 text-text" />}
           </button>
         ))}
       </PopoverContent>

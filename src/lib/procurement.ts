@@ -9,7 +9,7 @@ const rfqStatusTone: Record<RfqStatus, Tone> = {
   ordered: "ok",
   overdue: "danger",
   collecting: "warn",
-  ready: "accent",
+  ready: "info",
   sent: "info",
 };
 

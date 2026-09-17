@@ -34,7 +34,7 @@ export function Block({
           <button
             type="button"
             onClick={onLinkClick}
-            className="focus-ring inline-flex shrink-0 items-center gap-1 rounded-[var(--r-xs)] text-caption font-medium text-text-secondary transition-fast hover:text-accent"
+            className="focus-ring inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--r-xs)] text-caption font-medium text-text-secondary transition-fast hover:text-text lg:min-h-0"
           >
             {linkLabel} <ArrowRight className="size-3.5" />
           </button>
@@ -43,7 +43,7 @@ export function Block({
           <Link
             to={to}
             onClick={onLinkClick}
-            className="focus-ring inline-flex shrink-0 items-center gap-1 rounded-[var(--r-xs)] text-caption font-medium text-text-secondary transition-fast hover:text-accent"
+            className="focus-ring inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--r-xs)] text-caption font-medium text-text-secondary transition-fast hover:text-text lg:min-h-0"
           >
             {linkLabel} <ArrowRight className="size-3.5" />
           </Link>
@@ -58,7 +58,7 @@ export function Block({
 export function Bar({
   value,
   total,
-  tone = "accent",
+  tone = "info",
 }: {
   value: number;
   total: number;
@@ -66,7 +66,7 @@ export function Bar({
 }) {
   const pct = total > 0 ? Math.min(100, Math.max(0, (value / total) * 100)) : 0;
   const fill = {
-    accent: "bg-accent",
+    accent: "bg-info",
     ok: "bg-ok",
     warn: "bg-warn",
     danger: "bg-danger",

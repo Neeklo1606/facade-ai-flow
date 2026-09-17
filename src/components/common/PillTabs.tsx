@@ -68,11 +68,11 @@ export function PillTabs<T extends string>({
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
-              "focus-ring inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-[18px] text-[13px] leading-none font-medium whitespace-nowrap transition-fast",
+              "focus-ring inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-[18px] lg:h-9 text-[13px] leading-none font-medium whitespace-nowrap transition-fast",
               !active && "bg-transparent text-text-2 is-hover:bg-surface-2",
               active &&
                 (variant === "primary"
-                  ? "bg-orange text-on-orange"
+                  ? "bg-orange-strong text-on-orange"
                   : "bg-surface-3 text-text shadow-[var(--lift-1)]"),
             )}
           >

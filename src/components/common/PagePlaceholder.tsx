@@ -1,3 +1,5 @@
+import { Construction } from "lucide-react";
+import { InsightBlock } from "./InsightBlock";
 import { PageHeader } from "./PageHeader";
 import { Panel } from "./Panel";
 
@@ -14,22 +16,25 @@ export function PagePlaceholder({
   return (
     <>
       <PageHeader title={title} description={description} />
-      <Panel title="Что будет на экране">
+      <Panel title="Что будет на экране" data-main-zone>
         <ul className="grid gap-2 sm:grid-cols-2">
           {planned.map((p) => (
             <li
               key={p}
               className="flex items-start gap-2 rounded-md border border-border bg-subtle px-3 py-2 text-[13px]"
             >
-              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-text-3" aria-hidden />
               <span className="min-w-0">{p}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-caption text-text-muted">
-          Раздел в работе. Данные появятся здесь без изменения структуры навигации и модели данных.
-        </p>
       </Panel>
+      <InsightBlock
+        className="mt-4"
+        icon={Construction}
+        title="Раздел в работе"
+        text="Данные появятся здесь без изменения структуры навигации и модели данных."
+      />
     </>
   );
 }

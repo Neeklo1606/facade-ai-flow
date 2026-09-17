@@ -228,7 +228,7 @@ export function CreateRfqDialog({
                   <span
                     className={cn(
                       "block h-1 rounded-full",
-                      index <= step ? "bg-accent" : "bg-subtle",
+                      index <= step ? "bg-text" : "bg-subtle",
                     )}
                   />
                   <span
@@ -354,7 +354,7 @@ export function CreateRfqDialog({
                     className={cn(
                       "min-h-11 rounded-[var(--r-md)] border px-3 py-2 text-left text-[13px] transition-fast",
                       templateId === template.id
-                        ? "border-accent bg-accent-subtle font-medium"
+                        ? "border-line-2 bg-surface-3 font-medium"
                         : "border-border hover:bg-hover",
                     )}
                   >

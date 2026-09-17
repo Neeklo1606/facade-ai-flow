@@ -8,7 +8,7 @@ const tones: Record<Tone, string> = {
   danger: "bg-danger-bg text-danger",
   info: "bg-info-bg text-info",
   neutral: "bg-surface-2 text-text-2",
-  accent: "bg-orange-dim text-orange",
+  accent: "bg-orange-dim text-orange-hot",
 };
 
 /** Бейдж статуса: 24px, капсула, 12px/500, фон и текст из пары статуса, без границы */

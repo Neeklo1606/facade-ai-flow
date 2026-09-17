@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ChevronDown,
@@ -49,6 +50,11 @@ function badgeCounts(
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useApp();
+  // 1440 и шире — полный сайдбар (или свёрнутый по выбору), 1024–1439 — всегда 72px,
+  // ниже 1024 — выдвижное меню, в нём сайдбар всегда полный
+  const wide = useMediaQuery("(min-width: 1440px)");
+  const desktop = useMediaQuery("(min-width: 1024px)");
+  const collapsed = desktop && (sidebarCollapsed || !wide);
 
   return (
     <>
@@ -61,15 +67,17 @@ export function Sidebar() {
         />
       )}
       <aside
+        data-sidebar="app"
         className={cn(
           // На телефоне меню выезжает поверх экрана и нуждается в фоне; в оболочке сайдбар прозрачный
           "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0 lg:bg-transparent",
-          sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[var(--sidebar-w)]",
+          collapsed ? "lg:w-[72px]" : "lg:w-[var(--sidebar-w)]",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <SidebarInner
-          collapsed={sidebarCollapsed}
+          collapsed={collapsed}
+          canToggle={wide}
           onToggle={toggleSidebar}
           onClose={() => setMobileNavOpen(false)}
         />
@@ -80,10 +88,13 @@ export function Sidebar() {
 
 function SidebarInner({
   collapsed,
+  canToggle,
   onToggle,
   onClose,
 }: {
   collapsed: boolean;
+  /** Сворачивать вручную можно только с 1440px: уже — сайдбар свёрнут всегда */
+  canToggle: boolean;
   onToggle: () => void;
   onClose: () => void;
 }) {
@@ -134,13 +145,13 @@ function SidebarInner({
     <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
       {/* Шапка сайдбара, 60px */}
       <div className={cn("sidebar-header", collapsed && "lg:justify-center lg:px-0")}>
-        {collapsed ? (
+        {collapsed && canToggle ? (
           <button
             type="button"
             onClick={onToggle}
             aria-label="Развернуть меню"
             title="Развернуть меню"
-            className="focus-ring hidden size-[30px] place-items-center rounded-[var(--r-xs)] bg-orange text-on-orange lg:grid"
+            className="focus-ring hidden size-[30px] place-items-center rounded-[var(--r-xs)] bg-surface-2 text-text-2 hover:bg-surface-3 hover:text-text lg:grid"
           >
             <ChevronsRight className="size-4" strokeWidth={1.5} />
           </button>
@@ -148,7 +159,7 @@ function SidebarInner({
         <span
           className={cn(
             "grid size-[26px] shrink-0 place-items-center rounded-[var(--r-xs)] bg-orange text-on-orange shadow-[var(--glow-orange)]",
-            collapsed && "lg:hidden",
+            collapsed && canToggle && "lg:hidden",
           )}
         >
           <PanelsTopLeft className="size-[15px]" strokeWidth={1.5} />
@@ -159,7 +170,7 @@ function SidebarInner({
           </span>
           <ChevronDown className="size-4 shrink-0 text-text-3" strokeWidth={1.5} />
         </div>
-        {!collapsed && (
+        {!collapsed && canToggle && (
           <button
             type="button"
             onClick={onToggle}

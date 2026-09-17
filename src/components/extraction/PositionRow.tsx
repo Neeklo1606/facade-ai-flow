@@ -64,16 +64,16 @@ export const PositionRow = memo(function PositionRow({
       onClick={() => onActivate(item.id)}
       className={cn(
         "group relative cursor-pointer border-b border-border px-4 py-2.5 transition-fast",
-        active ? "bg-accent-subtle" : "hover:bg-hover",
+        active ? "bg-surface-2" : "hover:bg-hover",
         pending &&
           level === "low" &&
           !active &&
           "bg-[color-mix(in_oklab,var(--danger-bg)_55%,transparent)]",
-        mergeTarget && "hover:outline-2 hover:-outline-offset-2 hover:outline-accent",
-        mergeSource && "outline-2 -outline-offset-2 outline-dashed outline-accent",
+        mergeTarget && "hover:outline-2 hover:-outline-offset-2 hover:outline-info",
+        mergeSource && "outline-2 -outline-offset-2 outline-dashed outline-info",
       )}
     >
-      {active && <span className="absolute inset-y-0 left-0 w-[3px] bg-accent" aria-hidden />}
+      {active && <span className="absolute inset-y-0 left-0 w-[3px] bg-text" aria-hidden />}
 
       <div className="flex items-center gap-2">
         <span className="mono w-10 shrink-0 text-[11px] text-text-muted">{item.position}</span>
@@ -98,7 +98,7 @@ export const PositionRow = memo(function PositionRow({
             onAction(item.id, "source");
           }}
           title={`Показать на листе ${item.sheetNumber}`}
-          className="focus-ring ml-auto inline-flex h-6 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[11px] text-info transition-fast hover:bg-info-bg"
+          className="focus-ring ml-auto inline-flex h-11 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[11px] text-info transition-fast hover:bg-info-bg md:h-6"
         >
           <FileText className="size-3" strokeWidth={1.75} />
           <span className="tnum">л. {item.sheetNumber}</span>
@@ -168,7 +168,7 @@ export const PositionRow = memo(function PositionRow({
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="h-7 px-2.5 text-[12px]"
+                  className="h-11 px-2.5 text-[12px] lg:h-7"
                   onClick={() => onAction(item.id, "restore")}
                 >
                   <Undo2 className="size-3.5" /> Вернуть
@@ -178,8 +178,8 @@ export const PositionRow = memo(function PositionRow({
                   {pending && (
                     <Button
                       size="sm"
-                      variant="accent"
-                      className="h-7 px-2.5 text-[12px]"
+                      variant="secondary"
+                      className="h-11 px-2.5 text-[12px] lg:h-7"
                       onClick={() => onAction(item.id, "confirm")}
                     >
                       <Check className="size-3.5" /> Подтвердить
@@ -188,7 +188,7 @@ export const PositionRow = memo(function PositionRow({
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-7 px-2.5 text-[12px]"
+                    className="h-11 px-2.5 text-[12px] lg:h-7"
                     onClick={() => onAction(item.id, "edit")}
                   >
                     <Pencil className="size-3.5" /> Исправить
@@ -196,7 +196,7 @@ export const PositionRow = memo(function PositionRow({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2.5 text-[12px]"
+                    className="h-11 px-2.5 text-[12px] lg:h-7"
                     onClick={() => onAction(item.id, "exclude")}
                   >
                     <Ban className="size-3.5" /> Исключить
@@ -245,7 +245,13 @@ function IconAction({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button size="icon" variant="ghost" className="size-7" onClick={onClick} aria-label={label}>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-11 lg:size-7"
+          onClick={onClick}
+          aria-label={label}
+        >
           {children}
         </Button>
       </TooltipTrigger>
@@ -342,14 +348,19 @@ function EditForm({
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <Button type="submit" size="sm" variant="accent" className="h-7 px-2.5 text-[12px]">
+        <Button
+          type="submit"
+          size="sm"
+          variant="secondary"
+          className="h-11 px-2.5 text-[12px] lg:h-7"
+        >
           <Check className="size-3.5" /> Сохранить и подтвердить
         </Button>
         <Button
           type="button"
           size="sm"
           variant="ghost"
-          className="h-7 px-2.5 text-[12px]"
+          className="h-11 px-2.5 text-[12px] lg:h-7"
           onClick={onCancel}
         >
           Отмена

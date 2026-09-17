@@ -139,7 +139,7 @@ export function AgentChat() {
   const firstName = user?.name ?? null;
 
   return (
-    <div className="-mx-4 -mt-5 -mb-24 h-[calc(100dvh-var(--topbar-h)-56px)] md:-mx-7 md:-mt-6 lg:-mb-7 lg:h-[calc(100vh-var(--shell-gap)*2-var(--topbar-h))]">
+    <div className="main-bleed">
       <DetailsLayout
         open={openSource !== null}
         onClose={closeSource}

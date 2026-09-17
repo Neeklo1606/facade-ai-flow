@@ -1,6 +1,19 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Building2, FileSpreadsheet, LayoutGrid, Plus, Rows3, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  Clock,
+  FileDiff,
+  FileSearch,
+  FileSpreadsheet,
+  LayoutGrid,
+  Plus,
+  Rows3,
+  X,
+} from "lucide-react";
+import { MetricStrip } from "@/components/common/MetricStrip";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Panel } from "@/components/common/Panel";
 import { FilterChip } from "@/components/common/FilterBar";
@@ -199,9 +212,9 @@ function ProjectsPage() {
       {search.section && (
         <div
           role="status"
-          className="mb-4 flex flex-wrap items-center gap-3 rounded-[var(--r-md)] border border-accent-border bg-accent-subtle px-4 py-3"
+          className="mb-6 flex flex-wrap items-center gap-3 rounded-[var(--r-md)] border border-line-2 bg-surface px-4 py-3"
         >
-          <ArrowRight className="size-4 shrink-0 text-accent" />
+          <ArrowRight className="size-4 shrink-0 text-info" />
           <p className="min-w-0 flex-1 text-[13px]">
             <b className="font-semibold">{sectionLabels[search.section]}</b> ведётся по объекту.
             Выберите объект — раздел откроется сразу.
@@ -214,187 +227,191 @@ function ProjectsPage() {
 
       <PageHeader
         title="Объекты"
-        description="Где требуется внимание: непроверенная спецификация, просроченные ответы поставщиков и неразобранные изменения документации."
-        meta={
-          <>
-            <StatusBadge tone={totals.attention ? "danger" : "ok"}>
-              {totals.attention
-                ? `Требуют внимания: ${totals.attention} из ${rows.length}`
-                : "Все объекты в порядке"}
-            </StatusBadge>
-            <span className="text-caption text-text-secondary">
-              Непроверенных строк{" "}
-              <b className="tnum font-semibold text-text-primary">{fmtNum(totals.unverified)}</b>
-              {" · "}просроченных ответов{" "}
-              <b className="tnum font-semibold text-text-primary">{fmtNum(totals.overdue)}</b>
-              {" · "}открытых изменений{" "}
-              <b className="tnum font-semibold text-text-primary">{fmtNum(totals.changes)}</b>
-            </span>
-          </>
-        }
         actions={
-          <Button
-            variant="accent"
-            className="hidden sm:inline-flex"
-            onClick={() => setCreateOpen(true)}
-          >
+          <Button variant="accent" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" /> Добавить объект
           </Button>
         }
       />
+      <p className="sr-only">
+        Где требуется внимание: непроверенная спецификация, просроченные ответы поставщиков и
+        неразобранные изменения документации.
+      </p>
 
-      {screen === "partial" && (
-        <StateBanner tone="warn" className="mb-3" title="Сводка ТЦ «Галактика» не обновилась">
-          Показаны цифры на 05.09, 08:00 — нет связи с почтовым ящиком объекта. Остальные объекты
-          актуальны.
-        </StateBanner>
-      )}
-      {screen === "processing" && (
-        <StateBanner
-          tone="info"
-          className="mb-3"
-          title="Пересчитываем сводку после загрузки документации"
-        >
-          Число позиций и непроверенных строк обновится через минуту.
-        </StateBanner>
-      )}
+      <MetricStrip
+        className="mb-6"
+        items={[
+          { icon: Building2, label: "Объектов", value: fmtNum(rows.length) },
+          {
+            icon: AlertTriangle,
+            label: "Требуют внимания",
+            value: `${totals.attention} из ${rows.length}`,
+          },
+          { icon: FileSearch, label: "Непроверенных строк", value: fmtNum(totals.unverified) },
+          { icon: Clock, label: "Просроченных ответов", value: fmtNum(totals.overdue) },
+          { icon: FileDiff, label: "Открытых изменений", value: fmtNum(totals.changes) },
+        ]}
+      />
 
-      <Panel bodyClassName="p-0">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
-          <div className="grid min-w-0 flex-1 grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
-            <FilterSelect
-              label="Регион"
-              allLabel="Все регионы"
-              value={search.region}
-              options={regions.map((region) => ({ value: region, label: region }))}
-              onChange={(region) => setSearch({ region })}
-            />
-            <FilterSelect
-              label="Ответственный"
-              allLabel="Все ответственные"
-              value={search.manager}
-              options={managers.map((id) => ({ value: id, label: employeeName(id) }))}
-              onChange={(manager) => setSearch({ manager })}
-            />
-            <FilterSelect
-              label="Статус"
-              allLabel="Все статусы"
-              value={search.status}
-              options={statuses.map((status) => ({
-                value: status,
-                label: projectStatusMeta[status].label,
-              }))}
-              onChange={(status) => setSearch({ status: status as ProjectStatus | undefined })}
-            />
-            <FilterChip
-              className="col-span-2 w-full justify-center sm:w-auto"
-              active={Boolean(search.unverified)}
-              onClick={() => void setSearch({ unverified: search.unverified ? undefined : true })}
-            >
-              Есть непроверенные позиции
-            </FilterChip>
-            {filtersActive && (
+      <div data-main-zone className="space-y-4">
+        {screen === "partial" && (
+          <StateBanner tone="warn" title="Сводка ТЦ «Галактика» не обновилась">
+            Показаны цифры на 05.09, 08:00 — нет связи с почтовым ящиком объекта. Остальные объекты
+            актуальны.
+          </StateBanner>
+        )}
+        {screen === "processing" && (
+          <StateBanner
+            tone="info"
+
+            title="Пересчитываем сводку после загрузки документации"
+          >
+            Число позиций и непроверенных строк обновится через минуту.
+          </StateBanner>
+        )}
+
+        <Panel bodyClassName="p-0">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
+            <div className="grid min-w-0 flex-1 grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+              <FilterSelect
+                label="Регион"
+                allLabel="Все регионы"
+                value={search.region}
+                options={regions.map((region) => ({ value: region, label: region }))}
+                onChange={(region) => setSearch({ region })}
+              />
+              <FilterSelect
+                label="Ответственный"
+                allLabel="Все ответственные"
+                value={search.manager}
+                options={managers.map((id) => ({ value: id, label: employeeName(id) }))}
+                onChange={(manager) => setSearch({ manager })}
+              />
+              <FilterSelect
+                label="Статус"
+                allLabel="Все статусы"
+                value={search.status}
+                options={statuses.map((status) => ({
+                  value: status,
+                  label: projectStatusMeta[status].label,
+                }))}
+                onChange={(status) => setSearch({ status: status as ProjectStatus | undefined })}
+              />
+              <FilterChip
+                className="col-span-2 w-full justify-center sm:w-auto"
+                active={Boolean(search.unverified)}
+                onClick={() => void setSearch({ unverified: search.unverified ? undefined : true })}
+              >
+                Есть непроверенные позиции
+              </FilterChip>
+              {filtersActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setSearch({
+                      region: undefined,
+                      manager: undefined,
+                      status: undefined,
+                      unverified: undefined,
+                    })
+                  }
+                >
+                  Сбросить
+                </Button>
+              )}
+            </div>
+            <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
+              <span className="mr-auto text-caption text-text-muted sm:mr-0">
+                Объектов: {rows.length}
+              </span>
+              <div
+                className="segmented-control hidden lg:flex"
+                role="group"
+                aria-label="Вид реестра"
+              >
+                <button
+                  type="button"
+                  aria-pressed={view === "table"}
+                  onClick={() => setSearch({ view: undefined })}
+                  className={cn(
+                    "segment flex items-center gap-1.5",
+                    view === "table" && "segment-active",
+                  )}
+                >
+                  <Rows3 className="size-3.5" /> Таблица
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={view === "cards"}
+                  onClick={() => setSearch({ view: "cards" })}
+                  className={cn(
+                    "segment flex items-center gap-1.5",
+                    view === "cards" && "segment-active",
+                  )}
+                >
+                  <LayoutGrid className="size-3.5" /> Карточки
+                </button>
+              </div>
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
-                onClick={() =>
+                onClick={handleExport}
+                loading={exporting}
+                disabled={!rows.length}
+              >
+                {!exporting && <FileSpreadsheet className="size-4" />} Excel
+              </Button>
+            </div>
+          </div>
+          <ScreenGate
+            state={screen}
+            onRetry={() => void Promise.all([registry.refetch(), filtered.refetch()])}
+            skeleton={<ScreenSkeleton kind="cards" rows={6} />}
+            copy={{
+              section: "Объекты",
+              roles: "руководителям проектов и генеральному директору",
+              errorTitle: "Не удалось загрузить объекты",
+              empty: {
+                icon: Building2,
+                title: "Объектов пока нет",
+                description:
+                  "Добавьте первый объект, затем загрузите договор и проектную документацию — система найдёт в них сроки и материалы.",
+                actionLabel: "Добавить объект",
+                onAction: () => setCreateOpen(true),
+              },
+              filtered: {
+                title: "Объектов по условиям нет",
+                description:
+                  "Под выбранные регион, ответственного и статус не попал ни один объект.",
+                onReset: () =>
                   setSearch({
                     region: undefined,
                     manager: undefined,
                     status: undefined,
                     unverified: undefined,
-                  })
-                }
-              >
-                Сбросить
-              </Button>
-            )}
-          </div>
-          <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
-            <span className="mr-auto text-caption text-text-muted sm:mr-0">
-              Объектов: {rows.length}
-            </span>
-            <div className="segmented-control hidden lg:flex" role="group" aria-label="Вид реестра">
-              <button
-                type="button"
-                aria-pressed={view === "table"}
-                onClick={() => setSearch({ view: undefined })}
+                  }),
+              },
+            }}
+          >
+            <>
+              <div className={cn("hidden overflow-x-auto", view === "table" && "lg:block")}>
+                <ProjectsTable rows={rows} onOpen={open} />
+              </div>
+              <div
                 className={cn(
-                  "segment flex items-center gap-1.5",
-                  view === "table" && "segment-active",
+                  "grid gap-3 p-3 sm:grid-cols-2 lg:p-4 2xl:grid-cols-3",
+                  view === "table" && "lg:hidden",
                 )}
               >
-                <Rows3 className="size-3.5" /> Таблица
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === "cards"}
-                onClick={() => setSearch({ view: "cards" })}
-                className={cn(
-                  "segment flex items-center gap-1.5",
-                  view === "cards" && "segment-active",
-                )}
-              >
-                <LayoutGrid className="size-3.5" /> Карточки
-              </button>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleExport}
-              loading={exporting}
-              disabled={!rows.length}
-            >
-              {!exporting && <FileSpreadsheet className="size-4" />} Excel
-            </Button>
-          </div>
-        </div>
-        <ScreenGate
-          state={screen}
-          onRetry={() => void Promise.all([registry.refetch(), filtered.refetch()])}
-          skeleton={<ScreenSkeleton kind="cards" rows={6} />}
-          copy={{
-            section: "Объекты",
-            roles: "руководителям проектов и генеральному директору",
-            errorTitle: "Не удалось загрузить объекты",
-            empty: {
-              icon: Building2,
-              title: "Объектов пока нет",
-              description:
-                "Добавьте первый объект, затем загрузите договор и проектную документацию — система найдёт в них сроки и материалы.",
-              actionLabel: "Добавить объект",
-              onAction: () => setCreateOpen(true),
-            },
-            filtered: {
-              title: "Объектов по условиям нет",
-              description: "Под выбранные регион, ответственного и статус не попал ни один объект.",
-              onReset: () =>
-                setSearch({
-                  region: undefined,
-                  manager: undefined,
-                  status: undefined,
-                  unverified: undefined,
-                }),
-            },
-          }}
-        >
-          <>
-            <div className={cn("hidden overflow-x-auto", view === "table" && "lg:block")}>
-              <ProjectsTable rows={rows} onOpen={open} />
-            </div>
-            <div
-              className={cn(
-                "grid gap-3 p-3 sm:grid-cols-2 lg:p-4 2xl:grid-cols-3",
-                view === "table" && "lg:hidden",
-              )}
-            >
-              {rows.map((row) => (
-                <ProjectCard key={row.id} row={row} onOpen={() => open(row)} />
-              ))}
-            </div>
-          </>
-        </ScreenGate>
-      </Panel>
+                {rows.map((row) => (
+                  <ProjectCard key={row.id} row={row} onOpen={() => open(row)} />
+                ))}
+              </div>
+            </>
+          </ScreenGate>
+        </Panel>
+      </div>
 
       {screen !== "forbidden" && screen !== "error" && (
         <MobileActionBar>
@@ -476,7 +493,7 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
                 )}
               </td>
               <td className="px-3 py-2.5">
-                <div className="max-w-[190px] truncate font-medium text-text-primary group-hover:text-accent">
+                <div className="max-w-[190px] truncate font-medium text-text-primary group-hover:text-text">
                   {row.project.name}
                 </div>
                 <div className="mt-0.5 text-caption text-text-muted">

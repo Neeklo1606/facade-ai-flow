@@ -21,7 +21,7 @@ export function ProcessingStages({ stage, compact }: { stage: number; compact?: 
               <div
                 className={cn(
                   "h-full rounded-full transition-[width] duration-700 ease-out",
-                  done ? "w-full bg-ok" : current ? "w-1/2 bg-accent" : "w-0",
+                  done ? "w-full bg-ok" : current ? "w-1/2 bg-info" : "w-0",
                 )}
               />
             </div>
@@ -38,7 +38,7 @@ export function ProcessingStages({ stage, compact }: { stage: number; compact?: 
             >
               {done && <Check className="size-3 shrink-0 text-ok" />}
               {current && (
-                <span className="pulse-dot size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                <span className="pulse-dot size-1.5 shrink-0 rounded-full bg-info" aria-hidden />
               )}
               <span className="truncate">{label}</span>
             </p>

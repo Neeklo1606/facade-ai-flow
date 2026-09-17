@@ -1,6 +1,19 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRight, FileText, PackageSearch, Send, X } from "lucide-react";
+import {
+  ChevronRight,
+  CircleDashed,
+  FileText,
+  Inbox,
+  PackageCheck,
+  PackageSearch,
+  Send,
+  ShoppingCart,
+  UserCheck,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { MetricStrip } from "@/components/common/MetricStrip";
 import {
   loadProject,
   ProjectNotFound,
@@ -36,6 +49,16 @@ import {
   type PurchaseStatus,
 } from "@/contracts";
 import { prefetch } from "@/api/prefetch";
+
+/** Иконки этапов закупки в полосе метрик */
+const stageIcon: Record<PurchaseStatus, LucideIcon> = {
+  none: CircleDashed,
+  requested: Send,
+  offers: Inbox,
+  supplier_selected: UserCheck,
+  ordered: ShoppingCart,
+  delivered: PackageCheck,
+};
 
 type ReviewFilter = "verified" | "pending" | "attention" | "check" | "excluded";
 type CharsFilter = "with" | "without";
@@ -217,7 +240,6 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
       <SubpageHeader
         project={project}
         title="Материалы"
-        description="Что требуется купить: позиции спецификации, их проверка и этап закупки."
         meta={
           <span className="text-caption text-text-secondary">
             Позиций{" "}
@@ -229,7 +251,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
               {fmtNum((overview?.specTotal ?? 0) - (overview?.specUnverified ?? 0))}
             </b>{" "}
             · готовы к запросу{" "}
-            <b className="tnum font-semibold text-accent">{fmtNum(readyTotal)}</b>
+            <b className="tnum font-semibold text-text-primary">{fmtNum(readyTotal)}</b>
           </span>
         }
         actions={
@@ -237,7 +259,6 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             variant="accent"
             disabled={blocked || (eligibleCount === 0 && readyTotal === 0)}
             onClick={() => setRequestOpen(true)}
-            className="hidden sm:inline-flex"
           >
             <Send className="size-4" /> Создать запрос поставщикам
             {selected.size > 0 && <span className="tnum opacity-80">{fmtNum(eligibleCount)}</span>}
@@ -245,210 +266,192 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
         }
       />
 
-      {screen === "partial" && (
-        <StateBanner
-          tone="warn"
-          className="mb-3"
-          title={`Позиции из ${pendingDocs.length} ${pendingDocs.length === 1 ? "документа" : "документов"} ещё не извлечены`}
-        >
-          {pendingDocs.map((doc) => doc.title).join(", ")} — обрабатываются. Реестр дополнится
-          автоматически, запрашивать цены можно уже по переданным в закупку позициям.
-        </StateBanner>
-      )}
-      {screen === "processing" && (
-        <StateBanner
-          tone="info"
-          className="mb-3"
-          title="Пересчитываем этапы закупки после новых ответов поставщиков"
-        >
-          Статусы позиций обновятся через несколько секунд.
-        </StateBanner>
-      )}
-
-      {/* Этапы закупки проверенных позиций */}
-      <div className="card-surface mb-4 grid grid-cols-2 gap-px overflow-hidden bg-border sm:grid-cols-3 xl:grid-cols-6">
-        {purchaseOrder.map((status) => {
+      {/* Этапы закупки проверенных позиций: ячейка полосы — фильтр списка */}
+      <MetricStrip
+        className="mb-6"
+        items={purchaseOrder.map((status) => {
           const active = search.purchase === status;
-          const count = stages?.[status] ?? 0;
-          return (
-            <button
-              key={status}
-              type="button"
-              aria-pressed={active}
-              onClick={() =>
-                setSearch({ purchase: active ? undefined : status, review: undefined })
-              }
-              className={cn(
-                "focus-ring relative bg-surface px-4 py-3 text-left transition-fast hover:bg-hover",
-                active && "bg-accent-subtle hover:bg-accent-subtle",
-              )}
-            >
-              {active && (
-                <span className="absolute inset-x-0 bottom-0 h-[2px] bg-accent" aria-hidden />
-              )}
-              <span className="block truncate text-caption text-text-secondary">
-                {purchaseStatusLabel[status]}
-              </span>
-              <span
-                className={cn(
-                  "tnum mt-0.5 block text-[22px] leading-tight font-semibold",
-                  status === "none" && count > 0 && "text-accent",
-                )}
-              >
-                {fmtNum(count)}
-              </span>
-            </button>
-          );
+          return {
+            icon: stageIcon[status],
+            label: purchaseStatusLabel[status],
+            value: fmtNum(stages?.[status] ?? 0),
+            selected: active,
+            onSelect: () => setSearch({ purchase: active ? undefined : status, review: undefined }),
+          };
         })}
-      </div>
+      />
 
-      <section className="card-surface overflow-hidden">
-        <div className="grid grid-cols-2 items-center gap-2 border-b border-border px-4 py-2.5 sm:flex sm:flex-wrap">
-          <FilterSelect
-            label="Раздел"
-            allLabel="Все разделы"
-            value={search.group}
-            options={groups.map((g) => ({ value: g, label: g }))}
-            onChange={(group) => setSearch({ group })}
-          />
-          <FilterSelect
-            label="Проверка"
-            allLabel="Любая проверка"
-            value={search.review}
-            options={reviewValues.map((value) => ({ value, label: reviewFilterLabel[value] }))}
-            onChange={(review) => setSearch({ review: review as ReviewFilter | undefined })}
-          />
-          <FilterSelect
-            label="Закупка"
-            allLabel="Любой этап закупки"
-            value={search.purchase}
-            options={purchaseOrder.map((value) => ({ value, label: purchaseStatusLabel[value] }))}
-            onChange={(purchase) => setSearch({ purchase: purchase as PurchaseStatus | undefined })}
-          />
-          <FilterSelect
-            label="Характеристики"
-            allLabel="С характеристиками и без"
-            value={search.chars}
-            options={[
-              { value: "with", label: "Есть характеристики" },
-              { value: "without", label: "Без характеристик" },
-            ]}
-            onChange={(chars) => setSearch({ chars: chars as CharsFilter | undefined })}
-          />
-          {filtersActive && (
-            <Button variant="ghost" size="sm" onClick={resetFilters}>
-              Сбросить
-            </Button>
-          )}
-          <span className="col-span-2 text-caption text-text-muted sm:ml-auto">
-            Позиций: {fmtNum(shownTotal)}
-          </span>
-        </div>
+      <div data-main-zone className="space-y-4">
+        {screen === "partial" && (
+          <StateBanner
+            tone="warn"
 
-        {selected.size > 0 && (
-          <div className="sticky top-0 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-accent-border bg-accent-subtle px-4 py-2">
-            <span className="text-[13px]">
-              Выбрано <b className="tnum">{fmtNum(selected.size)}</b>
-              {eligibleCount !== selected.size && (
-                <span className="text-text-secondary">
-                  {" "}
-                  · можно запросить {fmtNum(eligibleCount)}, остальные не проверены или уже в
-                  закупке
-                </span>
-              )}
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setSelected(new Map())}>
-                <X className="size-3.5" /> Снять выделение
-              </Button>
-              <Button
-                size="sm"
-                variant="accent"
-                disabled={eligibleCount === 0}
-                onClick={() => setRequestOpen(true)}
-              >
-                <Send className="size-3.5" /> Создать запрос · {fmtNum(eligibleCount)}
-              </Button>
-            </div>
-          </div>
+            title={`Позиции из ${pendingDocs.length} ${pendingDocs.length === 1 ? "документа" : "документов"} ещё не извлечены`}
+          >
+            {pendingDocs.map((doc) => doc.title).join(", ")} — обрабатываются. Реестр дополнится
+            автоматически, запрашивать цены можно уже по переданным в закупку позициям.
+          </StateBanner>
+        )}
+        {screen === "processing" && (
+          <StateBanner
+            tone="info"
+
+            title="Пересчитываем этапы закупки после новых ответов поставщиков"
+          >
+            Статусы позиций обновятся через несколько секунд.
+          </StateBanner>
         )}
 
-        <ScreenGate
-          state={screen}
-          onRetry={() => void Promise.all([scopeQuery.refetch(), filteredQuery.refetch()])}
-          skeleton={<ScreenSkeleton kind="table" rows={8} />}
-          copy={{
-            section: "Материалы",
-            roles: "руководителю проекта, ПТО и снабжению",
-            errorTitle: "Не удалось загрузить материалы",
-            empty: {
-              icon: PackageSearch,
-              title: "Материалов пока нет",
-              description:
-                "Загрузите спецификацию в документации объекта и подтвердите извлечённые позиции — они появятся здесь, и по ним можно будет запросить цены.",
-              actionLabel: "Загрузить спецификацию",
-              onAction: () =>
-                navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
-            },
-            filtered: {
-              onReset: resetFilters,
-              description:
-                "Под выбранные раздел, проверку и этап закупки не попала ни одна позиция. Сбросьте фильтры.",
-            },
-          }}
-        >
-          <div className="lg:hidden">
-            {grouped.map((summary) => (
-              <MobileGroup
-                key={summary.group}
-                filter={filter}
-                summary={summary}
-                selected={selected}
-                onToggle={toggle}
-                onOpen={(id) => setSearch({ position: id })}
-                projectId={project.id}
-              />
-            ))}
+        <section className="card-surface overflow-hidden">
+          <div className="grid grid-cols-2 items-center gap-2 border-b border-border px-4 py-2.5 sm:flex sm:flex-wrap">
+            <FilterSelect
+              label="Раздел"
+              allLabel="Все разделы"
+              value={search.group}
+              options={groups.map((g) => ({ value: g, label: g }))}
+              onChange={(group) => setSearch({ group })}
+            />
+            <FilterSelect
+              label="Проверка"
+              allLabel="Любая проверка"
+              value={search.review}
+              options={reviewValues.map((value) => ({ value, label: reviewFilterLabel[value] }))}
+              onChange={(review) => setSearch({ review: review as ReviewFilter | undefined })}
+            />
+            <FilterSelect
+              label="Закупка"
+              allLabel="Любой этап закупки"
+              value={search.purchase}
+              options={purchaseOrder.map((value) => ({ value, label: purchaseStatusLabel[value] }))}
+              onChange={(purchase) =>
+                setSearch({ purchase: purchase as PurchaseStatus | undefined })
+              }
+            />
+            <FilterSelect
+              label="Характеристики"
+              allLabel="С характеристиками и без"
+              value={search.chars}
+              options={[
+                { value: "with", label: "Есть характеристики" },
+                { value: "without", label: "Без характеристик" },
+              ]}
+              onChange={(chars) => setSearch({ chars: chars as CharsFilter | undefined })}
+            />
+            {filtersActive && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>
+                Сбросить
+              </Button>
+            )}
+            <span className="col-span-2 text-caption text-text-muted sm:ml-auto">
+              Позиций: {fmtNum(shownTotal)}
+            </span>
           </div>
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1240px] text-table">
-              <thead className="sticky top-0 z-10">
-                <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
-                  <th className="w-10 pl-4" aria-label="Выделение" />
-                  <th className="px-2.5">Нормализованное</th>
-                  <th className="px-2.5">Проектное</th>
-                  <th className="px-2.5">Характеристики</th>
-                  <th className="px-2.5 text-right">Кол-во</th>
-                  <th className="px-2.5">Ед.</th>
-                  <th className="px-2.5">Раздел</th>
-                  <th className="px-2.5">Проверка</th>
-                  <th className="px-2.5">Источник</th>
-                  <th className="px-4">Закупка</th>
-                </tr>
-              </thead>
+
+          {selected.size > 0 && (
+            <div className="sticky top-0 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line-2 bg-surface-2 px-4 py-2">
+              <span className="text-[13px]">
+                Выбрано <b className="tnum">{fmtNum(selected.size)}</b>
+                {eligibleCount !== selected.size && (
+                  <span className="text-text-secondary">
+                    {" "}
+                    · можно запросить {fmtNum(eligibleCount)}, остальные не проверены или уже в
+                    закупке
+                  </span>
+                )}
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setSelected(new Map())}>
+                  <X className="size-3.5" /> Снять выделение
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={eligibleCount === 0}
+                  onClick={() => setRequestOpen(true)}
+                >
+                  <Send className="size-3.5" /> Создать запрос · {fmtNum(eligibleCount)}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <ScreenGate
+            state={screen}
+            onRetry={() => void Promise.all([scopeQuery.refetch(), filteredQuery.refetch()])}
+            skeleton={<ScreenSkeleton kind="table" rows={8} />}
+            copy={{
+              section: "Материалы",
+              roles: "руководителю проекта, ПТО и снабжению",
+              errorTitle: "Не удалось загрузить материалы",
+              empty: {
+                icon: PackageSearch,
+                title: "Материалов пока нет",
+                description:
+                  "Загрузите спецификацию в документации объекта и подтвердите извлечённые позиции — они появятся здесь, и по ним можно будет запросить цены.",
+                actionLabel: "Загрузить спецификацию",
+                onAction: () =>
+                  navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
+              },
+              filtered: {
+                onReset: resetFilters,
+                description:
+                  "Под выбранные раздел, проверку и этап закупки не попала ни одна позиция. Сбросьте фильтры.",
+              },
+            }}
+          >
+            <div className="lg:hidden">
               {grouped.map((summary) => (
-                <DesktopGroup
+                <MobileGroup
                   key={summary.group}
                   filter={filter}
                   summary={summary}
-                  open={!collapsed.includes(summary.group)}
-                  onOpenChange={(open) =>
-                    setCollapsed((prev) =>
-                      open ? prev.filter((g) => g !== summary.group) : [...prev, summary.group],
-                    )
-                  }
                   selected={selected}
-                  selectedCount={selectedIn(summary.group)}
                   onToggle={toggle}
-                  onToggleGroup={(value) => void toggleGroup(summary.group, value)}
                   onOpen={(id) => setSearch({ position: id })}
                   projectId={project.id}
                 />
               ))}
-            </table>
-          </div>
-        </ScreenGate>
-      </section>
+            </div>
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full min-w-[1240px] text-table">
+                <thead className="sticky top-0 z-10">
+                  <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
+                    <th className="w-10 pl-4" aria-label="Выделение" />
+                    <th className="px-2.5">Нормализованное</th>
+                    <th className="px-2.5">Проектное</th>
+                    <th className="px-2.5">Характеристики</th>
+                    <th className="px-2.5 text-right">Кол-во</th>
+                    <th className="px-2.5">Ед.</th>
+                    <th className="px-2.5">Раздел</th>
+                    <th className="px-2.5">Проверка</th>
+                    <th className="px-2.5">Источник</th>
+                    <th className="px-4">Закупка</th>
+                  </tr>
+                </thead>
+                {grouped.map((summary) => (
+                  <DesktopGroup
+                    key={summary.group}
+                    filter={filter}
+                    summary={summary}
+                    open={!collapsed.includes(summary.group)}
+                    onOpenChange={(open) =>
+                      setCollapsed((prev) =>
+                        open ? prev.filter((g) => g !== summary.group) : [...prev, summary.group],
+                      )
+                    }
+                    selected={selected}
+                    selectedCount={selectedIn(summary.group)}
+                    onToggle={toggle}
+                    onToggleGroup={(value) => void toggleGroup(summary.group, value)}
+                    onOpen={(id) => setSearch({ position: id })}
+                    projectId={project.id}
+                  />
+                ))}
+              </table>
+            </div>
+          </ScreenGate>
+        </section>
+      </div>
 
       {!blocked && (
         <MobileActionBar>
@@ -548,21 +551,30 @@ function DesktopGroup({
             projectId={projectId}
           />
         ))}
-      {open && (pages.isPending || pages.hasNextPage) && (
+      {/* Место под первую страницу раздела занимается заранее: иначе строки толкают таблицу вниз */}
+      {open &&
+        pages.isPending &&
+        Array.from({ length: Math.min(PAGE, total) }).map((_, index) => (
+          <tr key={`skeleton-${index}`} className="h-14 border-b border-border">
+            <td className="pl-4">
+              <span className="skeleton block size-4 rounded-[4px]" />
+            </td>
+            <td colSpan={9} className="px-2.5">
+              <span className="skeleton block h-3 w-1/3" />
+            </td>
+          </tr>
+        ))}
+      {open && !pages.isPending && pages.hasNextPage && (
         <tr className="border-b border-border">
           <td colSpan={10} className="px-4 py-2">
-            {pages.isPending ? (
-              <span className="text-caption text-text-muted">Загружаем позиции…</span>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={pages.isFetchingNextPage}
-                onClick={() => void pages.fetchNextPage()}
-              >
-                Показать ещё {fmtNum(Math.min(PAGE, rest))} из {fmtNum(rest)}
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={pages.isFetchingNextPage}
+              onClick={() => void pages.fetchNextPage()}
+            >
+              Показать ещё {fmtNum(Math.min(PAGE, rest))} из {fmtNum(rest)}
+            </Button>
           </td>
         </tr>
       )}
@@ -586,9 +598,9 @@ function MobileGroup({ filter, summary, selected, onToggle, onOpen, projectId }:
           return (
             <li
               key={item.id}
-              className={cn("flex gap-1 pr-4", selected.has(item.id) && "bg-accent-subtle")}
+              className={cn("flex gap-1 pr-4", selected.has(item.id) && "bg-surface-2")}
             >
-              <label className="grid w-12 shrink-0 cursor-pointer place-items-center self-stretch">
+              <label className="grid min-h-11 w-12 shrink-0 cursor-pointer place-items-center self-stretch">
                 <Checkbox
                   checked={selected.has(item.id)}
                   onCheckedChange={(v) => onToggle(item, v === true)}
@@ -673,21 +685,23 @@ function MaterialRow({
       onClick={onOpen}
       className={cn(
         "group h-12 cursor-pointer border-b border-border transition-fast last:border-0 hover:bg-hover",
-        selected && "bg-accent-subtle hover:bg-accent-subtle",
+        selected && "bg-surface-2 hover:bg-surface-2",
         inactive && "text-text-muted",
       )}
     >
       <td className="pl-4" onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={selected}
-          onCheckedChange={(value) => onToggle(item, value === true)}
-          aria-label={`Выделить поз. ${item.position}`}
-        />
+        <label className="grid min-h-11 cursor-pointer place-items-center lg:min-h-0">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(value) => onToggle(item, value === true)}
+            aria-label={`Выделить поз. ${item.position}`}
+          />
+        </label>
       </td>
       <td className="max-w-[190px] px-2.5">
         {item.normalizedName ? (
           <div
-            className="truncate font-medium text-text-primary group-hover:text-accent"
+            className="truncate font-medium text-text-primary group-hover:text-text"
             title={item.normalizedName}
           >
             {item.normalizedName}
@@ -736,7 +750,7 @@ function MaterialRow({
           params={{ id: projectId, docId: item.documentId }}
           search={{ position: item.id }}
           title="Открыть позицию в документе"
-          className="focus-ring inline-flex h-6 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[12px] whitespace-nowrap text-info transition-fast hover:bg-info-bg"
+          className="focus-ring inline-flex h-11 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[12px] whitespace-nowrap text-info transition-fast hover:bg-info-bg lg:h-6"
         >
           <FileText className="size-3" /> л. {item.sheetNumber}
         </Link>

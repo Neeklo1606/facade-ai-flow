@@ -140,7 +140,7 @@ export function NumberValue({
 }
 
 const avatarPalette = [
-  "bg-orange-dim text-orange",
+  "bg-orange-dim text-orange-hot",
   "bg-sand-dim text-sand",
   "bg-surface-3 text-text-2",
   "bg-info-bg text-info",

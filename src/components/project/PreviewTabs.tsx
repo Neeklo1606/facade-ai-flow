@@ -135,7 +135,7 @@ export function DocumentsPreview(props: Props) {
                       <Link
                         to="/projects/$id/documents/$docId"
                         params={{ id: props.projectId, docId: doc.id }}
-                        className="hover:text-accent"
+                        className="hover:text-text"
                       >
                         {doc.title}
                       </Link>
@@ -170,7 +170,7 @@ export function DocumentsPreview(props: Props) {
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex items-center gap-2 text-[13px] font-medium">
                       {version.version}
-                      {index === 0 && <StatusBadge tone="accent">Актуальная</StatusBadge>}
+                      {index === 0 && <StatusBadge tone="ok">Актуальная</StatusBadge>}
                     </span>
                     <span className="tnum text-caption text-text-muted">
                       {fmtDate(version.uploadedAt)}
@@ -435,7 +435,7 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
                     <Bar
                       value={zone.factQty}
                       total={zone.planQty}
-                      tone={pct >= 100 ? "ok" : "accent"}
+                      tone={pct >= 100 ? "ok" : "info"}
                     />
                   </div>
                 </li>
@@ -498,10 +498,10 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
             {pending.slice(0, PREVIEW).map((item) => (
               <li key={item.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
-                  <Link to={item.link} className="text-[13px] font-medium hover:text-accent">
+                  <Link to={item.link} className="text-[13px] font-medium hover:text-text">
                     {item.title}
                   </Link>
-                  <StatusBadge tone={item.kind === "request" ? "accent" : "info"}>
+                  <StatusBadge tone={item.kind === "request" ? "warn" : "info"}>
                     {item.kind === "request" ? "Сравнение готово" : replacementStatusLabel.proposed}
                   </StatusBadge>
                 </div>

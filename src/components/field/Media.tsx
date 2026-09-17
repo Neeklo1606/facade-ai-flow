@@ -201,7 +201,7 @@ export function VoiceReport({
               setPlaying((p) => !p);
             }}
             aria-label={playing ? "Пауза" : "Воспроизвести оригинал"}
-            className="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground shadow-[var(--shadow-xs)] active:scale-95"
+            className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-3 text-text shadow-[var(--shadow-xs)] active:translate-y-px"
           >
             {playing ? <Pause className="size-5" /> : <Play className="ml-0.5 size-5" />}
           </button>
@@ -225,7 +225,7 @@ export function VoiceReport({
                 return (
                   <span
                     key={i}
-                    className={cn("flex-1 rounded-full", played ? "bg-accent" : "bg-border-strong")}
+                    className={cn("flex-1 rounded-full", played ? "bg-text" : "bg-border-strong")}
                     // Округление: браузер сокращает длинную дробь в style, и SSR-разметка не совпала бы с клиентом
                     style={{ height: `${Math.min(100, Math.round(height))}%` }}
                   />
@@ -257,7 +257,7 @@ export function VoiceReport({
                 }}
                 className={cn(
                   "flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left transition-fast hover:bg-hover",
-                  active && "bg-accent-subtle",
+                  active && "bg-surface-2",
                 )}
               >
                 <span className="tnum w-10 shrink-0 text-caption text-text-muted">
@@ -297,9 +297,7 @@ function highlight(text: string, quote: string | null) {
   return (
     <>
       {text.slice(0, idx)}
-      <mark className="rounded-[3px] bg-accent-subtle px-0.5 text-accent">
-        {text.slice(idx, end)}
-      </mark>
+      <mark className="rounded-[3px] bg-info-bg px-0.5 text-info">{text.slice(idx, end)}</mark>
       {text.slice(end)}
     </>
   );

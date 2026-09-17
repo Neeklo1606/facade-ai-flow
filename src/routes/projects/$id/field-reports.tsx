@@ -4,13 +4,17 @@ import {
   AlertOctagon,
   AlertTriangle,
   Check,
+  CheckCheck,
+  ClipboardCheck,
   FileText,
   HardHat,
   Image as ImageIcon,
   Mic,
   PencilLine,
   Undo2,
+  type LucideIcon,
 } from "lucide-react";
+import { MetricStrip } from "@/components/common/MetricStrip";
 import {
   loadProject,
   ProjectNotFound,
@@ -91,6 +95,14 @@ const kindMeta = {
   photo: { label: reportKindLabel.photo, icon: ImageIcon },
 };
 
+/** Иконки статусов проверки в полосе метрик */
+const statusIcon: Record<StatusFilter, LucideIcon> = {
+  all: HardHat,
+  review: ClipboardCheck,
+  returned: Undo2,
+  accepted: CheckCheck,
+};
+
 function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -146,17 +158,9 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
       <SubpageHeader
         project={project}
         title="Отчёты с площадки"
-        description="Отчёты прорабов из Telegram: объём, фото и проблемы. Проверьте объём и примите отчёт или верните на уточнение."
-        meta={
-          <span className="text-caption text-text-secondary">
-            На проверке <b className="tnum font-semibold text-warn">{toReview.length}</b> · всего{" "}
-            {reports.length}
-          </span>
-        }
         actions={
           <Button
             variant="accent"
-            className="hidden sm:inline-flex"
             disabled={blocked || toReview.length === 0}
             onClick={nextToReview}
           >
@@ -165,21 +169,30 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
         }
       />
 
-      <div className="mb-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-          {(["all", "review", "returned", "accepted"] as StatusFilter[]).map((id) => (
-            <FilterChip
-              key={id}
-              className="min-h-11 lg:min-h-9"
-              active={(search.status ?? "all") === id}
-              onClick={() => setSearch({ status: id === "all" ? undefined : id })}
-              count={id === "all" ? reports.length : reports.filter((r) => r.status === id).length}
-            >
-              {id === "all" ? "Все" : statusMeta[id].label}
-            </FilterChip>
-          ))}
-        </div>
-        <div className="sm:ml-auto">
+      <p className="sr-only">
+        Отчёты прорабов из Telegram: объём, фото и проблемы. Проверьте объём и примите отчёт или
+        верните на уточнение.
+      </p>
+
+      {/* Ячейка полосы — фильтр ленты по статусу проверки */}
+      <MetricStrip
+        className="mb-5"
+        items={(["all", "review", "returned", "accepted"] as StatusFilter[]).map((id) => {
+          const active = (search.status ?? "all") === id;
+          return {
+            icon: statusIcon[id],
+            label: id === "all" ? "Всего отчётов" : statusMeta[id].label,
+            value: fmtNum(
+              id === "all" ? reports.length : reports.filter((r) => r.status === id).length,
+            ),
+            selected: active,
+            onSelect: () => setSearch({ status: id === "all" ? undefined : id }),
+          };
+        })}
+      />
+
+      <div data-main-zone className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
           <FilterSelect
             label="Захватка"
             allLabel="Все захватки"
@@ -188,68 +201,60 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
             onChange={(zone) => setSearch({ zone })}
           />
         </div>
+
+        {screen === "processing" && (
+          <StateBanner tone="info" title="Распознаём новый голосовой отчёт Гареева, 52 с">
+            Объём, захватка и проблемы появятся в ленте через минуту.
+          </StateBanner>
+        )}
+        {screen === "partial" && (
+          <StateBanner tone="warn" title="Фото из 2 отчётов ещё загружаются из Telegram">
+            Слабая связь на площадке — карточки дополнятся, когда фото дойдут.
+          </StateBanner>
+        )}
+
+        <ScreenGate
+          state={screen}
+          onRetry={() => void reportsQuery.refetch()}
+          skeleton={<ScreenSkeleton kind="feed" />}
+          copy={{
+            section: "Отчёты с площадки",
+            roles: "руководителю проекта, ПТО и прорабам объекта",
+            errorTitle: "Не удалось загрузить отчёты",
+            empty: {
+              icon: HardHat,
+              title: "Отчётов с площадки пока нет",
+              description:
+                "Прорабы отправляют отчёты в Telegram-бот голосом, текстом или фото. После распознавания отчёт появится здесь с объёмом и проблемами.",
+            },
+            filtered: {
+              onReset: () => setSearch({ status: undefined, zone: undefined }),
+              description:
+                "Нет отчётов с таким статусом по выбранной захватке. Сбросьте фильтры, чтобы увидеть всю ленту.",
+            },
+          }}
+        >
+          <ol ref={feed} className="space-y-5">
+            {days.map(([day, list]) => (
+              <li key={day}>
+                <h2 className="mb-2 text-[12px] font-semibold text-text-secondary">
+                  {fmtDayTitle(day, now)}
+                </h2>
+                <ol className="space-y-3">
+                  {list.map((report) => (
+                    <ReportCard
+                      key={report.id}
+                      report={report}
+                      onSource={setSource}
+                      partial={screen === "partial"}
+                    />
+                  ))}
+                </ol>
+              </li>
+            ))}
+          </ol>
+        </ScreenGate>
       </div>
-
-      {screen === "processing" && (
-        <StateBanner
-          tone="info"
-          className="mb-3"
-          title="Распознаём новый голосовой отчёт Гареева, 52 с"
-        >
-          Объём, захватка и проблемы появятся в ленте через минуту.
-        </StateBanner>
-      )}
-      {screen === "partial" && (
-        <StateBanner
-          tone="warn"
-          className="mb-3"
-          title="Фото из 2 отчётов ещё загружаются из Telegram"
-        >
-          Слабая связь на площадке — карточки дополнятся, когда фото дойдут.
-        </StateBanner>
-      )}
-
-      <ScreenGate
-        state={screen}
-        onRetry={() => void reportsQuery.refetch()}
-        skeleton={<ScreenSkeleton kind="feed" />}
-        copy={{
-          section: "Отчёты с площадки",
-          roles: "руководителю проекта, ПТО и прорабам объекта",
-          errorTitle: "Не удалось загрузить отчёты",
-          empty: {
-            icon: HardHat,
-            title: "Отчётов с площадки пока нет",
-            description:
-              "Прорабы отправляют отчёты в Telegram-бот голосом, текстом или фото. После распознавания отчёт появится здесь с объёмом и проблемами.",
-          },
-          filtered: {
-            onReset: () => setSearch({ status: undefined, zone: undefined }),
-            description:
-              "Нет отчётов с таким статусом по выбранной захватке. Сбросьте фильтры, чтобы увидеть всю ленту.",
-          },
-        }}
-      >
-        <ol ref={feed} className="space-y-5">
-          {days.map(([day, list]) => (
-            <li key={day}>
-              <h2 className="mb-2 text-[12px] font-semibold text-text-secondary">
-                {fmtDayTitle(day, now)}
-              </h2>
-              <ol className="space-y-3">
-                {list.map((report) => (
-                  <ReportCard
-                    key={report.id}
-                    report={report}
-                    onSource={setSource}
-                    partial={screen === "partial"}
-                  />
-                ))}
-              </ol>
-            </li>
-          ))}
-        </ol>
-      </ScreenGate>
 
       {!blocked && toReview.length > 0 && (
         <MobileActionBar>
@@ -429,7 +434,7 @@ function ReportCard({
                 aria-label={`Принятый объём, ${report.unit}`}
               />
               <span className="text-caption text-text-muted">{report.unit}</span>
-              <Button type="submit" variant="accent" className="flex-1 sm:flex-none">
+              <Button type="submit" variant="secondary" className="flex-1 sm:flex-none">
                 Принять
               </Button>
               <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
@@ -439,7 +444,7 @@ function ReportCard({
           ) : (
             <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-1 sm:justify-end [&>button]:px-2 sm:[&>button]:px-3.5">
               <Button
-                variant="accent"
+                variant="secondary"
                 disabled={!report.declaredQty}
                 onClick={() => accept(report.declaredQty)}
               >

@@ -9,11 +9,24 @@ import {
 import { useScreenState } from "@/lib/screen-state";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
-import { ArrowLeft, CalendarRange, FileUp, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Boxes,
+  Clock,
+  FileUp,
+  ListChecks,
+  ShoppingCart,
+  Truck,
+  Upload,
+  type LucideIcon,
+} from "lucide-react";
+import { MetricStrip } from "@/components/common/MetricStrip";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PillTabs } from "@/components/common/PillTabs";
+import { PageCaption } from "@/components/layout/PageActions";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { SourceDrawer } from "@/components/common/SourceRef";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +69,16 @@ const tabs = [
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
+
+/** Цвет статуса объекта текстом в подписи шапки */
+const statusText: Record<string, string> = {
+  ok: "text-ok",
+  warn: "text-warn",
+  danger: "text-danger",
+  info: "text-info",
+  neutral: "text-text-2",
+  accent: "text-text",
+};
 
 export const Route = createFileRoute("/projects/$id/")({
   validateSearch: (search: Record<string, unknown>): { tab?: TabId | undefined } => ({
@@ -160,146 +183,118 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
     },
   ];
 
+  const metricTabs: Record<string, TabId> = {
+    Непроверенных: "materials",
+    Закуплено: "purchases",
+    "В пути": "purchases",
+    "Просроченных запросов": "purchases",
+  };
+  const figureIcons: Record<string, LucideIcon> = {
+    "Позиций материалов": Boxes,
+    Непроверенных: ListChecks,
+    Закуплено: ShoppingCart,
+    "В пути": Truck,
+    "Просроченных запросов": Clock,
+  };
+  const tabContent: Record<TabId, React.ReactNode> = {
+    summary: <SummaryTab {...shared} onTab={setTab} facts={facts} />,
+    documents: <DocumentsPreview {...shared} />,
+    materials: <MaterialsPreview {...shared} />,
+    purchases: <PurchasesPreview {...shared} />,
+    progress: <ProgressPreview {...shared} />,
+    decisions: <DecisionsPreview {...shared} />,
+    history: <HistoryPreview {...shared} />,
+    team: <TeamPreview {...shared} />,
+  };
+
   return (
     <>
-      <Link
-        to="/projects"
-        className="focus-ring mb-1 inline-flex min-h-11 items-center gap-1.5 lg:mb-3 lg:min-h-0 rounded-[var(--r-xs)] text-caption text-text-muted transition-fast hover:text-text-primary"
-      >
-        <ArrowLeft className="size-3.5" /> Все объекты
-      </Link>
-
-      <section className="card-surface overflow-hidden">
-        <div className="flex flex-wrap items-start justify-between gap-4 p-5">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="mono rounded-[var(--r-xs)] bg-subtle px-1.5 py-0.5 text-caption text-text-secondary">
-                {project.code}
-              </span>
-              <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-              {latestVersion && (
-                <span className="text-caption text-text-muted">
-                  Документация {latestVersion.version} от {fmtDate(latestVersion.uploadedAt)}
-                </span>
-              )}
-            </div>
-            <h1 className="mt-2 text-[26px] leading-tight font-semibold tracking-[-0.02em]">
-              {project.name}
-            </h1>
-          </div>
-          <Button
-            variant="accent"
-            onClick={() => setUploadOpen(true)}
-            className="hidden sm:inline-flex"
-            disabled={blocked}
-          >
+      {/* Шапка сущности: название — заголовок шапки, код, статус и ревизия — её подпись */}
+      <PageHeader
+        title={project.name}
+        actions={
+          <Button variant="accent" onClick={() => setUploadOpen(true)} disabled={blocked}>
             <Upload className="size-4" /> Загрузить документацию
           </Button>
-        </div>
+        }
+      />
+      <PageCaption>
+        <span className="mono text-text-2">{project.code}</span>
+        <span aria-hidden className="text-text-3">
+          ·
+        </span>
+        <span className={statusText[status.tone]}>{status.label}</span>
+        {latestVersion && (
+          <>
+            <span aria-hidden className="text-text-3">
+              ·
+            </span>
+            <span className="truncate">
+              Документация {latestVersion.version} от {fmtDate(latestVersion.uploadedAt)}
+            </span>
+          </>
+        )}
+      </PageCaption>
+      {/* На телефоне и планшете подписи в шапке нет — код и статус над метриками */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 lg:hidden">
+        <Link
+          to="/projects"
+          className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-[var(--r-xs)] text-caption text-text-3 transition-fast hover:text-text"
+        >
+          <ArrowLeft className="size-3.5" /> Все объекты
+        </Link>
+        <span className="mono text-caption text-text-2">{project.code}</span>
+        <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+      </div>
 
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-border px-5 py-3.5 md:grid-cols-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
-          {facts.map((fact) => (
-            <div
-              key={fact.label}
-              className={cn("min-w-0", fact.label === "Сроки" && "col-span-2 md:col-span-1")}
-            >
-              <dt className="text-[11px] text-text-muted">{fact.label}</dt>
-              <dd className="mt-0.5 text-[13px] font-medium md:truncate" title={fact.value}>
-                {fact.label === "Сроки" && (
-                  <CalendarRange className="mr-1 mb-0.5 inline size-3.5 text-text-muted" />
+      <MetricStrip
+        className="mb-5"
+        items={figures.map((figure) => {
+          const tabId = metricTabs[figure.label];
+          return {
+            icon: figureIcons[figure.label] ?? Boxes,
+            label: figure.label,
+            value: (
+              <span
+                className={cn(
+                  figure.tone && figure.value > 0 && figure.tone === "danger" && "text-danger",
+                  figure.tone && figure.value > 0 && figure.tone === "warn" && "text-warn",
                 )}
-                {fact.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="grid grid-cols-2 gap-px border-t border-border bg-border md:grid-cols-5">
-          {figures.map((figure, index) => {
-            const hot = figure.tone && figure.value > 0;
-            const content = (
-              <>
-                <span className="block truncate text-caption text-text-secondary">
-                  {figure.label}
-                </span>
-                <span
-                  className={cn(
-                    "tnum mt-1 block text-[26px] leading-none font-semibold tracking-[-0.02em]",
-                    hot && figure.tone === "danger" && "text-danger",
-                    hot && figure.tone === "warn" && "text-warn",
-                    figure.tone && figure.value === 0 && "text-text-muted",
-                  )}
-                >
-                  {fmtNum(figure.value)}
-                </span>
-              </>
-            );
-            const cellClass = cn(
-              "relative min-w-0 bg-raised px-5 py-3.5 text-left",
-              index === figures.length - 1 &&
-                figures.length % 2 === 1 &&
-                "col-span-2 md:col-span-1",
-            );
-            return figure.tab ? (
-              <button
-                key={figure.label}
-                type="button"
-                onClick={() => setTab(figure.tab!)}
-                className={cn(cellClass, "focus-ring transition-fast hover:bg-hover")}
               >
-                {hot && (
-                  <span
-                    className={cn(
-                      "absolute inset-y-3.5 left-0 w-[3px] rounded-r-full",
-                      figure.tone === "danger" ? "bg-danger" : "bg-warn",
-                    )}
-                    aria-hidden
-                  />
-                )}
-                {content}
-              </button>
-            ) : (
-              <div key={figure.label} className={cellClass}>
-                {content}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+                {fmtNum(figure.value)}
+              </span>
+            ),
+            ...(tabId ? { onSelect: () => setTab(tabId), selected: tab === tabId } : {}),
+          };
+        })}
+      />
 
-      <Tabs value={tab} onValueChange={setTab} className="mt-5">
-        <div className="-mx-4 overflow-x-auto overflow-y-hidden border-b border-border px-4 [scrollbar-width:none] md:mx-0 md:px-0">
-          <TabsList className="h-auto gap-1 rounded-none bg-transparent p-0">
-            {tabs.map((item) => (
-              <TabsTrigger
-                key={item.id}
-                value={item.id}
-                className="relative h-11 rounded-none lg:h-10 border-0 bg-transparent px-3 text-[13px] text-text-secondary shadow-none after:absolute after:inset-x-2 after:bottom-[-1px] after:h-[2px] after:rounded-full hover:text-text-primary data-[state=active]:bg-transparent data-[state=active]:text-text-primary data-[state=active]:shadow-none data-[state=active]:after:bg-accent"
-              >
-                {item.label}
-                {item.id === "materials" && overview.specUnverified > 0 && (
-                  <span className="tnum ml-1.5 rounded-full bg-warn-bg px-1.5 text-[11px] font-semibold text-warn">
-                    {fmtNum(overview.specUnverified)}
-                  </span>
-                )}
-                {item.id === "purchases" && overview.overdueRequests > 0 && (
-                  <span className="tnum ml-1.5 rounded-full bg-danger-bg px-1.5 text-[11px] font-semibold text-danger">
-                    {overview.overdueRequests}
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      <PillTabs
+        className="mb-5"
+        label="Разделы объекта"
+        value={tab}
+        onChange={(next) => setTab(next)}
+        tabs={tabs.map((item) => ({
+          value: item.id,
+          label: item.label,
+          ...(item.id === "materials" && overview.specUnverified > 0
+            ? { count: overview.specUnverified }
+            : {}),
+          ...(item.id === "purchases" && overview.overdueRequests > 0
+            ? { count: overview.overdueRequests }
+            : {}),
+        }))}
+      />
 
+      <div data-main-zone role="tabpanel" aria-label={tabs.find((item) => item.id === tab)?.label}>
         {screen === "partial" && (
-          <StateBanner tone="warn" className="mt-4" title="Часть данных объекта не загрузилась">
+          <StateBanner tone="warn" className="mb-4" title="Часть данных объекта не загрузилась">
             Отчёты с площадки за 04.09 ещё не пришли из Telegram — цифры хода работ могут быть
             неполными.
           </StateBanner>
         )}
         {screen === "processing" && (
-          <StateBanner tone="info" className="mt-4" title="Документация объекта распознаётся">
+          <StateBanner tone="info" className="mb-4" title="Документация объекта распознаётся">
             {recognizingDocs.length
               ? recognizingDocs.map((d) => `«${d.title}»`).join(", ")
               : "Новая ревизия"}{" "}
@@ -307,57 +302,32 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
           </StateBanner>
         )}
 
-        <div className="mt-4">
-          <ScreenGate
-            state={screen}
-            onRetry={() => void documents.refetch()}
-            skeleton={<ScreenSkeleton kind="summary" />}
-            copy={{
-              section: "Карточка объекта",
-              roles: "руководителю проекта, ПТО и генеральному директору",
-              errorTitle: "Не удалось загрузить данные объекта",
-              empty: {
-                icon: FileUp,
-                title: "По объекту ещё нет данных",
-                description:
-                  "Загрузите проектную документацию, и система найдёт в ней материалы. Затем подключите прорабов к Telegram-боту — отчёты и сроки появятся в сводке.",
-                actionLabel: "Загрузить документацию",
-                onAction: () => setUploadOpen(true),
-              },
-              filtered: {
-                title: "В этой вкладке нет записей",
-                description: "Переключитесь на «Сводку», чтобы увидеть всё по объекту.",
-                onReset: () => setTab("summary"),
-              },
-            }}
-          >
-            <TabsContent value="summary">
-              <SummaryTab {...shared} onTab={setTab} />
-            </TabsContent>
-            <TabsContent value="documents">
-              <DocumentsPreview {...shared} />
-            </TabsContent>
-            <TabsContent value="materials">
-              <MaterialsPreview {...shared} />
-            </TabsContent>
-            <TabsContent value="purchases">
-              <PurchasesPreview {...shared} />
-            </TabsContent>
-            <TabsContent value="progress">
-              <ProgressPreview {...shared} />
-            </TabsContent>
-            <TabsContent value="decisions">
-              <DecisionsPreview {...shared} />
-            </TabsContent>
-            <TabsContent value="history">
-              <HistoryPreview {...shared} />
-            </TabsContent>
-            <TabsContent value="team">
-              <TeamPreview {...shared} />
-            </TabsContent>
-          </ScreenGate>
-        </div>
-      </Tabs>
+        <ScreenGate
+          state={screen}
+          onRetry={() => void documents.refetch()}
+          skeleton={<ScreenSkeleton kind="summary" />}
+          copy={{
+            section: "Карточка объекта",
+            roles: "руководителю проекта, ПТО и генеральному директору",
+            errorTitle: "Не удалось загрузить данные объекта",
+            empty: {
+              icon: FileUp,
+              title: "По объекту ещё нет данных",
+              description:
+                "Загрузите проектную документацию, и система найдёт в ней материалы. Затем подключите прорабов к Telegram-боту — отчёты и сроки появятся в сводке.",
+              actionLabel: "Загрузить документацию",
+              onAction: () => setUploadOpen(true),
+            },
+            filtered: {
+              title: "В этой вкладке нет записей",
+              description: "Переключитесь на «Сводку», чтобы увидеть всё по объекту.",
+              onReset: () => setTab("summary"),
+            },
+          }}
+        >
+          {tabContent[tab]}
+        </ScreenGate>
+      </div>
 
       {!blocked && (
         <MobileActionBar>
@@ -459,8 +429,8 @@ function UploadDialog({
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           className={cn(
-            "focus-within:ring-accent flex cursor-pointer flex-col items-center justify-center rounded-[var(--r-md)] border border-dashed border-border-strong bg-raised px-6 py-10 text-center transition-fast hover:bg-hover",
-            dragging && "border-accent bg-accent-subtle",
+            "focus-within:ring-2 focus-within:ring-orange-line flex cursor-pointer flex-col items-center justify-center rounded-[var(--r-md)] border border-dashed border-border-strong bg-raised px-6 py-10 text-center transition-fast hover:bg-hover",
+            dragging && "border-line-2 bg-surface-2",
           )}
         >
           <FileUp className="size-8 text-text-muted" strokeWidth={1.5} />

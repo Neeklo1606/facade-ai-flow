@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
+  Building2,
   ChevronRight,
   FileDiff,
   FilePlus2,
@@ -14,6 +15,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { SourceRef } from "@/components/common/SourceRef";
+import { StatList } from "@/components/common/StatList";
+import { WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
 import { fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Bar, Block, BlockEmpty } from "./parts";
@@ -35,15 +38,26 @@ interface Props {
   scope: () => void;
   onSource: (sourceId: string | null) => void;
   onTab: (tab: string) => void;
+  /** Реквизиты объекта: регион, заказчик, договор, стадия, сроки, ответственный */
+  facts?: { label: string; value: string }[];
 }
 
+/** Сводка: вариант Б — 8 колонок блоков и 4 колонки реквизитов; уже 1280px — одна колонка */
 export function SummaryTab(props: Props) {
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <AttentionBlock {...props} />
-      <DocumentationBlock {...props} />
-      <MaterialsBlock {...props} />
-      <ActivityBlock {...props} />
+    <div className="grid grid-cols-12 gap-4">
+      <div className="col-span-12 grid content-start gap-4 xl:col-span-8 min-[1600px]:grid-cols-2">
+        <AttentionBlock {...props} />
+        <DocumentationBlock {...props} />
+        <MaterialsBlock {...props} />
+        <ActivityBlock {...props} />
+      </div>
+      {props.facts && (
+        <WidgetCard className="col-span-12 self-start xl:col-span-4">
+          <WidgetCardHeader icon={Building2} title="Объект" hint="реквизиты" />
+          <StatList leader="none" items={props.facts} />
+        </WidgetCard>
+      )}
     </div>
   );
 }
@@ -162,7 +176,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
                 >
                   {active ? fmtNum(row.value) : "0"}
                 </span>
-                <ChevronRight className="size-4 shrink-0 text-text-muted transition-fast group-hover:translate-x-0.5 group-hover:text-accent" />
+                <ChevronRight className="size-4 shrink-0 text-text-muted transition-fast group-hover:translate-x-0.5 group-hover:text-text" />
               </Link>
             </li>
           );
@@ -286,9 +300,9 @@ function MaterialsBlock({ projectId, overview, scope }: Props) {
       value: verified,
       tone: overview.specUnverified ? ("warn" as const) : ("ok" as const),
     },
-    { label: "В запросах", value: overview.inRequests, tone: "accent" as const },
-    { label: "Получено предложений", value: overview.offersReceived, tone: "accent" as const },
-    { label: purchaseStatusLabel.ordered, value: overview.ordered, tone: "accent" as const },
+    { label: "В запросах", value: overview.inRequests, tone: "info" as const },
+    { label: "Получено предложений", value: overview.offersReceived, tone: "info" as const },
+    { label: purchaseStatusLabel.ordered, value: overview.ordered, tone: "info" as const },
     { label: purchaseStatusLabel.delivered, value: overview.delivered, tone: "ok" as const },
   ];
 
@@ -315,7 +329,7 @@ function MaterialsBlock({ projectId, overview, scope }: Props) {
                 <div
                   className={cn(
                     "h-full rounded-[var(--r-xs)]",
-                    { info: "bg-info", ok: "bg-ok", warn: "bg-warn", accent: "bg-accent" }[
+                    { info: "bg-info", ok: "bg-ok", warn: "bg-warn", accent: "bg-info" }[
                       stage.tone
                     ],
                     index > 1 && "opacity-80",

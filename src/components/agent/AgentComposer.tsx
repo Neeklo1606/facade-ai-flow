@@ -47,7 +47,8 @@ export function AgentComposer({
           <div
             aria-hidden
             className={cn(
-              "bg-ember-soft pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[200px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] blur-[80px] transition-opacity duration-200 sm:h-[280px] sm:w-[720px] sm:blur-[120px]",
+              // На телефоне blur отключён: то же пятно рисуется радиальным градиентом
+              "pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[200px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(241,96,1,0.2),rgba(193,8,1,0.1),transparent)] transition-opacity duration-200 sm:h-[280px] sm:w-[720px] sm:bg-[var(--ember-soft)] sm:blur-[120px]",
               dimmed ? "opacity-30" : "opacity-55",
             )}
           />
@@ -81,7 +82,7 @@ export function AgentComposer({
                       type="button"
                       disabled
                       aria-label="Прикрепить файл — появится позже"
-                      className="grid size-8 place-items-center rounded-[var(--r-sm)] text-text-3 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="grid size-11 place-items-center rounded-[var(--r-sm)] text-text-3 disabled:cursor-not-allowed disabled:opacity-60 lg:size-8"
                     >
                       <Paperclip className="size-4" strokeWidth={1.5} />
                     </button>
@@ -93,7 +94,7 @@ export function AgentComposer({
                 type="submit"
                 disabled={!ready}
                 aria-label="Отправить вопрос"
-                className="focus-ring grid size-9 place-items-center rounded-full bg-orange text-white shadow-[var(--glow-orange)] transition-fast is-hover:bg-orange-hot disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+                className="focus-ring grid size-11 place-items-center rounded-full bg-orange text-white shadow-[var(--glow-orange)] transition-fast is-hover:bg-orange-hot disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none lg:size-9"
               >
                 <ArrowUp className="size-[18px]" strokeWidth={2} />
               </button>

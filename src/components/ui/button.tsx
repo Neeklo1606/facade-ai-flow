@@ -14,7 +14,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        accent: "bg-orange text-on-orange shadow-[var(--glow-orange)] is-hover:bg-orange-hot",
+        accent:
+          "bg-orange-strong text-on-orange shadow-[var(--glow-orange)] is-hover:bg-orange-strong-hover",
         default: "border-line bg-surface-2 text-text is-hover:border-line-2 is-hover:bg-surface-3",
         secondary:
           "border-line bg-surface-2 text-text is-hover:border-line-2 is-hover:bg-surface-3",

@@ -12,6 +12,7 @@ import { DecisionDialog, type DecisionInput } from "@/components/procurement/Dec
 import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
+import { InsightBlock } from "@/components/common/InsightBlock";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -163,37 +164,12 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         actions={
           // Решение по запросу одно и не редактируется: журнал решений только дописывается
           !decision && (
-            <Button
-              variant="accent"
-              className="hidden sm:inline-flex"
-              disabled={blocked}
-              onClick={() => setDecisionOpen(true)}
-            >
+            <Button variant="accent" disabled={blocked} onClick={() => setDecisionOpen(true)}>
               <Gavel className="size-4" /> Зафиксировать решение
             </Button>
           )
         }
       />
-
-      {decision && screen !== "loading" && (
-        <div className="mb-4 flex flex-wrap items-start gap-3 rounded-[var(--r-md)] border border-[color-mix(in_oklab,var(--ok)_30%,transparent)] bg-ok-bg px-4 py-3">
-          <Gavel className="mt-0.5 size-4 shrink-0 text-ok" />
-          <div className="min-w-0 flex-1 text-[13px]">
-            <p className="font-medium text-ok">
-              Выбран «{counterpartyById(decision.supplierId ?? "")?.name}»
-            </p>
-            <p className="mt-0.5 text-text-secondary">{decision.reason}</p>
-            <p className="mt-0.5 text-caption text-text-muted">
-              Согласовал {employeeName(decision.approvedBy)} · {fmtDateTime(decision.approvedAt)}
-            </p>
-          </div>
-          <Button size="sm" variant="ghost" asChild>
-            <Link to="/projects/$id/timeline" params={{ id: project.id }}>
-              В истории объекта
-            </Link>
-          </Button>
-        </div>
-      )}
 
       {screen === "partial" && (
         <StateBanner
@@ -237,48 +213,65 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         </StateBanner>
       )}
 
-      <ScreenGate
-        state={screen}
-        onRetry={() => void cardQuery.refetch()}
-        skeleton={<ScreenSkeleton kind="matrix" />}
-        copy={{
-          section: "Сравнение предложений",
-          roles: "руководителю проекта, снабжению и финансовому контролёру",
-          errorTitle: "Не удалось загрузить предложения",
-          empty: {
-            icon: Scale,
-            title: "Предложений пока нет",
-            description: `Запрос отправлен ${meta ? fmtDateTime(meta.sentAt) : ""} ${request.sentTo.length} поставщикам. Ответы из писем появятся здесь автоматически — если срок выходит, напомните поставщикам.`,
-            actionLabel: "Напомнить поставщикам",
-            onAction: async () => {
-              const sent = (await remind.mutateAsync(request.id)).reminded.length;
-              toast.success(
-                `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
-              );
+      <div data-main-zone className="space-y-4">
+        <ScreenGate
+          state={screen}
+          onRetry={() => void cardQuery.refetch()}
+          skeleton={<ScreenSkeleton kind="matrix" />}
+          copy={{
+            section: "Сравнение предложений",
+            roles: "руководителю проекта, снабжению и финансовому контролёру",
+            errorTitle: "Не удалось загрузить предложения",
+            empty: {
+              icon: Scale,
+              title: "Предложений пока нет",
+              description: `Запрос отправлен ${meta ? fmtDateTime(meta.sentAt) : ""} ${request.sentTo.length} поставщикам. Ответы из писем появятся здесь автоматически — если срок выходит, напомните поставщикам.`,
+              actionLabel: "Напомнить поставщикам",
+              onAction: async () => {
+                const sent = (await remind.mutateAsync(request.id)).reminded.length;
+                toast.success(
+                  `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
+                );
+              },
             },
-          },
-        }}
-      >
-        <DesktopMatrix
-          request={request}
-          columns={calc.columns}
-          bestId={calc.bestSupplierId}
-          decidedId={decision?.supplierId ?? null}
-          onSource={setSource}
-        />
-        <MobileMatrix
-          request={request}
-          columns={calc.columns}
-          bestId={calc.bestSupplierId}
-          decidedId={decision?.supplierId ?? null}
-          onSource={setSource}
-        />
-        <p className="mt-3 text-caption text-text-muted">
-          Итог колонки — товар, доставка и НДС {calc.columns.find((c) => c.offerId)?.vatPct ?? 20}%.
-          Доставка распределена по строкам пропорционально сумме. Регион объекта —{" "}
-          {overview?.region}.
-        </p>
-      </ScreenGate>
+          }}
+        >
+          <DesktopMatrix
+            request={request}
+            columns={calc.columns}
+            bestId={calc.bestSupplierId}
+            decidedId={decision?.supplierId ?? null}
+            onSource={setSource}
+          />
+          <MobileMatrix
+            request={request}
+            columns={calc.columns}
+            bestId={calc.bestSupplierId}
+            decidedId={decision?.supplierId ?? null}
+            onSource={setSource}
+          />
+          <p className="mt-3 text-caption text-text-muted">
+            Итог колонки — товар, доставка и НДС {calc.columns.find((c) => c.offerId)?.vatPct ?? 20}
+            %. Доставка распределена по строкам пропорционально сумме. Регион объекта —{" "}
+            {overview?.region}.
+          </p>
+        </ScreenGate>
+
+        {decision && screen !== "loading" && (
+          <InsightBlock
+            icon={Gavel}
+            title={`Решение: «${counterpartyById(decision.supplierId ?? "")?.name}»`}
+            text={`${decision.reason} · согласовал ${employeeName(decision.approvedBy)}, ${fmtDateTime(decision.approvedAt)}`}
+            action={
+              <Button size="sm" variant="ghost" asChild>
+                <Link to="/projects/$id/timeline" params={{ id: project.id }}>
+                  В истории объекта
+                </Link>
+              </Button>
+            }
+          />
+        )}
+      </div>
 
       {!blocked && !decision && (
         <MobileActionBar>

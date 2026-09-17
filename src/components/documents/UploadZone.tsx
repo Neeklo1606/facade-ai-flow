@@ -46,12 +46,12 @@ export const UploadZone = forwardRef<
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={cn(
-        "group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--r-md)] border border-dashed border-border-strong bg-surface px-5 py-5 text-center transition-fast hover:border-accent hover:bg-accent-subtle sm:flex-row sm:text-left",
-        dragging && "border-accent bg-accent-subtle",
+        "group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--r-md)] border border-dashed border-border-strong bg-surface px-5 py-5 text-center transition-fast hover:border-line-2 hover:bg-surface-2 sm:flex-row sm:text-left",
+        dragging && "border-line-2 bg-surface-2",
         className,
       )}
     >
-      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-subtle text-text-secondary transition-fast group-hover:bg-surface group-hover:text-accent">
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-subtle text-text-secondary transition-fast group-hover:bg-surface-3 group-hover:text-text">
         <FileUp className="size-5" strokeWidth={1.5} />
       </span>
       <span className="min-w-0">

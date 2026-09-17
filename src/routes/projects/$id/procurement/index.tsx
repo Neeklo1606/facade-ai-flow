@@ -1,6 +1,9 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, Mail, PackageSearch, Phone, Plus, Send, Truck } from "lucide-react";
+import { ArrowRight, Check, Mail, PackageSearch, Phone, Plus, Send, Truck } from "lucide-react";
+import { DetailsLayout } from "@/components/common/DetailsPanel";
+import { PillTabs } from "@/components/common/PillTabs";
+import { StatList } from "@/components/common/StatList";
 import {
   loadProject,
   ProjectNotFound,
@@ -199,180 +202,158 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         title="Поставщики и запросы"
         description={`Кому отправлены запросы, кто ответил и по какой цене. Регион объекта — ${overview?.region ?? "—"}.`}
         actions={
-          <Button
-            variant="accent"
-            className="hidden sm:inline-flex"
-            disabled={blocked}
-            onClick={() => setCreateOpen(true)}
-          >
+          <Button variant="accent" disabled={blocked} onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" /> Создать запрос
           </Button>
         }
       />
 
-      <div
-        className="segmented-control mb-4 w-full sm:w-auto sm:max-w-max"
-        role="tablist"
-        aria-label="Вид"
-      >
-        {(
-          [
-            { id: "requests", label: "Запросы", count: requestRows.length, icon: PackageSearch },
-            { id: "suppliers", label: "Поставщики", count: supplierRows.length, icon: Truck },
-          ] as const
-        ).map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={view === tab.id}
-            onClick={() =>
-              setSearch({
-                view: tab.id === "requests" ? undefined : "suppliers",
-                status: undefined,
-              })
+      <PillTabs
+        className="mb-5"
+        label="Вид раздела"
+        value={view}
+        onChange={(next) =>
+          setSearch({ view: next === "requests" ? undefined : "suppliers", status: undefined })
+        }
+        tabs={[
+          { value: "requests", label: "Запросы", count: requestRows.length },
+          { value: "suppliers", label: "Поставщики", count: supplierRows.length },
+        ]}
+      />
+
+      <div data-main-zone className="space-y-4">
+        {screen === "partial" && (
+          <StateBanner
+            tone="warn"
+
+            title={
+              isRequests
+                ? `Ответили не все: ${waiting.length} ${plural(waiting.length, "запрос ждёт", "запроса ждут", "запросов ждут")} ответа от ${silentSuppliers || 1} ${plural(silentSuppliers || 1, "поставщика", "поставщиков", "поставщиков")}`
+                : `Контакты ${staleContacts} поставщиков не проверены`
             }
-            className={cn(
-              "segment flex min-h-11 flex-1 items-center justify-center gap-2 px-4 text-[13px] lg:min-h-8",
-              view === tab.id && "segment-active",
-            )}
+            action={
+              isRequests ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={waitingForReminder === 0}
+                  onClick={async () => {
+                    const results = await Promise.all(
+                      waiting.map((r) => remind.mutateAsync(r.request.id)),
+                    );
+                    const sent = results.reduce((acc, result) => acc + result.reminded.length, 0);
+                    toast.success(
+                      `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
+                      {
+                        description: "Ответы появятся в сравнении, как только придут.",
+                      },
+                    );
+                  }}
+                >
+                  {waitingForReminder === 0 ? "Ждём ответы" : "Напомнить"}
+                </Button>
+              ) : undefined
+            }
           >
-            <tab.icon className="size-4" /> {tab.label}
-            <span className="tnum text-text-muted">{tab.count}</span>
-          </button>
-        ))}
-      </div>
-
-      {screen === "partial" && (
-        <StateBanner
-          tone="warn"
-          className="mb-3"
-          title={
-            isRequests
-              ? `Ответили не все: ${waiting.length} ${plural(waiting.length, "запрос ждёт", "запроса ждут", "запросов ждут")} ответа от ${silentSuppliers || 1} ${plural(silentSuppliers || 1, "поставщика", "поставщиков", "поставщиков")}`
-              : `Контакты ${staleContacts} поставщиков не проверены`
-          }
-          action={
-            isRequests ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={waitingForReminder === 0}
-                onClick={async () => {
-                  const results = await Promise.all(
-                    waiting.map((r) => remind.mutateAsync(r.request.id)),
-                  );
-                  const sent = results.reduce((acc, result) => acc + result.reminded.length, 0);
-                  toast.success(
-                    `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
-                    {
-                      description: "Ответы появятся в сравнении, как только придут.",
-                    },
-                  );
-                }}
-              >
-                {waitingForReminder === 0 ? "Ждём ответы" : "Напомнить"}
-              </Button>
-            ) : undefined
-          }
-        >
-          {isRequests
-            ? "Сравнение по этим запросам неполное — лучшая цена может измениться."
-            : "Письма на устаревший адрес могут не дойти. Позвоните и отметьте контакт проверенным."}
-        </StateBanner>
-      )}
-      {screen === "processing" && (
-        <StateBanner tone="info" className="mb-3" title="Распознаём 2 новых письма поставщиков">
-          Цены и сроки появятся в сравнении через минуту. Список можно не обновлять.
-        </StateBanner>
-      )}
-
-      <section className="card-surface overflow-hidden">
-        {isRequests ? (
-          <div className="-mx-px flex gap-2 overflow-x-auto border-b border-border px-4 py-2.5 [scrollbar-width:none]">
-            {statusFilters.map((f) => (
-              <FilterChip
-                key={f.id}
-                className="min-h-11 lg:min-h-9"
-                active={(search.status ?? "all") === f.id}
-                onClick={() => setSearch({ status: f.id === "all" ? undefined : f.id })}
-                count={
-                  requestRows.filter((r) => (f.id === "all" ? true : matchesStatus(r, f.id))).length
-                }
-              >
-                {f.label}
-              </FilterChip>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-2 border-b border-border px-4 py-2.5 sm:flex sm:flex-wrap">
-            <FilterSelect
-              label="Регион"
-              allLabel="Все регионы"
-              value={search.region}
-              options={regions.map((r) => ({ value: r, label: r }))}
-              onChange={(region) => setSearch({ region })}
-            />
-            <FilterSelect
-              label="Категория"
-              allLabel="Все категории"
-              value={search.category}
-              options={categories.map((c) => ({ value: c, label: c }))}
-              onChange={(category) => setSearch({ category })}
-            />
-            <FilterSelect
-              label="Контакт"
-              allLabel="Любая актуальность"
-              value={search.freshness}
-              options={(Object.keys(contactFreshnessLabel) as ContactFreshness[]).map((k) => ({
-                value: k,
-                label: contactFreshnessLabel[k],
-              }))}
-              onChange={(freshness) =>
-                setSearch({ freshness: freshness as ContactFreshness | undefined })
-              }
-            />
-          </div>
+            {isRequests
+              ? "Сравнение по этим запросам неполное — лучшая цена может измениться."
+              : "Письма на устаревший адрес могут не дойти. Позвоните и отметьте контакт проверенным."}
+          </StateBanner>
+        )}
+        {screen === "processing" && (
+          <StateBanner tone="info" title="Распознаём 2 новых письма поставщиков">
+            Цены и сроки появятся в сравнении через минуту. Список можно не обновлять.
+          </StateBanner>
         )}
 
-        <ScreenGate
-          state={screen}
-          onRetry={() => void Promise.all([requestsQuery.refetch(), suppliersQuery.refetch()])}
-          skeleton={<ScreenSkeleton kind="table" />}
-          copy={{
-            section: "Поставщики и запросы",
-            roles: "руководителю проекта и снабжению",
-            errorTitle: isRequests
-              ? "Не удалось загрузить запросы"
-              : "Не удалось загрузить поставщиков",
-            empty: isRequests
-              ? {
-                  icon: PackageSearch,
-                  title: "Запросов поставщикам ещё нет",
-                  description:
-                    "Выберите проверенные позиции и отправьте запрос: система подберёт поставщиков по категории и региону, а ответы из писем соберёт в сравнение.",
-                  actionLabel: "Создать запрос",
-                  onAction: () => setCreateOpen(true),
-                }
-              : {
-                  icon: Truck,
-                  title: "Поставщиков в справочнике нет",
-                  description:
-                    "Добавьте поставщиков вручную или импортируйте реестр из Excel — после этого их можно выбирать при создании запроса.",
-                },
-            filtered: {
-              onReset: resetFilters,
-              description: "Под условия не попал ни один запрос или поставщик. Сбросьте фильтры.",
-            },
-          }}
-        >
+        <section className="card-surface overflow-hidden">
           {isRequests ? (
-            <RequestsView rows={visibleRequests} projectId={project.id} />
+            <div className="-mx-px flex gap-2 overflow-x-auto border-b border-border px-4 py-2.5 [scrollbar-width:none]">
+              {statusFilters.map((f) => (
+                <FilterChip
+                  key={f.id}
+                  className="min-h-11 lg:min-h-9"
+                  active={(search.status ?? "all") === f.id}
+                  onClick={() => setSearch({ status: f.id === "all" ? undefined : f.id })}
+                  count={
+                    requestRows.filter((r) => (f.id === "all" ? true : matchesStatus(r, f.id)))
+                      .length
+                  }
+                >
+                  {f.label}
+                </FilterChip>
+              ))}
+            </div>
           ) : (
-            <SuppliersView rows={visibleSuppliers} region={overview?.region ?? ""} />
+            <div className="grid grid-cols-1 gap-2 border-b border-border px-4 py-2.5 sm:flex sm:flex-wrap">
+              <FilterSelect
+                label="Регион"
+                allLabel="Все регионы"
+                value={search.region}
+                options={regions.map((r) => ({ value: r, label: r }))}
+                onChange={(region) => setSearch({ region })}
+              />
+              <FilterSelect
+                label="Категория"
+                allLabel="Все категории"
+                value={search.category}
+                options={categories.map((c) => ({ value: c, label: c }))}
+                onChange={(category) => setSearch({ category })}
+              />
+              <FilterSelect
+                label="Контакт"
+                allLabel="Любая актуальность"
+                value={search.freshness}
+                options={(Object.keys(contactFreshnessLabel) as ContactFreshness[]).map((k) => ({
+                  value: k,
+                  label: contactFreshnessLabel[k],
+                }))}
+                onChange={(freshness) =>
+                  setSearch({ freshness: freshness as ContactFreshness | undefined })
+                }
+              />
+            </div>
           )}
-        </ScreenGate>
-      </section>
+
+          <ScreenGate
+            state={screen}
+            onRetry={() => void Promise.all([requestsQuery.refetch(), suppliersQuery.refetch()])}
+            skeleton={<ScreenSkeleton kind="table" />}
+            copy={{
+              section: "Поставщики и запросы",
+              roles: "руководителю проекта и снабжению",
+              errorTitle: isRequests
+                ? "Не удалось загрузить запросы"
+                : "Не удалось загрузить поставщиков",
+              empty: isRequests
+                ? {
+                    icon: PackageSearch,
+                    title: "Запросов поставщикам ещё нет",
+                    description:
+                      "Выберите проверенные позиции и отправьте запрос: система подберёт поставщиков по категории и региону, а ответы из писем соберёт в сравнение.",
+                    actionLabel: "Создать запрос",
+                    onAction: () => setCreateOpen(true),
+                  }
+                : {
+                    icon: Truck,
+                    title: "Поставщиков в справочнике нет",
+                    description:
+                      "Добавьте поставщиков вручную или импортируйте реестр из Excel — после этого их можно выбирать при создании запроса.",
+                  },
+              filtered: {
+                onReset: resetFilters,
+                description: "Под условия не попал ни один запрос или поставщик. Сбросьте фильтры.",
+              },
+            }}
+          >
+            {isRequests ? (
+              <RequestsView rows={visibleRequests} projectId={project.id} />
+            ) : (
+              <SuppliersView rows={visibleSuppliers} region={overview?.region ?? ""} />
+            )}
+          </ScreenGate>
+        </section>
+      </div>
 
       {!blocked && (
         <MobileActionBar>
@@ -401,15 +382,32 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
 
 function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: string }) {
   const { counterpartyById } = useDirectory();
-  const navigate = useNavigate();
-  const open = (row: RequestRow) =>
-    navigate({
-      to: "/projects/$id/procurement/$rfqId",
-      params: { id: projectId, rfqId: row.request.id },
-    });
+  // Строка открывает панель деталей; сравнение предложений — отдельной кнопкой в панели
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = (row: RequestRow) => setOpenId(row.request.id);
+  const current = rows.find((row) => row.request.id === openId) ?? null;
+  const close = useCallback(() => setOpenId(null), []);
 
   return (
-    <>
+    <DetailsLayout
+      open={current !== null}
+      onClose={close}
+      title={current ? `Запрос ${current.request.number}` : ""}
+      subtitle={current ? rfqStatusMeta[current.status].label : undefined}
+      footer={
+        current ? (
+          <Button variant="secondary" asChild>
+            <Link
+              to="/projects/$id/procurement/$rfqId"
+              params={{ id: projectId, rfqId: current.request.id }}
+            >
+              Открыть сравнение <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        ) : null
+      }
+      panel={current ? <RequestDetails row={current} /> : null}
+    >
       <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[980px] text-table">
           <thead>
@@ -431,14 +429,16 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
                 <tr
                   key={row.request.id}
                   tabIndex={0}
+                  aria-selected={openId === row.request.id}
                   onClick={() => open(row)}
-                  onKeyDown={(e) => e.key === "Enter" && open(row)}
-                  className="group h-[60px] cursor-pointer border-b border-border transition-fast last:border-0 hover:bg-hover focus-visible:bg-hover focus-visible:outline-none"
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && open(row)}
+                  className={cn(
+                    "group focus-ring h-[60px] cursor-pointer border-b border-border transition-fast last:border-0 hover:bg-hover",
+                    openId === row.request.id && "bg-surface-2",
+                  )}
                 >
                   <td className="px-4">
-                    <div className="font-medium text-text-primary group-hover:text-accent">
-                      {row.request.number}
-                    </div>
+                    <div className="font-medium text-text-primary">{row.request.number}</div>
                     <div className="max-w-[220px] truncate text-caption text-text-muted">
                       {row.request.items.map((i) => i.name).join(", ")}
                     </div>
@@ -505,10 +505,10 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
           const meta = rfqStatusMeta[row.status];
           return (
             <li key={row.request.id}>
-              <Link
-                to="/projects/$id/procurement/$rfqId"
-                params={{ id: projectId, rfqId: row.request.id }}
-                className="block px-4 py-3 active:bg-hover"
+              <button
+                type="button"
+                onClick={() => open(row)}
+                className="focus-ring block w-full px-4 py-3 text-left active:bg-hover"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -545,12 +545,55 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
                     </dd>
                   </div>
                 </dl>
-              </Link>
+              </button>
             </li>
           );
         })}
       </ul>
-    </>
+    </DetailsLayout>
+  );
+}
+
+/** Сводка запроса в панели деталей */
+function RequestDetails({ row }: { row: RequestRow }) {
+  const { counterpartyById } = useDirectory();
+  const meta = rfqStatusMeta[row.status];
+  return (
+    <div className="space-y-5">
+      <StatusBadge tone={meta.tone} dot>
+        {meta.label}
+      </StatusBadge>
+      <StatList
+        items={[
+          { label: "Создан", value: fmtDate(row.request.createdAt) },
+          { label: "Позиций", value: fmtNum(row.request.items.length) },
+          { label: "Ответили", value: `${row.answered} из ${row.request.sentTo.length}` },
+          { label: "Лучшая цена", value: row.bestTotal ? fmtMoney(row.bestTotal) : "—" },
+          { label: "Ждём ответа до", value: row.due ? fmtDateTime(row.due) : "—" },
+        ]}
+      />
+      {row.replyDue && (
+        <p className={cn("text-[13px]", row.replyDue.overdue ? "text-danger" : "text-text-2")}>
+          {fmtReplyDue(row.replyDue)}
+        </p>
+      )}
+      <section>
+        <h3 className="text-[12px] text-text-3">Что запрошено</h3>
+        <ul className="mt-2 space-y-1.5 text-[14px] text-text">
+          {row.request.items.map((item) => (
+            <li key={item.id ?? item.name}>{item.name}</li>
+          ))}
+        </ul>
+      </section>
+      <section>
+        <h3 className="text-[12px] text-text-3">Кому отправлено</h3>
+        <ul className="mt-2 space-y-1.5 text-[14px] text-text">
+          {row.request.sentTo.map((id) => (
+            <li key={id}>{counterpartyById(id)?.name ?? "—"}</li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
 }
 
@@ -621,12 +664,12 @@ function SuppliersView({
                   <div className="tnum text-caption text-text-muted">
                     <a
                       href={`tel:${profile.phone.replace(/[^\d+]/g, "")}`}
-                      className="hover:text-accent"
+                      className="hover:text-text"
                     >
                       {profile.phone}
                     </a>{" "}
                     ·{" "}
-                    <a href={`mailto:${profile.email}`} className="hover:text-accent">
+                    <a href={`mailto:${profile.email}`} className="hover:text-text">
                       {profile.email}
                     </a>
                   </div>
@@ -642,7 +685,7 @@ function SuppliersView({
                     <button
                       type="button"
                       onClick={() => verifyContact.mutate(profile.supplierId)}
-                      className="text-caption text-accent hover:underline"
+                      className="text-caption text-info hover:underline"
                     >
                       Отметить проверенным
                     </button>

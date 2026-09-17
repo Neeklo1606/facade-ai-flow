@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { type Project } from "@/contracts";
+import { PageActions } from "@/components/layout/PageActions";
 
 /** Шапка вложенного экрана объекта: возврат в карточку, название раздела и действия. */
 export function SubpageHeader({
@@ -18,7 +19,7 @@ export function SubpageHeader({
   meta?: ReactNode;
 }) {
   return (
-    <div className="mb-4">
+    <div className={description || meta ? "mb-6" : "lg:contents"}>
       <Link
         to="/projects/$id"
         params={{ id: project.id }}
@@ -33,9 +34,7 @@ export function SubpageHeader({
           {description && <p className="mt-1 text-[13px] text-text-secondary">{description}</p>}
           {meta && <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">{meta}</div>}
         </div>
-        {actions && (
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>
-        )}
+        {actions && <PageActions>{actions}</PageActions>}
       </div>
     </div>
   );

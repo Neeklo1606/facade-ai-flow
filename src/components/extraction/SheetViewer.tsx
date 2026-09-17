@@ -341,7 +341,7 @@ const Page = memo(function Page({
 
       {active && (
         <div
-          className="pointer-events-none absolute z-10 rounded-[2px] border-2 border-accent bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--accent)_18%,transparent)] transition-[top] duration-200"
+          className="pointer-events-none absolute z-10 rounded-[2px] border-2 border-info bg-[color-mix(in_oklab,var(--info)_10%,transparent)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--info)_18%,transparent)] transition-[top] duration-200"
           style={{
             left: active.region.x * width - 4,
             top: active.region.y * height - 2,

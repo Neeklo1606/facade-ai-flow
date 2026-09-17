@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCheck,
   FileSearch,
   ListTree,
@@ -21,6 +22,8 @@ import { SheetViewer, type SheetViewerHandle } from "@/components/extraction/She
 import { PositionRow, type RowAction } from "@/components/extraction/PositionRow";
 import { SendDialog, SplitDialog, type SendSummary } from "@/components/extraction/Dialogs";
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
+import { PageActions, PageCaption } from "@/components/layout/PageActions";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
@@ -492,21 +495,47 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const mergeSource = mergeSourceId ? findPosition(mergeSourceId) : null;
 
   return (
-    <div className="-mx-4 -mt-5 -mb-24 flex h-[calc(100dvh-var(--topbar-h)-56px)] flex-col md:-mx-7 md:-mt-6 lg:-mb-7 lg:h-[calc(100vh-var(--shell-gap)*2-var(--topbar-h))]">
-      {/* Шапка документа */}
-      <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-surface px-4 py-2 md:px-5">
+    <div className="main-bleed flex flex-col">
+      <h1 className="sr-only">{document.title}</h1>
+      {/* Главное действие экрана — в шапке контента: передать в закупку или перейти к материалам */}
+      <PageActions>
+        {allHandedOver ? (
+          <Button variant="accent" asChild>
+            <Link to="/projects/$id/materials" params={{ id: project.id }}>
+              Открыть материалы <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        ) : (
+          <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
+            <Send className="size-4" /> Передать в закупку
+            <span className="tnum opacity-80">{fmtNum(toHandOver)}</span>
+          </Button>
+        )}
+      </PageActions>
+      <PageCaption>
+        <span className="truncate">
+          {project.code} · {document.section} · {document.version} · {document.sheetCount} л. ·
+          загружен {fmtDateTime(document.uploadedAt)}
+        </span>
+        <span aria-hidden className="text-text-3">
+          ·
+        </span>
+        <span className="shrink-0">{docStatusLabel[document.status]}</span>
+      </PageCaption>
+      {/* Шапка документа на планшете и телефоне: там подписи в шапке контента нет */}
+      <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-surface px-4 py-2 md:px-5 lg:hidden">
         <Link
           to="/projects/$id/documents"
           params={{ id: project.id }}
           aria-label="К документации"
-          className="focus-ring grid size-8 shrink-0 place-items-center rounded-full text-text-secondary transition-fast hover:bg-hover hover:text-text-primary"
+          className="focus-ring grid size-11 shrink-0 place-items-center rounded-full text-text-secondary transition-fast hover:bg-hover hover:text-text-primary lg:size-8"
         >
           <ArrowLeft className="size-4" />
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[15px] font-semibold" title={document.title}>
+          <p className="truncate text-[15px] font-semibold" title={document.title}>
             {document.title}
-          </h1>
+          </p>
           <p className="truncate text-caption text-text-muted">
             {project.code} · {document.section} · {document.version} · {document.sheetCount} л. ·
             загружен {fmtDateTime(document.uploadedAt)}
@@ -534,7 +563,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               aria-selected={mobilePanel === tab.id}
               onClick={() => setMobilePanel(tab.id)}
               className={cn(
-                "segment flex flex-1 items-center justify-center gap-1.5 text-[12px]",
+                "segment min-h-11 flex-1 items-center justify-center gap-1.5 text-[12px] lg:min-h-8",
                 mobilePanel === tab.id && "segment-active",
               )}
             >
@@ -685,7 +714,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="mt-3 h-8 w-full"
+                    className="mt-3 h-11 w-full lg:h-8"
                     disabled={autoVerified === 0}
                     onClick={confirmAllVerified}
                   >
@@ -711,7 +740,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                         aria-pressed={filter === key}
                         onClick={() => setFilter(key)}
                         className={cn(
-                          "focus-ring inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] transition-fast",
+                          "focus-ring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] transition-fast lg:h-7",
                           filter === key
                             ? "bg-ink text-primary-foreground"
                             : "text-text-secondary hover:bg-hover",
@@ -740,14 +769,14 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   </StateBanner>
                 )}
                 {mergeSource && (
-                  <div className="flex shrink-0 items-center gap-2 border-b border-accent-border bg-accent-subtle px-4 py-2 text-caption">
+                  <div className="flex shrink-0 items-center gap-2 border-b border-line-2 bg-surface-2 px-4 py-2 text-caption">
                     <span className="min-w-0 flex-1">
                       Выберите позицию, с которой объединить поз. <b>{mergeSource.position}</b>
                     </span>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-2"
+                      className="h-11 px-2 lg:h-7"
                       onClick={() => setMergeSourceId(null)}
                     >
                       <X className="size-3.5" /> Отмена
@@ -813,7 +842,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                       <Link
                         to="/projects/$id/materials"
                         params={{ id: project.id }}
-                        className="font-medium underline-offset-2 hover:underline"
+                        className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline lg:min-h-0"
                       >
                         Открыть материалы
                       </Link>
@@ -821,7 +850,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   ) : (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="block">
+                        <span className="block md:hidden">
                           <Button
                             variant="accent"
                             className="w-full"
@@ -889,6 +918,23 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           </span>
         )}
       </footer>
+
+      {/* На телефоне главное действие закреплено снизу над панелью навигации */}
+      {!gated && (
+        <MobileActionBar>
+          {allHandedOver ? (
+            <Button variant="accent" asChild>
+              <Link to="/projects/$id/materials" params={{ id: project.id }}>
+                Открыть материалы <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
+              <Send className="size-4" /> Передать в закупку
+            </Button>
+          )}
+        </MobileActionBar>
+      )}
 
       <SplitDialog
         item={splitItem}

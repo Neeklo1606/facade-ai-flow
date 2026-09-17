@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function Panel({
@@ -8,7 +8,8 @@ export function Panel({
   className,
   bodyClassName,
   footer,
-}: {
+  ...rest
+}: Omit<ComponentPropsWithoutRef<"section">, "title"> & {
   title?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
@@ -17,7 +18,7 @@ export function Panel({
   footer?: ReactNode;
 }) {
   return (
-    <section className={cn("card-surface flex min-w-0 flex-col", className)}>
+    <section {...rest} className={cn("card-surface flex min-w-0 flex-col", className)}>
       {(title || action) && (
         <header className="flex min-h-14 items-center justify-between gap-3 border-b border-border px-5 py-3">
           {typeof title === "string" ? <h2 className="text-card-title">{title}</h2> : title}

@@ -70,7 +70,7 @@ export function Topbar() {
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label="Открыть меню"
-        className="icon-button -ml-2 lg:hidden"
+        className="icon-button focus-ring -ml-2 hidden md:grid lg:hidden"
       >
         <Menu strokeWidth={1.5} />
       </button>
@@ -83,6 +83,11 @@ export function Topbar() {
         >
           {title}
         </div>
+        {/* Подпись экрана: страница может заменить путь своей строкой (код, статус объекта) */}
+        <div
+          id="page-caption"
+          className="hidden min-w-0 items-center gap-2 text-[13px] leading-[1.45] text-text-2 lg:flex lg:empty:hidden"
+        />
         <nav
           aria-label="Хлебные крошки"
           className="hidden min-w-0 items-center gap-1.5 text-[13px] leading-[1.45] text-text-2 lg:flex"
@@ -90,7 +95,11 @@ export function Topbar() {
           {crumbs.length ? (
             crumbs.map((crumb, index) => (
               <span key={crumb.label + index} className="flex min-w-0 items-center gap-1.5">
-                {index > 0 && <span className="text-text-4">/</span>}
+                {index > 0 && (
+                  <span aria-hidden className="text-text-3">
+                    /
+                  </span>
+                )}
                 <Link
                   to={crumb.to as string}
                   className="max-w-[260px] truncate transition-fast hover:text-text"
@@ -125,6 +134,9 @@ export function Topbar() {
           <Search strokeWidth={1.5} />
         </button>
         {screenStatesEnabled && <StatePicker />}
+        {/* Действия экрана: страница отдаёт их сюда через PageActions. На телефоне главное действие
+            закреплено снизу над панелью навигации */}
+        <div id="page-actions" className="hidden items-center gap-2.5 md:flex" />
         <span className="avatar hidden sm:grid" title="Соколов И. П., руководитель проектов">
           СИ
         </span>

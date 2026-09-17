@@ -54,9 +54,9 @@ export const docStatusTone: Record<DocProcessingStatus, Tone> = {
 export const purchaseTone: Record<PurchaseStatus, Tone> = {
   none: "neutral",
   requested: "info",
-  offers: "accent",
-  supplier_selected: "accent",
-  ordered: "warn",
+  offers: "warn",
+  supplier_selected: "info",
+  ordered: "info",
   delivered: "ok",
 };
 

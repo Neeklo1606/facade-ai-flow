@@ -165,7 +165,7 @@ export function MaterialDrawer({
                   className={cn(
                     "h-1.5 rounded-full",
                     index <= stage && stage > 0
-                      ? "bg-accent"
+                      ? "bg-info"
                       : index === 0 && stage === 0
                         ? "bg-border-strong"
                         : "bg-subtle",

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PageActions } from "@/components/layout/PageActions";
 
 function splitDescription(text: string) {
   const idx = text.indexOf(". ");
@@ -22,7 +23,14 @@ export function PageHeader({
   const parts = description ? splitDescription(description) : null;
 
   return (
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    // Без описания и меток видимой части нет: заголовок и действия уже в шапке контента
+    <div
+      className={
+        parts || meta
+          ? "mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+          : "contents"
+      }
+    >
       <div className="min-w-0">
         {/* Заголовок страницы показывает шапка контента; здесь он остаётся для чтения с экрана */}
         <h1 className="sr-only">{title}</h1>
@@ -35,7 +43,7 @@ export function PageHeader({
                   <button
                     type="button"
                     aria-label="Подробнее"
-                    className="focus-ring shrink-0 text-text-muted hover:text-text-primary"
+                    className="focus-ring inline-grid size-11 shrink-0 place-items-center text-text-muted hover:text-text-primary lg:size-auto"
                   >
                     <Info className="size-3.5" strokeWidth={1.5} />
                   </button>
@@ -47,11 +55,7 @@ export function PageHeader({
         )}
         {meta && <div className="mt-2 flex flex-wrap items-center gap-2">{meta}</div>}
       </div>
-      {actions && (
-        <div className="flex w-full max-w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
-          {actions}
-        </div>
-      )}
+      {actions && <PageActions>{actions}</PageActions>}
     </div>
   );
 }

@@ -75,19 +75,19 @@ export const DocumentTree = memo(function DocumentTree({
                         aria-current={current ? "page" : undefined}
                         className={cn(
                           "focus-ring relative flex w-full items-center gap-2 py-1.5 pr-3 pl-8 text-left transition-fast hover:bg-hover",
-                          current && "bg-accent-subtle",
+                          current && "bg-surface-2",
                         )}
                       >
                         {current && (
                           <span
-                            className="absolute inset-y-1 left-0 w-[3px] rounded-r-full bg-accent"
+                            className="absolute inset-y-1 left-0 w-[3px] rounded-r-full bg-text"
                             aria-hidden
                           />
                         )}
                         <FileText
                           className={cn(
                             "size-3.5 shrink-0",
-                            current ? "text-accent" : "text-text-muted",
+                            current ? "text-text" : "text-text-muted",
                           )}
                           strokeWidth={1.5}
                         />

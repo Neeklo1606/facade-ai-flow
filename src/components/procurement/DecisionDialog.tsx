@@ -93,15 +93,13 @@ export function DecisionDialog({
                   onClick={() => setSupplierId(c.supplierId)}
                   className={cn(
                     "flex min-h-14 items-center gap-3 rounded-[var(--r-md)] border px-3 py-2 text-left transition-fast",
-                    selected ? "border-accent bg-accent-subtle" : "border-border hover:bg-hover",
+                    selected ? "border-line-2 bg-surface-3" : "border-border hover:bg-hover",
                   )}
                 >
                   <span
                     className={cn(
                       "grid size-5 shrink-0 place-items-center rounded-full border",
-                      selected
-                        ? "border-accent bg-accent text-accent-foreground"
-                        : "border-border-strong",
+                      selected ? "border-text bg-text text-base" : "border-border-strong",
                     )}
                   >
                     {selected && <Check className="size-3" />}
