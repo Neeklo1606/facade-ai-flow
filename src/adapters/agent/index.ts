@@ -96,6 +96,17 @@ const plural = (n: number, one: string, few: string, many: string) => {
   return many;
 };
 
+/** Слова названий, которые встречаются в вопросах не как имя объекта */
+const GENERIC_NAME_WORDS = new Set([
+  "корпус",
+  "квартал",
+  "фасада",
+  "фасад",
+  "реконструкция",
+  "северная",
+  "северный",
+]);
+
 /** Предохранитель постраничной загрузки: адаптер не должен зациклить ассистента */
 const MAX_PAGES = 100;
 
@@ -122,10 +133,14 @@ export function createAgentPort(ports: DataPorts): AgentPort {
       }));
   }
 
+  /**
+   * Основы названия объекта для узнавания в вопросе: слово без окончания, но не короче 5 букв,
+   * без общих слов. «Корона» → «корон»: «Короне» узнаётся, «короб» — нет.
+   */
   const projectStems = (project: Project) =>
     words(project.name.replace(/[«»"]/g, " "))
-      .filter((word) => word.length >= 5 && !/^(корпус|реконструкция|фасада)$/.test(word))
-      .map(stem);
+      .filter((word) => word.length >= 5 && !GENERIC_NAME_WORDS.has(word))
+      .map((word) => word.slice(0, Math.max(5, word.length - 2)));
 
   /**
    * Объект ответа. Названный в вопросе важнее селектора; без обоих — первый в реестре
@@ -402,6 +417,8 @@ export function createAgentPort(ports: DataPorts): AgentPort {
       ...(await sourcesOf(inReview.map((item) => item.report.sourceId))),
       ...(unverified || !lines.length ? (await documentSources(project.id)).slice(0, 1) : []),
     ]);
+    // Замены без писем и без отчётов: подтверждение — документация объекта, а не пустой ответ
+    if (!sources.length) sources.push(...(await documentSources(project.id)).slice(0, 1));
     return {
       intent: "decisions",
       projectId: project.id,
