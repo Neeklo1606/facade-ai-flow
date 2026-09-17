@@ -387,7 +387,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
                       {counterpartyById(c.supplierId)?.name}
                     </span>
                     {best && (
-                      <span className="inline-flex h-5 items-center gap-1 rounded-full bg-ok-bg px-2 text-[11px] font-medium text-ok">
+                      <span className="inline-flex h-5 items-center gap-1 rounded-full bg-sand-dim px-2 text-[11px] font-medium text-sand">
                         <Crown className="size-3" /> Лучшее
                       </span>
                     )}

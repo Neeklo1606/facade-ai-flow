@@ -8,7 +8,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="app-window">
       {/* Фоновое свечение окна: одно пятно, левый нижний угол */}
-      <div aria-hidden className="app-glow" />
+      <div aria-hidden className="app-glow grain">
+        <div className="app-glow-shape" />
+      </div>
       <div className="app-shell">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">

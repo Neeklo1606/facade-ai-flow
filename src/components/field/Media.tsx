@@ -84,7 +84,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
                 caption={photo.caption}
                 className="transition-opacity duration-150 group-hover:opacity-90"
               />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-2 pt-5 pb-1.5 text-left text-[11px] leading-tight text-white">
+              <span className="absolute inset-x-0 bottom-0 bg-black/65 px-2 pt-1.5 pb-1.5 text-left text-[11px] leading-tight text-white">
                 {photo.caption}
               </span>
             </button>

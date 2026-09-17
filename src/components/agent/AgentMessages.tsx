@@ -19,8 +19,8 @@ export function UserMessage({ text }: { text: string }) {
 function SystemHeader({ time }: { time?: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="grid size-6 place-items-center rounded-[var(--r-sm)] bg-orange-dim">
-        <Sparkles className="size-[13px] text-orange" strokeWidth={1.75} aria-hidden />
+      <span className="grid size-6 place-items-center rounded-[var(--r-sm)] bg-surface-3">
+        <Sparkles className="size-[13px] text-text-2" strokeWidth={1.75} aria-hidden />
       </span>
       <span className="text-[12px] text-text-3">Система</span>
       {time && <span className="text-[12px] text-text-3 tabular-nums">{time}</span>}

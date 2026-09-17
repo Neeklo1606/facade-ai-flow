@@ -28,7 +28,7 @@ const quickActions: QuickAction[] = [
     label: "Сводка по объекту",
     prompt: "Сводка по объекту",
     icon: Building2,
-    tone: "bg-orange-dim text-orange",
+    tone: "bg-sand-dim text-sand",
   },
   {
     intent: "deliveries",
@@ -153,7 +153,8 @@ export function AgentChat() {
         <div className="relative h-full overflow-hidden">
           <div
             ref={scrollRef}
-            className="absolute inset-0 overflow-y-auto px-4 pb-[136px] sm:pb-[160px]"
+            // Лента уходит под поле: край ленты гасится маской, а не градиентной подложкой
+            className="absolute inset-0 overflow-y-auto px-4 pb-[136px] [mask-image:linear-gradient(to_bottom,black_calc(100%-150px),transparent_calc(100%-40px))] sm:pb-[160px] sm:[mask-image:linear-gradient(to_bottom,black_calc(100%-180px),transparent_calc(100%-56px))]"
           >
             {phase !== "dialog" ? (
               <>

@@ -342,10 +342,13 @@
   h3 {
     font-variant-numeric: proportional-nums;
   }
-  /* Вес выше 600 и капса в системе не используются */
+  /* Вес выше 600 и капса в системе не используются: у th браузерный bold = 700 */
   b,
   strong {
     font-weight: 600;
+  }
+  th {
+    font-weight: 400;
   }
   ::placeholder {
     color: var(--text-3);
@@ -503,6 +506,7 @@
   }
 }
 /* Одно размытое пятно поверх фона окна, левый нижний угол */
+/* Обёртка свечения: зерно рисуется поверх пятна, поэтому blur его не размывает */
 @utility app-glow {
   /* На телефоне фонового свечения нет: blur дорогой, а оболочка во весь экран */
   display: none;
@@ -516,10 +520,18 @@
   width: 50vw;
   height: 50vw;
   border-radius: 50%;
-  background: var(--ember-soft);
-  filter: blur(180px);
-  opacity: 0.5;
   pointer-events: none;
+}
+@utility app-glow-shape {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--ember-soft);
+  opacity: 0.5;
+  /* blur только с планшета: на телефоне свечения нет вообще */
+  @media (min-width: 768px) {
+    filter: blur(180px);
+  }
 }
 @utility app-shell {
   position: relative;
@@ -881,20 +893,19 @@
   margin-inline: 12px;
   align-self: center;
   translate: 0 3px;
-  background-image: radial-gradient(circle, var(--text-4) 1px, transparent 1.2px);
-  background-size: 6px 2px;
-  background-repeat: repeat-x;
-  background-position: left center;
+  border-bottom: 1px dotted var(--text-4);
 }
 
 /* ---------------------------------------------------------------- Движение */
 
-@keyframes fo-shimmer {
-  0% {
-    background-position: -200% 0;
-  }
+/* Скелетон пульсирует цветом поверхности: градиент разрешён только бренду (главная метрика, свечения) */
+@keyframes fo-skeleton {
+  0%,
   100% {
-    background-position: 200% 0;
+    background-color: var(--surface-2);
+  }
+  50% {
+    background-color: var(--surface-3);
   }
 }
 @keyframes fo-pulse-dot {
@@ -911,14 +922,8 @@
 
 @utility skeleton {
   border-radius: var(--r-xs);
-  background: linear-gradient(
-    90deg,
-    var(--surface-2) 25%,
-    var(--surface-3) 37%,
-    var(--surface-2) 63%
-  );
-  background-size: 200% 100%;
-  animation: fo-shimmer 1.6s ease-in-out infinite;
+  background-color: var(--surface-2);
+  animation: fo-skeleton 1.6s ease-in-out infinite;
 }
 /* Набор ответа ассистента: три точки гаснут и загораются по очереди */
 @keyframes agent-typing {
