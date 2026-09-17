@@ -28,12 +28,15 @@ export function DataTable<T extends { id: string }>({
   return (
     <>
       {/* Десктоп: таблица */}
-      <div className="hidden overflow-x-auto rounded-[var(--r-md)] lg:block">
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full text-table">
           <thead>
-            <tr className="h-10 bg-subtle text-left">
+            <tr className="h-10 border-b border-line text-left">
               {columns.map((c) => (
-                <th key={c.key} className={cn("px-4 text-overline text-text-muted", c.className)}>
+                <th
+                  key={c.key}
+                  className={cn("px-4 text-[12px] font-normal text-text-3", c.className)}
+                >
                   {c.header}
                 </th>
               ))}
@@ -45,15 +48,15 @@ export function DataTable<T extends { id: string }>({
                 key={row.id}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
-                  "h-[52px] border-b border-border last:border-0 transition-fast",
-                  onRowClick && "cursor-pointer hover:bg-hover",
+                  "h-14 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2",
+                  onRowClick && "cursor-pointer",
                 )}
               >
                 {columns.map((c) => (
                   <td
                     key={c.key}
                     className={cn(
-                      "px-4 py-3 align-middle text-text-secondary first:font-medium first:text-text-primary",
+                      "px-4 py-3 align-middle text-text-2 first:font-medium first:text-text",
                       c.className,
                     )}
                   >
@@ -77,7 +80,7 @@ export function DataTable<T extends { id: string }>({
               key={row.id}
               type="button"
               onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className="card-surface min-h-11 w-full p-4 text-left transition-fast hover:border-border-strong hover:bg-hover hover:shadow-[var(--shadow-sm)]"
+              className="widget-card widget-card-interactive min-h-11 w-full p-4"
             >
               <div className="text-[14px] font-medium">{primary.cell(row)}</div>
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">

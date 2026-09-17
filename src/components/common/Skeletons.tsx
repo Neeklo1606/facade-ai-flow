@@ -4,20 +4,6 @@ export function SkeletonLine({ className }: { className?: string }) {
   return <span className={cn("skeleton block h-3 w-full", className)} aria-hidden />;
 }
 
-/** Скелетон плитки метрики — повторяет геометрию будущего контента. */
-export function MetricTileSkeleton() {
-  return (
-    <div className="card-surface flex h-[118px] flex-col justify-between p-4">
-      <div className="flex items-center justify-between">
-        <SkeletonLine className="w-24" />
-        <SkeletonLine className="size-4 rounded-full" />
-      </div>
-      <SkeletonLine className="h-7 w-20" />
-      <SkeletonLine className="w-28" />
-    </div>
-  );
-}
-
 export function ListRowSkeleton() {
   return (
     <div className="flex items-start gap-3 px-5 py-3.5">

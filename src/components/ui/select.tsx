@@ -19,7 +19,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-[38px] w-full cursor-pointer items-center justify-between whitespace-nowrap rounded-[var(--r-sm)] border border-border bg-surface px-3 text-sm data-[placeholder]:text-text-muted focus:border-[var(--border-focus)] focus:outline-none focus:ring-3 focus:ring-[color:color-mix(in_oklab,var(--accent)_12%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-11 w-full cursor-pointer items-center justify-between whitespace-nowrap rounded-[var(--r-sm)] border border-transparent bg-surface-2 px-4 text-[14px] text-text transition-fast data-[placeholder]:text-text-3 focus:border-orange-line focus:bg-surface-3 focus:outline-none focus:ring-3 focus:ring-[rgba(232,80,2,0.18)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className,
     )}
     {...props}

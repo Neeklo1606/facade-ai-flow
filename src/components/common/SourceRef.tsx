@@ -71,11 +71,11 @@ export function SourceRef({
           onClick={onOpen}
           aria-label={`Источник: ${source.title}, ${source.location}`}
           className={cn(
-            "focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--r-xs)] text-info transition-fast hover:bg-info-bg lg:size-6",
+            "focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--r-sm)] bg-surface-2 text-text-3 transition-fast is-hover:bg-info-bg is-hover:text-info lg:size-6",
             className,
           )}
         >
-          <Icon className="size-3.5" strokeWidth={1.75} />
+          <Icon className="size-[13px]" strokeWidth={1.75} />
         </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-72 space-y-1">

@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { FileSearch, type LucideIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { fmtDateTime } from "@/lib/format";
@@ -12,15 +12,25 @@ export interface SourceInfo {
   onOpen?: () => void;
 }
 
-/** Значок происхождения данных: какой агент, когда, из какого источника, с какой уверенностью. */
+/**
+ * Значок источника: квадрат 24px, --surface-2, иконка 13px --text-3; при наведении — --info.
+ * В подсказке: какой агент, когда, из какого источника, с какой уверенностью.
+ */
 export function SourceBadge({
   agent,
   at,
   source,
   confidence,
   onOpen,
+  icon: Icon = FileSearch,
+  force,
   className,
-}: SourceInfo & { className?: string }) {
+}: SourceInfo & {
+  icon?: LucideIcon;
+  /** Только для витрины: состояние наведения или фокуса без мыши */
+  force?: "hover" | "focus";
+  className?: string;
+}) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -28,12 +38,13 @@ export function SourceBadge({
           type="button"
           onClick={onOpen}
           aria-label={`Источник: ${source}. Заполнено агентом «${agent}»`}
+          data-force={force}
           className={cn(
-            "inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-subtle text-text-muted transition-fast hover:bg-accent-subtle hover:text-accent",
+            "group focus-ring inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--r-sm)] bg-surface-2 text-text-3 transition-fast is-hover:bg-info-bg is-hover:text-info",
             className,
           )}
         >
-          <Sparkles className="size-3.5" strokeWidth={2} />
+          <Icon className="size-[13px]" strokeWidth={1.75} />
         </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-72 space-y-1">

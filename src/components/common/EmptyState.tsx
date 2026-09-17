@@ -36,8 +36,9 @@ export function EmptyState({
       description: "Измените условия или сбросьте фильтры, чтобы увидеть все записи.",
     },
     error: {
-      title: "Не удалось загрузить данные",
-      description: "Что-то пошло не так. Попробуйте ещё раз через пару секунд.",
+      title: "Не получилось загрузить данные",
+      description:
+        "Связь с сервером прервалась. Данные не потерялись — повторите через несколько секунд.",
     },
   }[variant];
 
@@ -46,19 +47,27 @@ export function EmptyState({
     (variant === "filtered" ? "Сбросить фильтры" : variant === "error" ? "Повторить" : undefined);
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span className="grid size-[72px] place-items-center rounded-full bg-subtle">
-        <Icon className="size-10 text-text-muted" strokeWidth={1.5} />
+    <div
+      role={variant === "error" ? "alert" : undefined}
+      className="flex flex-col items-center justify-center px-6 py-14 text-center"
+    >
+      {/* Иконка в круге 44px --surface-2 */}
+      <span className="grid size-11 place-items-center rounded-full bg-surface-2">
+        <Icon
+          className={variant === "error" ? "size-5 text-danger" : "size-5 text-text-2"}
+          strokeWidth={1.5}
+        />
       </span>
-      <h3 className="mt-4 text-[15px] font-medium">{title ?? defaults.title}</h3>
-      <p className="mt-2 max-w-md text-[13px] text-text-secondary">
+      <h3 className="mt-4 text-[16px] leading-[1.35] font-semibold text-text">
+        {title ?? defaults.title}
+      </h3>
+      <p className="mt-1.5 max-w-md text-[13px] leading-[1.45] text-text-2">
         {description ?? defaults.description}
       </p>
       {label && onAction && (
         <Button
-          className="mt-4"
-          size="sm"
-          variant={variant === "empty" ? "default" : "secondary"}
+          className="mt-5"
+          variant={variant === "empty" ? "accent" : "secondary"}
           onClick={onAction}
         >
           {label}

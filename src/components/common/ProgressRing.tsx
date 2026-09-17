@@ -1,112 +1,82 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type RingStatus = "ok" | "warn" | "danger" | "info" | "accent";
-
-const STATUS_COLOR: Record<RingStatus, string> = {
-  ok: "var(--ok)",
-  warn: "var(--warn)",
-  danger: "var(--danger)",
-  info: "var(--info)",
-  accent: "var(--accent)",
-};
-
-const STATUS_GLOW: Record<RingStatus, string> = {
-  ok: "0 0 18px rgba(52,119,90,.35)",
-  warn: "0 0 18px rgba(140,104,30,.35)",
-  danger: "0 0 18px rgba(184,75,67,.4)",
-  info: "0 0 18px rgba(71,107,137,.35)",
-  accent: "0 0 22px rgba(212,92,45,.4)",
-};
+const SIZE = 132;
+const STROKE = 10;
 
 /**
- * Кольцо прогресса 72px. Дуга 6px со скруглёнными концами,
- * фон --line, цвет по статусу. В центре — число и подпись.
- * Заполнение анимируется один раз при появлении (600ms ease-out).
- * При значении выше порога — свечение цвета статуса.
+ * Кольцо прогресса 132px, дуга 10px со скруглёнными концами, фон --surface-3, цвет --orange.
+ * Заполнение анимируется один раз при появлении: 700ms ease-out.
  */
 export function ProgressRing({
   value,
   max = 100,
-  status = "accent",
-  label,
-  threshold,
-  size = 72,
-  stroke = 6,
+  display,
+  caption,
   className,
 }: {
   value: number;
   max?: number;
-  status?: RingStatus;
-  label?: string;
-  /** При value >= threshold включается свечение. */
-  threshold?: number;
-  size?: number;
-  stroke?: number;
+  /** Число в центре; по умолчанию — value */
+  display?: ReactNode;
+  caption?: string;
   className?: string;
 }) {
   const ratio = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
-  const radius = (size - stroke) / 2;
+  const radius = (SIZE - STROKE) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - ratio);
-  const above = threshold != null && value >= threshold;
 
-  // один раз запускаем анимацию заполнения при появлении
-  const [animated, setAnimated] = useState(false);
-  const ref = useRef(0);
+  // Первый кадр — пустая дуга, следующий — целевое значение: переход срабатывает один раз
+  const [shown, setShown] = useState(false);
   useEffect(() => {
-    const id = requestAnimationFrame(() => setAnimated(true));
+    const id = requestAnimationFrame(() => setShown(true));
     return () => cancelAnimationFrame(id);
   }, []);
-  // игнорируем смену ref-значения для noop
-  void ref;
 
   return (
-    <div
-      className={cn(
-        "relative inline-flex items-center justify-center",
-        above && "ring-glow",
-        className,
-      )}
-      style={{ width: size, height: size }}
-    >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="-rotate-90"
-        aria-hidden
+    <figure className={cn("inline-flex flex-col items-center gap-3", className)}>
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-label={caption}
+        className="relative"
+        style={{ width: SIZE, height: SIZE }}
       >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="var(--line)"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={STATUS_COLOR[status]}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={animated ? offset : circumference}
-          style={{
-            transition: "stroke-dashoffset 600ms ease-out",
-            filter: above ? `drop-shadow(${STATUS_GLOW[status]})` : undefined,
-          }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center leading-none">
-        <span className="mono text-[20px] font-semibold tabular-nums text-text-primary">
-          {value}
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="-rotate-90">
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={radius}
+            fill="none"
+            stroke="var(--surface-3)"
+            strokeWidth={STROKE}
+          />
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={radius}
+            fill="none"
+            stroke="var(--orange)"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={shown ? circumference * (1 - ratio) : circumference}
+            style={{ transition: "stroke-dashoffset 700ms ease-out" }}
+            // Нулевая дуга со скруглёнными концами рисует точку — прячем её
+            opacity={ratio === 0 ? 0 : 1}
+          />
+        </svg>
+        <span className="absolute inset-0 grid place-items-center text-[44px] leading-none font-semibold tracking-[-0.025em] text-text tabular-nums">
+          {display ?? value}
         </span>
-        {label && <span className="mt-0.5 text-micro text-text-muted">{label}</span>}
       </div>
-    </div>
+      {caption && (
+        <figcaption className="text-center text-[13px] leading-[1.45] text-text-3">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
   );
 }

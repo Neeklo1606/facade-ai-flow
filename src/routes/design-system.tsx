@@ -21,7 +21,7 @@ import {
   TableSkeleton,
   type Column,
 } from "@/components/common";
-import { Button } from "@/components/ui/button";
+import { WidgetGallery } from "@/components/design-system/WidgetGallery";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/design-system")({
@@ -119,44 +119,6 @@ const layers = [
   { token: "--surface-3", label: "Поповер", lift: "--lift-2" },
 ] as const;
 
-interface Row {
-  id: string;
-  name: string;
-  qty: string;
-  confidence: number;
-  status: "ok" | "warn" | "danger";
-}
-
-const rows: Row[] = [
-  {
-    id: "1",
-    name: "Керамогранит 600×600, антрацит",
-    qty: "1 240,000 м²",
-    confidence: 0.96,
-    status: "ok",
-  },
-  {
-    id: "2",
-    name: "Подсистема НВФ, кронштейн 180",
-    qty: "3 860 шт.",
-    confidence: 0.81,
-    status: "warn",
-  },
-  {
-    id: "3",
-    name: "Утеплитель минераловатный 100 мм",
-    qty: "912,500 м²",
-    confidence: 0.62,
-    status: "danger",
-  },
-];
-
-const statusLabel: Record<Row["status"], string> = {
-  ok: "Проверено",
-  warn: "Проверить",
-  danger: "Уточнить",
-};
-
 /* ---------------------------------------------------------------- Блоки витрины */
 
 function Section({
@@ -200,24 +162,7 @@ function Swatch({ token }: { token: Token }) {
 }
 
 function DesignSystemPage() {
-  const [filter, setFilter] = useState<"all" | "open">("all");
   const [activeNav, setActiveNav] = useState("materials");
-
-  const columns: Column<Row>[] = [
-    { key: "name", header: "Позиция", cell: (r) => r.name, primary: true },
-    { key: "qty", header: "Количество", cell: (r) => <span className="tnum">{r.qty}</span> },
-    {
-      key: "conf",
-      header: "Уверенность",
-      cell: (r) => <ConfidenceIndicator value={r.confidence} />,
-    },
-    {
-      key: "status",
-      header: "Состояние",
-      cell: (r) => <StatusBadge tone={r.status}>{statusLabel[r.status]}</StatusBadge>,
-    },
-  ];
-  const visible = filter === "all" ? rows : rows.filter((r) => r.status !== "ok");
 
   const navDemo = [
     { key: "documents", label: "Документация", icon: FileText, badge: 0, critical: false },
@@ -450,47 +395,16 @@ function DesignSystemPage() {
               </button>
               <span className="avatar">СИ</span>
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <Button variant="accent">Главное действие</Button>
-              <Button>Подтвердить</Button>
-              <Button variant="secondary">Открыть источник</Button>
-              <Button variant="outline">Вернуть на проверку</Button>
-              <Button variant="ghost">Отмена</Button>
-              <Button disabled>Недоступно</Button>
-            </div>
-            <p className="mt-3 text-caption text-text-3">
-              Оранжевая кнопка на экране одна — она главное действие.
-            </p>
           </Panel>
         </div>
-        <Panel title="Реестр" bodyClassName="p-0">
-          <FilterBar>
-            <FilterChip
-              active={filter === "all"}
-              count={rows.length}
-              onClick={() => setFilter("all")}
-            >
-              Все позиции
-            </FilterChip>
-            <FilterChip active={filter === "open"} count={2} onClick={() => setFilter("open")}>
-              Требуют проверки
-            </FilterChip>
-          </FilterBar>
-          <DataTable columns={columns} rows={visible} />
-        </Panel>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Загрузка" bodyClassName="p-0">
-            <TableSkeleton rows={3} />
-          </Panel>
-          <Panel title="Пусто" bodyClassName="p-0">
-            <EmptyState
-              icon={Building2}
-              variant="empty"
-              title="Записей по объекту ещё нет"
-              description="Данные появятся, когда прораб пришлёт первый отчёт с площадки."
-            />
-          </Panel>
-        </div>
+      </Section>
+
+      {/* ---------------------------------------------------------- Виджеты */}
+      <Section
+        title="Библиотека виджетов"
+        caption="Всё из @/components/common. Состояния наведения и фокуса показаны без мыши через data-force."
+      >
+        <WidgetGallery />
       </Section>
     </div>
   );

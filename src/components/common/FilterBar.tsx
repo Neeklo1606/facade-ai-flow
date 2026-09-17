@@ -47,15 +47,15 @@ export function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "focus-ring inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-fast lg:h-9",
+        "focus-ring inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition-fast lg:h-9",
         active
-          ? "border-border-strong bg-subtle text-text-primary"
-          : "border-border bg-surface text-text-secondary hover:bg-hover hover:text-text-primary",
+          ? "bg-surface-3 text-text shadow-[var(--lift-1)]"
+          : "bg-transparent text-text-2 is-hover:bg-surface-2 is-hover:text-text",
         className,
       )}
     >
       {children}
-      {count != null && <span className="tnum text-caption text-text-muted">{count}</span>}
+      {count != null && <span className="text-[12px] font-normal text-text-3">{count}</span>}
     </button>
   );
 }

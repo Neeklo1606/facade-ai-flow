@@ -8,4 +8,4 @@ export function Skeleton({ className }: { className?: string }) {
   return <span className={cn("skeleton block h-4 w-full", className)} aria-hidden />;
 }
 
-export { SkeletonLine, MetricTileSkeleton, ListRowSkeleton, TableSkeleton } from "./Skeletons";
+export { SkeletonLine, ListRowSkeleton, TableSkeleton } from "./Skeletons";
