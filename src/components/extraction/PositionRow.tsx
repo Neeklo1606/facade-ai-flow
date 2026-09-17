@@ -119,7 +119,7 @@ export const PositionRow = memo(function PositionRow({
                 className={cn(
                   "text-[13px] leading-snug font-medium",
                   inactive && "text-text-muted line-through",
-                  item.review === "header" && "no-underline uppercase",
+                  item.review === "header" && "font-semibold no-underline",
                 )}
               >
                 {item.projectName}

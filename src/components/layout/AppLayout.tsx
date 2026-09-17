@@ -6,8 +6,10 @@ import { CommandPalette } from "./CommandPalette";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="h-dvh overflow-hidden bg-background p-0 text-text-primary lg:p-2">
-      <div className="flex h-full min-h-0 overflow-hidden bg-[var(--bg-shell)] shadow-[var(--shadow-shell)] lg:rounded-[var(--r-lg)]">
+    <div className="app-window">
+      {/* Фоновое свечение окна: одно пятно, левый нижний угол */}
+      <div aria-hidden className="app-glow" />
+      <div className="app-shell">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />

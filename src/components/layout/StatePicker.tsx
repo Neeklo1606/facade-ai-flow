@@ -25,11 +25,12 @@ export function StatePicker() {
           type="button"
           aria-label="Состояние экрана"
           className={cn(
-            "focus-ring flex h-11 items-center gap-2 rounded-full border border-border bg-surface px-3 text-[13px] text-text-secondary transition-fast hover:bg-hover lg:h-[38px]",
-            forced !== "normal" && "border-accent-border bg-accent-subtle text-accent",
+            "icon-button focus-ring w-auto gap-2 px-2.5 text-[13px] transition-fast [grid-auto-flow:column]",
+            forced !== "normal" &&
+              "bg-orange-dim text-orange hover:bg-orange-dim hover:text-orange",
           )}
         >
-          <Layers className="size-4" />
+          <Layers strokeWidth={1.5} />
           <span className="hidden xl:inline">{current?.label}</span>
         </button>
       </PopoverTrigger>

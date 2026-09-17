@@ -373,9 +373,7 @@ function DecisionCard({
     <article className="card-surface overflow-hidden">
       <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold tracking-[.04em] text-ok uppercase">
-            {decisionKind[decision.kind]}
-          </p>
+          <p className="text-caption font-medium text-ok">{decisionKind[decision.kind]}</p>
           <h3 className="mt-0.5 text-[14px] leading-snug font-semibold">{decision.title}</h3>
         </div>
         {decision.link && (

@@ -24,7 +24,8 @@ export function PageHeader({
   return (
     <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <div className="min-w-0">
-        <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em]">{title}</h1>
+        {/* Заголовок страницы показывает шапка контента; здесь он остаётся для чтения с экрана */}
+        <h1 className="sr-only">{title}</h1>
         {parts && (
           <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[13px] text-text-secondary">
             <span className="truncate">{parts.lead}</span>

@@ -492,7 +492,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const mergeSource = mergeSourceId ? findPosition(mergeSourceId) : null;
 
   return (
-    <div className="-mx-4 -mt-5 -mb-24 flex h-[calc(100dvh-52px-56px)] flex-col md:-mx-7 md:-mt-6 lg:-mb-7 lg:h-[calc(100dvh-52px-16px)]">
+    <div className="-mx-4 -mt-5 -mb-24 flex h-[calc(100dvh-var(--topbar-h)-56px)] flex-col md:-mx-7 md:-mt-6 lg:-mb-7 lg:h-[calc(100vh-var(--shell-gap)*2-var(--topbar-h))]">
       {/* Шапка документа */}
       <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-surface px-4 py-2 md:px-5">
         <Link
@@ -584,9 +584,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               mobilePanel === "tree" ? "block" : "hidden lg:block",
             )}
           >
-            <p className="px-3 pt-3 text-[11px] font-semibold tracking-[.04em] text-text-muted uppercase">
-              Структура документа
-            </p>
+            <p className="px-3 pt-3 text-caption text-text-muted">Структура документа</p>
             <DocumentTree
               sheets={sheets}
               counts={sheetCounts}

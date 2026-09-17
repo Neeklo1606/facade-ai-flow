@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronRight, Menu, Moon, Search, Sun } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { sectionLabels, type ProjectSection } from "@/lib/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +9,7 @@ import { screenStatesEnabled } from "@/lib/screen-state";
 import { StatePicker } from "./StatePicker";
 
 export function Topbar() {
-  const { setMobileNavOpen, setCommandOpen, theme, toggleTheme, setProjectId } = useApp();
+  const { setMobileNavOpen, setCommandOpen, setProjectId } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const detail = pathname.match(
     /^\/projects\/([^/]+)(?:\/(documents|materials|procurement|field-reports|timeline)(?:\/([^/]+))?)?/,
@@ -40,86 +40,90 @@ export function Topbar() {
     if (detailProject) setProjectId(detailProject.id);
   }, [detailProject, setProjectId]);
 
+  // Заголовок шапки — последнее звено пути, подпись — звенья до него
+  const crumbs: { label: string; to?: string }[] = detailProject
+    ? [
+        { label: "Объекты", to: "/projects" },
+        ...(section
+          ? [
+              { label: detailProject.name, to: `/projects/${detailProject.id}` },
+              ...(childTitle
+                ? [{ label: section, to: `/projects/${detailProject.id}/${sectionKey}` }]
+                : []),
+            ]
+          : []),
+      ]
+    : [];
+  const title = detailProject
+    ? (childTitle ?? section ?? detailProject.name)
+    : pathname.startsWith("/projects")
+      ? "Объекты"
+      : pathname === "/design-system"
+        ? "Дизайн-система EMBER"
+        : "neeklo FieldOps";
+
   return (
-    <header className="sticky top-0 z-30 flex h-[52px] shrink-0 items-center gap-3 border-b border-border bg-[color:color-mix(in_oklab,var(--bg-shell)_92%,transparent)] px-3 backdrop-blur-xl lg:px-5">
+    <header className="content-header">
       <button
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label="Открыть меню"
-        className="grid size-11 place-items-center rounded-full text-text-secondary hover:bg-hover lg:hidden"
+        className="icon-button -ml-2 lg:hidden"
       >
-        <Menu className="size-5" />
+        <Menu strokeWidth={1.5} />
       </button>
 
-      <nav
-        aria-label="Хлебные крошки"
-        className="hidden min-w-0 items-center gap-1.5 text-[13px] text-text-muted md:flex"
-      >
-        {detailProject ? (
-          <>
-            <Link to="/projects" className="shrink-0 transition-fast hover:text-text-primary">
-              Объекты
-            </Link>
-            <ChevronRight className="size-3.5 shrink-0" />
-            {section ? (
-              <>
+      <div className="min-w-0 flex-1">
+        <div
+          className="truncate text-section-title lg:text-page-title"
+          title={title}
+          aria-hidden="true"
+        >
+          {title}
+        </div>
+        <nav
+          aria-label="Хлебные крошки"
+          className="hidden min-w-0 items-center gap-1.5 text-[13px] leading-[1.45] text-text-2 lg:flex"
+        >
+          {crumbs.length ? (
+            crumbs.map((crumb, index) => (
+              <span key={crumb.label + index} className="flex min-w-0 items-center gap-1.5">
+                {index > 0 && <span className="text-text-4">/</span>}
                 <Link
-                  to="/projects/$id"
-                  params={{ id: detailProject.id }}
-                  className="max-w-[220px] truncate transition-fast hover:text-text-primary"
+                  to={crumb.to as string}
+                  className="max-w-[260px] truncate transition-fast hover:text-text"
                 >
-                  {detailProject.name}
+                  {crumb.label}
                 </Link>
-                <ChevronRight className="size-3.5 shrink-0" />
-                {childTitle ? (
-                  <>
-                    <Link
-                      to={`/projects/${detailProject.id}/${sectionKey}` as string}
-                      className="shrink-0 transition-fast hover:text-text-primary"
-                    >
-                      {section}
-                    </Link>
-                    <ChevronRight className="size-3.5 shrink-0" />
-                    <span className="truncate font-medium text-text-primary">{childTitle}</span>
-                  </>
-                ) : (
-                  <span className="truncate font-medium text-text-primary">{section}</span>
-                )}
-              </>
-            ) : (
-              <span className="truncate font-medium text-text-primary">{detailProject.name}</span>
-            )}
-          </>
-        ) : (
-          <span className="truncate font-medium text-text-primary">
-            {pathname.startsWith("/projects") ? "Объекты" : "neeklo FieldOps"}
-          </span>
-        )}
-      </nav>
+              </span>
+            ))
+          ) : (
+            <span className="truncate">СК «Фасад-Проект»</span>
+          )}
+        </nav>
+      </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-1.5">
-        {screenStatesEnabled && <StatePicker />}
+      <div className="flex shrink-0 items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => setCommandOpen(true)}
+          aria-label="Поиск по объектам, документам и материалам"
+          className="header-search focus-ring hidden xl:flex"
+        >
+          <Search strokeWidth={1.5} />
+          <span className="min-w-0 flex-1 truncate text-left">Поиск по объектам</span>
+          <kbd className="kbd">Ctrl K</kbd>
+        </button>
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск"
-          className="grid size-11 place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover lg:hidden"
+          className="icon-button focus-ring xl:hidden"
         >
-          <Search className="size-[18px]" />
+          <Search strokeWidth={1.5} />
         </button>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-          title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-          className="hidden size-[38px] place-items-center rounded-full border border-border bg-surface text-text-secondary hover:bg-hover lg:grid"
-        >
-          {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
-        </button>
-        <span
-          className="hidden size-[34px] place-items-center rounded-full bg-pastel-violet text-[11px] font-medium text-pastel-violet-fg sm:grid"
-          title="Соколов И. П., руководитель проектов"
-        >
+        {screenStatesEnabled && <StatePicker />}
+        <span className="avatar hidden sm:grid" title="Соколов И. П., руководитель проектов">
           СИ
         </span>
       </div>

@@ -6,27 +6,23 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-pill)] text-sm font-medium cursor-pointer transition-fast outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:color-mix(in_oklab,var(--accent)_35%,transparent)] disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-pill)] text-sm font-medium cursor-pointer transition-fast outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-line disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default:
-          "bg-ink text-primary-foreground hover:bg-[var(--ink-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
-        accent:
-          "bg-accent text-accent-foreground hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-sm)] active:shadow-none",
+        default: "bg-ink text-primary-foreground hover:bg-[var(--ink-hover)]",
+        accent: "bg-orange text-on-orange shadow-[var(--glow-orange)] hover:bg-orange-hot",
         destructive: "bg-transparent text-danger hover:bg-danger-bg",
-        outline:
-          "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
-        secondary:
-          "border border-border bg-surface text-text-primary hover:border-border-strong hover:bg-hover",
-        ghost: "bg-transparent text-text-secondary hover:bg-hover hover:text-text-primary",
+        outline: "border border-line-2 bg-transparent text-text hover:bg-surface-2",
+        secondary: "bg-surface-2 text-text shadow-[var(--lift-1)] hover:bg-surface-3",
+        ghost: "bg-transparent text-text-2 hover:bg-surface-2 hover:text-text",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-11 px-[18px] lg:h-[38px]",
+        default: "h-11 px-5 lg:h-10",
         sm: "h-11 px-3.5 text-[13px] lg:h-[34px]",
         lg: "h-11 px-6",
-        icon: "size-11 rounded-[var(--r-sm)] lg:size-[34px]",
+        icon: "size-11 rounded-[var(--r-sm)] lg:size-10",
       },
     },
     defaultVariants: {

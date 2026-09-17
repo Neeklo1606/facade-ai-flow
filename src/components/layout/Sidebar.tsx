@@ -2,14 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ChevronDown,
-  ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Moon,
+  ChevronsUpDown,
   PanelsTopLeft,
   RotateCcw,
-  Search,
-  Sun,
   X,
 } from "lucide-react";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
@@ -59,14 +56,15 @@ export function Sidebar() {
         <button
           type="button"
           aria-label="Закрыть меню"
-          className="fixed inset-0 z-40 bg-[color:color-mix(in_oklab,var(--ink)_32%,transparent)] backdrop-blur-[4px] lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[4px] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[260px] shrink-0 flex-col bg-[linear-gradient(180deg,var(--sidebar-from),var(--sidebar-to))] transition-[width,transform] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0",
-          sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[260px]",
+          // На телефоне меню выезжает поверх экрана и нуждается в фоне; в оболочке сайдбар прозрачный
+          "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0 lg:bg-transparent",
+          sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[var(--sidebar-w)]",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -89,7 +87,7 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { setProjectId, theme, toggleTheme, setCommandOpen } = useApp();
+  const { setProjectId } = useApp();
   const user = useCurrentUser();
   const resetDemo = useResetDemo();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -126,81 +124,87 @@ function SidebarInner({
   const activeGroup = navGroups.find((g) => g.items.some((i) => i.key === activeKey))?.title;
 
   const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
+  const initials = user?.name
+    .split(" ")
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col p-3 text-sidebar-item">
-      <div className="flex items-center gap-2 px-1 py-1.5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--r-sm)] bg-accent text-accent-foreground shadow-[var(--shadow-xs)]">
-          <PanelsTopLeft className="size-[18px]" strokeWidth={1.5} />
+    <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
+      {/* Шапка сайдбара, 60px */}
+      <div className={cn("sidebar-header", collapsed && "lg:justify-center lg:px-0")}>
+        {collapsed ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label="Развернуть меню"
+            title="Развернуть меню"
+            className="focus-ring hidden size-[30px] place-items-center rounded-[var(--r-xs)] bg-orange text-on-orange lg:grid"
+          >
+            <ChevronsRight className="size-4" strokeWidth={1.5} />
+          </button>
+        ) : null}
+        <span
+          className={cn(
+            "grid size-[26px] shrink-0 place-items-center rounded-[var(--r-xs)] bg-orange text-on-orange shadow-[var(--glow-orange)]",
+            collapsed && "lg:hidden",
+          )}
+        >
+          <PanelsTopLeft className="size-[15px]" strokeWidth={1.5} />
         </span>
+        <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", collapsed && "lg:hidden")}>
+          <span className="truncate text-[15px] leading-tight font-semibold text-text">
+            neeklo FieldOps
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-text-3" strokeWidth={1.5} />
+        </div>
         {!collapsed && (
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm leading-tight font-semibold text-sidebar-active-text">
-              neeklo FieldOps
-            </div>
-            <div className="truncate text-[11px] text-text-muted">СК «Фасад-Проект»</div>
-          </div>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label="Свернуть меню"
+            title="Свернуть меню"
+            className="focus-ring hidden size-[30px] shrink-0 place-items-center rounded-[var(--r-xs)] text-text-3 hover:bg-surface-2 hover:text-text lg:grid"
+          >
+            <ChevronsLeft className="size-4" strokeWidth={1.5} />
+          </button>
         )}
         <button
           type="button"
           onClick={onClose}
           aria-label="Закрыть меню"
-          className="focus-ring grid size-11 place-items-center rounded-full text-sidebar-item hover:bg-hover hover:text-sidebar-item-hover lg:hidden"
+          className="focus-ring grid size-11 shrink-0 place-items-center rounded-full text-text-3 hover:bg-surface-2 hover:text-text lg:hidden"
         >
-          <X className="size-5" />
+          <X className="size-5" strokeWidth={1.5} />
         </button>
       </div>
 
+      {/* Селектор объекта */}
       {!collapsed && (
-        <div className="mt-3 shrink-0 space-y-2">
-          <label
-            className="relative block rounded-[var(--r-sm)] bg-surface px-3 py-2 shadow-[var(--shadow-xs)]"
-            title={siteLabel}
+        <label className="scope-card mt-1 mb-4 shrink-0" title={siteLabel}>
+          <span className="block text-[11px] leading-tight text-text-3">Объект</span>
+          <select
+            value={projectId ?? ALL_PROJECTS}
+            onChange={(e) => changeProject(e.target.value)}
+            className="focus-ring mt-1 h-5 w-full cursor-pointer appearance-none overflow-hidden bg-transparent text-ellipsis whitespace-nowrap text-sm leading-5 font-medium text-text"
           >
-            <span className="block text-overline text-text-muted">Объект</span>
-            <select
-              value={projectId ?? ALL_PROJECTS}
-              onChange={(e) => changeProject(e.target.value)}
-              className="focus-ring mt-0.5 h-6 w-full appearance-none overflow-hidden bg-transparent pr-6 text-ellipsis whitespace-nowrap text-sm font-medium text-text-primary"
-            >
-              <option value={ALL_PROJECTS}>Все объекты</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 bottom-3 size-4 text-text-muted" />
-          </label>
-        </div>
+            <option value={ALL_PROJECTS}>Все объекты</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <ChevronsUpDown
+            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-text-3"
+            strokeWidth={1.5}
+          />
+        </label>
       )}
 
-      <button
-        type="button"
-        onClick={() => {
-          onClose();
-          setCommandOpen(true);
-        }}
-        title="Поиск"
-        aria-label="Поиск по объектам, документам и материалам"
-        className={cn(
-          "focus-ring mt-2 flex h-[38px] shrink-0 items-center gap-2 rounded-[var(--r-sm)] border border-[var(--sidebar-hover-bg)] px-2.5 text-[13px] text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover",
-          collapsed && "justify-center px-0",
-        )}
-      >
-        <Search className="size-4 shrink-0" strokeWidth={1.5} />
-        {!collapsed && (
-          <>
-            <span className="min-w-0 flex-1 truncate text-left">Поиск</span>
-            <kbd className="shrink-0 rounded-[var(--r-xs)] bg-[var(--sidebar-hover-bg)] px-1.5 py-0.5 text-[11px]">
-              Ctrl K
-            </kbd>
-          </>
-        )}
-      </button>
-
-      <nav className="nav-scroll mt-2 min-h-0 flex-1 py-1">
-        {navGroups.map((group) => {
+      <nav className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
+        {navGroups.map((group, index) => {
           const open =
             collapsed || !closedGroups.includes(group.title) || group.title === activeGroup;
           const hiddenCritical = group.items.reduce(
@@ -208,8 +212,10 @@ function SidebarInner({
             0,
           );
           return (
-            <div key={group.title} className="mb-1 pt-2">
-              {!collapsed && (
+            <div key={group.title}>
+              {collapsed ? (
+                index > 0 && <div className="mx-3 my-3 h-px bg-line" />
+              ) : (
                 <button
                   type="button"
                   onClick={() =>
@@ -220,21 +226,22 @@ function SidebarInner({
                     )
                   }
                   aria-expanded={open}
-                  className="focus-ring flex min-h-11 w-full items-center gap-1.5 rounded-[var(--r-xs)] px-2 py-1.5 text-overline lg:min-h-0 text-[var(--sidebar-section)] transition-fast hover:text-sidebar-item-hover"
+                  className={cn(
+                    "nav-group-label focus-ring group rounded-[var(--r-xs)]",
+                    index === 0 && "pt-1",
+                  )}
                 >
-                  <ChevronRight
+                  <span className="min-w-0 flex-1 truncate text-left">{group.title}</span>
+                  {!open && hiddenCritical > 0 && (
+                    <span className="nav-badge nav-badge-critical">{hiddenCritical}</span>
+                  )}
+                  <ChevronDown
                     className={cn(
-                      "size-3.5 shrink-0 transition-transform duration-150",
-                      open && "rotate-90",
+                      "size-3.5 shrink-0 text-text-4 opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100 group-focus-visible:opacity-100",
+                      !open && "-rotate-90 opacity-100",
                     )}
                     strokeWidth={1.5}
                   />
-                  <span className="min-w-0 flex-1 truncate text-left">{group.title}</span>
-                  {!open && hiddenCritical > 0 && (
-                    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-danger-bg px-1.5 text-[11px] font-semibold tnum text-danger">
-                      {hiddenCritical}
-                    </span>
-                  )}
                 </button>
               )}
               {open && (
@@ -250,24 +257,25 @@ function SidebarInner({
                           search={href.search as never}
                           onClick={onClose}
                           title={item.label}
+                          data-active={active}
+                          aria-current={active ? "page" : undefined}
                           className={cn(
-                            "focus-ring flex h-11 items-center gap-2.5 rounded-[var(--r-sm)] px-2.5 text-sm font-medium transition-fast lg:h-[38px]",
-                            active
-                              ? "bg-sidebar-active-bg text-sidebar-active-text shadow-[var(--shadow-xs)] [&>svg]:text-sidebar-active-bar"
-                              : "text-sidebar-item hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover",
+                            "nav-item focus-ring transition-fast",
+                            collapsed && "lg:justify-center lg:px-0",
                           )}
                         >
-                          <item.icon className="size-[18px] shrink-0" strokeWidth={1.5} />
-                          {!collapsed && (
-                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                          )}
-                          {!collapsed && count > 0 && (
+                          <item.icon strokeWidth={1.5} />
+                          <span className={cn("min-w-0 flex-1 truncate", collapsed && "lg:hidden")}>
+                            {item.label}
+                          </span>
+                          {count > 0 && (
                             <span
                               className={cn(
-                                "grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-semibold tnum",
-                                item.badge && CRITICAL_BADGES.includes(item.badge)
-                                  ? "bg-danger-bg text-danger"
-                                  : "bg-hover text-text-secondary",
+                                "nav-badge",
+                                item.badge &&
+                                  CRITICAL_BADGES.includes(item.badge) &&
+                                  "nav-badge-critical",
+                                collapsed && "lg:hidden",
                               )}
                             >
                               {count}
@@ -284,48 +292,25 @@ function SidebarInner({
         })}
       </nav>
 
-      <div className="shrink-0 border-t border-sidebar-border pt-3">
-        <div className="flex items-center gap-2 rounded-[var(--r-sm)] px-2 py-1.5 hover:bg-[var(--sidebar-hover-bg)]">
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-pastel-violet text-[11px] font-medium text-pastel-violet-fg">
-            {user?.name
-              .split(" ")
-              .slice(0, 2)
-              .map((part) => part[0])
-              .join("")}
-          </span>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <div
-                className="truncate text-[13px] font-medium text-sidebar-active-text"
-                title={user?.name}
-              >
-                {user?.name}
-              </div>
-              <div className="truncate text-[11px] text-text-muted">{user?.roleLabel}</div>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label="Переключить тему"
-            title={theme === "light" ? "Тёмная тема" : "Светлая тема"}
-            className="focus-ring hidden size-9 shrink-0 place-items-center rounded-full text-sidebar-item transition-fast hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:grid [@media(hover:none)]:hover:bg-transparent"
-          >
-            {theme === "light" ? (
-              <Moon className="size-4 shrink-0" />
-            ) : (
-              <Sun className="size-4 shrink-0" />
-            )}
-          </button>
-        </div>
-        {!collapsed && dataSource === "demo" && (
+      {/* Нижний блок: без линии, пункты того же вида */}
+      <div className="shrink-0 space-y-1 pt-6">
+        {dataSource === "demo" && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
                 type="button"
-                className="focus-ring mt-1 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[var(--r-sm)] text-[11px] text-sidebar-item hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:min-h-8"
+                title="Сбросить демо-данные"
+                className={cn(
+                  "nav-item focus-ring w-full transition-fast",
+                  collapsed && "lg:justify-center lg:px-0",
+                )}
               >
-                <RotateCcw className="size-3.5" /> Сбросить демо-данные
+                <span className="nav-icon-circle">
+                  <RotateCcw strokeWidth={1.5} />
+                </span>
+                <span className={cn("min-w-0 flex-1 truncate text-left", collapsed && "lg:hidden")}>
+                  Сбросить демо-данные
+                </span>
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -353,14 +338,15 @@ function SidebarInner({
             </AlertDialogContent>
           </AlertDialog>
         )}
-        <button
-          type="button"
-          onClick={onToggle}
-          className="focus-ring mt-1 hidden h-8 w-full items-center justify-center gap-1.5 rounded-[var(--r-sm)] text-[11px] text-sidebar-item hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-item-hover lg:flex"
+        <div
+          className={cn("nav-item cursor-default", collapsed && "lg:justify-center lg:px-0")}
+          title={user ? `${user.name}, ${user.roleLabel}` : undefined}
         >
-          {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
-          {!collapsed && "Свернуть меню"}
-        </button>
+          <span className="nav-icon-circle">{initials}</span>
+          <span className={cn("min-w-0 flex-1 truncate", collapsed && "lg:hidden")}>
+            {user?.name}
+          </span>
+        </div>
       </div>
     </div>
   );
