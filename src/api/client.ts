@@ -8,6 +8,7 @@ import type {
   ListDocumentsInput,
   ListPositionsInput,
   MergePositionsInput,
+  PositionFilterInput,
   Repositories,
   ReviewReportInput,
   SplitPositionInput,
@@ -70,6 +71,15 @@ export const api = {
   positions: {
     list: (data: ListPositionsInput) =>
       server ? fn.positionsFn({ data }) : local().positions.list(data),
+    facets: (data: PositionFilterInput) =>
+      server ? fn.positionFacetsFn({ data }) : local().positions.facets(data),
+    selection: (data: PositionFilterInput) =>
+      server ? fn.positionSelectionFn({ data }) : local().positions.selection(data),
+    item: (id: string) => (server ? fn.positionFn({ data: { id } }) : local().positions.item(id)),
+    confirmAutoVerified: (revisionId: string) =>
+      server
+        ? fn.confirmAutoVerifiedFn({ data: { revisionId } })
+        : local().positions.confirmAutoVerified({ revisionId }, actor),
     history: (id: string) =>
       server ? fn.positionHistoryFn({ data: { id } }) : local().positions.history(id),
     confirm: (ids: string[]) =>

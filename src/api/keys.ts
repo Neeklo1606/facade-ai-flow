@@ -1,4 +1,4 @@
-import type { ListPositionsInput } from "@/ports";
+import type { ListPositionsInput, PositionFilterInput } from "@/ports";
 
 /**
  * Единая таблица ключей запросов (ADR-002, п. 1). Первый элемент — область: по нему мутации
@@ -36,7 +36,13 @@ export const keys = {
     changes: (projectId: string) => ["documents", "changes", projectId] as const,
   },
   positions: {
+    /** Одна страница: превью, позиции листа */
     list: (input: ListPositionsInput) => ["positions", "list", input] as const,
+    /** Страницы подряд (useInfiniteQuery): реестр материалов, список на проверке */
+    pages: (input: ListPositionsInput) => ["positions", "pages", input] as const,
+    facets: (input: PositionFilterInput) => ["positions", "facets", input] as const,
+    selection: (input: PositionFilterInput) => ["positions", "selection", input] as const,
+    item: (positionId: string) => ["positions", "item", positionId] as const,
     history: (positionId: string) => ["positions", "history", positionId] as const,
     materials: () => ["positions", "materials"] as const,
     replacements: () => ["positions", "replacements"] as const,

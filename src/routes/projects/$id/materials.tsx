@@ -13,7 +13,7 @@ import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { useScreenState } from "@/lib/screen-state";
-import { ConfidenceLabel, confidenceLevel } from "@/components/common/ConfidenceIndicator";
+import { ConfidenceLabel } from "@/components/common/ConfidenceIndicator";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,7 +23,8 @@ import {
   isReadyForRequest,
   isVerifiedPosition as isVerified,
 } from "@/contracts";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { PositionView } from "@/api/types";
 import { queries } from "@/api/queries";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtNum } from "@/lib/format";
@@ -72,7 +73,7 @@ export const Route = createFileRoute("/projects/$id/materials")({
   loader: async ({ params, context }) => {
     const [result] = await Promise.all([
       loadProject(context.queryClient, params.id),
-      prefetch(context.queryClient, queries.positions({ projectId: params.id, limit: 5000 })),
+      prefetch(context.queryClient, queries.positionFacets({ projectId: params.id })),
       prefetch(context.queryClient, queries.documents(params.id)),
     ]);
     return result;
@@ -94,41 +95,62 @@ const reviewFilterLabel: Record<ReviewFilter, string> = {
   excluded: "Исключено",
 };
 
-function matchesReview(item: ExtractedPosition, filter: ReviewFilter | undefined) {
-  if (!filter) return isActive(item);
-  const level = confidenceLevel(item.confidence);
-  switch (filter) {
-    case "verified":
-      return isVerified(item);
-    case "pending":
-      return item.review === "pending";
-    case "attention":
-      return item.review === "pending" && level === "mid";
-    case "check":
-      return item.review === "pending" && level === "low";
-    case "excluded":
-      return !isActive(item);
-  }
+const viewOfReview: Record<ReviewFilter, PositionView> = {
+  verified: "verified",
+  pending: "pending",
+  attention: "attention",
+  check: "check",
+  excluded: "excluded",
+};
+
+/** Строк раздела за один запрос: следующие — по «Показать ещё» (P3-3) */
+const PAGE = 40;
+
+interface GroupFilter {
+  projectId: string;
+  view: PositionView;
+  stage?: PurchaseStatus | undefined;
+  chars?: CharsFilter | undefined;
 }
 
-const PAGE = 40;
+/** Выделенная позиция: раздел — для счётчика раздела, ready — можно ли запросить цены */
+type Selection = Map<string, { group: string; ready: boolean }>;
+
+function useGroupPages(filter: GroupFilter, group: string, enabled: boolean) {
+  const query = useInfiniteQuery({
+    ...queries.positionPages({ ...filter, group, limit: PAGE }),
+    enabled,
+  });
+  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  return { ...query, items };
+}
 
 function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Element {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const queryClient = useQueryClient();
 
-  // До серверного пейджинга и фильтров (P3-3) реестр материалов загружает позиции объекта целиком
-  const positionsQuery = useQuery(queries.positions({ projectId: project.id, limit: 5000 }));
+  const filter: GroupFilter = {
+    projectId: project.id,
+    view: search.review ? viewOfReview[search.review] : "active",
+    stage: search.purchase,
+    chars: search.chars,
+  };
+  // Счётчики объекта (этапы закупки, список разделов) и счётчики под фильтрами считает сервер
+  const scopeQuery = useQuery(queries.positionFacets({ projectId: project.id }));
+  const filteredQuery = useQuery(queries.positionFacets(filter));
   const documentsQuery = useQuery(queries.documents(project.id));
-  const positions = useMemo(() => positionsQuery.data?.items ?? [], [positionsQuery.data]);
+  const openItemQuery = useQuery({
+    ...queries.position(search.position ?? ""),
+    enabled: !!search.position,
+  });
   const documents = useMemo(
     () => (documentsQuery.data ?? []).map((item) => item.document),
     [documentsQuery.data],
   );
 
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Selection>(new Map());
   const [collapsed, setCollapsed] = useState<string[]>([]);
-  const [limits, setLimits] = useState<Record<string, number>>({});
   const [requestOpen, setRequestOpen] = useState(false);
 
   const setSearch = (patch: Partial<MaterialsSearch>) =>
@@ -138,72 +160,40 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
       resetScroll: false,
     });
 
-  const groups = useMemo(() => [...new Set(positions.map((item) => item.group))], [positions]);
-
-  const rows = useMemo(
-    () =>
-      positions
-        .filter((item) => matchesReview(item, search.review))
-        .filter((item) => (search.group ? item.group === search.group : true))
-        .filter((item) =>
-          search.purchase
-            ? item.purchase === search.purchase && isVerified(item) && item.handedOverAt !== null
-            : true,
-        )
-        .filter((item) =>
-          search.chars === "with"
-            ? item.characteristics.length > 0
-            : search.chars === "without"
-              ? item.characteristics.length === 0
-              : true,
-        ),
-    [positions, search.review, search.group, search.purchase, search.chars],
+  const groups = (scopeQuery.data?.groups ?? []).map((item) => item.group);
+  const grouped = (filteredQuery.data?.groups ?? []).filter(
+    (item) => !search.group || item.group === search.group,
   );
+  const shownTotal = grouped.reduce((acc, item) => acc + item.total, 0);
+  const stages = scopeQuery.data?.stages;
+  const readyTotal = scopeQuery.data?.readyForRequest ?? 0;
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, ExtractedPosition[]>();
-    for (const item of rows) {
-      const list = map.get(item.group) ?? [];
-      list.push(item);
-      map.set(item.group, list);
-    }
-    return [...map.entries()];
-  }, [rows]);
-
-  const purchaseCounts = useMemo(() => {
-    const verified = positions.filter((item) => isVerified(item) && item.handedOverAt !== null);
-    return Object.fromEntries(
-      purchaseOrder.map((status) => [
-        status,
-        verified.filter((item) => item.purchase === status).length,
-      ]),
-    ) as Record<PurchaseStatus, number>;
-  }, [positions]);
-
-  const selectedItems = useMemo(
-    () => positions.filter((item) => selected.has(item.id)),
-    [positions, selected],
-  );
-  const eligibleCount = selectedItems.filter(isReadyForRequest).length;
+  const eligibleCount = [...selected.values()].filter((item) => item.ready).length;
   const filtersActive = Boolean(search.group || search.review || search.purchase || search.chars);
-  const openItem = search.position
-    ? (positions.find((item) => item.id === search.position) ?? null)
-    : null;
+  const openItem = openItemQuery.data ?? null;
   const docTitle = (id: string) => documents.find((doc) => doc.id === id)?.title ?? "Документ";
 
-  const toggle = (id: string, value: boolean) =>
+  const toggle = (item: ExtractedPosition, value: boolean) =>
     setSelected((prev) => {
-      const next = new Set(prev);
-      if (value) next.add(id);
-      else next.delete(id);
+      const next = new Map(prev);
+      if (value) next.set(item.id, { group: item.group, ready: isReadyForRequest(item) });
+      else next.delete(item.id);
       return next;
     });
-  const toggleMany = (ids: string[], value: boolean) =>
+  /** Раздел целиком, включая ещё не загруженные страницы: id берём с сервера */
+  const toggleGroup = async (group: string, value: boolean) => {
+    const ids = await queryClient.fetchQuery(queries.positionSelection({ ...filter, group }));
     setSelected((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => (value ? next.add(id) : next.delete(id)));
+      const next = new Map(prev);
+      for (const item of ids) {
+        if (value) next.set(item.id, { group, ready: item.ready });
+        else next.delete(item.id);
+      }
       return next;
     });
+  };
+  const selectedIn = (group: string) =>
+    [...selected.values()].filter((item) => item.group === group).length;
 
   const resetFilters = () =>
     setSearch({ group: undefined, review: undefined, purchase: undefined, chars: undefined });
@@ -213,10 +203,10 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
       doc.projectId === project.id && (doc.status === "uploaded" || doc.status === "recognizing"),
   );
   const screen = useScreenState({
-    pending: positionsQuery.isPending,
-    error: positionsQuery.isError,
-    empty: positions.length === 0,
-    filtered: rows.length === 0,
+    pending: scopeQuery.isPending || filteredQuery.isPending,
+    error: scopeQuery.isError || filteredQuery.isError,
+    empty: (scopeQuery.data?.views.all ?? 0) === 0,
+    filtered: shownTotal === 0,
     partial: pendingDocs.length > 0,
   });
   const blocked =
@@ -239,13 +229,13 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
               {fmtNum((overview?.specTotal ?? 0) - (overview?.specUnverified ?? 0))}
             </b>{" "}
             · готовы к запросу{" "}
-            <b className="tnum font-semibold text-accent">{fmtNum(purchaseCounts.none)}</b>
+            <b className="tnum font-semibold text-accent">{fmtNum(readyTotal)}</b>
           </span>
         }
         actions={
           <Button
             variant="accent"
-            disabled={blocked || (eligibleCount === 0 && purchaseCounts.none === 0)}
+            disabled={blocked || (eligibleCount === 0 && readyTotal === 0)}
             onClick={() => setRequestOpen(true)}
             className="hidden sm:inline-flex"
           >
@@ -279,6 +269,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
       <div className="card-surface mb-4 grid grid-cols-2 gap-px overflow-hidden bg-border sm:grid-cols-3 xl:grid-cols-6">
         {purchaseOrder.map((status) => {
           const active = search.purchase === status;
+          const count = stages?.[status] ?? 0;
           return (
             <button
               key={status}
@@ -301,10 +292,10 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
               <span
                 className={cn(
                   "tnum mt-0.5 block text-[22px] leading-tight font-semibold",
-                  status === "none" && purchaseCounts.none > 0 && "text-accent",
+                  status === "none" && count > 0 && "text-accent",
                 )}
               >
-                {fmtNum(purchaseCounts[status])}
+                {fmtNum(count)}
               </span>
             </button>
           );
@@ -350,7 +341,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             </Button>
           )}
           <span className="col-span-2 text-caption text-text-muted sm:ml-auto">
-            Позиций: {fmtNum(rows.length)}
+            Позиций: {fmtNum(shownTotal)}
           </span>
         </div>
 
@@ -367,7 +358,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
               )}
             </span>
             <div className="ml-auto flex items-center gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Map())}>
                 <X className="size-3.5" /> Снять выделение
               </Button>
               <Button
@@ -384,7 +375,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
 
         <ScreenGate
           state={screen}
-          onRetry={() => void positionsQuery.refetch()}
+          onRetry={() => void Promise.all([scopeQuery.refetch(), filteredQuery.refetch()])}
           skeleton={<ScreenSkeleton kind="table" rows={8} />}
           copy={{
             section: "Материалы",
@@ -406,13 +397,19 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             },
           }}
         >
-          <MobileMaterials
-            grouped={grouped}
-            selected={selected}
-            onToggle={toggle}
-            onOpen={(id) => setSearch({ position: id })}
-            projectId={project.id}
-          />
+          <div className="lg:hidden">
+            {grouped.map((summary) => (
+              <MobileGroup
+                key={summary.group}
+                filter={filter}
+                summary={summary}
+                selected={selected}
+                onToggle={toggle}
+                onOpen={(id) => setSearch({ position: id })}
+                projectId={project.id}
+              />
+            ))}
+          </div>
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1240px] text-table">
               <thead className="sticky top-0 z-10">
@@ -429,80 +426,25 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
                   <th className="px-4">Закупка</th>
                 </tr>
               </thead>
-              {grouped.map(([group, items]) => {
-                const open = !collapsed.includes(group);
-                const limit = limits[group] ?? PAGE;
-                const ids = items.map((item) => item.id);
-                const selectedInGroup = ids.filter((id) => selected.has(id)).length;
-                const verifiedInGroup = items.filter(isVerified).length;
-                return (
-                  <tbody key={group}>
-                    <tr className="h-10 border-y border-border bg-raised">
-                      <td className="pl-4">
-                        <Checkbox
-                          aria-label={`Выделить раздел ${group}`}
-                          checked={
-                            selectedInGroup === 0
-                              ? false
-                              : selectedInGroup === ids.length
-                                ? true
-                                : "indeterminate"
-                          }
-                          onCheckedChange={(value) => toggleMany(ids, value === true)}
-                        />
-                      </td>
-                      <td colSpan={9} className="px-2.5">
-                        <button
-                          type="button"
-                          aria-expanded={open}
-                          onClick={() =>
-                            setCollapsed((prev) =>
-                              open ? [...prev, group] : prev.filter((g) => g !== group),
-                            )
-                          }
-                          className="focus-ring inline-flex items-center gap-2 rounded-[var(--r-xs)] text-[13px] font-semibold"
-                        >
-                          <ChevronRight
-                            className={cn("size-4 transition-transform", open && "rotate-90")}
-                          />
-                          {group}
-                          <span className="tnum font-normal text-text-muted">
-                            {fmtNum(items.length)} поз. · проверено {fmtNum(verifiedInGroup)}
-                            {selectedInGroup > 0 && ` · выбрано ${fmtNum(selectedInGroup)}`}
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                    {open &&
-                      items
-                        .slice(0, limit)
-                        .map((item) => (
-                          <MaterialRow
-                            key={item.id}
-                            item={item}
-                            selected={selected.has(item.id)}
-                            onToggle={toggle}
-                            onOpen={() => setSearch({ position: item.id })}
-                            projectId={project.id}
-                          />
-                        ))}
-                    {open && items.length > limit && (
-                      <tr className="border-b border-border">
-                        <td colSpan={10} className="px-4 py-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setLimits((prev) => ({ ...prev, [group]: limit + 200 }))}
-                          >
-                            Показать ещё {fmtNum(Math.min(200, items.length - limit))} из{" "}
-                            {fmtNum(items.length - limit)}
-                          </Button>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                );
-              })}
+              {grouped.map((summary) => (
+                <DesktopGroup
+                  key={summary.group}
+                  filter={filter}
+                  summary={summary}
+                  open={!collapsed.includes(summary.group)}
+                  onOpenChange={(open) =>
+                    setCollapsed((prev) =>
+                      open ? prev.filter((g) => g !== summary.group) : [...prev, summary.group],
+                    )
+                  }
+                  selected={selected}
+                  selectedCount={selectedIn(summary.group)}
+                  onToggle={toggle}
+                  onToggleGroup={(value) => void toggleGroup(summary.group, value)}
+                  onOpen={(id) => setSearch({ position: id })}
+                  projectId={project.id}
+                />
+              ))}
             </table>
           </div>
         </ScreenGate>
@@ -512,7 +454,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
         <MobileActionBar>
           <Button
             variant="accent"
-            disabled={eligibleCount === 0 && purchaseCounts.none === 0}
+            disabled={eligibleCount === 0 && readyTotal === 0}
             onClick={() => setRequestOpen(true)}
           >
             <Send className="size-4" /> Запросить цены
@@ -526,8 +468,8 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
         onOpenChange={setRequestOpen}
         project={project}
         region={overview?.region ?? "—"}
-        initialIds={[...selected]}
-        onCreated={() => setSelected(new Set())}
+        initialIds={[...selected.keys()]}
+        onCreated={() => setSelected(new Map())}
       />
       {openItem && (
         <MaterialDrawer
@@ -540,6 +482,176 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
   );
 }
 
+interface GroupProps {
+  filter: GroupFilter;
+  summary: { group: string; total: number; verified: number };
+  selected: Selection;
+  onToggle: (item: ExtractedPosition, value: boolean) => void;
+  onOpen: (id: string) => void;
+  projectId: string;
+}
+
+function DesktopGroup({
+  filter,
+  summary,
+  open,
+  onOpenChange,
+  selected,
+  selectedCount,
+  onToggle,
+  onToggleGroup,
+  onOpen,
+  projectId,
+}: GroupProps & {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedCount: number;
+  onToggleGroup: (value: boolean) => void;
+}) {
+  const { group, total, verified } = summary;
+  const pages = useGroupPages(filter, group, open);
+  const rest = total - pages.items.length;
+  return (
+    <tbody>
+      <tr className="h-10 border-y border-border bg-raised">
+        <td className="pl-4">
+          <Checkbox
+            aria-label={`Выделить раздел ${group}`}
+            checked={selectedCount === 0 ? false : selectedCount >= total ? true : "indeterminate"}
+            onCheckedChange={(value) => onToggleGroup(value === true)}
+          />
+        </td>
+        <td colSpan={9} className="px-2.5">
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => onOpenChange(!open)}
+            className="focus-ring inline-flex items-center gap-2 rounded-[var(--r-xs)] text-[13px] font-semibold"
+          >
+            <ChevronRight className={cn("size-4 transition-transform", open && "rotate-90")} />
+            {group}
+            <span className="tnum font-normal text-text-muted">
+              {fmtNum(total)} поз. · проверено {fmtNum(verified)}
+              {selectedCount > 0 && ` · выбрано ${fmtNum(selectedCount)}`}
+            </span>
+          </button>
+        </td>
+      </tr>
+      {open &&
+        pages.items.map((item) => (
+          <MaterialRow
+            key={item.id}
+            item={item}
+            selected={selected.has(item.id)}
+            onToggle={onToggle}
+            onOpen={() => onOpen(item.id)}
+            projectId={projectId}
+          />
+        ))}
+      {open && (pages.isPending || pages.hasNextPage) && (
+        <tr className="border-b border-border">
+          <td colSpan={10} className="px-4 py-2">
+            {pages.isPending ? (
+              <span className="text-caption text-text-muted">Загружаем позиции…</span>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pages.isFetchingNextPage}
+                onClick={() => void pages.fetchNextPage()}
+              >
+                Показать ещё {fmtNum(Math.min(PAGE, rest))} из {fmtNum(rest)}
+              </Button>
+            )}
+          </td>
+        </tr>
+      )}
+    </tbody>
+  );
+}
+
+/** Телефон: позиции карточками, выделение и источник — крупными областями нажатия. */
+function MobileGroup({ filter, summary, selected, onToggle, onOpen, projectId }: GroupProps) {
+  const { group, total } = summary;
+  const pages = useGroupPages(filter, group, true);
+  const rest = total - pages.items.length;
+  return (
+    <section>
+      <h3 className="sticky top-0 z-10 border-y border-border bg-raised px-4 py-2 text-[13px] font-semibold">
+        {group} <span className="tnum font-normal text-text-muted">{fmtNum(total)}</span>
+      </h3>
+      <ul className="divide-y divide-border">
+        {pages.items.map((item) => {
+          const review = reviewLabel(item);
+          return (
+            <li
+              key={item.id}
+              className={cn("flex gap-1 pr-4", selected.has(item.id) && "bg-accent-subtle")}
+            >
+              <label className="grid w-12 shrink-0 cursor-pointer place-items-center self-stretch">
+                <Checkbox
+                  checked={selected.has(item.id)}
+                  onCheckedChange={(v) => onToggle(item, v === true)}
+                  aria-label={`Выделить поз. ${item.position}`}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => onOpen(item.id)}
+                className="min-w-0 flex-1 py-3 text-left"
+              >
+                <p className={cn("text-[14px] font-medium", !item.normalizedName && "text-warn")}>
+                  {item.normalizedName ?? "Требует нормализации"}
+                </p>
+                <p className="mt-0.5 line-clamp-2 text-caption text-text-muted">
+                  {item.position} · {item.projectName}
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="tnum text-[14px] font-semibold">
+                    {item.qty ? fmtNum(item.qty) : "—"}{" "}
+                    <span className="font-normal text-text-secondary">{item.unit}</span>
+                  </span>
+                  {review ? (
+                    <StatusBadge tone={review.tone}>{review.label}</StatusBadge>
+                  ) : (
+                    <ConfidenceLabel value={item.confidence} />
+                  )}
+                  {isVerified(item) && item.handedOverAt !== null && (
+                    <StatusBadge tone={purchaseTone[item.purchase]}>
+                      {purchaseStatusLabel[item.purchase]}
+                    </StatusBadge>
+                  )}
+                </div>
+              </button>
+              <Link
+                to="/projects/$id/documents/$docId"
+                params={{ id: projectId, docId: item.documentId }}
+                search={{ position: item.id }}
+                className="grid size-11 shrink-0 place-items-center self-center rounded-[var(--r-sm)] text-info"
+                aria-label={`Лист ${item.sheetNumber}`}
+              >
+                <FileText className="size-4" />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {pages.hasNextPage && (
+        <div className="p-3">
+          <Button
+            variant="secondary"
+            className="w-full"
+            disabled={pages.isFetchingNextPage}
+            onClick={() => void pages.fetchNextPage()}
+          >
+            Показать ещё {fmtNum(Math.min(PAGE, rest))} из {fmtNum(rest)}
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MaterialRow({
   item,
   selected,
@@ -549,7 +661,7 @@ function MaterialRow({
 }: {
   item: ExtractedPosition;
   selected: boolean;
-  onToggle: (id: string, value: boolean) => void;
+  onToggle: (item: ExtractedPosition, value: boolean) => void;
   onOpen: () => void;
   projectId: string;
 }) {
@@ -568,7 +680,7 @@ function MaterialRow({
       <td className="pl-4" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={selected}
-          onCheckedChange={(value) => onToggle(item.id, value === true)}
+          onCheckedChange={(value) => onToggle(item, value === true)}
           aria-label={`Выделить поз. ${item.position}`}
         />
       </td>
@@ -641,98 +753,5 @@ function MaterialRow({
         )}
       </td>
     </tr>
-  );
-}
-
-/** Телефон: позиции карточками, выделение и источник — крупными областями нажатия. */
-function MobileMaterials({
-  grouped,
-  selected,
-  onToggle,
-  onOpen,
-  projectId,
-}: {
-  grouped: [string, ExtractedPosition[]][];
-  selected: Set<string>;
-  onToggle: (id: string, value: boolean) => void;
-  onOpen: (id: string) => void;
-  projectId: string;
-}) {
-  const [limit, setLimit] = useState(30);
-  return (
-    <div className="lg:hidden">
-      {grouped.map(([group, items]) => (
-        <section key={group}>
-          <h3 className="sticky top-0 z-10 border-y border-border bg-raised px-4 py-2 text-[13px] font-semibold">
-            {group} <span className="tnum font-normal text-text-muted">{fmtNum(items.length)}</span>
-          </h3>
-          <ul className="divide-y divide-border">
-            {items.slice(0, limit).map((item) => {
-              const review = reviewLabel(item);
-              return (
-                <li
-                  key={item.id}
-                  className={cn("flex gap-1 pr-4", selected.has(item.id) && "bg-accent-subtle")}
-                >
-                  <label className="grid w-12 shrink-0 cursor-pointer place-items-center self-stretch">
-                    <Checkbox
-                      checked={selected.has(item.id)}
-                      onCheckedChange={(v) => onToggle(item.id, v === true)}
-                      aria-label={`Выделить поз. ${item.position}`}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => onOpen(item.id)}
-                    className="min-w-0 flex-1 py-3 text-left"
-                  >
-                    <p
-                      className={cn("text-[14px] font-medium", !item.normalizedName && "text-warn")}
-                    >
-                      {item.normalizedName ?? "Требует нормализации"}
-                    </p>
-                    <p className="mt-0.5 line-clamp-2 text-caption text-text-muted">
-                      {item.position} · {item.projectName}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span className="tnum text-[14px] font-semibold">
-                        {item.qty ? fmtNum(item.qty) : "—"}{" "}
-                        <span className="font-normal text-text-secondary">{item.unit}</span>
-                      </span>
-                      {review ? (
-                        <StatusBadge tone={review.tone}>{review.label}</StatusBadge>
-                      ) : (
-                        <ConfidenceLabel value={item.confidence} />
-                      )}
-                      {isVerified(item) && item.handedOverAt !== null && (
-                        <StatusBadge tone={purchaseTone[item.purchase]}>
-                          {purchaseStatusLabel[item.purchase]}
-                        </StatusBadge>
-                      )}
-                    </div>
-                  </button>
-                  <Link
-                    to="/projects/$id/documents/$docId"
-                    params={{ id: projectId, docId: item.documentId }}
-                    search={{ position: item.id }}
-                    className="grid size-11 shrink-0 place-items-center self-center rounded-[var(--r-sm)] text-info"
-                    aria-label={`Лист ${item.sheetNumber}`}
-                  >
-                    <FileText className="size-4" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-      {grouped.reduce((acc, [, items]) => acc + items.length, 0) > limit && (
-        <div className="p-3">
-          <Button variant="secondary" className="w-full" onClick={() => setLimit((l) => l + 60)}>
-            Показать ещё
-          </Button>
-        </div>
-      )}
-    </div>
   );
 }

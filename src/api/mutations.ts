@@ -1,10 +1,11 @@
 import {
   useMutation,
   useQueryClient,
+  type InfiniteData,
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
-import type { ExtractedPosition } from "@/contracts";
+import { confidenceBand, type ExtractedPosition } from "@/contracts";
 import type {
   ChooseSupplierInput,
   CorrectPositionInput,
@@ -64,14 +65,37 @@ const REVIEW_MUTATION = ["positions"];
 export function usePositionMutations(notices: MutationNotices = {}) {
   const queryClient = useQueryClient();
 
+  /**
+   * Оптимистично поправить позицию везде, где она лежит в кеше: одиночные страницы, страницы подряд
+   * и карточка позиции. Счётчики не правим — их перечитывает сервер после мутации.
+   */
+  const patchWhere = async (
+    match: (item: ExtractedPosition) => boolean,
+    patch: (item: ExtractedPosition) => ExtractedPosition,
+  ): Promise<Snapshot> => {
+    const apply = (item: ExtractedPosition) => (match(item) ? patch(item) : item);
+    const page = (data: Page<ExtractedPosition>) => ({ ...data, items: data.items.map(apply) });
+    const list = await patchLists<Page<ExtractedPosition>>(
+      queryClient,
+      ["positions", "list"],
+      page,
+    );
+    const pages = await patchLists<InfiniteData<Page<ExtractedPosition>>>(
+      queryClient,
+      ["positions", "pages"],
+      (data) => ({ ...data, pages: data.pages.map(page) }),
+    );
+    const item = await patchLists<ExtractedPosition | null>(
+      queryClient,
+      ["positions", "item"],
+      (data) => (data ? apply(data) : data),
+    );
+    return [...list, ...pages, ...item];
+  };
   const patchPositions = (
     ids: Set<string>,
     patch: (item: ExtractedPosition) => ExtractedPosition,
-  ) =>
-    patchLists<Page<ExtractedPosition>>(queryClient, ["positions", "list"], (page) => ({
-      ...page,
-      items: page.items.map((item) => (ids.has(item.id) ? patch(item) : item)),
-    }));
+  ) => patchWhere((item) => ids.has(item.id), patch);
 
   const reviewed = (review: ExtractedPosition["review"]) => (item: ExtractedPosition) => ({
     ...item,
@@ -104,6 +128,22 @@ export function usePositionMutations(notices: MutationNotices = {}) {
     mutationFn: (ids: string[]) => api.positions.confirm(ids),
     onMutate: (ids) => patchPositions(new Set(ids), reviewed("confirmed")),
     onError: (_error, _ids, snapshot) => failed(snapshot),
+    onSettled: () => settle(REVIEW_AREAS),
+  });
+
+  /** «Подтвердить все проверенные»: какие позиции подтвердить, решает сервер */
+  const confirmAutoVerified = useMutation({
+    mutationKey: REVIEW_MUTATION,
+    mutationFn: (revisionId: string) => api.positions.confirmAutoVerified(revisionId),
+    onMutate: (revisionId) =>
+      patchWhere(
+        (item) =>
+          item.documentId === revisionId &&
+          item.review === "pending" &&
+          confidenceBand(item.confidence) === "verified",
+        reviewed("confirmed"),
+      ),
+    onError: (_error, _revisionId, snapshot) => failed(snapshot),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
@@ -191,7 +231,25 @@ export function usePositionMutations(notices: MutationNotices = {}) {
     onSettled: () => invalidate(queryClient, REVIEW_AREAS),
   });
 
-  return { confirm, correct, exclude, markHeader, reopen, undoReview, merge, split, handOver };
+  return {
+    confirm,
+    confirmAutoVerified,
+    correct,
+    exclude,
+    markHeader,
+    reopen,
+    undoReview,
+    merge,
+    split,
+    handOver,
+  };
+}
+
+/** «Отменить» подтверждение позиций, которые до него были не проверены */
+export function undoConfirmInput(ids: string[]) {
+  return {
+    items: ids.map((id) => ({ id, from: "confirmed" as const, to: "pending" as const })),
+  } satisfies UndoReviewInput;
 }
 
 /** «Отменить» решение `from` у позиций: вернуть каждой решение, которое было в снимке до действия */

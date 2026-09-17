@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
 import { isReadyForRequest } from "@/contracts";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { fmtDate, fmtNum } from "@/lib/format";
@@ -54,11 +54,19 @@ export function CreateRfqDialog({
   const { employeeById, counterpartyById } = useDirectory();
   const createRequest = useCreateRequest();
   // Позиции загружаются, только пока мастер открыт
-  const positionsQuery = useQuery({
-    ...queries.positions({ projectId: project.id, limit: 5000 }),
+  // Готовые к запросу позиции фильтрует сервер; страницы догружаются, пока мастер открыт
+  const positionsQuery = useInfiniteQuery({
+    ...queries.positionPages({ projectId: project.id, readyForRequest: true, limit: 200 }),
     enabled: open,
   });
-  const positions = positionsQuery.data?.items ?? EMPTY;
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = positionsQuery;
+  useEffect(() => {
+    if (open && hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [open, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const positions = useMemo(
+    () => positionsQuery.data?.pages.flatMap((page) => page.items) ?? EMPTY,
+    [positionsQuery.data],
+  );
   const supplierList = useQuery({ ...queries.suppliers(), enabled: open }).data;
   const profiles = useMemo(() => (supplierList ?? []).map((item) => item.profile), [supplierList]);
   const eligible = useMemo(
@@ -106,7 +114,7 @@ export function CreateRfqDialog({
   // При открытии: выбранные в реестре позиции, иначе все готовые к запросу. Ждём загрузки позиций:
   // при пустом кеше мастер открывается раньше, чем приходит список
   const preselected = useRef(false);
-  const positionsLoaded = positionsQuery.isSuccess;
+  const positionsLoaded = positionsQuery.isSuccess && !hasNextPage;
   useEffect(() => {
     if (!open) {
       preselected.current = false;

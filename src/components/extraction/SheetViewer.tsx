@@ -15,6 +15,8 @@ import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { type DocumentSheet, type ExtractedPosition, type ProjectDocument } from "@/contracts";
 import { SHEET_TABLE } from "@/lib/sheet-geometry";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/api/queries";
 
 /** Пропорции листа A4, книжная ориентация. */
 const PAGE_RATIO = 297 / 210;
@@ -30,7 +32,8 @@ interface Props {
   document: ProjectDocument;
   projectCode: string;
   sheets: DocumentSheet[];
-  positionsBySheet: Map<string, ExtractedPosition[]>;
+  /** Ревизия: позиции листа загружаются, когда лист близко к видимой области */
+  revisionId: string;
   activeId: string | null;
   /** Лист активной позиции: перерисовывается только он, а не весь документ */
   activeSheetId: string | null;
@@ -44,16 +47,7 @@ interface Props {
  * поэтому выбранная позиция подсвечивается рамкой ровно там, где она стоит в оригинале.
  */
 export const SheetViewer = forwardRef<SheetViewerHandle, Props>(function SheetViewer(
-  {
-    document,
-    projectCode,
-    sheets,
-    positionsBySheet,
-    activeId,
-    activeSheetId,
-    onSelect,
-    onSheetChange,
-  },
+  { document, projectCode, sheets, revisionId, activeId, activeSheetId, onSelect, onSheetChange },
   ref,
 ) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -225,7 +219,7 @@ export const SheetViewer = forwardRef<SheetViewerHandle, Props>(function SheetVi
               projectCode={projectCode}
               width={pageWidth}
               height={pageHeight}
-              positions={positionsBySheet.get(sheet.id)}
+              revisionId={revisionId}
               activeId={sheet.id === activeSheetId ? activeId : null}
               onSelect={onSelect}
               visible={Math.abs(index - current) <= 2}
@@ -245,7 +239,7 @@ const Page = memo(function Page({
   projectCode,
   width,
   height,
-  positions,
+  revisionId,
   activeId,
   onSelect,
   visible,
@@ -257,12 +251,17 @@ const Page = memo(function Page({
   projectCode: string;
   width: number;
   height: number;
-  positions: ExtractedPosition[] | undefined;
+  revisionId: string;
   activeId: string | null;
   onSelect: (id: string) => void;
   visible: boolean;
 }) {
   const u = width / 100;
+  // Все строки листа, включая исключённые: разметка повторяет оригинал документа
+  const positions = useQuery({
+    ...queries.positions({ revisionId, sheetId: sheet.id, view: "all", limit: 200 }),
+    enabled: visible,
+  }).data?.items;
   const active = positions?.find((item) => item.id === activeId) ?? null;
 
   return (

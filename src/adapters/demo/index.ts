@@ -1,9 +1,5 @@
-import {
-  isActivePosition,
-  isVerifiedPosition,
-  type ExtractedPosition,
-  type ProjectDocument,
-} from "@/contracts";
+import { isReadyForRequest, type ProjectDocument } from "@/contracts";
+import { byAttention, isAutoVerified, matchesFilter, positionFacets } from "@/domain/positions";
 import { currentRevisions, projectOverview, revisionStats, revisionsOf } from "@/domain/overview";
 import {
   answeredCount,
@@ -17,6 +13,8 @@ import { timelineOf } from "@/domain/timeline";
 import {
   ConflictError,
   NotFoundError,
+  listPositionsInput,
+  positionFilter,
   type DocumentListItem,
   type PendingDecision,
   type Repositories,
@@ -85,15 +83,6 @@ function requestSummary(s: DemoState, requestId: string): RequestSummary | null 
     replyDue: replyDue(request, status, now),
     decisionId: decision?.id ?? null,
   };
-}
-
-const levelWeight = (confidence: number) => (confidence >= 0.85 ? 2 : confidence >= 0.7 ? 1 : 0);
-
-function byAttention(a: ExtractedPosition, b: ExtractedPosition) {
-  return (
-    Number(isVerifiedPosition(a)) - Number(isVerifiedPosition(b)) ||
-    levelWeight(a.confidence) - levelWeight(b.confidence)
-  );
 }
 
 /** Когда проверенные позиции ревизии переданы в закупку: время последней передачи */
@@ -206,25 +195,26 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
 
     positions: {
       list: (input) => {
-        const s = state();
-        let items = s.positions.filter(
-          (item) =>
-            (!input.projectId || item.projectId === input.projectId) &&
-            (!input.revisionId || item.documentId === input.revisionId) &&
-            (!input.review || input.review.includes(item.review)) &&
-            (!input.purchase || input.purchase.includes(item.purchase)),
-        );
-        if (input.order === "attention") {
-          items = items.filter(isActivePosition).sort(byAttention);
-        }
-        const offset = Number(input.cursor ?? 0);
-        const limit = input.limit ?? 100;
+        const filter = listPositionsInput.parse(input);
+        let items = state().positions.filter((item) => matchesFilter(item, filter));
+        if (filter.order === "attention") items = [...items].sort(byAttention);
+        const offset = Number(filter.cursor ?? 0);
         return done({
-          items: items.slice(offset, offset + limit),
-          nextCursor: offset + limit < items.length ? String(offset + limit) : null,
+          items: items.slice(offset, offset + filter.limit),
+          nextCursor: offset + filter.limit < items.length ? String(offset + filter.limit) : null,
           total: items.length,
         });
       },
+      facets: (input) => done(positionFacets(state().positions, positionFilter.parse(input))),
+      selection: (input) => {
+        const filter = positionFilter.parse(input);
+        return done(
+          state()
+            .positions.filter((item) => matchesFilter(item, filter))
+            .map((item) => ({ id: item.id, ready: isReadyForRequest(item) })),
+        );
+      },
+      item: (positionId) => done(state().positions.find((item) => item.id === positionId) ?? null),
       history: (positionId) =>
         done(
           state()
@@ -232,6 +222,15 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             .sort((a, b) => b.at.localeCompare(a.at)),
         ),
       confirm: ({ ids }, { actorId }) => done(actions.confirm(ids, actorId)),
+      confirmAutoVerified: ({ revisionId }, { actorId }) =>
+        done(
+          actions.confirm(
+            state()
+              .positions.filter((item) => item.documentId === revisionId && isAutoVerified(item))
+              .map((item) => item.id),
+            actorId,
+          ),
+        ),
       correct: (input, { actorId }) => done(actions.correct(input, actorId)),
       exclude: ({ id }, { actorId }) =>
         done(actions.setReview(id, "excluded", "Исключено из спецификации", actorId)),

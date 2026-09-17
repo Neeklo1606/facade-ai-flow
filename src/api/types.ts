@@ -6,6 +6,7 @@ export type {
   DocumentListItem,
   OfferComparison,
   PendingDecision,
+  PositionFacetsResult,
   ProjectCard,
   ProjectListItem,
   ReportCard,
@@ -14,3 +15,6 @@ export type {
   SourceCard,
   SupplierListItem,
 } from "@/ports";
+
+/** Вид проверки в фильтре позиций */
+export type PositionView = NonNullable<import("@/ports").ListPositionsInput["view"]>;

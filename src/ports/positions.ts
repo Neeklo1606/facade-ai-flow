@@ -12,16 +12,79 @@ import {
   type PositionChange,
   type ReplacementSuggestion,
 } from "@/contracts";
-import { pageInput, type Actor, type Page } from "./common";
+import { positionViews, type PositionView } from "@/domain/positions";
+import { type Actor, type Page } from "./common";
 
-export const listPositionsInput = pageInput.extend({
-  projectId: z.string().min(1).optional(),
-  revisionId: z.string().min(1).optional(),
-  review: z.array(positionReview.schema).optional(),
-  purchase: z.array(purchaseStatus.schema).optional(),
-  /** Порядок: по номеру позиции в документе или сначала требующие разбора */
-  order: z.enum(["position", "attention"]).default("position"),
+/**
+ * Фильтр позиций (P3-3): область — объект или ревизия, остальное сужает список.
+ * Совпадает с `PositionFilter` из domain/positions.
+ */
+export const positionFilter = z
+  .object({
+    projectId: z.string().min(1).optional(),
+    revisionId: z.string().min(1).optional(),
+    sheetId: z.string().min(1).optional(),
+    group: z.string().min(1).optional(),
+    /** Вид проверки; по умолчанию — действующие позиции (без исключённых, объединённых, заголовков) */
+    view: z.enum(positionViews).default("active"),
+    /** Этап закупки у проверенных и переданных в закупку */
+    stage: purchaseStatus.schema.optional(),
+    chars: z.enum(["with", "without"]).optional(),
+    readyForRequest: z.boolean().optional(),
+  })
+  .refine((input) => input.projectId || input.revisionId, {
+    message: "Нужна область: объект или ревизия документа",
+  });
+
+export const listPositionsInput = z
+  .object({
+    ...positionFilter.innerType().shape,
+    cursor: z.string().nullable().default(null),
+    /** Страница не больше 200 строк: весь список позиций клиенту не отдаётся */
+    limit: z.number().int().min(1).max(200).default(100),
+    /** Порядок: по номеру позиции в документе или сначала требующие разбора */
+    order: z.enum(["position", "attention"]).default("position"),
+  })
+  .refine((input) => input.projectId || input.revisionId, {
+    message: "Нужна область: объект или ревизия документа",
+  });
+
+const viewCounts = z.object(
+  Object.fromEntries(positionViews.map((view) => [view, z.number().int().nonnegative()])) as Record<
+    PositionView,
+    z.ZodNumber
+  >,
+);
+
+/** Счётчики для экранов: виды проверки, этапы закупки, листы, разделы, передача в закупку */
+export const positionFacets = z.object({
+  views: viewCounts,
+  stages: z.record(purchaseStatus.schema, z.number().int().nonnegative()),
+  sheets: z.array(
+    z.object({
+      sheetId: z.string(),
+      total: z.number().int().nonnegative(),
+      attention: z.number().int().nonnegative(),
+    }),
+  ),
+  groups: z.array(
+    z.object({
+      group: z.string(),
+      total: z.number().int().nonnegative(),
+      verified: z.number().int().nonnegative(),
+    }),
+  ),
+  autoVerified: z.number().int().nonnegative(),
+  readyForRequest: z.number().int().nonnegative(),
+  handOver: z.object({
+    count: z.number().int().nonnegative(),
+    needNormalization: z.number().int().nonnegative(),
+    withoutCharacteristics: z.number().int().nonnegative(),
+  }),
 });
+
+/** Для выделения раздела целиком: id и можно ли запросить цены */
+export const positionSelection = z.array(z.object({ id: z.string(), ready: z.boolean() }));
 
 const id = z.string().min(1);
 
@@ -75,6 +138,9 @@ export const materialList = z.array(materials);
 export const replacementList = z.array(replacementSuggestions);
 
 export type ListPositionsInput = z.input<typeof listPositionsInput>;
+export type PositionFilterInput = z.input<typeof positionFilter>;
+export type PositionFacetsResult = z.infer<typeof positionFacets>;
+export type PositionSelection = z.infer<typeof positionSelection>;
 export type CorrectPositionInput = z.infer<typeof correctPositionInput>;
 export type UndoReviewInput = z.infer<typeof undoReviewInput>;
 export type MergePositionsInput = z.infer<typeof mergePositionsInput>;
@@ -86,10 +152,15 @@ export type SplitPositionInput = z.infer<typeof splitPositionInput>;
  */
 export interface PositionsPort {
   list(input: ListPositionsInput): Promise<Page<ExtractedPosition>>;
+  facets(input: PositionFilterInput): Promise<PositionFacetsResult>;
+  selection(input: PositionFilterInput): Promise<PositionSelection>;
+  item(positionId: string): Promise<ExtractedPosition | null>;
   history(positionId: string): Promise<PositionChange[]>;
 
   /** Подтверждает непроверенные позиции; возвращает id изменённых */
   confirm(input: z.infer<typeof idsInput>, actor: Actor): Promise<string[]>;
+  /** Подтверждает непроверенные позиции ревизии с высокой уверенностью; какие — решает сервер */
+  confirmAutoVerified(input: z.infer<typeof handOverInput>, actor: Actor): Promise<string[]>;
   correct(input: CorrectPositionInput, actor: Actor): Promise<void>;
   exclude(input: z.infer<typeof idInput>, actor: Actor): Promise<void>;
   markHeader(input: z.infer<typeof idInput>, actor: Actor): Promise<void>;

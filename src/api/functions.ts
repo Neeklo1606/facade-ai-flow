@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { projectDecision, projectDocument, projectView } from "@/contracts";
+import { extractedPosition, projectDecision, projectDocument, projectView } from "@/contracts";
 import { createDemoRepositories } from "@/adapters/demo";
 import {
   correctPositionInput,
@@ -25,7 +25,10 @@ import {
   mergePositionsInput,
   pendingList,
   positionHistory,
+  positionFacets,
+  positionFilter,
   positionPage,
+  positionSelection,
   projectCard,
   projectList,
   remindResult,
@@ -125,6 +128,26 @@ export const revisionChangesFn = createServerFn({ method: "GET" })
 export const positionsFn = createServerFn({ method: "GET" })
   .validator(listPositionsInput)
   .handler(async ({ data }) => positionPage.parse(await repos().positions.list(data)));
+
+export const positionFacetsFn = createServerFn({ method: "GET" })
+  .validator(positionFilter)
+  .handler(async ({ data }) => positionFacets.parse(await repos().positions.facets(data)));
+
+export const positionSelectionFn = createServerFn({ method: "GET" })
+  .validator(positionFilter)
+  .handler(async ({ data }) => positionSelection.parse(await repos().positions.selection(data)));
+
+export const positionFn = createServerFn({ method: "GET" })
+  .validator(byId)
+  .handler(async ({ data }) =>
+    extractedPosition.nullable().parse(await repos().positions.item(data.id)),
+  );
+
+export const confirmAutoVerifiedFn = createServerFn({ method: "POST" })
+  .validator(handOverInput)
+  .handler(async ({ data }) =>
+    z.array(z.string()).parse(await repos().positions.confirmAutoVerified(data, actor())),
+  );
 
 export const positionHistoryFn = createServerFn({ method: "GET" })
   .validator(byId)

@@ -1,5 +1,5 @@
-import { queryOptions } from "@tanstack/react-query";
-import type { ListPositionsInput } from "@/ports";
+import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import type { ListPositionsInput, PositionFilterInput } from "@/ports";
 import { api } from "./client";
 import { keys } from "./keys";
 
@@ -55,6 +55,28 @@ export const queries = {
     queryOptions({
       queryKey: keys.positions.list(input),
       queryFn: () => api.positions.list(input),
+    }),
+  positionPages: (input: Omit<ListPositionsInput, "cursor">) =>
+    infiniteQueryOptions({
+      queryKey: keys.positions.pages(input),
+      queryFn: ({ pageParam }) => api.positions.list({ ...input, cursor: pageParam }),
+      initialPageParam: null as string | null,
+      getNextPageParam: (page) => page.nextCursor,
+    }),
+  positionFacets: (input: PositionFilterInput) =>
+    queryOptions({
+      queryKey: keys.positions.facets(input),
+      queryFn: () => api.positions.facets(input),
+    }),
+  positionSelection: (input: PositionFilterInput) =>
+    queryOptions({
+      queryKey: keys.positions.selection(input),
+      queryFn: () => api.positions.selection(input),
+    }),
+  position: (positionId: string) =>
+    queryOptions({
+      queryKey: keys.positions.item(positionId),
+      queryFn: () => api.positions.item(positionId),
     }),
   positionHistory: (positionId: string) =>
     queryOptions({

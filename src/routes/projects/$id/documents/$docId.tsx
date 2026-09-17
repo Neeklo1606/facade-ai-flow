@@ -21,16 +21,16 @@ import { SheetViewer, type SheetViewerHandle } from "@/components/extraction/She
 import { PositionRow, type RowAction } from "@/components/extraction/PositionRow";
 import { SendDialog, SplitDialog, type SendSummary } from "@/components/extraction/Dialogs";
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
-import { confidenceLevel } from "@/components/common/ConfidenceIndicator";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { useScreenState } from "@/lib/screen-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { isActivePosition as isActive, isVerifiedPosition as isVerified } from "@/contracts";
-import { undoInput, usePositionMutations } from "@/api/mutations";
-import { useQuery } from "@tanstack/react-query";
+import { undoConfirmInput, undoInput, usePositionMutations } from "@/api/mutations";
+import { usePositionLookup } from "@/api/positions";
+import type { PositionView } from "@/api/types";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
 import { fmtDateTime, fmtNum } from "@/lib/format";
@@ -47,7 +47,7 @@ export const Route = createFileRoute("/projects/$id/documents/$docId")({
     const [result] = await Promise.all([
       loadProject(context.queryClient, params.id),
       prefetch(context.queryClient, queries.document(params.docId)),
-      prefetch(context.queryClient, queries.positions({ revisionId: params.docId, limit: 5000 })),
+      prefetch(context.queryClient, queries.positionFacets({ revisionId: params.docId })),
     ]);
     return result;
   },
@@ -64,34 +64,19 @@ export const Route = createFileRoute("/projects/$id/documents/$docId")({
   component: withProject(ExtractionPage),
 });
 
-type Filter = "all" | "attention" | "check" | "pending" | "verified" | "inactive";
+type Filter = Exclude<PositionView, "all">;
 
 const filterLabels: Record<Filter, string> = {
-  all: "Все",
+  active: "Все",
   attention: "Требуют внимания",
   check: "Не удалось определить",
   pending: "Не проверены",
   verified: "Проверены",
-  inactive: "Исключены",
+  excluded: "Исключены",
 };
 
-function matches(item: ExtractedPosition, filter: Filter) {
-  const level = confidenceLevel(item.confidence);
-  switch (filter) {
-    case "all":
-      return isActive(item);
-    case "attention":
-      return item.review === "pending" && level === "mid";
-    case "check":
-      return item.review === "pending" && level === "low";
-    case "pending":
-      return item.review === "pending";
-    case "verified":
-      return isVerified(item);
-    case "inactive":
-      return !isActive(item);
-  }
-}
+/** Строк списка за один запрос: остальные подгружаются при прокрутке (P3-3) */
+const PAGE_SIZE = 100;
 
 function isTyping(target: EventTarget | null) {
   const el = target as HTMLElement | null;
@@ -104,51 +89,47 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const navigate = useNavigate();
 
   const card = useQuery(queries.document(docId));
-  // До серверного пейджинга (P3-3) позиции ревизии загружаются целиком
-  const positionsQuery = useQuery(queries.positions({ revisionId: docId, limit: 5000 }));
+  // Счётчики ревизии считает сервер; список позиций приходит страницами
+  const facetsQuery = useQuery(queries.positionFacets({ revisionId: docId }));
+  const facets = facetsQuery.data;
   const document = card.data?.document ?? null;
   const upload = card.data?.stage === null || !card.data ? undefined : { stage: card.data.stage };
   const sentAt = card.data?.handedOverAt ?? null;
-  const positions = useMemo(() => positionsQuery.data?.items ?? [], [positionsQuery.data]);
   const sheets = useMemo(() => card.data?.sheets ?? [], [card.data]);
-  const positionsBySheet = useMemo(() => {
-    const map = new Map<string, ExtractedPosition[]>();
-    for (const item of positions) {
-      const list = map.get(item.sheetId) ?? [];
-      list.push(item);
-      map.set(item.sheetId, list);
-    }
-    return map;
-  }, [positions]);
-  const sheetCounts = useMemo(() => {
-    const map = new Map<string, SheetCounts>();
-    for (const [sheetId, list] of positionsBySheet) {
-      map.set(sheetId, {
-        total: list.filter(isActive).length,
-        attention: list.filter(
-          (item) => item.review === "pending" && confidenceLevel(item.confidence) !== "high",
-        ).length,
-      });
-    }
-    return map;
-  }, [positionsBySheet]);
-
-  const [filter, setFilter] = useState<Filter>("all");
-  const list = useMemo(
-    () => positions.filter((item) => matches(item, filter)),
-    [positions, filter],
+  const sheetCounts = useMemo(
+    () =>
+      new Map<string, SheetCounts>(
+        (facets?.sheets ?? []).map((sheet) => [
+          sheet.sheetId,
+          { total: sheet.total, attention: sheet.attention },
+        ]),
+      ),
+    [facets],
   );
-  const counts = useMemo(() => {
-    const result = {} as Record<Filter, number>;
-    (Object.keys(filterLabels) as Filter[]).forEach((key) => {
-      result[key] = positions.filter((item) => matches(item, key)).length;
-    });
-    return result;
-  }, [positions]);
+  const totalPositions = facets?.views.all ?? 0;
+
+  const [filter, setFilter] = useState<Filter>("active");
+  const listQuery = useInfiniteQuery(
+    queries.positionPages({ revisionId: docId, view: filter, limit: PAGE_SIZE }),
+  );
+  const list = useMemo(
+    () => listQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [listQuery.data],
+  );
+  const listTotal = listQuery.data?.pages[0]?.total ?? 0;
+  const counts: Record<Filter, number> = {
+    active: facets?.views.active ?? 0,
+    attention: facets?.views.attention ?? 0,
+    check: facets?.views.check ?? 0,
+    pending: facets?.views.pending ?? 0,
+    verified: facets?.views.verified ?? 0,
+    excluded: facets?.views.excluded ?? 0,
+  };
+  const findPosition = usePositionLookup();
 
   const screen = useScreenState({
-    pending: card.isPending || positionsQuery.isPending,
-    error: card.isError || positionsQuery.isError,
+    pending: card.isPending || facetsQuery.isPending || listQuery.isPending,
+    error: card.isError || facetsQuery.isError || listQuery.isError,
     empty: false,
     filtered: false,
     partial: false,
@@ -165,13 +146,49 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const viewer = useRef<SheetViewerHandle>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const active = positions.find((item) => item.id === activeId) ?? null;
+  // Выбранная позиция может быть не в загруженных страницах (ссылка, клик по листу) — берём отдельно
+  const listed = list.find((item) => item.id === activeId) ?? null;
+  const activeQuery = useQuery({
+    ...queries.position(activeId ?? ""),
+    enabled: !!activeId && !listed,
+  });
+  const active = listed ?? activeQuery.data ?? null;
   const verifiedCount = counts.verified;
-  const activeTotal = counts.all;
+  const activeTotal = counts.active;
   const blocking = counts.check;
-  const autoVerified = positions.filter(
-    (item) => item.review === "pending" && confidenceLevel(item.confidence) === "high",
-  );
+  const autoVerified = facets?.autoVerified ?? 0;
+
+  // Пришли по ссылке на позицию: догружаем страницы, пока она не появится в списке
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = listQuery;
+  useEffect(() => {
+    if (search.position && activeId === search.position && !listed && hasNextPage) {
+      if (!isFetchingNextPage) void fetchNextPage();
+    }
+    // list.length в зависимостях: быстрый ответ адаптера не меняет isFetchingNextPage между рендерами
+  }, [
+    search.position,
+    activeId,
+    listed,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    list.length,
+  ]);
+
+  // Конец списка виден — подгрузить следующую страницу
+  // Элемент появляется только после загрузки экрана, поэтому ref через состояние, а не useRef
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinel;
+    if (!el || !hasNextPage) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting) && !isFetchingNextPage) {
+        void fetchNextPage();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [sentinel, hasNextPage, isFetchingNextPage, fetchNextPage, list.length]);
 
   // Первая позиция по умолчанию: пришли по ссылке — на неё, иначе первая в списке
   useEffect(() => {
@@ -179,15 +196,23 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   }, [activeId, list]);
 
   // Выбранная позиция: прокрутить список и лист к ней
+  // Строки в списке может ещё не быть (позиция на незагруженной странице): список прокручиваем,
+  // когда она появится, лист — сразу
   const scrolledFor = useRef<string | null>(null);
+  const listScrolledFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!active || scrolledFor.current === active.id) return;
+    if (!active) return;
+    if (listScrolledFor.current !== active.id) {
+      const row = listRef.current?.querySelector(`[data-position-id="${CSS.escape(active.id)}"]`);
+      if (row) {
+        row.scrollIntoView({ block: "nearest" });
+        listScrolledFor.current = active.id;
+      }
+    }
+    if (scrolledFor.current === active.id) return;
     scrolledFor.current = active.id;
-    listRef.current
-      ?.querySelector(`[data-position-id="${CSS.escape(active.id)}"]`)
-      ?.scrollIntoView({ block: "nearest" });
     viewer.current?.scrollToPosition(active);
-  }, [active]);
+  }, [active, list.length]);
 
   const mutations = usePositionMutations({
     onFailed: () =>
@@ -200,17 +225,20 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       }),
   });
   // Свежие значения для стабильных обработчиков строк
-  const live = useRef({ list, positions, mergeSourceId, mutations });
-  live.current = { list, positions, mergeSourceId, mutations };
+  const live = useRef({ list, findPosition, mergeSourceId, mutations, listQuery, activeId });
+  live.current = { list, findPosition, mergeSourceId, mutations, listQuery, activeId };
 
   const moveBy = useCallback((delta: number) => {
-    const { list: items } = live.current;
+    const { list: items, listQuery: pages, activeId: current } = live.current;
     if (!items.length) return;
-    setActiveId((current) => {
-      const index = items.findIndex((item) => item.id === current);
-      const next = items[Math.min(items.length - 1, Math.max(0, (index < 0 ? 0 : index) + delta))];
-      return next?.id ?? current;
-    });
+    const index = items.findIndex((item) => item.id === current);
+    // Дошли до конца загруженного — подгружаем следующую страницу, следующее нажатие перейдёт дальше
+    if (delta > 0 && index === items.length - 1 && pages.hasNextPage) {
+      if (!pages.isFetchingNextPage) void pages.fetchNextPage();
+      return;
+    }
+    const next = items[Math.min(items.length - 1, Math.max(0, (index < 0 ? 0 : index) + delta))];
+    if (next) setActiveId(next.id);
   }, []);
 
   /** После действия, убирающего строку из текущего фильтра, переходим к соседней. */
@@ -222,10 +250,11 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   }, []);
 
   const onActivate = useCallback((id: string) => {
-    const { mergeSourceId: source, positions: all, mutations: m } = live.current;
+    const { mergeSourceId: source, findPosition: find, mutations: m } = live.current;
     if (source && source !== id) {
-      const target = all.find((item) => item.id === id)!;
-      const sourceItem = all.find((item) => item.id === source)!;
+      const target = find(id);
+      const sourceItem = find(source);
+      if (!target || !sourceItem) return;
       setMergeSourceId(null);
       setActiveId(id);
       m.merge.mutate(
@@ -248,8 +277,8 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
   const onAction = useCallback(
     (id: string, action: RowAction) => {
-      const { positions: all, mutations: m } = live.current;
-      const item = all.find((p) => p.id === id);
+      const { findPosition: find, mutations: m } = live.current;
+      const item = find(id);
       if (!item) return;
       setActiveId(id);
       switch (action) {
@@ -314,31 +343,29 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   }, []);
   const onSelectOnPage = useCallback((id: string) => onActivate(id), [onActivate]);
 
-  const toHandOver = useMemo(
-    () => positions.filter((item) => isVerified(item) && item.handedOverAt === null),
-    [positions],
-  );
-  const canSend = blocking === 0 && toHandOver.length > 0;
-  const allHandedOver = verifiedCount > 0 && toHandOver.length === 0;
-  const summary: SendSummary = useMemo(() => {
-    return {
-      create: toHandOver.length,
-      needNormalization: toHandOver.filter((item) => !item.normalizedName).length,
-      withoutCharacteristics: toHandOver.filter((item) => item.characteristics.length === 0).length,
-      region: overview?.region ?? "—",
-      pendingLeft: positions.filter((item) => item.review === "pending").length,
-      excluded: positions.filter((item) => !isActive(item)).length,
-    };
-  }, [positions, toHandOver, overview?.region]);
+  const toHandOver = facets?.handOver.count ?? 0;
+  const canSend = blocking === 0 && toHandOver > 0;
+  const allHandedOver = verifiedCount > 0 && toHandOver === 0;
+  const summary: SendSummary = {
+    create: toHandOver,
+    needNormalization: facets?.handOver.needNormalization ?? 0,
+    withoutCharacteristics: facets?.handOver.withoutCharacteristics ?? 0,
+    region: overview?.region ?? "—",
+    pendingLeft: counts.pending,
+    excluded: counts.excluded,
+  };
 
   function confirmAllVerified() {
-    const snapshot = autoVerified;
-    mutations.confirm.mutate(snapshot.map((item) => item.id));
-    toastUndo(
-      `Подтверждено ${fmtNum(snapshot.length)} позиций`,
-      () => mutations.undoReview.mutate(undoInput(snapshot, "confirmed")),
-      "Позиции со статусом «Проверено» отмечены как проверенные человеком.",
-    );
+    mutations.confirmAutoVerified.mutate(docId, {
+      onSuccess: (ids) => {
+        if (!ids.length) return;
+        toastUndo(
+          `Подтверждено ${fmtNum(ids.length)} позиций`,
+          () => mutations.undoReview.mutate(undoConfirmInput(ids)),
+          "Позиции со статусом «Проверено» отмечены как проверенные человеком.",
+        );
+      },
+    });
   }
 
   function send() {
@@ -432,15 +459,15 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
   const processing =
     screen === "processing" ||
-    (positions.length === 0 &&
+    (totalPositions === 0 &&
       (document.status === "uploaded" ||
         document.status === "recognizing" ||
         (upload && upload.stage < 3)));
   const gated =
     screen === "loading" || screen === "error" || screen === "forbidden" || screen === "empty";
   const pct = activeTotal ? Math.round((verifiedCount / activeTotal) * 100) : 0;
-  const splitItem = positions.find((item) => item.id === splitId) ?? null;
-  const mergeSource = positions.find((item) => item.id === mergeSourceId) ?? null;
+  const splitItem = splitId ? findPosition(splitId) : null;
+  const mergeSource = mergeSourceId ? findPosition(mergeSourceId) : null;
 
   return (
     <div className="-mx-4 -mt-5 -mb-24 flex h-[calc(100dvh-52px-56px)] flex-col md:-mx-7 md:-mt-6 lg:-mb-7 lg:h-[calc(100dvh-52px-16px)]">
@@ -504,7 +531,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         >
           <ScreenGate
             state={screen}
-            onRetry={() => void Promise.all([card.refetch(), positionsQuery.refetch()])}
+            onRetry={() =>
+              void Promise.all([card.refetch(), facetsQuery.refetch(), listQuery.refetch()])
+            }
             skeleton={<ScreenSkeleton kind="split" />}
             copy={{
               section: "Проверка позиций",
@@ -556,7 +585,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               document={document}
               projectCode={project.contract}
               sheets={sheets}
-              positionsBySheet={positionsBySheet}
+              revisionId={docId}
               activeId={activeId}
               activeSheetId={active?.sheetId ?? null}
               onSelect={onSelectOnPage}
@@ -581,7 +610,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   <ProcessingStages stage={upload?.stage ?? stageOfStatus(document.status)} />
                 </div>
               </div>
-            ) : positions.length === 0 && document.positionsTotal ? (
+            ) : totalPositions === 0 && document.positionsTotal ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                 <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
                 <p className="mt-3 text-[14px] font-medium">Позиции ревизии не загружены в демо</p>
@@ -591,7 +620,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   спецификация «Северной Короны».
                 </p>
               </div>
-            ) : positions.length === 0 ? (
+            ) : totalPositions === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                 <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
                 <p className="mt-3 text-[14px] font-medium">Таблиц спецификации не найдено</p>
@@ -637,17 +666,24 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                     size="sm"
                     variant="secondary"
                     className="mt-3 h-8 w-full"
-                    disabled={autoVerified.length === 0}
+                    disabled={autoVerified === 0}
                     onClick={confirmAllVerified}
                   >
                     <CheckCheck className="size-4" /> Подтвердить все проверенные
-                    {autoVerified.length > 0 && (
-                      <span className="tnum text-text-muted">{fmtNum(autoVerified.length)}</span>
+                    {autoVerified > 0 && (
+                      <span className="tnum text-text-muted">{fmtNum(autoVerified)}</span>
                     )}
                   </Button>
                   <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none]">
                     {(
-                      ["all", "check", "attention", "pending", "verified", "inactive"] as Filter[]
+                      [
+                        "active",
+                        "check",
+                        "attention",
+                        "pending",
+                        "verified",
+                        "excluded",
+                      ] as Filter[]
                     ).map((key) => (
                       <button
                         key={key}
@@ -715,23 +751,35 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                           : "Переключитесь на «Все», чтобы увидеть остальные позиции документа."
                       }
                       actionLabel="Показать все"
-                      onAction={() => setFilter("all")}
+                      onAction={() => setFilter("active")}
                     />
                   ) : (
-                    list.map((item) => (
-                      <PositionRow
-                        key={item.id}
-                        item={item}
-                        active={item.id === activeId}
-                        editing={item.id === editingId}
-                        mergeTarget={!!mergeSourceId && item.id !== mergeSourceId}
-                        mergeSource={item.id === mergeSourceId}
-                        onActivate={onActivate}
-                        onAction={onAction}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                      />
-                    ))
+                    <>
+                      {list.map((item) => (
+                        <PositionRow
+                          key={item.id}
+                          item={item}
+                          active={item.id === activeId}
+                          editing={item.id === editingId}
+                          mergeTarget={!!mergeSourceId && item.id !== mergeSourceId}
+                          mergeSource={item.id === mergeSourceId}
+                          onActivate={onActivate}
+                          onAction={onAction}
+                          onSaveEdit={onSaveEdit}
+                          onCancelEdit={onCancelEdit}
+                        />
+                      ))}
+                      {hasNextPage && (
+                        <div
+                          ref={setSentinel}
+                          className="px-4 py-3 text-center text-caption text-text-muted"
+                        >
+                          {isFetchingNextPage
+                            ? "Загружаем позиции…"
+                            : `Показано ${fmtNum(list.length)} из ${fmtNum(listTotal)}`}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -761,7 +809,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                             onClick={() => setSendOpen(true)}
                           >
                             <Send className="size-4" /> Передать проверенные позиции в закупку
-                            <span className="tnum opacity-80">{fmtNum(toHandOver.length)}</span>
+                            <span className="tnum opacity-80">{fmtNum(toHandOver)}</span>
                           </Button>
                         </span>
                       </TooltipTrigger>
