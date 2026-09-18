@@ -35,20 +35,26 @@ export function WidgetCard(props: WidgetCardProps) {
   );
 }
 
-/** Заголовок карточки: иконка-квадрат 30px, заголовок, пояснение и справа счётчик или действие */
+/**
+ * Заголовок карточки: иконка-квадрат 30px, заголовок, пояснение и справа счётчик или действие.
+ * level — уровень заголовка в структуре страницы: 2 для карточек верхнего уровня, иначе 3.
+ */
 export function WidgetCardHeader({
   icon: Icon,
   title,
   hint,
   aside,
+  level = 3,
   className,
 }: {
   icon?: LucideIcon;
   title: string;
   hint?: string;
   aside?: ReactNode;
+  level?: 2 | 3;
   className?: string;
 }) {
+  const Heading = level === 2 ? "h2" : "h3";
   return (
     <header className={cn("mb-5 flex min-h-8 items-center gap-3", className)}>
       {Icon && (
@@ -57,7 +63,9 @@ export function WidgetCardHeader({
         </span>
       )}
       <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-        <h3 className="truncate text-[16px] leading-[1.35] font-semibold text-text">{title}</h3>
+        <Heading className="truncate text-[16px] leading-[1.35] font-semibold text-text">
+          {title}
+        </Heading>
         {hint && <span className="truncate text-[13px] leading-[1.45] text-text-3">{hint}</span>}
       </div>
       {aside && <div className="flex shrink-0 items-center gap-2">{aside}</div>}

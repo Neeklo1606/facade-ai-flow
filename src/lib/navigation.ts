@@ -4,6 +4,7 @@ import {
   FileText,
   HardHat,
   History,
+  LayoutDashboard,
   PackageSearch,
   Sparkles,
   Truck,
@@ -36,6 +37,7 @@ export const navGroups: NavGroup[] = [
   {
     title: "Обзор",
     items: [
+      { key: "dashboard", label: "Дашборд", icon: LayoutDashboard, to: "/" },
       { key: "projects", label: "Объекты", icon: Building2 },
       { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent" },
     ],
@@ -92,17 +94,22 @@ export function sectionHref(
   projectId: string | null,
   section: ProjectSection | undefined,
   to?: string,
+  /** Фильтр раздела: дашборд ведёт сразу в отфильтрованный список (ADR-007) */
+  sectionStatus?: string,
 ) {
+  const filter = sectionStatus ? { status: sectionStatus } : {};
   if (to) return { to, search: {} };
   if (!section) return { to: "/projects", search: {} };
-  if (!projectId) return { to: "/projects", search: { section } };
+  if (!projectId)
+    return { to: "/projects", search: sectionStatus ? { section, sectionStatus } : { section } };
   if (section === "suppliers")
     return { to: `/projects/${projectId}/procurement`, search: { view: "suppliers" } };
-  return { to: `/projects/${projectId}/${section}`, search: {} };
+  return { to: `/projects/${projectId}/${section}`, search: filter };
 }
 
 /** Какой пункт меню подсвечивать на текущем адресе. */
 export function activeNavKey(pathname: string, view: string, pickSection: string | null) {
+  if (pathname === "/") return "dashboard";
   if (pathname === "/agent") return "agent";
   if (pathname === "/projects" && pickSection) return pickSection;
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);

@@ -67,6 +67,7 @@ export function Sidebar() {
         />
       )}
       <aside
+        aria-label="Главное меню"
         data-sidebar="app"
         className={cn(
           // На телефоне меню выезжает поверх экрана и нуждается в фоне; в оболочке сайдбар прозрачный
