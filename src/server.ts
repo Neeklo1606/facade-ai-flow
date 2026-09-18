@@ -94,20 +94,19 @@ function accessGate(request: Request, env: unknown): Response | null {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
-      // Витрина дизайн-системы в production не существует: адрес отвечает как несуществующий
-      if (isRemovedInProduction(new URL(request.url).pathname)) {
-        return new Response("Not Found", {
-          status: 404,
-          headers: {
-            "content-type": "text/plain; charset=utf-8",
-            "x-robots-tag": "noindex, nofollow",
-          },
-        });
-      }
       const gate = accessGate(request, env);
       if (gate) return gate;
+      // Витрина дизайн-системы в production не существует. Путь подменяется несуществующим
+      // до рендера: маршрут не резолвится, а ответ — тот же 404-экран приложения, что и у любого
+      // другого несуществующего адреса (находки ревью BLOCKER-2 и повторного ревью LOW)
+      let incoming = request;
+      const url = new URL(request.url);
+      if (isRemovedInProduction(url.pathname)) {
+        url.pathname = "/__removed";
+        incoming = new Request(url, request);
+      }
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
+      const response = await handler.fetch(incoming, env, ctx);
       return withNoIndex(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);

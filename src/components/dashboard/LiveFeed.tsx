@@ -72,6 +72,9 @@ export function LiveFeed({
   );
 }
 
+/** События, содержимое которых записала обработка, а не человек своим действием */
+const recognizedTypes = new Set<string>(["spec_extracted", "offer_received", "report_added"]);
+
 function FeedRow({ item, onSource }: { item: FeedItem; onSource: (sourceId: string) => void }) {
   const { event, projectName } = item;
   const { employeeById } = useDirectory();
@@ -84,10 +87,12 @@ function FeedRow({ item, onSource }: { item: FeedItem; onSource: (sourceId: stri
   const person = employeeById(event.actorId);
   const author = source?.author ?? person?.name ?? "Автоматическая обработка";
   // Уверенность источника — самое слабое из распознанных полей (глоссарий, §3).
-  // Показываем её только у событий, которые записала обработка: у действий человека
-  // распознавать нечего, и метка «Не удалось определить» рядом с ручной правкой
-  // читалась как сомнение в его цифре (находка ревью MEDIUM).
-  const recognized = !event.actorId;
+  // Она относится к распознаванию, а не к человеку: метка стоит у событий, содержимое
+  // которых разобрала обработка — спецификация, предложение поставщика, отчёт с площадки,
+  // включая голосовой (у него есть автор, но цифры в нём распознаны). У правок и решений
+  // распознавать нечего, и метка рядом с ручной цифрой читалась как сомнение в ней
+  // (находки ревью MEDIUM и повторного ревью LOW).
+  const recognized = !event.actorId || recognizedTypes.has(event.type);
   const confidence =
     recognized && card?.extractions.length
       ? Math.min(...card.extractions.map((field) => field.confidence))

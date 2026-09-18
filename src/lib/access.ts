@@ -24,6 +24,9 @@ export const DESIGN_SYSTEM_PATH = "/design-system";
 export function isRemovedInProduction(pathname: string) {
   // В разработке витрина нужна: там она и собирается, и открывается
   if (import.meta.env.DEV) return false;
+  // Флаг читается дважды: в vite.config.ts при сборке (попадёт ли код витрины в бандл)
+  // и здесь при запуске (отвечает ли адрес). Задавать его нужно в обоих местах, иначе
+  // получится собранная, но недоступная витрина — или наоборот (находка повторного ревью)
   if (typeof process !== "undefined" && process.env["KEEP_DESIGN_SYSTEM"] === "1") return false;
   return pathname === DESIGN_SYSTEM_PATH || pathname === DESIGN_SYSTEM_PATH + "/";
 }
