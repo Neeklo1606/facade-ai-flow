@@ -748,8 +748,9 @@
 }
 @utility icon-button {
   display: grid;
-  width: 40px;
-  height: 40px;
+  /* 44px до 1024px: палец должен попадать в «Меню» и «Поиск» (находка ревью LOW) */
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   place-items: center;
   border-radius: var(--r-sm);
@@ -762,6 +763,11 @@
   &:hover {
     background: var(--surface-2);
     color: var(--text);
+  }
+
+  @media (min-width: 1024px) {
+    width: 40px;
+    height: 40px;
   }
 }
 /* Главное действие: оранжевая капсула */

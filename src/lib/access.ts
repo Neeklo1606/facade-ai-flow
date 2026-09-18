@@ -113,12 +113,20 @@ export interface PreviewMeta {
   url: string;
 }
 
+/**
+ * Публичный адрес для og-тегов. При смене адреса задаётся переменной сборки
+ * `VITE_PUBLIC_URL`, иначе превью ссылки указывало бы на старый домен (находка ревью LOW).
+ */
+const publicUrl = (
+  import.meta.env["VITE_PUBLIC_URL"]?.trim() || "https://facade-ai-flow.lovable.app/"
+).replace(/\/?$/, "/");
+
 export const previewMeta: PreviewMeta = {
   title: "neeklo FieldOps — демонстрация",
   description:
     "Система для фасадных подрядчиков: спецификации из документации, закупка у поставщиков и отчёты с площадки в одном месте.",
   image: "/og-preview.jpg",
-  url: "https://facade-ai-flow.lovable.app/",
+  url: publicUrl,
 };
 
 /** Экран без ключа: объясняет, что это и как получить доступ. Мета-теги те же, что у продукта */

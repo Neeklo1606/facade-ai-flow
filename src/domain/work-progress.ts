@@ -57,7 +57,10 @@ export function zoneRows(
       .filter((report) => report.zoneId === zone.id)
       .sort((a, b) => b.sentAt.localeCompare(a.sentAt));
     const accepted = zoneReports.find((report) => report.status === "accepted");
-    const donePct = zone.planQty ? Math.round((zone.factQty / zone.planQty) * 100) : 0;
+    // Факт ограничен планом, как и в сводке дашборда: иначе один объект показывал бы
+    // разную готовность на двух экранах (находка ревью LOW)
+    const fact = Math.min(zone.factQty, zone.planQty);
+    const donePct = zone.planQty ? Math.round((fact / zone.planQty) * 100) : 0;
     const planPct = elapsed === null ? null : Math.round(elapsed * 100);
     return {
       id: zone.id,
@@ -114,14 +117,24 @@ export function milestoneTimeline(
   now: string,
 ): MilestoneTimeline {
   const sorted = [...milestones].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  const from = sorted[0]?.dueDate ?? project.startDate;
-  const to = sorted[sorted.length - 1]?.dueDate ?? project.endDate;
-  const span = new Date(to).getTime() - new Date(from).getTime();
-  const at = (date: string) =>
-    span > 0
-      ? Math.min(1, Math.max(0, (new Date(date).getTime() - new Date(from).getTime()) / span))
-      : 0;
   const today = now.slice(0, 10);
+  // Ось включает сегодня: иначе вертикаль «сегодня» прижималась к краю и врала о масштабе
+  // рядом с метрикой «дней до контрольной точки» (находка ревью LOW)
+  const first = sorted[0]?.dueDate ?? project.startDate;
+  const last = sorted[sorted.length - 1]?.dueDate ?? project.endDate;
+  const from = today < first ? today : first;
+  const to = today > last ? today : last;
+  const span = new Date(to).getTime() - new Date(from).getTime();
+  // Поля по краям: крайняя точка и «сегодня» не прилипают к границе оси (находка ревью LOW)
+  const PAD = 0.06;
+  const at = (date: string) => {
+    if (span <= 0) return 0.5;
+    const raw = Math.min(
+      1,
+      Math.max(0, (new Date(date).getTime() - new Date(from).getTime()) / span),
+    );
+    return PAD + raw * (1 - PAD * 2);
+  };
   return {
     points: sorted.map((milestone) => ({
       id: milestone.id,

@@ -103,9 +103,10 @@ export function TeamTab({ project }: { project: Project }) {
               sources={metric.explain.sources}
             />
           ),
+          // Ячейка кликабельна, только если её нажатие что-то меняет (находка ревью LOW)
           ...(metric.filter === "silent"
             ? { onSelect: () => setOnlySilent((value) => !value), selected: onlySilent }
-            : metric.filter === "all"
+            : metric.filter === "all" && onlySilent
               ? { onSelect: () => setOnlySilent(false) }
               : {}),
         }))}

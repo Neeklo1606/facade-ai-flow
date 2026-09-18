@@ -5,4 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_DATA_SOURCE?: "demo" | "server";
   /** Запасной способ задать ключ доступа, когда хостинг умеет только переменные сборки (TASK-A5) */
   readonly VITE_DEMO_ACCESS_KEY?: string;
+  /** Публичный адрес для og-тегов, если демонстрация переедет с адреса Lovable */
+  readonly VITE_PUBLIC_URL?: string;
 }

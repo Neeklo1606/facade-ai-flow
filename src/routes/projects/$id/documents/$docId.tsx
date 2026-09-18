@@ -908,8 +908,13 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         </div>
       )}
 
-      {/* Подсказки клавиатуры */}
-      <footer className="hidden h-9 shrink-0 items-center gap-5 border-t border-border bg-surface px-5 text-caption text-text-muted lg:flex">
+      {/* Подсказки клавиатуры: только когда есть к чему их применять (находка ревью LOW) */}
+      <footer
+        className={cn(
+          "hidden h-9 shrink-0 items-center gap-5 border-t border-border bg-surface px-5 text-caption text-text-muted",
+          activeTotal > 0 && "lg:flex",
+        )}
+      >
         {[
           ["J", "K", "следующая и предыдущая"],
           ["Enter", "", "подтвердить"],

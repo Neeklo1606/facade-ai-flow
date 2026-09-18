@@ -13,6 +13,18 @@ const SESSION_LIMIT = 20;
 let sent = 0;
 const seen = new Set<string>();
 
+/** Адрес без ключа доступа: он не должен попадать в лог вместе с отчётом (находка ревью LOW) */
+function safeSearch() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("k");
+    const rest = params.toString();
+    return rest ? `?${rest}` : "";
+  } catch {
+    return "";
+  }
+}
+
 function textOf(error: unknown) {
   if (error instanceof Error) return { message: error.message, stack: error.stack ?? null };
   if (typeof error === "string") return { message: error, stack: null };
@@ -35,7 +47,7 @@ export function reportClientError(error: unknown, context: Record<string, string
   const payload = JSON.stringify({
     message: message.slice(0, 500),
     stack: stack?.slice(0, 2000) ?? null,
-    url: window.location.pathname + window.location.search,
+    url: window.location.pathname + safeSearch(),
     userAgent: navigator.userAgent.slice(0, 200),
     at: new Date().toISOString(),
     context,

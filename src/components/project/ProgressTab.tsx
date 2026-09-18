@@ -109,11 +109,18 @@ export function ProgressTab({
               onOpenSource={onSource}
             />
           ),
-          onSelect: () => {
-            if (metric.filter) setFilter(metric.filter === "behind" ? "behind" : "all");
-            if (metric.milestoneId) setMilestoneId(metric.milestoneId);
-          },
-          selected: metric.filter === "behind" ? filter === "behind" : undefined,
+          // Кнопкой ячейка становится только если ей есть что сделать: «выполнено объёмов»
+          // в состоянии по умолчанию ничего не меняло (находка ревью LOW)
+          ...(metric.filter === "behind"
+            ? {
+                onSelect: () => setFilter((value) => (value === "behind" ? "all" : "behind")),
+                selected: filter === "behind",
+              }
+            : metric.milestoneId
+              ? { onSelect: () => setMilestoneId(metric.milestoneId ?? null) }
+              : metric.filter === "all" && filter !== "all"
+                ? { onSelect: () => setFilter("all") }
+                : {}),
         }))}
       />
 
