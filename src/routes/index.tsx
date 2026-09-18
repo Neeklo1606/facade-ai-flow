@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -37,6 +37,9 @@ import { prefetch } from "@/api/prefetch";
 import type { DashboardMetric, DashboardPeriod } from "@/api/types";
 import { fmtDate, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
+import { startRouteFor } from "@/lib/navigation";
+import { useCurrentRole, useProjectId } from "@/lib/project-scope";
+import { useQuery } from "@tanstack/react-query";
 
 interface DashboardSearch {
   period?: DashboardPeriod | undefined;
@@ -94,6 +97,17 @@ function DashboardPage() {
   const dash = useDashboard(period);
   const [source, setSource] = useState<string | null>(null);
 
+  // Стартовый экран зависит от роли (ADR-008): снабжение начинает с закупок, прораб — с площадки.
+  // Ограничений на прямой переход нет: это только выбор точки входа.
+  const role = useCurrentRole();
+  const selected = useProjectId();
+  const registry = useQuery(queries.projects()).data ?? [];
+  const start = startRouteFor(role, selected ?? registry[0]?.project.id ?? null);
+  const redirecting = start !== "/";
+  useEffect(() => {
+    if (redirecting) void navigate({ to: start, replace: true });
+  }, [redirecting, start, navigate]);
+
   const unverified = dash.metrics.find((metric) => metric.key === "unverified");
   const screen = useScreenState({
     pending: dash.headPending,
@@ -101,6 +115,14 @@ function DashboardPage() {
     empty: !dash.headPending && dash.running === 0 && dash.progress.length === 0,
   });
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
+
+  // Все хуки вызваны выше: только после этого можно выйти на редирект стартового экрана
+  if (redirecting)
+    return (
+      <p role="status" className="py-10 text-[13px] text-text-3">
+        Открываем ваш раздел…
+      </p>
+    );
 
   return (
     <>

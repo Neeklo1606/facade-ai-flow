@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { employeeRoleLabel } from "@/contracts";
+import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { queries } from "@/api/queries";
-import { CURRENT_USER_ID } from "@/api/config";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
 
 /** Выбранный в шапке объект или null для всех объектов; несуществующий id — тоже null. */
@@ -12,9 +11,18 @@ export function useProjectId(): string | null {
   return id && data?.some((item) => item.project.id === id) ? id : null;
 }
 
-/** Текущий пользователь — сотрудник из справочника, с подписью роли. */
+/**
+ * Текущий пользователь — выбранная персона демонстрации (ADR-008), с подписью роли.
+ * До появления сессий это единственный способ показать разницу ролей.
+ */
 export function useCurrentUser() {
+  const { personaId } = useApp();
   const { data } = useQuery(queries.employees());
-  const employee = data?.find((item) => item.id === CURRENT_USER_ID);
+  const employee = data?.find((item) => item.id === personaId);
   return employee ? { ...employee, roleLabel: employeeRoleLabel[employee.role] } : null;
+}
+
+/** Роль текущей персоны; пока справочник не загружен — роль руководителя проекта */
+export function useCurrentRole(): EmployeeRole {
+  return useCurrentUser()?.role ?? "manager";
 }

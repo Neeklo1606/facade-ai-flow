@@ -27,6 +27,7 @@ import {
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { CountPill, WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
 import { InsightBlock } from "@/components/common/InsightBlock";
 import { StatList } from "@/components/common/StatList";
@@ -95,6 +96,23 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
   const navigate = useNavigate({ from: Route.fullPath });
   const timeline = useQuery(queries.timeline(project.id));
   const decisionsQuery = useQuery(queries.decisions(project.id));
+  // История — не конечная точка: из неё ведём к ближайшему открытому вопросу (TASK-A2, п. 4)
+  const pending = useQuery(queries.pendingDecisions(project.id)).data ?? [];
+  const requests = useQuery(queries.requests(project.id)).data ?? [];
+  const overdue = requests.filter((row) => row.status === "overdue");
+  const nextStep = pending[0]
+    ? { to: pending[0].link, label: `К решению: ${pending.length}`, accent: true }
+    : overdue[0]
+      ? {
+          to: `/projects/${project.id}/procurement?status=overdue`,
+          label: `Просроченные ответы: ${overdue.length}`,
+          accent: true,
+        }
+      : {
+          to: `/projects/${project.id}/procurement`,
+          label: "К закупкам объекта",
+          accent: false,
+        };
   const [source, setSource] = useState<string | null>(null);
   const [showAllDecisions, setShowAllDecisions] = useState(false);
 
@@ -141,6 +159,13 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
         project={project}
         title="История и решения"
         description="Что происходило на объекте, кто принимал решения и на каком основании."
+        actions={
+          <Button variant={nextStep.accent ? "accent" : "secondary"} asChild>
+            <Link to={nextStep.to as string}>
+              {nextStep.label} <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        }
       />
 
       <div data-main-zone className="grid grid-cols-12 gap-4">
@@ -336,6 +361,15 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
           />
         )}
       </div>
+
+      {/* На телефоне действие шапки закреплено снизу: слот шапки там скрыт */}
+      <MobileActionBar>
+        <Button variant={nextStep.accent ? "accent" : "secondary"} asChild>
+          <Link to={nextStep.to as string}>
+            {nextStep.label} <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </MobileActionBar>
 
       {source && <SourceDrawer sourceId={source} onOpenChange={() => setSource(null)} />}
     </>

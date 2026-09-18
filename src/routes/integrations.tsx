@@ -26,6 +26,20 @@ function IntegrationsPage() {
         "Состояние и журнал синхронизаций",
         "Ключи и вебхуки",
       ]}
+      available={[
+        {
+          label: "Отчёты с площадки",
+          to: "/projects",
+          search: { section: "field-reports" },
+          note: "Сообщения прорабов с распознанными объёмами уже в системе",
+        },
+        {
+          label: "Закупки объекта",
+          to: "/projects",
+          search: { section: "procurement" },
+          note: "Запросы поставщикам и ответы с ценами",
+        },
+      ]}
     />
   );
 }

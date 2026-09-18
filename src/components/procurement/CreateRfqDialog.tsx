@@ -19,6 +19,7 @@ import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
+import { DEMO_MAIL_NOTE } from "@/lib/demo-copy";
 import { cn } from "@/lib/utils";
 import { type Project, type SupplierProfile } from "@/contracts";
 import { useDirectory } from "@/api/directory";
@@ -197,12 +198,12 @@ export function CreateRfqDialog({
         onSuccess: (result) => {
           onOpenChange(false);
           setSuppliers(new Set());
-          toast.success(`Запрос ${result.request.number} отправлен`, {
-            description: `${fmtNum(result.positions)} поз. · ${recipients.length} ${recipients.length === 1 ? "поставщику" : "поставщикам"}. Ответы из писем появятся в сравнении.`,
+          toast.success(`Запрос ${result.request.number} создан`, {
+            description: `${fmtNum(result.positions)} поз. · ${recipients.length} ${recipients.length === 1 ? "поставщик" : "поставщика"}. ${DEMO_MAIL_NOTE}`,
           });
           onCreated?.(result.request.id);
         },
-        onError: (error) => toast.error("Запрос не отправлен", { description: error.message }),
+        onError: (error) => toast.error("Запрос не создан", { description: error.message }),
       },
     );
   }
@@ -435,8 +436,8 @@ export function CreateRfqDialog({
                 </p>
               </article>
               <p className="text-caption text-text-muted">
-                Письма уходят с адреса снабжения. Ответы поставщиков распознаются автоматически,
-                цены попадут в сравнение со ссылкой на письмо.
+                Так письмо будет выглядеть для поставщика. {DEMO_MAIL_NOTE} Цены из ответов попадут
+                в сравнение со ссылкой на источник.
               </p>
             </div>
           )}

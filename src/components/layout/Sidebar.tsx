@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  Check,
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
@@ -11,10 +12,16 @@ import {
   X,
 } from "lucide-react";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
-import { activeNavKey, navGroups, sectionHref, type BadgeKey } from "@/lib/navigation";
+import {
+  activeNavKey,
+  navGroupsFor,
+  sectionHref,
+  startRouteFor,
+  type BadgeKey,
+} from "@/lib/navigation";
 import { useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { useResetDemo } from "@/api/mutations";
-import { dataSource } from "@/api/config";
+import { dataSource, DEMO_PERSONAS } from "@/api/config";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,10 +33,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "@/lib/toast";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
-import type { ProjectOverview } from "@/contracts";
+import { employeeRoleLabel, type EmployeeRole, type ProjectOverview } from "@/contracts";
 import { cn } from "@/lib/utils";
 
 const CRITICAL_BADGES: BadgeKey[] = ["overdueRequests"];
@@ -99,8 +114,11 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { setProjectId } = useApp();
+  const { setProjectId, personaId, setPersonaId } = useApp();
   const user = useCurrentUser();
+  // Меню зависит от роли выбранной персоны (ADR-008): снабжение не ведёт площадку,
+  // прораб не занимается закупками
+  const groups = navGroupsFor(user?.role ?? "manager");
   const resetDemo = useResetDemo();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const view = useRouterState({
@@ -131,9 +149,19 @@ function SidebarInner({
     }
     navigate({ to: `/projects/${value}${match[1] ?? ""}` });
   };
+  const employees = useQuery(queries.employees()).data ?? [];
+  const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id)).filter(
+    (item): item is (typeof employees)[number] => !!item,
+  );
+  /** Смена персоны открывает стартовый экран её роли: иначе можно остаться на скрытом разделе */
+  const switchPersona = (id: string, role: EmployeeRole) => {
+    setPersonaId(id);
+    onClose();
+    navigate({ to: startRouteFor(role, projectId ?? projects[0]?.id ?? null) });
+  };
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const activeKey = activeNavKey(pathname, view, pickSection);
-  const activeGroup = navGroups.find((g) => g.items.some((i) => i.key === activeKey))?.title;
+  const activeGroup = groups.find((g) => g.items.some((i) => i.key === activeKey))?.title;
 
   const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
   const initials = user?.name
@@ -216,7 +244,7 @@ function SidebarInner({
       )}
 
       <nav className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
-        {navGroups.map((group, index) => {
+        {groups.map((group, index) => {
           const open =
             collapsed || !closedGroups.includes(group.title) || group.title === activeGroup;
           const hiddenCritical = group.items.reduce(
@@ -350,15 +378,60 @@ function SidebarInner({
             </AlertDialogContent>
           </AlertDialog>
         )}
-        <div
-          className={cn("nav-item cursor-default", collapsed && "lg:justify-center lg:px-0")}
-          title={user ? `${user.name}, ${user.roleLabel}` : undefined}
-        >
-          <span className="nav-icon-circle">{initials}</span>
-          <span className={cn("min-w-0 flex-1 truncate", collapsed && "lg:hidden")}>
-            {user?.name}
-          </span>
-        </div>
+        {/* Карточка пользователя: имя, роль и переключение персоны демонстрации (ADR-008) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={user ? `${user.name}, ${user.roleLabel}. Сменить роль` : "Сменить роль"}
+              title={user ? `${user.name}, ${user.roleLabel}` : undefined}
+              className={cn(
+                "nav-item focus-ring w-full text-left transition-fast",
+                collapsed && "lg:justify-center lg:px-0",
+              )}
+            >
+              <span className="nav-icon-circle">{initials}</span>
+              <span className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
+                <span className="block truncate">{user?.name}</span>
+                <span className="block truncate text-[12px] leading-[1.35] text-text-3">
+                  {user?.roleLabel}
+                </span>
+              </span>
+              <ChevronsUpDown
+                className={cn("size-3.5 shrink-0 text-text-3", collapsed && "lg:hidden")}
+                strokeWidth={1.5}
+                aria-hidden
+              />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" className="w-[248px]">
+            <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
+              Роль в демонстрации
+            </DropdownMenuLabel>
+            {personas.map((person) => (
+              <DropdownMenuItem
+                key={person.id}
+                onSelect={() => switchPersona(person.id, person.role)}
+                className="gap-2"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium">{person.name}</span>
+                  <span className="block truncate text-[12px] text-text-3">
+                    {employeeRoleLabel[person.role]}
+                  </span>
+                </span>
+                {person.id === personaId && (
+                  <Check className="size-4 shrink-0 text-orange-hot" strokeWidth={2} aria-hidden />
+                )}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <p className="px-2 py-1.5 text-[12px] leading-[1.4] text-text-3">
+              Роль меняет стартовый экран и состав меню. Права и запрет прямых переходов — следующая
+              фаза.
+            </p>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

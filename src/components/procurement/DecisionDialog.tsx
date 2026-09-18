@@ -14,6 +14,8 @@ import {
 import type { ComparisonColumn as ColumnCalc } from "@/api/types";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/lib/project-scope";
+import { DEFAULT_USER_ID } from "@/api/config";
 import { useDirectory } from "@/api/directory";
 
 const approverRoles = new Set(["manager", "finance", "supply"]);
@@ -44,7 +46,11 @@ export function DecisionDialog({
   const approvers = employees.filter((e) => approverRoles.has(e.role));
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-  const [approvedBy, setApprovedBy] = useState("e-sokolov");
+  // По умолчанию согласует текущая персона, а не зашитый сотрудник (ADR-008);
+  // пока человек не выбрал другого, значение следует за персоной
+  const currentUser = useCurrentUser();
+  const [approver, setApprover] = useState<string | null>(null);
+  const approvedBy = approver ?? currentUser?.id ?? DEFAULT_USER_ID;
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
@@ -163,7 +169,7 @@ export function DecisionDialog({
             <select
               id="decision-approver"
               value={approvedBy}
-              onChange={(e) => setApprovedBy(e.target.value)}
+              onChange={(e) => setApprover(e.target.value)}
               className="focus-ring h-11 rounded-[var(--r-sm)] border border-border bg-surface px-3 text-sm lg:h-[38px]"
             >
               {approvers.map((e) => (

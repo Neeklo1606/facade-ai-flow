@@ -8,10 +8,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
-import { useProjectId } from "@/lib/project-scope";
+import { useCurrentRole, useProjectId } from "@/lib/project-scope";
+import { visibleFor, allNavItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 interface Tab {
+  /** Совпадает с ключом пункта меню: по нему панель узнаёт, видит ли роль раздел */
   key: string;
   label: string;
   icon: LucideIcon;
@@ -35,6 +37,7 @@ export function BottomTabs() {
   });
   const { setMobileNavOpen } = useApp();
   const projectId = useProjectId();
+  const role = useCurrentRole();
   const section = (name: string) => (p: string) => new RegExp(`^/projects/[^/]+/${name}`).test(p);
 
   const dashboard: Tab = {
@@ -97,12 +100,32 @@ export function BottomTabs() {
         },
       ];
 
+  // Панель показывает те же разделы, что и сайдбар для этой роли (ADR-008)
+  const navKey = (key: string) =>
+    key === "project"
+      ? "projects"
+      : key === "docs"
+        ? "documents"
+        : key === "review"
+          ? "documents"
+          : key === "reports"
+            ? "field-reports"
+            : key;
+  const visible = tabs.filter((tab) => {
+    const item = allNavItems.find((navItem) => navItem.key === navKey(tab.key));
+    return !item || visibleFor(item, role);
+  });
+
   return (
     <nav
       aria-label="Основная навигация"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-5 items-center border-t border-line bg-base pb-[env(safe-area-inset-bottom)] md:hidden"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-30 grid h-[calc(64px+env(safe-area-inset-bottom))] items-center border-t border-line bg-base pb-[env(safe-area-inset-bottom)] md:hidden",
+        // Колонок ровно по числу вкладок роли плюс «Ещё»: классы записаны целиком для сборщика
+        visible.length >= 4 ? "grid-cols-5" : visible.length === 3 ? "grid-cols-4" : "grid-cols-3",
+      )}
     >
-      {tabs.map((tab) => {
+      {visible.map((tab) => {
         const active = tab.active(pathname, view);
         return (
           <Link

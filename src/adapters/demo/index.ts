@@ -404,19 +404,10 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             details: `Ответили все ${request.sentTo.length}: ${request.items.map((item) => item.name).join(", ")}`,
             link: `/projects/${projectId}/procurement/${request.id}`,
           }));
-        const families = new Set(
-          s.positions.filter((item) => item.projectId === projectId).map((item) => item.family),
-        );
-        const replacements: PendingDecision[] = s.replacements
-          .filter((item) => item.status === "proposed" && families.has(item.family))
-          .map((item) => ({
-            id: item.id,
-            kind: "replacement",
-            title: `Замена: ${item.name}`,
-            details: `${item.reason} · цена ${item.priceDeltaPct > 0 ? "+" : ""}${item.priceDeltaPct}%`,
-            link: `/projects/${projectId}/materials`,
-          }));
-        return done([...requests, ...replacements]);
+        // Предложенные замены сюда не попадают: решить их в продукте пока нечем, а список
+        // «ждёт решения» обещает именно решение (TASK-A2, п. 4). Замены видны в карточке
+        // позиции как факт; согласование замены — блок B, тогда вернутся и сюда.
+        return done(requests);
       },
     },
     // Ассистент собирает ответы из портов выше, а не из состояния демо (ADR-006)

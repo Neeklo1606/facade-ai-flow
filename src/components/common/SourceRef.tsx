@@ -5,6 +5,7 @@ import { ConfidenceIndicator } from "./ConfidenceIndicator";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { fmtDateTime } from "@/lib/format";
+import { DEMO_SOURCE_NOTE } from "@/lib/demo-copy";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { sourceKindLabel, type SourceKind } from "@/contracts";
@@ -92,7 +93,7 @@ export function SourceRef({
             ? `Подтвердил: ${approver.name}, ${fmtDateTime(approvedAt)}`
             : "Пока никто не подтвердил"}
         </div>
-        <div className="text-[12px] text-text-muted">Нажмите, чтобы открыть оригинал</div>
+        <div className="text-[12px] text-text-muted">Нажмите, чтобы открыть источник</div>
       </TooltipContent>
     </Tooltip>
   );
@@ -112,7 +113,7 @@ function highlight(text: string, fragment?: string | null) {
   );
 }
 
-/** Оригинал источника: письмо, страница документации или сообщение с площадки. */
+/** Источник значения: письмо, страница документации или сообщение с площадки. */
 export function SourceDrawer({
   sourceId,
   fragment,
@@ -144,7 +145,7 @@ export function SourceDrawer({
   );
 }
 
-/** Содержимое оригинала: цитата, извлечённые поля и решения — в боковой карточке и в панели деталей */
+/** Содержимое источника: цитата, извлечённые поля и решения — в боковой карточке и в панели деталей */
 export function SourceCardBody({
   card,
   fragment,
@@ -157,7 +158,9 @@ export function SourceCardBody({
   return (
     <div className="space-y-5">
       <section className="rounded-[var(--r-md)] border border-border bg-subtle p-4">
-        <p className="text-[12px] text-text-muted">Оригинал, {source.location}</p>
+        <p className="text-[12px] text-text-muted">
+          Распознанный фрагмент, {source.location} · {DEMO_SOURCE_NOTE}
+        </p>
         <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
           {highlight(source.excerpt, fragment)}
         </p>

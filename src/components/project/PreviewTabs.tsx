@@ -12,7 +12,6 @@ import {
   deliveryStatusLabel,
   milestoneStatusLabel,
   processingStatusLabel as docStatusLabel,
-  replacementStatusLabel,
   type Delivery,
   type ExtractedPosition,
   type Milestone,
@@ -501,9 +500,7 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
                   <Link to={item.link} className="text-[13px] font-medium hover:text-text">
                     {item.title}
                   </Link>
-                  <StatusBadge tone={item.kind === "request" ? "warn" : "info"}>
-                    {item.kind === "request" ? "Сравнение готово" : replacementStatusLabel.proposed}
-                  </StatusBadge>
+                  <StatusBadge tone="warn">Сравнение готово</StatusBadge>
                 </div>
                 <p className="mt-1 line-clamp-2 text-caption text-text-secondary">{item.details}</p>
               </li>

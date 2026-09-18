@@ -10,4 +10,42 @@ export const dataSource: DataSource =
   import.meta.env.VITE_DATA_SOURCE === "server" ? "server" : "demo";
 
 /** Сотрудник, от имени которого выполняются действия до появления сессии (P4-2) */
-export const CURRENT_USER_ID = "e-sokolov";
+export const DEFAULT_USER_ID = "e-sokolov";
+
+/**
+ * Персона демонстрации: сотрудники, за которых можно работать без сессий и прав (ADR-008).
+ * Роли у них разные, поэтому на демо видно, как система выглядит для руководителя,
+ * снабжения и прораба. Настоящая авторизация — блок B.
+ */
+export const DEMO_PERSONAS = ["e-sokolov", "e-dorohov", "e-gareev"] as const;
+
+const PERSONA_KEY = "neeklo-fieldops-persona";
+
+function restorePersona() {
+  if (typeof window === "undefined") return DEFAULT_USER_ID;
+  try {
+    const saved = window.sessionStorage.getItem(PERSONA_KEY);
+    return saved && (DEMO_PERSONAS as readonly string[]).includes(saved) ? saved : DEFAULT_USER_ID;
+  } catch {
+    return DEFAULT_USER_ID;
+  }
+}
+
+let personaId = restorePersona();
+
+/**
+ * Сотрудник, от имени которого пишутся действия. В демо-режиме это выбранная персона:
+ * приёмку отчёта прорабом подписывает прораб. В рабочем режиме актор берётся на сервере
+ * (`serverActor`) и остаётся сотрудником по умолчанию, пока нет сессий — это блок B.
+ */
+export const currentUserId = () => personaId;
+
+export function setCurrentUserId(id: string) {
+  personaId = (DEMO_PERSONAS as readonly string[]).includes(id) ? id : DEFAULT_USER_ID;
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(PERSONA_KEY, personaId);
+  } catch {
+    // Приватный режим браузера: персона проживёт до перезагрузки
+  }
+}

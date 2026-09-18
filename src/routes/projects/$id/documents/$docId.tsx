@@ -499,17 +499,38 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       <h1 className="sr-only">{document.title}</h1>
       {/* Главное действие экрана — в шапке контента: передать в закупку или перейти к материалам */}
       <PageActions>
-        {allHandedOver ? (
+        {activeTotal === 0 ? (
+          // Таблиц спецификации в документе нет: вместо мёртвой кнопки — путь дальше
+          <Button variant="accent" asChild>
+            <Link to="/projects/$id/documents" params={{ id: project.id }}>
+              К документации объекта <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        ) : allHandedOver ? (
           <Button variant="accent" asChild>
             <Link to="/projects/$id/materials" params={{ id: project.id }}>
               Открыть материалы <ArrowRight className="size-4" />
             </Link>
           </Button>
         ) : (
-          <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
-            <Send className="size-4" /> Передать в закупку
-            <span className="tnum opacity-80">{fmtNum(toHandOver)}</span>
-          </Button>
+          // Недоступное действие объясняет причину и на мышке: раньше подсказка была только на телефоне
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
+                  <Send className="size-4" /> Передать в закупку
+                  <span className="tnum font-semibold">{fmtNum(toHandOver)}</span>
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!canSend && (
+              <TooltipContent className="max-w-72">
+                {blocking > 0
+                  ? `Осталось ${fmtNum(blocking)} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
+                  : "Нет проверенных позиций, которые ещё не переданы в закупку."}
+              </TooltipContent>
+            )}
+          </Tooltip>
         )}
       </PageActions>
       <PageCaption>

@@ -1,3 +1,4 @@
+import type { EmployeeRole } from "@/contracts";
 import {
   Boxes,
   Building2,
@@ -22,6 +23,11 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   badge?: BadgeKey;
+  /**
+   * Роли, которым пункт не показывается. Временное решение демонстрации (ADR-008):
+   * настоящие права и запрет прямых переходов — блок B.
+   */
+  hiddenFor?: EmployeeRole[];
   /** Раздел объекта; без выбранного объекта пункт ведёт в реестр с просьбой выбрать объект */
   section?: ProjectSection;
   /** Экран вне объекта: ведёт по этому адресу, а не в раздел объекта */
@@ -37,7 +43,13 @@ export const navGroups: NavGroup[] = [
   {
     title: "Обзор",
     items: [
-      { key: "dashboard", label: "Дашборд", icon: LayoutDashboard, to: "/" },
+      {
+        key: "dashboard",
+        label: "Дашборд",
+        icon: LayoutDashboard,
+        to: "/",
+        hiddenFor: ["foreman"],
+      },
       { key: "projects", label: "Объекты", icon: Building2 },
       { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent" },
     ],
@@ -45,13 +57,20 @@ export const navGroups: NavGroup[] = [
   {
     title: "Работа",
     items: [
-      { key: "documents", label: "Документация", icon: FileText, section: "documents" },
+      {
+        key: "documents",
+        label: "Документация",
+        icon: FileText,
+        section: "documents",
+        hiddenFor: ["foreman"],
+      },
       {
         key: "materials",
         label: "Материалы",
         icon: Boxes,
         badge: "unverifiedSpec",
         section: "materials",
+        hiddenFor: ["foreman"],
       },
       {
         key: "procurement",
@@ -59,23 +78,72 @@ export const navGroups: NavGroup[] = [
         icon: PackageSearch,
         badge: "overdueRequests",
         section: "procurement",
+        hiddenFor: ["foreman"],
       },
-      { key: "suppliers", label: "Поставщики", icon: Truck, section: "suppliers" },
+      {
+        key: "suppliers",
+        label: "Поставщики",
+        icon: Truck,
+        section: "suppliers",
+        hiddenFor: ["foreman"],
+      },
     ],
   },
   {
     title: "Площадка",
     items: [
-      { key: "field-reports", label: "Отчёты с площадки", icon: HardHat, section: "field-reports" },
+      {
+        key: "field-reports",
+        label: "Отчёты с площадки",
+        icon: HardHat,
+        section: "field-reports",
+        hiddenFor: ["supply"],
+      },
     ],
   },
   {
     title: "Управление",
-    items: [{ key: "timeline", label: "История и решения", icon: History, section: "timeline" }],
+    items: [
+      {
+        key: "timeline",
+        label: "История и решения",
+        icon: History,
+        section: "timeline",
+        hiddenFor: ["supply", "foreman"],
+      },
+    ],
   },
 ];
 
 export const allNavItems = navGroups.flatMap((g) => g.items);
+
+/** Видит ли роль этот пункт меню */
+export function visibleFor(item: NavItem, role: EmployeeRole) {
+  return !item.hiddenFor?.includes(role);
+}
+
+/** Меню для роли: пустые группы не показываем (ADR-008) */
+export function navGroupsFor(role: EmployeeRole): NavGroup[] {
+  return navGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => visibleFor(item, role)) }))
+    .filter((group) => group.items.length > 0);
+}
+
+/** Пункты меню, доступные роли: сайдбар, нижняя панель и палитра команд берут один список */
+export function navItemsFor(role: EmployeeRole) {
+  return allNavItems.filter((item) => visibleFor(item, role));
+}
+
+/**
+ * Стартовый экран роли (ADR-008): руководителю — сводка по всем объектам, снабжению — закупки,
+ * прорабу — отчёты с площадки. Без объектов в системе всем открывается реестр.
+ */
+export function startRouteFor(role: EmployeeRole, projectId: string | null) {
+  if (!projectId) return "/projects";
+  if (role === "supply") return `/projects/${projectId}/procurement`;
+  if (role === "foreman") return `/projects/${projectId}/field-reports`;
+  return "/";
+}
 
 export const sectionLabels: Record<ProjectSection, string> = {
   documents: "Документация",

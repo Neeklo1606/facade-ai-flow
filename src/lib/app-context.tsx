@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { currentUserId, setCurrentUserId } from "@/api/config";
 
 /** Значение селектора объекта «Все объекты» */
 export const ALL_PROJECTS = "all";
@@ -15,6 +16,9 @@ interface AppContextValue {
   setMobileNavOpen: (v: boolean) => void;
   commandOpen: boolean;
   setCommandOpen: (v: boolean) => void;
+  /** Персона демонстрации: сотрудник, от имени которого работаем (ADR-008) */
+  personaId: string;
+  setPersonaId: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -27,6 +31,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  // Персона живёт в модуле слоя данных: оттуда её берёт актор действий
+  const [personaId, setPersona] = useState<string>(currentUserId);
 
   // На телефоне тема всегда светлая: экран читают на улице, при солнце
   useEffect(() => {
@@ -61,8 +67,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setMobileNavOpen,
       commandOpen,
       setCommandOpen,
+      personaId,
+      setPersonaId: (id: string) => {
+        setCurrentUserId(id);
+        setPersona(id);
+      },
     }),
-    [theme, projectId, sidebarCollapsed, mobileNavOpen, commandOpen],
+    [theme, projectId, sidebarCollapsed, mobileNavOpen, commandOpen, personaId],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
