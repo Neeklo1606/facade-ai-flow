@@ -83,10 +83,15 @@ function FeedRow({ item, onSource }: { item: FeedItem; onSource: (sourceId: stri
   const Icon = source ? sourceKindIcon(source.kind) : PenLine;
   const person = employeeById(event.actorId);
   const author = source?.author ?? person?.name ?? "Автоматическая обработка";
-  // Уверенность источника — самое слабое из распознанных полей (глоссарий, §3)
-  const confidence = card?.extractions.length
-    ? Math.min(...card.extractions.map((field) => field.confidence))
-    : null;
+  // Уверенность источника — самое слабое из распознанных полей (глоссарий, §3).
+  // Показываем её только у событий, которые записала обработка: у действий человека
+  // распознавать нечего, и метка «Не удалось определить» рядом с ручной правкой
+  // читалась как сомнение в его цифре (находка ревью MEDIUM).
+  const recognized = !event.actorId;
+  const confidence =
+    recognized && card?.extractions.length
+      ? Math.min(...card.extractions.map((field) => field.confidence))
+      : null;
 
   const row = (
     <>

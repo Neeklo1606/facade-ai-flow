@@ -49,6 +49,23 @@ function inPeriod(at: string | null | undefined, from: string, now: string) {
   return !!at && at >= from && at <= now;
 }
 
+/**
+ * То же для полей без времени (дата начала объекта, дата подписания договора).
+ * В периоде «смена» такие поля считаются только за сегодня: отбрасывать время у границы
+ * значило бы растянуть двенадцать часов до полутора суток (находка ревью MEDIUM).
+ */
+function inPeriodByDate(
+  date: string | null | undefined,
+  from: string,
+  now: string,
+  period: DashboardPeriod,
+) {
+  if (!date) return false;
+  const today = now.slice(0, 10);
+  if (period === "shift") return date === today;
+  return date >= from.slice(0, 10) && date <= today;
+}
+
 /* ---------- Вход ---------- */
 
 /** Строки реестра: объект и его сводка */
@@ -122,18 +139,23 @@ export interface DashboardMetric {
   search: Record<string, string | boolean>;
 }
 
-/** Рост числа — плохо (непроверенное, просроченное): вверх и красным, ноль — «без изменений» */
+/**
+ * Капсула показывает прирост самой величины за период и ничего больше.
+ *
+ * «Без прироста» вместо «без изменений» — потому что снижения система считать не умеет:
+ * событий, уменьшающих метрику, в модели нет. Утверждать «без изменений» при упавшем
+ * на глазах числе было бы неправдой (находка ревью MEDIUM).
+ */
 function worseOnGrowth(count: number, text: string): DashboardDelta {
   return count > 0
     ? { text, direction: "up", effect: "worse" }
-    : { text: "без изменений", direction: "flat", effect: "neutral" };
+    : { text: "без прироста", direction: "flat", effect: "neutral" };
 }
 
-/** Рост числа сам по себе ни хорош, ни плох (новые объекты, загруженные документы) */
 function neutralOnGrowth(count: number, text: string): DashboardDelta {
   return count > 0
     ? { text, direction: "up", effect: "neutral" }
-    : { text: "без изменений", direction: "flat", effect: "neutral" };
+    : { text: "без прироста", direction: "flat", effect: "neutral" };
 }
 
 /** Объекты, на которых идут работы: «В работе» и «Под риском» */
@@ -157,7 +179,9 @@ export function dashboardMetrics(source: DashboardSource): DashboardMetric[] {
   const suffix = dashboardPeriodSuffix[period];
 
   const active = projects.filter((row) => row.project.status === "active");
-  const started = projects.filter((row) => inPeriod(row.project.startDate, from.slice(0, 10), now));
+  const started = projects.filter((row) =>
+    inPeriodByDate(row.project.startDate, from, now, period),
+  );
 
   const unverified = projects.reduce((sum, row) => sum + row.overview.specUnverified, 0);
   const freshRevisions = documents.filter((row) => inPeriod(row.document.uploadedAt, from, now));
@@ -167,7 +191,8 @@ export function dashboardMetrics(source: DashboardSource): DashboardMetric[] {
   );
 
   const silent = silentRequests(requests);
-  const sent = requests.filter((row) => inPeriod(row.request.sentAt, from, now));
+  // Прирост именно «заявок без ответа»: отправленные за период и до сих пор без ответа
+  const silentFresh = silent.filter((row) => inPeriod(row.request.sentAt, from, now));
 
   const overdue = projects.reduce((sum, row) => sum + row.overview.overdueRequests, 0);
   const wentOverdue = requests.filter(
@@ -175,9 +200,11 @@ export function dashboardMetrics(source: DashboardSource): DashboardMetric[] {
   );
 
   const processing = processingDocuments(documents);
+  // Прирост «документов в обработке»: загруженные за период и всё ещё в обработке
+  const processingFresh = processing.filter((row) => inPeriod(row.document.uploadedAt, from, now));
 
   const volume = unclosedVolume(source);
-  const signed = unclosedVolumeSigned(source, from);
+  const signed = unclosedVolumeSigned(source, from, period);
 
   return [
     {
@@ -192,7 +219,7 @@ export function dashboardMetrics(source: DashboardSource): DashboardMetric[] {
       key: "unverified",
       label: "Позиций ждёт проверки",
       value: fmtNum(unverified),
-      delta: worseOnGrowth(freshUnverified, `+${fmtNum(freshUnverified)} из новых ревизий`),
+      delta: worseOnGrowth(freshUnverified, `+${fmtNum(freshUnverified)} ${suffix}`),
       to: "/projects",
       search: { unverified: true },
     },
@@ -200,7 +227,7 @@ export function dashboardMetrics(source: DashboardSource): DashboardMetric[] {
       key: "silent",
       label: "Заявок без ответа",
       value: fmtNum(silent.length),
-      delta: worseOnGrowth(sent.length, `+${sent.length} отправлено`),
+      delta: worseOnGrowth(silentFresh.length, `+${silentFresh.length} ${suffix}`),
       to: "/projects",
       search: { section: "procurement", sectionStatus: "open" },
     },
@@ -216,7 +243,7 @@ export function dashboardMetrics(source: DashboardSource): DashboardMetric[] {
       key: "processing",
       label: "Документов в обработке",
       value: fmtNum(processing.length),
-      delta: neutralOnGrowth(freshRevisions.length, `+${freshRevisions.length} загружено`),
+      delta: neutralOnGrowth(processingFresh.length, `+${processingFresh.length} ${suffix}`),
       to: "/projects",
       search: { section: "documents" },
     },
@@ -224,7 +251,7 @@ export function dashboardMetrics(source: DashboardSource): DashboardMetric[] {
       key: "volume",
       label: "Незакрытый объём",
       value: mlnRubShort(volume.rub),
-      delta: worseOnGrowth(signed, `+${mlnRub(signed)} по новым договорам`),
+      delta: worseOnGrowth(signed, `+${mlnRub(signed)} ${suffix}`),
       to: "/projects",
       search: { view: "cards" },
     },
@@ -301,9 +328,11 @@ export function unclosedVolume(source: DashboardSource): UnclosedVolume {
 }
 
 /** Насколько незакрытый объём вырос за период: договоры, подписанные внутри периода */
-function unclosedVolumeSigned(source: DashboardSource, from: string) {
+function unclosedVolumeSigned(source: DashboardSource, from: string, period: DashboardPeriod) {
   return runningProjects(source.cards)
-    .filter((row) => row.contract && inPeriod(row.contract.signedAt, from.slice(0, 10), source.now))
+    .filter(
+      (row) => row.contract && inPeriodByDate(row.contract.signedAt, from, source.now, period),
+    )
     .reduce((sum, row) => {
       const { plan, left } = zoneRemainder(row.zones);
       if (!plan || !row.contract) return sum;
