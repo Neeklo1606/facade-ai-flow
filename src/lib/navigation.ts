@@ -137,7 +137,33 @@ export function navItemsFor(role: EmployeeRole) {
 /**
  * Стартовый экран роли (ADR-008): руководителю — сводка по всем объектам, снабжению — закупки,
  * прорабу — отчёты с площадки. Без объектов в системе всем открывается реестр.
+ *
+ * Применяется один раз за вкладку (см. `startScreenPending`): иначе пункт меню «Дашборд»
+ * у снабжения оставался бы кнопкой без результата — переход тут же возвращал на закупки
+ * (находка ревью HIGH).
  */
+const START_KEY = "neeklo-fieldops-start-applied";
+
+/** Нужно ли ещё открывать стартовый экран роли: до первого применения в этой вкладке */
+export function startScreenPending() {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(START_KEY) !== "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Отметить, что стартовый экран роли уже показан */
+export function markStartScreenApplied() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(START_KEY, "1");
+  } catch {
+    // Приватный режим: стартовый экран применится ещё раз, это не мешает работе
+  }
+}
+
 export function startRouteFor(role: EmployeeRole, projectId: string | null) {
   if (!projectId) return "/projects";
   if (role === "supply") return `/projects/${projectId}/procurement`;

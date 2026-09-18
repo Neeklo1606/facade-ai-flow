@@ -46,11 +46,16 @@ export function DecisionDialog({
   const approvers = employees.filter((e) => approverRoles.has(e.role));
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-  // По умолчанию согласует текущая персона, а не зашитый сотрудник (ADR-008);
-  // пока человек не выбрал другого, значение следует за персоной
+  // По умолчанию согласует текущая персона, а не зашитый сотрудник (ADR-008).
+  // Если её роль не согласовывает решения (например, прораб), берём первого из списка:
+  // иначе выпадающий список показывал бы одного человека, а в историю уходил бы другой
+  // (находка ревью HIGH).
   const currentUser = useCurrentUser();
   const [approver, setApprover] = useState<string | null>(null);
-  const approvedBy = approver ?? currentUser?.id ?? DEFAULT_USER_ID;
+  const canApprove = approvers.some((person) => person.id === currentUser?.id);
+  const approvedBy =
+    approver ??
+    (canApprove && currentUser ? currentUser.id : (approvers[0]?.id ?? DEFAULT_USER_ID));
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {

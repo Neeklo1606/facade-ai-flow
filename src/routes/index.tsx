@@ -37,7 +37,7 @@ import { prefetch } from "@/api/prefetch";
 import type { DashboardMetric, DashboardPeriod } from "@/api/types";
 import { fmtDate, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
-import { startRouteFor } from "@/lib/navigation";
+import { markStartScreenApplied, startRouteFor, startScreenPending } from "@/lib/navigation";
 import { useCurrentRole, useProjectId } from "@/lib/project-scope";
 import { useQuery } from "@tanstack/react-query";
 
@@ -103,9 +103,13 @@ function DashboardPage() {
   const selected = useProjectId();
   const registry = useQuery(queries.projects()).data ?? [];
   const start = startRouteFor(role, selected ?? registry[0]?.project.id ?? null);
-  const redirecting = start !== "/";
+  // Стартовый экран открывается один раз за вкладку: дальше «Дашборд» в меню работает
+  // и для тех ролей, чей стартовый экран другой (находка ревью HIGH)
+  const [redirecting] = useState(() => startScreenPending());
   useEffect(() => {
-    if (redirecting) void navigate({ to: start, replace: true });
+    if (!redirecting) return;
+    markStartScreenApplied();
+    if (start !== "/") void navigate({ to: start, replace: true });
   }, [redirecting, start, navigate]);
 
   const unverified = dash.metrics.find((metric) => metric.key === "unverified");
@@ -117,7 +121,7 @@ function DashboardPage() {
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
 
   // Все хуки вызваны выше: только после этого можно выйти на редирект стартового экрана
-  if (redirecting)
+  if (redirecting && start !== "/")
     return (
       <p role="status" className="py-10 text-[13px] text-text-3">
         Открываем ваш раздел…
