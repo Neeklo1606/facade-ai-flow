@@ -12,6 +12,21 @@
  */
 
 export const ACCESS_COOKIE = "fieldops_demo";
+
+/**
+ * Витрина дизайн-системы в публикации не существует (находка ревью BLOCKER-2).
+ * Кода витрины в сборке нет — модуль маршрута подменяется заглушкой в vite.config.ts,
+ * а этот путь отвечает 404, как любой несуществующий адрес: маршрут не должен резолвиться.
+ * Собрать витрину намеренно — KEEP_DESIGN_SYSTEM=1.
+ */
+export const DESIGN_SYSTEM_PATH = "/design-system";
+
+export function isRemovedInProduction(pathname: string) {
+  // В разработке витрина нужна: там она и собирается, и открывается
+  if (import.meta.env.DEV) return false;
+  if (typeof process !== "undefined" && process.env["KEEP_DESIGN_SYSTEM"] === "1") return false;
+  return pathname === DESIGN_SYSTEM_PATH || pathname === DESIGN_SYSTEM_PATH + "/";
+}
 export const ACCESS_PARAM = "k";
 /** 30 дней: показ живёт неделями, повторно ключ никто не ищет */
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;

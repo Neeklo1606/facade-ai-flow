@@ -85,7 +85,7 @@ curl -s $URL/robots.txt                                                # Disallo
 curl -s -o /dev/null -w "%{content_type}\n" --cookie "fieldops_demo=$KEY" $URL/api/export/projects
                                                                        # spreadsheetml — выгрузка жива
 curl -s -o /dev/null -w "%{http_code}\n" --cookie "fieldops_demo=$KEY" $URL/design-system
-                                                                       # экран «Раздел не найден»
+                                                                       # 404 — витрины в публикации нет
 ```
 
 Руками: открыть ссылку с ключом на телефоне в мобильной сети, пройти сценарий из

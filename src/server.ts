@@ -8,6 +8,7 @@ import {
   hasAccess,
   isPreviewCrawler,
   isPublicPath,
+  isRemovedInProduction,
   renderAccessPage,
   ACCESS_PARAM,
 } from "./lib/access";
@@ -93,6 +94,16 @@ function accessGate(request: Request, env: unknown): Response | null {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Витрина дизайн-системы в production не существует: адрес отвечает как несуществующий
+      if (isRemovedInProduction(new URL(request.url).pathname)) {
+        return new Response("Not Found", {
+          status: 404,
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "x-robots-tag": "noindex, nofollow",
+          },
+        });
+      }
       const gate = accessGate(request, env);
       if (gate) return gate;
       const handler = await getServerEntry();
