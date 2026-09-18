@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { reportClientError, startErrorReporting } from "@/lib/error-report";
+import { markStartScreenApplied } from "@/lib/navigation";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -144,6 +145,9 @@ function RootComponent() {
   );
   // Ловушки необработанных ошибок ставятся один раз на всё приложение (TASK-A5, п. 5)
   useEffect(startErrorReporting, []);
+  // Вход в демонстрацию — первый отрисованный экран вкладки, какой угодно. Пока отметка ставилась
+  // только на «/», вошедший по прямой ссылке терял первый клик по «Дашборд» (находка ревью)
+  useEffect(markStartScreenApplied, []);
 
   return (
     <QueryClientProvider client={queryClient}>

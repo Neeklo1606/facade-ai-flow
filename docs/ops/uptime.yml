@@ -37,7 +37,7 @@ jobs:
           if [ -n "$KEY" ]; then
             # Банка cookie: ключ с неASCII-символами хранится закодированным, руками строку не собрать
             jar=$(mktemp)
-            curl -sS -o /dev/null --max-time 25 -c "$jar" "$URL/?k=$KEY"
+            curl -sS -o /dev/null --max-time 25 -c "$jar" --get --data-urlencode "k=$KEY" "$URL/"
             body=$(curl -sS --max-time 25 -b "$jar" "$URL/")
             code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 -b "$jar" "$URL/")
             echo "/ с ключом → $code"
@@ -54,7 +54,7 @@ jobs:
         if: ${{ env.KEY != '' }}
         run: |
           jar=$(mktemp)
-          curl -sS -o /dev/null --max-time 25 -c "$jar" "$URL/?k=$KEY"
+          curl -sS -o /dev/null --max-time 25 -c "$jar" --get --data-urlencode "k=$KEY" "$URL/"
           type=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 30 -b "$jar" "$URL/api/export/projects")
           echo "выгрузка → $type"
           echo "$type" | grep -q "spreadsheetml" || exit 1
