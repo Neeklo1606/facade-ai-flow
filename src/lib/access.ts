@@ -75,7 +75,19 @@ export function isPreviewCrawler(userAgent: string | null) {
 export function hasAccess(request: Request, key: string) {
   const cookie = request.headers.get("cookie") ?? "";
   const match = cookie.match(new RegExp(`(?:^|;\\s*)${ACCESS_COOKIE}=([^;]+)`));
-  return match?.[1] === key;
+  if (!match?.[1]) return false;
+  // Cookie пишется процентно-закодированной, сравнивать надо расшифрованное значение:
+  // иначе ключ с кириллицей или пробелом закрывал демонстрацию навсегда (находка ревью)
+  return decodeCookie(match[1]) === key;
+}
+
+function decodeCookie(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    // Значение испорчено вручную: просто не подходит
+    return null;
+  }
 }
 
 /** Ключ пришёл в адресе: запоминаем в cookie и убираем параметр, чтобы ссылка не гуляла дальше */

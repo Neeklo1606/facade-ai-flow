@@ -76,17 +76,20 @@ git push origin main
 ## 6. Чек-лист после публикации
 
 ```bash
-KEY=<ключ>; URL=https://facade-ai-flow.lovable.app
-curl -s -o /dev/null -w "%{http_code}\n" $URL/                         # 401 — шлюз работает
-curl -s -o /dev/null -w "%{http_code}\n" "$URL/?k=$KEY"                # 302 — ключ принят
-curl -s -o /dev/null -w "%{http_code}\n" --cookie "fieldops_demo=$KEY" $URL/   # 200 — приложение
-curl -s -D- -o /dev/null --cookie "fieldops_demo=$KEY" $URL/ | grep -i x-robots-tag  # noindex
-curl -s $URL/robots.txt                                                # Disallow: /
-curl -s -o /dev/null -w "%{content_type}\n" --cookie "fieldops_demo=$KEY" $URL/api/export/projects
-                                                                       # spreadsheetml — выгрузка жива
-curl -s -o /dev/null -w "%{http_code}\n" --cookie "fieldops_demo=$KEY" $URL/design-system
-                                                                       # 404 — витрины в публикации нет
+KEY=<ключ>; URL=https://facade-ai-flow.lovable.app; JAR=$(mktemp)
+curl -s -o /dev/null -w "%{http_code}\n" $URL/                          # 401 — шлюз работает
+curl -s -o /dev/null -w "%{http_code}\n" -c $JAR "$URL/?k=$KEY"         # 302 — ключ принят, cookie в банке
+curl -s -o /dev/null -w "%{http_code}\n" -b $JAR $URL/                  # 200 — приложение
+curl -s -D- -o /dev/null -b $JAR $URL/ | grep -i x-robots-tag            # noindex
+curl -s $URL/robots.txt                                                  # Disallow: /
+curl -s -o /dev/null -w "%{content_type}\n" -b $JAR $URL/api/export/projects
+                                                                         # spreadsheetml — выгрузка жива
+curl -s -o /dev/null -w "%{http_code}\n" -b $JAR $URL/design-system      # 404 — витрины в публикации нет
 ```
+
+Банка cookie (`-c` и `-b`) вместо ручной строки: ключ с кириллицей или пробелом хранится
+в cookie процентно-закодированным, и собранная руками строка `fieldops_demo=$KEY` для такого
+ключа не подойдёт.
 
 Руками: открыть ссылку с ключом на телефоне в мобильной сети, пройти сценарий из
 [DEMO.md](DEMO.md), отправить ссылку себе в мессенджер и посмотреть превью.

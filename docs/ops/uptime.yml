@@ -35,12 +35,15 @@ jobs:
       - name: Страница отвечает
         run: |
           if [ -n "$KEY" ]; then
-            body=$(curl -sS --max-time 25 --cookie "fieldops_demo=$KEY" "$URL/")
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 --cookie "fieldops_demo=$KEY" "$URL/")
+            # Банка cookie: ключ с неASCII-символами хранится закодированным, руками строку не собрать
+            jar=$(mktemp)
+            curl -sS -o /dev/null --max-time 25 -c "$jar" "$URL/?k=$KEY"
+            body=$(curl -sS --max-time 25 -b "$jar" "$URL/")
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 -b "$jar" "$URL/")
             echo "/ с ключом → $code"
             test "$code" = "200"
-            # Разметка приложения, а не страница-объяснение и не ошибка хостинга
-            echo "$body" | grep -q 'neeklo FieldOps' || { echo "в ответе нет разметки приложения"; exit 1; }
+            # Заголовок экрана приложения: у страницы-объяснения он другой
+            echo "$body" | grep -q '<title>Дашборд' || { echo "в ответе не экран приложения"; exit 1; }
           else
             code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "$URL/")
             echo "/ без ключа → $code (ожидаем 200 или 401)"
@@ -50,7 +53,8 @@ jobs:
       - name: Серверная выгрузка отвечает
         if: ${{ env.KEY != '' }}
         run: |
-          type=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 30 \
-            --cookie "fieldops_demo=$KEY" "$URL/api/export/projects")
+          jar=$(mktemp)
+          curl -sS -o /dev/null --max-time 25 -c "$jar" "$URL/?k=$KEY"
+          type=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 30 -b "$jar" "$URL/api/export/projects")
           echo "выгрузка → $type"
           echo "$type" | grep -q "spreadsheetml" || exit 1
