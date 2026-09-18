@@ -1,10 +1,19 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Building2, FileCheck2, HardHat, Menu, Truck, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  FileCheck2,
+  HardHat,
+  LayoutDashboard,
+  Menu,
+  type LucideIcon,
+} from "lucide-react";
 import { useApp } from "@/lib/app-context";
-import { useProjectId } from "@/lib/project-scope";
+import { useCurrentRole, useProjectId } from "@/lib/project-scope";
+import { visibleFor, allNavItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 interface Tab {
+  /** Совпадает с ключом пункта меню: по нему панель узнаёт, видит ли роль раздел */
   key: string;
   label: string;
   icon: LucideIcon;
@@ -14,8 +23,9 @@ interface Tab {
 }
 
 /**
- * Нижняя навигация телефона. Порядок — по приоритету площадки:
- * статус объекта, отчёты, проверка извлечённых позиций, контакты поставщиков.
+ * Нижняя навигация телефона: дашборд как точка входа (ADR-007), затем приоритет площадки —
+ * статус объекта, отчёты, проверка извлечённых позиций. Контакты поставщиков — в «Ещё»:
+ * шесть подписей в панели на 375px не читаются.
  */
 export function BottomTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -27,10 +37,20 @@ export function BottomTabs() {
   });
   const { setMobileNavOpen } = useApp();
   const projectId = useProjectId();
+  const role = useCurrentRole();
   const section = (name: string) => (p: string) => new RegExp(`^/projects/[^/]+/${name}`).test(p);
+
+  const dashboard: Tab = {
+    key: "dashboard",
+    label: "Дашборд",
+    icon: LayoutDashboard,
+    to: "/",
+    active: (p) => p === "/",
+  };
 
   const tabs: Tab[] = projectId
     ? [
+        dashboard,
         {
           key: "project",
           label: "Объект",
@@ -52,16 +72,9 @@ export function BottomTabs() {
           to: `/projects/${projectId}/documents`,
           active: section("documents"),
         },
-        {
-          key: "suppliers",
-          label: "Поставщики",
-          icon: Truck,
-          to: `/projects/${projectId}/procurement`,
-          search: { view: "suppliers" },
-          active: (p, v) => section("procurement")(p) && v === "suppliers",
-        },
       ]
     : [
+        dashboard,
         {
           key: "projects",
           label: "Объекты",
@@ -85,22 +98,34 @@ export function BottomTabs() {
           search: { section: "documents" },
           active: () => pickSection === "documents",
         },
-        {
-          key: "suppliers",
-          label: "Поставщики",
-          icon: Truck,
-          to: "/projects",
-          search: { section: "suppliers" },
-          active: () => pickSection === "suppliers",
-        },
       ];
+
+  // Панель показывает те же разделы, что и сайдбар для этой роли (ADR-008)
+  const navKey = (key: string) =>
+    key === "project"
+      ? "projects"
+      : key === "docs"
+        ? "documents"
+        : key === "review"
+          ? "documents"
+          : key === "reports"
+            ? "field-reports"
+            : key;
+  const visible = tabs.filter((tab) => {
+    const item = allNavItems.find((navItem) => navItem.key === navKey(tab.key));
+    return !item || visibleFor(item, role);
+  });
 
   return (
     <nav
       aria-label="Основная навигация"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-5 items-center border-t border-line bg-base pb-[env(safe-area-inset-bottom)] md:hidden"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-30 grid h-[calc(64px+env(safe-area-inset-bottom))] items-center border-t border-line bg-base pb-[env(safe-area-inset-bottom)] md:hidden",
+        // Колонок ровно по числу вкладок роли плюс «Ещё»: классы записаны целиком для сборщика
+        visible.length >= 4 ? "grid-cols-5" : visible.length === 3 ? "grid-cols-4" : "grid-cols-3",
+      )}
     >
-      {tabs.map((tab) => {
+      {visible.map((tab) => {
         const active = tab.active(pathname, view);
         return (
           <Link

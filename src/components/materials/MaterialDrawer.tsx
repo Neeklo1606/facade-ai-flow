@@ -13,17 +13,10 @@ import { cn } from "@/lib/utils";
 import {
   purchaseOrder,
   purchaseStatusLabel,
-  replacementStatusLabel,
   type ExtractedPosition,
   type ReplacementSuggestion,
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
-
-const replacementTone: Record<ReplacementSuggestion["status"], "info" | "ok" | "neutral"> = {
-  proposed: "info",
-  agreed: "ok",
-  rejected: "neutral",
-};
 
 function Section({
   title,
@@ -210,12 +203,9 @@ export function MaterialDrawer({
                 >
                   <ArrowLeftRight className="mt-0.5 size-4 shrink-0 text-text-muted" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[13px] font-medium">{r.name}</p>
-                      <StatusBadge tone={replacementTone[r.status]}>
-                        {replacementStatusLabel[r.status]}
-                      </StatusBadge>
-                    </div>
+                    {/* Статуса замены здесь нет: он всегда «Предложена» — согласование замен
+                        появится в блоке B вместе с решением (TASK-A2, п. 5) */}
+                    <p className="text-[13px] font-medium">{r.name}</p>
                     <p className="mt-0.5 text-caption text-text-secondary">{r.reason}</p>
                     <p
                       className={cn(

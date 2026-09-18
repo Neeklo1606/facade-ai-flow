@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { format, formatDistance, formatDistanceToNow, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 
 export function fmtDate(value: string) {
@@ -11,6 +11,14 @@ export function fmtDateTime(value: string) {
 
 export function fmtAgo(value: string) {
   return formatDistanceToNow(parseISO(value), { addSuffix: true, locale: ru });
+}
+
+/**
+ * «3 дня назад» от времени источника данных, а не от часов устройства:
+ * в демо «сегодня» — дата демо-набора (useNow), иначе цифры разъезжаются с датами на экране.
+ */
+export function fmtAgoFrom(value: string, now: string) {
+  return formatDistance(parseISO(value), parseISO(now), { addSuffix: true, locale: ru });
 }
 
 export { fmtMoney, fmtNum } from "@/shared/number-format";

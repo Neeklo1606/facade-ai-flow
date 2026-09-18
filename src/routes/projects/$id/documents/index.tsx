@@ -30,6 +30,7 @@ import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
 import { fmtDateTime, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
+import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
 import { cn } from "@/lib/utils";
 import {
   type DocProcessingStatus,
@@ -122,7 +123,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
     const loaded = results.filter((result) => result.status === "fulfilled").length;
     if (loaded) {
       toast(`Загружено: ${loaded} ${plural(loaded, "документ", "документа", "документов")}`, {
-        description: "Распознаём текст и ищем таблицы спецификаций.",
+        description: DEMO_UPLOAD_NOTE,
       });
     }
     if (loaded < files.length) {
@@ -198,8 +199,8 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
 
             title={`Распознаётся: ${recognizing.map((d) => `«${d.title}»`).join(", ")}`}
           >
-            Текст и таблицы извлекаются на сервере. Позиции появятся в реестре и на экране проверки
-            — страницу можно закрыть.
+            Обработка идёт на сервере: позиции появятся в реестре и на экране проверки, страницу
+            можно закрыть. {DEMO_UPLOAD_NOTE}
           </StateBanner>
         )}
         {screen === "processing" && recognizing.length === 0 && inProgress.length === 0 && (
@@ -286,8 +287,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
               empty: {
                 icon: FileText,
                 title: "Документации пока нет",
-                description:
-                  "Загрузите проектную документацию, и система найдёт в ней материалы. Поддерживаются PDF, Word и Excel.",
+                description: `Загрузите проектную документацию — позиции появятся здесь и уйдут на проверку. ${DEMO_UPLOAD_NOTE}`,
                 actionLabel: "Загрузить документ",
                 onAction: () => zone.current?.open(),
               },
@@ -311,7 +311,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                       <th className="px-2.5 text-right">Листов</th>
                       <th className="px-2.5 text-right">Извлечено</th>
                       <th className="px-2.5 text-right">Проверено</th>
-                      <th className="px-4">Статус обработки</th>
+                      <th className="px-4">Состояние</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -359,10 +359,14 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                             {doc.sheetCount}
                           </td>
                           <td className="tnum px-2.5 text-right text-text-primary">
-                            {busy || !s?.extracted ? (
+                            {busy ? (
                               <span className="text-text-muted">—</span>
-                            ) : (
+                            ) : s?.extracted ? (
                               fmtNum(s.extracted)
+                            ) : (
+                              // Обработка прошла, таблиц спецификации в документе нет:
+                              // прочерк читался как незавершённая обработка (TASK-A2, п. 3)
+                              <span className="text-caption text-text-muted">без таблиц</span>
                             )}
                           </td>
                           <td className="px-2.5 text-right">

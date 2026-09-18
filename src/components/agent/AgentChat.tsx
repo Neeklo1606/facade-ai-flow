@@ -22,6 +22,16 @@ interface QuickAction {
   tone: string;
 }
 
+/**
+ * Примеры вопросов для ответа вне сценариев (TASK-A2, п. 6): целые формулировки, а не ярлыки,
+ * чтобы было видно, как спрашивать. Три — чтобы список читался с одного взгляда.
+ */
+const examplePrompts: { intent: AgentIntent; prompt: string }[] = [
+  { intent: "project_summary", prompt: "Что со «Северной Короной» сегодня?" },
+  { intent: "deliveries", prompt: "Какие поставки в пути и когда придут?" },
+  { intent: "documents_search", prompt: "Найди в документах кронштейны" },
+];
+
 const quickActions: QuickAction[] = [
   {
     intent: "project_summary",
@@ -228,7 +238,7 @@ export function AgentChat() {
                       text={
                         message.kind === "failed"
                           ? "Не получилось получить ответ: связь с сервером прервалась. Вопрос не потерялся — повторите."
-                          : "Пока отвечаю на четыре вопроса: сводка по объекту, статус поставок, поиск в документах и что требует решения. Выберите один из них."
+                          : "Отвечаю по данным системы: сводка по объекту, статус поставок и заявок, поиск значения в документах и что требует решения. На вопросы вне этих данных не отвечаю — придумывать не буду. Спросите, например, так:"
                       }
                     >
                       {message.kind === "failed" ? (
@@ -241,15 +251,15 @@ export function AgentChat() {
                           Повторить
                         </Button>
                       ) : (
-                        quickActions.map((action) => (
+                        examplePrompts.map((example) => (
                           <Button
-                            key={action.intent}
+                            key={example.prompt}
                             variant="secondary"
                             size="sm"
                             disabled={busy}
-                            onClick={() => void send(action.prompt, action.intent)}
+                            onClick={() => void send(example.prompt, example.intent)}
                           >
-                            {action.label}
+                            {example.prompt}
                           </Button>
                         ))
                       )}

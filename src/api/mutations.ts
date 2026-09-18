@@ -20,7 +20,7 @@ import type {
   UploadRevisionInput,
 } from "@/ports";
 import { api } from "./client";
-import { CURRENT_USER_ID } from "./config";
+import { currentUserId } from "./config";
 import type { Area } from "./keys";
 import type { ReportCard } from "./types";
 
@@ -101,7 +101,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
   const reviewed = (review: ExtractedPosition["review"]) => (item: ExtractedPosition) => ({
     ...item,
     review,
-    reviewedBy: CURRENT_USER_ID,
+    reviewedBy: currentUserId(),
   });
 
   /**
@@ -202,7 +202,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
           ...item,
           review: undo.to,
           mergedInto: null,
-          reviewedBy: undo.to === "pending" ? null : CURRENT_USER_ID,
+          reviewedBy: undo.to === "pending" ? null : currentUserId(),
         };
       });
     },

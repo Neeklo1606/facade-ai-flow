@@ -1,14 +1,4 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Демонстрация закрыта от индексации: она открывается по ссылке с ключом (TASK-A5, docs/RUNBOOK.md).
+# Заголовок X-Robots-Tag: noindex, nofollow ставится сервером на каждый HTML-ответ.
 User-agent: *
-Allow: /
+Disallow: /

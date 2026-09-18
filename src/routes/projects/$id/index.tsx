@@ -36,19 +36,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SummaryTab } from "@/components/project/SummaryTab";
+import { ProgressTab } from "@/components/project/ProgressTab";
+import { TeamTab } from "@/components/project/TeamTab";
 import {
   DecisionsPreview,
   DocumentsPreview,
   HistoryPreview,
   MaterialsPreview,
-  ProgressPreview,
   PurchasesPreview,
-  TeamPreview,
 } from "@/components/project/PreviewTabs";
 import { useApp } from "@/lib/app-context";
 import { projectStatusMeta } from "@/lib/project-meta";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
+import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
 import { cn } from "@/lib/utils";
 import { mainSpecification } from "@/lib/documents";
 import { useQuery } from "@tanstack/react-query";
@@ -201,10 +202,10 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
     documents: <DocumentsPreview {...shared} />,
     materials: <MaterialsPreview {...shared} />,
     purchases: <PurchasesPreview {...shared} />,
-    progress: <ProgressPreview {...shared} />,
+    progress: <ProgressTab project={project} onSource={setSourceId} />,
     decisions: <DecisionsPreview {...shared} />,
     history: <HistoryPreview {...shared} />,
-    team: <TeamPreview {...shared} />,
+    team: <TeamTab project={project} />,
   };
 
   return (
@@ -407,7 +408,7 @@ function UploadDialog({
     }
     onUpload(accepted);
     toast.success(`Документация принята как ${nextVersion}`, {
-      description: "Извлекаем позиции — стадии обработки видны в реестре документации.",
+      description: DEMO_UPLOAD_NOTE,
     });
   }
 
@@ -467,8 +468,8 @@ function UploadDialog({
         )}
 
         <p className="text-caption text-text-muted">
-          После загрузки позиции спецификации извлекаются автоматически и попадают на проверку.
-          Проверенные позиции можно сразу отправить в запросы поставщикам.
+          После загрузки позиции спецификации попадают на проверку, проверенные уходят в запросы
+          поставщикам. {DEMO_UPLOAD_NOTE}
         </p>
 
         <DialogFooter>

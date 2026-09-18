@@ -22,6 +22,7 @@ import type { ComparisonCell as CellCalc, ComparisonColumn as ColumnCalc } from 
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDateTime, fmtMoney, fmtNum, fmtReplyDue } from "@/lib/format";
 import { toast } from "@/lib/toast";
+import { DEMO_MAIL_NOTE, DEMO_REMIND_NOTE, DEMO_REMIND_TITLE } from "@/lib/demo-copy";
 import { cn } from "@/lib/utils";
 import { type SupplyRequest } from "@/contracts";
 import { useDirectory } from "@/api/directory";
@@ -182,13 +183,10 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               variant="secondary"
               disabled={canRemind === 0}
               onClick={async () => {
-                const sent = (await remind.mutateAsync(request.id)).reminded.length;
+                const queued = (await remind.mutateAsync(request.id)).reminded.length;
                 toast.success(
-                  `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
-                  {
-                    description:
-                      "Предложение появится в колонке поставщика, как только придёт ответ.",
-                  },
+                  `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                  { description: DEMO_REMIND_NOTE },
                 );
               }}
             >
@@ -209,7 +207,8 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               : "Распознаём новое письмо поставщика"
           }
         >
-          Цены, сроки и доступный объём из писем появятся в колонках поставщиков автоматически.
+          Цены, сроки и доступный объём появятся в колонках поставщиков автоматически.{" "}
+          {DEMO_MAIL_NOTE}
         </StateBanner>
       )}
 
@@ -225,12 +224,13 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             empty: {
               icon: Scale,
               title: "Предложений пока нет",
-              description: `Запрос отправлен ${meta ? fmtDateTime(meta.sentAt) : ""} ${request.sentTo.length} поставщикам. Ответы из писем появятся здесь автоматически — если срок выходит, напомните поставщикам.`,
+              description: `Запрос зарегистрирован ${meta ? fmtDateTime(meta.sentAt) : ""} на ${request.sentTo.length} поставщиков. ${DEMO_MAIL_NOTE}`,
               actionLabel: "Напомнить поставщикам",
               onAction: async () => {
-                const sent = (await remind.mutateAsync(request.id)).reminded.length;
+                const queued = (await remind.mutateAsync(request.id)).reminded.length;
                 toast.success(
-                  `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
+                  `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                  { description: DEMO_REMIND_NOTE },
                 );
               },
             },

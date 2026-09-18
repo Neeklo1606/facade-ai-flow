@@ -17,7 +17,7 @@ import type {
   UndoReviewInput,
   UploadRevisionInput,
 } from "@/ports";
-import { CURRENT_USER_ID, dataSource } from "./config";
+import { currentUserId, dataSource } from "./config";
 import * as fn from "./functions";
 import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
@@ -40,7 +40,8 @@ const demoAdapter = () =>
 let demo: Promise<Repositories> | null = null;
 const local = () =>
   (demo ??= demoAdapter().then((module) => module.createDemoRepositories({ persist: true })));
-const actor = { actorId: CURRENT_USER_ID };
+/** Кто выполняет действие: в демо — выбранная персона, иначе сотрудник по умолчанию */
+const actor = () => ({ actorId: currentUserId() });
 const server = dataSource === "server";
 
 export const api = {
@@ -85,7 +86,7 @@ export const api = {
     card: (id: string) =>
       server ? fn.projectCardFn({ data: { id } }) : local().then((r) => r.projects.card(id)),
     create: (data: CreateProjectInput) =>
-      server ? fn.createProjectFn({ data }) : local().then((r) => r.projects.create(data, actor)),
+      server ? fn.createProjectFn({ data }) : local().then((r) => r.projects.create(data, actor())),
   },
   documents: {
     list: (data: ListDocumentsInput) =>
@@ -95,7 +96,7 @@ export const api = {
     card: (id: string) =>
       server ? fn.documentCardFn({ data: { id } }) : local().then((r) => r.documents.card(id)),
     upload: (data: UploadRevisionInput) =>
-      server ? fn.uploadFn({ data }) : local().then((r) => r.documents.upload(data, actor)),
+      server ? fn.uploadFn({ data }) : local().then((r) => r.documents.upload(data, actor())),
     changes: (data: ListChangesInput) =>
       server ? fn.revisionChangesFn({ data }) : local().then((r) => r.documents.changes(data)),
   },
@@ -111,7 +112,7 @@ export const api = {
     confirmAutoVerified: (revisionId: string) =>
       server
         ? fn.confirmAutoVerifiedFn({ data: { revisionId } })
-        : local().then((r) => r.positions.confirmAutoVerified({ revisionId }, actor)),
+        : local().then((r) => r.positions.confirmAutoVerified({ revisionId }, actor())),
     history: (id: string) =>
       server
         ? fn.positionHistoryFn({ data: { id } })
@@ -119,35 +120,37 @@ export const api = {
     confirm: (ids: string[]) =>
       server
         ? fn.confirmFn({ data: { ids } })
-        : local().then((r) => r.positions.confirm({ ids }, actor)),
+        : local().then((r) => r.positions.confirm({ ids }, actor())),
     correct: (data: CorrectPositionInput) =>
       server
         ? fn.correctFn({ data }).then(() => undefined)
-        : local().then((r) => r.positions.correct(data, actor)),
+        : local().then((r) => r.positions.correct(data, actor())),
     exclude: (id: string) =>
       server
         ? fn.excludeFn({ data: { id } }).then(() => undefined)
-        : local().then((r) => r.positions.exclude({ id }, actor)),
+        : local().then((r) => r.positions.exclude({ id }, actor())),
     markHeader: (id: string) =>
       server
         ? fn.markHeaderFn({ data: { id } }).then(() => undefined)
-        : local().then((r) => r.positions.markHeader({ id }, actor)),
+        : local().then((r) => r.positions.markHeader({ id }, actor())),
     reopen: (id: string) =>
       server
         ? fn.reopenFn({ data: { id } }).then(() => undefined)
-        : local().then((r) => r.positions.reopen({ id }, actor)),
+        : local().then((r) => r.positions.reopen({ id }, actor())),
     undoReview: (data: UndoReviewInput) =>
-      server ? fn.undoReviewFn({ data }) : local().then((r) => r.positions.undoReview(data, actor)),
+      server
+        ? fn.undoReviewFn({ data })
+        : local().then((r) => r.positions.undoReview(data, actor())),
     merge: (data: MergePositionsInput) =>
-      server ? fn.mergeFn({ data }) : local().then((r) => r.positions.merge(data, actor)),
+      server ? fn.mergeFn({ data }) : local().then((r) => r.positions.merge(data, actor())),
     split: (data: SplitPositionInput) =>
       server
         ? fn.splitFn({ data }).then(() => undefined)
-        : local().then((r) => r.positions.split(data, actor)),
+        : local().then((r) => r.positions.split(data, actor())),
     handOver: (revisionId: string) =>
       server
         ? fn.handOverFn({ data: { revisionId } })
-        : local().then((r) => r.positions.handOver({ revisionId }, actor)),
+        : local().then((r) => r.positions.handOver({ revisionId }, actor())),
     materials: () => (server ? fn.materialsFn() : local().then((r) => r.positions.materials())),
     replacements: () =>
       server ? fn.replacementsFn() : local().then((r) => r.positions.replacements()),
@@ -157,7 +160,7 @@ export const api = {
     verifyContact: (supplierId: string) =>
       server
         ? fn.verifyContactFn({ data: { supplierId } }).then(() => undefined)
-        : local().then((r) => r.procurement.verifyContact({ supplierId }, actor)),
+        : local().then((r) => r.procurement.verifyContact({ supplierId }, actor())),
     templates: () => (server ? fn.templatesFn() : local().then((r) => r.procurement.templates())),
     requests: (projectId: string) =>
       server
@@ -168,15 +171,15 @@ export const api = {
     createRequest: (data: CreateRequestInput) =>
       server
         ? fn.createRequestFn({ data })
-        : local().then((r) => r.procurement.createRequest(data, actor)),
+        : local().then((r) => r.procurement.createRequest(data, actor())),
     remind: (requestId: string) =>
       server
         ? fn.remindFn({ data: { requestId } })
-        : local().then((r) => r.procurement.remind({ requestId }, actor)),
+        : local().then((r) => r.procurement.remind({ requestId }, actor())),
     chooseSupplier: (data: ChooseSupplierInput) =>
       server
         ? fn.chooseSupplierFn({ data })
-        : local().then((r) => r.procurement.chooseSupplier(data, actor)),
+        : local().then((r) => r.procurement.chooseSupplier(data, actor())),
     deliveries: (projectId: string) =>
       server
         ? fn.deliveriesFn({ data: { projectId } })
@@ -190,7 +193,7 @@ export const api = {
     review: (data: ReviewReportInput) =>
       server
         ? fn.reviewReportFn({ data }).then(() => undefined)
-        : local().then((r) => r.reports.review(data, actor)),
+        : local().then((r) => r.reports.review(data, actor())),
     source: (id: string) =>
       server ? fn.sourceFn({ data: { id } }) : local().then((r) => r.reports.source(id)),
   },

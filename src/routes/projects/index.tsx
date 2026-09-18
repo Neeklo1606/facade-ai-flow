@@ -66,6 +66,8 @@ interface ProjectsSearch {
   view?: "table" | "cards" | undefined;
   /** Раздел меню, для которого нужно выбрать объект */
   section?: ProjectSection | undefined;
+  /** Фильтр, с которым откроется раздел выбранного объекта (переход с дашборда) */
+  sectionStatus?: string | undefined;
 }
 
 const sections: ProjectSection[] = [
@@ -89,6 +91,7 @@ export const Route = createFileRoute("/projects/")({
     section: sections.includes(search["section"] as ProjectSection)
       ? (search["section"] as ProjectSection)
       : undefined,
+    sectionStatus: str(search["sectionStatus"]),
   }),
   loader: ({ context }) => prefetch(context.queryClient, queries.projects()),
   head: () => ({
@@ -190,7 +193,7 @@ function ProjectsPage() {
       return;
     }
     setProjectId(row.id);
-    const href = sectionHref(row.id, search.section);
+    const href = sectionHref(row.id, search.section, undefined, search.sectionStatus);
     void navigate({ to: href.to, search: href.search as never });
   };
 
@@ -219,7 +222,11 @@ function ProjectsPage() {
             <b className="font-semibold">{sectionLabels[search.section]}</b> ведётся по объекту.
             Выберите объект — раздел откроется сразу.
           </p>
-          <Button size="sm" variant="ghost" onClick={() => setSearch({ section: undefined })}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSearch({ section: undefined, sectionStatus: undefined })}
+          >
             <X className="size-3.5" /> Просто открыть реестр
           </Button>
         </div>

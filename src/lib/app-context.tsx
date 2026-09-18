@@ -1,4 +1,38 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { currentUserId, setCurrentUserId } from "@/api/config";
+
+/**
+ * Выбранный объект переживает перезагрузку (находка ревью BLOCKER-1): он жил только в состоянии
+ * React, и после F5 селектор возвращался к «Все объекты». Храним рядом с персоной — в пределах
+ * вкладки (ADR-004): демонстрации в разных вкладках не мешают друг другу.
+ */
+const PROJECT_KEY = "neeklo-fieldops-project";
+
+function restoreProjectId() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(PROJECT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveProjectId(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(PROJECT_KEY, id);
+  } catch {
+    // Приватный режим браузера: выбор проживёт до перезагрузки
+  }
+}
 
 /** Значение селектора объекта «Все объекты» */
 export const ALL_PROJECTS = "all";
@@ -15,6 +49,9 @@ interface AppContextValue {
   setMobileNavOpen: (v: boolean) => void;
   commandOpen: boolean;
   setCommandOpen: (v: boolean) => void;
+  /** Персона демонстрации: сотрудник, от имени которого работаем (ADR-008) */
+  personaId: string;
+  setPersonaId: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -23,10 +60,23 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   // Светлая тема по умолчанию, переключатель в шапке действует во всей системе.
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [projectId, setProjectId] = useState<string>(ALL_PROJECTS);
+  // Начальное значение одинаково на сервере и клиенте, восстановление — после гидратации,
+  // иначе разметка сервера и первый рендер разошлись бы
+  const [projectId, setProjectIdState] = useState<string>(ALL_PROJECTS);
+  const setProjectId = useCallback((id: string) => {
+    setProjectIdState(id);
+    saveProjectId(id);
+  }, []);
+
+  useEffect(() => {
+    const saved = restoreProjectId();
+    if (saved) setProjectIdState(saved);
+  }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  // Персона живёт в модуле слоя данных: оттуда её берёт актор действий
+  const [personaId, setPersona] = useState<string>(currentUserId);
 
   // На телефоне тема всегда светлая: экран читают на улице, при солнце
   useEffect(() => {
@@ -61,8 +111,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setMobileNavOpen,
       commandOpen,
       setCommandOpen,
+      personaId,
+      setPersonaId: (id: string) => {
+        setCurrentUserId(id);
+        setPersona(id);
+      },
     }),
-    [theme, projectId, sidebarCollapsed, mobileNavOpen, commandOpen],
+    [theme, projectId, setProjectId, sidebarCollapsed, mobileNavOpen, commandOpen, personaId],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -25,6 +25,7 @@ import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
+import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
@@ -116,6 +117,11 @@ const ZonesRoute = ZonesRouteImport.update({
   path: '/zones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
+  id: '/api/client-error',
+  path: '/api/client-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/projects': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/users'
     | '/zones'
+    | '/api/client-error'
     | '/projects/'
     | '/api/export/projects'
     | '/projects/$id/field-reports'
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/users'
     | '/zones'
+    | '/api/client-error'
     | '/projects'
     | '/api/export/projects'
     | '/projects/$id/field-reports'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/users'
     | '/zones'
+    | '/api/client-error'
     | '/projects/'
     | '/api/export/projects'
     | '/projects/$id/field-reports'
@@ -360,6 +372,7 @@ export interface RootRouteChildren {
   TemplatesRoute: typeof TemplatesRoute
   UsersRoute: typeof UsersRoute
   ZonesRoute: typeof ZonesRoute
+  ApiClientErrorRoute: typeof ApiClientErrorRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
@@ -486,6 +499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZonesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/client-error': {
+      id: '/api/client-error'
+      path: '/api/client-error'
+      fullPath: '/api/client-error'
+      preLoaderRoute: typeof ApiClientErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/': {
       id: '/projects/'
       path: '/projects'
@@ -576,6 +596,7 @@ const rootRouteChildren: RootRouteChildren = {
   TemplatesRoute: TemplatesRoute,
   UsersRoute: UsersRoute,
   ZonesRoute: ZonesRoute,
+  ApiClientErrorRoute: ApiClientErrorRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,

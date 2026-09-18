@@ -35,6 +35,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
+import { DEMO_TELEGRAM_NOTE } from "@/lib/demo-copy";
 import { fmtDayTitle, fmtNum, fmtTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -170,8 +171,8 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
       />
 
       <p className="sr-only">
-        Отчёты прорабов из Telegram: объём, фото и проблемы. Проверьте объём и примите отчёт или
-        верните на уточнение.
+        Отчёты прорабов: объём за смену, фото и проблемы. Проверьте объём и примите отчёт или
+        верните на уточнение. {DEMO_TELEGRAM_NOTE}
       </p>
 
       {/* Ячейка полосы — фильтр ленты по статусу проверки */}
@@ -224,8 +225,14 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
             empty: {
               icon: HardHat,
               title: "Отчётов с площадки пока нет",
-              description:
-                "Прорабы отправляют отчёты в Telegram-бот голосом, текстом или фото. После распознавания отчёт появится здесь с объёмом и проблемами.",
+              description: `Отчёты приходят от прорабов бригад объекта: объём за смену, фото и проблемы. Проверьте, что бригады и их прорабы заведены. ${DEMO_TELEGRAM_NOTE}`,
+              actionLabel: "Проверить бригады объекта",
+              onAction: () =>
+                navigate({
+                  to: "/projects/$id",
+                  params: { id: project.id },
+                  search: { tab: "team" },
+                }),
             },
             filtered: {
               onReset: () => setSearch({ status: undefined, zone: undefined }),

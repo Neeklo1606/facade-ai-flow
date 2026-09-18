@@ -26,6 +26,7 @@ import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDate, fmtDateTime, fmtMoney, fmtReplyDue, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
+import { DEMO_REMIND_NOTE, DEMO_REMIND_TITLE } from "@/lib/demo-copy";
 import { cn } from "@/lib/utils";
 import {
   contactStatusLabel as contactFreshnessLabel,
@@ -241,12 +242,10 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                     const results = await Promise.all(
                       waiting.map((r) => remind.mutateAsync(r.request.id)),
                     );
-                    const sent = results.reduce((acc, result) => acc + result.reminded.length, 0);
+                    const queued = results.reduce((acc, result) => acc + result.reminded.length, 0);
                     toast.success(
-                      `Напоминание отправлено ${sent} ${sent === 1 ? "поставщику" : "поставщикам"}`,
-                      {
-                        description: "Ответы появятся в сравнении, как только придут.",
-                      },
+                      `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                      { description: DEMO_REMIND_NOTE },
                     );
                   }}
                 >
@@ -610,6 +609,11 @@ function SuppliersView({
   region: string;
 }) {
   const verifyContact = useVerifyContact();
+  // Без подтверждения действие выглядело беззвучным: строка менялась, а отклика не было
+  const confirmContact = () =>
+    toast.success("Контакт отмечен проверенным", {
+      description: "Дата проверки обновлена — поставщик снова попадает в подбор для запросов.",
+    });
   return (
     <>
       <div className="hidden overflow-x-auto lg:block">
@@ -684,7 +688,9 @@ function SuppliersView({
                   {profile.contactStatus !== "verified" && (
                     <button
                       type="button"
-                      onClick={() => verifyContact.mutate(profile.supplierId)}
+                      onClick={() =>
+                        verifyContact.mutate(profile.supplierId, { onSuccess: confirmContact })
+                      }
                       className="text-caption text-info hover:underline"
                     >
                       Отметить проверенным
@@ -766,7 +772,9 @@ function SuppliersView({
                 <Button
                   variant="ghost"
                   className="col-span-2"
-                  onClick={() => verifyContact.mutate(profile.supplierId)}
+                  onClick={() =>
+                    verifyContact.mutate(profile.supplierId, { onSuccess: confirmContact })
+                  }
                 >
                   <Check className="size-4" /> Контакт актуален
                 </Button>

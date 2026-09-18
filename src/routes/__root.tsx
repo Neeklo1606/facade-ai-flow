@@ -11,11 +11,14 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportClientError, startErrorReporting } from "@/lib/error-report";
+import { markStartScreenApplied } from "@/lib/navigation";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { prefetch } from "@/api/prefetch";
+import { previewMeta } from "@/lib/access";
 import { queries } from "@/api/queries";
 import { useDemoEvents } from "@/api/demo-events";
 import { toast } from "@/lib/toast";
@@ -42,6 +45,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportClientError(error, { kind: "react_error_boundary" });
   }, [error]);
 
   return (
@@ -79,6 +83,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#000000" },
+      // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
+      // картинка превью и запрет индексации общие (TASK-A5, п. 2 и 3)
+      { title: previewMeta.title },
+      { name: "description", content: previewMeta.description },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "neeklo FieldOps" },
+      { property: "og:locale", content: "ru_RU" },
+      { property: "og:title", content: previewMeta.title },
+      { property: "og:description", content: previewMeta.description },
+      { property: "og:url", content: previewMeta.url },
+      { property: "og:image", content: previewMeta.url.replace(/\/$/, "") + previewMeta.image },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "Дашборд neeklo FieldOps" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: previewMeta.title },
+      { name: "twitter:description", content: previewMeta.description },
+      { name: "twitter:image", content: previewMeta.url.replace(/\/$/, "") + previewMeta.image },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -120,6 +143,11 @@ function RootComponent() {
   useDemoEvents(queryClient, (notice) =>
     toast.success(notice.title, { description: notice.description }),
   );
+  // Ловушки необработанных ошибок ставятся один раз на всё приложение (TASK-A5, п. 5)
+  useEffect(startErrorReporting, []);
+  // Вход в демонстрацию — первый отрисованный экран вкладки, какой угодно. Пока отметка ставилась
+  // только на «/», вошедший по прямой ссылке терял первый клик по «Дашборд» (находка ревью)
+  useEffect(markStartScreenApplied, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Copy, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowRight, Copy, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { StatList, sourceKindIcon } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import type { AgentReply, AgentSource } from "@/api/types";
+import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,17 @@ export function SourceChip({
  * Ответ системы: без плашки, текст 15/1.6, показатели, источники и действия при наведении.
  * Ответ без источника не показывается — это правило ADR-006, а не оформление.
  */
+/** Разделы, где ответ виден целиком: ассистент отправляет туда, а не заканчивает разговор */
+function nextStepFor(intent: AgentReply["intent"], projectId: string) {
+  if (intent === "deliveries")
+    return { to: `/projects/${projectId}/procurement`, label: "Открыть закупки объекта" };
+  if (intent === "documents_search")
+    return { to: `/projects/${projectId}/documents`, label: "Открыть документацию объекта" };
+  if (intent === "decisions")
+    return { to: `/projects/${projectId}/timeline`, label: "Открыть историю и решения" };
+  return { to: `/projects/${projectId}`, label: "Открыть карточку объекта" };
+}
+
 export function AgentAnswer({
   reply,
   time,
@@ -64,6 +76,9 @@ export function AgentAnswer({
 }) {
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   if (!reply.sources.length) return null;
+
+  // Куда идти с ответом: раздел, в котором это видно целиком
+  const next = reply.projectId ? nextStepFor(reply.intent, reply.projectId) : null;
 
   const copy = async () => {
     const text = [
@@ -93,6 +108,14 @@ export function AgentAnswer({
         ))}
       </div>
       {reply.facts.length > 0 && <StatList leader="dots" items={reply.facts} className="mt-3" />}
+      {next && (
+        <Link
+          to={next.to as string}
+          className="focus-ring mt-3 inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+        >
+          {next.label} <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
+        </Link>
+      )}
       <div className="mt-4 flex flex-wrap gap-2" aria-label="Источники ответа">
         {reply.sources.map((source) => (
           <SourceChip key={source.sourceId} source={source} onOpen={onOpenSource} />

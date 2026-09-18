@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Pause, Play, X } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, MessageSquare, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { DEMO_AUDIO_NOTE } from "@/lib/demo-copy";
 import { type Evidence, type Extraction } from "@/contracts";
 
 function hash(text: string) {
@@ -154,8 +155,9 @@ function fmt(sec: number) {
 }
 
 /**
- * Плеер голосового отчёта рядом с разобранными полями. Поле подсвечивается,
- * когда воспроизведение доходит до его таймкода; нажатие на поле перематывает к нему.
+ * Голосовой отчёт рядом с разобранными полями: расшифровка и распознанные значения.
+ * Звука в демонстрации нет — вместо проигрывателя стоит прямая оговорка (TASK-A2, п. 1),
+ * а нажатие на поле подсвечивает цитату, из которой это значение взято.
  */
 export function VoiceReport({
   duration,
@@ -166,78 +168,18 @@ export function VoiceReport({
   transcript: string;
   fields: Extraction[];
 }) {
-  const [playing, setPlaying] = useState(false);
-  const [time, setTime] = useState(0);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!playing) return;
-    timer.current = setInterval(() => {
-      setTime((t) => {
-        if (t + 0.25 >= duration) {
-          setPlaying(false);
-          return duration;
-        }
-        return t + 0.25;
-      });
-    }, 250);
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
-  }, [playing, duration]);
-
+  const [activeId, setActiveId] = useState<string | null>(null);
   const sorted = [...fields].sort((a, b) => toSec(a.location) - toSec(b.location));
-  const activeField = [...sorted].reverse().find((f) => toSec(f.location) <= time && time > 0);
-  const bars = 48;
+  const activeField = sorted.find((field) => field.id === activeId) ?? null;
 
   return (
     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="rounded-[var(--r-md)] border border-border bg-raised p-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              if (time >= duration) setTime(0);
-              setPlaying((p) => !p);
-            }}
-            aria-label={playing ? "Пауза" : "Воспроизвести оригинал"}
-            className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-3 text-text shadow-[var(--shadow-xs)] active:translate-y-px"
-          >
-            {playing ? <Pause className="size-5" /> : <Play className="ml-0.5 size-5" />}
-          </button>
-          <div className="min-w-0 flex-1">
-            <div
-              className="flex h-10 cursor-pointer items-center gap-[2px]"
-              role="slider"
-              aria-label="Позиция воспроизведения"
-              aria-valuemin={0}
-              aria-valuemax={duration}
-              aria-valuenow={Math.round(time)}
-              tabIndex={0}
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setTime(((e.clientX - rect.left) / rect.width) * duration);
-              }}
-            >
-              {Array.from({ length: bars }).map((_, i) => {
-                const height = 20 + (Math.sin(i * 1.7) * 0.5 + 0.5) * 60 + ((i * 37) % 20);
-                const played = (i / bars) * duration <= time;
-                return (
-                  <span
-                    key={i}
-                    className={cn("flex-1 rounded-full", played ? "bg-text" : "bg-border-strong")}
-                    // Округление: браузер сокращает длинную дробь в style, и SSR-разметка не совпала бы с клиентом
-                    style={{ height: `${Math.min(100, Math.round(height))}%` }}
-                  />
-                );
-              })}
-            </div>
-            <p className="tnum mt-0.5 flex justify-between text-caption text-text-muted">
-              <span>{fmt(time)}</span>
-              <span>Оригинал из Telegram · {fmt(duration)}</span>
-            </p>
-          </div>
-        </div>
+        <p className="flex items-center gap-2 text-caption text-text-muted">
+          <MessageSquare className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+          Голосовое сообщение прораба · {fmt(duration)}
+        </p>
+        <p className="mt-1 text-caption text-text-muted">{DEMO_AUDIO_NOTE}</p>
         <p className="mt-3 text-[13px] leading-relaxed text-text-secondary">
           «{highlight(transcript, activeField?.quote ?? null)}»
         </p>
@@ -246,15 +188,13 @@ export function VoiceReport({
       <ul className="divide-y divide-border rounded-[var(--r-md)] border border-border">
         {sorted.map((field) => {
           const low = field.confidence < 0.7;
-          const active = field.id === activeField?.id;
+          const active = field.id === activeId;
           return (
             <li key={field.id}>
               <button
                 type="button"
-                onClick={() => {
-                  setTime(toSec(field.location));
-                  setPlaying(true);
-                }}
+                aria-pressed={active}
+                onClick={() => setActiveId((value) => (value === field.id ? null : field.id))}
                 className={cn(
                   "flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left transition-fast hover:bg-hover",
                   active && "bg-surface-2",

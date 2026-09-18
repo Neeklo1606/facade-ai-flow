@@ -158,6 +158,7 @@ export const crewView = crews.extend({ memberIds: z.array(idSchema) });
 
 export type EmployeeRow = z.infer<typeof employees>;
 export type Employee = z.infer<typeof employeeView>;
+export type EmployeeRole = Employee["role"];
 export type ProjectMember = z.infer<typeof projectMembers>;
 export type Counterparty = z.infer<typeof counterparties>;
 export type SupplierProfile = z.infer<typeof supplierProfiles>;

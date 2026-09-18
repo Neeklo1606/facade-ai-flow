@@ -114,7 +114,7 @@ export const documentRevisions = [
     uploadedAt: "2026-09-04T16:20:00",
     uploadedBy: "e-volkova",
     sheetCount: 14,
-    status: "review",
+    status: "verified",
     sourceId: null,
     positionsTotal: null,
     positionsVerified: null,

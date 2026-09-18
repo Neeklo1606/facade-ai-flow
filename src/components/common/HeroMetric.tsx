@@ -9,19 +9,22 @@ export function HeroMetric({
   label,
   value,
   unit,
+  secondary,
   note,
   className,
 }: {
   label: string;
   value: ReactNode;
   unit?: string;
+  /** Та же величина в других единицах: строка под значением */
+  secondary?: ReactNode;
   note?: ReactNode;
   className?: string;
 }) {
   return (
     <section
       className={cn(
-        "relative flex h-60 flex-col justify-between overflow-hidden rounded-[var(--r-lg)] p-6 shadow-[var(--lift-2),var(--glow-soft)]",
+        "relative flex min-h-60 flex-col justify-between gap-4 overflow-hidden rounded-[var(--r-lg)] p-6 shadow-[var(--lift-2),var(--glow-soft)]",
         className,
       )}
     >
@@ -32,15 +35,22 @@ export function HeroMetric({
       <div aria-hidden className="absolute inset-0 bg-black/[0.18]" />
       <div className="relative text-[12px] leading-[1.4] text-on-orange/80">{label}</div>
       <div className="relative">
-        <div className="text-[56px] leading-none font-semibold tracking-[-0.025em] text-on-orange">
+        <div className="text-[44px] leading-none font-semibold tracking-[-0.025em] text-on-orange sm:text-[56px]">
           {value}
           {unit && (
-            <span className="ml-2 text-[31px] font-semibold tracking-[-0.025em] text-on-orange/65">
+            <span className="ml-2 text-[25px] font-semibold tracking-[-0.025em] text-on-orange/65 sm:text-[31px]">
               {unit}
             </span>
           )}
         </div>
-        {note && <div className="mt-3 text-[13px] leading-[1.45] text-sand">{note}</div>}
+        {secondary && (
+          <div className="mt-2 text-[20px] leading-[1.2] font-medium text-on-orange/75">
+            {secondary}
+          </div>
+        )}
+        {note && (
+          <div className="mt-3 max-w-[68ch] text-[13px] leading-[1.45] text-sand">{note}</div>
+        )}
       </div>
     </section>
   );

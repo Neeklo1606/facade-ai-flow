@@ -8,8 +8,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useApp } from "@/lib/app-context";
-import { allNavItems, sectionHref } from "@/lib/navigation";
-import { useProjectId } from "@/lib/project-scope";
+import { navItemsFor, sectionHref } from "@/lib/navigation";
+import { useCurrentRole, useProjectId } from "@/lib/project-scope";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useDirectory } from "@/api/directory";
@@ -19,6 +19,7 @@ export function CommandPalette() {
   const { commandOpen, setCommandOpen } = useApp();
   const navigate = useNavigate();
   const projectId = useProjectId();
+  const role = useCurrentRole();
   const { counterpartyName } = useDirectory();
   // Поиск загружает данные только когда открыт
   const enabled = commandOpen;
@@ -35,6 +36,8 @@ export function CommandPalette() {
     (item) => item.profile,
   );
   const nameOf = (id: string) => projects.find((p) => p.id === id)?.name ?? "";
+  // Палитра не предлагает разделы, которых у роли нет в меню (ADR-008)
+  const sections = navItemsFor(role);
 
   const go = (to: string, search?: Record<string, string>) => {
     setCommandOpen(false);
@@ -64,7 +67,7 @@ export function CommandPalette() {
           ))}
         </CommandGroup>
         <CommandGroup heading={projectId ? `Разделы · ${nameOf(projectId)}` : "Разделы"}>
-          {allNavItems.map((item) => {
+          {sections.map((item) => {
             const href = sectionHref(projectId, item.section, item.to);
             return (
               <CommandItem

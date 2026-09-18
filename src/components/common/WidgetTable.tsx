@@ -139,8 +139,8 @@ export function NumberValue({
   );
 }
 
+// Оранжевого в палитре нет: единственное оранжевое пятно экрана — главное действие
 const avatarPalette = [
-  "bg-orange-dim text-orange-hot",
   "bg-sand-dim text-sand",
   "bg-surface-3 text-text-2",
   "bg-info-bg text-info",
