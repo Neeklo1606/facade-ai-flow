@@ -23,13 +23,21 @@ const PREVIEW_AGENTS =
 /**
  * Ключ берётся оттуда, где его даёт хостинг: у Cloudflare это аргумент `env` обработчика,
  * у node-сервера — переменные процесса.
+ *
+ * `VITE_DEMO_ACCESS_KEY` — запасной путь на случай, когда хостинг умеет задавать только
+ * переменные сборки. Он работает, но слабее: значение подставляется в код при сборке и потому
+ * попадает и в клиентский бандл, а бандл лежит в открытой статике (иначе не работает превью
+ * ссылки). Такой ключ закрывает адрес от поисковиков и случайных переходов, но его можно
+ * вычитать из файлов сборки. Предпочтительна переменная окружения `DEMO_ACCESS_KEY`.
  */
 export function accessKey(env: Record<string, string | undefined>) {
   const fromEnv = env["DEMO_ACCESS_KEY"]?.trim();
   if (fromEnv) return fromEnv;
   const fromProcess =
     typeof process !== "undefined" ? process.env["DEMO_ACCESS_KEY"]?.trim() : undefined;
-  return fromProcess ? fromProcess : null;
+  if (fromProcess) return fromProcess;
+  const fromBuild = import.meta.env["VITE_DEMO_ACCESS_KEY"]?.trim();
+  return fromBuild ? fromBuild : null;
 }
 
 /** Запросы, которые шлюз не трогает: статика, иконки, манифест и robots */
