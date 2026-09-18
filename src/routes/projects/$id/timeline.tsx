@@ -354,6 +354,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
 
         {lastDecision && (
           <InsightBlock
+            tone="sand"
             className="col-span-12"
             icon={Gavel}
             title={`Последнее решение: ${lastDecision.title}`}

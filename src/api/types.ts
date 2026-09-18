@@ -32,3 +32,14 @@ export type {
   ProjectProgress,
   UnclosedVolume,
 } from "@/domain/dashboard";
+
+/** Ход работ и команда объекта (ADR-008): значения уже посчитаны слоем данных */
+export type {
+  MilestonePoint,
+  MilestoneTimeline,
+  ProgressMetric,
+  TeamCrew,
+  TeamMetric,
+  TeamPerson,
+  ZoneRow,
+} from "@/domain/work-progress";

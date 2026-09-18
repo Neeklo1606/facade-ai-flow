@@ -36,14 +36,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SummaryTab } from "@/components/project/SummaryTab";
+import { ProgressTab } from "@/components/project/ProgressTab";
+import { TeamTab } from "@/components/project/TeamTab";
 import {
   DecisionsPreview,
   DocumentsPreview,
   HistoryPreview,
   MaterialsPreview,
-  ProgressPreview,
   PurchasesPreview,
-  TeamPreview,
 } from "@/components/project/PreviewTabs";
 import { useApp } from "@/lib/app-context";
 import { projectStatusMeta } from "@/lib/project-meta";
@@ -202,10 +202,10 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
     documents: <DocumentsPreview {...shared} />,
     materials: <MaterialsPreview {...shared} />,
     purchases: <PurchasesPreview {...shared} />,
-    progress: <ProgressPreview {...shared} />,
+    progress: <ProgressTab project={project} onSource={setSourceId} />,
     decisions: <DecisionsPreview {...shared} />,
     history: <HistoryPreview {...shared} />,
-    team: <TeamPreview {...shared} />,
+    team: <TeamTab project={project} />,
   };
 
   return (

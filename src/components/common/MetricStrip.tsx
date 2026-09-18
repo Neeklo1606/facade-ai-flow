@@ -58,9 +58,13 @@ export interface MetricStripItemProps {
   label: string;
   value: ReactNode;
   delta?: Delta;
+  /** Значок «как получено» рядом с подписью: формула и первоисточники */
+  explain?: ReactNode;
+  /** Честная строка под значением: что именно показывает величина, если она — аналог */
+  note?: string | undefined;
   /** Ячейка-фильтр: нажатие сужает список под полосой */
   onSelect?: () => void;
-  selected?: boolean;
+  selected?: boolean | undefined;
   /** Ячейка-ссылка: открывает реестр с применённым фильтром (дашборд, ADR-007) */
   to?: string;
   search?: Record<string, unknown>;
@@ -71,6 +75,8 @@ export function MetricStripItem({
   label,
   value,
   delta,
+  explain,
+  note,
   compactValue,
 }: MetricStripItemProps & { compactValue?: boolean }) {
   return (
@@ -81,11 +87,14 @@ export function MetricStripItem({
           <Icon className="size-[18px] text-text-2" strokeWidth={1.5} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div
-            className="line-clamp-2 text-[12px] leading-[1.35] break-words text-text-3"
-            title={label}
-          >
-            {label}
+          <div className="flex min-w-0 items-center gap-1">
+            <div
+              className="line-clamp-2 text-[12px] leading-[1.35] break-words text-text-3"
+              title={label}
+            >
+              {label}
+            </div>
+            {explain && <span className="pointer-events-auto relative z-[2]">{explain}</span>}
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span
@@ -100,6 +109,9 @@ export function MetricStripItem({
             </span>
             {delta && <DeltaPill delta={delta} className="@3xs:hidden" />}
           </div>
+          {note && (
+            <div className="mt-0.5 line-clamp-2 text-[12px] leading-[1.35] text-text-3">{note}</div>
+          )}
         </div>
         {delta && <DeltaPill delta={delta} className="hidden @3xs:inline-flex" />}
       </div>
@@ -129,14 +141,17 @@ const separatorClass = "mx-4 hidden h-14 w-px shrink-0 bg-line min-[1440px]:bloc
 export function MetricStrip({
   items,
   layout = "default",
+  label = "Показатели",
   className,
 }: {
   items: MetricStripItemProps[];
   layout?: MetricStripLayout;
+  /** Подпись полосы для чтения с экрана: на странице может быть несколько полос */
+  label?: string;
   className?: string;
 }) {
   return (
-    <section aria-label="Показатели" className={cn(stripBase, stripCols[layout], className)}>
+    <section aria-label={label} className={cn(stripBase, stripCols[layout], className)}>
       {items.map((item, index) => (
         <Fragment key={item.label}>
           {index > 0 && <span aria-hidden className={separatorClass} />}
@@ -154,20 +169,26 @@ export function MetricStrip({
               <MetricStripItem {...item} compactValue={layout === "six"} />
             </Link>
           ) : item.onSelect ? (
-            <button
-              type="button"
-              aria-pressed={item.selected}
-              onClick={item.onSelect}
+            <div
               className={cn(
                 cellClass,
                 gridLines(index, layout),
-                "focus-ring relative text-left transition-fast is-hover:bg-surface-2",
+                "relative transition-fast has-[button:hover]:bg-surface-2",
                 "min-[1440px]:-my-3 min-[1440px]:self-stretch min-[1440px]:rounded-[var(--r-sm)] min-[1440px]:px-3",
-                item.selected && "bg-surface-3 is-hover:bg-surface-3",
+                item.selected && "bg-surface-3",
               )}
             >
-              <MetricStripItem {...item} compactValue={layout === "six"} />
-            </button>
+              <button
+                type="button"
+                aria-pressed={item.selected}
+                aria-label={item.label}
+                onClick={item.onSelect}
+                className="focus-ring absolute inset-0 rounded-[var(--r-sm)]"
+              />
+              <div className="pointer-events-none relative flex min-w-0 flex-1">
+                <MetricStripItem {...item} compactValue={layout === "six"} />
+              </div>
+            </div>
           ) : (
             <div className={cn(cellClass, gridLines(index, layout))}>
               <MetricStripItem {...item} compactValue={layout === "six"} />
