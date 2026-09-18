@@ -1,12 +1,12 @@
 {
   "name": "neeklo FieldOps",
   "short_name": "FieldOps",
-  "description": "Объекты, спецификации, закупка и отчёты с площадки",
-  "start_url": "/projects",
+  "description": "Спецификации из документации, закупка у поставщиков и отчёты с площадки в одном месте",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#b35a2a",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "lang": "ru",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

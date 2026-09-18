@@ -2,6 +2,15 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import {
+  accessKey,
+  grantResponse,
+  hasAccess,
+  isPreviewCrawler,
+  isPublicPath,
+  renderAccessPage,
+  ACCESS_PARAM,
+} from "./lib/access";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -44,12 +53,51 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+/** Ответы страниц не индексируются: демонстрация живёт по ссылке, а не в поиске (TASK-A5, п. 2) */
+function withNoIndex(response: Response) {
+  const type = response.headers.get("content-type") ?? "";
+  if (!type.includes("text/html")) return response;
+  const headers = new Headers(response.headers);
+  headers.set("x-robots-tag", "noindex, nofollow");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
+ * Шлюз доступа. Ключ берётся из окружения хостинга; статика, robots и иконки проходят всегда,
+ * краулерам мессенджеров отдаётся страница-объяснение с превью — ссылка выглядит прилично,
+ * а содержимое остаётся закрытым.
+ */
+function accessGate(request: Request, env: unknown): Response | null {
+  const key = accessKey((env ?? {}) as Record<string, string | undefined>);
+  if (!key) return null;
+
+  const url = new URL(request.url);
+  if (isPublicPath(url.pathname)) return null;
+  if (url.searchParams.get(ACCESS_PARAM) === key) return grantResponse(url, key);
+  if (hasAccess(request, key)) return null;
+
+  return new Response(renderAccessPage(url.origin), {
+    status: isPreviewCrawler(request.headers.get("user-agent")) ? 200 : 401,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "x-robots-tag": "noindex, nofollow",
+    },
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const gate = accessGate(request, env);
+      if (gate) return gate;
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withNoIndex(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

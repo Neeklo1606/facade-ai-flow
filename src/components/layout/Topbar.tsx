@@ -62,9 +62,7 @@ export function Topbar() {
         ? "Дашборд"
         : pathname === "/agent"
           ? "Ассистент"
-          : pathname === "/design-system"
-            ? "Дизайн-система EMBER"
-            : "neeklo FieldOps";
+          : "neeklo FieldOps";
 
   return (
     <header className="content-header">

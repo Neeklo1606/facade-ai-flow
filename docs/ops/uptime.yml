@@ -1,0 +1,56 @@
+# Проверка доступности демонстрации (TASK-A5, п. 5).
+#
+# ЭТОТ ФАЙЛ НУЖНО СКОПИРОВАТЬ В .github/workflows/uptime.yml — из репозитория он туда не попал:
+# токен, которым пушится ветка, не имеет права workflow. Скопировать можно прямо в вебе GitHub:
+# Add file → Create new file → путь .github/workflows/uptime.yml → вставить содержимое → Commit.
+# Пока файл лежит здесь, проверка не запускается.
+# Раз в 15 минут дёргает боевой адрес и падает, если он не отвечает так, как должен.
+# Уведомление — письмо GitHub о неуспешном запуске (Settings → Notifications → Actions).
+# Расписание работает только в ветке по умолчанию: файл должен быть в main.
+name: Доступность демонстрации
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: ${{ vars.DEMO_URL || 'https://facade-ai-flow.lovable.app' }}
+      KEY: ${{ secrets.DEMO_ACCESS_KEY }}
+    steps:
+      - name: Статика отвечает
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$URL/robots.txt")
+          echo "robots.txt → $code"
+          test "$code" = "200"
+
+      - name: Страница отвечает
+        run: |
+          if [ -n "$KEY" ]; then
+            body=$(curl -sS --max-time 25 --cookie "fieldops_demo=$KEY" "$URL/")
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 --cookie "fieldops_demo=$KEY" "$URL/")
+            echo "/ с ключом → $code"
+            test "$code" = "200"
+            # Разметка приложения, а не страница-объяснение и не ошибка хостинга
+            echo "$body" | grep -q 'neeklo FieldOps' || { echo "в ответе нет разметки приложения"; exit 1; }
+          else
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "$URL/")
+            echo "/ без ключа → $code (ожидаем 200 или 401)"
+            case "$code" in 200|401) ;; *) exit 1 ;; esac
+          fi
+
+      - name: Серверная выгрузка отвечает
+        if: ${{ env.KEY != '' }}
+        run: |
+          type=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 30 \
+            --cookie "fieldops_demo=$KEY" "$URL/api/export/projects")
+          echo "выгрузка → $type"
+          echo "$type" | grep -q "spreadsheetml" || exit 1
