@@ -14,10 +14,15 @@ export const DEFAULT_USER_ID = "e-sokolov";
 
 /**
  * Персона демонстрации: сотрудники, за которых можно работать без сессий и прав (ADR-008).
- * Роли у них разные, поэтому на демо видно, как система выглядит для руководителя,
- * снабжения и прораба. Настоящая авторизация — блок B.
+ * Пять ролей экрана выбора (ADR-010): руководитель проекта, снабжение, ПТО, прораб, директор.
  */
-export const DEMO_PERSONAS = ["e-sokolov", "e-dorohov", "e-gareev"] as const;
+export const DEMO_PERSONAS = [
+  "e-sokolov",
+  "e-dorohov",
+  "e-volkova",
+  "e-gareev",
+  "e-belyaev",
+] as const;
 
 const PERSONA_KEY = "neeklo-fieldops-persona";
 

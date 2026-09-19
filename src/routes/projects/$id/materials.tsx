@@ -259,6 +259,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             variant="accent"
             disabled={blocked || (eligibleCount === 0 && readyTotal === 0)}
             onClick={() => setRequestOpen(true)}
+            data-tour="create-request"
           >
             <Send className="size-4" /> Создать запрос поставщикам
             {selected.size > 0 && <span className="tnum opacity-80">{fmtNum(eligibleCount)}</span>}
@@ -368,6 +369,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
                   variant="secondary"
                   disabled={eligibleCount === 0}
                   onClick={() => setRequestOpen(true)}
+                  data-tour="create-request"
                 >
                   <Send className="size-3.5" /> Создать запрос · {fmtNum(eligibleCount)}
                 </Button>
@@ -459,6 +461,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             variant="accent"
             disabled={eligibleCount === 0 && readyTotal === 0}
             onClick={() => setRequestOpen(true)}
+            data-tour="create-request"
           >
             <Send className="size-4" /> Запросить цены
             {selected.size > 0 ? ` · ${fmtNum(eligibleCount)}` : ""}

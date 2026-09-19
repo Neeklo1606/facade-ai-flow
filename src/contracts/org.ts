@@ -5,7 +5,7 @@ import { col, idSchema, pgEnum, table } from "./db";
 
 export const employeeRole = pgEnum(
   "employee_role",
-  ["manager", "foreman", "pto", "supply", "finance", "worker"],
+  ["manager", "foreman", "pto", "supply", "finance", "worker", "director"],
   "Роль сотрудника; от неё зависят доступные разделы и действия (фаза 4)",
 );
 
@@ -176,6 +176,7 @@ export const employeeRoleLabel: Record<Employee["role"], string> = {
   supply: "Снабжение",
   finance: "Финансы",
   worker: "Рабочий",
+  director: "Директор",
 };
 
 export const contactStatusLabel: Record<ContactFreshness, string> = {

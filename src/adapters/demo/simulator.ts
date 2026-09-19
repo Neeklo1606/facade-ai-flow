@@ -126,7 +126,7 @@ function advanceUpload(revisionId: string, stage: number) {
         ? [...prev.positions, ...simulatedPositions(revisionId, doc.projectId, 36)]
         : prev.positions,
   }));
-  emitDemoEvent({ areas: ["documents", "positions", "projects"] });
+  emitDemoEvent({ areas: ["documents", "positions", "projects"], kind: "extraction" });
   if (stage < uploadStatusByStage.length - 1) {
     schedule([
       { kind: "upload", revisionId, stage: stage + 1, dueAt: Date.now() + UPLOAD_STAGE_MS },
@@ -193,6 +193,7 @@ function deliverReply(requestId: string, supplierId: string) {
     ],
   }));
   emitDemoEvent({
+    kind: "offer",
     areas: ["procurement", "positions", "projects", "timeline"],
     notice: {
       title: `Пришло предложение «${supplierName}»`,
@@ -266,6 +267,7 @@ function placeOrder(decisionId: string) {
     ],
   }));
   emitDemoEvent({
+    kind: "order",
     areas: ["procurement", "positions", "projects", "timeline"],
     notice: {
       title: `Заказ по запросу ${request.number} оформлен`,
@@ -288,6 +290,7 @@ function ship(deliveryId: string) {
   const supplierName =
     getState().counterparties.find((item) => item.id === delivery.supplierId)?.name ?? "—";
   emitDemoEvent({
+    kind: "shipment",
     areas: ["procurement", "projects"],
     notice: {
       title: `Поставка «${supplierName}» в пути`,

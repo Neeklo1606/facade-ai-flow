@@ -300,7 +300,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
           >
             <>
               <div className="hidden overflow-x-auto lg:block">
-                <table className="w-full min-w-[1040px] text-table">
+                <table data-tour="documents-list" className="w-full min-w-[1040px] text-table">
                   <thead>
                     <tr className="h-10 bg-subtle text-left text-[11px] font-medium text-text-muted">
                       <th className="px-4">Название</th>
@@ -415,7 +415,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                 </table>
               </div>
 
-              <ul className="divide-y divide-border lg:hidden">
+              <ul data-tour="documents-list" className="divide-y divide-border lg:hidden">
                 {rows.map((doc) => {
                   const s = stats.get(doc.id);
                   const Icon = fileIcon[doc.fileType];

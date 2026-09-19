@@ -14,6 +14,7 @@ import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as ContractsRouteImport } from './routes/contracts'
+import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
@@ -26,6 +27,7 @@ import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
+import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
@@ -60,6 +62,11 @@ const CatalogsRoute = CatalogsRouteImport.update({
 const ContractsRoute = ContractsRouteImport.update({
   id: '/contracts',
   path: '/contracts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoStatsRoute = DemoStatsRouteImport.update({
+  id: '/demo-stats',
+  path: '/demo-stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesignSystemRoute = DesignSystemRouteImport.update({
@@ -120,6 +127,11 @@ const ZonesRoute = ZonesRouteImport.update({
 const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
   id: '/api/client-error',
   path: '/api/client-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedbackRoute = ApiFeedbackRouteImport.update({
+  id: '/api/feedback',
+  path: '/api/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
@@ -183,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
+  '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
@@ -195,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -212,6 +226,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
+  '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
@@ -224,6 +239,7 @@ export interface FileRoutesByTo {
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/projects': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -242,6 +258,7 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/catalogs': typeof CatalogsRoute
   '/contracts': typeof ContractsRoute
+  '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
@@ -254,6 +271,7 @@ export interface FileRoutesById {
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -273,6 +291,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/catalogs'
     | '/contracts'
+    | '/demo-stats'
     | '/design-system'
     | '/integrations'
     | '/knowledge'
@@ -285,6 +304,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/zones'
     | '/api/client-error'
+    | '/api/feedback'
     | '/projects/'
     | '/api/export/projects'
     | '/projects/$id/field-reports'
@@ -302,6 +322,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/catalogs'
     | '/contracts'
+    | '/demo-stats'
     | '/design-system'
     | '/integrations'
     | '/knowledge'
@@ -314,6 +335,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/zones'
     | '/api/client-error'
+    | '/api/feedback'
     | '/projects'
     | '/api/export/projects'
     | '/projects/$id/field-reports'
@@ -331,6 +353,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/catalogs'
     | '/contracts'
+    | '/demo-stats'
     | '/design-system'
     | '/integrations'
     | '/knowledge'
@@ -343,6 +366,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/zones'
     | '/api/client-error'
+    | '/api/feedback'
     | '/projects/'
     | '/api/export/projects'
     | '/projects/$id/field-reports'
@@ -361,6 +385,7 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   CatalogsRoute: typeof CatalogsRoute
   ContractsRoute: typeof ContractsRoute
+  DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
   IntegrationsRoute: typeof IntegrationsRoute
   KnowledgeRoute: typeof KnowledgeRoute
@@ -373,6 +398,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRoute
   ZonesRoute: typeof ZonesRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
+  ApiFeedbackRoute: typeof ApiFeedbackRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
@@ -420,6 +446,13 @@ declare module '@tanstack/react-router' {
       path: '/contracts'
       fullPath: '/contracts'
       preLoaderRoute: typeof ContractsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo-stats': {
+      id: '/demo-stats'
+      path: '/demo-stats'
+      fullPath: '/demo-stats'
+      preLoaderRoute: typeof DemoStatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/design-system': {
@@ -506,6 +539,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiClientErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/feedback': {
+      id: '/api/feedback'
+      path: '/api/feedback'
+      fullPath: '/api/feedback'
+      preLoaderRoute: typeof ApiFeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/': {
       id: '/projects/'
       path: '/projects'
@@ -585,6 +625,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsRoute: AnalyticsRoute,
   CatalogsRoute: CatalogsRoute,
   ContractsRoute: ContractsRoute,
+  DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
   IntegrationsRoute: IntegrationsRoute,
   KnowledgeRoute: KnowledgeRoute,
@@ -597,6 +638,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRoute,
   ZonesRoute: ZonesRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
+  ApiFeedbackRoute: ApiFeedbackRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,

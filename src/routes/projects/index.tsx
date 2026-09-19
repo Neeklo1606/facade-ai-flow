@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { recordAction } from "@/lib/guide/telemetry";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -202,6 +203,7 @@ function ProjectsPage() {
     setExporting(true);
     try {
       saveFile(await api.projects.exportRegistry(filter), registryFileName());
+      recordAction("exportExcel");
       toast.success("Реестр выгружен", { description: `${rows.length} объектов в файле Excel` });
     } catch {
       toast.error("Не удалось сформировать файл Excel");
@@ -364,6 +366,7 @@ function ProjectsPage() {
                 variant="secondary"
                 size="sm"
                 onClick={handleExport}
+                data-tour="export"
                 loading={exporting}
                 disabled={!rows.length}
               >

@@ -517,7 +517,12 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
-                <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
+                <Button
+                  variant="accent"
+                  data-tour="hand-over"
+                  disabled={!canSend}
+                  onClick={() => setSendOpen(true)}
+                >
                   <Send className="size-4" /> Передать в закупку
                   <span className="tnum font-semibold">{fmtNum(toHandOver)}</span>
                 </Button>
@@ -808,6 +813,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                 <div
                   ref={listRef}
                   role="listbox"
+                  data-tour="review-list"
                   aria-label="Извлечённые позиции"
                   className="min-h-0 flex-1 overflow-y-auto"
                 >
@@ -955,7 +961,12 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               </Link>
             </Button>
           ) : (
-            <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
+            <Button
+              variant="accent"
+              data-tour="hand-over"
+              disabled={!canSend}
+              onClick={() => setSendOpen(true)}
+            >
               <Send className="size-4" /> Передать в закупку
             </Button>
           )}

@@ -130,6 +130,7 @@ export function BottomTabs() {
         return (
           <Link
             key={tab.key}
+            data-tour={`nav-${tab.key}`}
             to={tab.to}
             search={tab.search as never}
             aria-current={active ? "page" : undefined}

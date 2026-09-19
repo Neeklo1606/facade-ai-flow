@@ -165,7 +165,12 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         actions={
           // Решение по запросу одно и не редактируется: журнал решений только дописывается
           !decision && (
-            <Button variant="accent" disabled={blocked} onClick={() => setDecisionOpen(true)}>
+            <Button
+              variant="accent"
+              data-tour="decide"
+              disabled={blocked}
+              onClick={() => setDecisionOpen(true)}
+            >
               <Gavel className="size-4" /> Зафиксировать решение
             </Button>
           )
@@ -275,7 +280,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
       {!blocked && !decision && (
         <MobileActionBar>
-          <Button variant="accent" onClick={() => setDecisionOpen(true)}>
+          <Button variant="accent" data-tour="decide" onClick={() => setDecisionOpen(true)}>
             <Gavel className="size-4" /> Зафиксировать решение
           </Button>
         </MobileActionBar>

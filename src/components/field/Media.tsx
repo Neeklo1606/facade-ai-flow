@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { recordAction } from "@/lib/guide/telemetry";
 import { ChevronLeft, ChevronRight, MessageSquare, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -173,7 +174,7 @@ export function VoiceReport({
   const activeField = sorted.find((field) => field.id === activeId) ?? null;
 
   return (
-    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div data-tour="voice-report" className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="rounded-[var(--r-md)] border border-border bg-raised p-3">
         <p className="flex items-center gap-2 text-caption text-text-muted">
           <MessageSquare className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -194,7 +195,10 @@ export function VoiceReport({
               <button
                 type="button"
                 aria-pressed={active}
-                onClick={() => setActiveId((value) => (value === field.id ? null : field.id))}
+                onClick={() => {
+                  setActiveId((value) => (value === field.id ? null : field.id));
+                  recordAction("inspectVoiceField");
+                }}
                 className={cn(
                   "flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left transition-fast hover:bg-hover",
                   active && "bg-surface-2",

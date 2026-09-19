@@ -77,6 +77,8 @@ export interface DemoEvent {
   areas: DemoEventArea[];
   /** Что показать пользователю, если событие заметное: пришло предложение, поставка в пути */
   notice?: { title: string; description: string };
+  /** Что произошло: по этому признаку проводка засчитывает шаг «дождитесь предложений» (ADR-010) */
+  kind?: "extraction" | "offer" | "order" | "shipment";
 }
 
 const listeners = new Set<(event: DemoEvent) => void>();

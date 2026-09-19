@@ -12,6 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { reportClientError, startErrorReporting } from "@/lib/error-report";
+import { RolePicker } from "@/components/guide/RolePicker";
+import { GuideDock } from "@/components/guide/GuideDock";
+import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
 import { markStartScreenApplied } from "@/lib/navigation";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -148,6 +151,8 @@ function RootComponent() {
   // Вход в демонстрацию — первый отрисованный экран вкладки, какой угодно. Пока отметка ставилась
   // только на «/», вошедший по прямой ссылке терял первый клик по «Дашборд» (находка ревью)
   useEffect(markStartScreenApplied, []);
+  // Телеметрия сессии: открытие экранов и точка выхода (ADR-010)
+  useScreenTelemetry();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -157,6 +162,9 @@ function RootComponent() {
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             <Outlet />
           </AppLayout>
+          {/* Выбор роли при первом входе, проводка и обратная связь (ADR-010) */}
+          <GuideDock />
+          <RolePicker />
           {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}
           <Toaster position="top-center" offset={{ top: 64 }} mobileOffset={{ top: 64 }} />
         </TooltipProvider>

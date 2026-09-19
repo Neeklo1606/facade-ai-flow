@@ -74,6 +74,16 @@ export const employees = [
     status: "active",
   },
   {
+    // Персона демонстрации «директор» (ADR-010): смотрит всё, решения принимает руководитель
+    id: "e-belyaev",
+    name: "Беляев В. Н.",
+    position: "Генеральный директор",
+    role: "director",
+    phone: "+7 921 300-05-17",
+    telegram: "@belyaev_vn",
+    status: "active",
+  },
+  {
     id: "e-nazarov",
     name: "Назаров Т. Б.",
     position: "Монтажник, звеньевой",

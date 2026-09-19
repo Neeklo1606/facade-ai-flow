@@ -408,7 +408,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
       panel={current ? <RequestDetails row={current} /> : null}
     >
       <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[980px] text-table">
+        <table data-tour="requests-list" className="w-full min-w-[980px] text-table">
           <thead>
             <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
               <th className="px-4">Номер</th>
@@ -499,7 +499,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
         </table>
       </div>
 
-      <ul className="divide-y divide-border lg:hidden">
+      <ul data-tour="requests-list" className="divide-y divide-border lg:hidden">
         {rows.map((row) => {
           const meta = rfqStatusMeta[row.status];
           return (

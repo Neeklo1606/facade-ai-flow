@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { recordAction } from "@/lib/guide/telemetry";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -54,6 +55,7 @@ export function TeamTab({ project }: { project: Project }) {
     setExporting(true);
     try {
       saveFile(await exportTeam(project.name, team.people), teamFileName(project.code));
+      recordAction("exportExcel");
       toast.success("Команда выгружена", {
         description: `${fmtNum(team.people.length)} ${team.people.length === 1 ? "сотрудник" : "сотрудников"} в файле Excel`,
       });

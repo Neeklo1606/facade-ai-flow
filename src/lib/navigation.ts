@@ -135,8 +135,8 @@ export function navItemsFor(role: EmployeeRole) {
 }
 
 /**
- * Стартовый экран роли (ADR-008): руководителю — сводка по всем объектам, снабжению — закупки,
- * прорабу — отчёты с площадки. Без объектов в системе всем открывается реестр.
+ * Стартовый экран роли (ADR-008, ADR-010): руководителю и директору — сводка по всем объектам,
+ * снабжению — закупки, ПТО — документация, прорабу — отчёты с площадки. Без объектов в системе всем открывается реестр.
  *
  * Применяется один раз за вкладку, при входе в демонстрацию (см. `startScreenPending`):
  * иначе пункт меню «Дашборд» у снабжения был бы кнопкой без результата — переход тут же
@@ -169,6 +169,7 @@ export function startRouteFor(role: EmployeeRole, projectId: string | null) {
   if (!projectId) return "/projects";
   if (role === "supply") return `/projects/${projectId}/procurement`;
   if (role === "foreman") return `/projects/${projectId}/field-reports`;
+  if (role === "pto") return `/projects/${projectId}/documents`;
   return "/";
 }
 

@@ -296,6 +296,7 @@ function SidebarInner({
                           to={href.to}
                           search={href.search as never}
                           onClick={onClose}
+                          data-tour={`nav-${item.key}`}
                           title={item.label}
                           data-active={active}
                           aria-current={active ? "page" : undefined}

@@ -454,6 +454,7 @@ function ReportCard({
                 variant="secondary"
                 disabled={!report.declaredQty}
                 onClick={() => accept(report.declaredQty)}
+                data-tour="report-accept"
               >
                 <Check className="size-4" /> Принять
               </Button>

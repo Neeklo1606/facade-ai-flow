@@ -37,6 +37,7 @@ export function SourceBadge({
         <button
           type="button"
           onClick={onOpen}
+          data-tour="source"
           aria-label={`Источник: ${source}. Заполнено агентом «${agent}»`}
           data-force={force}
           className={cn(
