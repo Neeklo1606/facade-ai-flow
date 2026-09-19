@@ -129,7 +129,7 @@ export interface PreviewMeta {
  * `VITE_PUBLIC_URL`, иначе превью ссылки указывало бы на старый домен (находка ревью LOW).
  */
 const publicUrl = (
-  import.meta.env["VITE_PUBLIC_URL"]?.trim() || "https://facade-rp.lovable.app/"
+  import.meta.env["VITE_PUBLIC_URL"]?.trim() || "https://facade-ai-flow.lovable.app/"
 ).replace(/\/?$/, "/");
 
 export const previewMeta: PreviewMeta = {
