@@ -56,24 +56,31 @@ const COMMON: ChecklistItem[] = [
   { id: "spec", label: "Соответствует спецификации: марка, размер, цвет" },
 ];
 
-/** Дополнительные пункты по семейству материала; семейства — из справочника материалов */
-const BY_FAMILY: { match: RegExp; items: ChecklistItem[] }[] = [
+/**
+ * Дополнительные пункты по семейству материала. Семейство — код из справочника материалов
+ * (`materials.family`: bracket, rail, tile…); распознанное семейство позиции может прийти
+ * словами — «облицовка», «утеплитель», — его сравниваем по корню
+ */
+const BY_FAMILY: { families: readonly string[]; names: RegExp; items: ChecklistItem[] }[] = [
   {
-    match: /облицов|керамогранит|панел|кассет/i,
+    families: ["tile", "panel", "cassette"],
+    names: /облицов|керамогранит|панел|кассет/i,
     items: [
       { id: "batch", label: "Одна партия и тон по маркировке" },
       { id: "chips", label: "Нет сколов на лицевой стороне и кромках" },
     ],
   },
   {
-    match: /утепл|минват|вата|мембран/i,
+    families: ["wool", "membrane"],
+    names: /утепл|минват|вата|мембран/i,
     items: [
       { id: "density", label: "Плотность по паспорту соответствует проекту" },
       { id: "dry", label: "Упаковка сухая, материал не намок" },
     ],
   },
   {
-    match: /подконструкц|кронштейн|направляющ|крепёж|анкер|заклёп/i,
+    families: ["bracket", "rail", "anchor", "rivet", "fastener"],
+    names: /подконструкц|кронштейн|направляющ|крепёж|анкер|заклёп/i,
     items: [
       { id: "coating", label: "Покрытие без повреждений: цинк, анодирование" },
       { id: "marking", label: "Маркировка на изделиях и упаковке" },
@@ -84,7 +91,9 @@ const BY_FAMILY: { match: RegExp; items: ChecklistItem[] }[] = [
 /** Чек-лист для поставки: общие пункты и пункты по семействам её материалов, без повторов */
 export function checklistFor(families: (string | null)[]): ChecklistItem[] {
   const extra = BY_FAMILY.filter((group) =>
-    families.some((family) => family && group.match.test(family)),
+    families.some(
+      (family) => family !== null && (group.families.includes(family) || group.names.test(family)),
+    ),
   ).flatMap((group) => group.items);
   const seen = new Set<string>();
   return [...COMMON, ...extra].filter((item) => !seen.has(item.id) && seen.add(item.id));
@@ -157,7 +166,14 @@ export function hasDiscrepancy(
 export function acceptanceError(item: Delivery, draft: AcceptanceDraft): string | null {
   if (item.status !== "arrived") return "Принять можно только прибывшую поставку";
   if (!draft.confirmed) return "Подтвердите приёмку от своего имени";
-  if (draft.lines.length !== item.items.length) return "Укажите факт по каждой строке";
+  // Факт — ровно по одному на каждую строку поставки: два факта по одной строке и ни одного
+  // по другой — не акт
+  const factIds = draft.lines.map((line) => line.lineId);
+  const everyLineOnce =
+    factIds.length === item.items.length &&
+    new Set(factIds).size === factIds.length &&
+    item.items.every((line) => factIds.includes(line.id));
+  if (!everyLineOnce) return "Укажите факт по каждой строке";
   if (draft.lines.some((line) => !Number.isFinite(line.acceptedQty) || line.acceptedQty < 0))
     return "Фактическое количество не может быть отрицательным";
   const expected = checklistFor([]).length;

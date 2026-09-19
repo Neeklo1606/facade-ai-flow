@@ -1,11 +1,18 @@
 import { isReadyForRequest, type ProjectDocument } from "@/contracts";
 import { remarkKindLabel } from "@/contracts";
-import { byAttention, isAutoVerified, matchesFilter, positionFacets } from "@/domain/positions";
+import {
+  byAttention,
+  handOverError,
+  isAutoVerified,
+  matchesFilter,
+  positionFacets,
+} from "@/domain/positions";
 import { currentRevisions, projectOverview, revisionStats, revisionsOf } from "@/domain/overview";
 import {
   answeredCount,
   compareOffers,
   decisionFor,
+  decisionReasonError,
   replyDue,
   rfqStatus,
   supplierDecision,
@@ -263,7 +270,14 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       merge: ({ sourceId, targetId }, { actorId }) =>
         done(actions.merge(sourceId, targetId, actorId)),
       split: ({ id, firstQty }, { actorId }) => done(actions.split(id, firstQty, actorId)),
-      handOver: ({ revisionId }, { actorId }) => done(actions.handOver(revisionId, actorId)),
+      handOver: ({ revisionId }, { actorId }) =>
+        attempt(() => {
+          const problem = handOverError(
+            state().positions.filter((item) => item.documentId === revisionId),
+          );
+          if (problem) throw new ConflictError(problem);
+          return actions.handOver(revisionId, actorId);
+        }),
       materials: () => done(state().materials),
       replacements: () => done(state().replacements),
     },
@@ -335,6 +349,8 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         const s = state();
         const request = s.requests.find((item) => item.id === input.requestId);
         if (!request) return Promise.reject(new NotFoundError("Запрос", input.requestId));
+        const reasonProblem = decisionReasonError(input.reason);
+        if (reasonProblem) return Promise.reject(new ConflictError(reasonProblem));
         if (!request.sentTo.includes(input.supplierId)) {
           return Promise.reject(new ConflictError("Поставщику не отправляли этот запрос"));
         }
@@ -383,7 +399,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             })),
         );
       },
-      review: (input) => done(actions.reviewReport(input)),
+      review: (input) => attempt(() => actions.reviewReport(input)),
       source: (sourceId) => {
         const s = state();
         const source = s.sources.find((item) => item.id === sourceId);

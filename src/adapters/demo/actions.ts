@@ -31,6 +31,7 @@ import {
 } from "@/domain/deliveries";
 import { DEMO_DECISION_ORDER_NOTE } from "@/lib/demo-copy";
 import { ConflictError, NotFoundError } from "@/ports";
+import { reportStatusLabel, reportTransitions } from "@/contracts";
 import type {
   ResolveRemarkInput,
   AcceptDeliveryInput,
@@ -1152,6 +1153,13 @@ export function verifyContact(supplierId: string) {
 }
 
 export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
+  const report = getState().reports.find((item) => item.id === id);
+  if (!report) throw new NotFoundError("Отчёт", id);
+  // Переход по таблице контракта: вернуть уже возвращённый или принять принятый нельзя
+  const allowed: readonly string[] = reportTransitions[report.status];
+  if (!allowed.includes(status)) {
+    throw new ConflictError(`Отчёт уже в статусе «${reportStatusLabel[report.status]}»`);
+  }
   update((prev) => ({
     ...prev,
     reports: prev.reports.map((r) => (r.id === id ? { ...r, status, acceptedQty } : r)),

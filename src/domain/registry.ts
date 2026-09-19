@@ -17,14 +17,19 @@ export interface RegistryItem {
 
 /** Отфильтровать и упорядочить: сначала просроченные ответы, затем непроверенные строки */
 export function registryRows<T extends RegistryItem>(items: T[], filter: RegistryFilter) {
-  const weight = (item: RegistryItem) =>
-    item.overview.overdueRequests * 10_000 + item.overview.specUnverified;
-  return items
-    .filter((item) => !filter.region || item.overview.region === filter.region)
-    .filter((item) => !filter.managerId || item.project.manager === filter.managerId)
-    .filter((item) => !filter.status || item.project.status === filter.status)
-    .filter((item) => !filter.unverified || item.overview.specUnverified > 0)
-    .sort((a, b) => weight(b) - weight(a));
+  return (
+    items
+      .filter((item) => !filter.region || item.overview.region === filter.region)
+      .filter((item) => !filter.managerId || item.project.manager === filter.managerId)
+      .filter((item) => !filter.status || item.project.status === filter.status)
+      .filter((item) => !filter.unverified || item.overview.specUnverified > 0)
+      // Два ключа, а не общий вес: просроченный ответ важнее любого числа непроверенных строк
+      .sort(
+        (a, b) =>
+          b.overview.overdueRequests - a.overview.overdueRequests ||
+          b.overview.specUnverified - a.overview.specUnverified,
+      )
+  );
 }
 
 export interface ExportColumn<T> {

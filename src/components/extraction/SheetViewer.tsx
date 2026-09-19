@@ -201,7 +201,14 @@ export const SheetViewer = forwardRef<SheetViewerHandle, Props>(function SheetVi
         </div>
       </div>
 
-      <div ref={scroller} className="min-h-0 flex-1 overflow-auto" tabIndex={-1}>
+      {/* Лист прокручивается и с клавиатуры: область в порядке табуляции и подписана */}
+      <div
+        ref={scroller}
+        className="focus-ring min-h-0 flex-1 overflow-auto"
+        tabIndex={0}
+        role="region"
+        aria-label="Листы документа"
+      >
         <div
           className="mx-auto flex flex-col items-center"
           style={{

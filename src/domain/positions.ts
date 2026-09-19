@@ -45,6 +45,18 @@ export function matchesView(item: ExtractedPosition, view: PositionView) {
   }
 }
 
+/**
+ * Можно ли передать ревизию в закупку. Пока в ней есть позиции «Не удалось определить»,
+ * передача закрыта — то же правило, что у кнопки экрана проверки, но его держит адаптер:
+ * экран может ошибиться или быть обойдён прямым вызовом.
+ */
+export function handOverError(revisionPositions: ExtractedPosition[]): string | null {
+  const blocking = revisionPositions.filter((item) => matchesView(item, "check")).length;
+  return blocking
+    ? `Сначала разберите позиции «Не удалось определить»: ${blocking}. Исправьте или исключите их.`
+    : null;
+}
+
 /** Позиция в закупке: проверена и передана — только у таких есть этап закупки */
 export function inProcurement(item: ExtractedPosition) {
   return isVerifiedPosition(item) && item.handedOverAt !== null;

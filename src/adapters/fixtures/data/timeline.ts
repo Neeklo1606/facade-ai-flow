@@ -297,7 +297,7 @@ export const projectEvents = [
     occurredAt: "2026-09-05T07:15:00",
     type: "offer_received",
     title: "Получено предложение «Фасад-Комплект» по кронштейнам",
-    details: "Доступно 2 800 из 3 400 шт",
+    details: "Доступно 5 300 из 6 400 шт",
     actorKind: "system",
     actorId: null,
     sourceId: "src-mail-fk",

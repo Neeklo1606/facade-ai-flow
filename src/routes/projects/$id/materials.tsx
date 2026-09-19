@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { DEMO_POSITIONS_NOT_LOADED } from "@/lib/demo-copy";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronRight,
@@ -230,6 +231,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
     (doc) =>
       doc.projectId === project.id && (doc.status === "uploaded" || doc.status === "recognizing"),
   );
+  const countedOnly = (scopeQuery.data?.views.all ?? 0) === 0 && (overview?.specTotal ?? 0) > 0;
   const screen = useScreenState({
     pending: scopeQuery.isPending || filteredQuery.isPending,
     error: scopeQuery.isError || filteredQuery.isError,
@@ -394,17 +396,24 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
               section: "Материалы",
               roles: "руководителю проекта, ПТО и снабжению",
               errorTitle: "Не удалось загрузить материалы",
-              empty: {
-                icon: PackageSearch,
-                title: "Материалов пока нет",
-                description:
-                  "Загрузите спецификацию в документации объекта и подтвердите извлечённые позиции — они появятся здесь, и по ним можно будет запросить цены.",
-                ...(can("documents", "write") && {
-                  actionLabel: "Загрузить спецификацию",
-                  onAction: () =>
-                    navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
-                }),
-              },
+              // Число позиций в шапке есть, а списка нет — позиции объекта не загружены (R20)
+              empty: countedOnly
+                ? {
+                    icon: PackageSearch,
+                    title: `Позиции не загружены: ${fmtNum(overview?.specTotal ?? 0)} по документации`,
+                    description: DEMO_POSITIONS_NOT_LOADED,
+                  }
+                : {
+                    icon: PackageSearch,
+                    title: "Материалов пока нет",
+                    description:
+                      "Загрузите спецификацию в документации объекта и подтвердите извлечённые позиции — они появятся здесь, и по ним можно будет запросить цены.",
+                    ...(can("documents", "write") && {
+                      actionLabel: "Загрузить спецификацию",
+                      onAction: () =>
+                        navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
+                    }),
+                  },
               filtered: {
                 onReset: resetFilters,
                 description:

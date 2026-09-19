@@ -504,6 +504,7 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
                       "absolute inset-y-2 left-0 w-[3px] rounded-r-full",
                       attentionBar[attention],
                     )}
+                    role="img"
                     aria-label={
                       attention === "critical"
                         ? "Просрочены ответы поставщиков"

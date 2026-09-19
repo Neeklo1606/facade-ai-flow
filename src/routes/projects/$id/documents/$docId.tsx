@@ -743,6 +743,10 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   </div>
                   <div
                     className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-subtle"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={pct}
                     aria-label={`Проверено ${pct}%`}
                   >
                     <div
@@ -841,7 +845,8 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
                 <div
                   ref={listRef}
-                  role="listbox"
+                  // Список, а не listbox: у строки есть свои кнопки, а навигация J/K — клавишами экрана
+                  role="list"
                   data-tour="review-list"
                   aria-label="Извлечённые позиции"
                   className="min-h-0 flex-1 overflow-y-auto"

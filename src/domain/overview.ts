@@ -16,6 +16,7 @@ import {
   type DeliveryRemark,
 } from "@/contracts";
 import { answeredCount, decisionFor, isActiveRequest, rfqStatus } from "./procurement";
+import { wallIso, wallMs } from "./time";
 
 /** Данные, из которых считается сводка объекта. Форма совпадает с таблицами представлений. */
 export interface OverviewSource {
@@ -120,7 +121,9 @@ export function projectOverview(
     (item) => item.status === "open" && documentIds.has(item.documentId),
   ).length;
 
-  const weekAgo = new Date(new Date(now).getTime() - 7 * DAY).toISOString().slice(0, 10);
+  // Календарная дата «сейчас» как она записана в источнике, без перевода в UTC: иначе восточнее
+  // Гринвича после полуночи окно съезжало на день
+  const weekAgo = wallIso(wallMs(now.slice(0, 10)) - 7 * DAY).slice(0, 10);
   const missingReports = s.crews.filter(
     (crew) =>
       crew.projectId === projectId &&

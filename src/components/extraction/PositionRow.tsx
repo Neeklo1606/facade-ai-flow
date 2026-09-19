@@ -62,8 +62,8 @@ export const PositionRow = memo(function PositionRow({
   return (
     <div
       data-position-id={item.id}
-      role="option"
-      aria-selected={active}
+      role="listitem"
+      aria-current={active ? "true" : undefined}
       onClick={() => onActivate(item.id)}
       className={cn(
         "group relative cursor-pointer border-b border-border px-4 py-2.5 transition-fast",
