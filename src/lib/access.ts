@@ -31,6 +31,13 @@ export function isRemovedInProduction(pathname: string) {
   return pathname === DESIGN_SYSTEM_PATH || pathname === DESIGN_SYSTEM_PATH + "/";
 }
 export const ACCESS_PARAM = "k";
+/** Запасное имя параметра: часть ссылок разошлась с ?key=, принимаем оба */
+export const ACCESS_PARAM_ALT = "key";
+
+/** Ключ из адреса: `k` основной, `key` — из ранее разосланных ссылок */
+export function accessParam(url: URL) {
+  return url.searchParams.get(ACCESS_PARAM) ?? url.searchParams.get(ACCESS_PARAM_ALT);
+}
 /** 30 дней: показ живёт неделями, повторно ключ никто не ищет */
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -97,6 +104,7 @@ function decodeCookie(value: string) {
 export function grantResponse(url: URL, key: string) {
   const clean = new URL(url);
   clean.searchParams.delete(ACCESS_PARAM);
+  clean.searchParams.delete(ACCESS_PARAM_ALT);
   const secure = clean.protocol === "https:" ? " Secure;" : "";
   return new Response(null, {
     status: 302,
@@ -180,7 +188,7 @@ export function renderAccessPage(origin: string): string {
       <p>Это рабочая демонстрация neeklo FieldOps — системы для фасадных подрядчиков.
         Адрес закрыт от поисковиков и случайных переходов, поэтому без ключа экран пустой.</p>
       <ul>
-        <li>Ключ выдаёт владелец проекта вместе со ссылкой вида <code>?k=…</code>.</li>
+        <li>Ключ выдаёт владелец проекта вместе со ссылкой вида <code>?k=…</code> или <code>?key=…</code>.</li>
         <li>Открытая один раз ссылка запоминается в браузере на 30 дней.</li>
         <li>Данные внутри вымышленные: объекты, поставщики и отчёты собраны для показа.</li>
       </ul>

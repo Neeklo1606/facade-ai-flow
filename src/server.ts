@@ -4,13 +4,13 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import {
   accessKey,
+  accessParam,
   grantResponse,
   hasAccess,
   isPreviewCrawler,
   isPublicPath,
   isRemovedInProduction,
   renderAccessPage,
-  ACCESS_PARAM,
 } from "./lib/access";
 
 type ServerEntry = {
@@ -78,7 +78,7 @@ function accessGate(request: Request, env: unknown): Response | null {
 
   const url = new URL(request.url);
   if (isPublicPath(url.pathname)) return null;
-  if (url.searchParams.get(ACCESS_PARAM) === key) return grantResponse(url, key);
+  if (accessParam(url) === key) return grantResponse(url, key);
   if (hasAccess(request, key)) return null;
 
   return new Response(renderAccessPage(url.origin), {
