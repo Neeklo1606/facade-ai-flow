@@ -4,13 +4,13 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import {
   accessKey,
+  accessParam,
   grantResponse,
   hasAccess,
   isPreviewCrawler,
   isPublicPath,
   isRemovedInProduction,
   renderAccessPage,
-  ACCESS_PARAM,
 } from "./lib/access";
 
 type ServerEntry = {
