@@ -1,4 +1,5 @@
 import type { Delivery, ExtractionJob, ProjectDocument, RequestLine } from "@/contracts";
+import { DEMO_ORDER_NOTE, DEMO_SHIPMENT_NOTE } from "@/lib/demo-copy";
 import { simulatedPositions } from "@/adapters/fixtures";
 import { addDays, tick } from "./clock";
 import { projectEvent } from "./records";
@@ -258,8 +259,8 @@ function placeOrder(decisionId: string) {
         {
           projectId: request.projectId,
           type: "material_ordered",
-          title: `Заказаны материалы у «${supplierName}» по запросу ${request.number}`,
-          details: `${request.items.length} поз., поставка ожидается через ${leadDays} дн.`,
+          title: `Заказ у «${supplierName}» по запросу ${request.number} создан автоматически`,
+          details: `${request.items.length} поз., срок ${leadDays} дн. по предложению. ${DEMO_ORDER_NOTE}`,
           requestId: request.id,
         },
         null,
@@ -270,8 +271,8 @@ function placeOrder(decisionId: string) {
     kind: "order",
     areas: ["procurement", "positions", "projects", "timeline"],
     notice: {
-      title: `Заказ по запросу ${request.number} оформлен`,
-      description: `«${supplierName}» подтвердил заказ, поставка ожидается через ${leadDays} дн.`,
+      title: `Заказ по запросу ${request.number} создан автоматически`,
+      description: `${DEMO_ORDER_NOTE} Поставщик — «${supplierName}», срок ${leadDays} дн.`,
     },
   });
   schedule([{ kind: "shipment", deliveryId: delivery.id, dueAt: Date.now() + SHIPMENT_DELAY_MS }]);
@@ -293,8 +294,8 @@ function ship(deliveryId: string) {
     kind: "shipment",
     areas: ["procurement", "projects"],
     notice: {
-      title: `Поставка «${supplierName}» в пути`,
-      description: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}.`,
+      title: `Поставка «${supplierName}» отмечена «в пути»`,
+      description: `${DEMO_SHIPMENT_NOTE} ${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}.`,
     },
   });
 }

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { UNCONFIRMED_DELIVERY_NOTE } from "@/lib/demo-copy";
 import { Bot, Check, FileText, UserRound } from "lucide-react";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
@@ -381,6 +382,8 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
                     {delivery.receivedAt
                       ? `принята ${fmtDate(delivery.receivedAt)}`
                       : `ожидается ${fmtDate(delivery.expectedAt)}`}
+                    {/* Статус без документа поставщика — рядом со статусом, а не сноской */}
+                    {!delivery.sourceId && ` · ${UNCONFIRMED_DELIVERY_NOTE}`}
                   </p>
                 </div>
                 <StatusBadge tone={deliveryTone[delivery.status]}>
