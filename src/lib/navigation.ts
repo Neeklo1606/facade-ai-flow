@@ -1,6 +1,7 @@
 import type { EmployeeRole } from "@/contracts";
 import { can, type Section } from "@/domain/access";
 import {
+  BookOpen,
   Boxes,
   Building2,
   FileText,
@@ -126,6 +127,13 @@ export const navGroups: NavGroup[] = [
         access: "timeline",
       },
       {
+        key: "catalogs",
+        label: "Справочники",
+        icon: BookOpen,
+        to: "/catalogs",
+        access: "catalogs",
+      },
+      {
         key: "access",
         label: "Права доступа",
         icon: ShieldCheck,
@@ -230,6 +238,7 @@ export function activeNavKey(pathname: string, view: string, pickSection: string
   if (pathname === "/") return "dashboard";
   if (pathname === "/agent") return "agent";
   if (pathname === "/access") return "access";
+  if (pathname === "/catalogs") return "catalogs";
   if (pathname === "/projects" && pickSection) return pickSection;
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);
   if (!match) return pathname.startsWith("/projects") ? "projects" : null;

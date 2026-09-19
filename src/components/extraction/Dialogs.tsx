@@ -84,6 +84,8 @@ export function SplitDialog({
 export interface SendSummary {
   create: number;
   needNormalization: number;
+  /** Сопоставление с материалом не подтверждено — в запрос не уйдут (ADR-014) */
+  unconfirmedMatch: number;
   withoutCharacteristics: number;
   region: string;
   pendingLeft: number;
@@ -119,9 +121,9 @@ export function SendDialog({
               after: `${fmtNum(summary.create)} поз.`,
             },
             {
-              label: "Из них требуют нормализации",
-              after: fmtNum(summary.needNormalization),
-              hint: "Наименование не сопоставлено со справочником. Нормализуйте до запроса, иначе поставщики получат проектные названия.",
+              label: "Из них без подтверждённого материала",
+              after: fmtNum(summary.unconfirmedMatch),
+              hint: "Сопоставление со справочником не подтверждено. Такие позиции передаются, но в запрос поставщикам не уйдут, пока сопоставление не подтвердят здесь или в материалах.",
             },
             {
               label: "Регион объекта",

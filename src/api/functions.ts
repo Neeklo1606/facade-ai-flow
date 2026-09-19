@@ -1,8 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { extractedPosition, projectDecision, projectDocument, projectView } from "@/contracts";
+import {
+  extractedPosition,
+  materials as materialRow,
+  projectDecision,
+  projectDocument,
+  projectView,
+} from "@/contracts";
 import {
   agentReply,
+  categoryList,
+  confirmMatchInput,
+  materialCard,
+  saveMaterialInput,
+  supplierCard,
   askAgentInput,
   correctPositionInput,
   counterpartyList,
@@ -247,6 +258,12 @@ export const handOverFn = createServerFn({ method: "POST" })
     respond(z.number().int(), await repos().positions.handOver(data, actor())),
   );
 
+export const confirmMatchFn = createServerFn({ method: "POST" })
+  .validator(input(confirmMatchInput))
+  .handler(async ({ data }) =>
+    respond(extractedPosition, await repos().positions.confirmMatch(data, actor())),
+  );
+
 export const materialsFn = createServerFn({ method: "GET" }).handler(async () =>
   respond(materialList, await repos().positions.materials()),
 );
@@ -260,6 +277,30 @@ export const replacementsFn = createServerFn({ method: "GET" }).handler(async ()
 export const suppliersFn = createServerFn({ method: "GET" }).handler(async () =>
   respond(z.array(supplierListItem), await repos().procurement.suppliers()),
 );
+
+export const supplierFn = createServerFn({ method: "GET" })
+  .validator(input(byId))
+  .handler(async ({ data }) =>
+    respond(supplierCard.nullable(), await repos().procurement.supplier(data.id)),
+  );
+
+/* ---------- Номенклатура (ADR-014) ---------- */
+
+export const categoriesFn = createServerFn({ method: "GET" }).handler(async () =>
+  respond(categoryList, await repos().catalog.categories()),
+);
+
+export const materialCardFn = createServerFn({ method: "GET" })
+  .validator(input(byId))
+  .handler(async ({ data }) =>
+    respond(materialCard.nullable(), await repos().catalog.material(data.id)),
+  );
+
+export const saveMaterialFn = createServerFn({ method: "POST" })
+  .validator(input(saveMaterialInput))
+  .handler(async ({ data }) =>
+    respond(materialRow, await repos().catalog.saveMaterial(data, actor())),
+  );
 
 export const verifyContactFn = createServerFn({ method: "POST" })
   .validator(input(z.object({ supplierId: z.string().min(1) })))

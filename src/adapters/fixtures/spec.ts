@@ -12,6 +12,8 @@ import type {
   SupplyRequestPosition,
 } from "@/contracts";
 import { SHEET_TABLE } from "@/lib/sheet-geometry";
+import { suggestMaterial } from "@/domain/catalog";
+import { materialCatalog } from "./data/catalog";
 
 /**
  * Спецификация «Северной Короны»: справочник материалов, листы ревизий и генератор 847 позиций.
@@ -301,11 +303,19 @@ const clarifyNotes = [
 
 /* ---------- Справочник материалов ---------- */
 
+/**
+ * Номенклатура (ADR-014, п. 4): категория и синонимы — из справочника, характеристики — типовые
+ * для материала, типичное написание — как материал называют в проектах
+ */
 export const materials: Material[] = Object.values(families).map((item) => ({
   id: item.material,
   family: item.family,
   name: item.normalized,
   unit: item.unit,
+  categoryId: materialCatalog[item.material]!.categoryId,
+  characteristics: item.characteristics(0),
+  synonyms: materialCatalog[item.material]!.synonyms,
+  spellings: [item.base],
 }));
 
 /* ---------- Листы ревизий ---------- */
@@ -345,7 +355,17 @@ interface GeneratedPosition {
 
 function buildSpecPositions(): GeneratedPosition[] {
   const rows: {
-    row: Omit<PositionRow, "review" | "reviewedBy" | "reviewedAt" | "purchase" | "handedOverAt">;
+    row: Omit<
+      PositionRow,
+      | "review"
+      | "reviewedBy"
+      | "reviewedAt"
+      | "purchase"
+      | "handedOverAt"
+      | "matchStatus"
+      | "matchedBy"
+      | "matchedAt"
+    >;
     sheetNumber: number;
   }[] = [];
   let g = 0;
@@ -403,15 +423,24 @@ function buildSpecPositions(): GeneratedPosition[] {
       const plan = purchaseBySheet[sheetNumber]!;
       const purchase: PurchaseStatus = plan.split && inSheet % 3 === 2 ? plan.split : plan.status;
       const reviewedAt = `2026-09-0${1 + (kk % 5)}T${String(9 + (kk % 8)).padStart(2, "0")}:${String((kk * 7) % 60).padStart(2, "0")}:00`;
+      const reviewedBy = kk % 4 === 0 ? "e-sokolov" : "e-volkova";
+      // Из проверенных 47 распознались без материала. Те, что уже в запросах, сопоставил тот же
+      // проверяющий — запрос по ним ушёл, значит сопоставление было. Остальные ждут подтверждения
+      // предложения системы и в запрос не попадают (ADR-014, п. 8)
+      const unmapped = (kk * 149 + 17) % SPEC_CONFIRMED < 47;
+      const suggestion = unmapped ? suggestMaterial(row.projectName, materials) : null;
+      const waiting = unmapped && purchase === "none";
       return {
         requestId: purchase === "none" ? null : (plan.requestIds[0] ?? null),
         row: {
           ...row,
-          // 47 проверенных позиций без нормализованного наименования, 12 — без характеристик
-          materialId: (kk * 149 + 17) % SPEC_CONFIRMED < 47 ? null : row.materialId,
+          materialId: waiting ? (suggestion?.materialId ?? null) : row.materialId,
+          matchStatus: waiting ? (suggestion ? "suggested" : "none") : "confirmed",
+          matchedBy: waiting ? null : reviewedBy,
+          matchedAt: waiting ? null : reviewedAt,
           characteristics: (kk * 97 + 31) % SPEC_CONFIRMED < 12 ? [] : row.characteristics,
           review: kk % 9 === 0 ? "corrected" : "confirmed",
-          reviewedBy: kk % 4 === 0 ? "e-sokolov" : "e-volkova",
+          reviewedBy,
           reviewedAt,
           handedOverAt: reviewedAt,
           purchase,
@@ -432,6 +461,10 @@ function buildSpecPositions(): GeneratedPosition[] {
       confidence = 0.72 + seeded(index, 31) * 0.1;
       note = clarifyNotes[uu % clarifyNotes.length] ?? null;
     }
+    // Материал непроверенной позиции — предложение системы: распознавание дало материал сразу
+    // или его нашло правило по наименованию; подтверждает человек (ADR-014, п. 2)
+    const suggestion = uu % 13 === 0 ? suggestMaterial(row.projectName, materials) : null;
+    const materialId = uu % 13 === 0 ? (suggestion?.materialId ?? null) : row.materialId;
     return {
       requestId: null,
       row: {
@@ -439,7 +472,10 @@ function buildSpecPositions(): GeneratedPosition[] {
         confidence,
         note,
         qty,
-        materialId: uu % 13 === 0 ? null : row.materialId,
+        materialId,
+        matchStatus: materialId ? "suggested" : "none",
+        matchedBy: null,
+        matchedAt: null,
         review: "pending",
         reviewedBy: null,
         reviewedAt: null,
@@ -600,6 +636,10 @@ export function simulatedPositions(
       projectName: `${family.base}, ${family.variant(r)}`,
       materialId: normalized ? family.material : null,
       normalizedName: normalized ? family.normalized : null,
+      // Распознанный материал — предложение системы, подтверждает человек (ADR-014)
+      matchStatus: normalized ? "suggested" : "none",
+      matchedBy: null,
+      matchedAt: null,
       characteristics: family.characteristics(r) satisfies Characteristic[],
       qty: family.qty(i),
       unit: family.unit,

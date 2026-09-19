@@ -1,6 +1,7 @@
 import { memo, useState, type FormEvent } from "react";
 import { Ban, Check, Combine, FileText, Heading, Pencil, Split, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MatchLine } from "@/components/materials/MatchLine";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfidenceLabel, confidenceLevel } from "@/components/common/ConfidenceIndicator";
@@ -134,6 +135,10 @@ export const PositionRow = memo(function PositionRow({
                   <span className="text-warn">Характеристики не указаны</span>
                 )}
               </p>
+              {/* Материал справочника: у активной строки — с подтверждением (ADR-014) */}
+              {active && !inactive && (
+                <MatchLine item={item} canEdit={!readOnly} className="mt-2" />
+              )}
             </div>
             {item.review !== "header" && (
               <div className="shrink-0 text-right">

@@ -129,6 +129,22 @@ export const queries = {
 
   suppliers: () =>
     queryOptions({ queryKey: keys.procurement.suppliers(), queryFn: api.procurement.suppliers }),
+  supplier: (id: string) =>
+    queryOptions({
+      queryKey: keys.procurement.supplier(id),
+      queryFn: () => api.procurement.supplier(id),
+    }),
+  categories: () =>
+    queryOptions({
+      queryKey: keys.positions.categories(),
+      queryFn: api.catalog.categories,
+      ...reference,
+    }),
+  material: (id: string) =>
+    queryOptions({
+      queryKey: keys.positions.material(id),
+      queryFn: () => api.catalog.material(id),
+    }),
   templates: () =>
     queryOptions({
       queryKey: keys.procurement.templates(),

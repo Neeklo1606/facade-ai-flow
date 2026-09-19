@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { positionRemainder } from "@/api/deliveries";
-import { AlertTriangle, ArrowLeftRight, Bot, FileText, UserRound } from "lucide-react";
+import { ArrowLeftRight, Bot, FileText, UserRound } from "lucide-react";
 import { EntityDrawer } from "@/components/common/EntityDrawer";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useAccess } from "@/api/access";
+import { MatchLine } from "./MatchLine";
 import { queries } from "@/api/queries";
 import { rfqStatusMeta } from "@/lib/procurement";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
@@ -93,13 +94,12 @@ export function MaterialDrawer({
         <Section title="Наименование">
           <dl className="space-y-2.5">
             <div>
-              <dt className="text-[11px] text-text-muted">Нормализованное</dt>
-              <dd className="mt-0.5 text-[14px] font-medium">
-                {item.normalizedName ?? (
-                  <span className="inline-flex items-center gap-1.5 text-warn">
-                    <AlertTriangle className="size-3.5" /> Не сопоставлено со справочником
-                  </span>
-                )}
+              <dt className="text-[11px] text-text-muted">Нормализованное, по справочнику</dt>
+              <dd className="mt-0.5">
+                <MatchLine
+                  item={item}
+                  canEdit={can("materials", "write") || can("documents", "write")}
+                />
               </dd>
             </div>
             <div>

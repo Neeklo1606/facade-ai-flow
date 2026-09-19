@@ -45,6 +45,9 @@ create type position_review as enum ('pending', 'confirmed', 'corrected', 'exclu
 -- Этап закупки позиции; меняется событиями закупки
 create type purchase_status as enum ('none', 'requested', 'offers', 'supplier_selected', 'ordered', 'delivered');
 
+-- Сопоставление позиции с материалом: нет, предложено системой, подтверждено человеком
+create type match_status as enum ('none', 'suggested', 'confirmed');
+
 -- Кто совершил действие: человек или обработка
 create type actor_kind as enum ('user', 'system');
 
@@ -132,7 +135,7 @@ comment on column counterparties.rating is 'оценка 0…5';
 create unique index counterparties_inn_key on counterparties (inn) where inn is not null; -- поиск и защита от дублей по ИНН
 create index counterparties_role_name_idx on counterparties (role, name); -- списки заказчиков и поставщиков по алфавиту
 
--- Профиль поставщика для подбора в запрос: регион, разделы спецификации, контакт
+-- Профиль поставщика для подбора в запрос: регион, категории материалов, контакт
 create table supplier_profiles (
   supplier_id uuid not null,
   region text not null,
@@ -148,10 +151,10 @@ create table supplier_profiles (
   created_by uuid,
   primary key (supplier_id)
 );
-comment on column supplier_profiles.categories is 'разделы спецификации: Подконструкция, Крепёж…';
+comment on column supplier_profiles.categories is 'категории материалов верхнего уровня: material_categories.id (ADR-014)';
 comment on column supplier_profiles.contact_source is 'откуда взят контакт';
 create index supplier_profiles_region_idx on supplier_profiles (region); -- подбор поставщиков по региону объекта
-create index supplier_profiles_categories_idx on supplier_profiles using gin (categories); -- подбор по разделам спецификации
+create index supplier_profiles_categories_idx on supplier_profiles using gin (categories); -- подбор по категориям материалов
 
 -- Бригады на объекте
 create table crews (
@@ -367,20 +370,59 @@ create table revision_changes (
 comment on column revision_changes.from_revision_id is 'null — расхождение с другим разделом, а не с прошлой ревизией';
 create index revision_changes_document_id_status_idx on revision_changes (document_id, status); -- открытые изменения в реестре и карточке объекта
 
--- Справочник нормализованных наименований материалов
+-- Дерево категорий материалов; категория верхнего уровня решает, кому уходит запрос
+create table material_categories (
+  id uuid not null default gen_random_uuid(),
+  parent_id uuid,
+  name text not null,
+  rules text[] not null,
+  sort_order smallint not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  created_by uuid,
+  primary key (id)
+);
+comment on column material_categories.parent_id is 'null — категория верхнего уровня';
+comment on column material_categories.rules is 'правила соответствия: основы слов в наименовании («кронштейн», «анкер»)';
+comment on column material_categories.sort_order is 'порядок в дереве';
+create index material_categories_parent_id_idx on material_categories (parent_id); -- дочерние категории
+create unique index material_categories_name_key on material_categories (name); -- название категории уникально
+
+-- Справочник номенклатуры: нормализованные наименования материалов
 create table materials (
   id uuid not null default gen_random_uuid(),
   family text not null,
   name text not null,
   unit text not null,
+  category_id uuid not null,
+  characteristics jsonb not null,
+  synonyms text[] not null,
+  spellings text[] not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   created_by uuid,
   primary key (id)
 );
 comment on column materials.family is 'семейство: bracket, rail, tile…';
+comment on column materials.synonyms is 'другие названия того же материала';
+comment on column materials.spellings is 'типичные написания в проектной документации';
 create unique index materials_name_unit_key on materials (name, unit); -- один материал — одна строка справочника
 create index materials_family_idx on materials (family); -- подбор замен и нормализация по семейству
+create index materials_category_id_idx on materials (category_id); -- номенклатура по категории, подбор поставщиков
+
+-- История изменений номенклатуры: кто, когда, какое поле, было и стало
+create table material_changes (
+  id uuid not null default gen_random_uuid(),
+  material_id uuid not null,
+  at timestamptz not null,
+  actor_id uuid not null,
+  field text not null,
+  before text,
+  after text,
+  primary key (id)
+);
+comment on column material_changes.field is 'что изменено: «наименование», «синонимы»… или «создан»';
+create index material_changes_material_id_at_idx on material_changes (material_id, at desc); -- история материала
 
 -- Позиция спецификации, извлечённая из листа ревизии. Единственная сущность «что купить»
 create table positions (
@@ -392,6 +434,9 @@ create table positions (
   family text not null,
   project_name text not null,
   material_id uuid,
+  match_status match_status not null,
+  matched_by uuid,
+  matched_at timestamptz,
   characteristics jsonb not null,
   qty numeric(14,3) not null,
   unit text not null,
@@ -412,13 +457,17 @@ create table positions (
   check ((reviewed_at is null) = (reviewed_by is null)),
   check (handed_over_at is null or review in ('confirmed', 'corrected')),
   check (purchase = 'none' or handed_over_at is not null),
-  check ((review = 'merged') = (merged_into is not null))
+  check ((review = 'merged') = (merged_into is not null)),
+  check ((match_status = 'none') = (material_id is null)),
+  check ((match_status = 'confirmed') = (matched_by is not null)),
+  check ((matched_at is null) = (matched_by is null))
 );
 comment on column positions.project_id is 'денормализовано из ревизии для сводки';
 comment on column positions.position is 'номер в таблице документа: «1.12»';
 comment on column positions.family is 'семейство по распознаванию, до нормализации';
 comment on column positions.project_name is 'наименование как в проекте';
-comment on column positions.material_id is 'null — требует нормализации';
+comment on column positions.material_id is 'материал справочника: предложенный или подтверждённый; null — не сопоставлено';
+comment on column positions.matched_by is 'кто подтвердил сопоставление';
 comment on column positions.note is 'почему распознавание не уверено';
 comment on column positions.handed_over_at is 'передана в закупку';
 comment on column positions.delivered_qty is 'поставлено по актам приёмки; null — поставок не было (ADR-011)';
@@ -862,11 +911,17 @@ alter table revision_changes add foreign key (from_revision_id) references docum
 alter table revision_changes add foreign key (to_revision_id) references document_revisions (id) on delete restrict;
 alter table revision_changes add foreign key (resolved_by) references employees (id) on delete restrict;
 alter table revision_changes add foreign key (created_by) references employees (id) on delete restrict;
+alter table material_categories add foreign key (parent_id) references material_categories (id) on delete restrict;
+alter table material_categories add foreign key (created_by) references employees (id) on delete restrict;
+alter table materials add foreign key (category_id) references material_categories (id) on delete restrict;
 alter table materials add foreign key (created_by) references employees (id) on delete restrict;
+alter table material_changes add foreign key (material_id) references materials (id) on delete cascade;
+alter table material_changes add foreign key (actor_id) references employees (id) on delete restrict;
 alter table positions add foreign key (project_id) references projects (id) on delete restrict;
 alter table positions add foreign key (revision_id) references document_revisions (id) on delete restrict;
 alter table positions add foreign key (sheet_id) references document_sheets (id) on delete restrict;
 alter table positions add foreign key (material_id) references materials (id) on delete restrict;
+alter table positions add foreign key (matched_by) references employees (id) on delete restrict;
 alter table positions add foreign key (reviewed_by) references employees (id) on delete restrict;
 alter table positions add foreign key (merged_into) references positions (id) on delete restrict;
 alter table positions add foreign key (created_by) references employees (id) on delete restrict;

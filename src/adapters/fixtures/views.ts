@@ -16,6 +16,8 @@ import type {
   Extraction,
   FieldReport,
   Material,
+  MaterialCategory,
+  MaterialChange,
   Milestone,
   OfferLine,
   PositionChange,
@@ -46,6 +48,9 @@ export interface FixtureSnapshot {
   crews: Crew[];
   templates: EmailTemplate[];
   materials: Material[];
+  /** Дерево категорий и история номенклатуры (ADR-014) */
+  categories: MaterialCategory[];
+  materialChanges: MaterialChange[];
   replacements: ReplacementSuggestion[];
   projects: Project[];
   contracts: Contract[];
@@ -163,6 +168,8 @@ export function buildSnapshot(): FixtureSnapshot {
     })),
     templates: t.email_templates,
     materials: t.materials,
+    categories: t.material_categories,
+    materialChanges: t.material_changes,
     replacements: t.replacement_suggestions,
 
     projects: t.projects.map(({ customerId, managerId, ...row }) => {

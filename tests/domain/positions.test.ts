@@ -26,6 +26,10 @@ function position(overrides: Partial<ExtractedPosition> = {}): ExtractedPosition
     projectName: "Кронштейн несущий",
     materialId: "mat-1",
     normalizedName: "Кронштейн КН-1",
+    // Распознанный материал — предложение системы, пока человек не подтвердил (ADR-014)
+    matchStatus: "suggested",
+    matchedBy: null,
+    matchedAt: null,
     characteristics: [{ label: "Покрытие", value: "цинк" }],
     qty: 10,
     unit: "шт",
@@ -54,9 +58,15 @@ function reviewed(overrides: Partial<ExtractedPosition> = {}): ExtractedPosition
   });
 }
 
-/** Проверенная и переданная в закупку позиция */
+/** Проверенная и переданная в закупку позиция с подтверждённым сопоставлением */
 function handedOver(overrides: Partial<ExtractedPosition> = {}): ExtractedPosition {
-  return reviewed({ handedOverAt: "2026-09-02T10:00:00", ...overrides });
+  return reviewed({
+    handedOverAt: "2026-09-02T10:00:00",
+    matchStatus: "confirmed",
+    matchedBy: "e-volkova",
+    matchedAt: "2026-09-02T09:00:00",
+    ...overrides,
+  });
 }
 
 const allReviews: PositionReview[] = [
@@ -209,6 +219,19 @@ describe("matchesFilter", () => {
     expect(matchesFilter(position(), { readyForRequest: true })).toBe(false);
   });
 
+  test("«готовы к запросу»: без подтверждённого сопоставления — нет (ADR-014, п. 3)", () => {
+    const suggested = handedOver({ matchStatus: "suggested", matchedBy: null, matchedAt: null });
+    const unmatched = handedOver({
+      materialId: null,
+      normalizedName: null,
+      matchStatus: "none",
+      matchedBy: null,
+      matchedAt: null,
+    });
+    expect(matchesFilter(suggested, { readyForRequest: true })).toBe(false);
+    expect(matchesFilter(unmatched, { readyForRequest: true })).toBe(false);
+  });
+
   test("readyForRequest: false не фильтрует", () => {
     expect(matchesFilter(position(), { readyForRequest: false })).toBe(true);
   });
@@ -321,6 +344,7 @@ describe("positionFacets", () => {
       group: "G1",
       normalizedName: null,
       materialId: null,
+      matchStatus: "none",
       characteristics: [],
     }),
     reviewed({ id: "g", sheetId: "sh-1", group: "G2", review: "corrected" }),
@@ -367,7 +391,12 @@ describe("positionFacets", () => {
     expect(facets.groups).toEqual([]);
     expect(facets.autoVerified).toBe(0);
     expect(facets.readyForRequest).toBe(0);
-    expect(facets.handOver).toEqual({ count: 0, needNormalization: 0, withoutCharacteristics: 0 });
+    expect(facets.handOver).toEqual({
+      count: 0,
+      needNormalization: 0,
+      withoutCharacteristics: 0,
+      unconfirmedMatch: 0,
+    });
   });
 
   test("виды проверки считаются по области", () => {
@@ -409,11 +438,13 @@ describe("positionFacets", () => {
   });
 
   test("сводка передачи: проверенные и ещё не переданные", () => {
-    // f и g; у f нет наименования по справочнику и нет характеристик
+    // f и g; у f нет наименования по справочнику и нет характеристик. Сопоставление
+    // не подтверждено ни у одной: у f материала нет, у g — только предложение системы (ADR-014)
     expect(positionFacets(items, scope).handOver).toEqual({
       count: 2,
       needNormalization: 1,
       withoutCharacteristics: 1,
+      unconfirmedMatch: 2,
     });
   });
 

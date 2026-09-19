@@ -14,6 +14,7 @@ export const SECTIONS = [
   "deliveries",
   "field-reports",
   "timeline",
+  "catalogs",
   "agent",
   "analytics",
   "export",
@@ -31,6 +32,7 @@ export const sectionLabel: Record<Section, string> = {
   deliveries: "Поставки и приёмка",
   "field-reports": "Отчёты с площадки",
   timeline: "История и решения",
+  catalogs: "Справочники: номенклатура и категории",
   agent: "Ассистент",
   analytics: "Аналитика",
   export: "Выгрузки в Excel",
@@ -48,6 +50,7 @@ export const sectionShortLabel: Record<Section, string> = {
   deliveries: "Поставки",
   "field-reports": "Отчёты с площадки",
   timeline: "История и решения",
+  catalogs: "Справочники",
   agent: "Ассистент",
   analytics: "Аналитика",
   export: "Выгрузки",
@@ -83,6 +86,7 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     deliveries: WRITE,
     "field-reports": WRITE,
     timeline: READ,
+    catalogs: WRITE,
     agent: READ,
     analytics: READ,
     export: READ,
@@ -96,6 +100,8 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     procurement: WRITE,
     suppliers: WRITE,
     deliveries: WRITE,
+    // Справочник ведут те, кто сопоставляет позиции: снабжение, ПТО, руководитель (ADR-014)
+    catalogs: WRITE,
   },
   pto: {
     ...nothing(),
@@ -103,6 +109,7 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     documents: WRITE,
     procurement: READ,
     timeline: READ,
+    catalogs: WRITE,
   },
   foreman: {
     ...nothing(),
@@ -120,6 +127,7 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     deliveries: READ,
     "field-reports": READ,
     timeline: READ,
+    catalogs: READ,
     agent: READ,
     analytics: READ,
     export: READ,
@@ -191,6 +199,7 @@ export function sectionOfPath(pathname: string, view?: string): Section | null {
   if (path === "/agent") return "agent";
   if (path === "/analytics") return "analytics";
   if (path === "/access") return "access";
+  if (path === "/catalogs") return "catalogs";
   if (path === "/projects") return "projects";
   const inProject = /^\/projects\/[^/]+(?:\/([^/]+))?/.exec(path);
   if (inProject) {

@@ -20,6 +20,7 @@ import {
   type ProjectDecision,
   type SupplierOffer,
   type SupplierProfile,
+  materialCategories,
 } from "@/contracts";
 import type { Actor } from "./common";
 
@@ -40,7 +41,40 @@ export const createRequestResult = z.object({
   positions: z.number().int().positive(),
 });
 
-export const supplierListItem = z.object({ supplier: counterparties, profile: supplierProfiles });
+/** Показатели поставщика по фактам: запросы, ответы, поставки (ADR-014, п. 7) */
+export const supplierStatsView = z.object({
+  requests: z.number().int().nonnegative(),
+  answered: z.number().int().nonnegative(),
+  avgReplyHours: z.number().nonnegative().nullable(),
+  onTimeShare: z.number().min(0).max(1).nullable(),
+  deliveriesReceived: z.number().int().nonnegative(),
+});
+
+export const supplierListItem = z.object({
+  supplier: counterparties,
+  profile: supplierProfiles,
+  stats: supplierStatsView,
+});
+
+/** Карточка поставщика: всё считается по запросам, предложениям и поставкам (ADR-014, п. 7) */
+export const supplierCard = z.object({
+  supplier: counterparties,
+  profile: supplierProfiles,
+  categories: z.array(materialCategories),
+  stats: supplierStatsView,
+  requests: z.array(
+    z.object({
+      requestId: z.string(),
+      number: z.string(),
+      projectId: z.string(),
+      projectName: z.string(),
+      sentAt: timestampSchema.nullable(),
+      answered: z.boolean(),
+      chosen: z.boolean(),
+    }),
+  ),
+});
+export type SupplierCard = z.infer<typeof supplierCard>;
 
 /** Запрос в списке: с числом ответов, лучшей ценой и статусом на экране */
 export const requestSummary = z.object({
@@ -194,10 +228,7 @@ export type ComparisonColumn = z.infer<typeof comparisonColumn>;
 export type ComparisonCell = z.infer<typeof comparisonCell>;
 export type RequestSummary = z.infer<typeof requestSummary>;
 
-export interface SupplierListItem {
-  supplier: Counterparty;
-  profile: SupplierProfile;
-}
+export type SupplierListItem = z.infer<typeof supplierListItem>;
 
 export interface RequestCard {
   summary: RequestSummary;
@@ -211,6 +242,8 @@ export interface RequestCard {
 /** Поставщики, запросы, предложения, решения и поставки. */
 export interface ProcurementPort {
   suppliers(): Promise<SupplierListItem[]>;
+  /** Карточка поставщика: категории, контакты, история запросов, показатели (ADR-014, п. 7) */
+  supplier(supplierId: string): Promise<SupplierCard | null>;
   /** Отмечает контакт проверенным сегодняшней датой */
   verifyContact(input: { supplierId: string }, actor: Actor): Promise<void>;
   templates(): Promise<EmailTemplate[]>;

@@ -11,6 +11,8 @@ import type {
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  ConfirmMatchInput,
+  SaveMaterialInput,
   MoveDeliveryInput,
   ResolveRemarkInput,
   CreateProjectInput,
@@ -354,6 +356,26 @@ export function useAcceptDelivery() {
     meta: { action: "acceptDelivery" },
     mutationFn: (input: AcceptDeliveryInput) => api.procurement.acceptDelivery(input),
     onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
+  });
+}
+
+/** Подтвердить сопоставление позиции с материалом справочника (ADR-014) */
+export function useConfirmMatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "confirmMatch" },
+    mutationFn: (input: ConfirmMatchInput) => api.positions.confirmMatch(input),
+    onSettled: () => invalidate(queryClient, ["positions", "projects"]),
+  });
+}
+
+/** Добавить или изменить материал номенклатуры (ADR-014) */
+export function useSaveMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveMaterial" },
+    mutationFn: (input: SaveMaterialInput) => api.catalog.saveMaterial(input),
+    onSettled: () => invalidate(queryClient, ["positions", "procurement"]),
   });
 }
 

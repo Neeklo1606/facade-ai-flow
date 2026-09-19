@@ -20,6 +20,7 @@ import {
 import { latestJob, visibleStage } from "@/domain/extraction";
 import { registryColumns, registryRows, type RegistryFilter } from "@/domain/registry";
 import { timelineOf } from "@/domain/timeline";
+import { supplierStats } from "@/domain/catalog";
 import { buildXlsx } from "@/adapters/export/xlsx";
 import { createAgentPort } from "@/adapters/agent";
 import {
@@ -278,6 +279,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           if (problem) throw new ConflictError(problem);
           return actions.handOver(revisionId, actorId);
         }),
+      confirmMatch: (input, { actorId }) => attempt(() => actions.confirmMatch(input, actorId)),
       materials: () => done(state().materials),
       replacements: () => done(state().replacements),
     },
@@ -285,13 +287,23 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
     procurement: {
       suppliers: () => {
         const s = state();
+        const now = peek();
         return done(
           s.profiles.flatMap((profile) => {
             const supplier = s.counterparties.find((item) => item.id === profile.supplierId);
-            return supplier ? [{ supplier, profile }] : [];
+            return supplier
+              ? [
+                  {
+                    supplier,
+                    profile: actions.freshProfile(profile, now),
+                    stats: supplierStats(supplier.id, s),
+                  },
+                ]
+              : [];
           }),
         );
       },
+      supplier: (supplierId) => done(actions.supplierCard(supplierId, peek())),
       verifyContact: ({ supplierId }) => done(actions.verifyContact(supplierId)),
       templates: () => done(state().templates),
       requests: (projectId) => {
@@ -335,6 +347,21 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           (id) => !s.profiles.some((item) => item.supplierId === id),
         );
         if (unknownSupplier) return Promise.reject(new NotFoundError("Поставщик", unknownSupplier));
+        // Неподтверждённое сопоставление не уходит поставщикам (ADR-014, п. 3): отказ с причиной,
+        // а не молчаливый пропуск позиции
+        const unmatched = s.positions.filter(
+          (item) =>
+            input.positionIds.includes(item.id) &&
+            item.purchase === "none" &&
+            item.matchStatus !== "confirmed",
+        ).length;
+        if (unmatched) {
+          return Promise.reject(
+            new ConflictError(
+              `Сопоставление с материалом не подтверждено: ${unmatched} поз. Подтвердите его — без этого позиция не уходит поставщикам`,
+            ),
+          );
+        }
         const result = actions.createRequest(input, actorId);
         if (!result) return Promise.reject(new ConflictError("Нет позиций, готовых к запросу"));
         return done(result);
@@ -460,6 +487,12 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       },
     },
     // Ассистент собирает ответы из портов выше, а не из состояния демо (ADR-006)
+    catalog: {
+      categories: () => done([...state().categories].sort((a, b) => a.sortOrder - b.sortOrder)),
+      material: (materialId) => done(actions.materialCard(materialId)),
+      saveMaterial: (input, { actorId }) => attempt(() => actions.saveMaterial(input, actorId)),
+    },
+
     scope: {
       projectsOf: (employeeId) => {
         const s = state();

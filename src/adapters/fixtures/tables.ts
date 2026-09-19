@@ -5,6 +5,7 @@ import * as documentsData from "./data/documents";
 import * as procurement from "./data/procurement";
 import * as field from "./data/field";
 import * as timeline from "./data/timeline";
+import * as catalog from "./data/catalog";
 import * as spec from "./spec";
 
 /**
@@ -37,7 +38,9 @@ export const fixtureTables = {
   extraction_jobs: documentsData.extractionJobs,
   document_sheets: documentSheets,
   revision_changes: documentsData.revisionChanges,
+  material_categories: catalog.materialCategories,
   materials: spec.materials,
+  material_changes: catalog.materialChanges,
   positions: spec.positions,
   position_changes: spec.positionChanges,
   replacement_suggestions: spec.replacementSuggestions,

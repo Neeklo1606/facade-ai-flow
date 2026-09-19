@@ -56,11 +56,22 @@ export async function open(page: Page, path: string) {
 }
 
 /**
+ * Дождаться конца анимаций: во время появления панели текст полупрозрачный, и контраст
+ * и цвет, измеренные в этот момент, не те, что видит человек
+ */
+async function settle(page: Page) {
+  await page.waitForFunction(() =>
+    document.getAnimations().every((animation) => animation.playState !== "running"),
+  );
+}
+
+/**
  * Правила EMBER на экране: одно оранжевое пятно в содержимом (боковое меню, нижняя панель
  * и уведомления не считаются — у них своё активное состояние) и ни одного капса.
  * Критерии те же, что у проверки 12 пунктов EMBER.
  */
 export async function expectEmber(page: Page, screen: string) {
+  await settle(page);
   const result = await page.evaluate(() => {
     // Видимость по всей цепочке предков и ненулевой размер: кнопка мобильной панели внутри
     // скрытого на десктопе контейнера не пятно
@@ -132,6 +143,7 @@ export async function expectEmber(page: Page, screen: string) {
 
 /** axe-core: нарушения уровня serious и critical роняют тест */
 export async function expectA11y(page: Page, screen: string) {
+  await settle(page);
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")

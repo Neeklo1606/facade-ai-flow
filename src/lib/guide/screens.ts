@@ -132,6 +132,14 @@ const screens = {
       "Задайте вопрос или выберите подсказку; по ссылке в ответе откроется раздел.",
     ],
   },
+  catalogs: {
+    name: "Справочники",
+    help: [
+      "Номенклатура материалов и дерево категорий: характеристики, синонимы, как материал пишут в проектах, история правок.",
+      "Отвечает на вопрос, с каким материалом справочника сопоставить позицию и каким поставщикам уйдёт запрос.",
+      "Добавьте синоним или написание — система начнёт предлагать этот материал позициям с таким названием.",
+    ],
+  },
   access: {
     name: "Права доступа",
     help: [
@@ -155,7 +163,6 @@ export type ScreenKey = keyof typeof screens | "section" | "not-found";
 /** Разделы, которых ещё нет: экран-заглушка честно говорит, что будет и куда идти сейчас */
 const plannedSections: Record<string, string> = {
   analytics: "Аналитика",
-  catalogs: "Справочники",
   contracts: "Договоры",
   integrations: "Интеграции",
   knowledge: "База знаний",
@@ -190,6 +197,7 @@ export function screenFor(
   if (path === "/projects") return info("projects");
   if (path === "/agent") return info("agent");
   if (path === "/access") return info("access");
+  if (path === "/catalogs") return info("catalogs");
   if (path === "/demo-stats") return info("demo-stats");
 
   const inProject = path.match(/^\/projects\/[^/]+(?:\/([^/]+)(?:\/([^/]+))?)?$/);

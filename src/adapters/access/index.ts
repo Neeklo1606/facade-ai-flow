@@ -33,7 +33,7 @@ const SESSION = { sections: "session", need: READ, global: true } as const;
 /** Разделы, где экран показывает позиции: проверка документов и материалы */
 const POSITIONS: Section[] = ["documents", "materials"];
 /** Справочники материалов и замен: нужны позициям, закупкам и поставкам */
-const CATALOGS: Section[] = ["documents", "materials", "procurement", "deliveries"];
+const CATALOGS: Section[] = ["catalogs", "documents", "materials", "procurement", "deliveries"];
 
 export const ACCESS_RULES: AccessRules = {
   clock: { now: SESSION },
@@ -108,11 +108,17 @@ export const ACCESS_RULES: AccessRules = {
       need: WRITE,
       project: (input) => ref("revision", input.revisionId),
     },
+    confirmMatch: {
+      sections: ["documents", "materials"],
+      need: WRITE,
+      project: (input) => ref("position", input.positionId),
+    },
     materials: { sections: CATALOGS, need: READ, global: true },
     replacements: { sections: CATALOGS, need: READ, global: true },
   },
   procurement: {
     suppliers: { sections: ["suppliers", "procurement"], need: READ, global: true },
+    supplier: { sections: ["suppliers", "procurement"], need: READ, global: true },
     verifyContact: { sections: ["suppliers"], need: WRITE, global: true },
     templates: { sections: ["procurement"], need: READ, global: true },
     requests: { sections: ["procurement"], need: READ, project: (id) => project(id) },
@@ -168,6 +174,11 @@ export const ACCESS_RULES: AccessRules = {
     list: { sections: ["timeline", "dashboard"], need: READ, project: (id) => project(id) },
     decisions: { sections: ["timeline"], need: READ, project: (id) => project(id) },
     pending: { sections: ["timeline", "dashboard"], need: READ, project: (id) => project(id) },
+  },
+  catalog: {
+    categories: { sections: CATALOGS, need: READ, global: true },
+    material: { sections: CATALOGS, need: READ, global: true },
+    saveMaterial: { sections: ["catalogs"], need: WRITE, global: true },
   },
   scope: {
     projectsOf: SESSION,

@@ -366,8 +366,8 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
                 {eligibleCount !== selected.size && (
                   <span className="text-text-secondary">
                     {" "}
-                    · можно запросить {fmtNum(eligibleCount)}, остальные не проверены или уже в
-                    закупке
+                    · можно запросить {fmtNum(eligibleCount)}, остальные не проверены, без
+                    подтверждённого материала или уже в закупке
                   </span>
                 )}
               </span>
@@ -671,6 +671,9 @@ function MobileGroup({
                 <p className={cn("text-[14px] font-medium", !item.normalizedName && "text-warn")}>
                   {item.normalizedName ?? "Требует нормализации"}
                 </p>
+                {item.normalizedName && item.matchStatus !== "confirmed" && (
+                  <p className="text-caption text-warn">Сопоставление не подтверждено</p>
+                )}
                 <p className="mt-0.5 line-clamp-2 text-caption text-text-muted">
                   {item.position} · {item.projectName}
                 </p>
@@ -772,6 +775,10 @@ function MaterialRow({
           </div>
         ) : (
           <span className="text-caption font-medium text-warn">Требует нормализации</span>
+        )}
+        {/* Предложение системы, пока его не подтвердили, в запрос не уходит (ADR-014) */}
+        {item.normalizedName && item.matchStatus !== "confirmed" && (
+          <div className="text-caption text-warn">Сопоставление не подтверждено</div>
         )}
       </td>
       <td className="max-w-[200px] px-2.5">

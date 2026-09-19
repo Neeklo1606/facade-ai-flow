@@ -35,7 +35,13 @@ describe("согласованность цифр между экранами", 
 
     // Запрос поставщикам по готовым позициям
     const ready = positions
-      .filter((p) => p.purchase === "none" && p.handedOverAt && p.review !== "pending")
+      .filter(
+        (p) =>
+          p.purchase === "none" &&
+          p.handedOverAt &&
+          p.review !== "pending" &&
+          p.matchStatus === "confirmed",
+      )
       .slice(0, 6);
     expect(ready.length).toBeGreaterThan(0);
     const suppliers = (await repos.procurement.suppliers()).slice(0, 2);

@@ -48,10 +48,14 @@ export const keys = {
     item: (positionId: string) => ["positions", "item", positionId] as const,
     history: (positionId: string) => ["positions", "history", positionId] as const,
     materials: () => ["positions", "materials"] as const,
+    /** Номенклатура в области позиций: правка материала меняет нормализованные имена позиций */
+    categories: () => ["positions", "categories"] as const,
+    material: (id: string) => ["positions", "material", id] as const,
     replacements: () => ["positions", "replacements"] as const,
   },
   procurement: {
     suppliers: () => ["procurement", "suppliers"] as const,
+    supplier: (id: string) => ["procurement", "supplier", id] as const,
     templates: () => ["procurement", "templates"] as const,
     requests: (projectId: string) => ["procurement", "requests", projectId] as const,
     request: (requestId: string) => ["procurement", "request", requestId] as const,

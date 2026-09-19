@@ -31,6 +31,8 @@ const TABLE: Record<Section, [Cell, Cell, Cell, Cell, Cell]> = {
   deliveries: ["W", "W", "—", "—", "R"],
   "field-reports": ["W", "—", "—", "W*", "R"],
   timeline: ["R", "—", "R", "—", "R"],
+  // ADR-014, п. 4: раздел «Справочники» добавлен к матрице ADR-012
+  catalogs: ["W", "W", "W", "—", "R"],
   agent: ["R", "—", "—", "—", "R"],
   analytics: ["R", "—", "—", "—", "R"],
   export: ["R", "—", "—", "—", "R"],
@@ -124,6 +126,7 @@ describe("sectionOfPath и projectOfPath", () => {
     ["/agent", undefined, "agent"],
     ["/analytics/", undefined, "analytics"],
     ["/access", undefined, "access"],
+    ["/catalogs", undefined, "catalogs"],
     ["/projects", undefined, "projects"],
     ["/projects/p-korona", undefined, "projects"],
     ["/projects/p-korona/documents/pd-1", undefined, "documents"],

@@ -17,6 +17,7 @@ import { isReadyForRequest } from "@/contracts";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
+import { useCatalog, useSupplierCandidates } from "@/api/catalog";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { DEMO_MAIL_NOTE } from "@/lib/demo-copy";
@@ -89,26 +90,19 @@ export function CreateRfqDialog({
   );
   const [previewFor, setPreviewFor] = useState<string | null>(null);
 
-  const selectedItems = eligible.filter((item) => selected.has(item.id));
-  const categories = [...new Set(selectedItems.map((item) => item.group))];
-
-  const matched = useMemo(
-    () =>
-      profiles
-        .map((profile) => ({
-          profile,
-          categoryMatch: profile.categories.filter((c) => categories.includes(c)),
-          regionMatch: profile.region === region,
-        }))
-        .filter((m) => m.categoryMatch.length > 0)
-        .sort(
-          (a, b) =>
-            Number(b.regionMatch) - Number(a.regionMatch) ||
-            b.categoryMatch.length - a.categoryMatch.length,
-        ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profiles, categories.join("|"), region],
+  const selectedItems = useMemo(
+    () => eligible.filter((item) => selected.has(item.id)),
+    [eligible, selected],
   );
+  // Кому уходит запрос — по категориям материалов выбранных позиций и региону (ADR-014, п. 6)
+  const { categoryById } = useCatalog();
+  const picked = useSupplierCandidates(selectedItems, region, open);
+  const categories = picked.needed.map((id) => categoryById.get(id)?.name ?? id);
+  const matched = picked.candidates.map((candidate) => ({
+    profile: candidate.profile,
+    categoryMatch: candidate.matched.map((id) => categoryById.get(id)?.name ?? id),
+    regionMatch: candidate.regionMatch,
+  }));
   const inRegion = matched.filter((m) => m.regionMatch);
   const otherRegions = matched.filter((m) => !m.regionMatch);
 
@@ -314,15 +308,16 @@ export function CreateRfqDialog({
           {step === 1 && (
             <>
               <p className="text-caption text-text-secondary">
-                Подобраны по разделам <b className="text-text-primary">{categories.join(", ")}</b> и
-                региону <b className="text-text-primary">{region}</b>. Проверьте актуальность
-                контакта перед отправкой.
+                Подобраны по категориям материалов{" "}
+                <b className="text-text-primary">{categories.join(", ")}</b> и региону{" "}
+                <b className="text-text-primary">{region}</b>. Проверьте актуальность контакта перед
+                отправкой.
               </p>
               <SupplierList items={inRegion} selected={suppliers} onToggle={setSuppliers} />
               {inRegion.length === 0 && (
                 <p className="mt-3 rounded-[var(--r-md)] bg-warn-bg px-3 py-2 text-caption text-warn">
-                  В регионе {region} нет поставщиков по этим разделам. Посмотрите соседние регионы
-                  или добавьте поставщика в справочник.
+                  В регионе {region} нет поставщиков этих категорий. Посмотрите соседние регионы
+                  ниже.
                 </p>
               )}
               {otherRegions.length > 0 && (

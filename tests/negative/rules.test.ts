@@ -228,3 +228,112 @@ describe("доступ без прав", () => {
     );
   });
 });
+
+describe("сопоставление с номенклатурой (ADR-014)", () => {
+  const as = (actorId: string) => guardRepositories(repos, () => sessionFor(repos, actorId));
+  async function waiting() {
+    const positions = await allPositions(repos, "p-korona");
+    return positions.filter(
+      (p) => p.handedOverAt && p.purchase === "none" && p.matchStatus !== "confirmed",
+    );
+  }
+  async function supplierIds() {
+    return (await repos.procurement.suppliers()).slice(0, 1).map((s) => s.supplier.id);
+  }
+
+  test("неподтверждённое сопоставление не уходит в запрос — отказ с причиной", async () => {
+    const [position] = await waiting();
+    expect(position).toBeDefined();
+    const error = await rejection(
+      repos.procurement.createRequest(
+        {
+          projectId: "p-korona",
+          positionIds: [position!.id],
+          supplierIds: await supplierIds(),
+          templateId: null,
+          replyDueAt: "2026-09-12T18:00:00",
+        },
+        actor,
+      ),
+    );
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error?.message).toContain("Сопоставление с материалом не подтверждено");
+  });
+
+  test("после подтверждения та же позиция уходит в запрос строкой по справочнику", async () => {
+    const [position] = await waiting();
+    const confirmed = await repos.positions.confirmMatch(
+      { positionId: position!.id, materialId: position!.materialId! },
+      actor,
+    );
+    expect(confirmed.matchStatus).toBe("confirmed");
+    expect(confirmed.matchedBy).toBe("e-sokolov");
+    const result = await repos.procurement.createRequest(
+      {
+        projectId: "p-korona",
+        positionIds: [position!.id],
+        supplierIds: await supplierIds(),
+        templateId: null,
+        replyDueAt: "2026-09-12T18:00:00",
+      },
+      actor,
+    );
+    expect(result.request.items.map((line) => line.name)).toEqual([confirmed.normalizedName!]);
+    const history = await repos.positions.history(position!.id);
+    expect(history.some((change) => change.action === "Сопоставление подтверждено")).toBe(true);
+  });
+
+  test("позицию, уже ушедшую в запрос, не пересопоставить", async () => {
+    const positions = await allPositions(repos, "p-korona");
+    const requested = positions.find((p) => p.purchase === "requested")!;
+    const other = (await repos.positions.materials()).find((m) => m.id !== requested.materialId)!;
+    const error = await rejection(
+      repos.positions.confirmMatch({ positionId: requested.id, materialId: other.id }, actor),
+    );
+    expect(error).toBeInstanceOf(ConflictError);
+  });
+
+  test("справочник: дубль название+единица отклоняется, правка пишется в историю", async () => {
+    const [material] = await repos.positions.materials();
+    const duplicate = await rejection(
+      repos.catalog.saveMaterial(
+        { ...material!, id: null, characteristics: [], synonyms: [], spellings: [] },
+        actor,
+      ),
+    );
+    expect(duplicate).toBeInstanceOf(ConflictError);
+
+    await repos.catalog.saveMaterial(
+      { ...material!, synonyms: [...material!.synonyms, "Новый синоним"] },
+      { actorId: "e-dorohov" },
+    );
+    const card = await repos.catalog.material(material!.id);
+    expect(card?.changes[0]).toMatchObject({
+      field: "синонимы",
+      actorId: "e-dorohov",
+      before: material!.synonyms.join("; ") || null,
+      after: [...material!.synonyms, "Новый синоним"].join("; "),
+    });
+  });
+
+  test("права: прораб не сопоставляет, директор не правит справочник, снабжение правит", async () => {
+    const [position] = await waiting();
+    expect(
+      await rejection(
+        as("e-gareev").positions.confirmMatch(
+          { positionId: position!.id, materialId: position!.materialId! },
+          actor,
+        ),
+      ),
+    ).toBeInstanceOf(ForbiddenError);
+    const [material] = await repos.positions.materials();
+    expect(
+      await rejection(as("e-belyaev").catalog.saveMaterial({ ...material! }, actor)),
+    ).toBeInstanceOf(ForbiddenError);
+    const saved = await as("e-dorohov").catalog.saveMaterial(
+      { ...material!, spellings: [...material!.spellings, "КР150"] },
+      actor,
+    );
+    expect(saved.spellings).toContain("КР150");
+  });
+});

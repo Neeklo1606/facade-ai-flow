@@ -4,6 +4,8 @@ import type {
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  ConfirmMatchInput,
+  SaveMaterialInput,
   CreateProjectInput,
   CreateRequestInput,
   ListChangesInput,
@@ -171,12 +173,27 @@ export const api = {
       server
         ? fn.handOverFn({ data: { revisionId } })
         : local().then((r) => r.positions.handOver({ revisionId }, actor())),
+    confirmMatch: (data: ConfirmMatchInput) =>
+      server
+        ? fn.confirmMatchFn({ data })
+        : local().then((r) => r.positions.confirmMatch(data, actor())),
     materials: () => (server ? fn.materialsFn() : local().then((r) => r.positions.materials())),
     replacements: () =>
       server ? fn.replacementsFn() : local().then((r) => r.positions.replacements()),
   },
+  catalog: {
+    categories: () => (server ? fn.categoriesFn() : local().then((r) => r.catalog.categories())),
+    material: (id: string) =>
+      server ? fn.materialCardFn({ data: { id } }) : local().then((r) => r.catalog.material(id)),
+    saveMaterial: (data: SaveMaterialInput) =>
+      server
+        ? fn.saveMaterialFn({ data })
+        : local().then((r) => r.catalog.saveMaterial(data, actor())),
+  },
   procurement: {
     suppliers: () => (server ? fn.suppliersFn() : local().then((r) => r.procurement.suppliers())),
+    supplier: (id: string) =>
+      server ? fn.supplierFn({ data: { id } }) : local().then((r) => r.procurement.supplier(id)),
     verifyContact: (supplierId: string) =>
       server
         ? fn.verifyContactFn({ data: { supplierId } }).then(() => undefined)

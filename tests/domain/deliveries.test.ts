@@ -83,6 +83,9 @@ function position(
     projectName: "Кронштейн",
     materialId: null,
     normalizedName: null,
+    matchStatus: "none",
+    matchedBy: null,
+    matchedAt: null,
     characteristics: [],
     qty: 1,
     unit: "шт",
@@ -102,7 +105,16 @@ function position(
 }
 
 function material(id: string, family: string): Material {
-  return { id, family, name: `Материал ${id}`, unit: "шт" };
+  return {
+    id,
+    family,
+    name: `Материал ${id}`,
+    unit: "шт",
+    categoryId: "cat-1",
+    characteristics: [],
+    synonyms: [],
+    spellings: [],
+  };
 }
 
 const ALL_STATUSES = deliveryStatus.values;

@@ -185,6 +185,33 @@ export async function consistencyIssues(repos: Repositories): Promise<string[]> 
       `${name}: открытых замечаний в карточке ${overview.openRemarks}, в поставках ${openRemarks}`,
     );
 
+    // Сопоставление (ADR-014): нормализованное имя — имя материала справочника; в запросе
+    // только подтверждённое; подтверждённое — с автором
+    const materials = new Map((await repos.positions.materials()).map((m) => [m.id, m]));
+    for (const position of positions) {
+      const material = position.materialId ? materials.get(position.materialId) : null;
+      expect(
+        (position.materialId === null) === (position.matchStatus === "none"),
+        `${name}: позиция ${position.position} — материал и состояние сопоставления расходятся`,
+      );
+      expect(
+        (material?.name ?? null) === position.normalizedName,
+        `${name}: позиция ${position.position} — нормализованное имя не совпадает со справочником`,
+      );
+      if (position.requestIds.length) {
+        expect(
+          position.matchStatus === "confirmed",
+          `${name}: позиция ${position.position} в запросе без подтверждённого сопоставления`,
+        );
+      }
+      if (position.matchStatus === "confirmed") {
+        expect(
+          position.matchedBy !== null,
+          `${name}: у подтверждённого сопоставления поз. ${position.position} нет автора`,
+        );
+      }
+    }
+
     // Поставлено — значит поставлено полностью
     for (const position of positions) {
       if (position.purchase !== "delivered") continue;

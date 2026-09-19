@@ -48,7 +48,13 @@ function AccessPage() {
         </p>
       </div>
 
-      <div className="card-surface hidden overflow-x-auto lg:block">
+      {/* Таблица длиннее экрана: область фокусируема, иначе прокрутить её с клавиатуры нечем */}
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Матрица прав"
+        className="focus-ring card-surface hidden overflow-x-auto lg:block"
+      >
         <table className="w-full text-table">
           <caption className="sr-only">Права ролей по разделам</caption>
           <thead>

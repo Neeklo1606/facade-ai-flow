@@ -42,6 +42,8 @@ export const actionLabels: Record<string, string> = {
   remindSuppliers: "Напомнить поставщикам",
   chooseSupplier: "Зафиксировать решение",
   verifyContact: "Отметить контакт проверенным",
+  confirmMatch: "Подтвердить сопоставление с материалом",
+  saveMaterial: "Сохранить материал справочника",
   reviewReport: "Принять отчёт с площадки",
   askAgent: "Спросить ассистента",
   offerReceived: "Пришло предложение поставщика",

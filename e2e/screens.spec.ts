@@ -21,6 +21,7 @@ const screens: [string, string][] = [
   ["история и решения", "/projects/p-korona/timeline"],
   ["ассистент", "/agent"],
   ["права доступа", "/access"],
+  ["справочники", "/catalogs"],
   ["материалы без загруженных позиций", "/projects/p-meridian/materials"],
 ];
 

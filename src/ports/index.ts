@@ -1,4 +1,5 @@
 import type { AgentPort } from "./agent";
+import type { CatalogPort } from "./catalog";
 import type { ClockPort } from "./clock";
 import type { DirectoryPort } from "./directory";
 import type { DocumentsPort } from "./documents";
@@ -10,6 +11,7 @@ import type { ScopePort } from "./scope";
 import type { TimelinePort } from "./timeline";
 
 export * from "./agent";
+export * from "./catalog";
 export * from "./clock";
 export * from "./common";
 export * from "./directory";
@@ -31,6 +33,8 @@ export interface Repositories {
   procurement: ProcurementPort;
   reports: ReportsPort;
   timeline: TimelinePort;
+  /** Номенклатура и категории (ADR-014) */
+  catalog: CatalogPort;
   /** Область доступа для проверки прав (ADR-012) */
   scope: ScopePort;
   /** Ассистент поверх остальных портов (ADR-006) */

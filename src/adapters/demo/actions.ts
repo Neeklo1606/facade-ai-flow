@@ -32,6 +32,8 @@ import {
 import { DEMO_DECISION_ORDER_NOTE } from "@/lib/demo-copy";
 import { ConflictError, NotFoundError } from "@/ports";
 import { reportStatusLabel, reportTransitions } from "@/contracts";
+import type { Material } from "@/contracts";
+import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
   ResolveRemarkInput,
   AcceptDeliveryInput,
@@ -42,6 +44,10 @@ import type {
   UndoReviewInput,
   ReviewReportInput,
   UploadRevisionInput,
+  ConfirmMatchInput,
+  SaveMaterialInput,
+  MaterialCard,
+  SupplierCard,
 } from "@/ports";
 import { addDays, tick } from "./clock";
 import { liveId, positionChange, projectEvent } from "./records";
@@ -190,11 +196,27 @@ export function correct({ id, ...patch }: CorrectPositionInput, actorId: string)
       ),
     );
   }
+  // Новое наименование — новое предложение материала, пока сопоставление не подтверждено (ADR-014)
+  const rematch =
+    item.projectName !== patch.projectName && item.matchStatus !== "confirmed"
+      ? suggestMaterial(patch.projectName, getState().materials)
+      : undefined;
+  const rematched =
+    rematch === undefined
+      ? {}
+      : {
+          materialId: rematch?.materialId ?? null,
+          normalizedName: rematch
+            ? (getState().materials.find((m) => m.id === rematch.materialId)?.name ?? null)
+            : null,
+          matchStatus: rematch ? ("suggested" as const) : ("none" as const),
+        };
   patchPositions(
     new Set([id]),
     (p) => ({
       ...p,
       ...patch,
+      ...rematched,
       review: "corrected",
       reviewedBy: actorId,
       reviewedAt: tick(),
@@ -661,24 +683,16 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
   const number = `З-2026/${326 + s.requests.filter((r) => r.id.includes("-live-")).length}`;
   const createdAt = tick();
 
-  // Строка без нормализации берёт материал у позиции с тем же проектным названием,
-  // иначе один материал ушёл бы поставщику двумя строками под разными именами
-  const baseName = (item: ExtractedPosition) => item.projectName.split(",")[0]!.trim();
-  const dictionary = new Map<string, string>();
-  for (const item of s.positions) {
-    if (item.projectId === input.projectId && item.materialId) {
-      dictionary.set(`${item.family}:${baseName(item)}`, item.materialId);
-    }
-  }
-  // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой
+  // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой.
+  // В запрос попадают только позиции с подтверждённым материалом (ADR-014, п. 3): материал
+  // не подставляется молча — строку называет справочник
   const lines = new Map<string, RequestLine>();
   const links: RequestPositionLink[] = [];
   for (const item of targets) {
-    const materialId =
-      item.materialId ?? dictionary.get(`${item.family}:${baseName(item)}`) ?? null;
+    const materialId = item.materialId;
     const material = materialId ? s.materials.find((m) => m.id === materialId) : null;
-    const name = material?.name ?? baseName(item);
-    const key = materialId ?? `${name}:${item.unit}`;
+    const name = material?.name ?? item.projectName;
+    const key = `${materialId ?? name}:${item.unit}`;
     const existing = lines.get(key);
     if (existing) existing.qty += item.qty;
     else {
@@ -1141,6 +1155,7 @@ export function acceptDelivery(input: AcceptDeliveryInput, actorId: string) {
 }
 
 export function verifyContact(supplierId: string) {
+  // Метка свежести считается от даты проверки (ADR-014, п. 7): ставим дату — метка следует
   const checkedAt = tick().slice(0, 10);
   update((prev) => ({
     ...prev,
@@ -1203,4 +1218,184 @@ export function resolveRemark(input: ResolveRemarkInput, actorId: string) {
     ],
   }));
   return deliveryCard(remark.deliveryId)!;
+}
+
+/* ---------- Номенклатура и сопоставление (ADR-014) ---------- */
+
+/** Подтвердить сопоставление позиции с материалом: предложенным или выбранным человеком */
+export function confirmMatch({ positionId, materialId }: ConfirmMatchInput, actorId: string) {
+  const s = getState();
+  const item = requirePosition(s.positions, positionId);
+  const material = s.materials.find((m) => m.id === materialId);
+  if (!material) throw new NotFoundError("Материал", materialId);
+  if (item.purchase !== "none") {
+    throw new ConflictError(
+      `Поз. ${item.position} уже в запросе поставщикам — сопоставление не меняется`,
+    );
+  }
+  if (item.matchStatus === "confirmed" && item.materialId === materialId) {
+    throw new ConflictError("Сопоставление уже подтверждено");
+  }
+  const at = tick();
+  const action =
+    item.materialId === materialId ? "Сопоставление подтверждено" : "Сопоставлено с материалом";
+  patchPositions(
+    new Set([positionId]),
+    (p) => ({
+      ...p,
+      materialId,
+      normalizedName: material.name,
+      matchStatus: "confirmed",
+      matchedBy: actorId,
+      matchedAt: at,
+    }),
+    [positionChange(positionId, actorId, action, item.normalizedName ?? "—", material.name)],
+  );
+  return requirePosition(getState().positions, positionId);
+}
+
+/** Карточка материала: категория, путь в дереве, история, где используется */
+export function materialCard(materialId: string): MaterialCard | null {
+  const s = getState();
+  const material = s.materials.find((m) => m.id === materialId);
+  if (!material) return null;
+  const category = s.categories.find((c) => c.id === material.categoryId) ?? null;
+  const path: string[] = [];
+  let current = category;
+  while (current) {
+    path.unshift(current.name);
+    const parentId: string | null = current.parentId;
+    current = parentId ? (s.categories.find((c) => c.id === parentId) ?? null) : null;
+  }
+  const used = s.positions.filter((p) => p.materialId === materialId && isActivePosition(p));
+  return {
+    material,
+    category,
+    path,
+    changes: s.materialChanges
+      .filter((change) => change.materialId === materialId)
+      .sort((a, b) => b.at.localeCompare(a.at)),
+    usage: { positions: used.length, projects: new Set(used.map((p) => p.projectId)).size },
+  };
+}
+
+const list = (values: string[]) => values.join("; ");
+const characteristicsText = (values: Material["characteristics"]) =>
+  values.map((c) => `${c.label}: ${c.value}`).join("; ");
+
+/**
+ * Добавить или изменить материал справочника. История — по строке на изменённое поле.
+ * Семейство нового материала берётся у материалов той же категории: по нему работают
+ * замены и чек-лист приёмки
+ */
+export function saveMaterial(input: SaveMaterialInput, actorId: string): Material {
+  const s = getState();
+  if (!s.categories.some((c) => c.id === input.categoryId)) {
+    throw new NotFoundError("Категория", input.categoryId);
+  }
+  const duplicate = s.materials.find(
+    (m) =>
+      m.id !== input.id &&
+      m.name.toLowerCase() === input.name.toLowerCase() &&
+      m.unit === input.unit,
+  );
+  if (duplicate)
+    throw new ConflictError(`Материал «${input.name}» с единицей ${input.unit} уже есть`);
+  const at = tick();
+  const existing = input.id ? s.materials.find((m) => m.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Материал", input.id);
+
+  const family =
+    existing?.family ??
+    s.materials.find((m) => m.categoryId === input.categoryId)?.family ??
+    (topCategory(input.categoryId, s.categories)?.id ?? input.categoryId).replace(/^cat-/, "");
+  const material: Material = {
+    id: existing?.id ?? liveId("mat"),
+    family,
+    name: input.name,
+    unit: input.unit,
+    categoryId: input.categoryId,
+    characteristics: input.characteristics,
+    synonyms: input.synonyms,
+    spellings: input.spellings,
+  };
+  const categoryName = (id: string) => s.categories.find((c) => c.id === id)?.name ?? id;
+  const diff: [string, string | null, string | null][] = existing
+    ? (
+        [
+          ["наименование", existing.name, material.name],
+          ["единица", existing.unit, material.unit],
+          ["категория", categoryName(existing.categoryId), categoryName(material.categoryId)],
+          [
+            "характеристики",
+            characteristicsText(existing.characteristics),
+            characteristicsText(material.characteristics),
+          ],
+          ["синонимы", list(existing.synonyms), list(material.synonyms)],
+          ["типичные написания", list(existing.spellings), list(material.spellings)],
+        ] as [string, string, string][]
+      ).filter(([, before, after]) => before !== after)
+    : [["создан", null, null]];
+  if (!diff.length) return material;
+
+  update((prev) => ({
+    ...prev,
+    materials: existing
+      ? prev.materials.map((m) => (m.id === material.id ? material : m))
+      : [...prev.materials, material],
+    // Название материала — нормализованное имя его позиций: меняется вместе с ним
+    positions:
+      existing && existing.name !== material.name
+        ? prev.positions.map((p) =>
+            p.materialId === material.id ? { ...p, normalizedName: material.name } : p,
+          )
+        : prev.positions,
+    materialChanges: [
+      ...prev.materialChanges,
+      ...diff.map(([field, before, after]) => ({
+        id: liveId("mc"),
+        materialId: material.id,
+        at,
+        actorId,
+        field,
+        before: before || null,
+        after: after || null,
+      })),
+    ],
+  }));
+  return material;
+}
+
+/** Профиль поставщика с меткой свежести, посчитанной по дате проверки (ADR-014, п. 7) */
+export function freshProfile<P extends { contactCheckedAt: string; contactStatus: string }>(
+  profile: P,
+  now: string,
+): P {
+  return { ...profile, contactStatus: contactFreshness(profile.contactCheckedAt, now) };
+}
+
+export function supplierCard(supplierId: string, now: string): SupplierCard | null {
+  const s = getState();
+  const supplier = s.counterparties.find((c) => c.id === supplierId);
+  const profile = s.profiles.find((p) => p.supplierId === supplierId);
+  if (!supplier || !profile) return null;
+  const requests = s.requests
+    .filter((request) => request.sentTo.includes(supplierId))
+    .sort((a, b) => (b.sentAt ?? "").localeCompare(a.sentAt ?? ""))
+    .map((request) => ({
+      requestId: request.id,
+      number: request.number,
+      projectId: request.projectId,
+      projectName: s.projects.find((p) => p.id === request.projectId)?.name ?? "—",
+      sentAt: request.sentAt,
+      answered: s.offers.some((o) => o.requestId === request.id && o.supplierId === supplierId),
+      chosen: s.decisions.some((d) => d.requestId === request.id && d.supplierId === supplierId),
+    }));
+  return {
+    supplier,
+    profile: freshProfile(profile, now),
+    categories: s.categories.filter((c) => profile.categories.includes(c.id)),
+    stats: supplierStats(supplierId, s),
+    requests,
+  };
 }

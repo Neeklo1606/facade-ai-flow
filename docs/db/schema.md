@@ -16,7 +16,7 @@
 - Индексы подобраны под списки и фильтры экранов; колонка «Для чего» называет экран.
 - Фикстуры проверяются по этому описанию: `bun run check:fixtures` (схемы, ключи, уникальности, представления); на PostgreSQL — `psql -f docs/db/schema.sql` и `bun run db:fixtures-sql | psql`.
 
-Таблиц: 39, перечислений: 27.
+Таблиц: 41, перечислений: 28.
 
 ## Перечисления
 
@@ -36,6 +36,7 @@
 | `change_status`          | `open`, `resolved`                                                                                                                                                                                                                                          | open → resolved                                                                                                                                                                                                      | Разобрано ли изменение документации                                                                 |
 | `position_review`        | `pending`, `confirmed`, `corrected`, `excluded`, `merged`, `header`                                                                                                                                                                                         | pending → confirmed, corrected, excluded, merged, header; confirmed → pending, corrected, excluded, merged; corrected → pending, corrected, excluded, merged; excluded → pending; merged → pending; header → pending | Решение человека по извлечённой позиции                                                             |
 | `purchase_status`        | `none`, `requested`, `offers`, `supplier_selected`, `ordered`, `delivered`                                                                                                                                                                                  | none → requested; requested → offers, supplier_selected; offers → supplier_selected; supplier_selected → ordered; ordered → delivered                                                                                | Этап закупки позиции; меняется событиями закупки                                                    |
+| `match_status`           | `none`, `suggested`, `confirmed`                                                                                                                                                                                                                            | none → suggested, confirmed; suggested → none, confirmed; confirmed → confirmed                                                                                                                                      | Сопоставление позиции с материалом: нет, предложено системой, подтверждено человеком                |
 | `actor_kind`             | `user`, `system`                                                                                                                                                                                                                                            |                                                                                                                                                                                                                      | Кто совершил действие: человек или обработка                                                        |
 | `replacement_status`     | `proposed`, `agreed`, `rejected`                                                                                                                                                                                                                            | proposed → agreed, rejected                                                                                                                                                                                          | Решение по предложенной замене                                                                      |
 | `request_status`         | `draft`, `sent`, `decided`, `ordered`, `cancelled`                                                                                                                                                                                                          | draft → sent, cancelled; sent → decided, cancelled; decided → ordered, cancelled                                                                                                                                     | Хранимый жизненный цикл запроса. Статус на экране (ждём ответы, просрочен, готов) вычисляется       |
@@ -170,25 +171,25 @@ erDiagram
 
 #### `supplier_profiles`
 
-Профиль поставщика для подбора в запрос: регион, разделы спецификации, контакт.
+Профиль поставщика для подбора в запрос: регион, категории материалов, контакт.
 
-| Колонка                                  | Тип              | Пусто | Ссылка                       | Комментарий                                   |
-| ---------------------------------------- | ---------------- | ----- | ---------------------------- | --------------------------------------------- |
-| `supplier_id` **PK**                     | `uuid`           |       | → `counterparties` (cascade) |                                               |
-| `region`                                 | `text`           |       |                              |                                               |
-| `categories`                             | `text[]`         |       |                              | разделы спецификации: Подконструкция, Крепёж… |
-| `contact_name`                           | `text`           |       |                              |                                               |
-| `phone`                                  | `text`           |       |                              |                                               |
-| `email`                                  | `text`           |       |                              |                                               |
-| `contact_source`                         | `text`           |       |                              | откуда взят контакт                           |
-| `contact_checked_at`                     | `date`           |       |                              |                                               |
-| `contact_status`                         | `contact_status` |       |                              |                                               |
-| `created_at`, `updated_at`, `created_by` | служебные        |       | → `employees`                | не отдаются в API                             |
+| Колонка                                  | Тип              | Пусто | Ссылка                       | Комментарий                                                            |
+| ---------------------------------------- | ---------------- | ----- | ---------------------------- | ---------------------------------------------------------------------- |
+| `supplier_id` **PK**                     | `uuid`           |       | → `counterparties` (cascade) |                                                                        |
+| `region`                                 | `text`           |       |                              |                                                                        |
+| `categories`                             | `text[]`         |       |                              | категории материалов верхнего уровня: material_categories.id (ADR-014) |
+| `contact_name`                           | `text`           |       |                              |                                                                        |
+| `phone`                                  | `text`           |       |                              |                                                                        |
+| `email`                                  | `text`           |       |                              |                                                                        |
+| `contact_source`                         | `text`           |       |                              | откуда взят контакт                                                    |
+| `contact_checked_at`                     | `date`           |       |                              |                                                                        |
+| `contact_status`                         | `contact_status` |       |                              |                                                                        |
+| `created_at`, `updated_at`, `created_by` | служебные        |       | → `employees`                | не отдаются в API                                                      |
 
 | Индекс | Колонки      | Для чего                              |
 | ------ | ------------ | ------------------------------------- |
 | btree  | `region`     | подбор поставщиков по региону объекта |
-| gin    | `categories` | подбор по разделам спецификации       |
+| gin    | `categories` | подбор по категориям материалов       |
 
 #### `crews`
 
@@ -410,10 +411,15 @@ erDiagram
   document_revisions |o--o{ revision_changes : from_revision_id
   document_revisions ||--o{ revision_changes : to_revision_id
   employees |o--o{ revision_changes : resolved_by
+  material_categories |o--o{ material_categories : parent_id
+  material_categories ||--o{ materials : category_id
+  materials ||--o{ material_changes : material_id
+  employees ||--o{ material_changes : actor_id
   projects ||--o{ positions : project_id
   document_revisions ||--o{ positions : revision_id
   document_sheets ||--o{ positions : sheet_id
   materials |o--o{ positions : material_id
+  employees |o--o{ positions : matched_by
   employees |o--o{ positions : reviewed_by
   positions |o--o{ positions : merged_into
   positions ||--o{ position_changes : position_id
@@ -468,11 +474,31 @@ erDiagram
     uuid resolved_by FK
     timestamptz resolved_at
   }
+  material_categories {
+    uuid id PK
+    uuid parent_id FK
+    text name
+    text_array rules
+    smallint sort_order
+  }
   materials {
     uuid id PK
     text family
     text name
     text unit
+    uuid category_id FK
+    jsonb characteristics
+    text_array synonyms
+    text_array spellings
+  }
+  material_changes {
+    uuid id PK
+    uuid material_id FK
+    timestamptz at
+    uuid actor_id FK
+    text field
+    text before
+    text after
   }
   positions {
     uuid id PK
@@ -483,6 +509,9 @@ erDiagram
     text family
     text project_name
     uuid material_id FK
+    match_status match_status
+    uuid matched_by FK
+    timestamptz matched_at
     jsonb characteristics
     numeric_14_3_ qty
     text unit
@@ -635,51 +664,95 @@ erDiagram
 
 Проверки: `from_revision_id is null or from_revision_id <> to_revision_id`; `(status = 'resolved') = (resolved_at is not null)`.
 
+#### `material_categories`
+
+Дерево категорий материалов; категория верхнего уровня решает, кому уходит запрос.
+
+| Колонка                                  | Тип        | Пусто | Ссылка                             | Комментарий                                                             |
+| ---------------------------------------- | ---------- | ----- | ---------------------------------- | ----------------------------------------------------------------------- |
+| `id` **PK**                              | `uuid`     |       |                                    |                                                                         |
+| `parent_id`                              | `uuid`     | да    | → `material_categories` (restrict) | null — категория верхнего уровня                                        |
+| `name`                                   | `text`     |       |                                    |                                                                         |
+| `rules`                                  | `text[]`   |       |                                    | правила соответствия: основы слов в наименовании («кронштейн», «анкер») |
+| `sort_order`                             | `smallint` |       |                                    | порядок в дереве                                                        |
+| `created_at`, `updated_at`, `created_by` | служебные  |       | → `employees`                      | не отдаются в API                                                       |
+
+| Индекс | Колонки     | Для чего                     |
+| ------ | ----------- | ---------------------------- |
+| btree  | `parent_id` | дочерние категории           |
+| unique | `name`      | название категории уникально |
+
 #### `materials`
 
-Справочник нормализованных наименований материалов.
+Справочник номенклатуры: нормализованные наименования материалов.
 
-| Колонка                                  | Тип       | Пусто | Ссылка        | Комментарий                     |
-| ---------------------------------------- | --------- | ----- | ------------- | ------------------------------- |
-| `id` **PK**                              | `uuid`    |       |               |                                 |
-| `family`                                 | `text`    |       |               | семейство: bracket, rail, tile… |
-| `name`                                   | `text`    |       |               |                                 |
-| `unit`                                   | `text`    |       |               |                                 |
-| `created_at`, `updated_at`, `created_by` | служебные |       | → `employees` | не отдаются в API               |
+| Колонка                                  | Тип       | Пусто | Ссылка                             | Комментарий                                 |
+| ---------------------------------------- | --------- | ----- | ---------------------------------- | ------------------------------------------- |
+| `id` **PK**                              | `uuid`    |       |                                    |                                             |
+| `family`                                 | `text`    |       |                                    | семейство: bracket, rail, tile…             |
+| `name`                                   | `text`    |       |                                    |                                             |
+| `unit`                                   | `text`    |       |                                    |                                             |
+| `category_id`                            | `uuid`    |       | → `material_categories` (restrict) |                                             |
+| `characteristics`                        | `jsonb`   |       |                                    |                                             |
+| `synonyms`                               | `text[]`  |       |                                    | другие названия того же материала           |
+| `spellings`                              | `text[]`  |       |                                    | типичные написания в проектной документации |
+| `created_at`, `updated_at`, `created_by` | служебные |       | → `employees`                      | не отдаются в API                           |
 
-| Индекс | Колонки      | Для чего                                 |
-| ------ | ------------ | ---------------------------------------- |
-| unique | `name, unit` | один материал — одна строка справочника  |
-| btree  | `family`     | подбор замен и нормализация по семейству |
+| Индекс | Колонки       | Для чего                                      |
+| ------ | ------------- | --------------------------------------------- |
+| unique | `name, unit`  | один материал — одна строка справочника       |
+| btree  | `family`      | подбор замен и нормализация по семейству      |
+| btree  | `category_id` | номенклатура по категории, подбор поставщиков |
+
+#### `material_changes`
+
+История изменений номенклатуры: кто, когда, какое поле, было и стало.
+
+| Колонка       | Тип           | Пусто | Ссылка                   | Комментарий                                            |
+| ------------- | ------------- | ----- | ------------------------ | ------------------------------------------------------ |
+| `id` **PK**   | `uuid`        |       |                          |                                                        |
+| `material_id` | `uuid`        |       | → `materials` (cascade)  |                                                        |
+| `at`          | `timestamptz` |       |                          |                                                        |
+| `actor_id`    | `uuid`        |       | → `employees` (restrict) |                                                        |
+| `field`       | `text`        |       |                          | что изменено: «наименование», «синонимы»… или «создан» |
+| `before`      | `text`        | да    |                          |                                                        |
+| `after`       | `text`        | да    |                          |                                                        |
+
+| Индекс | Колонки                | Для чего          |
+| ------ | ---------------------- | ----------------- |
+| btree  | `material_id, at desc` | история материала |
 
 #### `positions`
 
 Позиция спецификации, извлечённая из листа ревизии. Единственная сущность «что купить».
 
-| Колонка                                  | Тип               | Пусто | Ссылка                            | Комментарий                                                    |
-| ---------------------------------------- | ----------------- | ----- | --------------------------------- | -------------------------------------------------------------- |
-| `id` **PK**                              | `uuid`            |       |                                   |                                                                |
-| `project_id`                             | `uuid`            |       | → `projects` (restrict)           | денормализовано из ревизии для сводки                          |
-| `revision_id`                            | `uuid`            |       | → `document_revisions` (restrict) |                                                                |
-| `sheet_id`                               | `uuid`            |       | → `document_sheets` (restrict)    |                                                                |
-| `position`                               | `text`            |       |                                   | номер в таблице документа: «1.12»                              |
-| `family`                                 | `text`            |       |                                   | семейство по распознаванию, до нормализации                    |
-| `project_name`                           | `text`            |       |                                   | наименование как в проекте                                     |
-| `material_id`                            | `uuid`            | да    | → `materials` (restrict)          | null — требует нормализации                                    |
-| `characteristics`                        | `jsonb`           |       |                                   |                                                                |
-| `qty`                                    | `numeric(14,3)`   |       |                                   |                                                                |
-| `unit`                                   | `text`            |       |                                   |                                                                |
-| `confidence`                             | `numeric(5,4)`    |       |                                   |                                                                |
-| `region`                                 | `jsonb`           |       |                                   |                                                                |
-| `review`                                 | `position_review` |       |                                   |                                                                |
-| `reviewed_by`                            | `uuid`            | да    | → `employees` (restrict)          |                                                                |
-| `reviewed_at`                            | `timestamptz`     | да    |                                   |                                                                |
-| `note`                                   | `text`            | да    |                                   | почему распознавание не уверено                                |
-| `handed_over_at`                         | `timestamptz`     | да    |                                   | передана в закупку                                             |
-| `purchase`                               | `purchase_status` |       |                                   |                                                                |
-| `delivered_qty`                          | `numeric(14,3)`   | да    |                                   | поставлено по актам приёмки; null — поставок не было (ADR-011) |
-| `merged_into`                            | `uuid`            | да    | → `positions` (restrict)          |                                                                |
-| `created_at`, `updated_at`, `created_by` | служебные         |       | → `employees`                     | не отдаются в API                                              |
+| Колонка                                  | Тип               | Пусто | Ссылка                            | Комментарий                                                                   |
+| ---------------------------------------- | ----------------- | ----- | --------------------------------- | ----------------------------------------------------------------------------- |
+| `id` **PK**                              | `uuid`            |       |                                   |                                                                               |
+| `project_id`                             | `uuid`            |       | → `projects` (restrict)           | денормализовано из ревизии для сводки                                         |
+| `revision_id`                            | `uuid`            |       | → `document_revisions` (restrict) |                                                                               |
+| `sheet_id`                               | `uuid`            |       | → `document_sheets` (restrict)    |                                                                               |
+| `position`                               | `text`            |       |                                   | номер в таблице документа: «1.12»                                             |
+| `family`                                 | `text`            |       |                                   | семейство по распознаванию, до нормализации                                   |
+| `project_name`                           | `text`            |       |                                   | наименование как в проекте                                                    |
+| `material_id`                            | `uuid`            | да    | → `materials` (restrict)          | материал справочника: предложенный или подтверждённый; null — не сопоставлено |
+| `match_status`                           | `match_status`    |       |                                   |                                                                               |
+| `matched_by`                             | `uuid`            | да    | → `employees` (restrict)          | кто подтвердил сопоставление                                                  |
+| `matched_at`                             | `timestamptz`     | да    |                                   |                                                                               |
+| `characteristics`                        | `jsonb`           |       |                                   |                                                                               |
+| `qty`                                    | `numeric(14,3)`   |       |                                   |                                                                               |
+| `unit`                                   | `text`            |       |                                   |                                                                               |
+| `confidence`                             | `numeric(5,4)`    |       |                                   |                                                                               |
+| `region`                                 | `jsonb`           |       |                                   |                                                                               |
+| `review`                                 | `position_review` |       |                                   |                                                                               |
+| `reviewed_by`                            | `uuid`            | да    | → `employees` (restrict)          |                                                                               |
+| `reviewed_at`                            | `timestamptz`     | да    |                                   |                                                                               |
+| `note`                                   | `text`            | да    |                                   | почему распознавание не уверено                                               |
+| `handed_over_at`                         | `timestamptz`     | да    |                                   | передана в закупку                                                            |
+| `purchase`                               | `purchase_status` |       |                                   |                                                                               |
+| `delivered_qty`                          | `numeric(14,3)`   | да    |                                   | поставлено по актам приёмки; null — поставок не было (ADR-011)                |
+| `merged_into`                            | `uuid`            | да    | → `positions` (restrict)          |                                                                               |
+| `created_at`, `updated_at`, `created_by` | служебные         |       | → `employees`                     | не отдаются в API                                                             |
 
 | Индекс | Колонки                                                   | Для чего                                                  |
 | ------ | --------------------------------------------------------- | --------------------------------------------------------- |
@@ -690,7 +763,7 @@ erDiagram
 | btree  | `material_id`                                             | потребность в материале, подбор строк запроса             |
 | btree  | `merged_into` where `merged_into is not null`             | история объединений                                       |
 
-Проверки: `(reviewed_at is null) = (reviewed_by is null)`; `handed_over_at is null or review in ('confirmed', 'corrected')`; `purchase = 'none' or handed_over_at is not null`; `(review = 'merged') = (merged_into is not null)`.
+Проверки: `(reviewed_at is null) = (reviewed_by is null)`; `handed_over_at is null or review in ('confirmed', 'corrected')`; `purchase = 'none' or handed_over_at is not null`; `(review = 'merged') = (merged_into is not null)`; `(match_status = 'none') = (material_id is null)`; `(match_status = 'confirmed') = (matched_by is not null)`; `(matched_at is null) = (matched_by is null)`.
 
 #### `position_changes`
 

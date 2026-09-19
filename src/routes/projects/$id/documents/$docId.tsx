@@ -388,6 +388,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const summary: SendSummary = {
     create: toHandOver,
     needNormalization: facets?.handOver.needNormalization ?? 0,
+    unconfirmedMatch: facets?.handOver.unconfirmedMatch ?? 0,
     withoutCharacteristics: facets?.handOver.withoutCharacteristics ?? 0,
     region: overview?.region ?? "—",
     pendingLeft: counts.pending,
@@ -412,7 +413,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     mutations.handOver.mutate(docId, {
       onSuccess: (count) =>
         toast.success(`В закупку переданы позиции: ${fmtNum(count)}`, {
-          description: `По ним можно запрашивать цены у поставщиков. Нормализации требуют ${fmtNum(summary.needNormalization)}.`,
+          description: summary.unconfirmedMatch
+            ? `Запрашивать цены можно по позициям с подтверждённым материалом. Ждут подтверждения сопоставления: ${fmtNum(summary.unconfirmedMatch)}.`
+            : "По ним можно запрашивать цены у поставщиков.",
           action: {
             label: "Открыть материалы",
             onClick: () => navigate({ to: "/projects/$id/materials", params: { id: project.id } }),

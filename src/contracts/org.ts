@@ -96,18 +96,20 @@ export const contactStatus = pgEnum(
 export const supplierProfiles = table(
   {
     name: "supplier_profiles",
-    comment: "Профиль поставщика для подбора в запрос: регион, разделы спецификации, контакт",
+    comment: "Профиль поставщика для подбора в запрос: регион, категории материалов, контакт",
     primaryKey: ["supplierId"],
     audited: true,
     indexes: [
       { columns: ["region"], purpose: "подбор поставщиков по региону объекта" },
-      { columns: ["categories"], method: "gin", purpose: "подбор по разделам спецификации" },
+      { columns: ["categories"], method: "gin", purpose: "подбор по категориям материалов" },
     ],
   },
   {
     supplierId: col.ref("counterparties", "cascade"),
     region: col.name(),
-    categories: col.textArray({ comment: "разделы спецификации: Подконструкция, Крепёж…" }),
+    categories: col.textArray({
+      comment: "категории материалов верхнего уровня: material_categories.id (ADR-014)",
+    }),
     contactName: col.text(),
     phone: col.text(),
     email: col.text(),
@@ -184,3 +186,4 @@ export const contactStatusLabel: Record<ContactFreshness, string> = {
   needs_check: "Требует проверки",
   stale: "Устарел",
 };
+export type ContactStatus = z.infer<typeof contactStatus.schema>;
