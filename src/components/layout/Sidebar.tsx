@@ -82,9 +82,10 @@ export function Sidebar() {
         data-sidebar="app"
         className={cn(
           // На телефоне меню выезжает поверх экрана и нуждается в фоне; в оболочке сайдбар прозрачный
-          "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0 lg:bg-transparent",
+          "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform,visibility] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0 lg:bg-transparent",
           collapsed ? "lg:w-[72px]" : "lg:w-[var(--sidebar-w)]",
-          mobileNavOpen ? "translate-x-0" : "-translate-x-full",
+          // Закрытое выдвижное меню скрыто от фокуса и диктора; скрытие ждёт конца выезда (ADR-015, п. 3)
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full max-lg:invisible",
         )}
       >
         <SidebarInner
@@ -164,6 +165,11 @@ function SidebarInner({
     navRef.current?.querySelector("[aria-current=page]")?.scrollIntoView({ block: "nearest" });
   }, [activeKey]);
   const activeGroup = groups.find((g) => g.items.some((i) => i.key === activeKey))?.title;
+  // Переход в раздел раскрывает его группу; свернуть можно любую группу, и текущую тоже —
+  // иначе её заголовок был бы кнопкой без действия (ADR-015, п. 2)
+  useEffect(() => {
+    if (activeGroup) setClosedGroups((prev) => prev.filter((title) => title !== activeGroup));
+  }, [activeGroup]);
 
   const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
   const initials = user?.name
@@ -247,8 +253,7 @@ function SidebarInner({
 
       <nav ref={navRef} className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
         {groups.map((group, index) => {
-          const open =
-            collapsed || !closedGroups.includes(group.title) || group.title === activeGroup;
+          const open = collapsed || !closedGroups.includes(group.title);
           const hiddenCritical = group.items.reduce(
             (sum, i) => sum + (i.badge && CRITICAL_BADGES.includes(i.badge) ? counts[i.badge] : 0),
             0,

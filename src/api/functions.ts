@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   extractedPosition,
+  milestoneView,
   materials as materialRow,
   projectDecision,
   projectDocument,
@@ -18,6 +19,9 @@ import {
   correctPositionInput,
   counterpartyList,
   createProjectInput,
+  setProjectStatusInput,
+  completeMilestoneInput,
+  resolveChangeInput,
   createRequestInput,
   createRequestResult,
   acceptDeliveryInput,
@@ -139,6 +143,19 @@ export const createProjectFn = createServerFn({ method: "POST" })
   .validator(input(createProjectInput))
   .handler(async ({ data }) => respond(projectView, await repos().projects.create(data, actor())));
 
+/** Статус объекта и контрольная точка — действия ADR-015, п. 7 */
+export const setProjectStatusFn = createServerFn({ method: "POST" })
+  .validator(input(setProjectStatusInput))
+  .handler(async ({ data }) =>
+    respond(projectView, await repos().projects.setStatus(data, actor())),
+  );
+
+export const completeMilestoneFn = createServerFn({ method: "POST" })
+  .validator(input(completeMilestoneInput))
+  .handler(async ({ data }) =>
+    respond(milestoneView, await repos().projects.completeMilestone(data, actor())),
+  );
+
 /* ---------- Документы ---------- */
 
 export const documentsFn = createServerFn({ method: "GET" })
@@ -169,6 +186,12 @@ export const revisionChangesFn = createServerFn({ method: "GET" })
   .validator(input(listChangesInput))
   .handler(async ({ data }) =>
     respond(z.array(revisionChangeView), await repos().documents.changes(data)),
+  );
+
+export const resolveChangeFn = createServerFn({ method: "POST" })
+  .validator(input(resolveChangeInput))
+  .handler(async ({ data }) =>
+    respond(revisionChangeView, await repos().documents.resolveChange(data, actor())),
   );
 
 /* ---------- Позиции ---------- */

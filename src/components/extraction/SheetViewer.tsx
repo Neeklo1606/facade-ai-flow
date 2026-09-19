@@ -416,6 +416,8 @@ function SpecTable({
             key={item.id}
             type="button"
             tabIndex={-1}
+            // Выбранная позиция подсвечена цветом — и названа для диктора (ADR-015)
+            aria-pressed={item.id === activeId}
             onClick={() => onSelect(item.id)}
             className={cn(
               "absolute grid cursor-pointer items-center border-x border-b border-[#c9ced2] text-left hover:bg-[#fff4ec]",

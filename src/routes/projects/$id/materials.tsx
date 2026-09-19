@@ -248,7 +248,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
         project={project}
         title="Материалы"
         meta={
-          <span className="text-caption text-text-secondary">
+          <span id="materials-summary" className="text-caption text-text-secondary">
             Позиций{" "}
             <b className="tnum font-semibold text-text-primary">
               {fmtNum(overview?.specTotal ?? 0)}
@@ -266,6 +266,8 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             <Button
               variant="accent"
               disabled={blocked || (eligibleCount === 0 && readyTotal === 0)}
+              // Недоступна — причина в подписи шапки: «готовы к запросу 0» (ADR-015)
+              aria-describedby="materials-summary"
               onClick={() => setRequestOpen(true)}
               data-tour="create-request"
             >

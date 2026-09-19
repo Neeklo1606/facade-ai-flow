@@ -47,6 +47,16 @@ export const ACCESS_RULES: AccessRules = {
     exportRegistry: { sections: ["export"], need: READ, global: true },
     card: { sections: ["projects"], need: READ, project: (id) => project(id) },
     create: { sections: ["projects"], need: WRITE, global: true },
+    setStatus: {
+      sections: ["projects"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
+    completeMilestone: {
+      sections: ["projects"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
   },
   documents: {
     list: {
@@ -59,6 +69,11 @@ export const ACCESS_RULES: AccessRules = {
     card: { sections: ["documents"], need: READ, project: (id) => ref("revision", id) },
     upload: { sections: ["documents"], need: WRITE, project: (input) => project(input.projectId) },
     changes: { sections: ["documents"], need: READ, project: (input) => project(input.projectId) },
+    resolveChange: {
+      sections: ["documents"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
   },
   positions: {
     list: { sections: POSITIONS, need: READ, project: (input) => positionScope(input) },

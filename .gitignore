@@ -37,3 +37,6 @@ dist-ssr
 # Сквозные тесты
 test-results/
 playwright-report/
+
+# Отчёт обхода продукта (ADR-015)
+.walkthrough/

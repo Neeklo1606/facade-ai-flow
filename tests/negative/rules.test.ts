@@ -3,7 +3,13 @@ import { guardRepositories, sessionFor } from "@/adapters/access";
 import { createDemoRepositories, resetDemo } from "@/adapters/demo";
 import { stopSimulator } from "@/adapters/demo/simulator";
 import { checklistFor } from "@/domain/deliveries";
-import { ConflictError, FORBIDDEN_MESSAGE, ForbiddenError, type Repositories } from "@/ports";
+import {
+  ConflictError,
+  FORBIDDEN_MESSAGE,
+  ForbiddenError,
+  NotFoundError,
+  type Repositories,
+} from "@/ports";
 import { allPositions } from "../consistency/screens";
 
 /**
@@ -335,5 +341,98 @@ describe("сопоставление с номенклатурой (ADR-014)", (
       actor,
     );
     expect(saved.spellings).toContain("КР150");
+  });
+});
+
+describe("показанный статус меняется действием (ADR-015, п. 7)", () => {
+  const as = (actorId: string) => guardRepositories(repos, () => sessionFor(repos, actorId));
+
+  test("статус объекта: переход по таблице пишется в историю, из «Завершён» — отказ", async () => {
+    const before = (await repos.projects.card("p-korona"))!.project.status;
+    expect(before).toBe("at_risk");
+    const project = await repos.projects.setStatus(
+      { projectId: "p-korona", status: "active" },
+      actor,
+    );
+    expect(project.status).toBe("active");
+    expect(
+      (await repos.projects.list()).find((r) => r.project.id === "p-korona")!.project.status,
+    ).toBe("active");
+    const history = await repos.timeline.list("p-korona");
+    expect(history.some((item) => item.title.includes("«Под риском» → «В работе»"))).toBe(true);
+
+    await repos.projects.setStatus({ projectId: "p-korona", status: "done" }, actor);
+    const error = await rejection(
+      repos.projects.setStatus({ projectId: "p-korona", status: "active" }, actor),
+    );
+    expect(error).toBeInstanceOf(ConflictError);
+  });
+
+  test("статус объекта меняет только право записи в «Объекты»", async () => {
+    for (const persona of ["e-gareev", "e-volkova", "e-dorohov"]) {
+      const error = await rejection(
+        as(persona).projects.setStatus({ projectId: "p-korona", status: "paused" }, actor),
+      );
+      expect(error, persona).toBeInstanceOf(ForbiddenError);
+    }
+  });
+
+  test("контрольная точка: выполнить можно один раз, точку другого объекта — нет", async () => {
+    const card = (await repos.projects.card("p-korona"))!;
+    const open = card.milestones.find((item) => item.status !== "done")!;
+    const done = await repos.projects.completeMilestone(
+      { projectId: "p-korona", milestoneId: open.id },
+      actor,
+    );
+    expect(done.status).toBe("done");
+    expect(
+      (await repos.projects.card("p-korona"))!.milestones.find((m) => m.id === open.id)!.status,
+    ).toBe("done");
+    expect(
+      await rejection(
+        repos.projects.completeMilestone({ projectId: "p-korona", milestoneId: open.id }, actor),
+      ),
+    ).toBeInstanceOf(ConflictError);
+    expect(
+      await rejection(
+        repos.projects.completeMilestone({ projectId: "p-meridian", milestoneId: open.id }, actor),
+      ),
+    ).toBeInstanceOf(NotFoundError);
+  });
+
+  test("изменение ревизии: разобранное уходит из счётчиков карточки и реестра", async () => {
+    const overview = async () => (await repos.projects.card("p-korona"))!.overview.openChanges;
+    const registry = async () =>
+      (await repos.projects.list()).find((r) => r.project.id === "p-korona")!.overview.openChanges;
+    const before = await overview();
+    const change = (await repos.documents.changes({ projectId: "p-korona", status: "open" }))[0]!;
+    const resolved = await repos.documents.resolveChange(
+      { projectId: "p-korona", changeId: change.id },
+      actor,
+    );
+    expect(resolved.status).toBe("resolved");
+    expect(resolved.resolvedBy).toBe("e-sokolov");
+    expect(await overview()).toBe(before - 1);
+    expect(await registry()).toBe(before - 1);
+    expect(
+      await rejection(
+        repos.documents.resolveChange({ projectId: "p-korona", changeId: change.id }, actor),
+      ),
+    ).toBeInstanceOf(ConflictError);
+  });
+
+  test("изменение другого объекта не находится; директор и снабжение не разбирают", async () => {
+    const change = (await repos.documents.changes({ projectId: "p-korona", status: "open" }))[0]!;
+    expect(
+      await rejection(
+        repos.documents.resolveChange({ projectId: "p-meridian", changeId: change.id }, actor),
+      ),
+    ).toBeInstanceOf(NotFoundError);
+    for (const persona of ["e-belyaev", "e-dorohov"]) {
+      const error = await rejection(
+        as(persona).documents.resolveChange({ projectId: "p-korona", changeId: change.id }, actor),
+      );
+      expect(error, persona).toBeInstanceOf(ForbiddenError);
+    }
   });
 });

@@ -1,5 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { mobileCheck } from "./mobile-checks";
 
 /**
  * Общая оснастка сквозных тестов (ADR-013, п. 3):
@@ -149,4 +150,20 @@ export async function expectA11y(page: Page, screen: string) {
     .filter((v) => v.impact === "serious" || v.impact === "critical")
     .map((v) => `${v.id} (${v.impact}, узлов ${v.nodes.length}): ${v.nodes[0]?.target.join(" ")}`);
   expect(serious, `${screen}: нарушения доступности`).toEqual([]);
+}
+
+/**
+ * Мобильная версия и честность экрана (ADR-015): пометка демонстрации видна в первом экране
+ * на любой ширине; на телефоне — без переполнения, с областями нажатия от 44 px, без действий
+ * только по наведению и без фокуса за краем экрана
+ */
+export async function expectMobile(page: Page, screen: string) {
+  await settle(page);
+  const check = await mobileCheck(page);
+  expect(check.demoMarked, `${screen}: пометка демонстрации не видна`).toBe(true);
+  if ((page.viewportSize()?.width ?? 1440) >= 768) return;
+  expect(check.overflow.offenders, `${screen}: страница шире экрана`).toEqual([]);
+  expect(check.small, `${screen}: области нажатия меньше 44 px`).toEqual([]);
+  expect(check.hoverOnly, `${screen}: действия только по наведению`).toEqual([]);
+  expect(check.offscreenFocusable, `${screen}: фокус уходит за край экрана`).toEqual([]);
 }

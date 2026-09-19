@@ -1,6 +1,5 @@
+import { InfoTip } from "./InfoTip";
 import type { ReactNode } from "react";
-import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageActions } from "@/components/layout/PageActions";
 
 function splitDescription(text: string) {
@@ -37,20 +36,7 @@ export function PageHeader({
         {parts && (
           <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[13px] text-text-secondary">
             <span className="truncate">{parts.lead}</span>
-            {parts.rest && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Подробнее"
-                    className="focus-ring inline-grid size-11 shrink-0 place-items-center text-text-muted hover:text-text-primary lg:size-auto"
-                  >
-                    <Info className="size-3.5" strokeWidth={1.5} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">{parts.rest}</TooltipContent>
-              </Tooltip>
-            )}
+            {parts.rest && <InfoTip label="Подробнее">{parts.rest}</InfoTip>}
           </p>
         )}
         {meta && <div className="mt-2 flex flex-wrap items-center gap-2">{meta}</div>}

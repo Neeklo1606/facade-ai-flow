@@ -17,6 +17,9 @@ import type {
   ResolveRemarkInput,
   CreateProjectInput,
   CreateRequestInput,
+  CompleteMilestoneInput,
+  ResolveChangeInput,
+  SetProjectStatusInput,
   MergePositionsInput,
   Page,
   ReviewReportInput,
@@ -427,5 +430,37 @@ export function useAskAgent() {
   return useMutation({
     meta: { action: "askAgent" },
     mutationFn: (input: AskAgentInput) => api.agent.ask(input),
+  });
+}
+
+/* ---------- Статусы на экранах (ADR-015, п. 7) ---------- */
+
+/** Статус объекта: реестр, карточка, дашборд и история */
+export function useSetProjectStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "setProjectStatus" },
+    mutationFn: (input: SetProjectStatusInput) => api.projects.setStatus(input),
+    onSettled: () => invalidate(queryClient, ["projects", "timeline"]),
+  });
+}
+
+/** Контрольная точка выполнена: карточка объекта и история */
+export function useCompleteMilestone() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "completeMilestone" },
+    mutationFn: (input: CompleteMilestoneInput) => api.projects.completeMilestone(input),
+    onSettled: () => invalidate(queryClient, ["projects", "timeline"]),
+  });
+}
+
+/** Изменение ревизии разобрано: счётчики реестра и карточки, список изменений, история */
+export function useResolveChange() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "resolveChange" },
+    mutationFn: (input: ResolveChangeInput) => api.documents.resolveChange(input),
+    onSettled: () => invalidate(queryClient, ["documents", "projects", "timeline"]),
   });
 }

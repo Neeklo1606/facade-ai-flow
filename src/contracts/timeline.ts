@@ -18,6 +18,10 @@ export const eventType = pgEnum(
     "delivery_rejected",
     "delivery_remark",
     "report_added",
+    // Смена показанного статуса действием (ADR-015, п. 7)
+    "project_status_changed",
+    "milestone_done",
+    "change_resolved",
   ],
   "Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении",
 );
@@ -87,5 +91,8 @@ export const timelineTypeLabel: Record<TimelineEventType, string> = {
   delivery_rejected: "Поставка отклонена",
   delivery_remark: "Замечание по поставке",
   report_added: "Добавлен отчёт с площадки",
+  project_status_changed: "Изменён статус объекта",
+  milestone_done: "Контрольная точка выполнена",
+  change_resolved: "Изменение документации разобрано",
   decision: "Зафиксировано решение",
 };

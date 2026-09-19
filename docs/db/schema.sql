@@ -85,7 +85,7 @@ create type issue_severity as enum ('blocker', 'warning');
 create type evidence_kind as enum ('photo', 'audio', 'file');
 
 -- Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении
-create type event_type as enum ('version_uploaded', 'spec_extracted', 'qty_corrected', 'request_created', 'offer_received', 'replacement_proposed', 'replacement_agreed', 'material_ordered', 'delivery_moved', 'delivery_received', 'delivery_rejected', 'delivery_remark', 'report_added');
+create type event_type as enum ('version_uploaded', 'spec_extracted', 'qty_corrected', 'request_created', 'offer_received', 'replacement_proposed', 'replacement_agreed', 'material_ordered', 'delivery_moved', 'delivery_received', 'delivery_rejected', 'delivery_remark', 'report_added', 'project_status_changed', 'milestone_done', 'change_resolved');
 
 -- Сотрудники и пользователи системы
 create table employees (

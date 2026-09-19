@@ -1,6 +1,5 @@
 import { useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, Paperclip } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -54,7 +53,7 @@ export function AgentComposer({
             event.preventDefault();
             send();
           }}
-          className="flex h-[88px] flex-col rounded-[var(--r-lg)] border border-line bg-surface-2 px-4 pt-3 pb-2.5 transition-fast focus-within:border-orange-line focus-within:ring-3 focus-within:ring-[rgba(232,80,2,0.14)] sm:h-[112px] sm:pt-4 sm:pb-3"
+          className="flex min-h-[112px] flex-col rounded-[var(--r-lg)] border border-line bg-surface-2 px-4 pt-3 pb-2.5 transition-fast focus-within:border-orange-line focus-within:ring-3 focus-within:ring-[rgba(232,80,2,0.14)] sm:pt-4 sm:pb-3"
         >
           <label htmlFor="agent-prompt" className="sr-only">
             Вопрос системе
@@ -68,25 +67,11 @@ export function AgentComposer({
             placeholder="Спросите систему"
             rows={1}
             maxLength={2000}
-            className="min-h-0 flex-1 resize-none bg-transparent text-[15px] leading-[1.45] text-text outline-none placeholder:text-text-3"
+            className="min-h-11 flex-1 resize-none bg-transparent text-[15px] leading-[1.45] text-text outline-none placeholder:text-text-3"
           />
-          <div className="flex items-center justify-between">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {/* Вложений пока нет: кнопка видна, но не притворяется рабочей */}
-                <span tabIndex={0} className="focus-ring rounded-[var(--r-sm)]">
-                  <button
-                    type="button"
-                    disabled
-                    aria-label="Прикрепить файл — появится позже"
-                    className="grid size-11 place-items-center rounded-[var(--r-sm)] text-text-3 disabled:cursor-not-allowed disabled:opacity-60 lg:size-8"
-                  >
-                    <Paperclip className="size-4" strokeWidth={1.5} />
-                  </button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Вложения появятся в следующей версии</TooltipContent>
-            </Tooltip>
+          {/* Вложений нет — и кнопки для них нет: отключённая кнопка «появится позже» была
+              кнопкой без действия (ADR-015) */}
+          <div className="flex items-center justify-end">
             <button
               type="submit"
               disabled={!ready}

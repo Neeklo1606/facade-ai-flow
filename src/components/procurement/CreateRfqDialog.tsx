@@ -172,6 +172,12 @@ export function CreateRfqDialog({
     };
   };
 
+  const nextHint = [
+    "Выберите хотя бы одну позицию",
+    "Выберите хотя бы одного поставщика",
+    "Заполните тему и текст письма",
+    "",
+  ];
   const canNext = [
     selectedItems.length > 0,
     suppliers.size > 0,
@@ -452,14 +458,23 @@ export function CreateRfqDialog({
             )}
           </Button>
           {step < steps.length - 1 ? (
-            <Button
-              variant="accent"
-              disabled={!canNext}
-              onClick={() => setStep(step + 1)}
-              className="flex-1 sm:flex-none"
-            >
-              Далее: {steps[step + 1]} <ChevronRight className="size-4" />
-            </Button>
+            <div className="flex flex-1 items-center justify-end gap-3 sm:flex-none">
+              {/* Почему «Далее» недоступно — видно рядом с кнопкой (ADR-015) */}
+              {!canNext && (
+                <span id="rfq-next-hint" className="text-caption text-text-muted">
+                  {nextHint[step]}
+                </span>
+              )}
+              <Button
+                variant="accent"
+                disabled={!canNext}
+                aria-describedby={canNext ? undefined : "rfq-next-hint"}
+                onClick={() => setStep(step + 1)}
+                className="flex-1 sm:flex-none"
+              >
+                Далее: {steps[step + 1]} <ChevronRight className="size-4" />
+              </Button>
+            </div>
           ) : (
             <Button variant="accent" onClick={send} className="flex-1 sm:flex-none">
               <Send className="size-4" /> Отправить {recipients.length}{" "}

@@ -24,7 +24,6 @@ import { MetricStrip } from "@/components/common/MetricStrip";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PillTabs } from "@/components/common/PillTabs";
 import { PageCaption } from "@/components/layout/PageActions";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { SourceDrawer } from "@/components/common/SourceRef";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +45,7 @@ import {
   PurchasesPreview,
 } from "@/components/project/PreviewTabs";
 import { useApp } from "@/lib/app-context";
-import { projectStatusMeta } from "@/lib/project-meta";
+import { ProjectStatusControl } from "@/components/project/ProjectStatusControl";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
@@ -74,15 +73,6 @@ const tabs = [
 type TabId = (typeof tabs)[number]["id"];
 
 /** Цвет статуса объекта текстом в подписи шапки */
-const statusText: Record<string, string> = {
-  ok: "text-ok",
-  warn: "text-warn",
-  danger: "text-danger",
-  info: "text-info",
-  neutral: "text-text-2",
-  accent: "text-text",
-};
-
 export const Route = createFileRoute("/projects/$id/")({
   validateSearch: (search: Record<string, unknown>): { tab?: TabId | undefined } => ({
     tab:
@@ -144,7 +134,6 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const status = projectStatusMeta[project.status];
   const latestVersion = mainSpecification(documents.data ?? [])?.document;
 
   const setTab = (next: string) =>
@@ -246,7 +235,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         <span aria-hidden className="text-text-3">
           ·
         </span>
-        <span className={statusText[status.tone]}>{status.label}</span>
+        <ProjectStatusControl project={project} variant="caption" />
         {latestVersion && (
           <>
             <span aria-hidden className="text-text-3">
@@ -267,7 +256,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
           <ArrowLeft className="size-3.5" /> Все объекты
         </Link>
         <span className="mono text-caption text-text-2">{project.code}</span>
-        <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+        <ProjectStatusControl project={project} variant="badge" />
       </div>
 
       <MetricStrip

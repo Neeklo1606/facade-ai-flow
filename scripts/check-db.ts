@@ -89,6 +89,23 @@ async function checkColumns(db: Driver) {
     if (!actual.has(`${def.meta.name}.row_order`)) problems.push(`нет ${def.meta.name}.row_order`);
   }
   const enumNames = new Set(enums.map((item) => item.name));
+  // Значения перечислений базы — те же и в том же порядке, что в контрактах
+  const labels = await db.query<{ name: string; values: string[] }>(
+    `select t.typname as name, array_agg(e.enumlabel order by e.enumsortorder)::text[] as values
+     from pg_type t join pg_enum e on e.enumtypid = t.oid
+     join pg_namespace n on n.oid = t.typnamespace
+     where n.nspname = 'public' group by t.typname`,
+  );
+  const actualEnums = new Map(labels.map((row) => [row.name, row.values]));
+  for (const item of enums) {
+    const values = actualEnums.get(item.name);
+    if (!values) problems.push(`нет перечисления ${item.name}`);
+    else if (values.join() !== item.values.join()) {
+      problems.push(
+        `${item.name}: в базе ${values.join(", ")}, в контракте ${item.values.join(", ")}`,
+      );
+    }
+  }
   for (const [name] of actual) {
     const [table, column] = name.split(".") as [string, string];
     if (table === "app_state" || table === "schema_migrations") continue;
@@ -99,7 +116,7 @@ async function checkColumns(db: Driver) {
     return true;
   }
   console.log(
-    `✓ колонки базы совпадают с контрактами: ${tables.length} таблиц, ${expected.size} колонок, ${enumNames.size} перечислений`,
+    `✓ колонки и перечисления базы совпадают с контрактами: ${tables.length} таблиц, ${expected.size} колонок, ${enumNames.size} перечислений`,
   );
   return false;
 }
@@ -273,6 +290,7 @@ const reads: Step[] = [
   { name: "сотрудники", run: (r) => r.directory.employees() },
   { name: "объекты прораба", run: (r) => r.scope.projectsOf("e-gareev") },
   { name: "объект поставки", run: (r) => r.scope.projectOf("delivery", "dl-501") },
+  { name: "изменения документации", run: (r) => r.documents.changes({ projectId: "p-korona" }) },
 ];
 
 async function firstIds(r: Repositories, view: "pending" | "verified", count: number) {
@@ -453,6 +471,32 @@ const writes: Step[] = [
         },
         supply,
       ),
+  },
+  {
+    name: "статус объекта: «Под риском» → «В работе»",
+    run: (r) => r.projects.setStatus({ projectId: "p-korona", status: "active" }, actor),
+  },
+  {
+    name: "контрольная точка выполнена",
+    run: async (r) => {
+      const card = (await r.projects.card("p-korona"))!;
+      const open = card.milestones.find((item) => item.status !== "done")!;
+      return r.projects.completeMilestone({ projectId: "p-korona", milestoneId: open.id }, actor);
+    },
+  },
+  {
+    name: "изменение ревизии разобрано",
+    run: async (r) => {
+      const [change] = await r.documents.changes({ projectId: "p-korona", status: "open" });
+      return r.documents.resolveChange({ projectId: "p-korona", changeId: change!.id }, actor);
+    },
+  },
+  {
+    name: "изменение чужого объекта — отказ",
+    run: async (r) => {
+      const [change] = await r.documents.changes({ projectId: "p-korona", status: "open" });
+      return r.documents.resolveChange({ projectId: "p-meridian", changeId: change!.id }, actor);
+    },
   },
   {
     name: "новый объект с новым заказчиком и договором",

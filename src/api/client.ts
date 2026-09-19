@@ -8,6 +8,9 @@ import type {
   SaveMaterialInput,
   CreateProjectInput,
   CreateRequestInput,
+  CompleteMilestoneInput,
+  ResolveChangeInput,
+  SetProjectStatusInput,
   ListChangesInput,
   ListDocumentsInput,
   ListPositionsInput,
@@ -109,6 +112,14 @@ export const api = {
       server ? fn.projectCardFn({ data: { id } }) : local().then((r) => r.projects.card(id)),
     create: (data: CreateProjectInput) =>
       server ? fn.createProjectFn({ data }) : local().then((r) => r.projects.create(data, actor())),
+    setStatus: (data: SetProjectStatusInput) =>
+      server
+        ? fn.setProjectStatusFn({ data })
+        : local().then((r) => r.projects.setStatus(data, actor())),
+    completeMilestone: (data: CompleteMilestoneInput) =>
+      server
+        ? fn.completeMilestoneFn({ data })
+        : local().then((r) => r.projects.completeMilestone(data, actor())),
   },
   documents: {
     list: (data: ListDocumentsInput) =>
@@ -121,6 +132,10 @@ export const api = {
       server ? fn.uploadFn({ data }) : local().then((r) => r.documents.upload(data, actor())),
     changes: (data: ListChangesInput) =>
       server ? fn.revisionChangesFn({ data }) : local().then((r) => r.documents.changes(data)),
+    resolveChange: (data: ResolveChangeInput) =>
+      server
+        ? fn.resolveChangeFn({ data })
+        : local().then((r) => r.documents.resolveChange(data, actor())),
   },
   positions: {
     list: (data: ListPositionsInput) =>

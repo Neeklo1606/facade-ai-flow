@@ -43,7 +43,7 @@ export function DeliveryDetails({
           <Link
             to="/projects/$id/procurement/$rfqId"
             params={{ id: projectId, rfqId: delivery.requestId }}
-            className="underline-offset-2 hover:underline"
+            className="focus-ring inline-flex min-h-11 items-center rounded-[var(--r-xs)] underline-offset-2 hover:underline lg:min-h-0"
           >
             {card.requestNumber}
             {delivery.decisionId ? " · решение по сравнению" : ""}

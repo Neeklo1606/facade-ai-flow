@@ -162,13 +162,14 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
         project={project}
         title="Отчёты с площадки"
         actions={
-          <Button
-            variant="accent"
-            disabled={blocked || toReview.length === 0}
-            onClick={nextToReview}
-          >
-            <Check className="size-4" /> К следующему на проверке
-          </Button>
+          // Как на телефоне: кнопка есть, когда есть что проверять и право проверять (ADR-015)
+          !blocked &&
+          toReview.length > 0 &&
+          canWriteReports && (
+            <Button variant="accent" onClick={nextToReview}>
+              <Check className="size-4" /> К следующему на проверке
+            </Button>
+          )
         }
       />
 

@@ -74,6 +74,12 @@ export const queries = {
       refetchInterval: (query) =>
         query.state.data?.some((item) => shouldPollJob(item.job)) ? JOB_POLL_MS : false,
     }),
+  /** Изменения между ревизиями документов объекта: открытые и разобранные (ADR-015, п. 7) */
+  revisionChanges: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.documents.changes(projectId),
+      queryFn: () => api.documents.changes({ projectId }),
+    }),
   revisions: (documentId: string) =>
     queryOptions({
       queryKey: keys.documents.revisions(documentId),

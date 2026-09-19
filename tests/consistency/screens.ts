@@ -239,6 +239,16 @@ export async function consistencyIssues(repos: Repositories): Promise<string[]> 
     metric("unverified") === fmtNum(pendingTotal),
     `дашборд: ждёт проверки ${metric("unverified")}, по материалам объектов ${fmtNum(pendingTotal)}`,
   );
+  // «Заявок без ответа» — запросы, которые на экранах закупок ждут ответов и не получили ни одного
+  const silentRows = requestRows.filter(
+    (r) =>
+      (r.status === "sent" || r.status === "collecting" || r.status === "overdue") &&
+      r.answered === 0,
+  ).length;
+  expect(
+    metric("silent") === fmtNum(silentRows),
+    `дашборд: заявок без ответа ${metric("silent")}, в списках запросов ждут ответа без единого ответа ${silentRows}`,
+  );
   const overdueRows = requestRows.filter((r) => r.status === "overdue").length;
   expect(
     metric("overdue") === fmtNum(overdueRows),

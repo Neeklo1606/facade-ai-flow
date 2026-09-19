@@ -57,9 +57,23 @@ export const createProjectInput = z
     path: ["endDate"],
   });
 
+/** Сменить статус объекта: переходы — `projectStatusTransitions` (ADR-015, п. 7) */
+export const setProjectStatusInput = z.object({
+  projectId: z.string().min(1),
+  status: projectStatus.schema,
+});
+
+/** Отметить контрольную точку выполненной; объект — для проверки прав и принадлежности */
+export const completeMilestoneInput = z.object({
+  projectId: z.string().min(1),
+  milestoneId: z.string().min(1),
+});
+
 export type ProjectListItem = z.infer<typeof projectListItem>;
 export type ListProjectsInput = z.infer<typeof listProjectsInput>;
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
+export type SetProjectStatusInput = z.infer<typeof setProjectStatusInput>;
+export type CompleteMilestoneInput = z.infer<typeof completeMilestoneInput>;
 
 export interface ProjectCard {
   project: Project;
@@ -81,4 +95,8 @@ export interface ProjectsPort {
   card(projectId: string): Promise<ProjectCard | null>;
   /** Код объекта уникален: при повторе — ConflictError */
   create(input: CreateProjectInput, actor: Actor): Promise<Project>;
+  /** Переход не по таблице — ConflictError; запись в истории объекта */
+  setStatus(input: SetProjectStatusInput, actor: Actor): Promise<Project>;
+  /** Выполненную повторно — ConflictError; точка чужого объекта — NotFoundError */
+  completeMilestone(input: CompleteMilestoneInput, actor: Actor): Promise<Milestone>;
 }

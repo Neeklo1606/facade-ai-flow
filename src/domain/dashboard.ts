@@ -163,9 +163,14 @@ export function runningProjects<T extends { project: Project }>(rows: T[]) {
   return rows.filter((row) => row.project.status === "active" || row.project.status === "at_risk");
 }
 
-/** Отправленные запросы, на которые не ответил ни один поставщик */
+/**
+ * Запросы, которые ждут ответов и не получили ни одного. Заказанный без сравнения запрос
+ * ответов тоже не имеет, но уже не ждёт их — на экране закупок он «Решение принято» (Q8)
+ */
 function silentRequests(requests: RequestRow[]) {
-  return requests.filter((row) => row.request.sentAt && row.answered === 0 && !row.decisionId);
+  return requests.filter(
+    (row) => row.request.status === "sent" && row.answered === 0 && !row.decisionId,
+  );
 }
 
 /** Ревизии, по которым идёт распознавание */

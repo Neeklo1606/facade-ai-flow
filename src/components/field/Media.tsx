@@ -3,6 +3,7 @@ import { recordAction } from "@/lib/guide/telemetry";
 import { ChevronLeft, ChevronRight, MessageSquare, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { ConfidenceLabel } from "@/components/common/ConfidenceIndicator";
 import { DEMO_AUDIO_NOTE } from "@/lib/demo-copy";
 import { type Evidence, type Extraction } from "@/contracts";
 
@@ -186,7 +187,10 @@ export function VoiceReport({
         </p>
       </div>
 
-      <ul className="divide-y divide-border rounded-[var(--r-md)] border border-border">
+      <ul
+        data-extracted-fields
+        className="divide-y divide-border rounded-[var(--r-md)] border border-border"
+      >
         {sorted.map((field) => {
           const low = field.confidence < 0.7;
           const active = field.id === activeId;
@@ -213,17 +217,8 @@ export function VoiceReport({
                     {field.value}
                   </span>
                 </span>
-                <span
-                  className={cn(
-                    "size-2 shrink-0 rounded-full",
-                    field.confidence >= 0.85
-                      ? "bg-conf-high"
-                      : field.confidence >= 0.7
-                        ? "bg-conf-mid"
-                        : "bg-conf-low",
-                  )}
-                  title={`Уверенность ${Math.round(field.confidence * 100)}%`}
-                />
+                {/* Уверенность словом, как у позиций; процент — в подсказке (ADR-015, п. 4) */}
+                <ConfidenceLabel value={field.confidence} className="shrink-0" />
               </button>
             </li>
           );

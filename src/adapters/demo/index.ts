@@ -189,6 +189,9 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         }
         return done(actions.createProject(input));
       },
+      setStatus: (input, { actorId }) => attempt(() => actions.setProjectStatus(input, actorId)),
+      completeMilestone: (input, { actorId }) =>
+        attempt(() => actions.completeMilestone(input, actorId)),
     },
 
     documents: {
@@ -226,6 +229,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           ),
         );
       },
+      resolveChange: (input, { actorId }) => attempt(() => actions.resolveChange(input, actorId)),
     },
 
     positions: {

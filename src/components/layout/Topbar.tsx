@@ -11,6 +11,8 @@ import { StatePicker } from "./StatePicker";
 import { ScreenHelp } from "@/components/guide/ScreenHelp";
 import { screenFor } from "@/lib/guide/screens";
 import { useCurrentUser } from "@/lib/project-scope";
+import { dataSource } from "@/api/config";
+import { DEMO_MARK_NOTE } from "@/lib/demo-copy";
 
 export function Topbar() {
   const { setMobileNavOpen, setCommandOpen, setProjectId } = useApp();
@@ -101,6 +103,15 @@ export function Topbar() {
             {title}
           </div>
           <ScreenHelp />
+          {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
+          {dataSource === "demo" && (
+            <span
+              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[11px] leading-none font-medium text-text-2"
+              title={DEMO_MARK_NOTE}
+            >
+              Демо<span className="sr-only">. {DEMO_MARK_NOTE}</span>
+            </span>
+          )}
         </div>
         {/* Подпись экрана: страница может заменить путь своей строкой (код, статус объекта) */}
         <div

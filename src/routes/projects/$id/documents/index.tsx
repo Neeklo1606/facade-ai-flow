@@ -20,6 +20,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { UploadZone, type UploadZoneHandle } from "@/components/documents/UploadZone";
+import { RevisionChanges } from "@/components/documents/RevisionChanges";
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
 import { FilterChip } from "@/components/common/FilterBar";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
@@ -190,6 +191,10 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
       />
 
       <div data-main-zone className="space-y-4">
+        {/* Изменения ревизий: карточка и реестр их считают, здесь их разбирают (ADR-015, п. 7) */}
+        {!blocked && (
+          <RevisionChanges projectId={project.id} documents={documents} canResolve={canUpload} />
+        )}
         {!blocked && canUpload && (
           <UploadZone
             ref={zone}

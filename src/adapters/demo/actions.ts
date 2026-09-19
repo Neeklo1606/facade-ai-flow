@@ -31,7 +31,14 @@ import {
 } from "@/domain/deliveries";
 import { DEMO_DECISION_ORDER_NOTE } from "@/lib/demo-copy";
 import { ConflictError, NotFoundError } from "@/ports";
-import { reportStatusLabel, reportTransitions } from "@/contracts";
+import {
+  milestoneStatusLabel,
+  milestoneTransitions,
+  projectStatusLabel,
+  projectStatusTransitions,
+  reportStatusLabel,
+  reportTransitions,
+} from "@/contracts";
 import type { Material } from "@/contracts";
 import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
@@ -44,6 +51,9 @@ import type {
   UndoReviewInput,
   ReviewReportInput,
   UploadRevisionInput,
+  SetProjectStatusInput,
+  CompleteMilestoneInput,
+  ResolveChangeInput,
   ConfirmMatchInput,
   SaveMaterialInput,
   MaterialCard,
@@ -1400,4 +1410,103 @@ export function supplierCard(supplierId: string, now: string): SupplierCard | nu
     stats: supplierStats(supplierId, s),
     requests,
   };
+}
+
+/* ---------- Статусы, которые показаны на экранах (ADR-015, п. 7) ---------- */
+
+/** Сменить статус объекта по таблице переходов; в истории — что было и что стало */
+export function setProjectStatus(input: SetProjectStatusInput, actorId: string) {
+  const project = getState().projects.find((item) => item.id === input.projectId);
+  if (!project) throw new NotFoundError("Объект", input.projectId);
+  const allowed: readonly string[] = projectStatusTransitions[project.status];
+  if (!allowed.includes(input.status)) {
+    throw new ConflictError(
+      project.status === "done"
+        ? "Объект завершён: статус больше не меняется"
+        : `Из статуса «${projectStatusLabel[project.status]}» в «${projectStatusLabel[input.status]}» перейти нельзя`,
+    );
+  }
+  const next = { ...project, status: input.status };
+  update((prev) => ({
+    ...prev,
+    projects: prev.projects.map((item) => (item.id === project.id ? next : item)),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: project.id,
+          type: "project_status_changed",
+          title: `Статус объекта: «${projectStatusLabel[project.status]}» → «${projectStatusLabel[input.status]}»`,
+          details: project.name,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return next;
+}
+
+/** Отметить контрольную точку выполненной; точка другого объекта — как будто её нет */
+export function completeMilestone(input: CompleteMilestoneInput, actorId: string) {
+  const milestone = getState().milestones.find(
+    (item) => item.id === input.milestoneId && item.projectId === input.projectId,
+  );
+  if (!milestone) throw new NotFoundError("Контрольная точка", input.milestoneId);
+  const allowed: readonly string[] = milestoneTransitions[milestone.status];
+  if (!allowed.includes("done")) {
+    throw new ConflictError(
+      `Контрольная точка уже в статусе «${milestoneStatusLabel[milestone.status]}»`,
+    );
+  }
+  const next = { ...milestone, status: "done" as const };
+  update((prev) => ({
+    ...prev,
+    milestones: prev.milestones.map((item) => (item.id === milestone.id ? next : item)),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: milestone.projectId,
+          type: "milestone_done",
+          title: `Контрольная точка выполнена: ${milestone.name}`,
+          details: `Было: ${milestoneStatusLabel[milestone.status].toLowerCase()}, срок ${milestone.dueDate}`,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return next;
+}
+
+/** Изменение ревизии разобрано: кто и когда; изменение другого объекта — как будто его нет */
+export function resolveChange(input: ResolveChangeInput, actorId: string) {
+  const s = getState();
+  const change = s.revisionChanges.find((item) => item.id === input.changeId);
+  const projectId = change
+    ? s.documents.find((item) => item.documentId === change.documentId)?.projectId
+    : null;
+  if (!change || projectId !== input.projectId) {
+    throw new NotFoundError("Изменение документации", input.changeId);
+  }
+  if (change.status === "resolved") throw new ConflictError("Изменение уже разобрано");
+  const at = tick();
+  const next = { ...change, status: "resolved" as const, resolvedBy: actorId, resolvedAt: at };
+  update((prev) => ({
+    ...prev,
+    revisionChanges: prev.revisionChanges.map((item) => (item.id === change.id ? next : item)),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: input.projectId,
+          type: "change_resolved",
+          title: "Изменение документации разобрано",
+          details: change.description,
+          revisionId: change.toRevisionId,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return next;
 }

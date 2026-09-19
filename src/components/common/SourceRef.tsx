@@ -1,3 +1,4 @@
+import { InfoTip } from "./InfoTip";
 import { useEffect } from "react";
 import { FileText, Mail, MessageSquare, Phone, PenLine } from "lucide-react";
 import { recordAction } from "@/lib/guide/telemetry";
@@ -49,19 +50,13 @@ export function SourceRef({
   const source = useQuery({ ...queries.source(sourceId ?? ""), enabled: !!sourceId }).data?.source;
   if (!source) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            className={cn(
-              "inline-flex size-11 items-center justify-center text-text-muted lg:size-6",
-              className,
-            )}
-          >
-            <PenLine className="size-3.5" strokeWidth={1.5} />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>Значение введено вручную, оригинала нет</TooltipContent>
-      </Tooltip>
+      <InfoTip
+        label="Источник: введено вручную"
+        icon={<PenLine className="size-3.5" strokeWidth={1.5} />}
+        {...(className ? { className } : {})}
+      >
+        Значение введено вручную, оригинала нет
+      </InfoTip>
     );
   }
   const Icon = kindIcon[source.kind];

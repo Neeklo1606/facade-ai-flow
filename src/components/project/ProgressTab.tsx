@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAccess } from "@/api/access";
-import { ArrowRight, CalendarRange, Flag, Layers, TrendingUp, Upload } from "lucide-react";
+import { ArrowRight, CalendarRange, Check, Flag, Layers, TrendingUp, Upload } from "lucide-react";
 import {
   EmptyState,
   EntityDrawer,
@@ -21,7 +21,9 @@ import { useWorkProgress } from "@/api/work-progress";
 import type { MilestonePoint, ZoneRow } from "@/api/types";
 import { fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Project } from "@/contracts";
+import { milestoneTransitions, type Project } from "@/contracts";
+import { useCompleteMilestone } from "@/api/mutations";
+import { toast } from "@/lib/toast";
 
 const metricIcon = {
   done: Layers,
@@ -48,8 +50,9 @@ export function ProgressTab({
   project: Project;
   onSource: (sourceId: string) => void;
 }) {
-  const { can } = useAccess();
+  const { can, canProject } = useAccess();
   const progress = useWorkProgress(project.id);
+  const complete = useCompleteMilestone();
   const [zoneId, setZoneId] = useState<string | null>(null);
   const [milestoneId, setMilestoneId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "behind">("all");
@@ -273,6 +276,32 @@ export function ProgressTab({
             <StatusBadge tone={milestoneTone[milestone.status]}>
               {milestone.statusLabel}
             </StatusBadge>
+          }
+          footer={
+            // Статус точки меняется действием: выполненную отмечает руководитель (ADR-015, п. 7)
+            canProject("projects", project.id, "write") &&
+            (milestoneTransitions[milestone.status] as readonly string[]).includes("done") ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={complete.isPending}
+                onClick={() =>
+                  complete.mutate(
+                    { projectId: project.id, milestoneId: milestone.id },
+                    {
+                      onSuccess: () =>
+                        toast.success("Контрольная точка выполнена", {
+                          description: "Запись добавлена в историю объекта",
+                        }),
+                      onError: (error) =>
+                        toast.error("Не удалось отметить", { description: error.message }),
+                    },
+                  )
+                }
+              >
+                <Check className="size-4" /> Отметить выполненной
+              </Button>
+            ) : undefined
           }
         >
           <div className="space-y-4">

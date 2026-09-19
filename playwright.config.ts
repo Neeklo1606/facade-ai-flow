@@ -10,6 +10,8 @@ const executablePath = process.env["PW_CHROMIUM"];
 
 export default defineConfig({
   testDir: "e2e",
+  // Обход продукта (Q8) — отдельный запуск: playwright.walkthrough.config.ts
+  testIgnore: ["**/walkthrough/**"],
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

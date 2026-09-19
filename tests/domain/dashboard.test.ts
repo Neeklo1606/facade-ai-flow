@@ -446,7 +446,7 @@ describe("dashboardMetrics", () => {
     expect(unverified.delta).toEqual({ text: "+8 за 7 дней", direction: "up", effect: "worse" });
   });
 
-  test("заявки без ответа: отправлены, ни одного ответа, нет решения; прирост — отправленные за период", () => {
+  test("заявки без ответа: отправлены и ждут ответа, ни одного ответа, нет решения; прирост — отправленные за период", () => {
     const list = dashboardMetrics(
       source({
         requests: [
@@ -456,6 +456,11 @@ describe("dashboardMetrics", () => {
           requestRow({ id: "r3", sentAt: null, replyDueAt: null, status: "draft" }),
           requestRow({ id: "r4", sentAt: "2026-09-15T10:00:00" }, { answered: 1 }),
           requestRow({ id: "r5", sentAt: "2026-09-15T10:00:00" }, { decisionId: "dec-1" }),
+          // Заказан без сравнения предложений: ответов нет, но запрос уже не ждёт ответа
+          requestRow(
+            { id: "r6", sentAt: "2026-09-15T10:00:00", status: "ordered" },
+            { status: "ordered" },
+          ),
         ],
       }),
     );

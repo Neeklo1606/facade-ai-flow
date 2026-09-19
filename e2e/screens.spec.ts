@@ -1,4 +1,4 @@
-import { expectA11y, expectEmber, open, test } from "./fixtures";
+import { expectA11y, expectEmber, expectMobile, open, test } from "./fixtures";
 
 /**
  * Правила EMBER и доступность на всех экранах — на десктопе и на телефоне (@mobile).
@@ -32,6 +32,7 @@ test.describe("экраны", () => {
       await open(page, path);
       await expectEmber(page, name);
       await expectA11y(page, name);
+      await expectMobile(page, name);
     });
   }
 });

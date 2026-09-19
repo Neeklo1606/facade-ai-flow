@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   Building2,
+  CalendarCheck,
   ChevronRight,
   FileDiff,
   FilePlus2,
@@ -383,6 +384,9 @@ const activityIcon: Record<TimelineEventType, LucideIcon> = {
   delivery_rejected: PackageCheck,
   delivery_remark: PackageCheck,
   report_added: HardHat,
+  project_status_changed: Building2,
+  milestone_done: CalendarCheck,
+  change_resolved: FileDiff,
   decision: ListChecks,
 };
 

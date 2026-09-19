@@ -72,7 +72,7 @@ export function DetailsLayout({
               onClick={onClose}
               aria-label="Закрыть панель"
               title="Закрыть (Esc)"
-              className="focus-ring grid size-[38px] shrink-0 place-items-center rounded-[var(--r-sm)] text-text-2 transition-fast is-hover:bg-surface-2 is-hover:text-text"
+              className="focus-ring grid size-11 shrink-0 place-items-center lg:size-[38px] rounded-[var(--r-sm)] text-text-2 transition-fast is-hover:bg-surface-2 is-hover:text-text"
             >
               <X className="size-[18px]" strokeWidth={1.5} />
             </button>

@@ -3,10 +3,22 @@ import { col, idSchema, pgEnum, table } from "./db";
 
 /* ---------- Объект ---------- */
 
+/**
+ * Переходы статуса объекта (ADR-015, п. 7): одна таблица для схемы БД и для проверки в адаптере.
+ * «Завершён» — последний
+ */
+export const projectStatusTransitions = {
+  active: ["at_risk", "paused", "done"],
+  at_risk: ["active", "paused", "done"],
+  paused: ["active", "done"],
+  done: [],
+} as const;
+
 export const projectStatus = pgEnum(
   "project_status",
   ["active", "at_risk", "paused", "done"],
   "Состояние объекта для реестра",
+  projectStatusTransitions,
 );
 
 export const projects = table(
@@ -75,10 +87,19 @@ export const contracts = table(
   },
 );
 
+/** Переходы контрольной точки: выполненная — последний статус (ADR-015, п. 7) */
+export const milestoneTransitions = {
+  planned: ["done"],
+  at_risk: ["done"],
+  overdue: ["done"],
+  done: [],
+} as const;
+
 export const milestoneStatus = pgEnum(
   "milestone_status",
   ["planned", "at_risk", "done", "overdue"],
   "Состояние контрольной точки договора",
+  milestoneTransitions,
 );
 
 export const milestones = table(

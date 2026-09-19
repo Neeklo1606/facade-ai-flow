@@ -19,7 +19,16 @@ interface Step {
 
 const port = process.env["E2E_PORT"] ?? "4630";
 const databaseUrl = process.env["CHECK_DATABASE_URL"] ?? process.env["DATABASE_URL"] ?? "";
-const { DATABASE_URL: _database, CHECK_DATABASE_URL: _check, ...baseEnv } = process.env;
+/**
+ * Окружение шагов. Bun сам подгружает `.env.development` в свой процесс, и без фильтра сборка
+ * получала бы `VITE_SCREEN_STATES=1` и другие настройки разработки: в бандл попадал переключатель
+ * состояний экрана. Настройки сборки берутся только из `.env.production` — через режим Vite,
+ * поэтому `VITE_*` шагам не передаются. Строка подключения к базе — только шагу паритета
+ */
+const { DATABASE_URL: _database, CHECK_DATABASE_URL: _check, ...inherited } = process.env;
+const baseEnv = Object.fromEntries(
+  Object.entries(inherited).filter(([key]) => !key.startsWith("VITE_")),
+);
 const steps: Step[] = [
   { name: "Типы", cmd: ["bun", "run", "typecheck"] },
   { name: "Линтер", cmd: ["bun", "run", "lint"] },

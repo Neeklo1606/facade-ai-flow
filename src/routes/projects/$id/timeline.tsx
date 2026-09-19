@@ -4,7 +4,10 @@ import {
   ArrowLeftRight,
   ArrowRight,
   Bot,
+  Building2,
+  CalendarCheck,
   ChevronDown,
+  FileDiff,
   FilePlus2,
   FileSearch,
   Gavel,
@@ -91,6 +94,9 @@ const typeStyle: Record<TimelineEventType, { icon: LucideIcon; tone: string }> =
   delivery_rejected: { icon: Truck, tone: "bg-danger-bg text-danger" },
   delivery_remark: { icon: Truck, tone: "bg-warn-bg text-warn" },
   report_added: { icon: HardHat, tone: "bg-subtle text-text-secondary" },
+  project_status_changed: { icon: Building2, tone: "bg-subtle text-text-secondary" },
+  milestone_done: { icon: CalendarCheck, tone: "bg-ok-bg text-ok" },
+  change_resolved: { icon: FileDiff, tone: "bg-subtle text-text-secondary" },
   decision: { icon: Gavel, tone: "bg-ok-bg text-ok" },
 };
 

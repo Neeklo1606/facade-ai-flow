@@ -90,7 +90,7 @@ export function AttentionList({
               <SourceRef
                 sourceId={row.sourceId}
                 onOpen={() => row.sourceId && onSource(row.sourceId)}
-                className="relative z-[2] size-6"
+                className="relative z-[2] lg:size-6"
               />
             </div>
           </div>
