@@ -53,6 +53,9 @@ function seeded(i: number, salt: number) {
   return x - Math.floor(x);
 }
 
+/** Уверенность с точностью колонки `numeric(5,4)`: база хранит четыре знака (ADR-005) */
+const confidence4 = (value: number) => Math.round(value * 10_000) / 10_000;
+
 export const families: Record<number, Family> = {
   84: {
     material: "mat-bracket",
@@ -391,7 +394,7 @@ function buildSpecPositions(): GeneratedPosition[] {
             characteristics: family.characteristics(r),
             qty: family.qty(i),
             unit: family.unit,
-            confidence: 0.86 + seeded(i, 20) * 0.13,
+            confidence: confidence4(0.86 + seeded(i, 20) * 0.13),
             region: {
               x: SHEET_TABLE.left,
               y: SHEET_TABLE.top + r * rowH,
@@ -454,11 +457,11 @@ function buildSpecPositions(): GeneratedPosition[] {
     let qty = row.qty;
     if (lowSheets.has(sheetNumber)) {
       lowSheets.delete(sheetNumber);
-      confidence = 0.42 + seeded(index, 30) * 0.14;
+      confidence = confidence4(0.42 + seeded(index, 30) * 0.14);
       note = lowConfidenceNotes[sheetNumber] ?? null;
       qty = sheetNumber === 93 ? 0 : row.qty;
     } else if (uu % 61 === 5) {
-      confidence = 0.72 + seeded(index, 31) * 0.1;
+      confidence = confidence4(0.72 + seeded(index, 31) * 0.1);
       note = clarifyNotes[uu % clarifyNotes.length] ?? null;
     }
     // Материал непроверенной позиции — предложение системы: распознавание дало материал сразу
@@ -643,7 +646,7 @@ export function simulatedPositions(
       characteristics: family.characteristics(r) satisfies Characteristic[],
       qty: family.qty(i),
       unit: family.unit,
-      confidence: r === 5 ? 0.55 : r % 6 === 2 ? 0.76 : 0.88 + seeded(i, 40) * 0.1,
+      confidence: r === 5 ? 0.55 : r % 6 === 2 ? 0.76 : confidence4(0.88 + seeded(i, 40) * 0.1),
       region: {
         x: SHEET_TABLE.left,
         y: SHEET_TABLE.top + r * rowH,

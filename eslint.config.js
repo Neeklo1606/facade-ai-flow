@@ -36,7 +36,8 @@ export default tseslint.config(
     // и в демо-адаптере; остальной код получает данные через порты. Для экранов действует
     // более строгий запрет ниже — он перекрывает этот
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/adapters/fixtures/**", "src/adapters/demo/**"],
+    // Адаптер БД берёт из фикстур ключи для таблицы соответствий и сид (ADR-005, п. 9)
+    ignores: ["src/adapters/fixtures/**", "src/adapters/demo/**", "src/adapters/db/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -52,7 +53,7 @@ export default tseslint.config(
                 "**/fixtures/data/*",
               ],
               message:
-                "Данные фикстур импортируют только adapters/fixtures и adapters/demo (ADR-013). Берите данные через порты.",
+                "Данные фикстур импортируют только adapters/fixtures, adapters/demo и adapters/db (ADR-013, ADR-005). Берите данные через порты.",
             },
           ],
         },

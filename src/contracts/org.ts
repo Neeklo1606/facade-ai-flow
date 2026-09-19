@@ -109,6 +109,7 @@ export const supplierProfiles = table(
     region: col.name(),
     categories: col.textArray({
       comment: "категории материалов верхнего уровня: material_categories.id (ADR-014)",
+      holdsIds: true,
     }),
     contactName: col.text(),
     phone: col.text(),

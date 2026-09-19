@@ -17,6 +17,20 @@ jobs:
     timeout-minutes: 30
     env:
       CI: "true"
+    # PostgreSQL 16 для паритета адаптера базы (ADR-005, п. 7). Строка подключения передаётся
+    # только шагу check:db: сквозные тесты и Lighthouse работают на демо-сборке без базы
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +59,11 @@ jobs:
 
       - name: Фикстуры против схемы
         run: bun run check:fixtures
+
+      - name: PostgreSQL — миграции, паритет с демо, версия данных
+        run: bun run check:db
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
 
       - name: Сборка
         run: bun run build

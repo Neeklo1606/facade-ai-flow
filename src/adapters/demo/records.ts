@@ -4,9 +4,20 @@ import { tick } from "./clock";
 /** Записи журналов, которые пишут действия и симулятор демо */
 
 let seq = 0;
+/** Ключи новых записей в режиме базы — `uuid` (ADR-005, п. 10); подставляет мост адаптера БД */
+let idFactory: ((prefix: string) => string) | null = null;
+
 export function liveId(prefix: string) {
+  if (idFactory) return idFactory(prefix);
   seq += 1;
   return `${prefix}-live-${Date.now()}-${seq}`;
+}
+
+/** Подменить фабрику ключей; возвращает прежнюю, чтобы вернуть её после действия */
+export function setIdFactory(next: ((prefix: string) => string) | null) {
+  const prev = idFactory;
+  idFactory = next;
+  return prev;
 }
 
 type EventInput = Pick<ProjectEvent, "projectId" | "type" | "title" | "details"> &

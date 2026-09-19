@@ -1,15 +1,34 @@
 import { createDemoRepositories } from "@/adapters/demo";
+import {
+  createDbRepositories,
+  createDriver,
+  driverConfigFromEnv,
+  fixtureCodec,
+  wallClock,
+} from "@/adapters/db";
 import { guardRepositories, sessionFor } from "@/adapters/access";
 import type { Repositories } from "@/ports";
 import { sessionActorId } from "./session";
 
 /**
  * Репозитории сервера: серверные функции и серверные маршруты (выгрузки) работают с одним экземпляром.
- * Пока нет PostgreSQL — демо-адаптер в памяти процесса без сохранения.
+ * Есть `DATABASE_URL` — адаптер PostgreSQL (ADR-005); нет — демо-адаптер в памяти процесса
+ * без сохранения, как в демонстрации.
  */
 let repositories: Repositories | null = null;
-export const serverRepositories = () =>
-  (repositories ??= createDemoRepositories({ persist: false }));
+
+function createServerRepositories(): Repositories {
+  const env = typeof process === "undefined" ? {} : process.env;
+  const config = driverConfigFromEnv(env);
+  if (!config) return createDemoRepositories({ persist: false });
+  return createDbRepositories({
+    driver: createDriver(config),
+    codec: fixtureCodec(),
+    clock: wallClock(env["APP_TIME_ZONE"]?.trim() || "Europe/Moscow"),
+  });
+}
+
+export const serverRepositories = () => (repositories ??= createServerRepositories());
 
 /** Сессия запроса: сотрудник из подписанной cookie, его роль и объекты (ADR-012) */
 export async function requestSession() {

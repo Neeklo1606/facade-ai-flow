@@ -1,3 +1,4 @@
+import type { TableRows } from "@/adapters/state/tables";
 import type { DocumentSheetRow } from "@/contracts";
 import * as org from "./data/org";
 import * as projectsData from "./data/projects";
@@ -20,7 +21,7 @@ const documentSheets: DocumentSheetRow[] = documentsData.documentRevisions.flatM
   return spec.sheetsOf(revision, document.section);
 });
 
-export const fixtureTables = {
+export const fixtureTables: TableRows = {
   employees: org.employees,
   project_members: org.projectMembers,
   counterparties: org.counterparties,
@@ -70,4 +71,5 @@ export const fixtureTables = {
   project_events: timeline.projectEvents,
 };
 
-export type FixtureTables = typeof fixtureTables;
+export type FixtureTables = TableRows;
+export type { TableRows };

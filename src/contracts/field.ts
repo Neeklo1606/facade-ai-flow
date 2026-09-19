@@ -62,7 +62,11 @@ export const extractions = table(
       nullable: true,
       comment: "таблица, куда легло значение после подтверждения",
     }),
-    appliedId: col.text({ nullable: true, comment: "id строки в applied_entity" }),
+    appliedId: col.text({
+      nullable: true,
+      comment: "id строки в applied_entity",
+      holdsIds: true,
+    }),
   },
 );
 

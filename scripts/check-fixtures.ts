@@ -61,6 +61,25 @@ for (const def of tables) {
     checkUnique(index.columns, "уникального индекса", index.where);
   }
 
+  // Точность numeric(p,s): база хранит s знаков после запятой — значение с большим числом знаков
+  // округлится при записи, и ответ базы разойдётся с демо (ADR-005, паритет)
+  for (const [column, meta] of Object.entries(def.columns)) {
+    const numeric = /^numeric\((\d+),(\d+)\)$/.exec(meta.sqlType);
+    if (!numeric) continue;
+    const scale = 10 ** Number(numeric[2]);
+    const limit = 10 ** (Number(numeric[1]) - Number(numeric[2]));
+    const bad = rows.filter((row) => {
+      const value = row[column];
+      if (typeof value !== "number") return false;
+      return Math.abs(Math.round(value * scale) - value * scale) > 1e-6 || Math.abs(value) >= limit;
+    });
+    if (bad.length) {
+      problems.push(
+        `${def.meta.name}.${column}: ${bad.length} значений не помещаются в ${meta.sqlType}, например ${String(bad[0]![column])}`,
+      );
+    }
+  }
+
   for (const [column, meta] of Object.entries(def.columns)) {
     if (!meta.references) continue;
     const target = data[meta.references.table] ?? [];

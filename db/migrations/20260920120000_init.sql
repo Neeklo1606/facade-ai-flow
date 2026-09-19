@@ -1,3 +1,17 @@
+-- migrate:up
+-- Начальная схема (ADR-005, п. 3): тело — docs/db/schema.sql на 2026-09-20, сгенерированный
+-- из src/contracts. Дальнейшие изменения схемы — новыми миграциями; совпадение колонок базы
+-- с контрактами проверяет bun run check:db.
+
+-- Роль приложения: у журналов она может только добавлять строки (revoke ниже)
+do $$
+begin
+  if not exists (select from pg_roles where rolname = 'app_user') then
+    create role app_user nologin;
+  end if;
+end
+$$;
+
 -- Сгенерировано scripts/db-schema.ts из src/contracts. Не редактировать вручную.
 -- Задание на схему PostgreSQL: таблицы, перечисления, ключи, индексы, проверки.
 
@@ -1093,3 +1107,99 @@ revoke update, delete on project_decisions from app_user;
 revoke update, delete on sources from app_user;
 revoke update, delete on extractions from app_user;
 revoke update, delete on project_events from app_user;
+
+-- Версия данных для записи моста снимка (ADR-005, п. 5): пакет записи начинается с проверки,
+-- что с момента загрузки никто не записал. Иначе — ошибка 40001, и действие повторяется
+create table app_state (
+  id smallint primary key default 1 check (id = 1),
+  version bigint not null default 0
+);
+insert into app_state (id, version) values (1, 0);
+
+create function app_state_advance(expected bigint) returns bigint
+language plpgsql as $$
+declare
+  next_version bigint;
+begin
+  update app_state set version = version + 1 where id = 1 and version = expected
+    returning version into next_version;
+  if next_version is null then
+    raise exception 'данные изменились после загрузки: версия % устарела', expected
+      using errcode = '40001';
+  end if;
+  return next_version;
+end
+$$;
+
+-- migrate:down
+drop function if exists app_state_advance(bigint);
+drop table if exists app_state;
+drop table if exists project_events cascade;
+drop table if exists evidence cascade;
+drop table if exists field_report_issues cascade;
+drop table if exists field_reports cascade;
+drop table if exists extractions cascade;
+drop table if exists sources cascade;
+drop table if exists project_decisions cascade;
+drop table if exists delivery_remarks cascade;
+drop table if exists delivery_photos cascade;
+drop table if exists delivery_acceptances cascade;
+drop table if exists delivery_status_changes cascade;
+drop table if exists delivery_lines cascade;
+drop table if exists deliveries cascade;
+drop table if exists supplier_offer_lines cascade;
+drop table if exists supplier_offers cascade;
+drop table if exists supply_request_recipients cascade;
+drop table if exists supply_request_positions cascade;
+drop table if exists supply_request_lines cascade;
+drop table if exists supply_requests cascade;
+drop table if exists email_templates cascade;
+drop table if exists replacement_suggestions cascade;
+drop table if exists position_changes cascade;
+drop table if exists positions cascade;
+drop table if exists material_changes cascade;
+drop table if exists materials cascade;
+drop table if exists material_categories cascade;
+drop table if exists revision_changes cascade;
+drop table if exists document_sheets cascade;
+drop table if exists extraction_jobs cascade;
+drop table if exists document_revisions cascade;
+drop table if exists documents cascade;
+drop table if exists work_zones cascade;
+drop table if exists milestones cascade;
+drop table if exists contracts cascade;
+drop table if exists projects cascade;
+drop table if exists crew_members cascade;
+drop table if exists crews cascade;
+drop table if exists supplier_profiles cascade;
+drop table if exists counterparties cascade;
+drop table if exists project_members cascade;
+drop table if exists employees cascade;
+drop type if exists employee_role;
+drop type if exists employee_status;
+drop type if exists counterparty_role;
+drop type if exists contact_status;
+drop type if exists project_status;
+drop type if exists contract_status;
+drop type if exists milestone_status;
+drop type if exists zone_level;
+drop type if exists file_type;
+drop type if exists processing_status;
+drop type if exists extraction_job_status;
+drop type if exists change_status;
+drop type if exists position_review;
+drop type if exists purchase_status;
+drop type if exists match_status;
+drop type if exists actor_kind;
+drop type if exists replacement_status;
+drop type if exists request_status;
+drop type if exists delivery_status;
+drop type if exists delivery_remark_kind;
+drop type if exists delivery_remark_status;
+drop type if exists decision_kind;
+drop type if exists source_kind;
+drop type if exists report_kind;
+drop type if exists report_status;
+drop type if exists issue_severity;
+drop type if exists evidence_kind;
+drop type if exists event_type;

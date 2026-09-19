@@ -41,6 +41,13 @@ const jobStatusByStage: ExtractionJob["status"][] = [
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 let running = false;
+/** Без симулятора события не заводятся вовсе: режим базы и паритетный тест (ADR-005, п. 12) */
+let enabled = true;
+
+export function disableSimulator() {
+  enabled = false;
+  stopSimulator();
+}
 
 function jobKey(job: DemoJob) {
   switch (job.kind) {
@@ -71,13 +78,14 @@ function arm(job: DemoJob) {
 
 /** Запланировать события: записать в состояние и завести таймеры */
 export function schedule(jobs: DemoJob[]) {
-  if (!jobs.length) return;
+  if (!jobs.length || !enabled) return;
   update((prev) => ({ ...prev, jobs: [...prev.jobs, ...jobs] }));
   jobs.forEach(arm);
 }
 
 /** Запустить симулятор и продолжить события, сохранённые до перезагрузки */
 export function startSimulator() {
+  if (!enabled) return;
   running = true;
   getState().jobs.forEach(arm);
 }

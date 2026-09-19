@@ -33,6 +33,13 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const getState = () => state;
 
+/** Подменить состояние целиком; возвращает прежнее. Нужен мосту адаптера БД (ADR-005, п. 5) */
+export function replaceState(next: DemoState) {
+  const prev = state;
+  state = next;
+  return prev;
+}
+
 function save() {
   saveTimer = null;
   writeStorage(STORAGE_KEY, JSON.stringify(state));

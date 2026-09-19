@@ -2,6 +2,10 @@
  * Конвейер локально (ADR-013, п. 8) — те же шаги и в том же порядке, что в
  * `.github/workflows/ci.yml`. Печатает код возврата каждого шага и останавливается на первом
  * падении с ненулевым кодом. Сквозные тесты и Lighthouse работают на демо-сборке node-сервера.
+ *
+ * Паритет с PostgreSQL (ADR-005, п. 7) требует сервер PostgreSQL 16: строка подключения —
+ * `CHECK_DATABASE_URL` (или `DATABASE_URL`). Она передаётся только этому шагу: остальные шаги,
+ * включая сервер демо-сборки, работают без базы.
  */
 import { spawn, type Subprocess } from "bun";
 
@@ -14,11 +18,18 @@ interface Step {
 }
 
 const port = process.env["E2E_PORT"] ?? "4630";
+const databaseUrl = process.env["CHECK_DATABASE_URL"] ?? process.env["DATABASE_URL"] ?? "";
+const { DATABASE_URL: _database, CHECK_DATABASE_URL: _check, ...baseEnv } = process.env;
 const steps: Step[] = [
   { name: "Типы", cmd: ["bun", "run", "typecheck"] },
   { name: "Линтер", cmd: ["bun", "run", "lint"] },
   { name: "Тесты: домен, согласованность, негативные", cmd: ["bun", "run", "test"] },
   { name: "Фикстуры против схемы", cmd: ["bun", "run", "check:fixtures"] },
+  {
+    name: "PostgreSQL: миграции, паритет с демо, версия данных",
+    cmd: ["bun", "run", "check:db"],
+    env: { DATABASE_URL: databaseUrl },
+  },
   { name: "Сборка", cmd: ["bun", "run", "build"], env: { NITRO_PRESET: "node-server" } },
   { name: "Размер бандла", cmd: ["bun", "run", "check:bundle"] },
   { name: "Сквозные тесты: роли, EMBER, axe, консоль", cmd: ["bun", "run", "test:e2e"] },
@@ -30,7 +41,7 @@ const running: { server: Subprocess | null } = { server: null };
 
 async function startServer() {
   running.server = spawn(["node", ".output/server/index.mjs"], {
-    env: { ...process.env, PORT: port },
+    env: { ...baseEnv, PORT: port },
     stdout: "ignore",
     stderr: "inherit",
   });
@@ -51,7 +62,7 @@ for (const step of steps) {
   const started = performance.now();
   if (step.server && !running.server) await startServer();
   const child = spawn(step.cmd, {
-    env: { ...process.env, ...step.env, LH_BASE: `http://localhost:${port}` },
+    env: { ...baseEnv, ...step.env, LH_BASE: `http://localhost:${port}` },
     stdout: "inherit",
     stderr: "inherit",
   });

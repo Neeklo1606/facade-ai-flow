@@ -35,11 +35,13 @@ import {
 } from "@/ports";
 import * as actions from "./actions";
 import { peek, resetClock, restoreClock } from "./clock";
-import { startSimulator, stopSimulator } from "./simulator";
+import { disableSimulator, startSimulator, stopSimulator } from "./simulator";
 import { getState, resetState, restoreState, type DemoState } from "./state";
 import { enableStorage } from "./storage";
 
-export { onDemoEvent, type DemoEvent, type DemoEventArea } from "./state";
+export { onDemoEvent, type DemoEvent, type DemoEventArea, type DemoState } from "./state";
+export { runWithin, type DemoContext } from "./context";
+export { setClockSource, type ClockSource } from "./clock";
 
 /**
  * Демо-адаптер (ADR-004): порты поверх состояния демо — снимка фикстур, изменённого действиями
@@ -50,6 +52,8 @@ export { onDemoEvent, type DemoEvent, type DemoEventArea } from "./state";
 export interface DemoOptions {
   /** Сохранять состояние во вкладке и поднимать его после перезагрузки — только в браузере */
   persist: boolean;
+  /** Имитировать внешние события: распознавание, ответы поставщиков, отгрузку. По умолчанию — да */
+  simulate?: boolean;
 }
 
 const done = <T>(value: T) => Promise.resolve(value);
@@ -137,7 +141,8 @@ function start(options: DemoOptions) {
     restoreClock();
     restoreState();
   }
-  startSimulator();
+  if (options.simulate === false) disableSimulator();
+  else startSimulator();
 }
 
 export function createDemoRepositories(options: DemoOptions): Repositories {

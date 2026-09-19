@@ -680,7 +680,9 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
   const targets = s.positions.filter((item) => wanted.has(item.id) && isReadyForRequest(item));
   if (!targets.length) return null;
   const requestId = liveId("sr");
-  const number = `З-2026/${326 + s.requests.filter((r) => r.id.includes("-live-")).length}`;
+  // Следующий номер года — больше наибольшего: правило не зависит от вида ключа (ADR-005, п. 10)
+  const numbers = s.requests.map((r) => Number(/^З-2026\/(\d+)$/.exec(r.number)?.[1] ?? 0));
+  const number = `З-2026/${Math.max(0, ...numbers) + 1}`;
   const createdAt = tick();
 
   // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой.
@@ -697,7 +699,7 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
     if (existing) existing.qty += item.qty;
     else {
       lines.set(key, {
-        id: `${requestId}-l${lines.size + 1}`,
+        id: liveId("srl"),
         materialId,
         name,
         qty: item.qty,
@@ -844,7 +846,7 @@ function createDelivery(decision: ProjectDecision) {
     status: "expected",
     sourceId: null,
     items: request.items.map((line, index) => ({
-      id: `${request.id}-dl${index + 1}`,
+      id: liveId("dli"),
       requestLineId: line.id,
       materialId: line.materialId,
       name: line.name,
