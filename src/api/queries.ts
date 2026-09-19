@@ -144,6 +144,11 @@ export const queries = {
       queryKey: keys.procurement.deliveries(projectId),
       queryFn: () => api.procurement.deliveries(projectId),
     }),
+  delivery: (deliveryId: string) =>
+    queryOptions({
+      queryKey: keys.procurement.delivery(deliveryId),
+      queryFn: () => api.procurement.delivery(deliveryId),
+    }),
 
   reports: (projectId: string) =>
     queryOptions({

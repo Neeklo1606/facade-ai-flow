@@ -10,8 +10,7 @@ import { readStorage, removeStorage, writeStorage } from "./storage";
 export type DemoJob =
   | { kind: "upload"; dueAt: number; revisionId: string; stage: number }
   | { kind: "reply"; dueAt: number; requestId: string; supplierId: string }
-  | { kind: "order"; dueAt: number; decisionId: string }
-  | { kind: "shipment"; dueAt: number; deliveryId: string };
+  | { kind: "shipment"; dueAt: number; deliveryId: string; status: "shipped" | "in_transit" };
 
 export interface DemoState extends FixtureSnapshot {
   version: number;
@@ -20,7 +19,7 @@ export interface DemoState extends FixtureSnapshot {
 
 const STORAGE_KEY = "neeklo-fieldops-demo";
 /** Меняется при несовместимом изменении формы состояния: старое сохранение тогда игнорируется */
-const STATE_VERSION = 6;
+const STATE_VERSION = 7;
 const SAVE_DELAY_MS = 300;
 
 const seed = (): DemoState => ({

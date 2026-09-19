@@ -1,4 +1,8 @@
 import type {
+  DeliveryAcceptance,
+  DeliveryPhoto,
+  DeliveryRemark,
+  DeliveryStatusChange,
   ExtractionJob,
   Contract,
   Counterparty,
@@ -28,6 +32,7 @@ import type {
   WorkZone,
 } from "@/contracts";
 import { decisionLink } from "@/domain/timeline";
+import { withDeliveries, type RequestPositionLink } from "@/domain/deliveries";
 import { fixtureTables as t } from "./tables";
 
 /**
@@ -56,6 +61,12 @@ export interface FixtureSnapshot {
   offers: SupplierOffer[];
   offerLines: OfferLine[];
   deliveries: Delivery[];
+  deliveryChanges: DeliveryStatusChange[];
+  acceptances: DeliveryAcceptance[];
+  deliveryPhotos: DeliveryPhoto[];
+  remarks: DeliveryRemark[];
+  /** Из каких позиций собрана строка запроса: по ним раскладывается принятое */
+  requestPositions: RequestPositionLink[];
   decisions: ProjectDecision[];
   reports: FieldReport[];
   evidence: Evidence[];
@@ -102,6 +113,42 @@ export function buildSnapshot(): FixtureSnapshot {
     })),
     sentTo: (recipientsByRequest.get(row.id) ?? []).map((item) => item.supplierId),
   }));
+
+  const deliveryViews: Delivery[] = t.deliveries.map((row) => ({
+    ...row,
+    items: (deliveryLines.get(row.id) ?? []).map((line) => {
+      const requestLine = lineById.get(line.requestLineId)!;
+      return {
+        id: line.id,
+        requestLineId: line.requestLineId,
+        materialId: requestLine.materialId,
+        name: requestLine.name,
+        qty: line.qty,
+        unit: requestLine.unit,
+        price: line.price,
+        acceptedQty: line.acceptedQty,
+        remark: line.remark,
+      };
+    }),
+  }));
+
+  const positionViews: ExtractedPosition[] = t.positions.map(({ revisionId, ...row }) => {
+    const sheet = sheetById.get(row.sheetId)!;
+    return {
+      ...row,
+      documentId: revisionId,
+      sheetNumber: sheet.number,
+      group: sheet.groupName,
+      normalizedName: row.materialId ? (materialById.get(row.materialId)?.name ?? null) : null,
+      requestIds: [
+        ...new Set(
+          (requestsByPosition.get(row.id) ?? []).map(
+            (link) => lineById.get(link.requestLineId)!.requestId,
+          ),
+        ),
+      ],
+    };
+  });
 
   return {
     employees: t.employees.map((row) => ({
@@ -170,40 +217,18 @@ export function buildSnapshot(): FixtureSnapshot {
     })),
     revisionChanges: t.revision_changes,
 
-    positions: t.positions.map(({ revisionId, ...row }) => {
-      const sheet = sheetById.get(row.sheetId)!;
-      return {
-        ...row,
-        documentId: revisionId,
-        sheetNumber: sheet.number,
-        group: sheet.groupName,
-        normalizedName: row.materialId ? (materialById.get(row.materialId)?.name ?? null) : null,
-        requestIds: [
-          ...new Set(
-            (requestsByPosition.get(row.id) ?? []).map(
-              (link) => lineById.get(link.requestLineId)!.requestId,
-            ),
-          ),
-        ],
-      };
-    }),
+    positions: withDeliveries(positionViews, deliveryViews, t.supply_request_positions),
     changes: t.position_changes,
 
     requests,
     offers: t.supplier_offers,
     offerLines: t.supplier_offer_lines,
-    deliveries: t.deliveries.map((row) => ({
-      ...row,
-      items: (deliveryLines.get(row.id) ?? []).map((line) => {
-        const requestLine = lineById.get(line.requestLineId)!;
-        return {
-          requestLineId: line.requestLineId,
-          name: requestLine.name,
-          qty: line.qty,
-          unit: requestLine.unit,
-        };
-      }),
-    })),
+    deliveries: deliveryViews,
+    deliveryChanges: t.delivery_status_changes,
+    acceptances: t.delivery_acceptances,
+    deliveryPhotos: t.delivery_photos,
+    remarks: t.delivery_remarks,
+    requestPositions: t.supply_request_positions,
     decisions: t.project_decisions.map((row) => ({ ...row, link: decisionLink(row, requests) })),
 
     reports: t.field_reports.map(({ reportDate, ...row }) => ({

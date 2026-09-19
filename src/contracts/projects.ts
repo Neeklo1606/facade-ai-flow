@@ -177,6 +177,10 @@ export const projectOverview = z.object({
   overdueRequests: z.number().int().nonnegative(),
   openChanges: z.number().int().nonnegative(),
   missingReports: z.number().int().nonnegative(),
+  /** Поставки, которые прибыли и ждут приёмки (ADR-011) */
+  deliveriesToAccept: z.number().int().nonnegative(),
+  /** Открытые замечания по поставкам — очередь снабжения */
+  openRemarks: z.number().int().nonnegative(),
 });
 
 export type ProjectRow = z.infer<typeof projects>;

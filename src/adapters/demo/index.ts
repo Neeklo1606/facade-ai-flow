@@ -1,4 +1,5 @@
 import { isReadyForRequest, type ProjectDocument } from "@/contracts";
+import { remarkKindLabel } from "@/contracts";
 import { byAttention, isAutoVerified, matchesFilter, positionFacets } from "@/domain/positions";
 import { currentRevisions, projectOverview, revisionStats, revisionsOf } from "@/domain/overview";
 import {
@@ -44,6 +45,14 @@ export interface DemoOptions {
 }
 
 const done = <T>(value: T) => Promise.resolve(value);
+/** Действие, которое проверяет правила и бросает ошибку порта: ошибка становится отказом промиса */
+const attempt = <T>(fn: () => T): Promise<T> => {
+  try {
+    return Promise.resolve(fn());
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
 
 function documentItem(s: DemoState, document: ProjectDocument): DocumentListItem {
   const job = latestJob(s.extractionJobs, document.id);
@@ -353,6 +362,10 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             .deliveries.filter((item) => item.projectId === projectId)
             .sort((a, b) => b.expectedAt.localeCompare(a.expectedAt)),
         ),
+      delivery: (deliveryId) => done(actions.deliveryCard(deliveryId)),
+      moveDelivery: (input, { actorId }) => attempt(() => actions.moveDelivery(input, actorId)),
+      acceptDelivery: (input, { actorId }) => attempt(() => actions.acceptDelivery(input, actorId)),
+      resolveRemark: (input, { actorId }) => attempt(() => actions.resolveRemark(input, actorId)),
     },
 
     reports: {
@@ -404,10 +417,30 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             details: `Ответили все ${request.sentTo.length}: ${request.items.map((item) => item.name).join(", ")}`,
             link: `/projects/${projectId}/procurement/${request.id}`,
           }));
+        // Поставка прибыла — её ждут на приёмке; открытое замечание — решение за снабжением.
+        // И то и другое решается в продукте: приёмкой и закрытием замечания (ADR-011)
+        const deliveries: PendingDecision[] = s.deliveries
+          .filter((item) => item.projectId === projectId && item.status === "arrived")
+          .map((item) => ({
+            id: `delivery-${item.id}`,
+            kind: "delivery",
+            title: `Принять поставку: ${item.items.map((line) => line.name).join(", ")}`,
+            details: `Прибыла на объект, ждёт приёмки: факт, входной контроль, фото`,
+            link: `/projects/${projectId}/deliveries?delivery=${item.id}`,
+          }));
+        const remarks: PendingDecision[] = s.remarks
+          .filter((item) => item.projectId === projectId && item.status === "open")
+          .map((item) => ({
+            id: `remark-${item.id}`,
+            kind: "remark",
+            title: `Замечание по поставке: ${remarkKindLabel[item.kind].toLowerCase()}`,
+            details: item.text,
+            link: `/projects/${projectId}/deliveries?delivery=${item.deliveryId}`,
+          }));
         // Предложенные замены сюда не попадают: решить их в продукте пока нечем, а список
         // «ждёт решения» обещает именно решение (TASK-A2, п. 4). Замены видны в карточке
         // позиции как факт; согласование замены — блок B, тогда вернутся и сюда.
-        return done(requests);
+        return done([...remarks, ...deliveries, ...requests]);
       },
     },
     // Ассистент собирает ответы из портов выше, а не из состояния демо (ADR-006)

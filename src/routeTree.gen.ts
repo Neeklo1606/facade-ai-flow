@@ -31,6 +31,7 @@ import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
+import { Route as ProjectsIdDeliveriesRouteImport } from './routes/projects/$id/deliveries'
 import { Route as ProjectsIdFieldReportsRouteImport } from './routes/projects/$id/field-reports'
 import { Route as ProjectsIdMaterialsRouteImport } from './routes/projects/$id/materials'
 import { Route as ProjectsIdTimelineRouteImport } from './routes/projects/$id/timeline'
@@ -149,6 +150,11 @@ const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
   path: '/projects/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIdDeliveriesRoute = ProjectsIdDeliveriesRouteImport.update({
+  id: '/projects/$id/deliveries',
+  path: '/projects/$id/deliveries',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIdFieldReportsRoute = ProjectsIdFieldReportsRouteImport.update({
   id: '/projects/$id/field-reports',
   path: '/projects/$id/field-reports',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/api/feedback': typeof ApiFeedbackRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
+  '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/api/feedback': typeof ApiFeedbackRoute
   '/projects': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
+  '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/api/feedback': typeof ApiFeedbackRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
+  '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/projects/'
     | '/api/export/projects'
+    | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/projects'
     | '/api/export/projects'
+    | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/projects/'
     | '/api/export/projects'
+    | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
@@ -401,6 +413,7 @@ export interface RootRouteChildren {
   ApiFeedbackRoute: typeof ApiFeedbackRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
+  ProjectsIdDeliveriesRoute: typeof ProjectsIdDeliveriesRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
   ProjectsIdMaterialsRoute: typeof ProjectsIdMaterialsRoute
   ProjectsIdTimelineRoute: typeof ProjectsIdTimelineRoute
@@ -567,6 +580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$id/deliveries': {
+      id: '/projects/$id/deliveries'
+      path: '/projects/$id/deliveries'
+      fullPath: '/projects/$id/deliveries'
+      preLoaderRoute: typeof ProjectsIdDeliveriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$id/field-reports': {
       id: '/projects/$id/field-reports'
       path: '/projects/$id/field-reports'
@@ -641,6 +661,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFeedbackRoute: ApiFeedbackRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
+  ProjectsIdDeliveriesRoute: ProjectsIdDeliveriesRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,
   ProjectsIdMaterialsRoute: ProjectsIdMaterialsRoute,
   ProjectsIdTimelineRoute: ProjectsIdTimelineRoute,

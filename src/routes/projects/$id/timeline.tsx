@@ -85,7 +85,10 @@ const typeStyle: Record<TimelineEventType, { icon: LucideIcon; tone: string }> =
   replacement_proposed: { icon: ArrowLeftRight, tone: "bg-warn-bg text-warn" },
   replacement_agreed: { icon: ThumbsUp, tone: "bg-ok-bg text-ok" },
   material_ordered: { icon: ShoppingCart, tone: "bg-info-bg text-info" },
+  delivery_moved: { icon: Truck, tone: "bg-info-bg text-info" },
   delivery_received: { icon: Truck, tone: "bg-ok-bg text-ok" },
+  delivery_rejected: { icon: Truck, tone: "bg-danger-bg text-danger" },
+  delivery_remark: { icon: Truck, tone: "bg-warn-bg text-warn" },
   report_added: { icon: HardHat, tone: "bg-subtle text-text-secondary" },
   decision: { icon: Gavel, tone: "bg-ok-bg text-ok" },
 };

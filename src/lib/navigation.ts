@@ -6,17 +6,24 @@ import {
   HardHat,
   History,
   LayoutDashboard,
+  PackageCheck,
   PackageSearch,
   Sparkles,
   Truck,
   type LucideIcon,
 } from "lucide-react";
 
-export type BadgeKey = "unverifiedSpec" | "overdueRequests" | "openChanges";
+export type BadgeKey = "unverifiedSpec" | "overdueRequests" | "openChanges" | "deliveriesToAccept";
 
 /** Разделы, которые ведутся внутри объекта. */
 export type ProjectSection =
-  "documents" | "materials" | "procurement" | "suppliers" | "field-reports" | "timeline";
+  | "documents"
+  | "materials"
+  | "procurement"
+  | "suppliers"
+  | "deliveries"
+  | "field-reports"
+  | "timeline";
 
 export interface NavItem {
   key: string;
@@ -79,6 +86,14 @@ export const navGroups: NavGroup[] = [
         badge: "overdueRequests",
         section: "procurement",
         hiddenFor: ["foreman"],
+      },
+      {
+        // Приёмку ведут прораб и снабжение на площадке (ADR-011): пункт виден всем ролям
+        key: "deliveries",
+        label: "Поставки",
+        icon: PackageCheck,
+        badge: "deliveriesToAccept",
+        section: "deliveries",
       },
       {
         key: "suppliers",
@@ -178,6 +193,7 @@ export const sectionLabels: Record<ProjectSection, string> = {
   materials: "Материалы",
   procurement: "Поставщики и запросы",
   suppliers: "Поставщики",
+  deliveries: "Поставки",
   "field-reports": "Отчёты с площадки",
   timeline: "История и решения",
 };

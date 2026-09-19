@@ -1,5 +1,6 @@
 import type { DemoEvent } from "@/adapters/demo";
 import type {
+  AcceptDeliveryInput,
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
@@ -10,6 +11,8 @@ import type {
   ListPositionsInput,
   ListProjectsInput,
   MergePositionsInput,
+  MoveDeliveryInput,
+  ResolveRemarkInput,
   PositionFilterInput,
   Repositories,
   ReviewReportInput,
@@ -184,6 +187,22 @@ export const api = {
       server
         ? fn.deliveriesFn({ data: { projectId } })
         : local().then((r) => r.procurement.deliveries(projectId)),
+    delivery: (deliveryId: string) =>
+      server
+        ? fn.deliveryFn({ data: { id: deliveryId } })
+        : local().then((r) => r.procurement.delivery(deliveryId)),
+    moveDelivery: (data: MoveDeliveryInput) =>
+      server
+        ? fn.moveDeliveryFn({ data })
+        : local().then((r) => r.procurement.moveDelivery(data, actor())),
+    resolveRemark: (data: ResolveRemarkInput) =>
+      server
+        ? fn.resolveRemarkFn({ data })
+        : local().then((r) => r.procurement.resolveRemark(data, actor())),
+    acceptDelivery: (data: AcceptDeliveryInput) =>
+      server
+        ? fn.acceptDeliveryFn({ data })
+        : local().then((r) => r.procurement.acceptDelivery(data, actor())),
   },
   reports: {
     list: (projectId: string) =>

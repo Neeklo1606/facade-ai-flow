@@ -126,6 +126,10 @@ export const positions = table(
     note: col.text({ nullable: true, comment: "почему распознавание не уверено" }),
     handedOverAt: col.timestamp({ nullable: true, comment: "передана в закупку" }),
     purchase: col.enum(purchaseStatus),
+    deliveredQty: col.qty({
+      nullable: true,
+      comment: "поставлено по актам приёмки; null — поставок не было (ADR-011)",
+    }),
     mergedInto: col.ref("positions", "restrict", { nullable: true }),
   },
 );
@@ -216,6 +220,8 @@ export const extractedPosition = z.object({
   note: z.string().nullable(),
   handedOverAt: timestampSchema.nullable(),
   purchase: purchaseStatus.schema,
+  /** Поставлено по актам приёмки; null — поставок не было (ADR-011) */
+  deliveredQty: z.number().nonnegative().nullable(),
   /** Запросы, в строки которых вошла позиция */
   requestIds: z.array(idSchema),
   mergedInto: idSchema.nullable(),

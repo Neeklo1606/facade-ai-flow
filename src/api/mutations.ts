@@ -7,9 +7,12 @@ import {
 } from "@tanstack/react-query";
 import { confidenceBand, type ExtractedPosition } from "@/contracts";
 import type {
+  AcceptDeliveryInput,
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  MoveDeliveryInput,
+  ResolveRemarkInput,
   CreateProjectInput,
   CreateRequestInput,
   MergePositionsInput,
@@ -321,6 +324,36 @@ export function useChooseSupplier() {
     mutationFn: (input: ChooseSupplierInput) => api.procurement.chooseSupplier(input),
     // reports: карточка источника показывает решения, принятые на его основании
     onSettled: () => invalidate(queryClient, [...PROCUREMENT_AREAS, "reports"]),
+  });
+}
+
+/** Движение поставки до приёмки: отгружено, в пути, прибыло, отклонено (ADR-011) */
+export function useMoveDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "moveDelivery" },
+    mutationFn: (input: MoveDeliveryInput) => api.procurement.moveDelivery(input),
+    onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
+  });
+}
+
+/** Закрыть замечание по поставке: уходит из очереди «Требует решения» */
+export function useResolveRemark() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "resolveRemark" },
+    mutationFn: (input: ResolveRemarkInput) => api.procurement.resolveRemark(input),
+    onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
+  });
+}
+
+/** Акт приёмки: меняет поставку, позиции (поставлено, остаток), историю и очередь решений */
+export function useAcceptDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "acceptDelivery" },
+    mutationFn: (input: AcceptDeliveryInput) => api.procurement.acceptDelivery(input),
+    onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
   });
 }
 

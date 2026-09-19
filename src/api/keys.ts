@@ -53,6 +53,7 @@ export const keys = {
     requests: (projectId: string) => ["procurement", "requests", projectId] as const,
     request: (requestId: string) => ["procurement", "request", requestId] as const,
     deliveries: (projectId: string) => ["procurement", "deliveries", projectId] as const,
+    delivery: (deliveryId: string) => ["procurement", "delivery", deliveryId] as const,
   },
   reports: {
     list: (projectId: string) => ["reports", "list", projectId] as const,

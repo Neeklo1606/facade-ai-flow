@@ -92,6 +92,14 @@ const screens = {
       "Проверьте устаревший контакт и отметьте его проверенным — тогда поставщик выбирается в подбор по умолчанию.",
     ],
   },
+  deliveries: {
+    name: "Поставки",
+    help: [
+      "Поставки объекта: что везут, что прибыло и ждёт приёмки, что принято и с какими замечаниями.",
+      "Отвечает на вопрос, какой материал уже на объекте и где расхождение с заказом.",
+      "Откройте прибывшую поставку и примите её: факт по строкам, входной контроль, фото при расхождении.",
+    ],
+  },
   rfq: {
     name: "Сравнение предложений",
     help: [
@@ -190,6 +198,7 @@ export function screenFor(
       if (child) return info("rfq");
       return info(params.get("view") === "suppliers" ? "suppliers" : "procurement");
     }
+    if (section === "deliveries") return info("deliveries");
     if (section === "field-reports") return info("field-reports");
     if (section === "timeline") return info("timeline");
   }

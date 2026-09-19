@@ -49,6 +49,9 @@ export const actionLabels: Record<string, string> = {
   openSource: "Открыть источник значения",
   inspectVoiceField: "Проверить распознанное поле по цитате",
   exportExcel: "Выгрузить в Excel",
+  moveDelivery: "Отметить движение поставки",
+  acceptDelivery: "Принять поставку",
+  resolveRemark: "Закрыть замечание по поставке",
 };
 
 let events: TelemetryEvent[] = load();

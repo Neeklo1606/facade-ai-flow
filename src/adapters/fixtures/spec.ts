@@ -269,12 +269,16 @@ const purchaseBySheet: Record<
   number,
   { status: PurchaseStatus; requestIds: string[]; split?: PurchaseStatus }
 > = {
-  84: { status: "delivered", requestIds: ["sr-318"], split: "supplier_selected" },
-  85: { status: "delivered", requestIds: ["sr-318"], split: "supplier_selected" },
-  86: { status: "supplier_selected", requestIds: ["sr-318"] },
+  // Запрос 318 ждёт ответов и решения по нему нет: «поставлено» и «выбран поставщик»
+  // противоречили бы запросу (ADR-011, п. 10). Поставленное считает приёмка, а не фикстура
+  84: { status: "offers", requestIds: ["sr-318"] },
+  85: { status: "offers", requestIds: ["sr-318"] },
+  86: { status: "offers", requestIds: ["sr-318"] },
   87: { status: "offers", requestIds: ["sr-323"] },
   88: { status: "requested", requestIds: ["sr-323"] },
-  89: { status: "ordered", requestIds: ["sr-324"], split: "delivered" },
+  // Запрос 324 заказан; поставку dl-502 приняли по акту — статус «поставлено» и факт
+  // позициям проставляет сборка снимка тем же правилом, что и живая приёмка
+  89: { status: "ordered", requestIds: ["sr-324"] },
   90: { status: "ordered", requestIds: ["sr-324"] },
   91: { status: "requested", requestIds: ["sr-322"] },
   92: { status: "requested", requestIds: ["sr-325"] },
@@ -375,6 +379,7 @@ function buildSpecPositions(): GeneratedPosition[] {
               h: rowH,
             },
             note: null,
+            deliveredQty: null,
             mergedInto: null,
           },
         });
@@ -612,6 +617,7 @@ export function simulatedPositions(
       handedOverAt: null,
       purchase: "none",
       requestIds: [],
+      deliveredQty: null,
       mergedInto: null,
     };
   });

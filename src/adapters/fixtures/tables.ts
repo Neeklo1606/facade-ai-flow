@@ -53,6 +53,10 @@ export const fixtureTables = {
   supplier_offer_lines: procurement.supplierOfferLines,
   deliveries: procurement.deliveries,
   delivery_lines: procurement.deliveryLines,
+  delivery_status_changes: procurement.deliveryStatusChanges,
+  delivery_acceptances: procurement.deliveryAcceptances,
+  delivery_photos: procurement.deliveryPhotos,
+  delivery_remarks: procurement.deliveryRemarks,
   project_decisions: procurement.projectDecisions,
 
   field_reports: field.fieldReports,

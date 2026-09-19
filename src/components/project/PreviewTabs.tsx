@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { deliveryTone } from "@/lib/procurement";
 import { UNCONFIRMED_DELIVERY_NOTE } from "@/lib/demo-copy";
 import { Bot, Check, FileText, UserRound } from "lucide-react";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
@@ -297,13 +298,6 @@ function LiveMaterialsPreview({
 
 /* ---------- Закупки ---------- */
 
-const deliveryTone: Record<Delivery["status"], Tone> = {
-  expected: "neutral",
-  in_transit: "info",
-  received: "ok",
-  rejected: "danger",
-};
-
 export function PurchasesPreview({ projectId, overview, scope }: Props) {
   const { counterpartyName } = useDirectory();
   const requests = useQuery(queries.requests(projectId)).data ?? [];
@@ -364,7 +358,7 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
       <Block
         title="Поставки"
         count={`в пути ${overview.inTransit} поз.`}
-        to={`/projects/${projectId}/procurement`}
+        to={`/projects/${projectId}/deliveries`}
         onLinkClick={scope}
       >
         {deliveries.length === 0 ? (

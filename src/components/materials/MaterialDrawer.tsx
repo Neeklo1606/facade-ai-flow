@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { positionRemainder } from "@/api/deliveries";
 import { AlertTriangle, ArrowLeftRight, Bot, FileText, UserRound } from "lucide-react";
 import { EntityDrawer } from "@/components/common/EntityDrawer";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -175,6 +176,16 @@ export function MaterialDrawer({
               </li>
             ))}
           </ol>
+          {/* Заказано, поставлено по актам приёмки и остаток (ADR-011) */}
+          {(item.purchase === "ordered" || item.purchase === "delivered") && (
+            <p className="tnum mt-3 text-[13px] text-text-secondary">
+              Заказано {fmtNum(item.qty)} {item.unit} · поставлено {fmtNum(item.deliveredQty ?? 0)}{" "}
+              {item.unit} · остаток{" "}
+              <span className={cn(positionRemainder(item) > 0 && "font-medium text-text")}>
+                {fmtNum(positionRemainder(item))} {item.unit}
+              </span>
+            </p>
+          )}
         </Section>
 
         <Section title="Запросы и предложения">

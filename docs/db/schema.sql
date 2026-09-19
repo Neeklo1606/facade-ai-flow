@@ -4,7 +4,7 @@
 create extension if not exists pgcrypto;
 
 -- Роль сотрудника; от неё зависят доступные разделы и действия (фаза 4)
-create type employee_role as enum ('manager', 'foreman', 'pto', 'supply', 'finance', 'worker');
+create type employee_role as enum ('manager', 'foreman', 'pto', 'supply', 'finance', 'worker', 'director');
 
 -- Может ли сотрудник работать в системе
 create type employee_status as enum ('active', 'vacation', 'blocked');
@@ -54,8 +54,14 @@ create type replacement_status as enum ('proposed', 'agreed', 'rejected');
 -- Хранимый жизненный цикл запроса. Статус на экране (ждём ответы, просрочен, готов) вычисляется
 create type request_status as enum ('draft', 'sent', 'decided', 'ordered', 'cancelled');
 
--- Состояние поставки
-create type delivery_status as enum ('expected', 'in_transit', 'received', 'rejected');
+-- Состояние поставки: создаётся решением по запросу, закрывается актом приёмки
+create type delivery_status as enum ('expected', 'shipped', 'in_transit', 'arrived', 'accepted', 'accepted_with_remarks', 'rejected');
+
+-- Вид замечания по поставке: недостача, излишек, непройденный пункт контроля, отклонение
+create type delivery_remark_kind as enum ('shortage', 'surplus', 'checklist', 'rejected');
+
+-- Состояние замечания
+create type delivery_remark_status as enum ('open', 'resolved');
 
 -- Вид зафиксированного решения
 create type decision_kind as enum ('supplier', 'replacement', 'quantity');
@@ -76,7 +82,7 @@ create type issue_severity as enum ('blocker', 'warning');
 create type evidence_kind as enum ('photo', 'audio', 'file');
 
 -- Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении
-create type event_type as enum ('version_uploaded', 'spec_extracted', 'qty_corrected', 'request_created', 'offer_received', 'replacement_proposed', 'replacement_agreed', 'material_ordered', 'delivery_received', 'report_added');
+create type event_type as enum ('version_uploaded', 'spec_extracted', 'qty_corrected', 'request_created', 'offer_received', 'replacement_proposed', 'replacement_agreed', 'material_ordered', 'delivery_moved', 'delivery_received', 'delivery_rejected', 'delivery_remark', 'report_added');
 
 -- Сотрудники и пользователи системы
 create table employees (
@@ -397,6 +403,7 @@ create table positions (
   note text,
   handed_over_at timestamptz,
   purchase purchase_status not null,
+  delivered_qty numeric(14,3),
   merged_into uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -414,6 +421,7 @@ comment on column positions.project_name is 'наименование как в 
 comment on column positions.material_id is 'null — требует нормализации';
 comment on column positions.note is 'почему распознавание не уверено';
 comment on column positions.handed_over_at is 'передана в закупку';
+comment on column positions.delivered_qty is 'поставлено по актам приёмки; null — поставок не было (ADR-011)';
 create unique index positions_revision_id_position_key on positions (revision_id, position); -- номер позиции уникален в ревизии документа
 create index positions_revision_id_sheet_id_position_idx on positions (revision_id, sheet_id, position); -- экран проверки: позиции листа по порядку
 create index positions_project_id_review_idx on positions (project_id, review); -- сводка: всего и непроверено; фильтр проверки в материалах
@@ -570,12 +578,14 @@ comment on column supplier_offer_lines.location is 'где в письме ук�
 create unique index supplier_offer_lines_offer_id_request_line_id_key on supplier_offer_lines (offer_id, request_line_id); -- ячейки таблицы сравнения
 create index supplier_offer_lines_request_line_id_idx on supplier_offer_lines (request_line_id); -- лучшая цена по материалу
 
--- Поставка по запросу от выбранного поставщика
+-- Поставка по запросу от выбранного поставщика; создаётся решением (ADR-011)
 create table deliveries (
   id uuid not null default gen_random_uuid(),
   request_id uuid not null,
   project_id uuid not null,
+  zone_id uuid,
   supplier_id uuid not null,
+  decision_id uuid,
   expected_at date not null,
   received_at date,
   status delivery_status not null,
@@ -584,21 +594,96 @@ create table deliveries (
   updated_at timestamptz not null default now(),
   created_by uuid,
   primary key (id),
-  check ((status = 'received') = (received_at is not null))
+  check ((status in ('accepted', 'accepted_with_remarks')) = (received_at is not null))
 );
+comment on column deliveries.zone_id is 'захватка из запроса';
+comment on column deliveries.decision_id is 'решение, которым создана поставка';
 create index deliveries_project_id_expected_at_idx on deliveries (project_id, expected_at); -- поставки объекта по дате
 create index deliveries_request_id_idx on deliveries (request_id); -- поставки по запросу
+create index deliveries_project_id_status_idx on deliveries (project_id, status); -- экран поставок: к приёмке, в пути, приняты
 
--- Что везут в поставке
+-- Что везут в поставке и сколько принято
 create table delivery_lines (
   id uuid not null default gen_random_uuid(),
   delivery_id uuid not null,
   request_line_id uuid not null,
   qty numeric(14,3) not null,
+  price bigint,
+  accepted_qty numeric(14,3),
+  remark text,
   primary key (id),
-  check (qty > 0)
+  check (qty > 0),
+  check (accepted_qty is null or accepted_qty >= 0)
 );
+comment on column delivery_lines.qty is 'заявлено поставщиком';
+comment on column delivery_lines.price is 'цена из предложения, копейки за единицу';
+comment on column delivery_lines.accepted_qty is 'принято по акту; null — ещё не принималось';
+comment on column delivery_lines.remark is 'замечание по строке при приёмке';
 create index delivery_lines_delivery_id_idx on delivery_lines (delivery_id); -- состав поставки
+
+-- Движение поставки: кто и когда перевёл статус (журнал: только insert)
+create table delivery_status_changes (
+  id uuid not null default gen_random_uuid(),
+  delivery_id uuid not null,
+  status delivery_status not null,
+  at timestamptz not null,
+  actor_kind actor_kind not null,
+  actor_id uuid,
+  note text,
+  primary key (id),
+  check ((actor_kind = 'user') = (actor_id is not null))
+);
+create index delivery_status_changes_delivery_id_at_idx on delivery_status_changes (delivery_id, at); -- движение поставки по времени
+
+-- Акт приёмки поставки: результат, чек-лист, подтверждение принявшего (журнал: только insert)
+create table delivery_acceptances (
+  id uuid not null default gen_random_uuid(),
+  delivery_id uuid not null,
+  accepted_at timestamptz not null,
+  accepted_by uuid not null,
+  result delivery_status not null,
+  reason text,
+  checklist jsonb not null,
+  primary key (id),
+  check (result <> 'rejected' or reason is not null)
+);
+comment on column delivery_acceptances.accepted_by is 'подтверждение приёмки сотрудником сессии; электронной подписи нет';
+comment on column delivery_acceptances.reason is 'причина отклонения';
+create unique index delivery_acceptances_delivery_id_key on delivery_acceptances (delivery_id); -- одна поставка — один акт
+
+-- Фотофиксация при приёмке; в демо — уменьшенная копия в состоянии вкладки
+create table delivery_photos (
+  id uuid not null default gen_random_uuid(),
+  delivery_id uuid not null,
+  acceptance_id uuid not null,
+  taken_at timestamptz not null,
+  taken_by uuid not null,
+  data_url text not null,
+  caption text,
+  primary key (id)
+);
+comment on column delivery_photos.data_url is 'JPEG data URL до ~120 КБ; с адаптером БД — ключ хранилища';
+create index delivery_photos_delivery_id_idx on delivery_photos (delivery_id); -- фото поставки
+
+-- Замечание по поставке для снабжения; попадает в очередь «Требует решения»
+create table delivery_remarks (
+  id uuid not null default gen_random_uuid(),
+  delivery_id uuid not null,
+  project_id uuid not null,
+  line_id uuid,
+  kind delivery_remark_kind not null,
+  text text not null,
+  created_at timestamptz not null,
+  created_by uuid not null,
+  status delivery_remark_status not null,
+  resolved_at timestamptz,
+  resolved_by uuid,
+  resolution text,
+  primary key (id)
+);
+comment on column delivery_remarks.resolution is 'чем закрыто: допоставка, скидка, возврат';
+create index delivery_remarks_delivery_id_idx on delivery_remarks (delivery_id); -- замечания поставки
+create index delivery_remarks_status_created_at_idx on delivery_remarks (status, created_at); -- открытые замечания на дашборде
 
 -- Зафиксированное решение с требованием, вариантами, выбором и основанием (журнал: только insert)
 create table project_decisions (
@@ -732,6 +817,7 @@ create table project_events (
   revision_id uuid,
   position_id uuid,
   report_id uuid,
+  delivery_id uuid,
   primary key (id),
   check ((actor_kind = 'user') = (actor_id is not null))
 );
@@ -810,11 +896,25 @@ alter table supplier_offer_lines add foreign key (request_line_id) references su
 alter table supplier_offer_lines add foreign key (source_id) references sources (id) on delete set null;
 alter table deliveries add foreign key (request_id) references supply_requests (id) on delete restrict;
 alter table deliveries add foreign key (project_id) references projects (id) on delete restrict;
+alter table deliveries add foreign key (zone_id) references work_zones (id) on delete set null;
 alter table deliveries add foreign key (supplier_id) references counterparties (id) on delete restrict;
+alter table deliveries add foreign key (decision_id) references project_decisions (id) on delete restrict;
 alter table deliveries add foreign key (source_id) references sources (id) on delete set null;
 alter table deliveries add foreign key (created_by) references employees (id) on delete restrict;
 alter table delivery_lines add foreign key (delivery_id) references deliveries (id) on delete cascade;
 alter table delivery_lines add foreign key (request_line_id) references supply_request_lines (id) on delete restrict;
+alter table delivery_status_changes add foreign key (delivery_id) references deliveries (id) on delete cascade;
+alter table delivery_status_changes add foreign key (actor_id) references employees (id) on delete restrict;
+alter table delivery_acceptances add foreign key (delivery_id) references deliveries (id) on delete cascade;
+alter table delivery_acceptances add foreign key (accepted_by) references employees (id) on delete restrict;
+alter table delivery_photos add foreign key (delivery_id) references deliveries (id) on delete cascade;
+alter table delivery_photos add foreign key (acceptance_id) references delivery_acceptances (id) on delete cascade;
+alter table delivery_photos add foreign key (taken_by) references employees (id) on delete restrict;
+alter table delivery_remarks add foreign key (delivery_id) references deliveries (id) on delete cascade;
+alter table delivery_remarks add foreign key (project_id) references projects (id) on delete restrict;
+alter table delivery_remarks add foreign key (line_id) references delivery_lines (id) on delete cascade;
+alter table delivery_remarks add foreign key (created_by) references employees (id) on delete restrict;
+alter table delivery_remarks add foreign key (resolved_by) references employees (id) on delete restrict;
 alter table project_decisions add foreign key (project_id) references projects (id) on delete restrict;
 alter table project_decisions add foreign key (request_id) references supply_requests (id) on delete restrict;
 alter table project_decisions add foreign key (supplier_id) references counterparties (id) on delete restrict;
@@ -838,9 +938,12 @@ alter table project_events add foreign key (request_id) references supply_reques
 alter table project_events add foreign key (revision_id) references document_revisions (id) on delete restrict;
 alter table project_events add foreign key (position_id) references positions (id) on delete restrict;
 alter table project_events add foreign key (report_id) references field_reports (id) on delete restrict;
+alter table project_events add foreign key (delivery_id) references deliveries (id) on delete restrict;
 
 -- Журналы: роль приложения может только добавлять строки
 revoke update, delete on position_changes from app_user;
+revoke update, delete on delivery_status_changes from app_user;
+revoke update, delete on delivery_acceptances from app_user;
 revoke update, delete on project_decisions from app_user;
 revoke update, delete on sources from app_user;
 revoke update, delete on extractions from app_user;

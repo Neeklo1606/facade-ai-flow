@@ -22,6 +22,7 @@ export function projectEvent(input: EventInput, actorId: string | null): Project
     sourceId: null,
     requestId: null,
     revisionId: null,
+    deliveryId: null,
     positionId: null,
     reportId: null,
     ...input,

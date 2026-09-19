@@ -13,7 +13,10 @@ export const eventType = pgEnum(
     "replacement_proposed",
     "replacement_agreed",
     "material_ordered",
+    "delivery_moved",
     "delivery_received",
+    "delivery_rejected",
+    "delivery_remark",
     "report_added",
   ],
   "Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении",
@@ -48,6 +51,7 @@ export const projectEvents = table(
     revisionId: col.ref("document_revisions", "restrict", { nullable: true }),
     positionId: col.ref("positions", "restrict", { nullable: true }),
     reportId: col.ref("field_reports", "restrict", { nullable: true }),
+    deliveryId: col.ref("deliveries", "restrict", { nullable: true }),
   },
 );
 
@@ -78,7 +82,10 @@ export const timelineTypeLabel: Record<TimelineEventType, string> = {
   replacement_proposed: "Предложена замена",
   replacement_agreed: "Замена согласована",
   material_ordered: "Материал заказан",
-  delivery_received: "Поставка получена",
+  delivery_moved: "Движение поставки",
+  delivery_received: "Поставка принята",
+  delivery_rejected: "Поставка отклонена",
+  delivery_remark: "Замечание по поставке",
   report_added: "Добавлен отчёт с площадки",
   decision: "Зафиксировано решение",
 };

@@ -368,7 +368,10 @@ const activityIcon: Record<TimelineEventType, LucideIcon> = {
   replacement_proposed: ArrowLeftRight,
   replacement_agreed: ArrowLeftRight,
   material_ordered: PackageCheck,
+  delivery_moved: PackageCheck,
   delivery_received: PackageCheck,
+  delivery_rejected: PackageCheck,
+  delivery_remark: PackageCheck,
   report_added: HardHat,
   decision: ListChecks,
 };

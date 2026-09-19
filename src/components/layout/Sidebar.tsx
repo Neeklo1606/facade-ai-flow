@@ -60,6 +60,7 @@ function badgeCounts(
     unverifiedSpec: total((item) => item.specUnverified),
     overdueRequests: total((item) => item.overdueRequests),
     openChanges: total((item) => item.openChanges),
+    deliveriesToAccept: total((item) => item.deliveriesToAccept),
   };
 }
 
@@ -140,7 +141,7 @@ function SidebarInner({
   const changeProject = (value: string) => {
     setProjectId(value);
     const match = pathname.match(
-      /^\/projects\/[^/]+(\/(documents|materials|procurement|field-reports|timeline))?/,
+      /^\/projects\/[^/]+(\/(documents|materials|procurement|deliveries|field-reports|timeline))?/,
     );
     if (!match) return;
     if (value === ALL_PROJECTS) {

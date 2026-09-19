@@ -102,7 +102,7 @@ interface RequestRow {
 interface PendingRow {
   projectId: string;
   id: string;
-  kind: "request" | "replacement";
+  kind: "request" | "replacement" | "delivery" | "remark";
   title: string;
   details: string;
   link: string;
@@ -393,7 +393,10 @@ export function attentionRows(source: DashboardSource, limit = 8): AttentionRow[
     const request = source.requests.find((item) => item.request.id === row.id);
     rows.push({
       id: `pending-${row.id}`,
-      severity: row.kind === "request" ? "warn" : "info",
+      severity:
+        row.kind === "request" || row.kind === "remark" || row.kind === "delivery"
+          ? "warn"
+          : "info",
       title: row.title,
       reason: row.details,
       projectId: row.projectId,

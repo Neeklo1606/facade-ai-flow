@@ -1,6 +1,10 @@
 import type {
+  DeliveryAcceptance,
   DeliveryLine,
+  DeliveryPhoto,
+  DeliveryRemark,
   DeliveryRow,
+  DeliveryStatusChange,
   EmailTemplate,
   OfferLine,
   ProjectDecisionRow,
@@ -489,7 +493,10 @@ export const deliveries = [
     id: "dl-501",
     requestId: "sr-321",
     projectId: "p-primorsky",
+    zoneId: "z-primorsky-2",
     supplierId: "c-sk",
+    // Решение по запросу 321 принималось до начала учёта решений в системе
+    decisionId: null,
     expectedAt: "2026-09-08",
     receivedAt: null,
     status: "in_transit",
@@ -499,10 +506,12 @@ export const deliveries = [
     id: "dl-502",
     requestId: "sr-324",
     projectId: "p-korona",
+    zoneId: "z-korona-3",
     supplierId: "c-sk",
+    decisionId: "dec-324",
     expectedAt: "2026-08-30",
     receivedAt: "2026-08-30",
-    status: "received",
+    status: "accepted",
     sourceId: "src-mail-sk-324",
   },
 ] satisfies DeliveryRow[];
@@ -513,20 +522,128 @@ export const deliveryLines = [
     deliveryId: "dl-501",
     requestLineId: "sr-321-l1",
     qty: 3200,
+    price: null,
+    acceptedQty: null,
+    remark: null,
   },
   {
     id: "dl-502-1",
     deliveryId: "dl-502",
     requestLineId: "sr-324-l1",
     qty: 2400,
+    price: 41200,
+    acceptedQty: 2400,
+    remark: null,
   },
   {
     id: "dl-502-2",
     deliveryId: "dl-502",
     requestLineId: "sr-324-l2",
     qty: 3500,
+    price: 9600,
+    acceptedQty: 3500,
+    remark: null,
   },
 ] satisfies DeliveryLine[];
+
+/** Движение поставок: кто и когда отмечал (ADR-011) */
+export const deliveryStatusChanges = [
+  {
+    id: "dsc-501-1",
+    deliveryId: "dl-501",
+    status: "expected",
+    at: "2026-09-01T10:20:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
+    note: "Заказ по счёту поставщика",
+  },
+  {
+    id: "dsc-501-2",
+    deliveryId: "dl-501",
+    status: "shipped",
+    at: "2026-09-04T16:40:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
+    note: "Поставщик сообщил об отгрузке по телефону",
+  },
+  {
+    id: "dsc-501-3",
+    deliveryId: "dl-501",
+    status: "in_transit",
+    at: "2026-09-05T08:05:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
+    note: null,
+  },
+  {
+    id: "dsc-502-1",
+    deliveryId: "dl-502",
+    status: "expected",
+    at: "2026-08-21T11:00:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
+    note: "Создана решением по запросу З-2026/324",
+  },
+  {
+    id: "dsc-502-2",
+    deliveryId: "dl-502",
+    status: "shipped",
+    at: "2026-08-28T15:10:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
+    note: null,
+  },
+  {
+    id: "dsc-502-3",
+    deliveryId: "dl-502",
+    status: "arrived",
+    at: "2026-08-30T08:45:00",
+    actorKind: "user",
+    actorId: "e-gareev",
+    note: "Машина на площадке, разгрузка у захватки 3",
+  },
+  {
+    id: "dsc-502-4",
+    deliveryId: "dl-502",
+    status: "accepted",
+    at: "2026-08-30T10:05:00",
+    actorKind: "user",
+    actorId: "e-gareev",
+    note: null,
+  },
+] satisfies DeliveryStatusChange[];
+
+export const deliveryAcceptances = [
+  {
+    id: "da-502",
+    deliveryId: "dl-502",
+    acceptedAt: "2026-08-30T10:05:00",
+    acceptedBy: "e-gareev",
+    result: "accepted",
+    reason: null,
+    checklist: [
+      { id: "complete", label: "Комплектность по накладной", ok: true, note: null },
+      { id: "intact", label: "Упаковка и материал без повреждений", ok: true, note: null },
+      {
+        id: "docs",
+        label: "Накладная и паспорт качества или сертификат",
+        ok: true,
+        note: "Паспорт на утеплитель, партия 0826",
+      },
+      {
+        id: "spec",
+        label: "Соответствует спецификации: марка, размер, цвет",
+        ok: true,
+        note: null,
+      },
+      { id: "density", label: "Плотность по паспорту соответствует проекту", ok: true, note: null },
+      { id: "dry", label: "Упаковка сухая, материал не намок", ok: true, note: null },
+    ],
+  },
+] satisfies DeliveryAcceptance[];
+
+export const deliveryPhotos = [] satisfies DeliveryPhoto[];
+export const deliveryRemarks = [] satisfies DeliveryRemark[];
 
 export const projectDecisions = [
   {

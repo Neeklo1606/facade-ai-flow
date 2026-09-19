@@ -9,9 +9,13 @@ import {
   createProjectInput,
   createRequestInput,
   createRequestResult,
+  acceptDeliveryInput,
   chooseSupplierInput,
   decisionList,
+  deliveryCardView,
   deliveryList,
+  moveDeliveryInput,
+  resolveRemarkInput,
   documentCard,
   documentListItem,
   clockNow,
@@ -274,6 +278,30 @@ export const deliveriesFn = createServerFn({ method: "GET" })
   .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(deliveryList, await repos().procurement.deliveries(data.projectId)),
+  );
+
+export const deliveryFn = createServerFn({ method: "GET" })
+  .validator(input(idInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView.nullable(), await repos().procurement.delivery(data.id)),
+  );
+
+export const moveDeliveryFn = createServerFn({ method: "POST" })
+  .validator(input(moveDeliveryInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView, await repos().procurement.moveDelivery(data, actor())),
+  );
+
+export const resolveRemarkFn = createServerFn({ method: "POST" })
+  .validator(input(resolveRemarkInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView, await repos().procurement.resolveRemark(data, actor())),
+  );
+
+export const acceptDeliveryFn = createServerFn({ method: "POST" })
+  .validator(input(acceptDeliveryInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView, await repos().procurement.acceptDelivery(data, actor())),
   );
 
 /* ---------- Площадка и история ---------- */

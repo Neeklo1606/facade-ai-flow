@@ -12,6 +12,8 @@ import {
   type RevisionChange,
   type SupplierOffer,
   type SupplyRequest,
+  type Delivery,
+  type DeliveryRemark,
 } from "@/contracts";
 import { answeredCount, decisionFor, isActiveRequest, rfqStatus } from "./procurement";
 
@@ -26,6 +28,8 @@ export interface OverviewSource {
   decisions: ProjectDecision[];
   crews: Crew[];
   reports: FieldReport[];
+  deliveries: Delivery[];
+  remarks: DeliveryRemark[];
 }
 
 /** Действующая ревизия каждого документа: с наибольшим номером. Без объекта — по всем объектам */
@@ -123,6 +127,13 @@ export function projectOverview(
       !s.reports.some((report) => report.crewId === crew.id && report.date >= weekAgo),
   ).length;
 
+  const deliveries = s.deliveries.filter((item) => item.projectId === projectId);
+  const moving = new Set(
+    deliveries
+      .filter((item) => item.status === "shipped" || item.status === "in_transit")
+      .map((item) => item.requestId),
+  );
+
   return {
     projectId,
     region: project.region,
@@ -133,8 +144,14 @@ export function projectOverview(
     inRequests: count(["requested", "offers", "supplier_selected", "ordered", "delivered"]),
     offersReceived: count(["offers", "supplier_selected", "ordered", "delivered"]),
     ordered: count(["ordered", "delivered"]),
-    inTransit: count(["ordered"]),
+    // «В пути» — позиции, поставка которых отгружена или едет, а не все заказанные (ADR-011)
+    inTransit: verified.filter(
+      (item) => item.purchase === "ordered" && item.requestIds.some((id) => moving.has(id)),
+    ).length,
     delivered: count(["delivered"]),
+    deliveriesToAccept: deliveries.filter((item) => item.status === "arrived").length,
+    openRemarks: s.remarks.filter((item) => item.projectId === projectId && item.status === "open")
+      .length,
     activeRequests: active.length,
     overdueRequests: overdue.length,
     openChanges,

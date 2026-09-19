@@ -11,23 +11,40 @@ import {
   type ProjectDecision,
   type ProjectDocument,
   type ProjectEvent,
+  type Delivery,
+  type DeliveryCard,
+  type DeliveryRemark,
+  type DeliveryStatus,
   type RequestLine,
   type SupplyRequest,
+  deliveryStatusLabel,
+  remarkKindLabel,
 } from "@/contracts";
 import { sheetsOf } from "@/adapters/fixtures";
 import { decisionLink } from "@/domain/timeline";
+import {
+  acceptanceError,
+  canMove,
+  lineDiscrepancies,
+  withDeliveries,
+  type RequestPositionLink,
+} from "@/domain/deliveries";
+import { DEMO_DECISION_ORDER_NOTE } from "@/lib/demo-copy";
 import { ConflictError, NotFoundError } from "@/ports";
 import type {
+  ResolveRemarkInput,
+  AcceptDeliveryInput,
   CorrectPositionInput,
+  MoveDeliveryInput,
   CreateProjectInput,
   CreateRequestInput,
   UndoReviewInput,
   ReviewReportInput,
   UploadRevisionInput,
 } from "@/ports";
-import { tick } from "./clock";
+import { addDays, tick } from "./clock";
 import { liveId, positionChange, projectEvent } from "./records";
-import { orderJob, replyJobs, schedule, uploadJob } from "./simulator";
+import { replyJobs, schedule, shipmentJobs, uploadJob } from "./simulator";
 import { getState, update } from "./state";
 
 /**
@@ -654,6 +671,7 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
   }
   // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой
   const lines = new Map<string, RequestLine>();
+  const links: RequestPositionLink[] = [];
   for (const item of targets) {
     const materialId =
       item.materialId ?? dictionary.get(`${item.family}:${baseName(item)}`) ?? null;
@@ -671,6 +689,8 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
         unit: item.unit,
       });
     }
+    // Из каких позиций собрана строка: по этой связи приёмка раскладывает принятое (ADR-011)
+    links.push({ requestLineId: lines.get(key)!.id, positionId: item.id });
   }
 
   const request: SupplyRequest = {
@@ -695,6 +715,7 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
   update((prev) => ({
     ...prev,
     requests: [request, ...prev.requests],
+    requestPositions: [...prev.requestPositions, ...links],
     positions: prev.positions.map((item) =>
       targetIds.has(item.id)
         ? { ...item, purchase: "requested", requestIds: [...item.requestIds, request.id] }
@@ -772,8 +793,350 @@ export function recordDecision(input: Omit<ProjectDecision, "id" | "approvedAt" 
         : item,
     ),
   }));
-  if (record.kind === "supplier" && record.requestId) schedule([orderJob(record.id)]);
+  if (record.kind === "supplier" && record.requestId && record.supplierId) {
+    const delivery = createDelivery(record);
+    if (delivery) schedule(shipmentJobs(delivery.id));
+  }
   return record;
+}
+
+/**
+ * Поставка по решению (ADR-011, п. 1): строки и цены — из предложения выбранного поставщика,
+ * срок — наибольший из его предложения, захватка — из запроса. Позиции переходят в «заказано».
+ */
+function createDelivery(decision: ProjectDecision) {
+  const s = getState();
+  const request = s.requests.find((item) => item.id === decision.requestId);
+  const supplierId = decision.supplierId;
+  if (!request || !supplierId || s.deliveries.some((item) => item.requestId === request.id))
+    return null;
+  const supplierName = s.counterparties.find((item) => item.id === supplierId)?.name ?? "—";
+  const offer = s.offers.find(
+    (item) => item.requestId === request.id && item.supplierId === supplierId,
+  );
+  const offerLines = s.offerLines.filter((line) => line.offerId === offer?.id);
+  const leadDays = Math.max(1, ...offerLines.map((line) => line.leadTimeDays));
+  const now = tick();
+  const delivery: Delivery = {
+    id: liveId("dl"),
+    requestId: request.id,
+    projectId: request.projectId,
+    zoneId: request.zoneId,
+    supplierId,
+    decisionId: decision.id,
+    expectedAt: addDays(now, leadDays).slice(0, 10),
+    receivedAt: null,
+    status: "expected",
+    sourceId: null,
+    items: request.items.map((line, index) => ({
+      id: `${request.id}-dl${index + 1}`,
+      requestLineId: line.id,
+      materialId: line.materialId,
+      name: line.name,
+      qty: offerLines.find((o) => o.requestLineId === line.id)?.availableQty ?? line.qty,
+      unit: line.unit,
+      price: offerLines.find((o) => o.requestLineId === line.id)?.price ?? null,
+      acceptedQty: null,
+      remark: null,
+    })),
+  };
+  update((prev) => ({
+    ...prev,
+    deliveries: [delivery, ...prev.deliveries],
+    deliveryChanges: [
+      ...prev.deliveryChanges,
+      {
+        id: liveId("dsc"),
+        deliveryId: delivery.id,
+        status: "expected",
+        at: now,
+        actorKind: "user",
+        actorId: decision.approvedBy,
+        note: `Создана решением по запросу ${request.number}`,
+      },
+    ],
+    requests: prev.requests.map((item) =>
+      item.id === request.id ? { ...item, status: "ordered" } : item,
+    ),
+    positions: prev.positions.map((item) =>
+      item.requestIds.includes(request.id) &&
+      (item.purchase === "supplier_selected" ||
+        item.purchase === "requested" ||
+        item.purchase === "offers")
+        ? { ...item, purchase: "ordered" }
+        : item,
+    ),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: request.projectId,
+          type: "material_ordered",
+          title: `Поставка «${supplierName}» по запросу ${request.number} создана решением`,
+          details: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}. ${DEMO_DECISION_ORDER_NOTE}`,
+          requestId: request.id,
+          deliveryId: delivery.id,
+        },
+        decision.approvedBy,
+      ),
+    ],
+  }));
+  return delivery;
+}
+
+/** Карточка поставки: движение, акт, фото, замечания, номер запроса */
+export function deliveryCard(deliveryId: string): DeliveryCard | null {
+  const s = getState();
+  const delivery = s.deliveries.find((item) => item.id === deliveryId);
+  if (!delivery) return null;
+  return {
+    delivery,
+    requestNumber: s.requests.find((item) => item.id === delivery.requestId)?.number ?? "—",
+    statusChanges: s.deliveryChanges
+      .filter((item) => item.deliveryId === deliveryId)
+      .sort((a, b) => a.at.localeCompare(b.at)),
+    acceptance: s.acceptances.find((item) => item.deliveryId === deliveryId) ?? null,
+    photos: s.deliveryPhotos.filter((item) => item.deliveryId === deliveryId),
+    remarks: s.remarks.filter((item) => item.deliveryId === deliveryId),
+  };
+}
+
+/** Движение поставки до приёмки: отгружено, в пути, прибыло, или отклонение с причиной */
+export function moveDelivery(input: MoveDeliveryInput, actorId: string | null) {
+  const s = getState();
+  const delivery = s.deliveries.find((item) => item.id === input.deliveryId);
+  if (!delivery) throw new NotFoundError("Поставка", input.deliveryId);
+  const status: DeliveryStatus = input.status;
+  if (!canMove(delivery.status, status))
+    throw new ConflictError(
+      `Поставка «${deliveryStatusLabel[delivery.status]}»: перевести в «${deliveryStatusLabel[status]}» нельзя`,
+    );
+  const request = s.requests.find((item) => item.id === delivery.requestId);
+  const at = tick();
+  const remark: DeliveryRemark | null =
+    status === "rejected" && actorId
+      ? {
+          id: liveId("drm"),
+          deliveryId: delivery.id,
+          projectId: delivery.projectId,
+          lineId: null,
+          kind: "rejected",
+          text: input.note ?? "",
+          createdAt: at,
+          createdBy: actorId,
+          status: "open",
+          resolvedAt: null,
+          resolvedBy: null,
+          resolution: null,
+        }
+      : null;
+  update((prev) => ({
+    ...prev,
+    deliveries: prev.deliveries.map((item) =>
+      item.id === delivery.id ? { ...item, status } : item,
+    ),
+    deliveryChanges: [
+      ...prev.deliveryChanges,
+      {
+        id: liveId("dsc"),
+        deliveryId: delivery.id,
+        status,
+        at,
+        actorKind: actorId ? "user" : "system",
+        actorId,
+        note: input.note,
+      },
+    ],
+    remarks: remark ? [...prev.remarks, remark] : prev.remarks,
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: delivery.projectId,
+          type: status === "rejected" ? "delivery_rejected" : "delivery_moved",
+          title: `Поставка по запросу ${request?.number ?? "—"}: ${deliveryStatusLabel[status].toLowerCase()}`,
+          details: input.note,
+          requestId: delivery.requestId,
+          deliveryId: delivery.id,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return deliveryCard(delivery.id)!;
+}
+
+/**
+ * Акт приёмки (ADR-011, п. 3–7): правила — `acceptanceError`; факт по строкам, чек-лист, фото,
+ * замечания снабжению по расхождениям, поставленное количество позиций, события истории.
+ */
+export function acceptDelivery(input: AcceptDeliveryInput, actorId: string) {
+  const s = getState();
+  const delivery = s.deliveries.find((item) => item.id === input.deliveryId);
+  if (!delivery) throw new NotFoundError("Поставка", input.deliveryId);
+  const error = acceptanceError(delivery, {
+    result: input.result,
+    lines: input.lines,
+    checklist: input.checklist,
+    photos: input.photos.length,
+    reason: input.reason,
+    confirmed: input.confirmed,
+  });
+  if (error) throw new ConflictError(error);
+
+  const at = tick();
+  const request = s.requests.find((item) => item.id === delivery.requestId);
+  const acceptanceId = liveId("da");
+  const factByLine = new Map(input.lines.map((line) => [line.lineId, line]));
+  const accepted = input.result !== "rejected";
+  const nextDelivery: Delivery = {
+    ...delivery,
+    status: input.result,
+    receivedAt: accepted ? at.slice(0, 10) : null,
+    items: delivery.items.map((line) => ({
+      ...line,
+      acceptedQty: accepted ? (factByLine.get(line.id)?.acceptedQty ?? line.qty) : 0,
+      remark: factByLine.get(line.id)?.remark ?? null,
+    })),
+  };
+  const discrepancies = lineDiscrepancies(delivery, input);
+  const remarks: DeliveryRemark[] = [
+    ...discrepancies.map((item) => {
+      const line = delivery.items.find((row) => row.id === item.lineId)!;
+      const diff = Math.abs(item.declared - item.accepted);
+      return {
+        id: liveId("drm"),
+        deliveryId: delivery.id,
+        projectId: delivery.projectId,
+        lineId: item.lineId,
+        kind: item.kind,
+        text: `${line.name}: заявлено ${item.declared}, принято ${item.accepted} ${line.unit} (${item.kind === "shortage" ? "недостача" : "излишек"} ${diff})${factByLine.get(item.lineId)?.remark ? ` — ${factByLine.get(item.lineId)!.remark}` : ""}`,
+        createdAt: at,
+        createdBy: actorId,
+        status: "open" as const,
+        resolvedAt: null,
+        resolvedBy: null,
+        resolution: null,
+      };
+    }),
+    ...input.checklist
+      .filter((entry) => !entry.ok)
+      .map((entry) => ({
+        id: liveId("drm"),
+        deliveryId: delivery.id,
+        projectId: delivery.projectId,
+        lineId: null,
+        kind: "checklist" as const,
+        text: `${entry.label}: не пройдено${entry.note ? ` — ${entry.note}` : ""}`,
+        createdAt: at,
+        createdBy: actorId,
+        status: "open" as const,
+        resolvedAt: null,
+        resolvedBy: null,
+        resolution: null,
+      })),
+    ...(input.result === "rejected"
+      ? [
+          {
+            id: liveId("drm"),
+            deliveryId: delivery.id,
+            projectId: delivery.projectId,
+            lineId: null,
+            kind: "rejected" as const,
+            text: `Поставка отклонена: ${input.reason ?? ""}`,
+            createdAt: at,
+            createdBy: actorId,
+            status: "open" as const,
+            resolvedAt: null,
+            resolvedBy: null,
+            resolution: null,
+          },
+        ]
+      : []),
+  ];
+
+  update((prev) => {
+    const deliveries = prev.deliveries.map((item) =>
+      item.id === delivery.id ? nextDelivery : item,
+    );
+    return {
+      ...prev,
+      deliveries,
+      deliveryChanges: [
+        ...prev.deliveryChanges,
+        {
+          id: liveId("dsc"),
+          deliveryId: delivery.id,
+          status: input.result,
+          at,
+          actorKind: "user",
+          actorId,
+          note: input.reason,
+        },
+      ],
+      acceptances: [
+        ...prev.acceptances,
+        {
+          id: acceptanceId,
+          deliveryId: delivery.id,
+          acceptedAt: at,
+          acceptedBy: actorId,
+          result: input.result,
+          reason: input.reason,
+          checklist: input.checklist,
+        },
+      ],
+      deliveryPhotos: [
+        ...prev.deliveryPhotos,
+        ...input.photos.map((photo) => ({
+          id: liveId("dph"),
+          deliveryId: delivery.id,
+          acceptanceId,
+          takenAt: at,
+          takenBy: actorId,
+          dataUrl: photo.dataUrl,
+          caption: photo.caption,
+        })),
+      ],
+      remarks: [...prev.remarks, ...remarks],
+      // Поставленное считается тем же правилом, что и в фикстурах: по всем принятым актам
+      positions: withDeliveries(prev.positions, deliveries, prev.requestPositions),
+      events: [
+        ...prev.events,
+        projectEvent(
+          {
+            projectId: delivery.projectId,
+            type: input.result === "rejected" ? "delivery_rejected" : "delivery_received",
+            title:
+              input.result === "rejected"
+                ? `Поставка по запросу ${request?.number ?? "—"} отклонена`
+                : `Поставка по запросу ${request?.number ?? "—"} ${input.result === "accepted" ? "принята" : "принята с замечаниями"}`,
+            details:
+              input.result === "rejected"
+                ? input.reason
+                : `По акту приёмки: ${nextDelivery.items.map((line) => `${line.name} ${line.acceptedQty} ${line.unit}`).join(", ")}`,
+            requestId: delivery.requestId,
+            deliveryId: delivery.id,
+          },
+          actorId,
+        ),
+        ...remarks.map((remark) =>
+          projectEvent(
+            {
+              projectId: delivery.projectId,
+              type: "delivery_remark",
+              title: `${remarkKindLabel[remark.kind]}: замечание снабжению`,
+              details: remark.text,
+              requestId: delivery.requestId,
+              deliveryId: delivery.id,
+            },
+            actorId,
+          ),
+        ),
+      ],
+    };
+  });
+  return deliveryCard(delivery.id)!;
 }
 
 export function verifyContact(supplierId: string) {
@@ -793,4 +1156,43 @@ export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
     ...prev,
     reports: prev.reports.map((r) => (r.id === id ? { ...r, status, acceptedQty } : r)),
   }));
+}
+
+/** Закрыть замечание по поставке: кто, когда и чем решено (ADR-011, п. 5) */
+export function resolveRemark(input: ResolveRemarkInput, actorId: string) {
+  const s = getState();
+  const remark = s.remarks.find((item) => item.id === input.remarkId);
+  if (!remark) throw new NotFoundError("Замечание", input.remarkId);
+  if (remark.status === "resolved") throw new ConflictError("Замечание уже закрыто");
+  const at = tick();
+  const request = s.deliveries.find((item) => item.id === remark.deliveryId);
+  update((prev) => ({
+    ...prev,
+    remarks: prev.remarks.map((item) =>
+      item.id === remark.id
+        ? {
+            ...item,
+            status: "resolved",
+            resolvedAt: at,
+            resolvedBy: actorId,
+            resolution: input.resolution,
+          }
+        : item,
+    ),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: remark.projectId,
+          type: "delivery_remark",
+          title: `Замечание по поставке закрыто: ${remarkKindLabel[remark.kind].toLowerCase()}`,
+          details: input.resolution,
+          requestId: request?.requestId ?? null,
+          deliveryId: remark.deliveryId,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return deliveryCard(remark.deliveryId)!;
 }

@@ -22,7 +22,7 @@ export function Topbar() {
     .join("");
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const detail = pathname.match(
-    /^\/projects\/([^/]+)(?:\/(documents|materials|procurement|field-reports|timeline)(?:\/([^/]+))?)?/,
+    /^\/projects\/([^/]+)(?:\/(documents|materials|procurement|deliveries|field-reports|timeline)(?:\/([^/]+))?)?/,
   );
   const projectId = detail?.[1] ? decodeURIComponent(detail[1]) : null;
   const detailProject = useQuery({ ...queries.project(projectId ?? ""), enabled: !!projectId }).data

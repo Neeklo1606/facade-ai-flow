@@ -16,37 +16,39 @@
 - Индексы подобраны под списки и фильтры экранов; колонка «Для чего» называет экран.
 - Фикстуры проверяются по этому описанию: `bun run check:fixtures` (схемы, ключи, уникальности, представления); на PostgreSQL — `psql -f docs/db/schema.sql` и `bun run db:fixtures-sql | psql`.
 
-Таблиц: 35, перечислений: 25.
+Таблиц: 39, перечислений: 27.
 
 ## Перечисления
 
-| Тип                     | Значения                                                                                                                                                                                          | Переходы                                                                                                                                                                                                             | Смысл                                                                                               |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `employee_role`         | `manager`, `foreman`, `pto`, `supply`, `finance`, `worker`                                                                                                                                        |                                                                                                                                                                                                                      | Роль сотрудника; от неё зависят доступные разделы и действия (фаза 4)                               |
-| `employee_status`       | `active`, `vacation`, `blocked`                                                                                                                                                                   |                                                                                                                                                                                                                      | Может ли сотрудник работать в системе                                                               |
-| `counterparty_role`     | `customer`, `supplier`, `subcontractor`                                                                                                                                                           |                                                                                                                                                                                                                      | Роль контрагента по отношению к компании                                                            |
-| `contact_status`        | `verified`, `needs_check`, `stale`                                                                                                                                                                |                                                                                                                                                                                                                      | Свежесть контакта поставщика                                                                        |
-| `project_status`        | `active`, `at_risk`, `paused`, `done`                                                                                                                                                             |                                                                                                                                                                                                                      | Состояние объекта для реестра                                                                       |
-| `contract_status`       | `draft`, `active`, `closed`                                                                                                                                                                       | draft → active; active → closed                                                                                                                                                                                      | Жизненный цикл договора                                                                             |
-| `milestone_status`      | `planned`, `at_risk`, `done`, `overdue`                                                                                                                                                           |                                                                                                                                                                                                                      | Состояние контрольной точки договора                                                                |
-| `zone_level`            | `building`, `section`, `floor`, `zone`                                                                                                                                                            |                                                                                                                                                                                                                      | Уровень участка фасада                                                                              |
-| `file_type`             | `pdf`, `docx`, `xlsx`                                                                                                                                                                             |                                                                                                                                                                                                                      | Формат загруженного файла                                                                           |
-| `processing_status`     | `uploaded`, `recognizing`, `extracted`, `review`, `verified`                                                                                                                                      | uploaded → recognizing; recognizing → extracted; extracted → review; review → verified                                                                                                                               | Обработка ревизии: распознавание, извлечение позиций, проверка человеком                            |
-| `extraction_job_status` | `queued`, `recognizing`, `extracted`, `review`, `failed`                                                                                                                                          | queued → recognizing, failed; recognizing → extracted, failed; extracted → review, failed                                                                                                                            | Задача распознавания ревизии: очередь, распознавание, извлечение позиций, готово к проверке, ошибка |
-| `change_status`         | `open`, `resolved`                                                                                                                                                                                | open → resolved                                                                                                                                                                                                      | Разобрано ли изменение документации                                                                 |
-| `position_review`       | `pending`, `confirmed`, `corrected`, `excluded`, `merged`, `header`                                                                                                                               | pending → confirmed, corrected, excluded, merged, header; confirmed → pending, corrected, excluded, merged; corrected → pending, corrected, excluded, merged; excluded → pending; merged → pending; header → pending | Решение человека по извлечённой позиции                                                             |
-| `purchase_status`       | `none`, `requested`, `offers`, `supplier_selected`, `ordered`, `delivered`                                                                                                                        | none → requested; requested → offers, supplier_selected; offers → supplier_selected; supplier_selected → ordered; ordered → delivered                                                                                | Этап закупки позиции; меняется событиями закупки                                                    |
-| `actor_kind`            | `user`, `system`                                                                                                                                                                                  |                                                                                                                                                                                                                      | Кто совершил действие: человек или обработка                                                        |
-| `replacement_status`    | `proposed`, `agreed`, `rejected`                                                                                                                                                                  | proposed → agreed, rejected                                                                                                                                                                                          | Решение по предложенной замене                                                                      |
-| `request_status`        | `draft`, `sent`, `decided`, `ordered`, `cancelled`                                                                                                                                                | draft → sent, cancelled; sent → decided, cancelled; decided → ordered, cancelled                                                                                                                                     | Хранимый жизненный цикл запроса. Статус на экране (ждём ответы, просрочен, готов) вычисляется       |
-| `delivery_status`       | `expected`, `in_transit`, `received`, `rejected`                                                                                                                                                  | expected → in_transit, received, rejected; in_transit → received, rejected                                                                                                                                           | Состояние поставки                                                                                  |
-| `decision_kind`         | `supplier`, `replacement`, `quantity`                                                                                                                                                             |                                                                                                                                                                                                                      | Вид зафиксированного решения                                                                        |
-| `source_kind`           | `telegram`, `email`, `upload`, `call`, `manual`                                                                                                                                                   |                                                                                                                                                                                                                      | Откуда пришёл первоисточник                                                                         |
-| `report_kind`           | `voice`, `text`, `photo`                                                                                                                                                                          |                                                                                                                                                                                                                      | Как прислан отчёт                                                                                   |
-| `report_status`         | `review`, `accepted`, `returned`                                                                                                                                                                  | review → accepted, returned; returned → review, accepted; accepted → review                                                                                                                                          | Проверка отчёта руководителем или ПТО                                                               |
-| `issue_severity`        | `blocker`, `warning`                                                                                                                                                                              |                                                                                                                                                                                                                      | Важность проблемы                                                                                   |
-| `evidence_kind`         | `photo`, `audio`, `file`                                                                                                                                                                          |                                                                                                                                                                                                                      | Вид материала отчёта                                                                                |
-| `event_type`            | `version_uploaded`, `spec_extracted`, `qty_corrected`, `request_created`, `offer_received`, `replacement_proposed`, `replacement_agreed`, `material_ordered`, `delivery_received`, `report_added` |                                                                                                                                                                                                                      | Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении   |
+| Тип                      | Значения                                                                                                                                                                                                                                                    | Переходы                                                                                                                                                                                                             | Смысл                                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `employee_role`          | `manager`, `foreman`, `pto`, `supply`, `finance`, `worker`, `director`                                                                                                                                                                                      |                                                                                                                                                                                                                      | Роль сотрудника; от неё зависят доступные разделы и действия (фаза 4)                               |
+| `employee_status`        | `active`, `vacation`, `blocked`                                                                                                                                                                                                                             |                                                                                                                                                                                                                      | Может ли сотрудник работать в системе                                                               |
+| `counterparty_role`      | `customer`, `supplier`, `subcontractor`                                                                                                                                                                                                                     |                                                                                                                                                                                                                      | Роль контрагента по отношению к компании                                                            |
+| `contact_status`         | `verified`, `needs_check`, `stale`                                                                                                                                                                                                                          |                                                                                                                                                                                                                      | Свежесть контакта поставщика                                                                        |
+| `project_status`         | `active`, `at_risk`, `paused`, `done`                                                                                                                                                                                                                       |                                                                                                                                                                                                                      | Состояние объекта для реестра                                                                       |
+| `contract_status`        | `draft`, `active`, `closed`                                                                                                                                                                                                                                 | draft → active; active → closed                                                                                                                                                                                      | Жизненный цикл договора                                                                             |
+| `milestone_status`       | `planned`, `at_risk`, `done`, `overdue`                                                                                                                                                                                                                     |                                                                                                                                                                                                                      | Состояние контрольной точки договора                                                                |
+| `zone_level`             | `building`, `section`, `floor`, `zone`                                                                                                                                                                                                                      |                                                                                                                                                                                                                      | Уровень участка фасада                                                                              |
+| `file_type`              | `pdf`, `docx`, `xlsx`                                                                                                                                                                                                                                       |                                                                                                                                                                                                                      | Формат загруженного файла                                                                           |
+| `processing_status`      | `uploaded`, `recognizing`, `extracted`, `review`, `verified`                                                                                                                                                                                                | uploaded → recognizing; recognizing → extracted; extracted → review; review → verified                                                                                                                               | Обработка ревизии: распознавание, извлечение позиций, проверка человеком                            |
+| `extraction_job_status`  | `queued`, `recognizing`, `extracted`, `review`, `failed`                                                                                                                                                                                                    | queued → recognizing, failed; recognizing → extracted, failed; extracted → review, failed                                                                                                                            | Задача распознавания ревизии: очередь, распознавание, извлечение позиций, готово к проверке, ошибка |
+| `change_status`          | `open`, `resolved`                                                                                                                                                                                                                                          | open → resolved                                                                                                                                                                                                      | Разобрано ли изменение документации                                                                 |
+| `position_review`        | `pending`, `confirmed`, `corrected`, `excluded`, `merged`, `header`                                                                                                                                                                                         | pending → confirmed, corrected, excluded, merged, header; confirmed → pending, corrected, excluded, merged; corrected → pending, corrected, excluded, merged; excluded → pending; merged → pending; header → pending | Решение человека по извлечённой позиции                                                             |
+| `purchase_status`        | `none`, `requested`, `offers`, `supplier_selected`, `ordered`, `delivered`                                                                                                                                                                                  | none → requested; requested → offers, supplier_selected; offers → supplier_selected; supplier_selected → ordered; ordered → delivered                                                                                | Этап закупки позиции; меняется событиями закупки                                                    |
+| `actor_kind`             | `user`, `system`                                                                                                                                                                                                                                            |                                                                                                                                                                                                                      | Кто совершил действие: человек или обработка                                                        |
+| `replacement_status`     | `proposed`, `agreed`, `rejected`                                                                                                                                                                                                                            | proposed → agreed, rejected                                                                                                                                                                                          | Решение по предложенной замене                                                                      |
+| `request_status`         | `draft`, `sent`, `decided`, `ordered`, `cancelled`                                                                                                                                                                                                          | draft → sent, cancelled; sent → decided, cancelled; decided → ordered, cancelled                                                                                                                                     | Хранимый жизненный цикл запроса. Статус на экране (ждём ответы, просрочен, готов) вычисляется       |
+| `delivery_status`        | `expected`, `shipped`, `in_transit`, `arrived`, `accepted`, `accepted_with_remarks`, `rejected`                                                                                                                                                             | expected → shipped, in_transit, arrived, rejected; shipped → in_transit, arrived, rejected; in_transit → arrived, rejected; arrived → accepted, accepted_with_remarks, rejected                                      | Состояние поставки: создаётся решением по запросу, закрывается актом приёмки                        |
+| `delivery_remark_kind`   | `shortage`, `surplus`, `checklist`, `rejected`                                                                                                                                                                                                              |                                                                                                                                                                                                                      | Вид замечания по поставке: недостача, излишек, непройденный пункт контроля, отклонение              |
+| `delivery_remark_status` | `open`, `resolved`                                                                                                                                                                                                                                          |                                                                                                                                                                                                                      | Состояние замечания                                                                                 |
+| `decision_kind`          | `supplier`, `replacement`, `quantity`                                                                                                                                                                                                                       |                                                                                                                                                                                                                      | Вид зафиксированного решения                                                                        |
+| `source_kind`            | `telegram`, `email`, `upload`, `call`, `manual`                                                                                                                                                                                                             |                                                                                                                                                                                                                      | Откуда пришёл первоисточник                                                                         |
+| `report_kind`            | `voice`, `text`, `photo`                                                                                                                                                                                                                                    |                                                                                                                                                                                                                      | Как прислан отчёт                                                                                   |
+| `report_status`          | `review`, `accepted`, `returned`                                                                                                                                                                                                                            | review → accepted, returned; returned → review, accepted; accepted → review                                                                                                                                          | Проверка отчёта руководителем или ПТО                                                               |
+| `issue_severity`         | `blocker`, `warning`                                                                                                                                                                                                                                        |                                                                                                                                                                                                                      | Важность проблемы                                                                                   |
+| `evidence_kind`          | `photo`, `audio`, `file`                                                                                                                                                                                                                                    |                                                                                                                                                                                                                      | Вид материала отчёта                                                                                |
+| `event_type`             | `version_uploaded`, `spec_extracted`, `qty_corrected`, `request_created`, `offer_received`, `replacement_proposed`, `replacement_agreed`, `material_ordered`, `delivery_moved`, `delivery_received`, `delivery_rejected`, `delivery_remark`, `report_added` |                                                                                                                                                                                                                      | Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении   |
 
 ## Организация
 
@@ -492,6 +494,7 @@ erDiagram
     text note
     timestamptz handed_over_at
     purchase_status purchase
+    numeric_14_3_ delivered_qty
     uuid merged_into FK
   }
   position_changes {
@@ -653,29 +656,30 @@ erDiagram
 
 Позиция спецификации, извлечённая из листа ревизии. Единственная сущность «что купить».
 
-| Колонка                                  | Тип               | Пусто | Ссылка                            | Комментарий                                 |
-| ---------------------------------------- | ----------------- | ----- | --------------------------------- | ------------------------------------------- |
-| `id` **PK**                              | `uuid`            |       |                                   |                                             |
-| `project_id`                             | `uuid`            |       | → `projects` (restrict)           | денормализовано из ревизии для сводки       |
-| `revision_id`                            | `uuid`            |       | → `document_revisions` (restrict) |                                             |
-| `sheet_id`                               | `uuid`            |       | → `document_sheets` (restrict)    |                                             |
-| `position`                               | `text`            |       |                                   | номер в таблице документа: «1.12»           |
-| `family`                                 | `text`            |       |                                   | семейство по распознаванию, до нормализации |
-| `project_name`                           | `text`            |       |                                   | наименование как в проекте                  |
-| `material_id`                            | `uuid`            | да    | → `materials` (restrict)          | null — требует нормализации                 |
-| `characteristics`                        | `jsonb`           |       |                                   |                                             |
-| `qty`                                    | `numeric(14,3)`   |       |                                   |                                             |
-| `unit`                                   | `text`            |       |                                   |                                             |
-| `confidence`                             | `numeric(5,4)`    |       |                                   |                                             |
-| `region`                                 | `jsonb`           |       |                                   |                                             |
-| `review`                                 | `position_review` |       |                                   |                                             |
-| `reviewed_by`                            | `uuid`            | да    | → `employees` (restrict)          |                                             |
-| `reviewed_at`                            | `timestamptz`     | да    |                                   |                                             |
-| `note`                                   | `text`            | да    |                                   | почему распознавание не уверено             |
-| `handed_over_at`                         | `timestamptz`     | да    |                                   | передана в закупку                          |
-| `purchase`                               | `purchase_status` |       |                                   |                                             |
-| `merged_into`                            | `uuid`            | да    | → `positions` (restrict)          |                                             |
-| `created_at`, `updated_at`, `created_by` | служебные         |       | → `employees`                     | не отдаются в API                           |
+| Колонка                                  | Тип               | Пусто | Ссылка                            | Комментарий                                                    |
+| ---------------------------------------- | ----------------- | ----- | --------------------------------- | -------------------------------------------------------------- |
+| `id` **PK**                              | `uuid`            |       |                                   |                                                                |
+| `project_id`                             | `uuid`            |       | → `projects` (restrict)           | денормализовано из ревизии для сводки                          |
+| `revision_id`                            | `uuid`            |       | → `document_revisions` (restrict) |                                                                |
+| `sheet_id`                               | `uuid`            |       | → `document_sheets` (restrict)    |                                                                |
+| `position`                               | `text`            |       |                                   | номер в таблице документа: «1.12»                              |
+| `family`                                 | `text`            |       |                                   | семейство по распознаванию, до нормализации                    |
+| `project_name`                           | `text`            |       |                                   | наименование как в проекте                                     |
+| `material_id`                            | `uuid`            | да    | → `materials` (restrict)          | null — требует нормализации                                    |
+| `characteristics`                        | `jsonb`           |       |                                   |                                                                |
+| `qty`                                    | `numeric(14,3)`   |       |                                   |                                                                |
+| `unit`                                   | `text`            |       |                                   |                                                                |
+| `confidence`                             | `numeric(5,4)`    |       |                                   |                                                                |
+| `region`                                 | `jsonb`           |       |                                   |                                                                |
+| `review`                                 | `position_review` |       |                                   |                                                                |
+| `reviewed_by`                            | `uuid`            | да    | → `employees` (restrict)          |                                                                |
+| `reviewed_at`                            | `timestamptz`     | да    |                                   |                                                                |
+| `note`                                   | `text`            | да    |                                   | почему распознавание не уверено                                |
+| `handed_over_at`                         | `timestamptz`     | да    |                                   | передана в закупку                                             |
+| `purchase`                               | `purchase_status` |       |                                   |                                                                |
+| `delivered_qty`                          | `numeric(14,3)`   | да    |                                   | поставлено по актам приёмки; null — поставок не было (ADR-011) |
+| `merged_into`                            | `uuid`            | да    | → `positions` (restrict)          |                                                                |
+| `created_at`, `updated_at`, `created_by` | служебные         |       | → `employees`                     | не отдаются в API                                              |
 
 | Индекс | Колонки                                                   | Для чего                                                  |
 | ------ | --------------------------------------------------------- | --------------------------------------------------------- |
@@ -753,10 +757,24 @@ erDiagram
   sources |o--o{ supplier_offer_lines : source_id
   supply_requests ||--o{ deliveries : request_id
   projects ||--o{ deliveries : project_id
+  work_zones |o--o{ deliveries : zone_id
   counterparties ||--o{ deliveries : supplier_id
+  project_decisions |o--o{ deliveries : decision_id
   sources |o--o{ deliveries : source_id
   deliveries ||--o{ delivery_lines : delivery_id
   supply_request_lines ||--o{ delivery_lines : request_line_id
+  deliveries ||--o{ delivery_status_changes : delivery_id
+  employees |o--o{ delivery_status_changes : actor_id
+  deliveries ||--o{ delivery_acceptances : delivery_id
+  employees ||--o{ delivery_acceptances : accepted_by
+  deliveries ||--o{ delivery_photos : delivery_id
+  delivery_acceptances ||--o{ delivery_photos : acceptance_id
+  employees ||--o{ delivery_photos : taken_by
+  deliveries ||--o{ delivery_remarks : delivery_id
+  projects ||--o{ delivery_remarks : project_id
+  delivery_lines |o--o{ delivery_remarks : line_id
+  employees ||--o{ delivery_remarks : created_by
+  employees |o--o{ delivery_remarks : resolved_by
   projects ||--o{ project_decisions : project_id
   supply_requests |o--o{ project_decisions : request_id
   counterparties |o--o{ project_decisions : supplier_id
@@ -826,7 +844,9 @@ erDiagram
     uuid id PK
     uuid request_id FK
     uuid project_id FK
+    uuid zone_id FK
     uuid supplier_id FK
+    uuid decision_id FK
     date expected_at
     date received_at
     delivery_status status
@@ -837,6 +857,50 @@ erDiagram
     uuid delivery_id FK
     uuid request_line_id FK
     numeric_14_3_ qty
+    bigint price
+    numeric_14_3_ accepted_qty
+    text remark
+  }
+  delivery_status_changes {
+    uuid id PK
+    uuid delivery_id FK
+    delivery_status status
+    timestamptz at
+    actor_kind actor_kind
+    uuid actor_id FK
+    text note
+  }
+  delivery_acceptances {
+    uuid id PK
+    uuid delivery_id FK
+    timestamptz accepted_at
+    uuid accepted_by FK
+    delivery_status result
+    text reason
+    jsonb checklist
+  }
+  delivery_photos {
+    uuid id PK
+    uuid delivery_id FK
+    uuid acceptance_id FK
+    timestamptz taken_at
+    uuid taken_by FK
+    text data_url
+    text caption
+  }
+  delivery_remarks {
+    uuid id PK
+    uuid delivery_id FK
+    uuid project_id FK
+    uuid line_id FK
+    delivery_remark_kind kind
+    text text
+    timestamptz created_at
+    uuid created_by FK
+    delivery_remark_status status
+    timestamptz resolved_at
+    uuid resolved_by FK
+    text resolution
   }
   project_decisions {
     uuid id PK
@@ -1022,43 +1086,131 @@ erDiagram
 
 #### `deliveries`
 
-Поставка по запросу от выбранного поставщика.
+Поставка по запросу от выбранного поставщика; создаётся решением (ADR-011).
 
-| Колонка                                  | Тип               | Пусто | Ссылка                         | Комментарий       |
-| ---------------------------------------- | ----------------- | ----- | ------------------------------ | ----------------- |
-| `id` **PK**                              | `uuid`            |       |                                |                   |
-| `request_id`                             | `uuid`            |       | → `supply_requests` (restrict) |                   |
-| `project_id`                             | `uuid`            |       | → `projects` (restrict)        |                   |
-| `supplier_id`                            | `uuid`            |       | → `counterparties` (restrict)  |                   |
-| `expected_at`                            | `date`            |       |                                |                   |
-| `received_at`                            | `date`            | да    |                                |                   |
-| `status`                                 | `delivery_status` |       |                                |                   |
-| `source_id`                              | `uuid`            | да    | → `sources` (set null)         |                   |
-| `created_at`, `updated_at`, `created_by` | служебные         |       | → `employees`                  | не отдаются в API |
+| Колонка                                  | Тип               | Пусто | Ссылка                           | Комментарий                       |
+| ---------------------------------------- | ----------------- | ----- | -------------------------------- | --------------------------------- |
+| `id` **PK**                              | `uuid`            |       |                                  |                                   |
+| `request_id`                             | `uuid`            |       | → `supply_requests` (restrict)   |                                   |
+| `project_id`                             | `uuid`            |       | → `projects` (restrict)          |                                   |
+| `zone_id`                                | `uuid`            | да    | → `work_zones` (set null)        | захватка из запроса               |
+| `supplier_id`                            | `uuid`            |       | → `counterparties` (restrict)    |                                   |
+| `decision_id`                            | `uuid`            | да    | → `project_decisions` (restrict) | решение, которым создана поставка |
+| `expected_at`                            | `date`            |       |                                  |                                   |
+| `received_at`                            | `date`            | да    |                                  |                                   |
+| `status`                                 | `delivery_status` |       |                                  |                                   |
+| `source_id`                              | `uuid`            | да    | → `sources` (set null)           |                                   |
+| `created_at`, `updated_at`, `created_by` | служебные         |       | → `employees`                    | не отдаются в API                 |
 
-| Индекс | Колонки                   | Для чего                 |
-| ------ | ------------------------- | ------------------------ |
-| btree  | `project_id, expected_at` | поставки объекта по дате |
-| btree  | `request_id`              | поставки по запросу      |
+| Индекс | Колонки                   | Для чего                                   |
+| ------ | ------------------------- | ------------------------------------------ |
+| btree  | `project_id, expected_at` | поставки объекта по дате                   |
+| btree  | `request_id`              | поставки по запросу                        |
+| btree  | `project_id, status`      | экран поставок: к приёмке, в пути, приняты |
 
-Проверки: `(status = 'received') = (received_at is not null)`.
+Проверки: `(status in ('accepted', 'accepted_with_remarks')) = (received_at is not null)`.
 
 #### `delivery_lines`
 
-Что везут в поставке.
+Что везут в поставке и сколько принято.
 
-| Колонка           | Тип             | Пусто | Ссылка                              | Комментарий |
-| ----------------- | --------------- | ----- | ----------------------------------- | ----------- |
-| `id` **PK**       | `uuid`          |       |                                     |             |
-| `delivery_id`     | `uuid`          |       | → `deliveries` (cascade)            |             |
-| `request_line_id` | `uuid`          |       | → `supply_request_lines` (restrict) |             |
-| `qty`             | `numeric(14,3)` |       |                                     |             |
+| Колонка           | Тип             | Пусто | Ссылка                              | Комментарий                                |
+| ----------------- | --------------- | ----- | ----------------------------------- | ------------------------------------------ |
+| `id` **PK**       | `uuid`          |       |                                     |                                            |
+| `delivery_id`     | `uuid`          |       | → `deliveries` (cascade)            |                                            |
+| `request_line_id` | `uuid`          |       | → `supply_request_lines` (restrict) |                                            |
+| `qty`             | `numeric(14,3)` |       |                                     | заявлено поставщиком                       |
+| `price`           | `bigint`        | да    |                                     | цена из предложения, копейки за единицу    |
+| `accepted_qty`    | `numeric(14,3)` | да    |                                     | принято по акту; null — ещё не принималось |
+| `remark`          | `text`          | да    |                                     | замечание по строке при приёмке            |
 
 | Индекс | Колонки       | Для чего        |
 | ------ | ------------- | --------------- |
 | btree  | `delivery_id` | состав поставки |
 
-Проверки: `qty > 0`.
+Проверки: `qty > 0`; `accepted_qty is null or accepted_qty >= 0`.
+
+#### `delivery_status_changes`
+
+Движение поставки: кто и когда перевёл статус. **Журнал: только добавление.**
+
+| Колонка       | Тип               | Пусто | Ссылка                   | Комментарий |
+| ------------- | ----------------- | ----- | ------------------------ | ----------- |
+| `id` **PK**   | `uuid`            |       |                          |             |
+| `delivery_id` | `uuid`            |       | → `deliveries` (cascade) |             |
+| `status`      | `delivery_status` |       |                          |             |
+| `at`          | `timestamptz`     |       |                          |             |
+| `actor_kind`  | `actor_kind`      |       |                          |             |
+| `actor_id`    | `uuid`            | да    | → `employees` (restrict) |             |
+| `note`        | `text`            | да    |                          |             |
+
+| Индекс | Колонки           | Для чего                     |
+| ------ | ----------------- | ---------------------------- |
+| btree  | `delivery_id, at` | движение поставки по времени |
+
+Проверки: `(actor_kind = 'user') = (actor_id is not null)`.
+
+#### `delivery_acceptances`
+
+Акт приёмки поставки: результат, чек-лист, подтверждение принявшего. **Журнал: только добавление.**
+
+| Колонка       | Тип               | Пусто | Ссылка                   | Комментарий                                                       |
+| ------------- | ----------------- | ----- | ------------------------ | ----------------------------------------------------------------- |
+| `id` **PK**   | `uuid`            |       |                          |                                                                   |
+| `delivery_id` | `uuid`            |       | → `deliveries` (cascade) |                                                                   |
+| `accepted_at` | `timestamptz`     |       |                          |                                                                   |
+| `accepted_by` | `uuid`            |       | → `employees` (restrict) | подтверждение приёмки сотрудником сессии; электронной подписи нет |
+| `result`      | `delivery_status` |       |                          |                                                                   |
+| `reason`      | `text`            | да    |                          | причина отклонения                                                |
+| `checklist`   | `jsonb`           |       |                          |                                                                   |
+
+| Индекс | Колонки       | Для чего                 |
+| ------ | ------------- | ------------------------ |
+| unique | `delivery_id` | одна поставка — один акт |
+
+Проверки: `result <> 'rejected' or reason is not null`.
+
+#### `delivery_photos`
+
+Фотофиксация при приёмке; в демо — уменьшенная копия в состоянии вкладки.
+
+| Колонка         | Тип           | Пусто | Ссылка                             | Комментарий                                               |
+| --------------- | ------------- | ----- | ---------------------------------- | --------------------------------------------------------- |
+| `id` **PK**     | `uuid`        |       |                                    |                                                           |
+| `delivery_id`   | `uuid`        |       | → `deliveries` (cascade)           |                                                           |
+| `acceptance_id` | `uuid`        |       | → `delivery_acceptances` (cascade) |                                                           |
+| `taken_at`      | `timestamptz` |       |                                    |                                                           |
+| `taken_by`      | `uuid`        |       | → `employees` (restrict)           |                                                           |
+| `data_url`      | `text`        |       |                                    | JPEG data URL до ~120 КБ; с адаптером БД — ключ хранилища |
+| `caption`       | `text`        | да    |                                    |                                                           |
+
+| Индекс | Колонки       | Для чего      |
+| ------ | ------------- | ------------- |
+| btree  | `delivery_id` | фото поставки |
+
+#### `delivery_remarks`
+
+Замечание по поставке для снабжения; попадает в очередь «Требует решения».
+
+| Колонка       | Тип                      | Пусто | Ссылка                       | Комментарий                              |
+| ------------- | ------------------------ | ----- | ---------------------------- | ---------------------------------------- |
+| `id` **PK**   | `uuid`                   |       |                              |                                          |
+| `delivery_id` | `uuid`                   |       | → `deliveries` (cascade)     |                                          |
+| `project_id`  | `uuid`                   |       | → `projects` (restrict)      |                                          |
+| `line_id`     | `uuid`                   | да    | → `delivery_lines` (cascade) |                                          |
+| `kind`        | `delivery_remark_kind`   |       |                              |                                          |
+| `text`        | `text`                   |       |                              |                                          |
+| `created_at`  | `timestamptz`            |       |                              |                                          |
+| `created_by`  | `uuid`                   |       | → `employees` (restrict)     |                                          |
+| `status`      | `delivery_remark_status` |       |                              |                                          |
+| `resolved_at` | `timestamptz`            | да    |                              |                                          |
+| `resolved_by` | `uuid`                   | да    | → `employees` (restrict)     |                                          |
+| `resolution`  | `text`                   | да    |                              | чем закрыто: допоставка, скидка, возврат |
+
+| Индекс | Колонки              | Для чего                       |
+| ------ | -------------------- | ------------------------------ |
+| btree  | `delivery_id`        | замечания поставки             |
+| btree  | `status, created_at` | открытые замечания на дашборде |
 
 #### `project_decisions`
 
@@ -1111,6 +1263,7 @@ erDiagram
   document_revisions |o--o{ project_events : revision_id
   positions |o--o{ project_events : position_id
   field_reports |o--o{ project_events : report_id
+  deliveries |o--o{ project_events : delivery_id
   field_reports {
     uuid id PK
     uuid project_id FK
@@ -1178,6 +1331,7 @@ erDiagram
     uuid revision_id FK
     uuid position_id FK
     uuid report_id FK
+    uuid delivery_id FK
   }
   projects {
     uuid id PK
@@ -1198,6 +1352,9 @@ erDiagram
     uuid id PK
   }
   positions {
+    uuid id PK
+  }
+  deliveries {
     uuid id PK
   }
 ```
@@ -1328,6 +1485,7 @@ erDiagram
 | `revision_id` | `uuid`        | да    | → `document_revisions` (restrict) |             |
 | `position_id` | `uuid`        | да    | → `positions` (restrict)          |             |
 | `report_id`   | `uuid`        | да    | → `field_reports` (restrict)      |             |
+| `delivery_id` | `uuid`        | да    | → `deliveries` (restrict)         |             |
 
 | Индекс | Колонки                              | Для чего                          |
 | ------ | ------------------------------------ | --------------------------------- |
