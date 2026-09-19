@@ -31,6 +31,13 @@ export function isRemovedInProduction(pathname: string) {
   return pathname === DESIGN_SYSTEM_PATH || pathname === DESIGN_SYSTEM_PATH + "/";
 }
 export const ACCESS_PARAM = "k";
+/** Запасное имя параметра: часть ссылок разошлась с ?key=, принимаем оба */
+export const ACCESS_PARAM_ALT = "key";
+
+/** Ключ из адреса: `k` основной, `key` — из ранее разосланных ссылок */
+export function accessParam(url: URL) {
+  return url.searchParams.get(ACCESS_PARAM) ?? url.searchParams.get(ACCESS_PARAM_ALT);
+}
 /** 30 дней: показ живёт неделями, повторно ключ никто не ищет */
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -97,6 +104,7 @@ function decodeCookie(value: string) {
 export function grantResponse(url: URL, key: string) {
   const clean = new URL(url);
   clean.searchParams.delete(ACCESS_PARAM);
+  clean.searchParams.delete(ACCESS_PARAM_ALT);
   const secure = clean.protocol === "https:" ? " Secure;" : "";
   return new Response(null, {
     status: 302,
@@ -121,7 +129,7 @@ export interface PreviewMeta {
  * `VITE_PUBLIC_URL`, иначе превью ссылки указывало бы на старый домен (находка ревью LOW).
  */
 const publicUrl = (
-  import.meta.env["VITE_PUBLIC_URL"]?.trim() || "https://facade-ai-flow.lovable.app/"
+  import.meta.env["VITE_PUBLIC_URL"]?.trim() || "https://facade-rp.lovable.app/"
 ).replace(/\/?$/, "/");
 
 export const previewMeta: PreviewMeta = {
