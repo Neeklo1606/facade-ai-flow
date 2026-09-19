@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { useAccess } from "@/api/access";
 import { ArrowRight, CalendarRange, Flag, Layers, TrendingUp, Upload } from "lucide-react";
 import {
   EmptyState,
@@ -47,6 +48,7 @@ export function ProgressTab({
   project: Project;
   onSource: (sourceId: string) => void;
 }) {
+  const { can } = useAccess();
   const progress = useWorkProgress(project.id);
   const [zoneId, setZoneId] = useState<string | null>(null);
   const [milestoneId, setMilestoneId] = useState<string | null>(null);
@@ -82,13 +84,15 @@ export function ProgressTab({
           title="Захватки не заведены"
           description="Объёмы работ берутся из захваток объекта: оси, этажи, план в м². Они извлекаются из проектной документации — загрузите её, и ход работ появится здесь."
         />
-        <div className="flex justify-center">
-          <Button variant="secondary" asChild>
-            <Link to="/projects/$id/documents" params={{ id: project.id }}>
-              <Upload className="size-4" /> Загрузить документацию
-            </Link>
-          </Button>
-        </div>
+        {can("documents", "write") && (
+          <div className="flex justify-center">
+            <Button variant="secondary" asChild>
+              <Link to="/projects/$id/documents" params={{ id: project.id }}>
+                <Upload className="size-4" /> Загрузить документацию
+              </Link>
+            </Button>
+          </div>
+        )}
       </WidgetCard>
     );
 
@@ -244,15 +248,17 @@ export function ProgressTab({
                 заведении захватки.
               </p>
             )}
-            <Button variant="secondary" asChild className="w-full">
-              <Link
-                to="/projects/$id/field-reports"
-                params={{ id: project.id }}
-                search={{ zone: zone.id }}
-              >
-                Отчёты по этой захватке <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            {can("field-reports") && (
+              <Button variant="secondary" asChild className="w-full">
+                <Link
+                  to="/projects/$id/field-reports"
+                  params={{ id: project.id }}
+                  search={{ zone: zone.id }}
+                >
+                  Отчёты по этой захватке <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </EntityDrawer>
       )}

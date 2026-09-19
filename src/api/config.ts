@@ -40,10 +40,29 @@ let personaId = restorePersona();
 
 /**
  * Сотрудник, от имени которого пишутся действия. В демо-режиме это выбранная персона:
- * приёмку отчёта прорабом подписывает прораб. В рабочем режиме актор берётся на сервере
- * (`serverActor`) и остаётся сотрудником по умолчанию, пока нет сессий — это блок B.
+ * приёмку отчёта прорабом подписывает прораб. В рабочем режиме сотрудника действия берёт сервер
+ * из подписанной сессии (ADR-012), персона вкладки лишь выбирает, за кого войти.
  */
 export const currentUserId = () => personaId;
+
+/**
+ * Принять персону сессии сервера, не записывая её как выбор вкладки. Только в браузере:
+ * на сервере модуль общий для всех запросов.
+ */
+export function adoptPersona(id: string) {
+  if (typeof window === "undefined") return;
+  if ((DEMO_PERSONAS as readonly string[]).includes(id)) personaId = id;
+}
+
+/** Выбрана ли персона в этой вкладке: выбор вкладки главнее общей сессии браузера (ADR-012) */
+export function hasChosenPersona() {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(PERSONA_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
 
 export function setCurrentUserId(id: string) {
   personaId = (DEMO_PERSONAS as readonly string[]).includes(id) ? id : DEFAULT_USER_ID;

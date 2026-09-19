@@ -132,6 +132,14 @@ const screens = {
       "Задайте вопрос или выберите подсказку; по ссылке в ответе откроется раздел.",
     ],
   },
+  access: {
+    name: "Права доступа",
+    help: [
+      "Матрица прав: разделы в строках, роли в столбцах — запись, чтение или нет доступа.",
+      "Отвечает на вопрос, кто что может в системе; эту же таблицу проверяет сервер при каждом действии.",
+      "Чтобы изменить права роли, обратитесь к владельцу системы: правка с экрана пока не предусмотрена.",
+    ],
+  },
   "demo-stats": {
     name: "Статистика сессии",
     help: [
@@ -181,6 +189,7 @@ export function screenFor(
   if (path === "/") return info("dashboard");
   if (path === "/projects") return info("projects");
   if (path === "/agent") return info("agent");
+  if (path === "/access") return info("access");
   if (path === "/demo-stats") return info("demo-stats");
 
   const inProject = path.match(/^\/projects\/[^/]+(?:\/([^/]+)(?:\/([^/]+))?)?$/);

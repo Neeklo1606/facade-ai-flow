@@ -36,6 +36,14 @@ export const queries = {
       refetchInterval: 60_000,
     }),
 
+  /** Сессия: роль и объекты персоны. Ключ по персоне — смена персоны даёт другую сессию */
+  session: (personaId: string) =>
+    queryOptions({
+      queryKey: keys.session(personaId),
+      queryFn: api.session,
+      ...reference,
+    }),
+
   employees: () =>
     queryOptions({
       queryKey: keys.directory.employees(),

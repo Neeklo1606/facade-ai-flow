@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useAccess } from "@/api/access";
 import { queries } from "@/api/queries";
 import { rfqStatusMeta } from "@/lib/procurement";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
@@ -46,6 +47,8 @@ export function MaterialDrawer({
   onOpenChange: (open: boolean) => void;
 }) {
   const { employeeById } = useDirectory();
+  // Лист документа и запросы поставщикам — только ролям, которым открыты эти разделы (ADR-012)
+  const { can } = useAccess();
   const history = useQuery(queries.positionHistory(item.id)).data ?? [];
   const related = item.requestIds;
   const replacements = (useQuery(queries.replacements()).data ?? []).filter(
@@ -73,15 +76,17 @@ export function MaterialDrawer({
         </>
       }
       footer={
-        <Button size="sm" variant="secondary" asChild>
-          <Link
-            to="/projects/$id/documents/$docId"
-            params={{ id: item.projectId, docId: item.documentId }}
-            search={{ position: item.id }}
-          >
-            <FileText className="size-4" /> Показать в PDF
-          </Link>
-        </Button>
+        can("documents") ? (
+          <Button size="sm" variant="secondary" asChild>
+            <Link
+              to="/projects/$id/documents/$docId"
+              params={{ id: item.projectId, docId: item.documentId }}
+              search={{ position: item.id }}
+            >
+              <FileText className="size-4" /> Показать в PDF
+            </Link>
+          </Button>
+        ) : undefined
       }
     >
       <div className="space-y-4">
@@ -139,15 +144,17 @@ export function MaterialDrawer({
               </p>
               <p className="mt-0.5 truncate text-caption text-text-muted">{documentTitle}</p>
             </div>
-            <Button size="sm" variant="ghost" className="h-8 shrink-0" asChild>
-              <Link
-                to="/projects/$id/documents/$docId"
-                params={{ id: item.projectId, docId: item.documentId }}
-                search={{ position: item.id }}
-              >
-                Показать в PDF
-              </Link>
-            </Button>
+            {can("documents") && (
+              <Button size="sm" variant="ghost" className="h-8 shrink-0" asChild>
+                <Link
+                  to="/projects/$id/documents/$docId"
+                  params={{ id: item.projectId, docId: item.documentId }}
+                  search={{ position: item.id }}
+                >
+                  Показать в PDF
+                </Link>
+              </Button>
+            )}
           </div>
         </Section>
 
@@ -188,19 +195,21 @@ export function MaterialDrawer({
           )}
         </Section>
 
-        <Section title="Запросы и предложения">
-          {related.length === 0 ? (
-            <p className="text-[13px] text-text-muted">
-              Позиция ещё не входила в запросы поставщикам.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {related.map((requestId) => (
-                <RelatedRequest key={requestId} requestId={requestId} />
-              ))}
-            </ul>
-          )}
-        </Section>
+        {can("procurement") && (
+          <Section title="Запросы и предложения">
+            {related.length === 0 ? (
+              <p className="text-[13px] text-text-muted">
+                Позиция ещё не входила в запросы поставщикам.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {related.map((requestId) => (
+                  <RelatedRequest key={requestId} requestId={requestId} />
+                ))}
+              </ul>
+            )}
+          </Section>
+        )}
 
         <Section title="Предложенные замены">
           {replacements.length === 0 ? (

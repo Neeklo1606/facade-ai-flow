@@ -19,7 +19,16 @@ import { fmtDate, fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
  * Карточка поставки (ADR-011): что везут и сколько принято, движение статусов с авторами,
  * акт приёмки с чек-листом, замечания снабжению, фото, связи с запросом и решением.
  */
-export function DeliveryDetails({ card, projectId }: { card: DeliveryCard; projectId: string }) {
+export function DeliveryDetails({
+  card,
+  projectId,
+  canWrite,
+}: {
+  card: DeliveryCard;
+  projectId: string;
+  /** Закрывать замечания может только роль с записью в поставках (ADR-012) */
+  canWrite: boolean;
+}) {
   const { employeeById, counterpartyById } = useDirectory();
   const { delivery, acceptance } = card;
   const who = (id: string | null) => (id ? (employeeById(id)?.name ?? "—") : "Обработка");
@@ -130,7 +139,7 @@ export function DeliveryDetails({ card, projectId }: { card: DeliveryCard; proje
           </h3>
           <ul className="grid gap-2">
             {card.remarks.map((remark) => (
-              <RemarkItem key={remark.id} remark={remark} who={who} />
+              <RemarkItem key={remark.id} remark={remark} who={who} canWrite={canWrite} />
             ))}
           </ul>
         </section>
@@ -257,9 +266,11 @@ export function DeliveryMoves({
 function RemarkItem({
   remark,
   who,
+  canWrite,
 }: {
   remark: DeliveryRemark;
   who: (id: string | null) => string;
+  canWrite: boolean;
 }) {
   const resolve = useResolveRemark();
   const [editing, setEditing] = useState(false);
@@ -281,6 +292,7 @@ function RemarkItem({
         <span className="mt-1 block text-text-2">Решено: {remark.resolution}</span>
       )}
       {remark.status === "open" &&
+        canWrite &&
         (editing ? (
           <form
             className="mt-2 grid gap-2"

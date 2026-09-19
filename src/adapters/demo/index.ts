@@ -444,6 +444,42 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       },
     },
     // Ассистент собирает ответы из портов выше, а не из состояния демо (ADR-006)
+    scope: {
+      projectsOf: (employeeId) => {
+        const s = state();
+        const member = s.employees.find((item) => item.id === employeeId)?.projectIds ?? [];
+        const foreman = s.crews
+          .filter((item) => item.foremanId === employeeId)
+          .map((item) => item.projectId);
+        return done([...new Set([...member, ...foreman])]);
+      },
+      projectOf: (kind, id) => {
+        const s = state();
+        const of = (rows: { id: string; projectId: string | null }[]) =>
+          rows.find((item) => item.id === id)?.projectId ?? null;
+        switch (kind) {
+          case "report":
+            return done(of(s.reports));
+          case "source":
+            return done(of(s.sources));
+          case "position":
+            return done(of(s.positions));
+          case "revision":
+            return done(of(s.documents));
+          case "document":
+            return done(s.documents.find((item) => item.documentId === id)?.projectId ?? null);
+          case "request":
+            return done(of(s.requests));
+          case "delivery":
+            return done(of(s.deliveries));
+          case "remark": {
+            const deliveryId = s.remarks.find((item) => item.id === id)?.deliveryId;
+            return done(s.deliveries.find((item) => item.id === deliveryId)?.projectId ?? null);
+          }
+        }
+      },
+    },
+
     agent: { ask: (input) => createAgentPort(repositories).ask(input) },
   };
   return repositories;

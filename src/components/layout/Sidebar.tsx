@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
@@ -12,14 +12,9 @@ import {
   X,
 } from "lucide-react";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
-import {
-  activeNavKey,
-  navGroupsFor,
-  sectionHref,
-  startRouteFor,
-  type BadgeKey,
-} from "@/lib/navigation";
+import { activeNavKey, navGroupsFor, sectionHref, type BadgeKey } from "@/lib/navigation";
 import { useCurrentUser, useProjectId } from "@/lib/project-scope";
+import { useEnterAs } from "@/lib/persona";
 import { useResetDemo } from "@/api/mutations";
 import { dataSource, DEMO_PERSONAS } from "@/api/config";
 import {
@@ -115,7 +110,8 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { setProjectId, personaId, setPersonaId } = useApp();
+  const { setProjectId, personaId } = useApp();
+  const enterAs = useEnterAs();
   const user = useCurrentUser();
   // Меню зависит от роли выбранной персоны (ADR-008): снабжение не ведёт площадку,
   // прораб не занимается закупками
@@ -156,12 +152,17 @@ function SidebarInner({
   );
   /** Смена персоны открывает стартовый экран её роли: иначе можно остаться на скрытом разделе */
   const switchPersona = (id: string, role: EmployeeRole) => {
-    setPersonaId(id);
     onClose();
-    navigate({ to: startRouteFor(role, projectId ?? projects[0]?.id ?? null) });
+    void enterAs(id, role).then((to) => navigate({ to }));
   };
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const activeKey = activeNavKey(pathname, view, pickSection);
+  // У руководителя и директора меню длиннее экрана ноутбука: активный пункт внизу списка
+  // (например, «Права доступа») прокручивается в видимую часть
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    navRef.current?.querySelector("[aria-current=page]")?.scrollIntoView({ block: "nearest" });
+  }, [activeKey]);
   const activeGroup = groups.find((g) => g.items.some((i) => i.key === activeKey))?.title;
 
   const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
@@ -244,7 +245,7 @@ function SidebarInner({
         </label>
       )}
 
-      <nav className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
+      <nav ref={navRef} className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
         {groups.map((group, index) => {
           const open =
             collapsed || !closedGroups.includes(group.title) || group.title === activeGroup;
@@ -429,8 +430,8 @@ function SidebarInner({
             ))}
             <DropdownMenuSeparator />
             <p className="px-2 py-1.5 text-[12px] leading-[1.4] text-text-3">
-              Роль меняет стартовый экран и состав меню. Права и запрет прямых переходов — следующая
-              фаза.
+              У каждой роли свои права: закрытые разделы не показываются, сервер отклоняет действия
+              без права. Матрица — в разделе «Права доступа».
             </p>
           </DropdownMenuContent>
         </DropdownMenu>

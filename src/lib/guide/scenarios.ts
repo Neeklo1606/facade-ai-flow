@@ -30,32 +30,16 @@ export interface Scenario {
 
 const supply: Scenario = {
   id: "supply",
-  title: "Снабжение: от спецификации до решения",
+  title: "Снабжение: от проверенных позиций до поставки",
+  // Проверку позиций и передачу в закупку ведёт ПТО; у снабжения документы только на чтение (ADR-012)
   steps: [
     {
-      id: "open-spec",
-      text: "Откройте спецификацию объекта в документации.",
-      target: "documents-list",
-      on: ["documents", "document"],
-      to: (p) => `/projects/${p}/documents`,
-      doneOn: { screen: ["document"] },
-    },
-    {
-      id: "review",
-      text: "Проверьте позицию с пометкой «Требует внимания»: подтвердите или исправьте её.",
-      target: "review-list",
-      on: ["document"],
-      to: (p) => `/projects/${p}/documents`,
-      doneOn: { action: ["confirmPositions", "correctPosition", "confirmAutoVerified"] },
-    },
-    {
-      id: "hand-over",
-      text: "Передайте проверенные позиции в закупку.",
-      note: "Пока в документе есть позиции «Не удалось определить», кнопка недоступна: исправьте или исключите их.",
-      target: "hand-over",
-      on: ["document"],
-      to: (p) => `/projects/${p}/documents`,
-      doneOn: { action: ["handOver"] },
+      id: "materials",
+      text: "Откройте материалы объекта: здесь позиции, которые ПТО проверило и передало в закупку.",
+      target: "create-request",
+      on: ["materials"],
+      to: (p) => `/projects/${p}/materials?purchase=none`,
+      doneOn: { screen: ["materials"] },
     },
     {
       id: "request",
@@ -89,6 +73,14 @@ const supply: Scenario = {
       on: ["rfq"],
       to: (p) => `/projects/${p}/procurement`,
       doneOn: { action: ["chooseSupplier"] },
+    },
+    {
+      id: "delivery",
+      text: "Откройте «Поставки»: решение создало поставку, её движение и приёмка ведутся здесь.",
+      note: "В демонстрации отгрузку и «в пути» отмечает имитация, это подписано рядом со статусом.",
+      on: ["deliveries"],
+      to: (p) => `/projects/${p}/deliveries`,
+      doneOn: { screen: ["deliveries"] },
     },
   ],
 };

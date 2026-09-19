@@ -26,6 +26,7 @@ import { PhotoGallery, VoiceReport } from "@/components/field/Media";
 import { FilterChip } from "@/components/common/FilterBar";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { useCanWrite } from "@/api/access";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
@@ -119,6 +120,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
     .filter((r) => (search.status ? r.status === search.status : true))
     .filter((r) => (search.zone ? r.zoneId === search.zone : true));
   const toReview = reports.filter((r) => r.status === "review");
+  const canWriteReports = useCanWrite("field-reports");
 
   const days = useMemo(() => {
     const map = new Map<string, FieldReport[]>();
@@ -263,7 +265,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
         </ScreenGate>
       </div>
 
-      {!blocked && toReview.length > 0 && (
+      {!blocked && toReview.length > 0 && canWriteReports && (
         <MobileActionBar>
           <Button variant="accent" onClick={nextToReview}>
             <Check className="size-4" /> К следующему на проверке · {toReview.length}
@@ -289,6 +291,8 @@ function ReportCard({
   const review = useReviewReport({
     onFailed: () => toast.error("Решение по отчёту не сохранилось", { description: "Повторите." }),
   });
+  // Принять или вернуть отчёт — запись в отчётах; директор видит отчёты без действий (ADR-012)
+  const canWrite = useCanWrite("field-reports");
   const author = employeeById(report.authorId);
   const card = useQuery(queries.reports(report.projectId)).data?.find(
     (item) => item.report.id === report.id,
@@ -448,6 +452,10 @@ function ReportCard({
                 Отмена
               </Button>
             </form>
+          ) : !canWrite ? (
+            <p className="text-caption text-text-muted">
+              {report.status === "returned" ? "Возвращён на уточнение" : "Ждёт приёмки объёма"}
+            </p>
           ) : (
             <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-1 sm:justify-end [&>button]:px-2 sm:[&>button]:px-3.5">
               <Button

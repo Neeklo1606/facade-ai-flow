@@ -20,7 +20,10 @@ import type {
   UndoReviewInput,
   UploadRevisionInput,
 } from "@/ports";
-import { currentUserId, dataSource } from "./config";
+import { guardRepositories, sessionFor } from "@/adapters/access";
+import type { AccessSession } from "@/domain/access";
+import { FORBIDDEN_MESSAGE } from "@/ports";
+import { currentUserId, dataSource, type DEMO_PERSONAS } from "./config";
 import * as fn from "./functions";
 import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
@@ -41,8 +44,14 @@ const demoAdapter = () =>
       ? Promise.reject(new Error("Демо-адаптер недоступен в рабочем режиме"))
       : import("@/adapters/demo"));
 let demo: Promise<Repositories> | null = null;
-const local = () =>
+const inner = () =>
   (demo ??= demoAdapter().then((module) => module.createDemoRepositories({ persist: true })));
+/** Сессия демо: персона вкладки, её роль и объекты — по тем же правилам, что на сервере */
+const demoSession = () => inner().then((repos) => sessionFor(repos, currentUserId()));
+// Права в демо проверяет та же обёртка, что на сервере (ADR-012): данные живут во вкладке,
+// и запрет срабатывает там же, где данные
+let guarded: Promise<Repositories> | null = null;
+const local = () => (guarded ??= inner().then((repos) => guardRepositories(repos, demoSession)));
 /** Кто выполняет действие: в демо — выбранная персона, иначе сотрудник по умолчанию */
 const actor = () => ({ actorId: currentUserId() });
 const server = dataSource === "server";
@@ -68,6 +77,13 @@ export const api = {
       };
     },
   },
+  /** Кто вошёл: сотрудник, роль, объекты. В рабочем режиме — из подписанной сессии сервера */
+  session: (): Promise<AccessSession | null> =>
+    server ? (fn.sessionFn() as Promise<AccessSession | null>) : demoSession(),
+  /** Вход за персону демонстрации: на сервере — подписанная cookie, в демо — персона вкладки */
+  signIn: async (personaId: (typeof DEMO_PERSONAS)[number]) => {
+    if (server) await fn.signInFn({ data: { personaId } });
+  },
   clock: {
     now: () => (server ? fn.nowFn() : local().then((r) => r.clock.now())),
   },
@@ -83,6 +99,7 @@ export const api = {
     exportRegistry: async (data: ListProjectsInput) => {
       if (!server) return local().then((r) => r.projects.exportRegistry(data));
       const response = await fetch(`${REGISTRY_EXPORT_PATH}?${registryExportQuery(data)}`);
+      if (response.status === 403) throw new Error(FORBIDDEN_MESSAGE);
       if (!response.ok) throw new Error(`Выгрузка не сформирована: ${response.status}`);
       return response.blob();
     },

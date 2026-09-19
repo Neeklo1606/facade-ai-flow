@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { deliveryStatusLabel, type Delivery } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useMoveDelivery } from "@/api/mutations";
+import { useCanWrite } from "@/api/access";
 import { prefetch } from "@/api/prefetch";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
@@ -78,6 +79,8 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const cardQuery = useQuery({ ...queries.delivery(openId ?? ""), enabled: !!openId });
   const card = openId ? (cardQuery.data ?? null) : null;
   const move = useMoveDelivery();
+  // Движение и приёмка — запись в поставках; директор видит поставки без действий (ADR-012)
+  const canWrite = useCanWrite("deliveries");
   const [acceptOpen, setAcceptOpen] = useState(false);
 
   const open = (id: string | null) =>
@@ -121,7 +124,7 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       title={card ? `Поставка по запросу ${card.requestNumber}` : ""}
       subtitle={card ? deliveryStatusLabel[card.delivery.status] : undefined}
       footer={
-        card ? (
+        card && canWrite ? (
           <DeliveryMoves
             status={card.delivery.status}
             pending={move.isPending}
@@ -130,7 +133,9 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           />
         ) : null
       }
-      panel={card ? <DeliveryDetails card={card} projectId={project.id} /> : null}
+      panel={
+        card ? <DeliveryDetails card={card} projectId={project.id} canWrite={canWrite} /> : null
+      }
     >
       <SubpageHeader
         project={project}
@@ -248,7 +253,7 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         </MobileActionBar>
       )}
 
-      {card && card.delivery.status === "arrived" && (
+      {card && canWrite && card.delivery.status === "arrived" && (
         <AcceptanceDialog delivery={card.delivery} open={acceptOpen} onOpenChange={setAcceptOpen} />
       )}
     </DetailsLayout>

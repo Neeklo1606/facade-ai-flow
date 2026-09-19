@@ -56,18 +56,20 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useDirectory } from "@/api/directory";
 import { useUploadDocument } from "@/api/mutations";
+import { useAccess, type Section } from "@/api/access";
 import { prefetch } from "@/api/prefetch";
 
+/** Вкладки карточки и разделы прав, которым они принадлежат (ADR-012) */
 const tabs = [
-  { id: "summary", label: "Сводка" },
-  { id: "documents", label: "Документация" },
-  { id: "materials", label: "Материалы" },
-  { id: "purchases", label: "Закупки" },
-  { id: "progress", label: "Ход работ" },
-  { id: "decisions", label: "Решения" },
-  { id: "history", label: "История" },
-  { id: "team", label: "Команда" },
-] as const;
+  { id: "summary", label: "Сводка", section: "projects" },
+  { id: "documents", label: "Документация", section: "documents" },
+  { id: "materials", label: "Материалы", section: "materials" },
+  { id: "purchases", label: "Закупки", section: "procurement" },
+  { id: "progress", label: "Ход работ", section: "projects" },
+  { id: "decisions", label: "Решения", section: "timeline" },
+  { id: "history", label: "История", section: "timeline" },
+  { id: "team", label: "Команда", section: "projects" },
+] as const satisfies readonly { id: string; label: string; section: Section }[];
 
 type TabId = (typeof tabs)[number]["id"];
 
@@ -117,20 +119,25 @@ export const Route = createFileRoute("/projects/$id/")({
 
 function ProjectPage({ project, overview, contract }: ProjectPageProps): React.JSX.Element {
   const { employeeName } = useDirectory();
-  const documents = useQuery(queries.documents(project.id));
+  const { can } = useAccess();
+  const canDocuments = can("documents");
+  const documents = useQuery({ ...queries.documents(project.id), enabled: canDocuments });
   const liveDocuments = (documents.data ?? []).map((item) => item.document);
   const recognizingDocs = liveDocuments.filter(
     (d) => d.status === "recognizing" || d.status === "uploaded",
   );
   const hasDocuments = liveDocuments.length > 0;
   const screen = useScreenState({
-    pending: documents.isPending,
-    error: documents.isError,
+    pending: canDocuments && documents.isPending,
+    error: canDocuments && documents.isError,
     empty: !hasDocuments && overview.specTotal === 0,
     processing: recognizingDocs.length > 0,
   });
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
-  const { tab = "summary" } = Route.useSearch();
+  const { tab: requested = "summary" } = Route.useSearch();
+  const visibleTabs = tabs.filter((item) => can(item.section));
+  // Вкладка раздела, закрытого роли, по ссылке не открывается — показываем сводку
+  const tab: TabId = visibleTabs.some((item) => item.id === requested) ? requested : "summary";
   const navigate = useNavigate({ from: Route.fullPath });
   const upload = useUploadDocument();
   const { setProjectId } = useApp();
@@ -167,22 +174,35 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
   ];
 
   const figures = [
-    { label: "Позиций материалов", value: overview.specTotal },
+    { label: "Позиций материалов", value: overview.specTotal, section: "materials" as const },
     {
       label: "Непроверенных",
       value: overview.specUnverified,
       tone: "warn" as const,
       tab: "materials",
+      section: "materials" as const,
     },
-    { label: "Закуплено", value: overview.ordered, tab: "purchases" },
-    { label: "В пути", value: overview.inTransit, tab: "purchases" },
+    {
+      label: "Закуплено",
+      value: overview.ordered,
+      tab: "purchases",
+      section: "procurement" as const,
+    },
+    {
+      label: "В пути",
+      value: overview.inTransit,
+      tab: "purchases",
+      section: "procurement" as const,
+    },
     {
       label: "Просроченных запросов",
       value: overview.overdueRequests,
       tone: "danger" as const,
       tab: "purchases",
+      section: "procurement" as const,
     },
-  ];
+    // Цифры закрытых роли разделов не показываются (ADR-012)
+  ].filter((figure) => can(figure.section) || (figure.section === "materials" && canDocuments));
 
   const metricTabs: Record<string, TabId> = {
     Непроверенных: "materials",
@@ -214,9 +234,11 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
       <PageHeader
         title={project.name}
         actions={
-          <Button variant="accent" onClick={() => setUploadOpen(true)} disabled={blocked}>
-            <Upload className="size-4" /> Загрузить документацию
-          </Button>
+          can("documents", "write") && (
+            <Button variant="accent" onClick={() => setUploadOpen(true)} disabled={blocked}>
+              <Upload className="size-4" /> Загрузить документацию
+            </Button>
+          )
         }
       />
       <PageCaption>
@@ -251,7 +273,8 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
       <MetricStrip
         className="mb-5"
         items={figures.map((figure) => {
-          const tabId = metricTabs[figure.label];
+          const mapped = metricTabs[figure.label];
+          const tabId = visibleTabs.some((item) => item.id === mapped) ? mapped : undefined;
           return {
             icon: figureIcons[figure.label] ?? Boxes,
             label: figure.label,
@@ -275,7 +298,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         label="Разделы объекта"
         value={tab}
         onChange={(next) => setTab(next)}
-        tabs={tabs.map((item) => ({
+        tabs={visibleTabs.map((item) => ({
           value: item.id,
           label: item.label,
           ...(item.id === "materials" && overview.specUnverified > 0
@@ -316,8 +339,10 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
               title: "По объекту ещё нет данных",
               description:
                 "Загрузите проектную документацию, и система найдёт в ней материалы. Затем подключите прорабов к Telegram-боту — отчёты и сроки появятся в сводке.",
-              actionLabel: "Загрузить документацию",
-              onAction: () => setUploadOpen(true),
+              ...(can("documents", "write") && {
+                actionLabel: "Загрузить документацию",
+                onAction: () => setUploadOpen(true),
+              }),
             },
             filtered: {
               title: "В этой вкладке нет записей",
@@ -330,7 +355,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         </ScreenGate>
       </div>
 
-      {!blocked && (
+      {!blocked && can("documents", "write") && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setUploadOpen(true)}>
             <Upload className="size-4" /> Загрузить документацию

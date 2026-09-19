@@ -53,20 +53,48 @@ import {
   uploadRevisionInput,
 } from "@/ports";
 import { input, respond } from "./errors";
-import { serverActor, serverRepositories } from "./server-repositories";
+import { DEMO_PERSONAS } from "./config";
+import { grantSession } from "./session";
+import { requestRepositories, requestSession, serverActor } from "./server-repositories";
 
 /**
  * Серверные функции поверх портов (ADR-001, п. 4). Вход проверяется схемой до обработчика,
- * выход — схемой перед отправкой. Действующий сотрудник берётся на сервере, а не из запроса.
+ * выход — схемой перед отправкой. Каждый вызов идёт через обёртку прав (ADR-012): сотрудник
+ * и его роль — из подписанной сессии, а не из запроса; без прав — 403.
  * Адаптер сервера — фикстуры в памяти процесса; в фазе 3 его заменит адаптер PostgreSQL.
  */
 
-const repos = serverRepositories;
+const repos = requestRepositories;
 const actor = serverActor;
 
 const projectId = z.object({ projectId: z.string().min(1) });
 const byId = z.object({ id: z.string().min(1) });
 const ok = z.object({ ok: z.literal(true) });
+
+/* ---------- Сессия ---------- */
+
+const accessSession = z.object({
+  actorId: z.string(),
+  role: z.string(),
+  projectIds: z.array(z.string()),
+});
+
+/** Кто вошёл: сотрудник, роль и его объекты; null — сессии нет */
+export const sessionFn = createServerFn({ method: "GET" }).handler(async () => {
+  const session = await requestSession();
+  return session ? accessSession.parse(session) : null;
+});
+
+/**
+ * Вход за персону демонстрации (ADR-012, п. 4): свободный выбор одной из пяти персон за ключом
+ * демонстрации. Настоящий вход заменит только эту функцию.
+ */
+export const signInFn = createServerFn({ method: "POST" })
+  .validator(input(z.object({ personaId: z.enum(DEMO_PERSONAS) })))
+  .handler(async ({ data }) => {
+    await grantSession(data.personaId);
+    return { ok: true as const };
+  });
 
 /* ---------- Часы ---------- */
 

@@ -41,6 +41,7 @@ import {
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useUploadDocument } from "@/api/mutations";
+import { useCanWrite } from "@/api/access";
 import { useExtractionJobsWatch } from "@/api/extraction";
 import { prefetch } from "@/api/prefetch";
 
@@ -81,6 +82,8 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const { employeeName } = useDirectory();
   const navigate = useNavigate();
   const upload = useUploadDocument();
+  // Загрузка — запись в документах (ADR-012): у роли с чтением кнопок загрузки нет
+  const canUpload = useCanWrite("documents");
   const zone = useRef<UploadZoneHandle>(null);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
 
@@ -165,9 +168,11 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         project={project}
         title="Документация"
         actions={
-          <Button variant="accent" onClick={() => zone.current?.open()} disabled={blocked}>
-            <Upload className="size-4" /> Загрузить документ
-          </Button>
+          canUpload && (
+            <Button variant="accent" onClick={() => zone.current?.open()} disabled={blocked}>
+              <Upload className="size-4" /> Загрузить документ
+            </Button>
+          )
         }
       />
       <p className="sr-only">
@@ -185,7 +190,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
       />
 
       <div data-main-zone className="space-y-4">
-        {!blocked && (
+        {!blocked && canUpload && (
           <UploadZone
             ref={zone}
             onFiles={handleFiles}
@@ -288,8 +293,10 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                 icon: FileText,
                 title: "Документации пока нет",
                 description: `Загрузите проектную документацию — позиции появятся здесь и уйдут на проверку. ${DEMO_UPLOAD_NOTE}`,
-                actionLabel: "Загрузить документ",
-                onAction: () => zone.current?.open(),
+                ...(canUpload && {
+                  actionLabel: "Загрузить документ",
+                  onAction: () => zone.current?.open(),
+                }),
               },
               filtered: {
                 title: "Документов с таким статусом нет",
@@ -454,7 +461,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         </section>
       </div>
 
-      {!blocked && (
+      {!blocked && canUpload && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => zone.current?.open()}>
             <Upload className="size-4" /> Загрузить документ

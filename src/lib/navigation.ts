@@ -1,4 +1,5 @@
 import type { EmployeeRole } from "@/contracts";
+import { can, type Section } from "@/domain/access";
 import {
   Boxes,
   Building2,
@@ -8,6 +9,7 @@ import {
   LayoutDashboard,
   PackageCheck,
   PackageSearch,
+  ShieldCheck,
   Sparkles,
   Truck,
   type LucideIcon,
@@ -30,11 +32,8 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   badge?: BadgeKey;
-  /**
-   * Роли, которым пункт не показывается. Временное решение демонстрации (ADR-008):
-   * настоящие права и запрет прямых переходов — блок B.
-   */
-  hiddenFor?: EmployeeRole[];
+  /** Раздел прав (ADR-012): пункт виден роли, которой раздел доступен хотя бы на чтение */
+  access: Section;
   /** Раздел объекта; без выбранного объекта пункт ведёт в реестр с просьбой выбрать объект */
   section?: ProjectSection;
   /** Экран вне объекта: ведёт по этому адресу, а не в раздел объекта */
@@ -55,10 +54,10 @@ export const navGroups: NavGroup[] = [
         label: "Дашборд",
         icon: LayoutDashboard,
         to: "/",
-        hiddenFor: ["foreman"],
+        access: "dashboard",
       },
-      { key: "projects", label: "Объекты", icon: Building2 },
-      { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent" },
+      { key: "projects", label: "Объекты", icon: Building2, access: "projects" },
+      { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent", access: "agent" },
     ],
   },
   {
@@ -69,7 +68,7 @@ export const navGroups: NavGroup[] = [
         label: "Документация",
         icon: FileText,
         section: "documents",
-        hiddenFor: ["foreman"],
+        access: "documents",
       },
       {
         key: "materials",
@@ -77,7 +76,7 @@ export const navGroups: NavGroup[] = [
         icon: Boxes,
         badge: "unverifiedSpec",
         section: "materials",
-        hiddenFor: ["foreman"],
+        access: "materials",
       },
       {
         key: "procurement",
@@ -85,22 +84,22 @@ export const navGroups: NavGroup[] = [
         icon: PackageSearch,
         badge: "overdueRequests",
         section: "procurement",
-        hiddenFor: ["foreman"],
+        access: "procurement",
       },
       {
-        // Приёмку ведут прораб и снабжение на площадке (ADR-011): пункт виден всем ролям
         key: "deliveries",
         label: "Поставки",
         icon: PackageCheck,
         badge: "deliveriesToAccept",
         section: "deliveries",
+        access: "deliveries",
       },
       {
         key: "suppliers",
         label: "Поставщики",
         icon: Truck,
         section: "suppliers",
-        hiddenFor: ["foreman"],
+        access: "suppliers",
       },
     ],
   },
@@ -112,7 +111,7 @@ export const navGroups: NavGroup[] = [
         label: "Отчёты с площадки",
         icon: HardHat,
         section: "field-reports",
-        hiddenFor: ["supply"],
+        access: "field-reports",
       },
     ],
   },
@@ -124,7 +123,14 @@ export const navGroups: NavGroup[] = [
         label: "История и решения",
         icon: History,
         section: "timeline",
-        hiddenFor: ["supply", "foreman"],
+        access: "timeline",
+      },
+      {
+        key: "access",
+        label: "Права доступа",
+        icon: ShieldCheck,
+        to: "/access",
+        access: "access",
       },
     ],
   },
@@ -132,9 +138,9 @@ export const navGroups: NavGroup[] = [
 
 export const allNavItems = navGroups.flatMap((g) => g.items);
 
-/** Видит ли роль этот пункт меню */
+/** Видит ли роль этот пункт меню: по матрице прав (ADR-012) */
 export function visibleFor(item: NavItem, role: EmployeeRole) {
-  return !item.hiddenFor?.includes(role);
+  return can(role, item.access);
 }
 
 /** Меню для роли: пустые группы не показываем (ADR-008) */
@@ -185,7 +191,7 @@ export function startRouteFor(role: EmployeeRole, projectId: string | null) {
   if (role === "supply") return `/projects/${projectId}/procurement`;
   if (role === "foreman") return `/projects/${projectId}/field-reports`;
   if (role === "pto") return `/projects/${projectId}/documents`;
-  return "/";
+  return can(role, "dashboard") ? "/" : `/projects/${projectId}`;
 }
 
 export const sectionLabels: Record<ProjectSection, string> = {
@@ -223,6 +229,7 @@ export function sectionHref(
 export function activeNavKey(pathname: string, view: string, pickSection: string | null) {
   if (pathname === "/") return "dashboard";
   if (pathname === "/agent") return "agent";
+  if (pathname === "/access") return "access";
   if (pathname === "/projects" && pickSection) return pickSection;
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);
   if (!match) return pathname.startsWith("/projects") ? "projects" : null;

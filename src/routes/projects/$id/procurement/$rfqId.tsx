@@ -10,6 +10,7 @@ import {
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { DecisionDialog, type DecisionInput } from "@/components/procurement/DecisionDialog";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { useAccess } from "@/api/access";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { SourceDrawer, SourceRef } from "@/components/common/SourceRef";
 import { InsightBlock } from "@/components/common/InsightBlock";
@@ -60,6 +61,9 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const card = cardQuery.data?.summary.request.projectId === project.id ? cardQuery.data : null;
   const request = card?.summary.request ?? null;
   const [decisionOpen, setDecisionOpen] = useState(false);
+  // Решение и напоминания — запись в закупках (ADR-012)
+  const { can } = useAccess();
+  const canWrite = can("procurement", "write");
   const [source, setSource] = useState<{ id: string; fragment: string } | null>(null);
 
   const calc = card?.comparison ?? null;
@@ -164,7 +168,8 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         }
         actions={
           // Решение по запросу одно и не редактируется: журнал решений только дописывается
-          !decision && (
+          !decision &&
+          canWrite && (
             <Button
               variant="accent"
               data-tour="decide"
@@ -183,20 +188,22 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           className="mb-4"
           title={`Нет ответа от ${silent.map((c) => `«${counterpartyById(c.supplierId)?.name}»`).join(", ")}`}
           action={
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={canRemind === 0}
-              onClick={async () => {
-                const queued = (await remind.mutateAsync(request.id)).reminded.length;
-                toast.success(
-                  `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
-                  { description: DEMO_REMIND_NOTE },
-                );
-              }}
-            >
-              <BellRing className="size-3.5" /> {canRemind === 0 ? "Ждём ответ" : "Напомнить"}
-            </Button>
+            canWrite && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={canRemind === 0}
+                onClick={async () => {
+                  const queued = (await remind.mutateAsync(request.id)).reminded.length;
+                  toast.success(
+                    `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                    { description: DEMO_REMIND_NOTE },
+                  );
+                }}
+              >
+                <BellRing className="size-3.5" /> {canRemind === 0 ? "Ждём ответ" : "Напомнить"}
+              </Button>
+            )
           }
         >
           Сравнение неполное: лучшее предложение может измениться, когда придёт ответ.
@@ -230,14 +237,16 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               icon: Scale,
               title: "Предложений пока нет",
               description: `Запрос зарегистрирован ${meta ? fmtDateTime(meta.sentAt) : ""} на ${request.sentTo.length} поставщиков. ${DEMO_MAIL_NOTE}`,
-              actionLabel: "Напомнить поставщикам",
-              onAction: async () => {
-                const queued = (await remind.mutateAsync(request.id)).reminded.length;
-                toast.success(
-                  `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
-                  { description: DEMO_REMIND_NOTE },
-                );
-              },
+              ...(canWrite && {
+                actionLabel: "Напомнить поставщикам",
+                onAction: async () => {
+                  const queued = (await remind.mutateAsync(request.id)).reminded.length;
+                  toast.success(
+                    `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                    { description: DEMO_REMIND_NOTE },
+                  );
+                },
+              }),
             },
           }}
         >
@@ -268,17 +277,19 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             title={`Решение: «${counterpartyById(decision.supplierId ?? "")?.name}»`}
             text={`${decision.reason} · согласовал ${employeeName(decision.approvedBy)}, ${fmtDateTime(decision.approvedAt)}`}
             action={
-              <Button size="sm" variant="ghost" asChild>
-                <Link to="/projects/$id/timeline" params={{ id: project.id }}>
-                  В истории объекта
-                </Link>
-              </Button>
+              can("timeline") ? (
+                <Button size="sm" variant="ghost" asChild>
+                  <Link to="/projects/$id/timeline" params={{ id: project.id }}>
+                    В истории объекта
+                  </Link>
+                </Button>
+              ) : undefined
             }
           />
         )}
       </div>
 
-      {!blocked && !decision && (
+      {!blocked && !decision && canWrite && (
         <MobileActionBar>
           <Button variant="accent" data-tour="decide" onClick={() => setDecisionOpen(true)}>
             <Gavel className="size-4" /> Зафиксировать решение

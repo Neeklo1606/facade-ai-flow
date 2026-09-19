@@ -24,6 +24,7 @@ import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { MaterialDrawer } from "@/components/materials/MaterialDrawer";
 import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { useAccess } from "@/api/access";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { useScreenState } from "@/lib/screen-state";
 import { ConfidenceLabel } from "@/components/common/ConfidenceIndicator";
@@ -162,7 +163,11 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
   // Счётчики объекта (этапы закупки, список разделов) и счётчики под фильтрами считает сервер
   const scopeQuery = useQuery(queries.positionFacets({ projectId: project.id }));
   const filteredQuery = useQuery(queries.positionFacets(filter));
-  const documentsQuery = useQuery(queries.documents(project.id));
+  // Запрос поставщикам — запись в закупках; лист документа — в разделе документов (ADR-012)
+  const { can } = useAccess();
+  const canRequest = can("procurement", "write");
+  const canDocuments = can("documents");
+  const documentsQuery = useQuery({ ...queries.documents(project.id), enabled: canDocuments });
   const openItemQuery = useQuery({
     ...queries.position(search.position ?? ""),
     enabled: !!search.position,
@@ -255,15 +260,19 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
           </span>
         }
         actions={
-          <Button
-            variant="accent"
-            disabled={blocked || (eligibleCount === 0 && readyTotal === 0)}
-            onClick={() => setRequestOpen(true)}
-            data-tour="create-request"
-          >
-            <Send className="size-4" /> Создать запрос поставщикам
-            {selected.size > 0 && <span className="tnum opacity-80">{fmtNum(eligibleCount)}</span>}
-          </Button>
+          canRequest && (
+            <Button
+              variant="accent"
+              disabled={blocked || (eligibleCount === 0 && readyTotal === 0)}
+              onClick={() => setRequestOpen(true)}
+              data-tour="create-request"
+            >
+              <Send className="size-4" /> Создать запрос поставщикам
+              {selected.size > 0 && (
+                <span className="tnum opacity-80">{fmtNum(eligibleCount)}</span>
+              )}
+            </Button>
+          )
         }
       />
 
@@ -348,7 +357,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             </span>
           </div>
 
-          {selected.size > 0 && (
+          {canRequest && selected.size > 0 && (
             <div className="sticky top-0 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line-2 bg-surface-2 px-4 py-2">
               <span className="text-[13px]">
                 Выбрано <b className="tnum">{fmtNum(selected.size)}</b>
@@ -390,9 +399,11 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
                 title: "Материалов пока нет",
                 description:
                   "Загрузите спецификацию в документации объекта и подтвердите извлечённые позиции — они появятся здесь, и по ним можно будет запросить цены.",
-                actionLabel: "Загрузить спецификацию",
-                onAction: () =>
-                  navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
+                ...(can("documents", "write") && {
+                  actionLabel: "Загрузить спецификацию",
+                  onAction: () =>
+                    navigate({ to: "/projects/$id/documents", params: { id: project.id } }),
+                }),
               },
               filtered: {
                 onReset: resetFilters,
@@ -411,6 +422,8 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
                   onToggle={toggle}
                   onOpen={(id) => setSearch({ position: id })}
                   projectId={project.id}
+                  selectable={canRequest}
+                  docLink={canDocuments}
                 />
               ))}
             </div>
@@ -418,7 +431,11 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
               <table className="w-full min-w-[1240px] text-table">
                 <thead className="sticky top-0 z-10">
                   <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
-                    <th className="w-10 pl-4" aria-label="Выделение" />
+                    {canRequest ? (
+                      <th className="w-10 pl-4" aria-label="Выделение" />
+                    ) : (
+                      <th className="w-4" aria-hidden />
+                    )}
                     <th className="px-2.5">Нормализованное</th>
                     <th className="px-2.5">Проектное</th>
                     <th className="px-2.5">Характеристики</th>
@@ -447,6 +464,8 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
                     onToggleGroup={(value) => void toggleGroup(summary.group, value)}
                     onOpen={(id) => setSearch({ position: id })}
                     projectId={project.id}
+                    selectable={canRequest}
+                    docLink={canDocuments}
                   />
                 ))}
               </table>
@@ -455,7 +474,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
         </section>
       </div>
 
-      {!blocked && (
+      {!blocked && canRequest && (
         <MobileActionBar>
           <Button
             variant="accent"
@@ -495,6 +514,10 @@ interface GroupProps {
   onToggle: (item: ExtractedPosition, value: boolean) => void;
   onOpen: (id: string) => void;
   projectId: string;
+  /** Выделение нужно только для запроса поставщикам: у роли без записи в закупках его нет */
+  selectable: boolean;
+  /** Ссылка на лист документа: у роли без документации — только номер листа */
+  docLink: boolean;
 }
 
 function DesktopGroup({
@@ -508,6 +531,8 @@ function DesktopGroup({
   onToggleGroup,
   onOpen,
   projectId,
+  selectable,
+  docLink,
 }: GroupProps & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -521,11 +546,15 @@ function DesktopGroup({
     <tbody>
       <tr className="h-10 border-y border-border bg-raised">
         <td className="pl-4">
-          <Checkbox
-            aria-label={`Выделить раздел ${group}`}
-            checked={selectedCount === 0 ? false : selectedCount >= total ? true : "indeterminate"}
-            onCheckedChange={(value) => onToggleGroup(value === true)}
-          />
+          {selectable && (
+            <Checkbox
+              aria-label={`Выделить раздел ${group}`}
+              checked={
+                selectedCount === 0 ? false : selectedCount >= total ? true : "indeterminate"
+              }
+              onCheckedChange={(value) => onToggleGroup(value === true)}
+            />
+          )}
         </td>
         <td colSpan={9} className="px-2.5">
           <button
@@ -552,6 +581,8 @@ function DesktopGroup({
             onToggle={onToggle}
             onOpen={() => onOpen(item.id)}
             projectId={projectId}
+            selectable={selectable}
+            docLink={docLink}
           />
         ))}
       {/* Место под первую страницу раздела занимается заранее: иначе строки толкают таблицу вниз */}
@@ -586,7 +617,16 @@ function DesktopGroup({
 }
 
 /** Телефон: позиции карточками, выделение и источник — крупными областями нажатия. */
-function MobileGroup({ filter, summary, selected, onToggle, onOpen, projectId }: GroupProps) {
+function MobileGroup({
+  filter,
+  summary,
+  selected,
+  onToggle,
+  onOpen,
+  projectId,
+  selectable,
+  docLink,
+}: GroupProps) {
   const { group, total } = summary;
   const pages = useGroupPages(filter, group, true);
   const rest = total - pages.items.length;
@@ -603,13 +643,17 @@ function MobileGroup({ filter, summary, selected, onToggle, onOpen, projectId }:
               key={item.id}
               className={cn("flex gap-1 pr-4", selected.has(item.id) && "bg-surface-2")}
             >
-              <label className="grid min-h-11 w-12 shrink-0 cursor-pointer place-items-center self-stretch">
-                <Checkbox
-                  checked={selected.has(item.id)}
-                  onCheckedChange={(v) => onToggle(item, v === true)}
-                  aria-label={`Выделить поз. ${item.position}`}
-                />
-              </label>
+              {selectable ? (
+                <label className="grid min-h-11 w-12 shrink-0 cursor-pointer place-items-center self-stretch">
+                  <Checkbox
+                    checked={selected.has(item.id)}
+                    onCheckedChange={(v) => onToggle(item, v === true)}
+                    aria-label={`Выделить поз. ${item.position}`}
+                  />
+                </label>
+              ) : (
+                <span className="w-3 shrink-0" aria-hidden />
+              )}
               <button
                 type="button"
                 onClick={() => onOpen(item.id)}
@@ -638,15 +682,17 @@ function MobileGroup({ filter, summary, selected, onToggle, onOpen, projectId }:
                   )}
                 </div>
               </button>
-              <Link
-                to="/projects/$id/documents/$docId"
-                params={{ id: projectId, docId: item.documentId }}
-                search={{ position: item.id }}
-                className="grid size-11 shrink-0 place-items-center self-center rounded-[var(--r-sm)] text-info"
-                aria-label={`Лист ${item.sheetNumber}`}
-              >
-                <FileText className="size-4" />
-              </Link>
+              {docLink && (
+                <Link
+                  to="/projects/$id/documents/$docId"
+                  params={{ id: projectId, docId: item.documentId }}
+                  search={{ position: item.id }}
+                  className="grid size-11 shrink-0 place-items-center self-center rounded-[var(--r-sm)] text-info"
+                  aria-label={`Лист ${item.sheetNumber}`}
+                >
+                  <FileText className="size-4" />
+                </Link>
+              )}
             </li>
           );
         })}
@@ -673,12 +719,16 @@ function MaterialRow({
   onToggle,
   onOpen,
   projectId,
+  selectable,
+  docLink,
 }: {
   item: ExtractedPosition;
   selected: boolean;
   onToggle: (item: ExtractedPosition, value: boolean) => void;
   onOpen: () => void;
   projectId: string;
+  selectable: boolean;
+  docLink: boolean;
 }) {
   const review = reviewLabel(item);
   const verified = isVerified(item);
@@ -693,13 +743,15 @@ function MaterialRow({
       )}
     >
       <td className="pl-4" onClick={(e) => e.stopPropagation()}>
-        <label className="grid min-h-11 cursor-pointer place-items-center lg:min-h-0">
-          <Checkbox
-            checked={selected}
-            onCheckedChange={(value) => onToggle(item, value === true)}
-            aria-label={`Выделить поз. ${item.position}`}
-          />
-        </label>
+        {selectable && (
+          <label className="grid min-h-11 cursor-pointer place-items-center lg:min-h-0">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(value) => onToggle(item, value === true)}
+              aria-label={`Выделить поз. ${item.position}`}
+            />
+          </label>
+        )}
       </td>
       <td className="max-w-[190px] px-2.5">
         {item.normalizedName ? (
@@ -748,15 +800,21 @@ function MaterialRow({
         )}
       </td>
       <td className="px-2.5" onClick={(e) => e.stopPropagation()}>
-        <Link
-          to="/projects/$id/documents/$docId"
-          params={{ id: projectId, docId: item.documentId }}
-          search={{ position: item.id }}
-          title="Открыть позицию в документе"
-          className="focus-ring inline-flex h-11 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[12px] whitespace-nowrap text-info transition-fast hover:bg-info-bg lg:h-6"
-        >
-          <FileText className="size-3" /> л. {item.sheetNumber}
-        </Link>
+        {docLink ? (
+          <Link
+            to="/projects/$id/documents/$docId"
+            params={{ id: projectId, docId: item.documentId }}
+            search={{ position: item.id }}
+            title="Открыть позицию в документе"
+            className="focus-ring inline-flex h-11 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[12px] whitespace-nowrap text-info transition-fast hover:bg-info-bg lg:h-6"
+          >
+            <FileText className="size-3" /> л. {item.sheetNumber}
+          </Link>
+        ) : (
+          <span className="px-1.5 text-[12px] whitespace-nowrap text-text-muted">
+            л. {item.sheetNumber}
+          </span>
+        )}
       </td>
       <td className="px-2.5 pr-4 whitespace-nowrap">
         {verified && item.handedOverAt !== null ? (

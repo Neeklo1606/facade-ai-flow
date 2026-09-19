@@ -16,6 +16,7 @@ import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshness
 import { FilterChip } from "@/components/common/FilterBar";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { useAccess, useCanWrite } from "@/api/access";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,10 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
   const navigate = useNavigate({ from: Route.fullPath });
   const view: View = search.view ?? "requests";
   const [createOpen, setCreateOpen] = useState(false);
+  // Запросы и напоминания — запись в закупках; вкладка поставщиков — свой раздел прав (ADR-012)
+  const { can } = useAccess();
+  const canWrite = can("procurement", "write");
+  const canSuppliers = can("suppliers");
 
   const requestsQuery = useQuery(queries.requests(project.id));
   const remind = useRemindSuppliers();
@@ -203,24 +208,28 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         title="Поставщики и запросы"
         description={`Кому отправлены запросы, кто ответил и по какой цене. Регион объекта — ${overview?.region ?? "—"}.`}
         actions={
-          <Button variant="accent" disabled={blocked} onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" /> Создать запрос
-          </Button>
+          canWrite && (
+            <Button variant="accent" disabled={blocked} onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" /> Создать запрос
+            </Button>
+          )
         }
       />
 
-      <PillTabs
-        className="mb-5"
-        label="Вид раздела"
-        value={view}
-        onChange={(next) =>
-          setSearch({ view: next === "requests" ? undefined : "suppliers", status: undefined })
-        }
-        tabs={[
-          { value: "requests", label: "Запросы", count: requestRows.length },
-          { value: "suppliers", label: "Поставщики", count: supplierRows.length },
-        ]}
-      />
+      {canSuppliers && (
+        <PillTabs
+          className="mb-5"
+          label="Вид раздела"
+          value={view}
+          onChange={(next) =>
+            setSearch({ view: next === "requests" ? undefined : "suppliers", status: undefined })
+          }
+          tabs={[
+            { value: "requests", label: "Запросы", count: requestRows.length },
+            { value: "suppliers", label: "Поставщики", count: supplierRows.length },
+          ]}
+        />
+      )}
 
       <div data-main-zone className="space-y-4">
         {screen === "partial" && (
@@ -233,7 +242,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                 : `Контакты ${staleContacts} поставщиков не проверены`
             }
             action={
-              isRequests ? (
+              isRequests && canWrite ? (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -330,8 +339,10 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                     title: "Запросов поставщикам ещё нет",
                     description:
                       "Выберите проверенные позиции и отправьте запрос: система подберёт поставщиков по категории и региону, а ответы из писем соберёт в сравнение.",
-                    actionLabel: "Создать запрос",
-                    onAction: () => setCreateOpen(true),
+                    ...(canWrite && {
+                      actionLabel: "Создать запрос",
+                      onAction: () => setCreateOpen(true),
+                    }),
                   }
                 : {
                     icon: Truck,
@@ -354,7 +365,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         </section>
       </div>
 
-      {!blocked && (
+      {!blocked && canWrite && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setCreateOpen(true)}>
             <Send className="size-4" /> Создать запрос
@@ -609,6 +620,7 @@ function SuppliersView({
   region: string;
 }) {
   const verifyContact = useVerifyContact();
+  const canVerify = useCanWrite("suppliers");
   // Без подтверждения действие выглядело беззвучным: строка менялась, а отклика не было
   const confirmContact = () =>
     toast.success("Контакт отмечен проверенным", {
@@ -685,7 +697,7 @@ function SuppliersView({
                   <div className="tnum text-text-secondary">
                     {fmtDate(profile.contactCheckedAt)}
                   </div>
-                  {profile.contactStatus !== "verified" && (
+                  {profile.contactStatus !== "verified" && canVerify && (
                     <button
                       type="button"
                       onClick={() =>

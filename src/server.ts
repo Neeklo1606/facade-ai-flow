@@ -2,6 +2,14 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { rememberEnv } from "./lib/runtime-env";
+import {
+  sessionFromCookieHeader,
+  sessionSetCookie,
+  signSession,
+  verifySession,
+} from "./lib/session-token";
+import { DEFAULT_USER_ID } from "./api/config";
 import {
   accessKey,
   accessParam,
@@ -68,6 +76,27 @@ function withNoIndex(response: Response) {
 }
 
 /**
+ * Рабочий контур: документ страницы без сессии выдаёт сессию сотрудника по умолчанию
+ * (ADR-012, уточнение п. 4) — иначе первые запросы данных новой вкладки получали 403.
+ * Серверные функции и выгрузки сессию не выдают: прямой вызов без неё — 403.
+ */
+async function withDefaultSession(request: Request, response: Response) {
+  if (import.meta.env.VITE_DATA_SOURCE !== "server") return response;
+  if (request.method !== "GET") return response;
+  if (!(response.headers.get("content-type") ?? "").includes("text/html")) return response;
+  const current = sessionFromCookieHeader(request.headers.get("cookie"));
+  if (await verifySession(current)) return response;
+  const headers = new Headers(response.headers);
+  const secure = new URL(request.url).protocol === "https:";
+  headers.append("set-cookie", sessionSetCookie(await signSession(DEFAULT_USER_ID), secure));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
  * Шлюз доступа. Ключ берётся из окружения хостинга; статика, robots и иконки проходят всегда,
  * краулерам мессенджеров отдаётся страница-объяснение с превью — ссылка выглядит прилично,
  * а содержимое остаётся закрытым.
@@ -94,6 +123,8 @@ function accessGate(request: Request, env: unknown): Response | null {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Секреты хостинга для серверных функций: ключ подписи сессии (ADR-012)
+      rememberEnv(env);
       const gate = accessGate(request, env);
       if (gate) return gate;
       // Витрина дизайн-системы в production не существует. Путь подменяется несуществующим
@@ -107,7 +138,10 @@ export default {
       }
       const handler = await getServerEntry();
       const response = await handler.fetch(incoming, env, ctx);
-      return withNoIndex(await normalizeCatastrophicSsrResponse(response));
+      return withDefaultSession(
+        incoming,
+        withNoIndex(await normalizeCatastrophicSsrResponse(response)),
+      );
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

@@ -6,6 +6,7 @@ import type { PositionsPort } from "./positions";
 import type { ProcurementPort } from "./procurement";
 import type { ProjectsPort } from "./projects";
 import type { ReportsPort } from "./reports";
+import type { ScopePort } from "./scope";
 import type { TimelinePort } from "./timeline";
 
 export * from "./agent";
@@ -17,6 +18,7 @@ export * from "./positions";
 export * from "./procurement";
 export * from "./projects";
 export * from "./reports";
+export * from "./scope";
 export * from "./timeline";
 
 /** Все порты приложения. Адаптер (фикстуры или БД) реализует этот набор целиком. */
@@ -29,6 +31,8 @@ export interface Repositories {
   procurement: ProcurementPort;
   reports: ReportsPort;
   timeline: TimelinePort;
+  /** Область доступа для проверки прав (ADR-012) */
+  scope: ScopePort;
   /** Ассистент поверх остальных портов (ADR-006) */
   agent: AgentPort;
 }

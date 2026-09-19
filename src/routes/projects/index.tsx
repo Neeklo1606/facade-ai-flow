@@ -19,6 +19,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Panel } from "@/components/common/Panel";
 import { FilterChip } from "@/components/common/FilterBar";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { useAccess } from "@/api/access";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { useScreenState } from "@/lib/screen-state";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -148,6 +149,9 @@ function ProjectsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  // Создание объекта — запись в объектах, выгрузка — право выгрузок (ADR-012)
+  const { can } = useAccess();
+  const canCreate = can("projects", "write");
   const { setProjectId } = useApp();
   // Все объекты — для списков фильтров и пустого состояния; строки таблицы фильтрует сервер
   const registry = useQuery(queries.projects());
@@ -237,9 +241,11 @@ function ProjectsPage() {
       <PageHeader
         title="Объекты"
         actions={
-          <Button variant="accent" onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" /> Добавить объект
-          </Button>
+          canCreate && (
+            <Button variant="accent" onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" /> Добавить объект
+            </Button>
+          )
         }
       />
       <p className="sr-only">
@@ -362,16 +368,18 @@ function ProjectsPage() {
                   <LayoutGrid className="size-3.5" /> Карточки
                 </button>
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleExport}
-                data-tour="export"
-                loading={exporting}
-                disabled={!rows.length}
-              >
-                {!exporting && <FileSpreadsheet className="size-4" />} Excel
-              </Button>
+              {can("export") && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExport}
+                  data-tour="export"
+                  loading={exporting}
+                  disabled={!rows.length}
+                >
+                  {!exporting && <FileSpreadsheet className="size-4" />} Excel
+                </Button>
+              )}
             </div>
           </div>
           <ScreenGate
@@ -387,8 +395,10 @@ function ProjectsPage() {
                 title: "Объектов пока нет",
                 description:
                   "Добавьте первый объект, затем загрузите договор и проектную документацию — система найдёт в них сроки и материалы.",
-                actionLabel: "Добавить объект",
-                onAction: () => setCreateOpen(true),
+                ...(canCreate && {
+                  actionLabel: "Добавить объект",
+                  onAction: () => setCreateOpen(true),
+                }),
               },
               filtered: {
                 title: "Объектов по условиям нет",
@@ -423,7 +433,7 @@ function ProjectsPage() {
         </Panel>
       </div>
 
-      {screen !== "forbidden" && screen !== "error" && (
+      {screen !== "forbidden" && screen !== "error" && canCreate && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" /> Добавить объект

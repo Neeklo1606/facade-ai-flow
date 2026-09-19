@@ -17,10 +17,13 @@ import type { ListPositionsInput, ListProjectsInput, PositionFilterInput } from 
  * | приёмка отчёта                     | reports                                                 |
  * | проверка контакта поставщика       | procurement                                             |
  * | новый объект                       | projects, directory                                     |
+ * | смена персоны                      | все: у роли другой набор данных (ADR-012)               |
  */
 export const keys = {
   /** Время источника данных: сроки на экранах считаются от него */
   clock: () => ["clock"] as const,
+  /** Сессия персоны: роль и её объекты (ADR-012) */
+  session: (personaId: string) => ["session", personaId] as const,
   directory: {
     employees: () => ["directory", "employees"] as const,
     counterparties: () => ["directory", "counterparties"] as const,

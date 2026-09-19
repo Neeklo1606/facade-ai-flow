@@ -33,7 +33,7 @@ export interface Page<T> {
   total: number;
 }
 
-/** Ошибки портов, которые серверная функция превращает в ответ 404, 409, 422 */
+/** Ошибки портов, которые серверная функция превращает в ответ 403, 404, 409 */
 export class NotFoundError extends Error {
   readonly id: string;
 
@@ -49,5 +49,19 @@ export class ConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ConflictError";
+  }
+}
+
+/** Текст отказа в правах: один на все отказы — раздел, метод и роль в ответ не попадают (ADR-012) */
+export const FORBIDDEN_MESSAGE = "Недостаточно прав для этого действия";
+
+export class ForbiddenError extends Error {
+  /** Что именно запрещено — только для журнала сервера */
+  readonly detail: string;
+
+  constructor(detail: string) {
+    super(FORBIDDEN_MESSAGE);
+    this.detail = detail;
+    this.name = "ForbiddenError";
   }
 }

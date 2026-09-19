@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useAccess } from "@/api/access";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Search } from "lucide-react";
 import { useApp } from "@/lib/app-context";
@@ -21,22 +22,26 @@ export function Topbar() {
     .map((part) => part[0])
     .join("");
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Заголовок из раздела, закрытого роли, не запрашиваем: там экран «Нет доступа» (ADR-012)
+  const { can, canProject } = useAccess();
   const detail = pathname.match(
     /^\/projects\/([^/]+)(?:\/(documents|materials|procurement|deliveries|field-reports|timeline)(?:\/([^/]+))?)?/,
   );
   const projectId = detail?.[1] ? decodeURIComponent(detail[1]) : null;
-  const detailProject = useQuery({ ...queries.project(projectId ?? ""), enabled: !!projectId }).data
-    ?.project;
+  const detailProject = useQuery({
+    ...queries.project(projectId ?? ""),
+    enabled: !!projectId && canProject("projects", projectId),
+  }).data?.project;
   const sectionKey = detail?.[2] as ProjectSection | undefined;
   const section = sectionKey ? sectionLabels[sectionKey] : null;
   const child = detail?.[3] ? decodeURIComponent(detail[3]) : null;
   const documentTitle = useQuery({
     ...queries.document(child ?? ""),
-    enabled: !!child && sectionKey === "documents",
+    enabled: !!child && sectionKey === "documents" && can("documents"),
   }).data?.document.title;
   const requestNumber = useQuery({
     ...queries.request(child ?? ""),
-    enabled: !!child && sectionKey === "procurement",
+    enabled: !!child && sectionKey === "procurement" && can("procurement"),
   }).data?.summary.request.number;
   const childTitle =
     sectionKey === "documents"

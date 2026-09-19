@@ -25,6 +25,8 @@ interface Props {
     patch: Pick<ExtractedPosition, "projectName" | "qty" | "unit" | "characteristics">,
   ) => void;
   onCancelEdit: () => void;
+  /** Роль без права записи в документах (ADR-012): строку можно открыть, но не менять */
+  readOnly?: boolean;
 }
 
 const reviewBadgeClass: Partial<Record<ExtractedPosition["review"], string>> = {
@@ -46,6 +48,7 @@ export const PositionRow = memo(function PositionRow({
   onAction,
   onSaveEdit,
   onCancelEdit,
+  readOnly = false,
 }: Props) {
   const level = confidenceLevel(item.confidence);
   const badgeClass = reviewBadgeClass[item.review];
@@ -159,7 +162,7 @@ export const PositionRow = memo(function PositionRow({
             </p>
           )}
 
-          {active && (
+          {active && !readOnly && (
             <div
               className="mt-2 flex flex-wrap items-center gap-1.5"
               onClick={(e) => e.stopPropagation()}

@@ -28,6 +28,7 @@ import { useTeam } from "@/api/work-progress";
 import { useNow } from "@/api/clock";
 import { exportTeam, teamFileName } from "@/api/team-export";
 import { saveFile } from "@/lib/download";
+import { useAccess } from "@/api/access";
 import { toast } from "@/lib/toast";
 import type { TeamCrew, TeamPerson } from "@/api/types";
 import { fmtAgoFrom, fmtNum } from "@/lib/format";
@@ -41,6 +42,7 @@ const metricIcon = { people: Users, crews: UsersRound, silent: HardHat } as cons
  * последнего отчёта. Выгрузка в Excel повторяет то, что видно на экране.
  */
 export function TeamTab({ project }: { project: Project }) {
+  const { can } = useAccess();
   const team = useTeam(project.id);
   const now = useNow();
   const [personId, setPersonId] = useState<string | null>(null);
@@ -123,9 +125,11 @@ export function TeamTab({ project }: { project: Project }) {
           aside={
             <>
               <CountPill>{fmtNum(team.people.length)}</CountPill>
-              <Button variant="secondary" size="sm" onClick={handleExport} loading={exporting}>
-                {!exporting && <FileSpreadsheet className="size-4" />} Excel
-              </Button>
+              {can("export") && (
+                <Button variant="secondary" size="sm" onClick={handleExport} loading={exporting}>
+                  {!exporting && <FileSpreadsheet className="size-4" />} Excel
+                </Button>
+              )}
             </>
           }
         />
@@ -219,11 +223,13 @@ export function TeamTab({ project }: { project: Project }) {
               Допуски и удостоверения появятся в карточке после загрузки кадровых документов — в
               модели данных их пока нет.
             </p>
-            <Button variant="secondary" asChild className="w-full">
-              <Link to="/projects/$id/field-reports" params={{ id: project.id }} search={{}}>
-                Отчёты с площадки <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            {can("field-reports") && (
+              <Button variant="secondary" asChild className="w-full">
+                <Link to="/projects/$id/field-reports" params={{ id: project.id }} search={{}}>
+                  Отчёты с площадки <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </EntityDrawer>
       )}
@@ -330,6 +336,7 @@ function CrewCard({
   projectId: string;
   silent: boolean;
 }) {
+  const canReports = useAccess().can("field-reports");
   return (
     <li
       className={cn(
@@ -348,7 +355,9 @@ function CrewCard({
         <span className="tnum shrink-0 text-[13px] text-text-2">{crew.headcount} чел.</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {crew.lastZone ? (
+        {crew.lastZone && !canReports ? (
+          <span className="text-[13px] text-text-2">{crew.lastZone.name}</span>
+        ) : crew.lastZone ? (
           <Link
             to="/projects/$id/field-reports"
             params={{ id: projectId }}

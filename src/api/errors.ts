@@ -1,7 +1,7 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
 import { ZodError, type ZodTypeAny, type z } from "zod";
-import { ConflictError, NotFoundError } from "@/ports";
+import { ConflictError, ForbiddenError, NotFoundError } from "@/ports";
 
 /** Ответ порта не совпал со схемой: ошибка сервера, а не запроса */
 class ResponseContractError extends Error {
@@ -36,6 +36,12 @@ export const portErrorsMiddleware = createMiddleware({ type: "function" }).serve
     try {
       return await next();
     } catch (error) {
+      if (error instanceof ForbiddenError) {
+        // Что именно запрещено — только в журнал: в ответе один текст на все отказы
+        console.warn("403", error.detail);
+        setResponseStatus(403);
+        throw new Error(error.message);
+      }
       if (error instanceof NotFoundError) {
         setResponseStatus(404);
         throw new Error(error.message);

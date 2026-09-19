@@ -6,8 +6,8 @@ import type { LucideIcon } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { queries } from "@/api/queries";
 import { DEMO_PERSONAS } from "@/api/config";
-import { useApp } from "@/lib/app-context";
-import { markStartScreenApplied, startRouteFor } from "@/lib/navigation";
+import { useEnterAs } from "@/lib/persona";
+import { markStartScreenApplied } from "@/lib/navigation";
 import { markRoleChosen, startScenario, useRoleChosen } from "@/lib/guide/store";
 import { scenarioFor } from "@/lib/guide/scenarios";
 import { record } from "@/lib/guide/telemetry";
@@ -29,9 +29,8 @@ export function RolePicker() {
   const chosen = useRoleChosen();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { setPersonaId, projectId } = useApp();
+  const enterAs = useEnterAs();
   const employees = useQuery(queries.employees()).data ?? [];
-  const projects = useQuery(queries.projects()).data ?? [];
 
   // Пока выбирается роль, приложение под экраном выбора недоступно ни мышью, ни клавиатурой
   useEffect(() => {
@@ -48,18 +47,16 @@ export function RolePicker() {
   );
 
   const choose = (personaId: string, role: EmployeeRole) => {
-    setPersonaId(personaId);
     record({ t: "role", role, personaId });
     startScenario(scenarioFor(role).id);
     markRoleChosen();
     markStartScreenApplied();
-    // Пришли по ссылке на конкретный экран — остаёмся на нём; с главной — на стартовый экран роли
-    if (pathname === "/") {
-      const selected = projectId && projects.some((p) => p.project.id === projectId);
-      navigate({
-        to: startRouteFor(role, selected ? projectId : (projects[0]?.project.id ?? null)),
-      });
-    }
+    // Пришли по ссылке на конкретный экран — остаёмся на нём (закрытый роли покажет «Нет доступа»);
+    // с главной — на стартовый экран роли
+    const fromHome = pathname === "/";
+    void enterAs(personaId, role).then((to) => {
+      if (fromHome) void navigate({ to });
+    });
   };
 
   return (

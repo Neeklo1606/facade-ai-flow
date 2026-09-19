@@ -27,6 +27,7 @@ import {
   type TimelineEventType,
 } from "@/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { useAccess, type Section } from "@/api/access";
 import { queries } from "@/api/queries";
 import { mainSpecification } from "@/lib/documents";
 import { useDirectory } from "@/api/directory";
@@ -44,13 +45,15 @@ interface Props {
 
 /** Сводка: вариант Б — 8 колонок блоков и 4 колонки реквизитов; уже 1280px — одна колонка */
 export function SummaryTab(props: Props) {
+  // Блоки разделов, закрытых роли, не рисуются и не запрашивают данные (ADR-012)
+  const { can } = useAccess();
   return (
     <div className="grid grid-cols-12 gap-4">
       <div className="col-span-12 grid content-start gap-4 xl:col-span-8 min-[1600px]:grid-cols-2">
         <AttentionBlock {...props} />
-        <DocumentationBlock {...props} />
-        <MaterialsBlock {...props} />
-        <ActivityBlock {...props} />
+        {can("documents") && <DocumentationBlock {...props} />}
+        {can("materials") && <MaterialsBlock {...props} />}
+        {can("timeline") && <ActivityBlock {...props} />}
       </div>
       {props.facts && (
         <WidgetCard className="col-span-12 self-start xl:col-span-4">
@@ -73,10 +76,12 @@ interface AttentionRow {
   tone: "danger" | "warn";
   to: string;
   search?: Record<string, string> | undefined;
+  section: Section;
 }
 
 function AttentionBlock({ projectId, overview, scope }: Props) {
-  const rows: AttentionRow[] = [
+  const { can } = useAccess();
+  const all: AttentionRow[] = [
     {
       key: "unverified",
       icon: ListChecks,
@@ -86,6 +91,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
       tone: "warn",
       to: `/projects/${projectId}/materials`,
       search: { review: "pending" },
+      section: "materials",
     },
     {
       key: "overdue",
@@ -96,6 +102,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
       tone: "danger",
       to: `/projects/${projectId}/procurement`,
       search: { status: "open" },
+      section: "procurement",
     },
     {
       key: "changes",
@@ -105,6 +112,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
       value: overview.openChanges,
       tone: "warn",
       to: `/projects/${projectId}/documents`,
+      section: "documents",
     },
     {
       key: "reports",
@@ -114,8 +122,10 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
       value: overview.missingReports,
       tone: "warn",
       to: `/projects/${projectId}/field-reports`,
+      section: "field-reports",
     },
   ];
+  const rows = all.filter((row) => can(row.section));
   const open = rows.filter((row) => row.value > 0);
 
   return (

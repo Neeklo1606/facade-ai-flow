@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccessRouteImport } from './routes/access'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
@@ -43,6 +44,11 @@ import { Route as ProjectsIdProcurementRfqIdRouteImport } from './routes/project
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessRoute = AccessRouteImport.update({
+  id: '/access',
+  path: '/access',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentRoute = AgentRouteImport.update({
@@ -197,6 +203,7 @@ const ProjectsIdProcurementRfqIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/catalogs': typeof CatalogsRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/catalogs': typeof CatalogsRoute
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/catalogs': typeof CatalogsRoute
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/access'
     | '/agent'
     | '/analytics'
     | '/catalogs'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/access'
     | '/agent'
     | '/analytics'
     | '/catalogs'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/access'
     | '/agent'
     | '/analytics'
     | '/catalogs'
@@ -393,6 +405,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccessRoute: typeof AccessRoute
   AgentRoute: typeof AgentRoute
   AnalyticsRoute: typeof AnalyticsRoute
   CatalogsRoute: typeof CatalogsRoute
@@ -431,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/access': {
+      id: '/access'
+      path: '/access'
+      fullPath: '/access'
+      preLoaderRoute: typeof AccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agent': {
@@ -641,6 +661,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccessRoute: AccessRoute,
   AgentRoute: AgentRoute,
   AnalyticsRoute: AnalyticsRoute,
   CatalogsRoute: CatalogsRoute,
