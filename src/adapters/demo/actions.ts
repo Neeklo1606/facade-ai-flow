@@ -547,19 +547,32 @@ const MAX_SHEETS = 200;
 
 export function upload(input: UploadRevisionInput, actorId: string) {
   const id = liveId("pd");
-  const documentId = liveId("doc");
+  // Новая ревизия существующего документа: тот же документ, номер на единицу больше, название
+  // и раздел — от документа. Раньше `documentId` игнорировался и появлялся новый документ «Рев. 1»
+  const previous = input.documentId
+    ? getState()
+        .documents.filter(
+          (item) => item.documentId === input.documentId && item.projectId === input.projectId,
+        )
+        .sort((a, b) => b.revision - a.revision)[0]
+    : undefined;
+  if (input.documentId && !previous) throw new NotFoundError("Документ", input.documentId);
+  const documentId = previous?.documentId ?? liveId("doc");
+  const revision = previous ? previous.revision + 1 : 1;
   const ext = input.fileName.split(".").pop()?.toLowerCase();
   const fileType: ProjectDocument["fileType"] =
     ext === "docx" ? "docx" : ext === "xlsx" ? "xlsx" : "pdf";
-  const section = /ар/i.test(input.fileName) ? "АР" : /км/i.test(input.fileName) ? "КМ" : "НВФ";
+  const section =
+    previous?.section ??
+    (/ар/i.test(input.fileName) ? "АР" : /км/i.test(input.fileName) ? "КМ" : "НВФ");
   const doc: ProjectDocument = {
     id,
     documentId,
-    revision: 1,
+    revision,
     projectId: input.projectId,
-    title: input.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
+    title: previous?.title ?? input.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
     section,
-    version: "Рев. 1",
+    version: `Рев. ${revision}`,
     fileName: input.fileName,
     fileType,
     sizeKb: input.sizeKb,
@@ -605,7 +618,9 @@ export function upload(input: UploadRevisionInput, actorId: string) {
         {
           projectId: input.projectId,
           type: "version_uploaded",
-          title: `Загружен документ «${doc.title}»`,
+          title: previous
+            ? `Загружена ${doc.version} документа «${doc.title}»`
+            : `Загружен документ «${doc.title}»`,
           details: `${doc.fileName}, ${doc.version}`,
           revisionId: id,
         },

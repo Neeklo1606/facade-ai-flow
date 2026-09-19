@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   loadProject,
@@ -342,19 +342,32 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         open={uploadOpen}
         onOpenChange={setUploadOpen}
         projectName={project.name}
-        nextVersion={
-          latestVersion ? `Рев. ${Number(latestVersion.version.replace(/\D/g, "")) + 1}` : "Рев. 1"
+        spec={
+          latestVersion
+            ? {
+                documentId: latestVersion.documentId,
+                title: latestVersion.title,
+                nextVersion: `Рев. ${latestVersion.revision + 1}`,
+              }
+            : null
         }
         contractNumber={contract?.number ?? project.contract}
-        onUpload={(files) => {
-          // mutateAsync, а не колбэки mutate: они не срабатывают после ухода с карточки
+        onUpload={(files, documentId) => {
+          // mutateAsync, а не колбэки mutate: они не срабатывают после ухода с карточки.
+          // Сообщение об успехе — после ответа, с ревизией, которую действительно создал сервер
           files.forEach((file) =>
             upload
               .mutateAsync({
                 projectId: project.id,
+                documentId,
                 fileName: file.name,
                 sizeKb: Math.max(1, Math.round(file.size / 1024)),
               })
+              .then((doc) =>
+                toast.success(`«${doc.title}» принят как ${doc.version}`, {
+                  description: DEMO_UPLOAD_NOTE,
+                }),
+              )
               .catch(() =>
                 toast.error(`Не загружено: ${file.name}`, {
                   description: "Проверьте размер файла (до 500 МБ) и повторите.",
@@ -373,20 +386,29 @@ function UploadDialog({
   open,
   onOpenChange,
   projectName,
-  nextVersion,
+  spec,
   contractNumber,
   onUpload,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projectName: string;
-  nextVersion: string;
+  /** Главная спецификация объекта: её новую ревизию карточка и предлагает загрузить */
+  spec: { documentId: string; title: string; nextVersion: string } | null;
   contractNumber: string;
-  onUpload: (files: File[]) => void;
+  onUpload: (files: File[], documentId: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
+  // Что загружаем: новую ревизию спецификации (одним файлом) или новые документы
+  const [target, setTarget] = useState<"revision" | "new">(spec ? "revision" : "new");
+  const revision = target === "revision" && spec !== null;
+  // Спецификация может догрузиться после монтирования: режим выбирается при каждом открытии
+  const hasSpec = spec !== null;
+  useEffect(() => {
+    if (open) setTarget(hasSpec ? "revision" : "new");
+  }, [open, hasSpec]);
 
   function close(next: boolean) {
     onOpenChange(next);
@@ -396,7 +418,8 @@ function UploadDialog({
   function onDrop(e: DragEvent<HTMLLabelElement>) {
     e.preventDefault();
     setDragging(false);
-    setFiles(Array.from(e.dataTransfer.files));
+    const list = Array.from(e.dataTransfer.files);
+    setFiles(revision ? list.slice(0, 1) : list);
   }
 
   function submit() {
@@ -406,10 +429,8 @@ function UploadDialog({
       toast.error("Файлы не приняты", { description: "Поддерживаются PDF, DOCX и XLSX." });
       return;
     }
-    onUpload(accepted);
-    toast.success(`Документация принята как ${nextVersion}`, {
-      description: DEMO_UPLOAD_NOTE,
-    });
+    // Ревизия — это один файл; остальные файлы в этом режиме не выбираются (input без multiple)
+    onUpload(revision ? accepted.slice(0, 1) : accepted, revision ? spec.documentId : null);
   }
 
   return (
@@ -418,9 +439,43 @@ function UploadDialog({
         <DialogHeader>
           <DialogTitle>Загрузить документацию</DialogTitle>
           <DialogDescription>
-            {projectName} · договор {contractNumber}. Новая версия будет {nextVersion}.
+            {projectName} · договор {contractNumber}.{" "}
+            {revision
+              ? `Файл станет ${spec.nextVersion} документа «${spec.title}».`
+              : "Каждый файл станет новым документом, Рев. 1."}
           </DialogDescription>
         </DialogHeader>
+
+        {spec && (
+          <div role="radiogroup" aria-label="Что загружаем" className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                ["revision", `Новая ревизия спецификации`, `${spec.nextVersion} · «${spec.title}»`],
+                ["new", "Новый документ", "Отдельный документ, Рев. 1"],
+              ] as const
+            ).map(([value, title, hint]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={target === value}
+                onClick={() => {
+                  setTarget(value);
+                  if (value === "revision") setFiles((list) => list.slice(0, 1));
+                }}
+                className={cn(
+                  "focus-ring min-h-11 rounded-[var(--r-md)] border px-3 py-2 text-left transition-fast",
+                  target === value
+                    ? "border-line-2 bg-surface-3"
+                    : "border-line bg-surface-2 hover:border-line-2",
+                )}
+              >
+                <span className="block text-[13px] font-medium text-text">{title}</span>
+                <span className="block truncate text-caption text-text-muted">{hint}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <label
           onDragOver={(e) => {
@@ -436,7 +491,9 @@ function UploadDialog({
         >
           <FileUp className="size-8 text-text-muted" strokeWidth={1.5} />
           <span className="mt-3 text-[14px] font-medium">
-            Перетащите файлы или выберите на диске
+            {revision
+              ? "Перетащите файл или выберите на диске"
+              : "Перетащите файлы или выберите на диске"}
           </span>
           <span className="mt-1 text-caption text-text-muted">
             PDF, DOCX, XLSX · разделы АР, КМ, спецификации, узлы
@@ -444,10 +501,13 @@ function UploadDialog({
           <input
             ref={inputRef}
             type="file"
-            multiple
+            multiple={!revision}
             accept=".pdf,.docx,.xlsx"
             className="sr-only"
-            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            onChange={(e) => {
+              const list = Array.from(e.target.files ?? []);
+              setFiles(revision ? list.slice(0, 1) : list);
+            }}
           />
         </label>
 
