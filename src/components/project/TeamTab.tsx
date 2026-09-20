@@ -59,7 +59,7 @@ export function TeamTab({ project }: { project: Project }) {
   async function handleExport() {
     setExporting(true);
     try {
-      saveFile(await exportTeam(project.name, team.people), teamFileName(project.code));
+      saveFile(await exportTeam(project.name, team.people, gap), teamFileName(project.code));
       recordAction("exportExcel");
       toast.success("Команда выгружена", {
         description: `${fmtNum(team.people.length)} ${team.people.length === 1 ? "сотрудник" : "сотрудников"} в файле Excel`,
@@ -166,7 +166,9 @@ export function TeamTab({ project }: { project: Project }) {
           level={2}
           icon={UsersRound}
           title="Бригады"
-          hint={onlySilent ? "без отчёта за 7 дней" : "состав и последняя захватка"}
+          hint={
+            onlySilent ? "без отчёта за 7 дней" : gap ? "состав" : "состав и последняя захватка"
+          }
           aside={
             <>
               <CountPill>{fmtNum(crews.length)}</CountPill>

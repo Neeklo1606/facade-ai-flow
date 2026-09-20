@@ -1,8 +1,9 @@
 import { buildXlsx } from "@/adapters/export/xlsx";
 import type { TeamPerson } from "@/domain/work-progress";
+import { reportsGapNote, type ReportsGap } from "@/lib/reports-gap";
 
 /** Выгрузка команды объекта в Excel: те же колонки, что на экране (TASK-A2) */
-export function exportTeam(project: string, people: TeamPerson[]) {
+export function exportTeam(project: string, people: TeamPerson[], gap: ReportsGap | null = null) {
   return buildXlsx(
     [
       { header: "Объект", width: 28, value: () => project },
@@ -14,8 +15,13 @@ export function exportTeam(project: string, people: TeamPerson[]) {
       {
         header: "Последний отчёт",
         width: 30,
+        // В файле причина называется словами: «—» в выгрузке читается как «отчётов не было»
         value: (row: TeamPerson) =>
-          row.lastReport ? `${row.lastReport.at.slice(0, 10)} · ${row.lastReport.zoneName}` : "—",
+          row.lastReport
+            ? `${row.lastReport.at.slice(0, 10)} · ${row.lastReport.zoneName}`
+            : gap
+              ? reportsGapNote[gap]
+              : "—",
       },
       { header: "Объектов", width: 12, value: (row: TeamPerson) => String(row.projectCount) },
     ],

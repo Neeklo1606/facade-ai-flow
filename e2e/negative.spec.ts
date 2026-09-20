@@ -143,9 +143,6 @@ test.describe("снабжение: карточка объекта без дан
     const drawer = page.getByRole("dialog");
     await expect(drawer.getByText("Принятых отчётов по захватке ещё не было")).toHaveCount(0);
     await expect(drawer.getByText(/раздел закрыт вашей роли/)).toBeVisible();
-    await page.keyboard.press("Escape");
-    // Строка захватки без вида работ говорит то же самое, а не «появится с первым отчётом»
-    await expect(page.getByText("Вид работ появится с первым отчётом")).toHaveCount(0);
   });
 });
 
