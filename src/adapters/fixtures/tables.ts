@@ -1,3 +1,4 @@
+import type { TableRows } from "@/adapters/state/tables";
 import type { DocumentSheetRow } from "@/contracts";
 import * as org from "./data/org";
 import * as projectsData from "./data/projects";
@@ -5,6 +6,7 @@ import * as documentsData from "./data/documents";
 import * as procurement from "./data/procurement";
 import * as field from "./data/field";
 import * as timeline from "./data/timeline";
+import * as catalog from "./data/catalog";
 import * as spec from "./spec";
 
 /**
@@ -19,7 +21,7 @@ const documentSheets: DocumentSheetRow[] = documentsData.documentRevisions.flatM
   return spec.sheetsOf(revision, document.section);
 });
 
-export const fixtureTables = {
+export const fixtureTables: TableRows = {
   employees: org.employees,
   project_members: org.projectMembers,
   counterparties: org.counterparties,
@@ -37,7 +39,9 @@ export const fixtureTables = {
   extraction_jobs: documentsData.extractionJobs,
   document_sheets: documentSheets,
   revision_changes: documentsData.revisionChanges,
+  material_categories: catalog.materialCategories,
   materials: spec.materials,
+  material_changes: catalog.materialChanges,
   positions: spec.positions,
   position_changes: spec.positionChanges,
   replacement_suggestions: spec.replacementSuggestions,
@@ -53,6 +57,10 @@ export const fixtureTables = {
   supplier_offer_lines: procurement.supplierOfferLines,
   deliveries: procurement.deliveries,
   delivery_lines: procurement.deliveryLines,
+  delivery_status_changes: procurement.deliveryStatusChanges,
+  delivery_acceptances: procurement.deliveryAcceptances,
+  delivery_photos: procurement.deliveryPhotos,
+  delivery_remarks: procurement.deliveryRemarks,
   project_decisions: procurement.projectDecisions,
 
   field_reports: field.fieldReports,
@@ -63,4 +71,5 @@ export const fixtureTables = {
   project_events: timeline.projectEvents,
 };
 
-export type FixtureTables = typeof fixtureTables;
+export type FixtureTables = TableRows;
+export type { TableRows };

@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   loadProject,
@@ -24,7 +24,6 @@ import { MetricStrip } from "@/components/common/MetricStrip";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PillTabs } from "@/components/common/PillTabs";
 import { PageCaption } from "@/components/layout/PageActions";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { SourceDrawer } from "@/components/common/SourceRef";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +45,7 @@ import {
   PurchasesPreview,
 } from "@/components/project/PreviewTabs";
 import { useApp } from "@/lib/app-context";
-import { projectStatusMeta } from "@/lib/project-meta";
+import { ProjectStatusControl } from "@/components/project/ProjectStatusControl";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
@@ -56,31 +55,24 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useDirectory } from "@/api/directory";
 import { useUploadDocument } from "@/api/mutations";
+import { useAccess, type Section } from "@/api/access";
 import { prefetch } from "@/api/prefetch";
 
+/** Вкладки карточки и разделы прав, которым они принадлежат (ADR-012) */
 const tabs = [
-  { id: "summary", label: "Сводка" },
-  { id: "documents", label: "Документация" },
-  { id: "materials", label: "Материалы" },
-  { id: "purchases", label: "Закупки" },
-  { id: "progress", label: "Ход работ" },
-  { id: "decisions", label: "Решения" },
-  { id: "history", label: "История" },
-  { id: "team", label: "Команда" },
-] as const;
+  { id: "summary", label: "Сводка", section: "projects" },
+  { id: "documents", label: "Документация", section: "documents" },
+  { id: "materials", label: "Материалы", section: "materials" },
+  { id: "purchases", label: "Закупки", section: "procurement" },
+  { id: "progress", label: "Ход работ", section: "projects" },
+  { id: "decisions", label: "Решения", section: "timeline" },
+  { id: "history", label: "История", section: "timeline" },
+  { id: "team", label: "Команда", section: "projects" },
+] as const satisfies readonly { id: string; label: string; section: Section }[];
 
 type TabId = (typeof tabs)[number]["id"];
 
 /** Цвет статуса объекта текстом в подписи шапки */
-const statusText: Record<string, string> = {
-  ok: "text-ok",
-  warn: "text-warn",
-  danger: "text-danger",
-  info: "text-info",
-  neutral: "text-text-2",
-  accent: "text-text",
-};
-
 export const Route = createFileRoute("/projects/$id/")({
   validateSearch: (search: Record<string, unknown>): { tab?: TabId | undefined } => ({
     tab:
@@ -117,27 +109,31 @@ export const Route = createFileRoute("/projects/$id/")({
 
 function ProjectPage({ project, overview, contract }: ProjectPageProps): React.JSX.Element {
   const { employeeName } = useDirectory();
-  const documents = useQuery(queries.documents(project.id));
+  const { can } = useAccess();
+  const canDocuments = can("documents");
+  const documents = useQuery({ ...queries.documents(project.id), enabled: canDocuments });
   const liveDocuments = (documents.data ?? []).map((item) => item.document);
   const recognizingDocs = liveDocuments.filter(
     (d) => d.status === "recognizing" || d.status === "uploaded",
   );
   const hasDocuments = liveDocuments.length > 0;
   const screen = useScreenState({
-    pending: documents.isPending,
-    error: documents.isError,
+    pending: canDocuments && documents.isPending,
+    error: canDocuments && documents.isError,
     empty: !hasDocuments && overview.specTotal === 0,
     processing: recognizingDocs.length > 0,
   });
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
-  const { tab = "summary" } = Route.useSearch();
+  const { tab: requested = "summary" } = Route.useSearch();
+  const visibleTabs = tabs.filter((item) => can(item.section));
+  // Вкладка раздела, закрытого роли, по ссылке не открывается — показываем сводку
+  const tab: TabId = visibleTabs.some((item) => item.id === requested) ? requested : "summary";
   const navigate = useNavigate({ from: Route.fullPath });
   const upload = useUploadDocument();
   const { setProjectId } = useApp();
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const status = projectStatusMeta[project.status];
   const latestVersion = mainSpecification(documents.data ?? [])?.document;
 
   const setTab = (next: string) =>
@@ -167,22 +163,35 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
   ];
 
   const figures = [
-    { label: "Позиций материалов", value: overview.specTotal },
+    { label: "Позиций материалов", value: overview.specTotal, section: "materials" as const },
     {
       label: "Непроверенных",
       value: overview.specUnverified,
       tone: "warn" as const,
       tab: "materials",
+      section: "materials" as const,
     },
-    { label: "Закуплено", value: overview.ordered, tab: "purchases" },
-    { label: "В пути", value: overview.inTransit, tab: "purchases" },
+    {
+      label: "Закуплено",
+      value: overview.ordered,
+      tab: "purchases",
+      section: "procurement" as const,
+    },
+    {
+      label: "В пути",
+      value: overview.inTransit,
+      tab: "purchases",
+      section: "procurement" as const,
+    },
     {
       label: "Просроченных запросов",
       value: overview.overdueRequests,
       tone: "danger" as const,
       tab: "purchases",
+      section: "procurement" as const,
     },
-  ];
+    // Цифры закрытых роли разделов не показываются (ADR-012)
+  ].filter((figure) => can(figure.section) || (figure.section === "materials" && canDocuments));
 
   const metricTabs: Record<string, TabId> = {
     Непроверенных: "materials",
@@ -214,9 +223,11 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
       <PageHeader
         title={project.name}
         actions={
-          <Button variant="accent" onClick={() => setUploadOpen(true)} disabled={blocked}>
-            <Upload className="size-4" /> Загрузить документацию
-          </Button>
+          can("documents", "write") && (
+            <Button variant="accent" onClick={() => setUploadOpen(true)} disabled={blocked}>
+              <Upload className="size-4" /> Загрузить документацию
+            </Button>
+          )
         }
       />
       <PageCaption>
@@ -224,7 +235,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         <span aria-hidden className="text-text-3">
           ·
         </span>
-        <span className={statusText[status.tone]}>{status.label}</span>
+        <ProjectStatusControl project={project} variant="caption" />
         {latestVersion && (
           <>
             <span aria-hidden className="text-text-3">
@@ -245,13 +256,14 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
           <ArrowLeft className="size-3.5" /> Все объекты
         </Link>
         <span className="mono text-caption text-text-2">{project.code}</span>
-        <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+        <ProjectStatusControl project={project} variant="badge" />
       </div>
 
       <MetricStrip
         className="mb-5"
         items={figures.map((figure) => {
-          const tabId = metricTabs[figure.label];
+          const mapped = metricTabs[figure.label];
+          const tabId = visibleTabs.some((item) => item.id === mapped) ? mapped : undefined;
           return {
             icon: figureIcons[figure.label] ?? Boxes,
             label: figure.label,
@@ -275,7 +287,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         label="Разделы объекта"
         value={tab}
         onChange={(next) => setTab(next)}
-        tabs={tabs.map((item) => ({
+        tabs={visibleTabs.map((item) => ({
           value: item.id,
           label: item.label,
           ...(item.id === "materials" && overview.specUnverified > 0
@@ -316,8 +328,10 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
               title: "По объекту ещё нет данных",
               description:
                 "Загрузите проектную документацию, и система найдёт в ней материалы. Затем подключите прорабов к Telegram-боту — отчёты и сроки появятся в сводке.",
-              actionLabel: "Загрузить документацию",
-              onAction: () => setUploadOpen(true),
+              ...(can("documents", "write") && {
+                actionLabel: "Загрузить документацию",
+                onAction: () => setUploadOpen(true),
+              }),
             },
             filtered: {
               title: "В этой вкладке нет записей",
@@ -330,7 +344,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         </ScreenGate>
       </div>
 
-      {!blocked && (
+      {!blocked && can("documents", "write") && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setUploadOpen(true)}>
             <Upload className="size-4" /> Загрузить документацию
@@ -342,19 +356,32 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         open={uploadOpen}
         onOpenChange={setUploadOpen}
         projectName={project.name}
-        nextVersion={
-          latestVersion ? `Рев. ${Number(latestVersion.version.replace(/\D/g, "")) + 1}` : "Рев. 1"
+        spec={
+          latestVersion
+            ? {
+                documentId: latestVersion.documentId,
+                title: latestVersion.title,
+                nextVersion: `Рев. ${latestVersion.revision + 1}`,
+              }
+            : null
         }
         contractNumber={contract?.number ?? project.contract}
-        onUpload={(files) => {
-          // mutateAsync, а не колбэки mutate: они не срабатывают после ухода с карточки
+        onUpload={(files, documentId) => {
+          // mutateAsync, а не колбэки mutate: они не срабатывают после ухода с карточки.
+          // Сообщение об успехе — после ответа, с ревизией, которую действительно создал сервер
           files.forEach((file) =>
             upload
               .mutateAsync({
                 projectId: project.id,
+                documentId,
                 fileName: file.name,
                 sizeKb: Math.max(1, Math.round(file.size / 1024)),
               })
+              .then((doc) =>
+                toast.success(`«${doc.title}» принят как ${doc.version}`, {
+                  description: DEMO_UPLOAD_NOTE,
+                }),
+              )
               .catch(() =>
                 toast.error(`Не загружено: ${file.name}`, {
                   description: "Проверьте размер файла (до 500 МБ) и повторите.",
@@ -373,20 +400,29 @@ function UploadDialog({
   open,
   onOpenChange,
   projectName,
-  nextVersion,
+  spec,
   contractNumber,
   onUpload,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projectName: string;
-  nextVersion: string;
+  /** Главная спецификация объекта: её новую ревизию карточка и предлагает загрузить */
+  spec: { documentId: string; title: string; nextVersion: string } | null;
   contractNumber: string;
-  onUpload: (files: File[]) => void;
+  onUpload: (files: File[], documentId: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
+  // Что загружаем: новую ревизию спецификации (одним файлом) или новые документы
+  const [target, setTarget] = useState<"revision" | "new">(spec ? "revision" : "new");
+  const revision = target === "revision" && spec !== null;
+  // Спецификация может догрузиться после монтирования: режим выбирается при каждом открытии
+  const hasSpec = spec !== null;
+  useEffect(() => {
+    if (open) setTarget(hasSpec ? "revision" : "new");
+  }, [open, hasSpec]);
 
   function close(next: boolean) {
     onOpenChange(next);
@@ -396,7 +432,8 @@ function UploadDialog({
   function onDrop(e: DragEvent<HTMLLabelElement>) {
     e.preventDefault();
     setDragging(false);
-    setFiles(Array.from(e.dataTransfer.files));
+    const list = Array.from(e.dataTransfer.files);
+    setFiles(revision ? list.slice(0, 1) : list);
   }
 
   function submit() {
@@ -406,10 +443,8 @@ function UploadDialog({
       toast.error("Файлы не приняты", { description: "Поддерживаются PDF, DOCX и XLSX." });
       return;
     }
-    onUpload(accepted);
-    toast.success(`Документация принята как ${nextVersion}`, {
-      description: DEMO_UPLOAD_NOTE,
-    });
+    // Ревизия — это один файл; остальные файлы в этом режиме не выбираются (input без multiple)
+    onUpload(revision ? accepted.slice(0, 1) : accepted, revision ? spec.documentId : null);
   }
 
   return (
@@ -418,9 +453,43 @@ function UploadDialog({
         <DialogHeader>
           <DialogTitle>Загрузить документацию</DialogTitle>
           <DialogDescription>
-            {projectName} · договор {contractNumber}. Новая версия будет {nextVersion}.
+            {projectName} · договор {contractNumber}.{" "}
+            {revision
+              ? `Файл станет ${spec.nextVersion} документа «${spec.title}».`
+              : "Каждый файл станет новым документом, Рев. 1."}
           </DialogDescription>
         </DialogHeader>
+
+        {spec && (
+          <div role="radiogroup" aria-label="Что загружаем" className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                ["revision", `Новая ревизия спецификации`, `${spec.nextVersion} · «${spec.title}»`],
+                ["new", "Новый документ", "Отдельный документ, Рев. 1"],
+              ] as const
+            ).map(([value, title, hint]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={target === value}
+                onClick={() => {
+                  setTarget(value);
+                  if (value === "revision") setFiles((list) => list.slice(0, 1));
+                }}
+                className={cn(
+                  "focus-ring min-h-11 rounded-[var(--r-md)] border px-3 py-2 text-left transition-fast",
+                  target === value
+                    ? "border-line-2 bg-surface-3"
+                    : "border-line bg-surface-2 hover:border-line-2",
+                )}
+              >
+                <span className="block text-[13px] font-medium text-text">{title}</span>
+                <span className="block truncate text-caption text-text-muted">{hint}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <label
           onDragOver={(e) => {
@@ -436,7 +505,9 @@ function UploadDialog({
         >
           <FileUp className="size-8 text-text-muted" strokeWidth={1.5} />
           <span className="mt-3 text-[14px] font-medium">
-            Перетащите файлы или выберите на диске
+            {revision
+              ? "Перетащите файл или выберите на диске"
+              : "Перетащите файлы или выберите на диске"}
           </span>
           <span className="mt-1 text-caption text-text-muted">
             PDF, DOCX, XLSX · разделы АР, КМ, спецификации, узлы
@@ -444,10 +515,13 @@ function UploadDialog({
           <input
             ref={inputRef}
             type="file"
-            multiple
+            multiple={!revision}
             accept=".pdf,.docx,.xlsx"
             className="sr-only"
-            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            onChange={(e) => {
+              const list = Array.from(e.target.files ?? []);
+              setFiles(revision ? list.slice(0, 1) : list);
+            }}
           />
         </label>
 

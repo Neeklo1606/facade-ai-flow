@@ -14,10 +14,15 @@ export const DEFAULT_USER_ID = "e-sokolov";
 
 /**
  * Персона демонстрации: сотрудники, за которых можно работать без сессий и прав (ADR-008).
- * Роли у них разные, поэтому на демо видно, как система выглядит для руководителя,
- * снабжения и прораба. Настоящая авторизация — блок B.
+ * Пять ролей экрана выбора (ADR-010): руководитель проекта, снабжение, ПТО, прораб, директор.
  */
-export const DEMO_PERSONAS = ["e-sokolov", "e-dorohov", "e-gareev"] as const;
+export const DEMO_PERSONAS = [
+  "e-sokolov",
+  "e-dorohov",
+  "e-volkova",
+  "e-gareev",
+  "e-belyaev",
+] as const;
 
 const PERSONA_KEY = "neeklo-fieldops-persona";
 
@@ -35,10 +40,29 @@ let personaId = restorePersona();
 
 /**
  * Сотрудник, от имени которого пишутся действия. В демо-режиме это выбранная персона:
- * приёмку отчёта прорабом подписывает прораб. В рабочем режиме актор берётся на сервере
- * (`serverActor`) и остаётся сотрудником по умолчанию, пока нет сессий — это блок B.
+ * приёмку отчёта прорабом подписывает прораб. В рабочем режиме сотрудника действия берёт сервер
+ * из подписанной сессии (ADR-012), персона вкладки лишь выбирает, за кого войти.
  */
 export const currentUserId = () => personaId;
+
+/**
+ * Принять персону сессии сервера, не записывая её как выбор вкладки. Только в браузере:
+ * на сервере модуль общий для всех запросов.
+ */
+export function adoptPersona(id: string) {
+  if (typeof window === "undefined") return;
+  if ((DEMO_PERSONAS as readonly string[]).includes(id)) personaId = id;
+}
+
+/** Выбрана ли персона в этой вкладке: выбор вкладки главнее общей сессии браузера (ADR-012) */
+export function hasChosenPersona() {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(PERSONA_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
 
 export function setCurrentUserId(id: string) {
   personaId = (DEMO_PERSONAS as readonly string[]).includes(id) ? id : DEFAULT_USER_ID;

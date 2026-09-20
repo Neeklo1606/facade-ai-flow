@@ -17,10 +17,13 @@ import type { ListPositionsInput, ListProjectsInput, PositionFilterInput } from 
  * | приёмка отчёта                     | reports                                                 |
  * | проверка контакта поставщика       | procurement                                             |
  * | новый объект                       | projects, directory                                     |
+ * | смена персоны                      | все: у роли другой набор данных (ADR-012)               |
  */
 export const keys = {
   /** Время источника данных: сроки на экранах считаются от него */
   clock: () => ["clock"] as const,
+  /** Сессия персоны: роль и её объекты (ADR-012) */
+  session: (personaId: string) => ["session", personaId] as const,
   directory: {
     employees: () => ["directory", "employees"] as const,
     counterparties: () => ["directory", "counterparties"] as const,
@@ -45,14 +48,19 @@ export const keys = {
     item: (positionId: string) => ["positions", "item", positionId] as const,
     history: (positionId: string) => ["positions", "history", positionId] as const,
     materials: () => ["positions", "materials"] as const,
+    /** Номенклатура в области позиций: правка материала меняет нормализованные имена позиций */
+    categories: () => ["positions", "categories"] as const,
+    material: (id: string) => ["positions", "material", id] as const,
     replacements: () => ["positions", "replacements"] as const,
   },
   procurement: {
     suppliers: () => ["procurement", "suppliers"] as const,
+    supplier: (id: string) => ["procurement", "supplier", id] as const,
     templates: () => ["procurement", "templates"] as const,
     requests: (projectId: string) => ["procurement", "requests", projectId] as const,
     request: (requestId: string) => ["procurement", "request", requestId] as const,
     deliveries: (projectId: string) => ["procurement", "deliveries", projectId] as const,
+    delivery: (deliveryId: string) => ["procurement", "delivery", deliveryId] as const,
   },
   reports: {
     list: (projectId: string) => ["reports", "list", projectId] as const,

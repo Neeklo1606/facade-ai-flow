@@ -17,6 +17,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-2",
@@ -32,6 +33,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-4",
@@ -47,6 +49,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-6",
@@ -62,6 +65,7 @@ export const projectEvents = [
     revisionId: "pd-korona-spec",
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-7",
@@ -77,6 +81,7 @@ export const projectEvents = [
     revisionId: "pd-korona-spec",
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-8",
@@ -92,6 +97,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-9",
@@ -107,6 +113,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-10",
@@ -122,21 +129,23 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-11",
     projectId: "p-korona",
-    occurredAt: "2026-08-30T09:30:00",
+    occurredAt: "2026-08-30T10:05:00",
     type: "delivery_received",
-    title: "Получены утеплитель и мембрана",
-    details: "Партия по счёту № 1184, приняты на складе",
+    title: "Принята поставка: утеплитель",
+    details: "По акту приёмки без замечаний, партия по счёту № 1184",
     actorKind: "user",
     actorId: "e-gareev",
     sourceId: null,
-    requestId: null,
+    requestId: "sr-324",
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: "dl-502",
   },
   {
     id: "tl-12",
@@ -152,6 +161,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-13",
@@ -167,6 +177,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: "fr-korona-0901",
+    deliveryId: null,
   },
   {
     id: "tl-14",
@@ -182,6 +193,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-15",
@@ -197,6 +209,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: "fr-korona-0902",
+    deliveryId: null,
   },
   {
     id: "tl-16",
@@ -212,6 +225,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: "fr-korona-0903",
+    deliveryId: null,
   },
   {
     id: "tl-17",
@@ -227,6 +241,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-18",
@@ -242,6 +257,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-19",
@@ -257,6 +273,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-20",
@@ -272,6 +289,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: "fr-korona-0904",
+    deliveryId: null,
   },
   {
     id: "tl-21",
@@ -279,7 +297,7 @@ export const projectEvents = [
     occurredAt: "2026-09-05T07:15:00",
     type: "offer_received",
     title: "Получено предложение «Фасад-Комплект» по кронштейнам",
-    details: "Доступно 2 800 из 3 400 шт",
+    details: "Доступно 5 300 из 6 400 шт",
     actorKind: "system",
     actorId: null,
     sourceId: "src-mail-fk",
@@ -287,6 +305,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-22",
@@ -302,6 +321,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: "fr-korona-0905",
+    deliveryId: null,
   },
   {
     id: "tl-23",
@@ -317,6 +337,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: "fr-korona-0905",
+    deliveryId: null,
   },
   {
     id: "tl-24",
@@ -332,6 +353,7 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
   {
     id: "tl-25",
@@ -347,5 +369,6 @@ export const projectEvents = [
     revisionId: null,
     positionId: null,
     reportId: null,
+    deliveryId: null,
   },
 ] satisfies ProjectEvent[];

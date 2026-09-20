@@ -6,6 +6,8 @@
  * браузера, наружу не уходит. Как читать логи — docs/RUNBOOK.md.
  */
 
+import { recordError } from "./guide/telemetry";
+
 const ENDPOINT = "/api/client-error";
 /** Больше двадцати сообщений за сессию — это цикл, а не ошибки: дальше молчим */
 const SESSION_LIMIT = 20;
@@ -39,6 +41,8 @@ function textOf(error: unknown) {
 export function reportClientError(error: unknown, context: Record<string, string> = {}) {
   if (typeof window === "undefined") return;
   const { message, stack } = textOf(error);
+  // Ошибка — событие сессии: её видно в статистике вкладки (ADR-010)
+  if (message) recordError(message);
   const key = `${context["kind"] ?? "error"}:${message}`;
   if (!message || seen.has(key) || sent >= SESSION_LIMIT) return;
   seen.add(key);

@@ -7,11 +7,19 @@ import {
 } from "@tanstack/react-query";
 import { confidenceBand, type ExtractedPosition } from "@/contracts";
 import type {
+  AcceptDeliveryInput,
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  ConfirmMatchInput,
+  SaveMaterialInput,
+  MoveDeliveryInput,
+  ResolveRemarkInput,
   CreateProjectInput,
   CreateRequestInput,
+  CompleteMilestoneInput,
+  ResolveChangeInput,
+  SetProjectStatusInput,
   MergePositionsInput,
   Page,
   ReviewReportInput,
@@ -126,6 +134,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
 
   const confirm = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "confirmPositions" },
     mutationFn: (ids: string[]) => api.positions.confirm(ids),
     onMutate: (ids) => patchPositions(new Set(ids), reviewed("confirmed")),
     onError: (error, _ids, snapshot) => failed(error, snapshot),
@@ -135,6 +144,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
   /** «Подтвердить все проверенные»: какие позиции подтвердить, решает сервер */
   const confirmAutoVerified = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "confirmAutoVerified" },
     mutationFn: (revisionId: string) => api.positions.confirmAutoVerified(revisionId),
     onMutate: (revisionId) =>
       patchWhere(
@@ -150,6 +160,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
 
   const correct = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "correctPosition" },
     mutationFn: (input: CorrectPositionInput) => api.positions.correct(input),
     onMutate: ({ id, ...patch }) =>
       patchPositions(new Set([id]), (item) => ({ ...reviewed("corrected")(item), ...patch })),
@@ -160,6 +171,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
 
   const exclude = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "excludePosition" },
     mutationFn: (id: string) => api.positions.exclude(id),
     onMutate: (id) => patchPositions(new Set([id]), reviewed("excluded")),
     onError: (error, _id, snapshot) => failed(error, snapshot),
@@ -168,6 +180,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
 
   const markHeader = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "markHeader" },
     mutationFn: (id: string) => api.positions.markHeader(id),
     onMutate: (id) => patchPositions(new Set([id]), reviewed("header")),
     onError: (error, _id, snapshot) => failed(error, snapshot),
@@ -176,6 +189,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
 
   const reopen = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "reopenPosition" },
     mutationFn: (id: string) => api.positions.reopen(id),
     onMutate: (id) =>
       patchPositions(new Set([id]), (item) => ({
@@ -192,6 +206,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
   /** Обратная мутация для «Отменить»: сервер возвращает прежнее решение и пишет отмену в журнал */
   const undoReview = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "undoReview" },
     mutationFn: (input: UndoReviewInput) => api.positions.undoReview(input),
     onMutate: ({ items }) => {
       const byId = new Map(items.map((item) => [item.id, item]));
@@ -215,6 +230,7 @@ export function usePositionMutations(notices: MutationNotices = {}) {
 
   const merge = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "mergePositions" },
     mutationFn: (input: MergePositionsInput) => api.positions.merge(input),
     onError: (error) => notices.onFailed?.(error),
     onSettled: () => settle(REVIEW_AREAS),
@@ -222,12 +238,14 @@ export function usePositionMutations(notices: MutationNotices = {}) {
 
   const split = useMutation({
     mutationKey: REVIEW_MUTATION,
+    meta: { action: "splitPosition" },
     mutationFn: (input: SplitPositionInput) => api.positions.split(input),
     onError: (error) => notices.onFailed?.(error),
     onSettled: () => settle(REVIEW_AREAS),
   });
 
   const handOver = useMutation({
+    meta: { action: "handOver" },
     mutationFn: (revisionId: string) => api.positions.handOver(revisionId),
     onSettled: () => invalidate(queryClient, REVIEW_AREAS),
   });
@@ -268,6 +286,7 @@ export function undoInput(before: ExtractedPosition[], from: ExtractedPosition["
 export function useUploadDocument() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { action: "uploadDocument" },
     mutationFn: (input: UploadRevisionInput) => api.documents.upload(input),
     onSettled: () => invalidate(queryClient, ["documents", "positions", "projects", "timeline"]),
   });
@@ -276,6 +295,7 @@ export function useUploadDocument() {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { action: "createProject" },
     mutationFn: (input: CreateProjectInput) => api.projects.create(input),
     onSettled: () => invalidate(queryClient, ["projects", "directory"]),
   });
@@ -286,6 +306,7 @@ const PROCUREMENT_AREAS: Area[] = ["procurement", "positions", "projects", "time
 export function useCreateRequest() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { action: "createRequest" },
     mutationFn: (input: CreateRequestInput) => api.procurement.createRequest(input),
     onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
   });
@@ -294,6 +315,7 @@ export function useCreateRequest() {
 export function useRemindSuppliers() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { action: "remindSuppliers" },
     mutationFn: (requestId: string) => api.procurement.remind(requestId),
     // Ответы на напоминание приходят позже событиями и обновляют свои области сами
     onSettled: () => invalidate(queryClient, ["procurement"]),
@@ -303,15 +325,67 @@ export function useRemindSuppliers() {
 export function useChooseSupplier() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { action: "chooseSupplier" },
     mutationFn: (input: ChooseSupplierInput) => api.procurement.chooseSupplier(input),
     // reports: карточка источника показывает решения, принятые на его основании
     onSettled: () => invalidate(queryClient, [...PROCUREMENT_AREAS, "reports"]),
   });
 }
 
+/** Движение поставки до приёмки: отгружено, в пути, прибыло, отклонено (ADR-011) */
+export function useMoveDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "moveDelivery" },
+    mutationFn: (input: MoveDeliveryInput) => api.procurement.moveDelivery(input),
+    onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
+  });
+}
+
+/** Закрыть замечание по поставке: уходит из очереди «Требует решения» */
+export function useResolveRemark() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "resolveRemark" },
+    mutationFn: (input: ResolveRemarkInput) => api.procurement.resolveRemark(input),
+    onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
+  });
+}
+
+/** Акт приёмки: меняет поставку, позиции (поставлено, остаток), историю и очередь решений */
+export function useAcceptDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "acceptDelivery" },
+    mutationFn: (input: AcceptDeliveryInput) => api.procurement.acceptDelivery(input),
+    onSettled: () => invalidate(queryClient, PROCUREMENT_AREAS),
+  });
+}
+
+/** Подтвердить сопоставление позиции с материалом справочника (ADR-014) */
+export function useConfirmMatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "confirmMatch" },
+    mutationFn: (input: ConfirmMatchInput) => api.positions.confirmMatch(input),
+    onSettled: () => invalidate(queryClient, ["positions", "projects"]),
+  });
+}
+
+/** Добавить или изменить материал номенклатуры (ADR-014) */
+export function useSaveMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveMaterial" },
+    mutationFn: (input: SaveMaterialInput) => api.catalog.saveMaterial(input),
+    onSettled: () => invalidate(queryClient, ["positions", "procurement"]),
+  });
+}
+
 export function useVerifyContact() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { action: "verifyContact" },
     mutationFn: (supplierId: string) => api.procurement.verifyContact(supplierId),
     onSettled: () => invalidate(queryClient, ["procurement"]),
   });
@@ -320,6 +394,7 @@ export function useVerifyContact() {
 export function useReviewReport(notices: Pick<MutationNotices, "onFailed"> = {}) {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { action: "reviewReport" },
     mutationFn: (input: ReviewReportInput) => api.reports.review(input),
     onMutate: (input) =>
       patchLists<ReportCard[]>(queryClient, ["reports", "list"], (cards) =>
@@ -352,5 +427,40 @@ export function useResetDemo() {
 
 /** Вопрос ассистенту (ADR-006): ответ не кешируется — каждый вопрос считается заново */
 export function useAskAgent() {
-  return useMutation({ mutationFn: (input: AskAgentInput) => api.agent.ask(input) });
+  return useMutation({
+    meta: { action: "askAgent" },
+    mutationFn: (input: AskAgentInput) => api.agent.ask(input),
+  });
+}
+
+/* ---------- Статусы на экранах (ADR-015, п. 7) ---------- */
+
+/** Статус объекта: реестр, карточка, дашборд и история */
+export function useSetProjectStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "setProjectStatus" },
+    mutationFn: (input: SetProjectStatusInput) => api.projects.setStatus(input),
+    onSettled: () => invalidate(queryClient, ["projects", "timeline"]),
+  });
+}
+
+/** Контрольная точка выполнена: карточка объекта и история */
+export function useCompleteMilestone() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "completeMilestone" },
+    mutationFn: (input: CompleteMilestoneInput) => api.projects.completeMilestone(input),
+    onSettled: () => invalidate(queryClient, ["projects", "timeline"]),
+  });
+}
+
+/** Изменение ревизии разобрано: счётчики реестра и карточки, список изменений, история */
+export function useResolveChange() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "resolveChange" },
+    mutationFn: (input: ResolveChangeInput) => api.documents.resolveChange(input),
+    onSettled: () => invalidate(queryClient, ["documents", "projects", "timeline"]),
+  });
 }

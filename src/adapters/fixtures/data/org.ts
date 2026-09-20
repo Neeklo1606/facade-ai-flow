@@ -74,6 +74,16 @@ export const employees = [
     status: "active",
   },
   {
+    // Персона демонстрации «директор» (ADR-010): смотрит всё, решения принимает руководитель
+    id: "e-belyaev",
+    name: "Беляев В. Н.",
+    position: "Генеральный директор",
+    role: "director",
+    phone: "+7 921 300-05-17",
+    telegram: "@belyaev_vn",
+    status: "active",
+  },
+  {
     id: "e-nazarov",
     name: "Назаров Т. Б.",
     position: "Монтажник, звеньевой",
@@ -321,7 +331,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-fk",
     region: "Москва",
-    categories: ["Подконструкция", "Облицовка", "Доборные элементы"],
+    categories: ["cat-subframe", "cat-facing", "cat-trim"],
     contactName: "Литвинов П. А.",
     phone: "+7 812 702-30-40",
     email: "sales@fasad-komplekt.ru",
@@ -332,7 +342,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-mp",
     region: "Москва",
-    categories: ["Подконструкция", "Крепёж"],
+    categories: ["cat-subframe", "cat-fasteners"],
     contactName: "Романова Т. И.",
     phone: "+7 812 336-88-10",
     email: "zakaz@mp-group.ru",
@@ -343,7 +353,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-kt",
     region: "Москва",
-    categories: ["Облицовка"],
+    categories: ["cat-facing"],
     contactName: "Абрамов Д. С.",
     phone: "+7 812 244-51-63",
     email: "info@keramika-trade.ru",
@@ -354,7 +364,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-sk",
     region: "Москва",
-    categories: ["Крепёж", "Утепление и мембраны", "Доборные элементы"],
+    categories: ["cat-fasteners", "cat-insulation", "cat-trim"],
     contactName: "Ушакова Н. В.",
     phone: "+7 812 777-12-08",
     email: "opt@stroykrepezh.ru",
@@ -365,7 +375,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-ti",
     region: "Москва",
-    categories: ["Утепление и мембраны"],
+    categories: ["cat-insulation"],
     contactName: "Белова И. Г.",
     phone: "+7 495 118-40-22",
     email: "belova@tehnoizol.ru",
@@ -376,7 +386,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-alp",
     region: "Москва",
-    categories: ["Подконструкция", "Доборные элементы"],
+    categories: ["cat-subframe", "cat-trim"],
     contactName: "Ефимов Р. С.",
     phone: "+7 495 902-17-60",
     email: "sales@aluprofil-region.ru",
@@ -387,7 +397,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-szm",
     region: "Санкт-Петербург",
-    categories: ["Подконструкция", "Доборные элементы"],
+    categories: ["cat-subframe", "cat-trim"],
     contactName: "Крылов А. П.",
     phone: "+7 812 603-55-17",
     email: "krylov@szmetall.ru",
@@ -398,7 +408,7 @@ export const supplierProfiles = [
   {
     supplierId: "c-kfs",
     region: "Казань",
-    categories: ["Облицовка", "Подконструкция"],
+    categories: ["cat-facing", "cat-subframe"],
     contactName: "Хабибуллин Р. Ф.",
     phone: "+7 843 211-09-48",
     email: "zakaz@kfsnab.ru",

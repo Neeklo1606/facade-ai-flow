@@ -62,7 +62,11 @@ export const extractions = table(
       nullable: true,
       comment: "таблица, куда легло значение после подтверждения",
     }),
-    appliedId: col.text({ nullable: true, comment: "id строки в applied_entity" }),
+    appliedId: col.text({
+      nullable: true,
+      comment: "id строки в applied_entity",
+      holdsIds: true,
+    }),
   },
 );
 
@@ -70,11 +74,18 @@ export const extractions = table(
 
 export const reportKind = pgEnum("report_kind", ["voice", "text", "photo"], "Как прислан отчёт");
 
+/** Переходы статуса отчёта: одна таблица для схемы БД и для проверки в адаптере */
+export const reportTransitions = {
+  review: ["accepted", "returned"],
+  returned: ["review", "accepted"],
+  accepted: ["review"],
+} as const;
+
 export const reportStatus = pgEnum(
   "report_status",
   ["review", "accepted", "returned"],
   "Проверка отчёта руководителем или ПТО",
-  { review: ["accepted", "returned"], returned: ["review", "accepted"], accepted: ["review"] },
+  reportTransitions,
 );
 
 export const fieldReports = table(

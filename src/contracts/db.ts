@@ -19,6 +19,8 @@ export interface ColumnMeta {
   references?: { table: string; onDelete: OnDelete };
   enumName?: string;
   comment?: string;
+  /** Значения — ключи строк других таблиц без внешнего ключа; адаптер БД переводит их, как `uuid` (ADR-005, п. 9) */
+  holdsIds?: boolean;
 }
 
 export interface IndexMeta {
@@ -38,7 +40,7 @@ export interface TableMeta {
   checks?: string[];
   /** Журнал: строки только добавляются, `update` и `delete` запрещены правами */
   appendOnly?: boolean;
-  /** Служебные колонки `created_at`, `updated_at`, `created_by` — есть в БД, не отдаются в API */
+  /** Служебные колонки `created_at`, `updated_at`, `created_by` — есть в БД, не отдаются в API. `row_order` есть у всех таблиц */
   audited?: boolean;
 }
 
@@ -65,6 +67,7 @@ interface ColumnOptions {
   nullable?: boolean;
   comment?: string;
   default?: string;
+  holdsIds?: boolean;
 }
 
 type Col<T extends z.ZodTypeAny, O> = O extends { nullable: true } ? z.ZodNullable<T> : T;
@@ -80,6 +83,7 @@ function column<T extends z.ZodTypeAny, const O extends ColumnOptions>(
     nullable: Boolean(options?.nullable),
     ...(options?.comment ? { comment: options.comment } : {}),
     ...(options?.default ? { default: options.default } : {}),
+    ...(options?.holdsIds ? { holdsIds: true } : {}),
   });
   return final as Col<T, O>;
 }
@@ -202,7 +206,17 @@ export function table<S extends z.ZodRawShape>(meta: TableMeta, shape: S) {
     if (!(name in shape))
       throw new Error(`Индекс ${meta.name} ссылается на неизвестную колонку ${name}`);
   }
-  tables.push({ meta, schema, columns });
+  // Индекс на каждый внешний ключ, если он ещё не первый столбец индекса или ключа (ADR-005, п. 2):
+  // без него выборка по связи и удаление родителя идут полным просмотром таблицы
+  const leading = new Set([
+    meta.primaryKey[0],
+    ...meta.indexes.map((index) => index.columns[0]?.replace(/ (asc|desc)$/, "")),
+  ]);
+  const fkIndexes = Object.entries(columns)
+    .filter(([key, column]) => column.references && !leading.has(key))
+    .map(([key]) => ({ columns: [key], purpose: "внешний ключ: выборка по связи" }));
+  const withFk = fkIndexes.length ? { ...meta, indexes: [...meta.indexes, ...fkIndexes] } : meta;
+  tables.push({ meta: withFk, schema, columns });
   return schema;
 }
 

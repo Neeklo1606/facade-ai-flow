@@ -6,10 +6,13 @@ import {
   type TimelineEvent,
 } from "@/contracts";
 
-/** Что ждёт решения по объекту: запрос с ответами всех поставщиков или предложенная замена */
+/**
+ * Что ждёт решения по объекту: запрос с ответами всех поставщиков, поставка, которая прибыла
+ * и ждёт приёмки, или замечание по поставке для снабжения (ADR-011)
+ */
 export const pendingDecision = z.object({
   id: z.string().min(1),
-  kind: z.enum(["request", "replacement"]),
+  kind: z.enum(["request", "replacement", "delivery", "remark"]),
   title: z.string().min(1),
   details: z.string(),
   link: z.string().min(1),

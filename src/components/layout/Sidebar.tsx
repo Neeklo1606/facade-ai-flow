@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
@@ -12,14 +12,9 @@ import {
   X,
 } from "lucide-react";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
-import {
-  activeNavKey,
-  navGroupsFor,
-  sectionHref,
-  startRouteFor,
-  type BadgeKey,
-} from "@/lib/navigation";
+import { activeNavKey, navGroupsFor, sectionHref, type BadgeKey } from "@/lib/navigation";
 import { useCurrentUser, useProjectId } from "@/lib/project-scope";
+import { useEnterAs } from "@/lib/persona";
 import { useResetDemo } from "@/api/mutations";
 import { dataSource, DEMO_PERSONAS } from "@/api/config";
 import {
@@ -60,6 +55,7 @@ function badgeCounts(
     unverifiedSpec: total((item) => item.specUnverified),
     overdueRequests: total((item) => item.overdueRequests),
     openChanges: total((item) => item.openChanges),
+    deliveriesToAccept: total((item) => item.deliveriesToAccept),
   };
 }
 
@@ -86,9 +82,10 @@ export function Sidebar() {
         data-sidebar="app"
         className={cn(
           // На телефоне меню выезжает поверх экрана и нуждается в фоне; в оболочке сайдбар прозрачный
-          "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0 lg:bg-transparent",
+          "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform,visibility] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0 lg:bg-transparent",
           collapsed ? "lg:w-[72px]" : "lg:w-[var(--sidebar-w)]",
-          mobileNavOpen ? "translate-x-0" : "-translate-x-full",
+          // Закрытое выдвижное меню скрыто от фокуса и диктора; скрытие ждёт конца выезда (ADR-015, п. 3)
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full max-lg:invisible",
         )}
       >
         <SidebarInner
@@ -114,7 +111,8 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { setProjectId, personaId, setPersonaId } = useApp();
+  const { setProjectId, personaId } = useApp();
+  const enterAs = useEnterAs();
   const user = useCurrentUser();
   // Меню зависит от роли выбранной персоны (ADR-008): снабжение не ведёт площадку,
   // прораб не занимается закупками
@@ -140,7 +138,7 @@ function SidebarInner({
   const changeProject = (value: string) => {
     setProjectId(value);
     const match = pathname.match(
-      /^\/projects\/[^/]+(\/(documents|materials|procurement|field-reports|timeline))?/,
+      /^\/projects\/[^/]+(\/(documents|materials|procurement|deliveries|field-reports|timeline))?/,
     );
     if (!match) return;
     if (value === ALL_PROJECTS) {
@@ -155,13 +153,23 @@ function SidebarInner({
   );
   /** Смена персоны открывает стартовый экран её роли: иначе можно остаться на скрытом разделе */
   const switchPersona = (id: string, role: EmployeeRole) => {
-    setPersonaId(id);
     onClose();
-    navigate({ to: startRouteFor(role, projectId ?? projects[0]?.id ?? null) });
+    void enterAs(id, role).then((to) => navigate({ to }));
   };
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const activeKey = activeNavKey(pathname, view, pickSection);
+  // У руководителя и директора меню длиннее экрана ноутбука: активный пункт внизу списка
+  // (например, «Права доступа») прокручивается в видимую часть
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    navRef.current?.querySelector("[aria-current=page]")?.scrollIntoView({ block: "nearest" });
+  }, [activeKey]);
   const activeGroup = groups.find((g) => g.items.some((i) => i.key === activeKey))?.title;
+  // Переход в раздел раскрывает его группу; свернуть можно любую группу, и текущую тоже —
+  // иначе её заголовок был бы кнопкой без действия (ADR-015, п. 2)
+  useEffect(() => {
+    if (activeGroup) setClosedGroups((prev) => prev.filter((title) => title !== activeGroup));
+  }, [activeGroup]);
 
   const siteLabel = projectId ? projects.find((p) => p.id === projectId)?.name : "Все объекты";
   const initials = user?.name
@@ -243,10 +251,9 @@ function SidebarInner({
         </label>
       )}
 
-      <nav className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
+      <nav ref={navRef} className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
         {groups.map((group, index) => {
-          const open =
-            collapsed || !closedGroups.includes(group.title) || group.title === activeGroup;
+          const open = collapsed || !closedGroups.includes(group.title);
           const hiddenCritical = group.items.reduce(
             (sum, i) => sum + (i.badge && CRITICAL_BADGES.includes(i.badge) ? counts[i.badge] : 0),
             0,
@@ -296,6 +303,7 @@ function SidebarInner({
                           to={href.to}
                           search={href.search as never}
                           onClick={onClose}
+                          data-tour={`nav-${item.key}`}
                           title={item.label}
                           data-active={active}
                           aria-current={active ? "page" : undefined}
@@ -427,8 +435,8 @@ function SidebarInner({
             ))}
             <DropdownMenuSeparator />
             <p className="px-2 py-1.5 text-[12px] leading-[1.4] text-text-3">
-              Роль меняет стартовый экран и состав меню. Права и запрет прямых переходов — следующая
-              фаза.
+              У каждой роли свои права: закрытые разделы не показываются, сервер отклоняет действия
+              без права. Матрица — в разделе «Права доступа».
             </p>
           </DropdownMenuContent>
         </DropdownMenu>

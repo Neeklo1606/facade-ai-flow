@@ -1,20 +1,26 @@
-import type { Delivery, ExtractionJob, ProjectDocument, RequestLine } from "@/contracts";
+import type { ExtractionJob, ProjectDocument, RequestLine } from "@/contracts";
+import { deliveryStatusLabel } from "@/contracts";
+import { canMove } from "@/domain/deliveries";
+import { DEMO_SHIPMENT_NOTE } from "@/lib/demo-copy";
 import { simulatedPositions } from "@/adapters/fixtures";
-import { addDays, tick } from "./clock";
-import { projectEvent } from "./records";
+import { tick } from "./clock";
+import { liveId, projectEvent } from "./records";
 import { simulateReply } from "./replies";
 import { emitDemoEvent, getState, update, type DemoJob } from "./state";
 
 /**
  * Симулятор событий демо: то, что в рабочем режиме приходит извне — стадии распознавания,
- * ответы поставщиков, заказ и отгрузка. Отложенные события лежат в состоянии (`jobs`),
+ * ответы поставщиков, отгрузка поставки. Отложенные события лежат в состоянии (`jobs`),
  * поэтому после перезагрузки вкладки они продолжаются с того же места.
  */
 
 export const UPLOAD_STAGE_MS = 1_400;
-/** Заказ оформляется через несколько секунд после выбора поставщика, отгрузка — ещё позже */
-const ORDER_DELAY_MS = 6_000;
-const SHIPMENT_DELAY_MS = 10_000;
+/**
+ * Поставщик «отгружает» поставку через несколько секунд после решения и отмечает «в пути»
+ * ещё позже. Прибытие и приёмку отмечает человек на площадке (ADR-011)
+ */
+const SHIPPED_DELAY_MS = 8_000;
+const IN_TRANSIT_DELAY_MS = 16_000;
 
 const uploadStatusByStage: ProjectDocument["status"][] = [
   "uploaded",
@@ -35,6 +41,13 @@ const jobStatusByStage: ExtractionJob["status"][] = [
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 let running = false;
+/** Без симулятора события не заводятся вовсе: режим базы и паритетный тест (ADR-005, п. 12) */
+let enabled = true;
+
+export function disableSimulator() {
+  enabled = false;
+  stopSimulator();
+}
 
 function jobKey(job: DemoJob) {
   switch (job.kind) {
@@ -42,10 +55,8 @@ function jobKey(job: DemoJob) {
       return `upload:${job.revisionId}:${job.stage}`;
     case "reply":
       return `reply:${job.requestId}:${job.supplierId}`;
-    case "order":
-      return `order:${job.decisionId}`;
     case "shipment":
-      return `shipment:${job.deliveryId}`;
+      return `shipment:${job.deliveryId}:${job.status}`;
   }
 }
 
@@ -67,13 +78,14 @@ function arm(job: DemoJob) {
 
 /** Запланировать события: записать в состояние и завести таймеры */
 export function schedule(jobs: DemoJob[]) {
-  if (!jobs.length) return;
+  if (!jobs.length || !enabled) return;
   update((prev) => ({ ...prev, jobs: [...prev.jobs, ...jobs] }));
   jobs.forEach(arm);
 }
 
 /** Запустить симулятор и продолжить события, сохранённые до перезагрузки */
 export function startSimulator() {
+  if (!enabled) return;
   running = true;
   getState().jobs.forEach(arm);
 }
@@ -89,10 +101,8 @@ function run(job: DemoJob) {
       return advanceUpload(job.revisionId, job.stage);
     case "reply":
       return deliverReply(job.requestId, job.supplierId);
-    case "order":
-      return placeOrder(job.decisionId);
     case "shipment":
-      return ship(job.deliveryId);
+      return ship(job.deliveryId, job.status);
   }
 }
 
@@ -126,7 +136,7 @@ function advanceUpload(revisionId: string, stage: number) {
         ? [...prev.positions, ...simulatedPositions(revisionId, doc.projectId, 36)]
         : prev.positions,
   }));
-  emitDemoEvent({ areas: ["documents", "positions", "projects"] });
+  emitDemoEvent({ areas: ["documents", "positions", "projects"], kind: "extraction" });
   if (stage < uploadStatusByStage.length - 1) {
     schedule([
       { kind: "upload", revisionId, stage: stage + 1, dueAt: Date.now() + UPLOAD_STAGE_MS },
@@ -193,6 +203,7 @@ function deliverReply(requestId: string, supplierId: string) {
     ],
   }));
   emitDemoEvent({
+    kind: "offer",
     areas: ["procurement", "positions", "projects", "timeline"],
     notice: {
       title: `Пришло предложение «${supplierName}»`,
@@ -201,97 +212,67 @@ function deliverReply(requestId: string, supplierId: string) {
   });
 }
 
-/* ---------- Заказ и отгрузка после выбора поставщика ---------- */
+/* ---------- Отгрузка поставки (ADR-011) ---------- */
 
-export function orderJob(decisionId: string): DemoJob {
-  return { kind: "order", decisionId, dueAt: Date.now() + ORDER_DELAY_MS };
+/** Задания поставщика после решения: «отгружено», затем «в пути» */
+export function shipmentJobs(deliveryId: string): DemoJob[] {
+  const now = Date.now();
+  return [
+    { kind: "shipment", deliveryId, status: "shipped", dueAt: now + SHIPPED_DELAY_MS },
+    { kind: "shipment", deliveryId, status: "in_transit", dueAt: now + IN_TRANSIT_DELAY_MS },
+  ];
 }
 
-function placeOrder(decisionId: string) {
+/**
+ * Движение на стороне поставщика. В демо его никто не присылал — статус ставит обработка,
+ * и это сказано в строке движения, в истории и в уведомлении (правка 1).
+ */
+function ship(deliveryId: string, status: "shipped" | "in_transit") {
   const s = getState();
-  const decision = s.decisions.find((item) => item.id === decisionId);
-  const request = s.requests.find((item) => item.id === decision?.requestId);
-  if (!decision?.supplierId || !request || request.status === "ordered") return;
-
-  const supplierId = decision.supplierId;
-  const supplierName = s.counterparties.find((item) => item.id === supplierId)?.name ?? "—";
-  const offer = s.offers.find(
-    (item) => item.requestId === request.id && item.supplierId === supplierId,
-  );
-  const leadDays = Math.max(
-    1,
-    ...s.offerLines.filter((line) => line.offerId === offer?.id).map((line) => line.leadTimeDays),
-  );
-  const orderedAt = tick();
-  const delivery: Delivery = {
-    id: `dl-${request.id}`,
-    requestId: request.id,
-    projectId: request.projectId,
-    supplierId,
-    expectedAt: addDays(orderedAt, leadDays).slice(0, 10),
-    receivedAt: null,
-    status: "expected",
-    sourceId: null,
-    items: request.items.map((line) => ({
-      requestLineId: line.id,
-      name: line.name,
-      qty: line.qty,
-      unit: line.unit,
-    })),
-  };
-
+  const delivery = s.deliveries.find((item) => item.id === deliveryId);
+  if (!delivery || !canMove(delivery.status, status)) return;
+  const request = s.requests.find((item) => item.id === delivery.requestId);
+  const supplierName =
+    s.counterparties.find((item) => item.id === delivery.supplierId)?.name ?? "—";
+  const at = tick();
   update((prev) => ({
     ...prev,
-    deliveries: [delivery, ...prev.deliveries],
-    requests: prev.requests.map((item) =>
-      item.id === request.id ? { ...item, status: "ordered" } : item,
+    deliveries: prev.deliveries.map((item) =>
+      item.id === deliveryId ? { ...item, status } : item,
     ),
-    positions: prev.positions.map((item) =>
-      item.requestIds.includes(request.id) && item.purchase === "supplier_selected"
-        ? { ...item, purchase: "ordered" }
-        : item,
-    ),
+    deliveryChanges: [
+      ...prev.deliveryChanges,
+      {
+        id: liveId("dsc"),
+        deliveryId,
+        status,
+        at,
+        actorKind: "system",
+        actorId: null,
+        note: DEMO_SHIPMENT_NOTE,
+      },
+    ],
     events: [
       ...prev.events,
       projectEvent(
         {
-          projectId: request.projectId,
-          type: "material_ordered",
-          title: `Заказаны материалы у «${supplierName}» по запросу ${request.number}`,
-          details: `${request.items.length} поз., поставка ожидается через ${leadDays} дн.`,
-          requestId: request.id,
+          projectId: delivery.projectId,
+          type: "delivery_moved",
+          title: `Поставка по запросу ${request?.number ?? "—"}: ${deliveryStatusLabel[status].toLowerCase()}`,
+          details: DEMO_SHIPMENT_NOTE,
+          requestId: delivery.requestId,
+          deliveryId,
         },
         null,
       ),
     ],
   }));
   emitDemoEvent({
-    areas: ["procurement", "positions", "projects", "timeline"],
+    kind: "shipment",
+    areas: ["procurement", "projects", "timeline"],
     notice: {
-      title: `Заказ по запросу ${request.number} оформлен`,
-      description: `«${supplierName}» подтвердил заказ, поставка ожидается через ${leadDays} дн.`,
-    },
-  });
-  schedule([{ kind: "shipment", deliveryId: delivery.id, dueAt: Date.now() + SHIPMENT_DELAY_MS }]);
-}
-
-/** Отгрузка: поставка в пути. Приёмку на площадке симулятор не делает — это действие прораба. */
-function ship(deliveryId: string) {
-  const delivery = getState().deliveries.find((item) => item.id === deliveryId);
-  if (!delivery || delivery.status !== "expected") return;
-  update((prev) => ({
-    ...prev,
-    deliveries: prev.deliveries.map((item) =>
-      item.id === deliveryId ? { ...item, status: "in_transit" } : item,
-    ),
-  }));
-  const supplierName =
-    getState().counterparties.find((item) => item.id === delivery.supplierId)?.name ?? "—";
-  emitDemoEvent({
-    areas: ["procurement", "projects"],
-    notice: {
-      title: `Поставка «${supplierName}» в пути`,
-      description: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}.`,
+      title: `Поставка «${supplierName}» отмечена «${deliveryStatusLabel[status].toLowerCase()}»`,
+      description: `${DEMO_SHIPMENT_NOTE} ${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}.`,
     },
   });
 }

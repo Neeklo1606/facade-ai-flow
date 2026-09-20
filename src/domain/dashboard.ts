@@ -12,6 +12,7 @@ import {
 } from "@/contracts";
 import { fmtNum } from "@/shared/number-format";
 import { isActiveJob } from "./extraction";
+import { wallIso, wallMs } from "./time";
 
 /**
  * Дашборд: сводка по всем объектам (ADR-007). Здесь только формулы — экран получает готовые числа.
@@ -40,8 +41,7 @@ const periodHours: Record<DashboardPeriod, number> = { shift: 12, week: 24 * 7, 
 
 /** Начало периода от времени источника данных. Строки сравниваются как ISO-отметки */
 export function periodStart(now: string, period: DashboardPeriod) {
-  const from = new Date(new Date(now).getTime() - periodHours[period] * 3_600_000);
-  return from.toISOString().slice(0, 19);
+  return wallIso(wallMs(now) - periodHours[period] * 3_600_000);
 }
 
 /** Попала ли отметка времени в период [начало; сейчас] */
@@ -102,7 +102,7 @@ interface RequestRow {
 interface PendingRow {
   projectId: string;
   id: string;
-  kind: "request" | "replacement";
+  kind: "request" | "replacement" | "delivery" | "remark";
   title: string;
   details: string;
   link: string;
@@ -163,9 +163,14 @@ export function runningProjects<T extends { project: Project }>(rows: T[]) {
   return rows.filter((row) => row.project.status === "active" || row.project.status === "at_risk");
 }
 
-/** Отправленные запросы, на которые не ответил ни один поставщик */
+/**
+ * Запросы, которые ждут ответов и не получили ни одного. Заказанный без сравнения запрос
+ * ответов тоже не имеет, но уже не ждёт их — на экране закупок он «Решение принято» (Q8)
+ */
 function silentRequests(requests: RequestRow[]) {
-  return requests.filter((row) => row.request.sentAt && row.answered === 0 && !row.decisionId);
+  return requests.filter(
+    (row) => row.request.status === "sent" && row.answered === 0 && !row.decisionId,
+  );
 }
 
 /** Ревизии, по которым идёт распознавание */
@@ -312,8 +317,9 @@ export function unclosedVolume(source: DashboardSource): UnclosedVolume {
     const share = (amount * left) / plan;
     rub += share;
     qty += left;
-    if (row.project.stage) stages.add(row.project.stage);
-    for (const zone of row.zones) units.add(zone.unit);
+    // Стадии и единицы — только объектов, вошедших в оценку: у выполненного незакрытого нет
+    if (left > 0 && row.project.stage) stages.add(row.project.stage);
+    if (left > 0) for (const zone of row.zones) units.add(zone.unit);
     if (left > 0 && (!top || share > top.rub)) top = { name: row.project.name, rub: share };
   }
 
@@ -393,7 +399,10 @@ export function attentionRows(source: DashboardSource, limit = 8): AttentionRow[
     const request = source.requests.find((item) => item.request.id === row.id);
     rows.push({
       id: `pending-${row.id}`,
-      severity: row.kind === "request" ? "warn" : "info",
+      severity:
+        row.kind === "request" || row.kind === "remark" || row.kind === "delivery"
+          ? "warn"
+          : "info",
       title: row.title,
       reason: row.details,
       projectId: row.projectId,
@@ -438,9 +447,9 @@ export function projectProgress(source: DashboardSource): ProjectProgress[] {
     .map((row) => {
       const { plan, fact, left } = zoneRemainder(row.zones);
       const donePct = plan ? Math.round((fact / plan) * 100) : 0;
-      const start = new Date(row.project.startDate).getTime();
-      const end = new Date(row.project.endDate).getTime();
-      const now = new Date(source.now).getTime();
+      const start = wallMs(row.project.startDate);
+      const end = wallMs(row.project.endDate);
+      const now = wallMs(source.now);
       const elapsed = end > start ? (now - start) / (end - start) : null;
       const deviationPp =
         elapsed === null || !plan

@@ -1,10 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ArrowLeftRight, Bot, FileText, UserRound } from "lucide-react";
+import { positionRemainder } from "@/api/deliveries";
+import { ArrowLeftRight, Bot, FileText, UserRound } from "lucide-react";
 import { EntityDrawer } from "@/components/common/EntityDrawer";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useAccess } from "@/api/access";
+import { MatchLine } from "./MatchLine";
 import { queries } from "@/api/queries";
 import { rfqStatusMeta } from "@/lib/procurement";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
@@ -45,6 +48,8 @@ export function MaterialDrawer({
   onOpenChange: (open: boolean) => void;
 }) {
   const { employeeById } = useDirectory();
+  // Лист документа и запросы поставщикам — только ролям, которым открыты эти разделы (ADR-012)
+  const { can } = useAccess();
   const history = useQuery(queries.positionHistory(item.id)).data ?? [];
   const related = item.requestIds;
   const replacements = (useQuery(queries.replacements()).data ?? []).filter(
@@ -72,28 +77,29 @@ export function MaterialDrawer({
         </>
       }
       footer={
-        <Button size="sm" variant="secondary" asChild>
-          <Link
-            to="/projects/$id/documents/$docId"
-            params={{ id: item.projectId, docId: item.documentId }}
-            search={{ position: item.id }}
-          >
-            <FileText className="size-4" /> Показать в PDF
-          </Link>
-        </Button>
+        can("documents") ? (
+          <Button size="sm" variant="secondary" asChild>
+            <Link
+              to="/projects/$id/documents/$docId"
+              params={{ id: item.projectId, docId: item.documentId }}
+              search={{ position: item.id }}
+            >
+              <FileText className="size-4" /> Показать в PDF
+            </Link>
+          </Button>
+        ) : undefined
       }
     >
       <div className="space-y-4">
         <Section title="Наименование">
           <dl className="space-y-2.5">
             <div>
-              <dt className="text-[11px] text-text-muted">Нормализованное</dt>
-              <dd className="mt-0.5 text-[14px] font-medium">
-                {item.normalizedName ?? (
-                  <span className="inline-flex items-center gap-1.5 text-warn">
-                    <AlertTriangle className="size-3.5" /> Не сопоставлено со справочником
-                  </span>
-                )}
+              <dt className="text-[11px] text-text-muted">Нормализованное, по справочнику</dt>
+              <dd className="mt-0.5">
+                <MatchLine
+                  item={item}
+                  canEdit={can("materials", "write") || can("documents", "write")}
+                />
               </dd>
             </div>
             <div>
@@ -138,15 +144,17 @@ export function MaterialDrawer({
               </p>
               <p className="mt-0.5 truncate text-caption text-text-muted">{documentTitle}</p>
             </div>
-            <Button size="sm" variant="ghost" className="h-8 shrink-0" asChild>
-              <Link
-                to="/projects/$id/documents/$docId"
-                params={{ id: item.projectId, docId: item.documentId }}
-                search={{ position: item.id }}
-              >
-                Показать в PDF
-              </Link>
-            </Button>
+            {can("documents") && (
+              <Button size="sm" variant="ghost" className="h-8 shrink-0" asChild>
+                <Link
+                  to="/projects/$id/documents/$docId"
+                  params={{ id: item.projectId, docId: item.documentId }}
+                  search={{ position: item.id }}
+                >
+                  Показать в PDF
+                </Link>
+              </Button>
+            )}
           </div>
         </Section>
 
@@ -175,21 +183,33 @@ export function MaterialDrawer({
               </li>
             ))}
           </ol>
-        </Section>
-
-        <Section title="Запросы и предложения">
-          {related.length === 0 ? (
-            <p className="text-[13px] text-text-muted">
-              Позиция ещё не входила в запросы поставщикам.
+          {/* Заказано, поставлено по актам приёмки и остаток (ADR-011) */}
+          {(item.purchase === "ordered" || item.purchase === "delivered") && (
+            <p className="tnum mt-3 text-[13px] text-text-secondary">
+              Заказано {fmtNum(item.qty)} {item.unit} · поставлено {fmtNum(item.deliveredQty ?? 0)}{" "}
+              {item.unit} · остаток{" "}
+              <span className={cn(positionRemainder(item) > 0 && "font-medium text-text")}>
+                {fmtNum(positionRemainder(item))} {item.unit}
+              </span>
             </p>
-          ) : (
-            <ul className="space-y-2">
-              {related.map((requestId) => (
-                <RelatedRequest key={requestId} requestId={requestId} />
-              ))}
-            </ul>
           )}
         </Section>
+
+        {can("procurement") && (
+          <Section title="Запросы и предложения">
+            {related.length === 0 ? (
+              <p className="text-[13px] text-text-muted">
+                Позиция ещё не входила в запросы поставщикам.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {related.map((requestId) => (
+                  <RelatedRequest key={requestId} requestId={requestId} />
+                ))}
+              </ul>
+            )}
+          </Section>
+        )}
 
         <Section title="Предложенные замены">
           {replacements.length === 0 ? (

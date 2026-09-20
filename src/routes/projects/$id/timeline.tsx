@@ -4,7 +4,10 @@ import {
   ArrowLeftRight,
   ArrowRight,
   Bot,
+  Building2,
+  CalendarCheck,
   ChevronDown,
+  FileDiff,
   FilePlus2,
   FileSearch,
   Gavel,
@@ -28,6 +31,7 @@ import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { useAccess } from "@/api/access";
 import { CountPill, WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
 import { InsightBlock } from "@/components/common/InsightBlock";
 import { StatList } from "@/components/common/StatList";
@@ -85,8 +89,14 @@ const typeStyle: Record<TimelineEventType, { icon: LucideIcon; tone: string }> =
   replacement_proposed: { icon: ArrowLeftRight, tone: "bg-warn-bg text-warn" },
   replacement_agreed: { icon: ThumbsUp, tone: "bg-ok-bg text-ok" },
   material_ordered: { icon: ShoppingCart, tone: "bg-info-bg text-info" },
+  delivery_moved: { icon: Truck, tone: "bg-info-bg text-info" },
   delivery_received: { icon: Truck, tone: "bg-ok-bg text-ok" },
+  delivery_rejected: { icon: Truck, tone: "bg-danger-bg text-danger" },
+  delivery_remark: { icon: Truck, tone: "bg-warn-bg text-warn" },
   report_added: { icon: HardHat, tone: "bg-subtle text-text-secondary" },
+  project_status_changed: { icon: Building2, tone: "bg-subtle text-text-secondary" },
+  milestone_done: { icon: CalendarCheck, tone: "bg-ok-bg text-ok" },
+  change_resolved: { icon: FileDiff, tone: "bg-subtle text-text-secondary" },
   decision: { icon: Gavel, tone: "bg-ok-bg text-ok" },
 };
 
@@ -97,8 +107,13 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
   const timeline = useQuery(queries.timeline(project.id));
   const decisionsQuery = useQuery(queries.decisions(project.id));
   // История — не конечная точка: из неё ведём к ближайшему открытому вопросу (TASK-A2, п. 4)
-  const pending = useQuery(queries.pendingDecisions(project.id)).data ?? [];
-  const requests = useQuery(queries.requests(project.id)).data ?? [];
+  // Ссылки ведут только в разделы, открытые роли (ADR-012)
+  const { can, canOpen } = useAccess();
+  const pending = (useQuery(queries.pendingDecisions(project.id)).data ?? []).filter((item) =>
+    canOpen(item.link),
+  );
+  const requests =
+    useQuery({ ...queries.requests(project.id), enabled: can("procurement") }).data ?? [];
   const overdue = requests.filter((row) => row.status === "overdue");
   const nextStep = pending[0]
     ? { to: pending[0].link, label: `К решению: ${pending.length}`, accent: true }
@@ -160,11 +175,13 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
         title="История и решения"
         description="Что происходило на объекте, кто принимал решения и на каком основании."
         actions={
-          <Button variant={nextStep.accent ? "accent" : "secondary"} asChild>
-            <Link to={nextStep.to as string}>
-              {nextStep.label} <ArrowRight className="size-4" />
-            </Link>
-          </Button>
+          canOpen(nextStep.to) && (
+            <Button variant={nextStep.accent ? "accent" : "secondary"} asChild>
+              <Link to={nextStep.to as string}>
+                {nextStep.label} <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          )
         }
       />
 
@@ -290,7 +307,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
                               <span className="tnum">{fmtTime(event.at)}</span>
                               <span>· {timelineTypeLabel[event.type]}</span>
                             </p>
-                            {event.link && (
+                            {event.link && canOpen(event.link.to) && (
                               <Link
                                 to={event.link.to}
                                 className="mt-1.5 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-info hover:underline lg:min-h-0"
@@ -364,13 +381,15 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
       </div>
 
       {/* На телефоне действие шапки закреплено снизу: слот шапки там скрыт */}
-      <MobileActionBar>
-        <Button variant={nextStep.accent ? "accent" : "secondary"} asChild>
-          <Link to={nextStep.to as string}>
-            {nextStep.label} <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-      </MobileActionBar>
+      {canOpen(nextStep.to) && (
+        <MobileActionBar>
+          <Button variant={nextStep.accent ? "accent" : "secondary"} asChild>
+            <Link to={nextStep.to as string}>
+              {nextStep.label} <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </MobileActionBar>
+      )}
 
       {source && <SourceDrawer sourceId={source} onOpenChange={() => setSource(null)} />}
     </>
@@ -391,6 +410,7 @@ function DecisionCard({
   onSource: (id: string) => void;
 }) {
   const { employeeName } = useDirectory();
+  const { canOpen: canOpenLink } = useAccess();
   const rows: { label: string; content: React.ReactNode }[] = [
     { label: "Что требовалось по проекту", content: decision.requirement },
     { label: "Какая возникла проблема", content: decision.problem },
@@ -439,7 +459,7 @@ function DecisionCard({
           <p className="text-caption font-medium text-ok">{decisionKind[decision.kind]}</p>
           <h3 className="mt-0.5 text-[14px] leading-snug font-semibold">{decision.title}</h3>
         </div>
-        {decision.link && (
+        {decision.link && canOpenLink(decision.link.to) && (
           <Link
             to={decision.link.to}
             className="inline-flex min-h-11 shrink-0 items-center gap-1 text-caption font-medium text-info hover:underline lg:min-h-0"

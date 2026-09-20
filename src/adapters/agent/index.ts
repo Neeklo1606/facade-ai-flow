@@ -233,9 +233,11 @@ export function createAgentPort(ports: DataPorts): AgentPort {
     const supplier = (id: string) =>
       counterparties.find((item) => item.id === id)?.name ?? "поставщик";
     const expected = items
-      .filter((item) => item.status === "expected" || item.status === "in_transit")
+      .filter((item) => ["expected", "shipped", "in_transit", "arrived"].includes(item.status))
       .sort((a, b) => a.expectedAt.localeCompare(b.expectedAt));
-    const received = items.filter((item) => item.status === "received");
+    const received = items.filter(
+      (item) => item.status === "accepted" || item.status === "accepted_with_remarks",
+    );
     const waiting = requests.filter(
       (item) => item.status === "collecting" || item.status === "overdue" || item.status === "sent",
     );

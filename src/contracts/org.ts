@@ -5,7 +5,7 @@ import { col, idSchema, pgEnum, table } from "./db";
 
 export const employeeRole = pgEnum(
   "employee_role",
-  ["manager", "foreman", "pto", "supply", "finance", "worker"],
+  ["manager", "foreman", "pto", "supply", "finance", "worker", "director"],
   "Роль сотрудника; от неё зависят доступные разделы и действия (фаза 4)",
 );
 
@@ -87,6 +87,12 @@ export const counterparties = table(
   },
 );
 
+/**
+ * Контрагент в справочнике экранов: имя и роль. Контакты (ИНН, контактное лицо, почта, телефон)
+ * отдаёт только раздел «Поставщики» — карточкой поставщика (ADR-012)
+ */
+export const counterpartyRef = counterparties.pick({ id: true, name: true, role: true });
+
 export const contactStatus = pgEnum(
   "contact_status",
   ["verified", "needs_check", "stale"],
@@ -96,18 +102,21 @@ export const contactStatus = pgEnum(
 export const supplierProfiles = table(
   {
     name: "supplier_profiles",
-    comment: "Профиль поставщика для подбора в запрос: регион, разделы спецификации, контакт",
+    comment: "Профиль поставщика для подбора в запрос: регион, категории материалов, контакт",
     primaryKey: ["supplierId"],
     audited: true,
     indexes: [
       { columns: ["region"], purpose: "подбор поставщиков по региону объекта" },
-      { columns: ["categories"], method: "gin", purpose: "подбор по разделам спецификации" },
+      { columns: ["categories"], method: "gin", purpose: "подбор по категориям материалов" },
     ],
   },
   {
     supplierId: col.ref("counterparties", "cascade"),
     region: col.name(),
-    categories: col.textArray({ comment: "разделы спецификации: Подконструкция, Крепёж…" }),
+    categories: col.textArray({
+      comment: "категории материалов верхнего уровня: material_categories.id (ADR-014)",
+      holdsIds: true,
+    }),
     contactName: col.text(),
     phone: col.text(),
     email: col.text(),
@@ -161,6 +170,7 @@ export type Employee = z.infer<typeof employeeView>;
 export type EmployeeRole = Employee["role"];
 export type ProjectMember = z.infer<typeof projectMembers>;
 export type Counterparty = z.infer<typeof counterparties>;
+export type CounterpartyRef = z.infer<typeof counterpartyRef>;
 export type SupplierProfile = z.infer<typeof supplierProfiles>;
 export type ContactFreshness = z.infer<typeof contactStatus.schema>;
 export type CrewRow = z.infer<typeof crews>;
@@ -176,6 +186,7 @@ export const employeeRoleLabel: Record<Employee["role"], string> = {
   supply: "Снабжение",
   finance: "Финансы",
   worker: "Рабочий",
+  director: "Директор",
 };
 
 export const contactStatusLabel: Record<ContactFreshness, string> = {
@@ -183,3 +194,4 @@ export const contactStatusLabel: Record<ContactFreshness, string> = {
   needs_check: "Требует проверки",
   stale: "Устарел",
 };
+export type ContactStatus = z.infer<typeof contactStatus.schema>;

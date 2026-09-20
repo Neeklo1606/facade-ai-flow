@@ -1,4 +1,5 @@
 import { ArrowRight, Compass } from "lucide-react";
+import { SECTIONS, useAccess, type Section } from "@/api/access";
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "./PageHeader";
 import { Panel } from "./Panel";
@@ -17,6 +18,9 @@ export interface PlaceholderRoute {
  * перечисляет, что в разделе будет, и отправляет туда, где задача решается сегодня
  * (TASK-A2, п. 4 — ни один экран не конечная точка).
  */
+const isSection = (value: string): value is Section =>
+  (SECTIONS as readonly string[]).includes(value);
+
 export function PagePlaceholder({
   title,
   description,
@@ -29,6 +33,14 @@ export function PagePlaceholder({
   /** Работающие разделы, которые частично закрывают ту же задачу */
   available: PlaceholderRoute[];
 }) {
+  // Ведём только в разделы, открытые роли (ADR-012); выбор раздела через реестр — тоже по праву
+  const { canOpen, can } = useAccess();
+  const open = available.filter((route) => {
+    const section = route.search?.["section"];
+    return (
+      canOpen(route.to) && (typeof section !== "string" || !isSection(section) || can(section))
+    );
+  });
   return (
     <>
       <PageHeader title={title} description={description} />
@@ -49,7 +61,7 @@ export function PagePlaceholder({
 
         <Panel title="Что доступно сейчас">
           <ul className="space-y-2">
-            {available.map((route) => (
+            {open.map((route) => (
               <li key={route.to + route.label}>
                 <Link
                   to={route.to as string}

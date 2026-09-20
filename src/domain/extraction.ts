@@ -1,4 +1,5 @@
 import type { ExtractionJob } from "@/contracts";
+import { wallMs } from "./time";
 
 /**
  * Задачи извлечения (P3-4). Активная задача — та, которую обработчик ещё не закончил:
@@ -28,7 +29,5 @@ export function visibleStage(job: ExtractionJob | null, now: string) {
   if (!job) return null;
   if (isActiveJob(job)) return job.stage;
   if (!job.finishedAt) return null;
-  return new Date(now).getTime() - new Date(job.finishedAt).getTime() <= RECENT_MS
-    ? job.stage
-    : null;
+  return wallMs(now) - wallMs(job.finishedAt) <= RECENT_MS ? job.stage : null;
 }

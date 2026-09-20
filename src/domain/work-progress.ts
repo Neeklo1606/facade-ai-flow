@@ -7,6 +7,7 @@ import {
   type WorkZone,
 } from "@/contracts";
 import { fmtNum } from "@/shared/number-format";
+import { wallIso, wallMs } from "./time";
 
 /**
  * Ход работ и команда объекта (TASK-A2, ADR-008). Формулы считаются здесь, экран получает готовое.
@@ -38,9 +39,9 @@ export interface ZoneRow {
 }
 
 function elapsedShare(project: Project, now: string) {
-  const start = new Date(project.startDate).getTime();
-  const end = new Date(project.endDate).getTime();
-  const today = new Date(now).getTime();
+  const start = wallMs(project.startDate);
+  const end = wallMs(project.endDate);
+  const today = wallMs(now);
   if (!(end > start)) return null;
   return Math.min(1, Math.max(0, (today - start) / (end - start)));
 }
@@ -124,15 +125,12 @@ export function milestoneTimeline(
   const last = sorted[sorted.length - 1]?.dueDate ?? project.endDate;
   const from = today < first ? today : first;
   const to = today > last ? today : last;
-  const span = new Date(to).getTime() - new Date(from).getTime();
+  const span = wallMs(to) - wallMs(from);
   // Поля по краям: крайняя точка и «сегодня» не прилипают к границе оси (находка ревью LOW)
   const PAD = 0.06;
   const at = (date: string) => {
     if (span <= 0) return 0.5;
-    const raw = Math.min(
-      1,
-      Math.max(0, (new Date(date).getTime() - new Date(from).getTime()) / span),
-    );
+    const raw = Math.min(1, Math.max(0, (wallMs(date) - wallMs(from)) / span));
     return PAD + raw * (1 - PAD * 2);
   };
   return {
@@ -181,16 +179,16 @@ export function progressMetrics(input: {
 }): ProgressMetric[] {
   const { zones, timeline, contract, now } = input;
   const plan = zones.reduce((sum, zone) => sum + zone.planQty, 0);
-  const fact = zones.reduce((sum, zone) => sum + zone.factQty, 0);
+  // Факт захватки учитывается не больше плана — как в строке захватки и на дашборде: перевыполнение
+  // одной захватки не должно закрывать отставание другой
+  const fact = zones.reduce((sum, zone) => sum + Math.min(zone.factQty, zone.planQty), 0);
   const unit = zones[0]?.unit ?? "ед.";
   const donePct = plan ? Math.round((fact / plan) * 100) : 0;
   const planPct = zones.find((zone) => zone.planPct !== null)?.planPct ?? null;
   const behind = zones.filter((zone) => (zone.deviationPp ?? 0) < 0);
   const next = timeline.points.find((point) => !point.past) ?? null;
   const days = next
-    ? Math.round(
-        (new Date(next.dueDate).getTime() - new Date(now.slice(0, 10)).getTime()) / 86_400_000,
-      )
+    ? Math.round((wallMs(next.dueDate) - wallMs(now.slice(0, 10))) / 86_400_000)
     : null;
   const contractSource = contract?.sourceId ?? null;
 
@@ -353,7 +351,7 @@ export interface TeamMetric extends Omit<ProgressMetric, "filter" | "milestoneId
 
 /** Бригады без отчёта за последние дни — честный аналог метрики «допусков» */
 export function silentCrews(crews: TeamCrew[], now: string, days = 7) {
-  const edge = new Date(new Date(now).getTime() - days * 86_400_000).toISOString().slice(0, 19);
+  const edge = wallIso(wallMs(now) - days * 86_400_000);
   return crews.filter((crew) => !crew.lastZone || crew.lastZone.at < edge);
 }
 

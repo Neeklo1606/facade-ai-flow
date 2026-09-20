@@ -1,8 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { deliveryTone } from "@/lib/procurement";
+import { UNCONFIRMED_DELIVERY_NOTE } from "@/lib/demo-copy";
 import { Bot, Check, FileText, UserRound } from "lucide-react";
 import { StatusBadge, type Tone } from "@/components/common/StatusBadge";
 import { ConfidenceIndicator } from "@/components/common/ConfidenceIndicator";
 import { useQuery } from "@tanstack/react-query";
+import { useAccess } from "@/api/access";
 import { isVerifiedPosition as isVerified } from "@/contracts";
 import { queries } from "@/api/queries";
 import { mainSpecification } from "@/lib/documents";
@@ -226,6 +229,7 @@ function LiveMaterialsPreview({
   positions,
 }: Props & { positions: ExtractedPosition[] }) {
   const { employeeName } = useDirectory();
+  const { can } = useAccess();
   // Порядок «сначала требующие разбора» задаёт запрос
   const items = positions;
 
@@ -273,14 +277,19 @@ function LiveMaterialsPreview({
               )}
             </Td>
             <Td>
-              <Link
-                to="/projects/$id/documents/$docId"
-                params={{ id: projectId, docId: item.documentId }}
-                search={{ position: item.id }}
-                className="inline-flex items-center gap-1 rounded-[var(--r-xs)] px-1.5 py-0.5 text-caption text-info hover:bg-info-bg"
-              >
-                <FileText className="size-3" /> л. {item.sheetNumber}
-              </Link>
+              {/* Лист документа — в проверке документации; роли без документации — только номер */}
+              {can("documents") ? (
+                <Link
+                  to="/projects/$id/documents/$docId"
+                  params={{ id: projectId, docId: item.documentId }}
+                  search={{ position: item.id }}
+                  className="inline-flex items-center gap-1 rounded-[var(--r-xs)] px-1.5 py-0.5 text-caption text-info hover:bg-info-bg"
+                >
+                  <FileText className="size-3" /> л. {item.sheetNumber}
+                </Link>
+              ) : (
+                <span className="text-caption text-text-muted">л. {item.sheetNumber}</span>
+              )}
             </Td>
           </tr>
         ))}
@@ -296,20 +305,18 @@ function LiveMaterialsPreview({
 
 /* ---------- Закупки ---------- */
 
-const deliveryTone: Record<Delivery["status"], Tone> = {
-  expected: "neutral",
-  in_transit: "info",
-  received: "ok",
-  rejected: "danger",
-};
-
 export function PurchasesPreview({ projectId, overview, scope }: Props) {
   const { counterpartyName } = useDirectory();
+  const { can } = useAccess();
+  const canDeliveries = can("deliveries");
   const requests = useQuery(queries.requests(projectId)).data ?? [];
-  const deliveries = useQuery(queries.deliveries(projectId)).data ?? [];
+  const deliveries =
+    useQuery({ ...queries.deliveries(projectId), enabled: canDeliveries }).data ?? [];
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+    <div
+      className={cn("grid gap-4", canDeliveries && "xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]")}
+    >
       <Block
         title="Запросы поставщикам"
         count={`активных ${overview.activeRequests} · просрочено ${overview.overdueRequests}`}
@@ -360,37 +367,41 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
         )}
       </Block>
 
-      <Block
-        title="Поставки"
-        count={`в пути ${overview.inTransit} поз.`}
-        to={`/projects/${projectId}/procurement`}
-        onLinkClick={scope}
-      >
-        {deliveries.length === 0 ? (
-          <BlockEmpty>Поставок по объекту нет</BlockEmpty>
-        ) : (
-          <ul className="divide-y divide-border">
-            {deliveries.slice(0, PREVIEW).map((delivery) => (
-              <li key={delivery.id} className="flex items-start justify-between gap-3 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-medium">
-                    {delivery.items.map((item) => item.name).join(", ")}
-                  </p>
-                  <p className="mt-0.5 text-caption text-text-muted">
-                    {counterpartyName(delivery.supplierId)} ·{" "}
-                    {delivery.receivedAt
-                      ? `принята ${fmtDate(delivery.receivedAt)}`
-                      : `ожидается ${fmtDate(delivery.expectedAt)}`}
-                  </p>
-                </div>
-                <StatusBadge tone={deliveryTone[delivery.status]}>
-                  {deliveryStatusLabel[delivery.status]}
-                </StatusBadge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Block>
+      {canDeliveries && (
+        <Block
+          title="Поставки"
+          count={`в пути ${overview.inTransit} поз.`}
+          to={`/projects/${projectId}/deliveries`}
+          onLinkClick={scope}
+        >
+          {deliveries.length === 0 ? (
+            <BlockEmpty>Поставок по объекту нет</BlockEmpty>
+          ) : (
+            <ul className="divide-y divide-border">
+              {deliveries.slice(0, PREVIEW).map((delivery) => (
+                <li key={delivery.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium">
+                      {delivery.items.map((item) => item.name).join(", ")}
+                    </p>
+                    <p className="mt-0.5 text-caption text-text-muted">
+                      {counterpartyName(delivery.supplierId)} ·{" "}
+                      {delivery.receivedAt
+                        ? `принята ${fmtDate(delivery.receivedAt)}`
+                        : `ожидается ${fmtDate(delivery.expectedAt)}`}
+                      {/* Статус без документа поставщика — рядом со статусом, а не сноской */}
+                      {!delivery.sourceId && ` · ${UNCONFIRMED_DELIVERY_NOTE}`}
+                    </p>
+                  </div>
+                  <StatusBadge tone={deliveryTone[delivery.status]}>
+                    {deliveryStatusLabel[delivery.status]}
+                  </StatusBadge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Block>
+      )}
     </div>
   );
 }
@@ -478,6 +489,7 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
 /* ---------- Решения ---------- */
 
 export function DecisionsPreview({ projectId, scope, onSource }: Props) {
+  const { canOpen } = useAccess();
   const { employeeName } = useDirectory();
   const pending = useQuery(queries.pendingDecisions(projectId)).data ?? [];
   const decisions = useQuery(queries.decisions(projectId)).data ?? [];
@@ -497,9 +509,13 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
             {pending.slice(0, PREVIEW).map((item) => (
               <li key={item.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
-                  <Link to={item.link} className="text-[13px] font-medium hover:text-text">
-                    {item.title}
-                  </Link>
+                  {canOpen(item.link) ? (
+                    <Link to={item.link} className="text-[13px] font-medium hover:text-text">
+                      {item.title}
+                    </Link>
+                  ) : (
+                    <span className="text-[13px] font-medium">{item.title}</span>
+                  )}
                   <StatusBadge tone="warn">Сравнение готово</StatusBadge>
                 </div>
                 <p className="mt-1 line-clamp-2 text-caption text-text-secondary">{item.details}</p>

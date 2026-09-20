@@ -26,7 +26,9 @@ const areas: { title: string; tables: string[] }[] = [
       "extraction_jobs",
       "document_sheets",
       "revision_changes",
+      "material_categories",
       "materials",
+      "material_changes",
       "positions",
       "position_changes",
       "replacement_suggestions",
@@ -44,6 +46,10 @@ const areas: { title: string; tables: string[] }[] = [
       "supplier_offer_lines",
       "deliveries",
       "delivery_lines",
+      "delivery_status_changes",
+      "delivery_acceptances",
+      "delivery_photos",
+      "delivery_remarks",
       "project_decisions",
     ],
   },
@@ -121,6 +127,8 @@ function ddl() {
       ].filter((line) => !own.has(line.split(" ")[0]!));
       lines.push(...service.map((line) => `  ${line}`));
     }
+    // Порядок строк в представлении: у всех таблиц, в API не отдаётся (ADR-005, п. 8)
+    lines.push("  row_order double precision not null default 0");
     lines.push(`  primary key (${def.meta.primaryKey.map(sqlName).join(", ")})`);
     for (const check of def.meta.checks ?? []) lines.push(`  check (${check})`);
     out.push(`-- ${def.meta.comment}${def.meta.appendOnly ? " (журнал: только insert)" : ""}`);
@@ -225,6 +233,7 @@ function tableSection(def: TableDef) {
     out.push(
       "| `created_at`, `updated_at`, `created_by` | служебные | | → `employees` | не отдаются в API |",
     );
+  out.push("| `row_order` | служебная | | | порядок строк в представлении, не отдаётся в API |");
   out.push("");
   if (meta.indexes.length) {
     out.push("| Индекс | Колонки | Для чего |", "|---|---|---|");
@@ -254,12 +263,12 @@ function markdown() {
     "## Соглашения",
     "",
     "- PostgreSQL 16. Имена таблиц и колонок — `snake_case`, в TypeScript — `camelCase`.",
-    "- Первичные ключи `uuid` (`gen_random_uuid()`). Фикстуры используют читаемые ключи (`p-korona`) — адаптер БД их не принимает.",
+    "- Первичные ключи `uuid` (`gen_random_uuid()`). Фикстуры используют читаемые ключи (`p-korona`); адаптер БД переводит их в детерминированные `uuid` (ADR-005, п. 4).",
     "- Внешние ключи с явным `on delete`: `restrict` для всего, что служит основанием (документы, позиции, запросы, решения); `cascade` — для строк, которые не живут без родителя (листы ревизии, строки запроса и предложения, состав бригады); `set null` — для необязательных ссылок на источник.",
     "- Деньги — `bigint` в копейках. Количества — `numeric(14,3)`. Доли и уверенность — `numeric(5,4)` от 0 до 1.",
     "- Время — `timestamptz`, даты без времени — `date`.",
     "- Статусы — перечисления; разрешённые переходы описаны ниже и проверяются в серверных функциях.",
-    "- Изменяемые таблицы имеют `created_at`, `updated_at`, `created_by`. Журналы (`position_changes`, `project_decisions`, `project_events`, `sources`, `extractions`) только пополняются.",
+    "- Изменяемые таблицы имеют `created_at`, `updated_at`, `created_by`. Журналы (`position_changes`, `project_decisions`, `project_events`, `sources`, `extractions`) только пополняются. У всех таблиц есть `row_order` — порядок строк, который видят экраны (ADR-005, п. 8).",
     "- Сводка объекта (`project_overview`) — представление, а не таблица; формулы в глоссарии, §3.",
     "- Индексы подобраны под списки и фильтры экранов; колонка «Для чего» называет экран.",
     "- Фикстуры проверяются по этому описанию: `bun run check:fixtures` (схемы, ключи, уникальности, представления); на PostgreSQL — `psql -f docs/db/schema.sql` и `bun run db:fixtures-sql | psql`.",

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { recordAction } from "@/lib/guide/telemetry";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Building2, CheckCheck, Clock, type LucideIcon } from "lucide-react";
 import { EmptyState, SourceRef } from "@/components/common";
@@ -52,7 +53,10 @@ export function AttentionList({
     );
 
   return (
-    <ul className="space-y-2.5 md:-mx-6 md:space-y-0 md:divide-y md:divide-line">
+    <ul
+      data-tour="attention-list"
+      className="space-y-2.5 md:-mx-6 md:space-y-0 md:divide-y md:divide-line"
+    >
       {rows.map((row) => (
         <li
           key={row.id}
@@ -86,12 +90,13 @@ export function AttentionList({
               <SourceRef
                 sourceId={row.sourceId}
                 onOpen={() => row.sourceId && onSource(row.sourceId)}
-                className="relative z-[2] size-6"
+                className="relative z-[2] lg:size-6"
               />
             </div>
           </div>
           <Link
             to={row.to as string}
+            onClick={() => recordAction("openAttention")}
             aria-label={`Открыть: ${row.title}`}
             className="focus-ring inline-flex h-11 shrink-0 items-center gap-1.5 self-center rounded-[var(--r-sm)] border border-line-2 bg-surface-3 px-3 text-[13px] font-medium text-text-2 transition-fast after:absolute after:inset-0 after:content-[''] is-hover:text-text md:bg-surface-2 lg:h-9 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
           >

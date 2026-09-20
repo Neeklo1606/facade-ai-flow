@@ -1,4 +1,7 @@
+import { InfoTip } from "./InfoTip";
+import { useEffect } from "react";
 import { FileText, Mail, MessageSquare, Phone, PenLine } from "lucide-react";
+import { recordAction } from "@/lib/guide/telemetry";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EntityDrawer } from "./EntityDrawer";
 import { ConfidenceIndicator } from "./ConfidenceIndicator";
@@ -47,19 +50,13 @@ export function SourceRef({
   const source = useQuery({ ...queries.source(sourceId ?? ""), enabled: !!sourceId }).data?.source;
   if (!source) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            className={cn(
-              "inline-flex size-11 items-center justify-center text-text-muted lg:size-6",
-              className,
-            )}
-          >
-            <PenLine className="size-3.5" strokeWidth={1.5} />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>Значение введено вручную, оригинала нет</TooltipContent>
-      </Tooltip>
+      <InfoTip
+        label="Источник: введено вручную"
+        icon={<PenLine className="size-3.5" strokeWidth={1.5} />}
+        {...(className ? { className } : {})}
+      >
+        Значение введено вручную, оригинала нет
+      </InfoTip>
     );
   }
   const Icon = kindIcon[source.kind];
@@ -71,6 +68,7 @@ export function SourceRef({
         <button
           type="button"
           onClick={onOpen}
+          data-tour="source"
           aria-label={`Источник: ${source.title}, ${source.location}`}
           className={cn(
             "focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--r-sm)] bg-surface-2 text-text-3 transition-fast is-hover:bg-info-bg is-hover:text-info lg:size-6",
@@ -124,6 +122,10 @@ export function SourceDrawer({
   onOpenChange: (open: boolean) => void;
 }) {
   const card = useQuery({ ...queries.source(sourceId ?? ""), enabled: !!sourceId }).data;
+  // Открытие источника — действие сессии: проводка руководителя засчитывает по нему шаг (ADR-010)
+  useEffect(() => {
+    if (sourceId) recordAction("openSource");
+  }, [sourceId]);
   if (!card) return null;
   const { source } = card;
 

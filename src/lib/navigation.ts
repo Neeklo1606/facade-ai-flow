@@ -1,33 +1,40 @@
 import type { EmployeeRole } from "@/contracts";
+import { can, type Section } from "@/domain/access";
 import {
+  BookOpen,
   Boxes,
   Building2,
   FileText,
   HardHat,
   History,
   LayoutDashboard,
+  PackageCheck,
   PackageSearch,
+  ShieldCheck,
   Sparkles,
   Truck,
   type LucideIcon,
 } from "lucide-react";
 
-export type BadgeKey = "unverifiedSpec" | "overdueRequests" | "openChanges";
+export type BadgeKey = "unverifiedSpec" | "overdueRequests" | "openChanges" | "deliveriesToAccept";
 
 /** Разделы, которые ведутся внутри объекта. */
 export type ProjectSection =
-  "documents" | "materials" | "procurement" | "suppliers" | "field-reports" | "timeline";
+  | "documents"
+  | "materials"
+  | "procurement"
+  | "suppliers"
+  | "deliveries"
+  | "field-reports"
+  | "timeline";
 
 export interface NavItem {
   key: string;
   label: string;
   icon: LucideIcon;
   badge?: BadgeKey;
-  /**
-   * Роли, которым пункт не показывается. Временное решение демонстрации (ADR-008):
-   * настоящие права и запрет прямых переходов — блок B.
-   */
-  hiddenFor?: EmployeeRole[];
+  /** Раздел прав (ADR-012): пункт виден роли, которой раздел доступен хотя бы на чтение */
+  access: Section;
   /** Раздел объекта; без выбранного объекта пункт ведёт в реестр с просьбой выбрать объект */
   section?: ProjectSection;
   /** Экран вне объекта: ведёт по этому адресу, а не в раздел объекта */
@@ -48,10 +55,10 @@ export const navGroups: NavGroup[] = [
         label: "Дашборд",
         icon: LayoutDashboard,
         to: "/",
-        hiddenFor: ["foreman"],
+        access: "dashboard",
       },
-      { key: "projects", label: "Объекты", icon: Building2 },
-      { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent" },
+      { key: "projects", label: "Объекты", icon: Building2, access: "projects" },
+      { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent", access: "agent" },
     ],
   },
   {
@@ -62,7 +69,7 @@ export const navGroups: NavGroup[] = [
         label: "Документация",
         icon: FileText,
         section: "documents",
-        hiddenFor: ["foreman"],
+        access: "documents",
       },
       {
         key: "materials",
@@ -70,7 +77,7 @@ export const navGroups: NavGroup[] = [
         icon: Boxes,
         badge: "unverifiedSpec",
         section: "materials",
-        hiddenFor: ["foreman"],
+        access: "materials",
       },
       {
         key: "procurement",
@@ -78,14 +85,22 @@ export const navGroups: NavGroup[] = [
         icon: PackageSearch,
         badge: "overdueRequests",
         section: "procurement",
-        hiddenFor: ["foreman"],
+        access: "procurement",
+      },
+      {
+        key: "deliveries",
+        label: "Поставки",
+        icon: PackageCheck,
+        badge: "deliveriesToAccept",
+        section: "deliveries",
+        access: "deliveries",
       },
       {
         key: "suppliers",
         label: "Поставщики",
         icon: Truck,
         section: "suppliers",
-        hiddenFor: ["foreman"],
+        access: "suppliers",
       },
     ],
   },
@@ -97,7 +112,7 @@ export const navGroups: NavGroup[] = [
         label: "Отчёты с площадки",
         icon: HardHat,
         section: "field-reports",
-        hiddenFor: ["supply"],
+        access: "field-reports",
       },
     ],
   },
@@ -109,7 +124,21 @@ export const navGroups: NavGroup[] = [
         label: "История и решения",
         icon: History,
         section: "timeline",
-        hiddenFor: ["supply", "foreman"],
+        access: "timeline",
+      },
+      {
+        key: "catalogs",
+        label: "Справочники",
+        icon: BookOpen,
+        to: "/catalogs",
+        access: "catalogs",
+      },
+      {
+        key: "access",
+        label: "Права доступа",
+        icon: ShieldCheck,
+        to: "/access",
+        access: "access",
       },
     ],
   },
@@ -117,9 +146,9 @@ export const navGroups: NavGroup[] = [
 
 export const allNavItems = navGroups.flatMap((g) => g.items);
 
-/** Видит ли роль этот пункт меню */
+/** Видит ли роль этот пункт меню: по матрице прав (ADR-012) */
 export function visibleFor(item: NavItem, role: EmployeeRole) {
-  return !item.hiddenFor?.includes(role);
+  return can(role, item.access);
 }
 
 /** Меню для роли: пустые группы не показываем (ADR-008) */
@@ -135,8 +164,8 @@ export function navItemsFor(role: EmployeeRole) {
 }
 
 /**
- * Стартовый экран роли (ADR-008): руководителю — сводка по всем объектам, снабжению — закупки,
- * прорабу — отчёты с площадки. Без объектов в системе всем открывается реестр.
+ * Стартовый экран роли (ADR-008, ADR-010): руководителю и директору — сводка по всем объектам,
+ * снабжению — закупки, ПТО — документация, прорабу — отчёты с площадки. Без объектов в системе всем открывается реестр.
  *
  * Применяется один раз за вкладку, при входе в демонстрацию (см. `startScreenPending`):
  * иначе пункт меню «Дашборд» у снабжения был бы кнопкой без результата — переход тут же
@@ -169,7 +198,8 @@ export function startRouteFor(role: EmployeeRole, projectId: string | null) {
   if (!projectId) return "/projects";
   if (role === "supply") return `/projects/${projectId}/procurement`;
   if (role === "foreman") return `/projects/${projectId}/field-reports`;
-  return "/";
+  if (role === "pto") return `/projects/${projectId}/documents`;
+  return can(role, "dashboard") ? "/" : `/projects/${projectId}`;
 }
 
 export const sectionLabels: Record<ProjectSection, string> = {
@@ -177,6 +207,7 @@ export const sectionLabels: Record<ProjectSection, string> = {
   materials: "Материалы",
   procurement: "Поставщики и запросы",
   suppliers: "Поставщики",
+  deliveries: "Поставки",
   "field-reports": "Отчёты с площадки",
   timeline: "История и решения",
 };
@@ -206,6 +237,8 @@ export function sectionHref(
 export function activeNavKey(pathname: string, view: string, pickSection: string | null) {
   if (pathname === "/") return "dashboard";
   if (pathname === "/agent") return "agent";
+  if (pathname === "/access") return "access";
+  if (pathname === "/catalogs") return "catalogs";
   if (pathname === "/projects" && pickSection) return pickSection;
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);
   if (!match) return pathname.startsWith("/projects") ? "projects" : null;

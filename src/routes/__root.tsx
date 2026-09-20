@@ -12,6 +12,10 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { reportClientError, startErrorReporting } from "@/lib/error-report";
+import { RolePicker } from "@/components/guide/RolePicker";
+import { GuideDock } from "@/components/guide/GuideDock";
+import { AccessBoundary } from "@/components/access/AccessBoundary";
+import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
 import { markStartScreenApplied } from "@/lib/navigation";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -20,6 +24,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { prefetch } from "@/api/prefetch";
 import { previewMeta } from "@/lib/access";
 import { queries } from "@/api/queries";
+import { api } from "@/api/client";
+import { dataSource } from "@/api/config";
 import { useDemoEvents } from "@/api/demo-events";
 import { toast } from "@/lib/toast";
 
@@ -71,13 +77,20 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   // Часы и справочники нужны почти каждому экрану: без них SSR отдал бы «—» вместо имён и сроков
-  loader: ({ context }) =>
-    Promise.all([
+  // Рабочий контур: персона — из сессии запроса (ADR-012). Сервер и первый рендер клиента
+  // начинают с неё, иначе разметка роли по умолчанию и роли вкладки расходились при гидратации
+  loader: async ({ context }) => {
+    const [session] = await Promise.all([
+      dataSource === "server" ? api.session() : null,
       prefetch(context.queryClient, queries.now()),
       prefetch(context.queryClient, queries.employees()),
       prefetch(context.queryClient, queries.counterparties()),
       prefetch(context.queryClient, queries.materials()),
-    ]),
+    ]);
+    return { sessionActorId: session?.actorId ?? null };
+  },
+  // Сессия нужна один раз — для первого рендера; дальше персону ведёт вкладка
+  staleTime: Infinity,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -140,6 +153,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { sessionActorId } = Route.useLoaderData();
   useDemoEvents(queryClient, (notice) =>
     toast.success(notice.title, { description: notice.description }),
   );
@@ -148,15 +162,23 @@ function RootComponent() {
   // Вход в демонстрацию — первый отрисованный экран вкладки, какой угодно. Пока отметка ставилась
   // только на «/», вошедший по прямой ссылке терял первый клик по «Дашборд» (находка ревью)
   useEffect(markStartScreenApplied, []);
+  // Телеметрия сессии: открытие экранов и точка выхода (ADR-010)
+  useScreenTelemetry();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
+      <AppProvider initialPersona={sessionActorId}>
         <TooltipProvider delayDuration={200}>
           <AppLayout>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
+            {/* Раздел, закрытый роли, открывается экраном «Нет доступа» (ADR-012) */}
+            <AccessBoundary>
+              <Outlet />
+            </AccessBoundary>
           </AppLayout>
+          {/* Выбор роли при первом входе, проводка и обратная связь (ADR-010) */}
+          <GuideDock />
+          <RolePicker />
           {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}
           <Toaster position="top-center" offset={{ top: 64 }} mobileOffset={{ top: 64 }} />
         </TooltipProvider>

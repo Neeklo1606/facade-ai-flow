@@ -16,12 +16,15 @@ import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshness
 import { FilterChip } from "@/components/common/FilterBar";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
+import { useAccess, useCanWrite } from "@/api/access";
+import { useCatalog } from "@/api/catalog";
+import { SupplierDrawer } from "@/components/procurement/SupplierDrawer";
 import { ScreenGate, ScreenSkeleton, StateBanner } from "@/components/common/ScreenStates";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
-import type { RequestSummary } from "@/api/types";
+import type { RequestSummary, SupplierListItem } from "@/api/types";
 import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDate, fmtDateTime, fmtMoney, fmtReplyDue, fmtNum, plural } from "@/lib/format";
@@ -31,7 +34,7 @@ import { cn } from "@/lib/utils";
 import {
   contactStatusLabel as contactFreshnessLabel,
   type ContactFreshness,
-  type Counterparty,
+  type CounterpartyRef,
   type SupplierProfile,
   type SupplyRequest,
 } from "@/contracts";
@@ -112,10 +115,16 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
   const navigate = useNavigate({ from: Route.fullPath });
   const view: View = search.view ?? "requests";
   const [createOpen, setCreateOpen] = useState(false);
+  // Запросы и напоминания — запись в закупках; вкладка поставщиков — свой раздел прав (ADR-012)
+  const { can } = useAccess();
+  const canWrite = can("procurement", "write");
+  const canSuppliers = can("suppliers");
 
   const requestsQuery = useQuery(queries.requests(project.id));
   const remind = useRemindSuppliers();
-  const suppliersQuery = useQuery(queries.suppliers());
+  // Контакты поставщиков — раздел «Поставщики» (ADR-012): без права их не запрашиваем,
+  // иначе отказ уронил бы список запросов у роли, которой он открыт
+  const suppliersQuery = useQuery({ ...queries.suppliers(), enabled: canSuppliers });
   const summaries = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
   const profiles = useMemo(
     () => (suppliersQuery.data ?? []).map((item) => item.profile),
@@ -149,6 +158,9 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         return {
           profile,
           supplier: counterpartyById(profile.supplierId),
+          stats:
+            suppliersQuery.data?.find((item) => item.profile.supplierId === profile.supplierId)
+              ?.stats ?? null,
           sent: sent.length,
           replied: replied.length,
         };
@@ -184,8 +196,8 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
 
   const isRequests = view === "requests";
   const screen = useScreenState({
-    pending: requestsQuery.isPending || suppliersQuery.isPending,
-    error: requestsQuery.isError || suppliersQuery.isError,
+    pending: requestsQuery.isPending || (canSuppliers && suppliersQuery.isPending),
+    error: requestsQuery.isError || (canSuppliers && suppliersQuery.isError),
     empty: isRequests ? requestRows.length === 0 : supplierRows.length === 0,
     filtered: isRequests ? visibleRequests.length === 0 : visibleSuppliers.length === 0,
     partial: isRequests ? waiting.length > 0 : staleContacts > 0,
@@ -193,6 +205,8 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
   const blocked = screen === "forbidden" || screen === "error" || screen === "loading";
   const regions = [...new Set(profiles.map((p) => p.region))];
   const categories = [...new Set(profiles.flatMap((p) => p.categories))];
+  const { categoryById } = useCatalog();
+  const categoryName = (id: string) => categoryById.get(id)?.name ?? id;
   const resetFilters = () =>
     setSearch({ status: undefined, region: undefined, category: undefined, freshness: undefined });
 
@@ -203,24 +217,28 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         title="Поставщики и запросы"
         description={`Кому отправлены запросы, кто ответил и по какой цене. Регион объекта — ${overview?.region ?? "—"}.`}
         actions={
-          <Button variant="accent" disabled={blocked} onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" /> Создать запрос
-          </Button>
+          canWrite && (
+            <Button variant="accent" disabled={blocked} onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" /> Создать запрос
+            </Button>
+          )
         }
       />
 
-      <PillTabs
-        className="mb-5"
-        label="Вид раздела"
-        value={view}
-        onChange={(next) =>
-          setSearch({ view: next === "requests" ? undefined : "suppliers", status: undefined })
-        }
-        tabs={[
-          { value: "requests", label: "Запросы", count: requestRows.length },
-          { value: "suppliers", label: "Поставщики", count: supplierRows.length },
-        ]}
-      />
+      {canSuppliers && (
+        <PillTabs
+          className="mb-5"
+          label="Вид раздела"
+          value={view}
+          onChange={(next) =>
+            setSearch({ view: next === "requests" ? undefined : "suppliers", status: undefined })
+          }
+          tabs={[
+            { value: "requests", label: "Запросы", count: requestRows.length },
+            { value: "suppliers", label: "Поставщики", count: supplierRows.length },
+          ]}
+        />
+      )}
 
       <div data-main-zone className="space-y-4">
         {screen === "partial" && (
@@ -233,7 +251,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                 : `Контакты ${staleContacts} поставщиков не проверены`
             }
             action={
-              isRequests ? (
+              isRequests && canWrite ? (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -296,7 +314,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                 label="Категория"
                 allLabel="Все категории"
                 value={search.category}
-                options={categories.map((c) => ({ value: c, label: c }))}
+                options={categories.map((c) => ({ value: c, label: categoryName(c) }))}
                 onChange={(category) => setSearch({ category })}
               />
               <FilterSelect
@@ -329,15 +347,17 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                     icon: PackageSearch,
                     title: "Запросов поставщикам ещё нет",
                     description:
-                      "Выберите проверенные позиции и отправьте запрос: система подберёт поставщиков по категории и региону, а ответы из писем соберёт в сравнение.",
-                    actionLabel: "Создать запрос",
-                    onAction: () => setCreateOpen(true),
+                      "Выберите проверенные позиции и отправьте запрос: система подберёт поставщиков по категориям материалов и региону, а ответы из писем соберёт в сравнение.",
+                    ...(canWrite && {
+                      actionLabel: "Создать запрос",
+                      onAction: () => setCreateOpen(true),
+                    }),
                   }
                 : {
                     icon: Truck,
                     title: "Поставщиков в справочнике нет",
                     description:
-                      "Добавьте поставщиков вручную или импортируйте реестр из Excel — после этого их можно выбирать при создании запроса.",
+                      "Поставщики с категориями и регионом появятся здесь; ведение справочника поставщиков с экрана — следующий шаг.",
                   },
               filtered: {
                 onReset: resetFilters,
@@ -354,7 +374,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         </section>
       </div>
 
-      {!blocked && (
+      {!blocked && canWrite && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setCreateOpen(true)}>
             <Send className="size-4" /> Создать запрос
@@ -408,7 +428,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
       panel={current ? <RequestDetails row={current} /> : null}
     >
       <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[980px] text-table">
+        <table data-tour="requests-list" className="w-full min-w-[980px] text-table">
           <thead>
             <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
               <th className="px-4">Номер</th>
@@ -499,7 +519,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
         </table>
       </div>
 
-      <ul className="divide-y divide-border lg:hidden">
+      <ul data-tour="requests-list" className="divide-y divide-border lg:hidden">
         {rows.map((row) => {
           const meta = rfqStatusMeta[row.status];
           return (
@@ -602,17 +622,24 @@ function SuppliersView({
 }: {
   rows: {
     profile: SupplierProfile;
-    supplier: Counterparty | null;
+    supplier: CounterpartyRef | null;
+    stats: SupplierListItem["stats"] | null;
     sent: number;
     replied: number;
   }[];
   region: string;
 }) {
   const verifyContact = useVerifyContact();
+  const canVerify = useCanWrite("suppliers");
+  const { categoryById } = useCatalog();
+  const categoryName = (id: string) => categoryById.get(id)?.name ?? id;
+  const [openId, setOpenId] = useState<string | null>(null);
+  const reply = (hours: number | null | undefined) =>
+    hours === null || hours === undefined ? "нет ответов" : `${fmtNum(hours)} ч`;
   // Без подтверждения действие выглядело беззвучным: строка менялась, а отклика не было
   const confirmContact = () =>
     toast.success("Контакт отмечен проверенным", {
-      description: "Дата проверки обновлена — поставщик снова попадает в подбор для запросов.",
+      description: "Дата проверки — сегодня: метка «Проверен» держится 90 дней (ADR-014).",
     });
   return (
     <>
@@ -632,12 +659,20 @@ function SuppliersView({
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ profile, supplier, sent, replied }) => (
+            {rows.map(({ profile, supplier, stats, sent, replied }) => (
               <tr
                 key={profile.supplierId}
                 className="h-[64px] border-b border-border last:border-0"
               >
-                <td className="px-4 font-medium text-text-primary">{supplier?.name}</td>
+                <td className="px-4 font-medium text-text-primary">
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(profile.supplierId)}
+                    className="focus-ring rounded-[var(--r-xs)] text-left underline-offset-2 hover:underline"
+                  >
+                    {supplier?.name}
+                  </button>
+                </td>
                 <td
                   className={cn(
                     "px-2.5 whitespace-nowrap",
@@ -653,7 +688,7 @@ function SuppliersView({
                         key={c}
                         className="rounded-full bg-subtle px-2 py-0.5 text-[11px] text-text-secondary"
                       >
-                        {c}
+                        {categoryName(c)}
                       </span>
                     ))}
                   </div>
@@ -685,7 +720,7 @@ function SuppliersView({
                   <div className="tnum text-text-secondary">
                     {fmtDate(profile.contactCheckedAt)}
                   </div>
-                  {profile.contactStatus !== "verified" && (
+                  {profile.contactStatus !== "verified" && canVerify && (
                     <button
                       type="button"
                       onClick={() =>
@@ -715,7 +750,7 @@ function SuppliersView({
                     <StatusBadge tone="warn">Нет ответа</StatusBadge>
                   )}
                 </td>
-                <td className="tnum px-4 text-right">{supplier?.avgReplyHours} ч</td>
+                <td className="tnum px-4 text-right">{reply(stats?.avgReplyHours)}</td>
               </tr>
             ))}
           </tbody>
@@ -724,17 +759,23 @@ function SuppliersView({
 
       {/* Телефон: контакт — главное, звонок и письмо крупными кнопками */}
       <ul className="divide-y divide-border lg:hidden">
-        {rows.map(({ profile, supplier, sent, replied }) => (
+        {rows.map(({ profile, supplier, stats, sent, replied }) => (
           <li key={profile.supplierId} className="px-4 py-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[15px] font-semibold">{supplier?.name}</p>
+                <button
+                  type="button"
+                  onClick={() => setOpenId(profile.supplierId)}
+                  className="focus-ring min-h-11 rounded-[var(--r-xs)] text-left text-[15px] font-semibold"
+                >
+                  {supplier?.name}
+                </button>
                 <p className="text-caption text-text-muted">
-                  {profile.region} · {profile.categories.join(", ")}
+                  {profile.region} · {profile.categories.map(categoryName).join(", ")}
                 </p>
               </div>
               <span className="tnum shrink-0 text-caption text-text-secondary">
-                ~{supplier?.avgReplyHours} ч
+                {reply(stats?.avgReplyHours)}
               </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -786,6 +827,7 @@ function SuppliersView({
       <p className="border-t border-border px-4 py-2 text-caption text-text-muted">
         {fmtNum(rows.length)} поставщиков · сначала регион объекта
       </p>
+      {openId && <SupplierDrawer supplierId={openId} onOpenChange={() => setOpenId(null)} />}
     </>
   );
 }

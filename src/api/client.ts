@@ -1,15 +1,23 @@
 import type { DemoEvent } from "@/adapters/demo";
 import type {
+  AcceptDeliveryInput,
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  ConfirmMatchInput,
+  SaveMaterialInput,
   CreateProjectInput,
   CreateRequestInput,
+  CompleteMilestoneInput,
+  ResolveChangeInput,
+  SetProjectStatusInput,
   ListChangesInput,
   ListDocumentsInput,
   ListPositionsInput,
   ListProjectsInput,
   MergePositionsInput,
+  MoveDeliveryInput,
+  ResolveRemarkInput,
   PositionFilterInput,
   Repositories,
   ReviewReportInput,
@@ -17,7 +25,10 @@ import type {
   UndoReviewInput,
   UploadRevisionInput,
 } from "@/ports";
-import { currentUserId, dataSource } from "./config";
+import { guardRepositories, sessionFor } from "@/adapters/access";
+import type { AccessSession } from "@/domain/access";
+import { FORBIDDEN_MESSAGE } from "@/ports";
+import { currentUserId, dataSource, type DEMO_PERSONAS } from "./config";
 import * as fn from "./functions";
 import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
@@ -38,8 +49,14 @@ const demoAdapter = () =>
       ? Promise.reject(new Error("Демо-адаптер недоступен в рабочем режиме"))
       : import("@/adapters/demo"));
 let demo: Promise<Repositories> | null = null;
-const local = () =>
+const inner = () =>
   (demo ??= demoAdapter().then((module) => module.createDemoRepositories({ persist: true })));
+/** Сессия демо: персона вкладки, её роль и объекты — по тем же правилам, что на сервере */
+const demoSession = () => inner().then((repos) => sessionFor(repos, currentUserId()));
+// Права в демо проверяет та же обёртка, что на сервере (ADR-012): данные живут во вкладке,
+// и запрет срабатывает там же, где данные
+let guarded: Promise<Repositories> | null = null;
+const local = () => (guarded ??= inner().then((repos) => guardRepositories(repos, demoSession)));
 /** Кто выполняет действие: в демо — выбранная персона, иначе сотрудник по умолчанию */
 const actor = () => ({ actorId: currentUserId() });
 const server = dataSource === "server";
@@ -65,6 +82,13 @@ export const api = {
       };
     },
   },
+  /** Кто вошёл: сотрудник, роль, объекты. В рабочем режиме — из подписанной сессии сервера */
+  session: (): Promise<AccessSession | null> =>
+    server ? (fn.sessionFn() as Promise<AccessSession | null>) : demoSession(),
+  /** Вход за персону демонстрации: на сервере — подписанная cookie, в демо — персона вкладки */
+  signIn: async (personaId: (typeof DEMO_PERSONAS)[number]) => {
+    if (server) await fn.signInFn({ data: { personaId } });
+  },
   clock: {
     now: () => (server ? fn.nowFn() : local().then((r) => r.clock.now())),
   },
@@ -80,6 +104,7 @@ export const api = {
     exportRegistry: async (data: ListProjectsInput) => {
       if (!server) return local().then((r) => r.projects.exportRegistry(data));
       const response = await fetch(`${REGISTRY_EXPORT_PATH}?${registryExportQuery(data)}`);
+      if (response.status === 403) throw new Error(FORBIDDEN_MESSAGE);
       if (!response.ok) throw new Error(`Выгрузка не сформирована: ${response.status}`);
       return response.blob();
     },
@@ -87,6 +112,14 @@ export const api = {
       server ? fn.projectCardFn({ data: { id } }) : local().then((r) => r.projects.card(id)),
     create: (data: CreateProjectInput) =>
       server ? fn.createProjectFn({ data }) : local().then((r) => r.projects.create(data, actor())),
+    setStatus: (data: SetProjectStatusInput) =>
+      server
+        ? fn.setProjectStatusFn({ data })
+        : local().then((r) => r.projects.setStatus(data, actor())),
+    completeMilestone: (data: CompleteMilestoneInput) =>
+      server
+        ? fn.completeMilestoneFn({ data })
+        : local().then((r) => r.projects.completeMilestone(data, actor())),
   },
   documents: {
     list: (data: ListDocumentsInput) =>
@@ -99,6 +132,10 @@ export const api = {
       server ? fn.uploadFn({ data }) : local().then((r) => r.documents.upload(data, actor())),
     changes: (data: ListChangesInput) =>
       server ? fn.revisionChangesFn({ data }) : local().then((r) => r.documents.changes(data)),
+    resolveChange: (data: ResolveChangeInput) =>
+      server
+        ? fn.resolveChangeFn({ data })
+        : local().then((r) => r.documents.resolveChange(data, actor())),
   },
   positions: {
     list: (data: ListPositionsInput) =>
@@ -151,12 +188,27 @@ export const api = {
       server
         ? fn.handOverFn({ data: { revisionId } })
         : local().then((r) => r.positions.handOver({ revisionId }, actor())),
+    confirmMatch: (data: ConfirmMatchInput) =>
+      server
+        ? fn.confirmMatchFn({ data })
+        : local().then((r) => r.positions.confirmMatch(data, actor())),
     materials: () => (server ? fn.materialsFn() : local().then((r) => r.positions.materials())),
     replacements: () =>
       server ? fn.replacementsFn() : local().then((r) => r.positions.replacements()),
   },
+  catalog: {
+    categories: () => (server ? fn.categoriesFn() : local().then((r) => r.catalog.categories())),
+    material: (id: string) =>
+      server ? fn.materialCardFn({ data: { id } }) : local().then((r) => r.catalog.material(id)),
+    saveMaterial: (data: SaveMaterialInput) =>
+      server
+        ? fn.saveMaterialFn({ data })
+        : local().then((r) => r.catalog.saveMaterial(data, actor())),
+  },
   procurement: {
     suppliers: () => (server ? fn.suppliersFn() : local().then((r) => r.procurement.suppliers())),
+    supplier: (id: string) =>
+      server ? fn.supplierFn({ data: { id } }) : local().then((r) => r.procurement.supplier(id)),
     verifyContact: (supplierId: string) =>
       server
         ? fn.verifyContactFn({ data: { supplierId } }).then(() => undefined)
@@ -184,6 +236,22 @@ export const api = {
       server
         ? fn.deliveriesFn({ data: { projectId } })
         : local().then((r) => r.procurement.deliveries(projectId)),
+    delivery: (deliveryId: string) =>
+      server
+        ? fn.deliveryFn({ data: { id: deliveryId } })
+        : local().then((r) => r.procurement.delivery(deliveryId)),
+    moveDelivery: (data: MoveDeliveryInput) =>
+      server
+        ? fn.moveDeliveryFn({ data })
+        : local().then((r) => r.procurement.moveDelivery(data, actor())),
+    resolveRemark: (data: ResolveRemarkInput) =>
+      server
+        ? fn.resolveRemarkFn({ data })
+        : local().then((r) => r.procurement.resolveRemark(data, actor())),
+    acceptDelivery: (data: AcceptDeliveryInput) =>
+      server
+        ? fn.acceptDeliveryFn({ data })
+        : local().then((r) => r.procurement.acceptDelivery(data, actor())),
   },
   reports: {
     list: (projectId: string) =>

@@ -45,6 +45,18 @@ export function matchesView(item: ExtractedPosition, view: PositionView) {
   }
 }
 
+/**
+ * Можно ли передать ревизию в закупку. Пока в ней есть позиции «Не удалось определить»,
+ * передача закрыта — то же правило, что у кнопки экрана проверки, но его держит адаптер:
+ * экран может ошибиться или быть обойдён прямым вызовом.
+ */
+export function handOverError(revisionPositions: ExtractedPosition[]): string | null {
+  const blocking = revisionPositions.filter((item) => matchesView(item, "check")).length;
+  return blocking
+    ? `Сначала разберите позиции «Не удалось определить»: ${blocking}. Исправьте или исключите их.`
+    : null;
+}
+
 /** Позиция в закупке: проверена и передана — только у таких есть этап закупки */
 export function inProcurement(item: ExtractedPosition) {
   return isVerifiedPosition(item) && item.handedOverAt !== null;
@@ -121,7 +133,12 @@ export function positionFacets(items: ExtractedPosition[], filter: PositionFilte
   const groups = new Map<string, { group: string; total: number; verified: number }>();
   let autoVerified = 0;
   let readyForRequest = 0;
-  const handOver = { count: 0, needNormalization: 0, withoutCharacteristics: 0 };
+  const handOver = {
+    count: 0,
+    needNormalization: 0,
+    withoutCharacteristics: 0,
+    unconfirmedMatch: 0,
+  };
 
   for (const item of scope) {
     for (const view of positionViews) if (matchesView(item, view)) views[view] += 1;
@@ -131,6 +148,8 @@ export function positionFacets(items: ExtractedPosition[], filter: PositionFilte
     if (isVerifiedPosition(item) && item.handedOverAt === null) {
       handOver.count += 1;
       if (!item.normalizedName) handOver.needNormalization += 1;
+      // Передаются, но в запрос не уйдут, пока сопоставление не подтвердят (ADR-014, п. 3)
+      if (item.matchStatus !== "confirmed") handOver.unconfirmedMatch += 1;
       if (item.characteristics.length === 0) handOver.withoutCharacteristics += 1;
     }
 

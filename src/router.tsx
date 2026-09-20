@@ -1,4 +1,5 @@
 import {
+  MutationCache,
   defaultShouldDehydrateQuery,
   dehydrate,
   hydrate,
@@ -9,9 +10,29 @@ import { wasPrefetched } from "@/api/prefetch";
 import { createRouter } from "@tanstack/react-router";
 import { dataSource } from "@/api/config";
 import { routeTree } from "./routeTree.gen";
+import { actionLabels, recordAction, recordError } from "@/lib/guide/telemetry";
+
+/**
+ * Главные действия сессии — мутации с подписью `meta.action` (ADR-010): телеметрия пишет их,
+ * проводка засчитывает по ним шаги. Кеш мутаций общий, поэтому подпись ставится один раз
+ * в src/api/mutations.ts, а не в каждом экране.
+ */
+function actionOf(meta: Record<string, unknown> | undefined) {
+  return typeof meta?.["action"] === "string" ? meta["action"] : null;
+}
 
 export const getRouter = () => {
   const queryClient = new QueryClient({
+    mutationCache: new MutationCache({
+      onSuccess: (_data, _variables, _context, mutation) => {
+        const action = actionOf(mutation.options.meta);
+        if (action) recordAction(action);
+      },
+      onError: (error, _variables, _context, mutation) => {
+        const action = actionOf(mutation.options.meta);
+        recordError(`${action ? (actionLabels[action] ?? action) : "Действие"}: ${error.message}`);
+      },
+    }),
     defaultOptions: {
       queries: {
         // Демо-адаптер работает без сети: запросы не должны вставать на паузу без соединения

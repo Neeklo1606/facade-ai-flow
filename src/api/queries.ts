@@ -36,6 +36,14 @@ export const queries = {
       refetchInterval: 60_000,
     }),
 
+  /** Сессия: роль и объекты персоны. Ключ по персоне — смена персоны даёт другую сессию */
+  session: (personaId: string) =>
+    queryOptions({
+      queryKey: keys.session(personaId),
+      queryFn: api.session,
+      ...reference,
+    }),
+
   employees: () =>
     queryOptions({
       queryKey: keys.directory.employees(),
@@ -65,6 +73,12 @@ export const queries = {
       // Пока идёт извлечение, опрашиваем статус задач (P3-4)
       refetchInterval: (query) =>
         query.state.data?.some((item) => shouldPollJob(item.job)) ? JOB_POLL_MS : false,
+    }),
+  /** Изменения между ревизиями документов объекта: открытые и разобранные (ADR-015, п. 7) */
+  revisionChanges: (projectId: string) =>
+    queryOptions({
+      queryKey: keys.documents.changes(projectId),
+      queryFn: () => api.documents.changes({ projectId }),
     }),
   revisions: (documentId: string) =>
     queryOptions({
@@ -121,6 +135,22 @@ export const queries = {
 
   suppliers: () =>
     queryOptions({ queryKey: keys.procurement.suppliers(), queryFn: api.procurement.suppliers }),
+  supplier: (id: string) =>
+    queryOptions({
+      queryKey: keys.procurement.supplier(id),
+      queryFn: () => api.procurement.supplier(id),
+    }),
+  categories: () =>
+    queryOptions({
+      queryKey: keys.positions.categories(),
+      queryFn: api.catalog.categories,
+      ...reference,
+    }),
+  material: (id: string) =>
+    queryOptions({
+      queryKey: keys.positions.material(id),
+      queryFn: () => api.catalog.material(id),
+    }),
   templates: () =>
     queryOptions({
       queryKey: keys.procurement.templates(),
@@ -143,6 +173,11 @@ export const queries = {
     queryOptions({
       queryKey: keys.procurement.deliveries(projectId),
       queryFn: () => api.procurement.deliveries(projectId),
+    }),
+  delivery: (deliveryId: string) =>
+    queryOptions({
+      queryKey: keys.procurement.delivery(deliveryId),
+      queryFn: () => api.procurement.delivery(deliveryId),
     }),
 
   reports: (projectId: string) =>

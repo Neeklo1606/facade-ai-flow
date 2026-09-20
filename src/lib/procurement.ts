@@ -1,4 +1,4 @@
-import { rfqStatusLabel, type RfqStatus } from "@/contracts";
+import { rfqStatusLabel, type DeliveryStatus, type RfqStatus } from "@/contracts";
 
 export type { RfqStatus } from "@/contracts";
 
@@ -31,3 +31,14 @@ export function itemsSummary(
   const rest = items.length - limit;
   return rest > 0 ? `${shown} и ещё ${rest}` : shown;
 }
+
+/** Цвет статуса поставки: к приёмке и с замечаниями — внимание, принята — норма (ADR-011) */
+export const deliveryTone: Record<DeliveryStatus, Tone> = {
+  expected: "neutral",
+  shipped: "info",
+  in_transit: "info",
+  arrived: "warn",
+  accepted: "ok",
+  accepted_with_remarks: "warn",
+  rejected: "danger",
+};

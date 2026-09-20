@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, CalendarRange, Flag, Layers, TrendingUp, Upload } from "lucide-react";
+import { useAccess } from "@/api/access";
+import { ArrowRight, CalendarRange, Check, Flag, Layers, TrendingUp, Upload } from "lucide-react";
 import {
   EmptyState,
   EntityDrawer,
@@ -20,7 +21,10 @@ import { useWorkProgress } from "@/api/work-progress";
 import type { MilestonePoint, ZoneRow } from "@/api/types";
 import { fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Project } from "@/contracts";
+import { reportsGapLine, type ReportsGap } from "@/lib/reports-gap";
+import { milestoneTransitions, type Project } from "@/contracts";
+import { useCompleteMilestone } from "@/api/mutations";
+import { toast } from "@/lib/toast";
 
 const metricIcon = {
   done: Layers,
@@ -47,7 +51,9 @@ export function ProgressTab({
   project: Project;
   onSource: (sourceId: string) => void;
 }) {
+  const { can, canProject } = useAccess();
   const progress = useWorkProgress(project.id);
+  const complete = useCompleteMilestone();
   const [zoneId, setZoneId] = useState<string | null>(null);
   const [milestoneId, setMilestoneId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "behind">("all");
@@ -82,13 +88,15 @@ export function ProgressTab({
           title="Захватки не заведены"
           description="Объёмы работ берутся из захваток объекта: оси, этажи, план в м². Они извлекаются из проектной документации — загрузите её, и ход работ появится здесь."
         />
-        <div className="flex justify-center">
-          <Button variant="secondary" asChild>
-            <Link to="/projects/$id/documents" params={{ id: project.id }}>
-              <Upload className="size-4" /> Загрузить документацию
-            </Link>
-          </Button>
-        </div>
+        {can("documents", "write") && (
+          <div className="flex justify-center">
+            <Button variant="secondary" asChild>
+              <Link to="/projects/$id/documents" params={{ id: project.id }}>
+                <Upload className="size-4" /> Загрузить документацию
+              </Link>
+            </Button>
+          </div>
+        )}
       </WidgetCard>
     );
 
@@ -155,6 +163,7 @@ export function ProgressTab({
               <ZoneItem
                 key={row.id}
                 row={row}
+                gap={progress.reportsGap}
                 onOpen={() => setZoneId(row.id)}
                 onSource={onSource}
               />
@@ -238,21 +247,28 @@ export function ProgressTab({
                   />
                 </p>
               </div>
+            ) : progress.reportsGap ? (
+              // Отчётов нет на руках — и про них говорится, а не молчится (`lib/reports-gap`)
+              <p className="text-[13px] text-text-3">
+                {reportsGapLine("Последний принятый объём", progress.reportsGap)}.
+              </p>
             ) : (
               <p className="text-[13px] text-text-3">
                 Принятых отчётов по захватке ещё не было: факт равен объёму, зафиксированному при
                 заведении захватки.
               </p>
             )}
-            <Button variant="secondary" asChild className="w-full">
-              <Link
-                to="/projects/$id/field-reports"
-                params={{ id: project.id }}
-                search={{ zone: zone.id }}
-              >
-                Отчёты по этой захватке <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            {can("field-reports") && (
+              <Button variant="secondary" asChild className="w-full">
+                <Link
+                  to="/projects/$id/field-reports"
+                  params={{ id: project.id }}
+                  search={{ zone: zone.id }}
+                >
+                  Отчёты по этой захватке <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </EntityDrawer>
       )}
@@ -267,6 +283,32 @@ export function ProgressTab({
             <StatusBadge tone={milestoneTone[milestone.status]}>
               {milestone.statusLabel}
             </StatusBadge>
+          }
+          footer={
+            // Статус точки меняется действием: выполненную отмечает руководитель (ADR-015, п. 7)
+            canProject("projects", project.id, "write") &&
+            (milestoneTransitions[milestone.status] as readonly string[]).includes("done") ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={complete.isPending}
+                onClick={() =>
+                  complete.mutate(
+                    { projectId: project.id, milestoneId: milestone.id },
+                    {
+                      onSuccess: () =>
+                        toast.success("Контрольная точка выполнена", {
+                          description: "Запись добавлена в историю объекта",
+                        }),
+                      onError: (error) =>
+                        toast.error("Не удалось отметить", { description: error.message }),
+                    },
+                  )
+                }
+              >
+                <Check className="size-4" /> Отметить выполненной
+              </Button>
+            ) : undefined
           }
         >
           <div className="space-y-4">
@@ -299,10 +341,13 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function ZoneItem({
+  gap,
   row,
   onOpen,
   onSource,
 }: {
+  /** Отчётов нет на руках: вид работ тогда не «ещё не приходил», а не виден */
+  gap: ReportsGap | null;
   row: ZoneRow;
   onOpen: () => void;
   onSource: (sourceId: string) => void;
@@ -330,7 +375,8 @@ function ZoneItem({
           <span className="min-w-0">
             {[row.axes && `оси ${row.axes}`, row.floors && `этажи ${row.floors}`, row.workType]
               .filter(Boolean)
-              .join(" · ") || "Вид работ появится с первым отчётом"}
+              .join(" · ") ||
+              (gap ? reportsGapLine("Вид работ", gap) : "Вид работ появится с первым отчётом")}
           </span>
           {row.lastFact?.sourceId && (
             <span className="pointer-events-auto relative z-[2] inline-flex">

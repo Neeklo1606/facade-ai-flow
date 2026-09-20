@@ -1,6 +1,7 @@
 import { memo, useState, type FormEvent } from "react";
 import { Ban, Check, Combine, FileText, Heading, Pencil, Split, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MatchLine } from "@/components/materials/MatchLine";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfidenceLabel, confidenceLevel } from "@/components/common/ConfidenceIndicator";
@@ -25,6 +26,8 @@ interface Props {
     patch: Pick<ExtractedPosition, "projectName" | "qty" | "unit" | "characteristics">,
   ) => void;
   onCancelEdit: () => void;
+  /** Роль без права записи в документах (ADR-012): строку можно открыть, но не менять */
+  readOnly?: boolean;
 }
 
 const reviewBadgeClass: Partial<Record<ExtractedPosition["review"], string>> = {
@@ -46,6 +49,7 @@ export const PositionRow = memo(function PositionRow({
   onAction,
   onSaveEdit,
   onCancelEdit,
+  readOnly = false,
 }: Props) {
   const level = confidenceLevel(item.confidence);
   const badgeClass = reviewBadgeClass[item.review];
@@ -59,8 +63,8 @@ export const PositionRow = memo(function PositionRow({
   return (
     <div
       data-position-id={item.id}
-      role="option"
-      aria-selected={active}
+      role="listitem"
+      aria-current={active ? "true" : undefined}
       onClick={() => onActivate(item.id)}
       className={cn(
         "group relative cursor-pointer border-b border-border px-4 py-2.5 transition-fast",
@@ -131,6 +135,10 @@ export const PositionRow = memo(function PositionRow({
                   <span className="text-warn">Характеристики не указаны</span>
                 )}
               </p>
+              {/* Материал справочника: у активной строки — с подтверждением (ADR-014) */}
+              {active && !inactive && (
+                <MatchLine item={item} canEdit={!readOnly} className="mt-2" />
+              )}
             </div>
             {item.review !== "header" && (
               <div className="shrink-0 text-right">
@@ -159,7 +167,7 @@ export const PositionRow = memo(function PositionRow({
             </p>
           )}
 
-          {active && (
+          {active && !readOnly && (
             <div
               className="mt-2 flex flex-wrap items-center gap-1.5"
               onClick={(e) => e.stopPropagation()}

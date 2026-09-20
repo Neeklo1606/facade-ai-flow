@@ -13,6 +13,7 @@ import { useCurrentRole, useProjectId } from "@/lib/project-scope";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useDirectory } from "@/api/directory";
+import { useAccess } from "@/api/access";
 
 /** Поиск по системе: объекты, разделы, документы, запросы и поставщики — только экраны объекта. */
 export function CommandPalette() {
@@ -21,20 +22,24 @@ export function CommandPalette() {
   const projectId = useProjectId();
   const role = useCurrentRole();
   const { counterpartyName } = useDirectory();
-  // Поиск загружает данные только когда открыт
+  // Поиск загружает данные только когда открыт и только по разделам, открытым роли (ADR-012)
   const enabled = commandOpen;
+  const { can } = useAccess();
   const projects = (useQuery({ ...queries.projects(), enabled }).data ?? []).map(
     (item) => item.project,
   );
-  const documents = (useQuery({ ...queries.documents(), enabled }).data ?? []).map(
-    (item) => item.document,
-  );
+  const documents = (
+    useQuery({ ...queries.documents(), enabled: enabled && can("documents") }).data ?? []
+  ).map((item) => item.document);
   const requests = useQueries({
-    queries: projects.map((project) => ({ ...queries.requests(project.id), enabled })),
+    queries: projects.map((project) => ({
+      ...queries.requests(project.id),
+      enabled: enabled && can("procurement"),
+    })),
   }).flatMap((result) => (result.data ?? []).map((item) => item.request));
-  const profiles = (useQuery({ ...queries.suppliers(), enabled }).data ?? []).map(
-    (item) => item.profile,
-  );
+  const profiles = (
+    useQuery({ ...queries.suppliers(), enabled: enabled && can("suppliers") }).data ?? []
+  ).map((item) => item.profile);
   const nameOf = (id: string) => projects.find((p) => p.id === id)?.name ?? "";
   // Палитра не предлагает разделы, которых у роли нет в меню (ADR-008)
   const sections = navItemsFor(role);
@@ -81,35 +86,39 @@ export function CommandPalette() {
             );
           })}
         </CommandGroup>
-        <CommandGroup heading="Документация">
-          {documents.map((d) => (
-            <CommandItem
-              key={d.id}
-              value={`документ ${d.title} ${d.fileName} ${nameOf(d.projectId)}`}
-              onSelect={() => go(`/projects/${d.projectId}/documents/${d.id}`)}
-            >
-              <span className="truncate">{d.title}</span>
-              <span className="ml-auto shrink-0 truncate text-caption text-text-muted">
-                {nameOf(d.projectId)}
-              </span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-        <CommandGroup heading="Запросы поставщикам">
-          {requests.map((r) => (
-            <CommandItem
-              key={r.id}
-              value={`запрос ${r.number} ${nameOf(r.projectId)}`}
-              onSelect={() => go(`/projects/${r.projectId}/procurement/${r.id}`)}
-            >
-              <span className="truncate">{r.number}</span>
-              <span className="ml-auto shrink-0 truncate text-caption text-text-muted">
-                {nameOf(r.projectId)}
-              </span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-        {suppliersProject && (
+        {can("documents") && (
+          <CommandGroup heading="Документация">
+            {documents.map((d) => (
+              <CommandItem
+                key={d.id}
+                value={`документ ${d.title} ${d.fileName} ${nameOf(d.projectId)}`}
+                onSelect={() => go(`/projects/${d.projectId}/documents/${d.id}`)}
+              >
+                <span className="truncate">{d.title}</span>
+                <span className="ml-auto shrink-0 truncate text-caption text-text-muted">
+                  {nameOf(d.projectId)}
+                </span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+        {can("procurement") && (
+          <CommandGroup heading="Запросы поставщикам">
+            {requests.map((r) => (
+              <CommandItem
+                key={r.id}
+                value={`запрос ${r.number} ${nameOf(r.projectId)}`}
+                onSelect={() => go(`/projects/${r.projectId}/procurement/${r.id}`)}
+              >
+                <span className="truncate">{r.number}</span>
+                <span className="ml-auto shrink-0 truncate text-caption text-text-muted">
+                  {nameOf(r.projectId)}
+                </span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+        {suppliersProject && can("suppliers") && (
           <CommandGroup heading="Поставщики">
             {profiles.map((p) => (
               <CommandItem

@@ -201,7 +201,14 @@ export const SheetViewer = forwardRef<SheetViewerHandle, Props>(function SheetVi
         </div>
       </div>
 
-      <div ref={scroller} className="min-h-0 flex-1 overflow-auto" tabIndex={-1}>
+      {/* Лист прокручивается и с клавиатуры: область в порядке табуляции и подписана */}
+      <div
+        ref={scroller}
+        className="focus-ring min-h-0 flex-1 overflow-auto"
+        tabIndex={0}
+        role="region"
+        aria-label="Листы документа"
+      >
         <div
           className="mx-auto flex flex-col items-center"
           style={{
@@ -409,6 +416,8 @@ function SpecTable({
             key={item.id}
             type="button"
             tabIndex={-1}
+            // Выбранная позиция подсвечена цветом — и названа для диктора (ADR-015)
+            aria-pressed={item.id === activeId}
             onClick={() => onSelect(item.id)}
             className={cn(
               "absolute grid cursor-pointer items-center border-x border-b border-[#c9ced2] text-left hover:bg-[#fff4ec]",

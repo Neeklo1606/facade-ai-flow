@@ -33,3 +33,10 @@ dist-ssr
 
 # Локальные переменные окружения с секретами
 .env*.local
+
+# Сквозные тесты
+test-results/
+playwright-report/
+
+# Отчёт обхода продукта (ADR-015)
+.walkthrough/

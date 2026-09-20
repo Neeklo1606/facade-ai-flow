@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { recordAction } from "@/lib/guide/telemetry";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -27,10 +28,12 @@ import { useTeam } from "@/api/work-progress";
 import { useNow } from "@/api/clock";
 import { exportTeam, teamFileName } from "@/api/team-export";
 import { saveFile } from "@/lib/download";
+import { useAccess } from "@/api/access";
 import { toast } from "@/lib/toast";
 import type { TeamCrew, TeamPerson } from "@/api/types";
 import { fmtAgoFrom, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { reportsGapLine, reportsGapNote, type ReportsGap } from "@/lib/reports-gap";
 import type { Project } from "@/contracts";
 
 const metricIcon = { people: Users, crews: UsersRound, silent: HardHat } as const;
@@ -40,7 +43,10 @@ const metricIcon = { people: Users, crews: UsersRound, silent: HardHat } as cons
  * последнего отчёта. Выгрузка в Excel повторяет то, что видно на экране.
  */
 export function TeamTab({ project }: { project: Project }) {
+  const { can } = useAccess();
   const team = useTeam(project.id);
+  // Пропуск в отчётах с площадки: на нём держатся все значения вкладки, что считаются по отчётам
+  const gap = team.reportsGap;
   const now = useNow();
   const [personId, setPersonId] = useState<string | null>(null);
   const [onlySilent, setOnlySilent] = useState(false);
@@ -53,7 +59,8 @@ export function TeamTab({ project }: { project: Project }) {
   async function handleExport() {
     setExporting(true);
     try {
-      saveFile(await exportTeam(project.name, team.people), teamFileName(project.code));
+      saveFile(await exportTeam(project.name, team.people, gap), teamFileName(project.code));
+      recordAction("exportExcel");
       toast.success("Команда выгружена", {
         description: `${fmtNum(team.people.length)} ${team.people.length === 1 ? "сотрудник" : "сотрудников"} в файле Excel`,
       });
@@ -94,21 +101,33 @@ export function TeamTab({ project }: { project: Project }) {
         items={team.metrics.map((metric) => ({
           icon: metricIcon[metric.key as keyof typeof metricIcon] ?? Users,
           label: metric.label,
-          value: metric.value,
-          ...(metric.note ? { note: metric.note } : {}),
+          // Показатель считается по отчётам: без них он не показывается (`lib/reports-gap`)
+          value: metric.key === "silent" && gap ? "—" : metric.value,
+          ...(metric.key === "silent" && gap
+            ? { note: reportsGapNote[gap] }
+            : metric.note
+              ? { note: metric.note }
+              : {}),
           explain: (
             <ExplainPopover
               title={metric.explain.title}
               formula={metric.explain.formula}
-              sources={metric.explain.sources}
+              // Разбор считается по тем же отчётам: без них он перечислял бы все бригады молчащими
+              sources={
+                metric.key === "silent" && gap
+                  ? [{ label: reportsGapNote[gap] }]
+                  : metric.explain.sources
+              }
             />
           ),
           // Ячейка кликабельна, только если её нажатие что-то меняет (находка ревью LOW)
-          ...(metric.filter === "silent"
-            ? { onSelect: () => setOnlySilent((value) => !value), selected: onlySilent }
-            : metric.filter === "all" && onlySilent
-              ? { onSelect: () => setOnlySilent(false) }
-              : {}),
+          ...(metric.key === "silent" && gap
+            ? {}
+            : metric.filter === "silent"
+              ? { onSelect: () => setOnlySilent((value) => !value), selected: onlySilent }
+              : metric.filter === "all" && onlySilent
+                ? { onSelect: () => setOnlySilent(false) }
+                : {}),
         }))}
       />
 
@@ -121,15 +140,23 @@ export function TeamTab({ project }: { project: Project }) {
           aside={
             <>
               <CountPill>{fmtNum(team.people.length)}</CountPill>
-              <Button variant="secondary" size="sm" onClick={handleExport} loading={exporting}>
-                {!exporting && <FileSpreadsheet className="size-4" />} Excel
-              </Button>
+              {can("export") && (
+                <Button variant="secondary" size="sm" onClick={handleExport} loading={exporting}>
+                  {!exporting && <FileSpreadsheet className="size-4" />} Excel
+                </Button>
+              )}
             </>
           }
         />
         <ul className="-mx-6 divide-y divide-line">
           {team.people.map((row) => (
-            <PersonRow key={row.id} row={row} now={now} onOpen={() => setPersonId(row.id)} />
+            <PersonRow
+              key={row.id}
+              row={row}
+              now={now}
+              gap={gap}
+              onOpen={() => setPersonId(row.id)}
+            />
           ))}
         </ul>
       </WidgetCard>
@@ -139,7 +166,9 @@ export function TeamTab({ project }: { project: Project }) {
           level={2}
           icon={UsersRound}
           title="Бригады"
-          hint={onlySilent ? "без отчёта за 7 дней" : "состав и последняя захватка"}
+          hint={
+            onlySilent ? "без отчёта за 7 дней" : gap ? "состав" : "состав и последняя захватка"
+          }
           aside={
             <>
               <CountPill>{fmtNum(crews.length)}</CountPill>
@@ -166,7 +195,8 @@ export function TeamTab({ project }: { project: Project }) {
                 key={crew.id}
                 crew={crew}
                 projectId={project.id}
-                silent={silentIds.has(crew.id)}
+                gap={gap}
+                silent={!gap && silentIds.has(crew.id)}
               />
             ))}
           </ul>
@@ -209,7 +239,9 @@ export function TeamTab({ project }: { project: Project }) {
                 <p className="mt-0.5 text-[14px] text-text">
                   {person.lastReport
                     ? `${fmtAgoFrom(person.lastReport.at, now)} · ${person.lastReport.zoneName}`
-                    : "Отчётов не было"}
+                    : gap
+                      ? reportsGapNote[gap]
+                      : "Отчётов не было"}
                 </p>
               </div>
             </div>
@@ -217,11 +249,13 @@ export function TeamTab({ project }: { project: Project }) {
               Допуски и удостоверения появятся в карточке после загрузки кадровых документов — в
               модели данных их пока нет.
             </p>
-            <Button variant="secondary" asChild className="w-full">
-              <Link to="/projects/$id/field-reports" params={{ id: project.id }} search={{}}>
-                Отчёты с площадки <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            {can("field-reports") && (
+              <Button variant="secondary" asChild className="w-full">
+                <Link to="/projects/$id/field-reports" params={{ id: project.id }} search={{}}>
+                  Отчёты с площадки <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </EntityDrawer>
       )}
@@ -229,7 +263,18 @@ export function TeamTab({ project }: { project: Project }) {
   );
 }
 
-function PersonRow({ row, now, onOpen }: { row: TeamPerson; now: string; onOpen: () => void }) {
+function PersonRow({
+  row,
+  now,
+  gap,
+  onOpen,
+}: {
+  row: TeamPerson;
+  now: string;
+  /** Отчётов нет на руках: «без отчётов» было бы неправдой (`lib/reports-gap`) */
+  gap: ReportsGap | null;
+  onOpen: () => void;
+}) {
   return (
     <li className="group relative flex items-center gap-3 px-6 py-3 transition-fast is-hover:bg-surface-2">
       <button
@@ -249,7 +294,7 @@ function PersonRow({ row, now, onOpen }: { row: TeamPerson; now: string; onOpen:
           </span>
         </span>
         <span className="hidden shrink-0 text-right text-[12px] text-text-3 lg:block">
-          {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : "без отчётов"}
+          {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : gap ? "—" : "без отчётов"}
         </span>
       </button>
       {/* Звонок и сообщение — поверх строки: это отдельные действия, а не открытие карточки */}
@@ -322,10 +367,13 @@ function ContactButton({
 function CrewCard({
   crew,
   projectId,
+  gap,
   silent,
 }: {
   crew: TeamCrew;
   projectId: string;
+  /** Отчётов нет на руках: захватка бригады из них и считается (`lib/reports-gap`) */
+  gap: ReportsGap | null;
   silent: boolean;
 }) {
   return (
@@ -346,6 +394,7 @@ function CrewCard({
         <span className="tnum shrink-0 text-[13px] text-text-2">{crew.headcount} чел.</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
+        {/* Захватка приходит из отчётов, поэтому со ссылкой на них: без них ветка недостижима */}
         {crew.lastZone ? (
           <Link
             to="/projects/$id/field-reports"
@@ -357,7 +406,9 @@ function CrewCard({
             <ArrowRight className="size-3.5 shrink-0" aria-hidden />
           </Link>
         ) : (
-          <span className="text-[13px] text-text-3">Отчётов от бригады не было</span>
+          <span className="text-[13px] text-text-3">
+            {gap ? reportsGapLine("Последняя захватка", gap) : "Отчётов от бригады не было"}
+          </span>
         )}
         {silent && <StatusBadge tone="warn">Без отчёта 7 дней</StatusBadge>}
       </div>

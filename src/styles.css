@@ -962,3 +962,9 @@
     transition-duration: 1ms !important;
   }
 }
+
+/* Подсветка элемента шага проводки (ADR-010): тонкая линия, а не заливка — второго пятна не добавляет */
+.guide-target {
+  outline: 1.5px solid var(--orange);
+  outline-offset: 3px;
+}

@@ -20,6 +20,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { UploadZone, type UploadZoneHandle } from "@/components/documents/UploadZone";
+import { RevisionChanges } from "@/components/documents/RevisionChanges";
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
 import { FilterChip } from "@/components/common/FilterBar";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
@@ -41,6 +42,7 @@ import {
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useUploadDocument } from "@/api/mutations";
+import { useCanWrite } from "@/api/access";
 import { useExtractionJobsWatch } from "@/api/extraction";
 import { prefetch } from "@/api/prefetch";
 
@@ -81,6 +83,8 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const { employeeName } = useDirectory();
   const navigate = useNavigate();
   const upload = useUploadDocument();
+  // Загрузка — запись в документах (ADR-012): у роли с чтением кнопок загрузки нет
+  const canUpload = useCanWrite("documents");
   const zone = useRef<UploadZoneHandle>(null);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
 
@@ -165,9 +169,11 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         project={project}
         title="Документация"
         actions={
-          <Button variant="accent" onClick={() => zone.current?.open()} disabled={blocked}>
-            <Upload className="size-4" /> Загрузить документ
-          </Button>
+          canUpload && (
+            <Button variant="accent" onClick={() => zone.current?.open()} disabled={blocked}>
+              <Upload className="size-4" /> Загрузить документ
+            </Button>
+          )
         }
       />
       <p className="sr-only">
@@ -185,7 +191,11 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
       />
 
       <div data-main-zone className="space-y-4">
+        {/* Изменения ревизий: карточка и реестр их считают, здесь их разбирают (ADR-015, п. 7) */}
         {!blocked && (
+          <RevisionChanges projectId={project.id} documents={documents} canResolve={canUpload} />
+        )}
+        {!blocked && canUpload && (
           <UploadZone
             ref={zone}
             onFiles={handleFiles}
@@ -288,8 +298,10 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                 icon: FileText,
                 title: "Документации пока нет",
                 description: `Загрузите проектную документацию — позиции появятся здесь и уйдут на проверку. ${DEMO_UPLOAD_NOTE}`,
-                actionLabel: "Загрузить документ",
-                onAction: () => zone.current?.open(),
+                ...(canUpload && {
+                  actionLabel: "Загрузить документ",
+                  onAction: () => zone.current?.open(),
+                }),
               },
               filtered: {
                 title: "Документов с таким статусом нет",
@@ -300,7 +312,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
           >
             <>
               <div className="hidden overflow-x-auto lg:block">
-                <table className="w-full min-w-[1040px] text-table">
+                <table data-tour="documents-list" className="w-full min-w-[1040px] text-table">
                   <thead>
                     <tr className="h-10 bg-subtle text-left text-[11px] font-medium text-text-muted">
                       <th className="px-4">Название</th>
@@ -415,7 +427,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                 </table>
               </div>
 
-              <ul className="divide-y divide-border lg:hidden">
+              <ul data-tour="documents-list" className="divide-y divide-border lg:hidden">
                 {rows.map((doc) => {
                   const s = stats.get(doc.id);
                   const Icon = fileIcon[doc.fileType];
@@ -454,7 +466,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         </section>
       </div>
 
-      {!blocked && (
+      {!blocked && canUpload && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => zone.current?.open()}>
             <Upload className="size-4" /> Загрузить документ

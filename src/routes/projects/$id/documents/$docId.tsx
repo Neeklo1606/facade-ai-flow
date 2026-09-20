@@ -31,6 +31,7 @@ import { useScreenState } from "@/lib/screen-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { undoConfirmInput, undoInput, usePositionMutations } from "@/api/mutations";
+import { useAccess } from "@/api/access";
 import { usePositionLookup } from "@/api/positions";
 import { useExtractionJobsWatch } from "@/api/extraction";
 import type { PositionView } from "@/api/types";
@@ -223,6 +224,10 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     viewer.current?.scrollToPosition(active);
   }, [active, list.length]);
 
+  // Права (ADR-012): у роли с чтением документов строки без действий, клавиши только листают
+  const access = useAccess();
+  const canEdit = access.can("documents", "write");
+  const canMaterials = access.can("materials");
   const mutations = usePositionMutations({
     onFailed: (error) =>
       toast.error("Изменение не сохранилось", {
@@ -234,8 +239,16 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       }),
   });
   // Свежие значения для стабильных обработчиков строк
-  const live = useRef({ list, findPosition, mergeSourceId, mutations, listQuery, activeId });
-  live.current = { list, findPosition, mergeSourceId, mutations, listQuery, activeId };
+  const live = useRef({
+    list,
+    findPosition,
+    mergeSourceId,
+    mutations,
+    listQuery,
+    activeId,
+    canEdit,
+  });
+  live.current = { list, findPosition, mergeSourceId, mutations, listQuery, activeId, canEdit };
 
   const moveBy = useCallback((delta: number) => {
     const { list: items, listQuery: pages, activeId: current } = live.current;
@@ -294,9 +307,10 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
   const onAction = useCallback(
     (id: string, action: RowAction) => {
-      const { findPosition: find, mutations: m } = live.current;
+      const { findPosition: find, mutations: m, canEdit: editable } = live.current;
       const item = find(id);
       if (!item) return;
+      if (!editable && action !== "source") return;
       setActiveId(id);
       // У недействующей строки (исключена, объединена, заголовок) есть только «Вернуть» и переход к листу:
       // клавиши E, X и Enter на ней ничего не делают
@@ -374,6 +388,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const summary: SendSummary = {
     create: toHandOver,
     needNormalization: facets?.handOver.needNormalization ?? 0,
+    unconfirmedMatch: facets?.handOver.unconfirmedMatch ?? 0,
     withoutCharacteristics: facets?.handOver.withoutCharacteristics ?? 0,
     region: overview?.region ?? "—",
     pendingLeft: counts.pending,
@@ -398,7 +413,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     mutations.handOver.mutate(docId, {
       onSuccess: (count) =>
         toast.success(`В закупку переданы позиции: ${fmtNum(count)}`, {
-          description: `По ним можно запрашивать цены у поставщиков. Нормализации требуют ${fmtNum(summary.needNormalization)}.`,
+          description: summary.unconfirmedMatch
+            ? `Запрашивать цены можно по позициям с подтверждённым материалом. Ждут подтверждения сопоставления: ${fmtNum(summary.unconfirmedMatch)}.`
+            : "По ним можно запрашивать цены у поставщиков.",
           action: {
             label: "Открыть материалы",
             onClick: () => navigate({ to: "/projects/$id/materials", params: { id: project.id } }),
@@ -409,14 +426,23 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   }
 
   // Клавиатура: j/k — навигация, Enter — подтвердить, e — исправить, x — исключить, Ctrl+Enter — в закупку
-  const keyState = useRef({ canSend, activeId, editingId, splitId, sendOpen, mergeSourceId });
-  keyState.current = { canSend, activeId, editingId, splitId, sendOpen, mergeSourceId };
+  const keyState = useRef({
+    canSend,
+    canEdit,
+    activeId,
+    editingId,
+    splitId,
+    sendOpen,
+    mergeSourceId,
+  });
+  keyState.current = { canSend, canEdit, activeId, editingId, splitId, sendOpen, mergeSourceId };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = keyState.current;
       if (k.sendOpen || k.splitId || k.editingId || isTyping(e.target)) return;
       if (document === null) return;
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        if (!k.canEdit) return;
         e.preventDefault();
         if (k.canSend) setSendOpen(true);
         else
@@ -448,7 +474,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       } else if (code === "KeyK" || e.key === "ArrowUp") {
         e.preventDefault();
         moveBy(-1);
-      } else if (!k.activeId) {
+      } else if (!k.activeId || !k.canEdit) {
         return;
       } else if (e.key === "Enter") {
         const target = e.target as HTMLElement;
@@ -507,30 +533,39 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             </Link>
           </Button>
         ) : allHandedOver ? (
-          <Button variant="accent" asChild>
-            <Link to="/projects/$id/materials" params={{ id: project.id }}>
-              Открыть материалы <ArrowRight className="size-4" />
-            </Link>
-          </Button>
+          canMaterials && (
+            <Button variant="accent" asChild>
+              <Link to="/projects/$id/materials" params={{ id: project.id }}>
+                Открыть материалы <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          )
         ) : (
-          // Недоступное действие объясняет причину и на мышке: раньше подсказка была только на телефоне
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
-                  <Send className="size-4" /> Передать в закупку
-                  <span className="tnum font-semibold">{fmtNum(toHandOver)}</span>
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!canSend && (
-              <TooltipContent className="max-w-72">
-                {blocking > 0
-                  ? `Осталось ${fmtNum(blocking)} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
-                  : "Нет проверенных позиций, которые ещё не переданы в закупку."}
-              </TooltipContent>
-            )}
-          </Tooltip>
+          canEdit && (
+            // Недоступное действие объясняет причину и на мышке: раньше подсказка была только на телефоне
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="accent"
+                    data-tour="hand-over"
+                    disabled={!canSend}
+                    onClick={() => setSendOpen(true)}
+                  >
+                    <Send className="size-4" /> Передать в закупку
+                    <span className="tnum font-semibold">{fmtNum(toHandOver)}</span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!canSend && (
+                <TooltipContent className="max-w-72">
+                  {blocking > 0
+                    ? `Осталось ${fmtNum(blocking)} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
+                    : "Нет проверенных позиций, которые ещё не переданы в закупку."}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          )
         )}
       </PageActions>
       <PageCaption>
@@ -711,6 +746,10 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   </div>
                   <div
                     className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-subtle"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={pct}
                     aria-label={`Проверено ${pct}%`}
                   >
                     <div
@@ -732,18 +771,20 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                       }}
                     />
                   </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="mt-3 h-11 w-full lg:h-8"
-                    disabled={autoVerified === 0}
-                    onClick={confirmAllVerified}
-                  >
-                    <CheckCheck className="size-4" /> Подтвердить все проверенные
-                    {autoVerified > 0 && (
-                      <span className="tnum text-text-muted">{fmtNum(autoVerified)}</span>
-                    )}
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-3 h-11 w-full lg:h-8"
+                      disabled={autoVerified === 0}
+                      onClick={confirmAllVerified}
+                    >
+                      <CheckCheck className="size-4" /> Подтвердить все проверенные
+                      {autoVerified > 0 && (
+                        <span className="tnum text-text-muted">{fmtNum(autoVerified)}</span>
+                      )}
+                    </Button>
+                  )}
                   <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none]">
                     {(
                       [
@@ -807,7 +848,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
                 <div
                   ref={listRef}
-                  role="listbox"
+                  // Список, а не listbox: у строки есть свои кнопки, а навигация J/K — клавишами экрана
+                  role="list"
+                  data-tour="review-list"
                   aria-label="Извлечённые позиции"
                   className="min-h-0 flex-1 overflow-y-auto"
                 >
@@ -837,6 +880,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                           onAction={onAction}
                           onSaveEdit={onSaveEdit}
                           onCancelEdit={onCancelEdit}
+                          readOnly={!canEdit}
                         />
                       ))}
                       {hasNextPage && (
@@ -860,37 +904,41 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                         Проверенные позиции переданы в закупку
                         {sentAt ? ` · ${fmtDateTime(sentAt)}` : ""}
                       </span>
-                      <Link
-                        to="/projects/$id/materials"
-                        params={{ id: project.id }}
-                        className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline lg:min-h-0"
-                      >
-                        Открыть материалы
-                      </Link>
+                      {canMaterials && (
+                        <Link
+                          to="/projects/$id/materials"
+                          params={{ id: project.id }}
+                          className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline lg:min-h-0"
+                        >
+                          Открыть материалы
+                        </Link>
+                      )}
                     </div>
                   ) : (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="block md:hidden">
-                          <Button
-                            variant="accent"
-                            className="w-full"
-                            disabled={!canSend}
-                            onClick={() => setSendOpen(true)}
-                          >
-                            <Send className="size-4" /> Передать проверенные позиции в закупку
-                            <span className="tnum opacity-80">{fmtNum(toHandOver)}</span>
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {!canSend && (
-                        <TooltipContent className="max-w-72">
-                          {blocking > 0
-                            ? `Осталось ${blocking} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
-                            : "Нет проверенных позиций, которые ещё не переданы в закупку."}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
+                    canEdit && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="block md:hidden">
+                            <Button
+                              variant="accent"
+                              className="w-full"
+                              disabled={!canSend}
+                              onClick={() => setSendOpen(true)}
+                            >
+                              <Send className="size-4" /> Передать проверенные позиции в закупку
+                              <span className="tnum opacity-80">{fmtNum(toHandOver)}</span>
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {!canSend && (
+                          <TooltipContent className="max-w-72">
+                            {blocking > 0
+                              ? `Осталось ${blocking} ${blocking === 1 ? "позиция" : "позиции"} «Не удалось определить». Исправьте или исключите их.`
+                              : "Нет проверенных позиций, которые ещё не переданы в закупку."}
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    )
                   )}
                   {!allHandedOver && blocking > 0 && (
                     <button
@@ -915,14 +963,17 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           activeTotal > 0 && "lg:flex",
         )}
       >
-        {[
-          ["J", "K", "следующая и предыдущая"],
-          ["Enter", "", "подтвердить"],
-          ["E", "", "исправить"],
-          ["X", "", "исключить"],
-          ["Ctrl", "Enter", "передать в закупку"],
-          ["Esc", "", "отменить объединение"],
-        ].map(([a, b, label]) => (
+        {(canEdit
+          ? [
+              ["J", "K", "следующая и предыдущая"],
+              ["Enter", "", "подтвердить"],
+              ["E", "", "исправить"],
+              ["X", "", "исключить"],
+              ["Ctrl", "Enter", "передать в закупку"],
+              ["Esc", "", "отменить объединение"],
+            ]
+          : [["J", "K", "следующая и предыдущая"]]
+        ).map(([a, b, label]) => (
           <span key={label} className="inline-flex items-center gap-1.5">
             <kbd className="rounded-[var(--r-xs)] border border-border bg-subtle px-1.5 py-px font-sans text-[11px] text-text-secondary">
               {a}
@@ -946,7 +997,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
       </footer>
 
       {/* На телефоне главное действие закреплено снизу над панелью навигации */}
-      {!gated && (
+      {!gated && (allHandedOver ? canMaterials : canEdit) && (
         <MobileActionBar>
           {allHandedOver ? (
             <Button variant="accent" asChild>
@@ -955,7 +1006,12 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               </Link>
             </Button>
           ) : (
-            <Button variant="accent" disabled={!canSend} onClick={() => setSendOpen(true)}>
+            <Button
+              variant="accent"
+              data-tour="hand-over"
+              disabled={!canSend}
+              onClick={() => setSendOpen(true)}
+            >
               <Send className="size-4" /> Передать в закупку
             </Button>
           )}

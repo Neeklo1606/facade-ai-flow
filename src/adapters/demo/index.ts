@@ -1,10 +1,18 @@
 import { isReadyForRequest, type ProjectDocument } from "@/contracts";
-import { byAttention, isAutoVerified, matchesFilter, positionFacets } from "@/domain/positions";
+import { remarkKindLabel } from "@/contracts";
+import {
+  byAttention,
+  handOverError,
+  isAutoVerified,
+  matchesFilter,
+  positionFacets,
+} from "@/domain/positions";
 import { currentRevisions, projectOverview, revisionStats, revisionsOf } from "@/domain/overview";
 import {
   answeredCount,
   compareOffers,
   decisionFor,
+  decisionReasonError,
   replyDue,
   rfqStatus,
   supplierDecision,
@@ -12,6 +20,7 @@ import {
 import { latestJob, visibleStage } from "@/domain/extraction";
 import { registryColumns, registryRows, type RegistryFilter } from "@/domain/registry";
 import { timelineOf } from "@/domain/timeline";
+import { supplierStats } from "@/domain/catalog";
 import { buildXlsx } from "@/adapters/export/xlsx";
 import { createAgentPort } from "@/adapters/agent";
 import {
@@ -26,11 +35,13 @@ import {
 } from "@/ports";
 import * as actions from "./actions";
 import { peek, resetClock, restoreClock } from "./clock";
-import { startSimulator, stopSimulator } from "./simulator";
+import { disableSimulator, startSimulator, stopSimulator } from "./simulator";
 import { getState, resetState, restoreState, type DemoState } from "./state";
 import { enableStorage } from "./storage";
 
-export { onDemoEvent, type DemoEvent, type DemoEventArea } from "./state";
+export { onDemoEvent, type DemoEvent, type DemoEventArea, type DemoState } from "./state";
+export { runWithin, type DemoContext } from "./context";
+export { setClockSource, type ClockSource } from "./clock";
 
 /**
  * Демо-адаптер (ADR-004): порты поверх состояния демо — снимка фикстур, изменённого действиями
@@ -41,9 +52,19 @@ export { onDemoEvent, type DemoEvent, type DemoEventArea } from "./state";
 export interface DemoOptions {
   /** Сохранять состояние во вкладке и поднимать его после перезагрузки — только в браузере */
   persist: boolean;
+  /** Имитировать внешние события: распознавание, ответы поставщиков, отгрузку. По умолчанию — да */
+  simulate?: boolean;
 }
 
 const done = <T>(value: T) => Promise.resolve(value);
+/** Действие, которое проверяет правила и бросает ошибку порта: ошибка становится отказом промиса */
+const attempt = <T>(fn: () => T): Promise<T> => {
+  try {
+    return Promise.resolve(fn());
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
 
 function documentItem(s: DemoState, document: ProjectDocument): DocumentListItem {
   const job = latestJob(s.extractionJobs, document.id);
@@ -120,7 +141,8 @@ function start(options: DemoOptions) {
     restoreClock();
     restoreState();
   }
-  startSimulator();
+  if (options.simulate === false) disableSimulator();
+  else startSimulator();
 }
 
 export function createDemoRepositories(options: DemoOptions): Repositories {
@@ -134,7 +156,8 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
 
     directory: {
       employees: () => done(state().employees),
-      counterparties: () => done(state().counterparties),
+      counterparties: () =>
+        done(state().counterparties.map(({ id, name, role }) => ({ id, name, role }))),
     },
 
     projects: {
@@ -167,6 +190,9 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         }
         return done(actions.createProject(input));
       },
+      setStatus: (input, { actorId }) => attempt(() => actions.setProjectStatus(input, actorId)),
+      completeMilestone: (input, { actorId }) =>
+        attempt(() => actions.completeMilestone(input, actorId)),
     },
 
     documents: {
@@ -204,6 +230,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           ),
         );
       },
+      resolveChange: (input, { actorId }) => attempt(() => actions.resolveChange(input, actorId)),
     },
 
     positions: {
@@ -254,7 +281,15 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       merge: ({ sourceId, targetId }, { actorId }) =>
         done(actions.merge(sourceId, targetId, actorId)),
       split: ({ id, firstQty }, { actorId }) => done(actions.split(id, firstQty, actorId)),
-      handOver: ({ revisionId }, { actorId }) => done(actions.handOver(revisionId, actorId)),
+      handOver: ({ revisionId }, { actorId }) =>
+        attempt(() => {
+          const problem = handOverError(
+            state().positions.filter((item) => item.documentId === revisionId),
+          );
+          if (problem) throw new ConflictError(problem);
+          return actions.handOver(revisionId, actorId);
+        }),
+      confirmMatch: (input, { actorId }) => attempt(() => actions.confirmMatch(input, actorId)),
       materials: () => done(state().materials),
       replacements: () => done(state().replacements),
     },
@@ -262,13 +297,23 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
     procurement: {
       suppliers: () => {
         const s = state();
+        const now = peek();
         return done(
           s.profiles.flatMap((profile) => {
             const supplier = s.counterparties.find((item) => item.id === profile.supplierId);
-            return supplier ? [{ supplier, profile }] : [];
+            return supplier
+              ? [
+                  {
+                    supplier,
+                    profile: actions.freshProfile(profile, now),
+                    stats: supplierStats(supplier.id, s),
+                  },
+                ]
+              : [];
           }),
         );
       },
+      supplier: (supplierId) => done(actions.supplierCard(supplierId, peek())),
       verifyContact: ({ supplierId }) => done(actions.verifyContact(supplierId)),
       templates: () => done(state().templates),
       requests: (projectId) => {
@@ -312,6 +357,21 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           (id) => !s.profiles.some((item) => item.supplierId === id),
         );
         if (unknownSupplier) return Promise.reject(new NotFoundError("Поставщик", unknownSupplier));
+        // Неподтверждённое сопоставление не уходит поставщикам (ADR-014, п. 3): отказ с причиной,
+        // а не молчаливый пропуск позиции
+        const unmatched = s.positions.filter(
+          (item) =>
+            input.positionIds.includes(item.id) &&
+            item.purchase === "none" &&
+            item.matchStatus !== "confirmed",
+        ).length;
+        if (unmatched) {
+          return Promise.reject(
+            new ConflictError(
+              `Сопоставление с материалом не подтверждено: ${unmatched} поз. Подтвердите его — без этого позиция не уходит поставщикам`,
+            ),
+          );
+        }
         const result = actions.createRequest(input, actorId);
         if (!result) return Promise.reject(new ConflictError("Нет позиций, готовых к запросу"));
         return done(result);
@@ -326,6 +386,8 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         const s = state();
         const request = s.requests.find((item) => item.id === input.requestId);
         if (!request) return Promise.reject(new NotFoundError("Запрос", input.requestId));
+        const reasonProblem = decisionReasonError(input.reason);
+        if (reasonProblem) return Promise.reject(new ConflictError(reasonProblem));
         if (!request.sentTo.includes(input.supplierId)) {
           return Promise.reject(new ConflictError("Поставщику не отправляли этот запрос"));
         }
@@ -353,6 +415,10 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             .deliveries.filter((item) => item.projectId === projectId)
             .sort((a, b) => b.expectedAt.localeCompare(a.expectedAt)),
         ),
+      delivery: (deliveryId) => done(actions.deliveryCard(deliveryId)),
+      moveDelivery: (input, { actorId }) => attempt(() => actions.moveDelivery(input, actorId)),
+      acceptDelivery: (input, { actorId }) => attempt(() => actions.acceptDelivery(input, actorId)),
+      resolveRemark: (input, { actorId }) => attempt(() => actions.resolveRemark(input, actorId)),
     },
 
     reports: {
@@ -370,7 +436,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             })),
         );
       },
-      review: (input) => done(actions.reviewReport(input)),
+      review: (input) => attempt(() => actions.reviewReport(input)),
       source: (sourceId) => {
         const s = state();
         const source = s.sources.find((item) => item.id === sourceId);
@@ -404,13 +470,75 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             details: `Ответили все ${request.sentTo.length}: ${request.items.map((item) => item.name).join(", ")}`,
             link: `/projects/${projectId}/procurement/${request.id}`,
           }));
+        // Поставка прибыла — её ждут на приёмке; открытое замечание — решение за снабжением.
+        // И то и другое решается в продукте: приёмкой и закрытием замечания (ADR-011)
+        const deliveries: PendingDecision[] = s.deliveries
+          .filter((item) => item.projectId === projectId && item.status === "arrived")
+          .map((item) => ({
+            id: `delivery-${item.id}`,
+            kind: "delivery",
+            title: `Принять поставку: ${item.items.map((line) => line.name).join(", ")}`,
+            details: `Прибыла на объект, ждёт приёмки: факт, входной контроль, фото`,
+            link: `/projects/${projectId}/deliveries?delivery=${item.id}`,
+          }));
+        const remarks: PendingDecision[] = s.remarks
+          .filter((item) => item.projectId === projectId && item.status === "open")
+          .map((item) => ({
+            id: `remark-${item.id}`,
+            kind: "remark",
+            title: `Замечание по поставке: ${remarkKindLabel[item.kind].toLowerCase()}`,
+            details: item.text,
+            link: `/projects/${projectId}/deliveries?delivery=${item.deliveryId}`,
+          }));
         // Предложенные замены сюда не попадают: решить их в продукте пока нечем, а список
         // «ждёт решения» обещает именно решение (TASK-A2, п. 4). Замены видны в карточке
         // позиции как факт; согласование замены — блок B, тогда вернутся и сюда.
-        return done(requests);
+        return done([...remarks, ...deliveries, ...requests]);
       },
     },
     // Ассистент собирает ответы из портов выше, а не из состояния демо (ADR-006)
+    catalog: {
+      categories: () => done([...state().categories].sort((a, b) => a.sortOrder - b.sortOrder)),
+      material: (materialId) => done(actions.materialCard(materialId)),
+      saveMaterial: (input, { actorId }) => attempt(() => actions.saveMaterial(input, actorId)),
+    },
+
+    scope: {
+      projectsOf: (employeeId) => {
+        const s = state();
+        const member = s.employees.find((item) => item.id === employeeId)?.projectIds ?? [];
+        const foreman = s.crews
+          .filter((item) => item.foremanId === employeeId)
+          .map((item) => item.projectId);
+        return done([...new Set([...member, ...foreman])]);
+      },
+      projectOf: (kind, id) => {
+        const s = state();
+        const of = (rows: { id: string; projectId: string | null }[]) =>
+          rows.find((item) => item.id === id)?.projectId ?? null;
+        switch (kind) {
+          case "report":
+            return done(of(s.reports));
+          case "source":
+            return done(of(s.sources));
+          case "position":
+            return done(of(s.positions));
+          case "revision":
+            return done(of(s.documents));
+          case "document":
+            return done(s.documents.find((item) => item.documentId === id)?.projectId ?? null);
+          case "request":
+            return done(of(s.requests));
+          case "delivery":
+            return done(of(s.deliveries));
+          case "remark": {
+            const deliveryId = s.remarks.find((item) => item.id === id)?.deliveryId;
+            return done(s.deliveries.find((item) => item.id === deliveryId)?.projectId ?? null);
+          }
+        }
+      },
+    },
+
     agent: { ask: (input) => createAgentPort(repositories).ask(input) },
   };
   return repositories;

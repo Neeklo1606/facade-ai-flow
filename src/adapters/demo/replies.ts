@@ -6,6 +6,7 @@ import type {
   SupplierProfile,
   SupplyRequest,
 } from "@/contracts";
+import { liveId } from "./records";
 
 /**
  * Демо-симулятор ответов поставщиков. Реального почтового ящика нет, поэтому предложение
@@ -93,7 +94,7 @@ export function simulateReply(
         ? (specDeviation[family] ?? "Аналог другого производителя, паспорт приложен")
         : null;
     return {
-      id: `${offerId}-${index + 1}`,
+      id: liveId("ol"),
       offerId,
       requestLineId: item.id,
       name: item.name,

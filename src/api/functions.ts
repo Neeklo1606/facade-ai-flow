@@ -1,17 +1,36 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { extractedPosition, projectDecision, projectDocument, projectView } from "@/contracts";
+import {
+  extractedPosition,
+  milestoneView,
+  materials as materialRow,
+  projectDecision,
+  projectDocument,
+  projectView,
+} from "@/contracts";
 import {
   agentReply,
+  categoryList,
+  confirmMatchInput,
+  materialCard,
+  saveMaterialInput,
+  supplierCard,
   askAgentInput,
   correctPositionInput,
   counterpartyList,
   createProjectInput,
+  setProjectStatusInput,
+  completeMilestoneInput,
+  resolveChangeInput,
   createRequestInput,
   createRequestResult,
+  acceptDeliveryInput,
   chooseSupplierInput,
   decisionList,
+  deliveryCardView,
   deliveryList,
+  moveDeliveryInput,
+  resolveRemarkInput,
   documentCard,
   documentListItem,
   clockNow,
@@ -49,20 +68,48 @@ import {
   uploadRevisionInput,
 } from "@/ports";
 import { input, respond } from "./errors";
-import { serverActor, serverRepositories } from "./server-repositories";
+import { DEMO_PERSONAS } from "./config";
+import { grantSession } from "./session";
+import { requestRepositories, requestSession, serverActor } from "./server-repositories";
 
 /**
  * Серверные функции поверх портов (ADR-001, п. 4). Вход проверяется схемой до обработчика,
- * выход — схемой перед отправкой. Действующий сотрудник берётся на сервере, а не из запроса.
+ * выход — схемой перед отправкой. Каждый вызов идёт через обёртку прав (ADR-012): сотрудник
+ * и его роль — из подписанной сессии, а не из запроса; без прав — 403.
  * Адаптер сервера — фикстуры в памяти процесса; в фазе 3 его заменит адаптер PostgreSQL.
  */
 
-const repos = serverRepositories;
+const repos = requestRepositories;
 const actor = serverActor;
 
 const projectId = z.object({ projectId: z.string().min(1) });
 const byId = z.object({ id: z.string().min(1) });
 const ok = z.object({ ok: z.literal(true) });
+
+/* ---------- Сессия ---------- */
+
+const accessSession = z.object({
+  actorId: z.string(),
+  role: z.string(),
+  projectIds: z.array(z.string()),
+});
+
+/** Кто вошёл: сотрудник, роль и его объекты; null — сессии нет */
+export const sessionFn = createServerFn({ method: "GET" }).handler(async () => {
+  const session = await requestSession();
+  return session ? accessSession.parse(session) : null;
+});
+
+/**
+ * Вход за персону демонстрации (ADR-012, п. 4): свободный выбор одной из пяти персон за ключом
+ * демонстрации. Настоящий вход заменит только эту функцию.
+ */
+export const signInFn = createServerFn({ method: "POST" })
+  .validator(input(z.object({ personaId: z.enum(DEMO_PERSONAS) })))
+  .handler(async ({ data }) => {
+    await grantSession(data.personaId);
+    return { ok: true as const };
+  });
 
 /* ---------- Часы ---------- */
 
@@ -96,6 +143,19 @@ export const createProjectFn = createServerFn({ method: "POST" })
   .validator(input(createProjectInput))
   .handler(async ({ data }) => respond(projectView, await repos().projects.create(data, actor())));
 
+/** Статус объекта и контрольная точка — действия ADR-015, п. 7 */
+export const setProjectStatusFn = createServerFn({ method: "POST" })
+  .validator(input(setProjectStatusInput))
+  .handler(async ({ data }) =>
+    respond(projectView, await repos().projects.setStatus(data, actor())),
+  );
+
+export const completeMilestoneFn = createServerFn({ method: "POST" })
+  .validator(input(completeMilestoneInput))
+  .handler(async ({ data }) =>
+    respond(milestoneView, await repos().projects.completeMilestone(data, actor())),
+  );
+
 /* ---------- Документы ---------- */
 
 export const documentsFn = createServerFn({ method: "GET" })
@@ -126,6 +186,12 @@ export const revisionChangesFn = createServerFn({ method: "GET" })
   .validator(input(listChangesInput))
   .handler(async ({ data }) =>
     respond(z.array(revisionChangeView), await repos().documents.changes(data)),
+  );
+
+export const resolveChangeFn = createServerFn({ method: "POST" })
+  .validator(input(resolveChangeInput))
+  .handler(async ({ data }) =>
+    respond(revisionChangeView, await repos().documents.resolveChange(data, actor())),
   );
 
 /* ---------- Позиции ---------- */
@@ -215,6 +281,12 @@ export const handOverFn = createServerFn({ method: "POST" })
     respond(z.number().int(), await repos().positions.handOver(data, actor())),
   );
 
+export const confirmMatchFn = createServerFn({ method: "POST" })
+  .validator(input(confirmMatchInput))
+  .handler(async ({ data }) =>
+    respond(extractedPosition, await repos().positions.confirmMatch(data, actor())),
+  );
+
 export const materialsFn = createServerFn({ method: "GET" }).handler(async () =>
   respond(materialList, await repos().positions.materials()),
 );
@@ -228,6 +300,30 @@ export const replacementsFn = createServerFn({ method: "GET" }).handler(async ()
 export const suppliersFn = createServerFn({ method: "GET" }).handler(async () =>
   respond(z.array(supplierListItem), await repos().procurement.suppliers()),
 );
+
+export const supplierFn = createServerFn({ method: "GET" })
+  .validator(input(byId))
+  .handler(async ({ data }) =>
+    respond(supplierCard.nullable(), await repos().procurement.supplier(data.id)),
+  );
+
+/* ---------- Номенклатура (ADR-014) ---------- */
+
+export const categoriesFn = createServerFn({ method: "GET" }).handler(async () =>
+  respond(categoryList, await repos().catalog.categories()),
+);
+
+export const materialCardFn = createServerFn({ method: "GET" })
+  .validator(input(byId))
+  .handler(async ({ data }) =>
+    respond(materialCard.nullable(), await repos().catalog.material(data.id)),
+  );
+
+export const saveMaterialFn = createServerFn({ method: "POST" })
+  .validator(input(saveMaterialInput))
+  .handler(async ({ data }) =>
+    respond(materialRow, await repos().catalog.saveMaterial(data, actor())),
+  );
 
 export const verifyContactFn = createServerFn({ method: "POST" })
   .validator(input(z.object({ supplierId: z.string().min(1) })))
@@ -274,6 +370,30 @@ export const deliveriesFn = createServerFn({ method: "GET" })
   .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(deliveryList, await repos().procurement.deliveries(data.projectId)),
+  );
+
+export const deliveryFn = createServerFn({ method: "GET" })
+  .validator(input(idInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView.nullable(), await repos().procurement.delivery(data.id)),
+  );
+
+export const moveDeliveryFn = createServerFn({ method: "POST" })
+  .validator(input(moveDeliveryInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView, await repos().procurement.moveDelivery(data, actor())),
+  );
+
+export const resolveRemarkFn = createServerFn({ method: "POST" })
+  .validator(input(resolveRemarkInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView, await repos().procurement.resolveRemark(data, actor())),
+  );
+
+export const acceptDeliveryFn = createServerFn({ method: "POST" })
+  .validator(input(acceptDeliveryInput))
+  .handler(async ({ data }) =>
+    respond(deliveryCardView, await repos().procurement.acceptDelivery(data, actor())),
   );
 
 /* ---------- Площадка и история ---------- */

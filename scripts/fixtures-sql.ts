@@ -3,16 +3,11 @@
  *   bun run db:schema && psql -f docs/db/schema.sql && bun scripts/fixtures-sql.ts | psql
  * Читаемые ключи фикстур (`p-korona`) превращаются в детерминированные uuid.
  */
-import { createHash } from "node:crypto";
 import { sqlName, tables, type TableDef } from "../src/contracts";
 import { fixtureTables } from "../src/adapters/fixtures/tables";
+import { keyUuid as uuid } from "../src/adapters/db/codec";
 
 const data = fixtureTables as unknown as Record<string, Record<string, unknown>[]>;
-
-function uuid(value: string) {
-  const hex = createHash("sha1").update(value).digest("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-}
 
 const quote = (text: string) => `'${text.replace(/'/g, "''")}'`;
 

@@ -85,6 +85,8 @@ export const positionFacets = z.object({
     count: z.number().int().nonnegative(),
     needNormalization: z.number().int().nonnegative(),
     withoutCharacteristics: z.number().int().nonnegative(),
+    /** Сопоставление с материалом не подтверждено: в запрос не уйдут (ADR-014) */
+    unconfirmedMatch: z.number().int().nonnegative(),
   }),
 });
 
@@ -132,6 +134,9 @@ export const undoReviewInput = z.object({
 
 export const mergePositionsInput = z.object({ sourceId: id, targetId: id });
 
+/** Подтвердить сопоставление позиции с материалом: предложенным или выбранным (ADR-014) */
+export const confirmMatchInput = z.object({ positionId: id, materialId: id });
+
 export const splitPositionInput = z.object({
   id,
   /** Количество первой части; вторая получает остаток */
@@ -157,6 +162,7 @@ export type CorrectPositionInput = z.infer<typeof correctPositionInput>;
 export type UndoReviewInput = z.infer<typeof undoReviewInput>;
 export type MergePositionsInput = z.infer<typeof mergePositionsInput>;
 export type SplitPositionInput = z.infer<typeof splitPositionInput>;
+export type ConfirmMatchInput = z.infer<typeof confirmMatchInput>;
 
 /**
  * Позиции спецификации: проверка, передача в закупку, справочник материалов.
@@ -185,6 +191,11 @@ export interface PositionsPort {
   split(input: SplitPositionInput, actor: Actor): Promise<void>;
   /** Передаёт проверенные позиции ревизии в закупку; возвращает число переданных */
   handOver(input: z.infer<typeof handOverInput>, actor: Actor): Promise<number>;
+  /**
+   * Подтверждает сопоставление с материалом справочника — предложенным системой или выбранным
+   * человеком (ADR-014, п. 1). Позицию, уже ушедшую в запрос, не пересопоставить
+   */
+  confirmMatch(input: ConfirmMatchInput, actor: Actor): Promise<ExtractedPosition>;
 
   materials(): Promise<Material[]>;
   replacements(): Promise<ReplacementSuggestion[]>;

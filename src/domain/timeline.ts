@@ -21,6 +21,10 @@ export function decisionLink(
 /** Ссылка на раздел для события журнала */
 export function eventLink(event: ProjectEvent, requests: Pick<SupplyRequest, "id" | "number">[]) {
   const base = `/projects/${event.projectId}`;
+  // События поставки ведут в её карточку: там движение, акт, фото и замечания (ADR-011)
+  if (event.deliveryId) {
+    return { to: `${base}/deliveries?delivery=${event.deliveryId}`, label: "Поставка" };
+  }
   if (event.requestId) {
     const number = requests.find((item) => item.id === event.requestId)?.number;
     return event.type === "offer_received"

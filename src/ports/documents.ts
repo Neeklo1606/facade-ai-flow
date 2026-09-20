@@ -58,12 +58,19 @@ export const listChangesInput = z.object({
 });
 
 export const revisionChangeView = revisionChanges;
+
+/** Отметить изменение ревизии разобранным (ADR-015, п. 7); объект — для прав и принадлежности */
+export const resolveChangeInput = z.object({
+  projectId: z.string().min(1),
+  changeId: z.string().min(1),
+});
 export const fileTypeSchema = fileType.schema;
 
 export type DocumentListItem = z.infer<typeof documentListItem>;
 export type ListDocumentsInput = z.infer<typeof listDocumentsInput>;
 export type UploadRevisionInput = z.input<typeof uploadRevisionInput>;
 export type ListChangesInput = z.infer<typeof listChangesInput>;
+export type ResolveChangeInput = z.infer<typeof resolveChangeInput>;
 export interface DocumentCard {
   document: ProjectDocument;
   sheets: DocumentSheet[];
@@ -82,4 +89,6 @@ export interface DocumentsPort {
   /** Создаёт ревизию в статусе `uploaded` и ставит задачу распознавания (P3-4) */
   upload(input: UploadRevisionInput, actor: Actor): Promise<ProjectDocument>;
   changes(input: ListChangesInput): Promise<RevisionChange[]>;
+  /** Разобранное повторно — ConflictError; изменение чужого объекта — NotFoundError */
+  resolveChange(input: ResolveChangeInput, actor: Actor): Promise<RevisionChange>;
 }

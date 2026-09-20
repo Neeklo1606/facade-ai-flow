@@ -6,6 +6,7 @@ import type {
   SupplyRequest,
 } from "@/contracts";
 import { fmtMoney, fmtNum } from "@/shared/number-format";
+import { wallMs } from "./time";
 
 /** Сколько получателей запроса ответили */
 export function answeredCount(
@@ -42,7 +43,8 @@ export function rfqStatus(
   if (decided || request.status === "decided") return "decided";
   if (request.status === "draft" || request.status === "cancelled") return "sent";
   if (answered >= request.sentTo.length && answered > 0) return "ready";
-  if (request.replyDueAt && request.replyDueAt < now) return "overdue";
+  // Моменты времени, а не строки: у срока и «сейчас» может быть разный часовой пояс
+  if (request.replyDueAt && wallMs(request.replyDueAt) < wallMs(now)) return "overdue";
   return answered ? "collecting" : "sent";
 }
 
@@ -53,9 +55,7 @@ export function rfqStatus(
 export function replyDue(request: SupplyRequest, status: RfqStatus, now: string) {
   const waiting = status === "sent" || status === "collecting" || status === "overdue";
   if (!waiting || !request.replyDueAt) return null;
-  const hours = Math.round(
-    (new Date(request.replyDueAt).getTime() - new Date(now).getTime()) / 3_600_000,
-  );
+  const hours = Math.round((wallMs(request.replyDueAt) - wallMs(now)) / 3_600_000);
   return { hours, overdue: status === "overdue" };
 }
 
@@ -131,10 +131,22 @@ export function compareOffers(
       return line ? [{ item, line, amount: Math.round(line.price * item.qty) }] : [];
     });
     const goods = amounts.reduce((acc, a) => acc + a.amount, 0);
+    const subtotal = goods + deliveryCost;
+    const vat = Math.round((subtotal * vatPct) / 100);
+    // Доставка и НДС раскладываются по строкам целыми копейками так, чтобы сумма долей
+    // совпала с итогом колонки: округление каждой доли отдельно теряло копейки
+    const deliveries = spread(
+      goods ? deliveryCost : 0,
+      amounts.map((a) => a.amount),
+    );
+    const vats = spread(
+      vat,
+      amounts.map((a, index) => a.amount + (deliveries[index] ?? 0)),
+    );
     const cells: Record<string, CellCalc> = {};
-    for (const { item, line, amount } of amounts) {
-      const delivery = goods ? Math.round((deliveryCost * amount) / goods) : 0;
-      const vat = Math.round(((amount + delivery) * vatPct) / 100);
+    for (const [index, { item, line, amount }] of amounts.entries()) {
+      const delivery = deliveries[index] ?? 0;
+      const vat = vats[index] ?? 0;
       cells[item.id] = {
         price: line.price,
         qty: item.qty,
@@ -151,9 +163,7 @@ export function compareOffers(
         name: line.name,
       };
     }
-    const subtotal = goods + deliveryCost;
     const list = Object.values(cells);
-    const vat = Math.round((subtotal * vatPct) / 100);
     return {
       supplierId,
       offerId: offer.id,
@@ -183,6 +193,45 @@ export function compareOffers(
 export type OfferComparison = ReturnType<typeof compareOffers>;
 
 /**
+ * Разложить целую сумму по весам методом наибольшего остатка: доли целые, их сумма равна
+ * сумме. Нулевые веса — нулевые доли.
+ */
+export function spread(total: number, weights: number[]) {
+  const sumOfWeights = weights.reduce((acc, weight) => acc + weight, 0);
+  if (!sumOfWeights) return weights.map(() => 0);
+  const exact = weights.map((weight) => (total * weight) / sumOfWeights);
+  const shares = exact.map(Math.floor);
+  let left = total - shares.reduce((acc, share) => acc + share, 0);
+  const order = exact
+    .map((value, index) => ({ index, rest: value - Math.floor(value) }))
+    .sort((a, b) => b.rest - a.rest || a.index - b.index);
+  for (const { index } of order) {
+    if (left <= 0) break;
+    shares[index] = (shares[index] ?? 0) + 1;
+    left -= 1;
+  }
+  return shares;
+}
+
+/** Склонение по числу: 1 предложение, 2 предложения, 5 предложений */
+function plural(n: number, one: string, few: string, many: string) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+/** Причина решения обязательна и содержательна: столько же требует форма и схема порта */
+export const DECISION_REASON_MIN = 15;
+
+export function decisionReasonError(reason: string): string | null {
+  return reason.trim().length < DECISION_REASON_MIN
+    ? `Напишите причину решения: не короче ${DECISION_REASON_MIN} символов`
+    : null;
+}
+
+/**
  * Решение «выбор поставщика»: требование, варианты и выбор собираются из запроса и сравнения,
  * а не из формы — в истории остаются те цифры, которые видел сервер в момент решения.
  */
@@ -210,7 +259,7 @@ export function supplierDecision(input: {
     materialFamily: null,
     title: `${names.join(", ")}${rest > 0 ? ` и ещё ${rest}` : ""} — «${supplierName(supplierId)}»`,
     requirement: request.items.map((i) => `${i.name} — ${fmtNum(i.qty)} ${i.unit}`).join("; "),
-    problem: `Получено ${answered} ${answered === 1 ? "предложение" : "предложения"} из ${request.sentTo.length}; цены и сроки различаются${offered.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
+    problem: `Получено ${answered} ${plural(answered, "предложение", "предложения", "предложений")} из ${request.sentTo.length}; цены и сроки различаются${offered.some((c) => c.deviations) ? ", есть отклонения от спецификации" : ""}`,
     options: offered.map(
       (c) =>
         `«${supplierName(c.supplierId)}» — ${fmtMoney(c.total)} с НДС и доставкой, до ${c.maxLeadTime} дн.${c.deviations ? `, отклонений: ${c.deviations}` : ""}`,

@@ -4,10 +4,23 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { currentUserId, setCurrentUserId } from "@/api/config";
+import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@/api/client";
+import {
+  DEMO_PERSONAS,
+  currentUserId,
+  dataSource,
+  adoptPersona,
+  hasChosenPersona,
+  setCurrentUserId,
+} from "@/api/config";
+
+const isPersona = (id: string): id is (typeof DEMO_PERSONAS)[number] =>
+  (DEMO_PERSONAS as readonly string[]).includes(id);
 
 /**
  * Выбранный объект переживает перезагрузку (находка ревью BLOCKER-1): он жил только в состоянии
@@ -51,13 +64,26 @@ interface AppContextValue {
   setCommandOpen: (v: boolean) => void;
   /** Персона демонстрации: сотрудник, от имени которого работаем (ADR-008) */
   personaId: string;
-  setPersonaId: (id: string) => void;
+  /** Войти за персону: в рабочем режиме — подписанная сессия сервера (ADR-012) */
+  setPersonaId: (id: string) => Promise<void>;
+  /**
+   * Идёт вход за другую персону: экраны не монтируются, пока сессия не сменилась, — иначе
+   * экран прежней роли запросил бы данные уже с новой сессией и получил 403
+   */
+  personaSwitching: boolean;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
 /** Состояние оболочки интерфейса: тема, выбранный объект, панели. Данные предметной области — не здесь. */
-export function AppProvider({ children }: { children: ReactNode }) {
+export function AppProvider({
+  children,
+  initialPersona = null,
+}: {
+  children: ReactNode;
+  /** Сотрудник сессии сервера (рабочий режим); в демо — null, персона берётся из вкладки */
+  initialPersona?: string | null;
+}) {
   // Светлая тема по умолчанию, переключатель в шапке действует во всей системе.
   const [theme, setTheme] = useState<"light" | "dark">("light");
   // Начальное значение одинаково на сервере и клиенте, восстановление — после гидратации,
@@ -76,7 +102,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   // Персона живёт в модуле слоя данных: оттуда её берёт актор действий
-  const [personaId, setPersona] = useState<string>(currentUserId);
+  // Рабочий режим: первый рендер — за сотрудника сессии, как на сервере (ADR-012)
+  const [personaId, setPersona] = useState<string>(() => initialPersona ?? currentUserId());
+  const queryClient = useQueryClient();
+  const [personaSwitching, setPersonaSwitching] = useState(false);
+
+  const setPersonaId = useCallback(async (id: string) => {
+    if (!isPersona(id)) return;
+    setPersonaSwitching(true);
+    try {
+      await api.signIn(id);
+      setCurrentUserId(id);
+      setPersona(id);
+    } finally {
+      setPersonaSwitching(false);
+    }
+  }, []);
+
+  // У роли другой набор данных (реестр прораба — только его объекты): кэш прежней роли сбрасывается.
+  // После отрисовки новой роли, а не сразу: иначе перезапросились бы данные экранов прежней роли,
+  // ещё смонтированных, и новая сессия получила бы на них 403
+  const shownPersona = useRef(personaId);
+  useEffect(() => {
+    if (shownPersona.current === personaId) return;
+    shownPersona.current = personaId;
+    void queryClient.resetQueries();
+  }, [personaId, queryClient]);
+
+  // Рабочий режим (ADR-012, уточнение п. 4): персона, выбранная во вкладке, главнее — вкладка
+  // входит за неё; вкладка без выбора принимает сессию браузера
+  useEffect(() => {
+    if (dataSource !== "server") return;
+    const tab = hasChosenPersona() ? currentUserId() : null;
+    if (tab && tab !== initialPersona && isPersona(tab)) {
+      setPersonaSwitching(true);
+      void api
+        .signIn(tab)
+        .then(() => setPersona(tab))
+        .finally(() => setPersonaSwitching(false));
+      return;
+    }
+    if (initialPersona) adoptPersona(initialPersona);
+  }, [initialPersona]);
 
   // На телефоне тема всегда светлая: экран читают на улице, при солнце
   useEffect(() => {
@@ -112,12 +179,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       commandOpen,
       setCommandOpen,
       personaId,
-      setPersonaId: (id: string) => {
-        setCurrentUserId(id);
-        setPersona(id);
-      },
+      setPersonaId,
+      personaSwitching,
     }),
-    [theme, projectId, setProjectId, sidebarCollapsed, mobileNavOpen, commandOpen, personaId],
+    [
+      theme,
+      projectId,
+      setProjectId,
+      sidebarCollapsed,
+      mobileNavOpen,
+      commandOpen,
+      personaId,
+      setPersonaId,
+      personaSwitching,
+    ],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

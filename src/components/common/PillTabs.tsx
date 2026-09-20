@@ -65,6 +65,7 @@ export function PillTabs<T extends string>({
             aria-selected={active}
             tabIndex={active ? 0 : -1}
             data-force={tab.force}
+            data-tour={`tab-${tab.value}`}
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(

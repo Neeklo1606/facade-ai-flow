@@ -1,31 +1,6 @@
 import { z } from "zod";
 import { col, idSchema, pgEnum, table, timestampSchema } from "./db";
 
-/* ---------- Справочник материалов ---------- */
-
-export const materials = table(
-  {
-    name: "materials",
-    comment: "Справочник нормализованных наименований материалов",
-    primaryKey: ["id"],
-    audited: true,
-    indexes: [
-      {
-        columns: ["name", "unit"],
-        unique: true,
-        purpose: "один материал — одна строка справочника",
-      },
-      { columns: ["family"], purpose: "подбор замен и нормализация по семейству" },
-    ],
-  },
-  {
-    id: col.id(),
-    family: col.name({ comment: "семейство: bracket, rail, tile…" }),
-    name: col.name(),
-    unit: col.name(),
-  },
-);
-
 /* ---------- Позиции спецификации ---------- */
 
 export const positionReview = pgEnum(
@@ -65,6 +40,97 @@ export const pageRegion = z.object({
   h: z.number().min(0).max(1),
 });
 
+/* ---------- Справочник номенклатуры (ADR-014) ---------- */
+
+export const materialCategories = table(
+  {
+    name: "material_categories",
+    comment: "Дерево категорий материалов; категория верхнего уровня решает, кому уходит запрос",
+    primaryKey: ["id"],
+    audited: true,
+    indexes: [
+      { columns: ["parentId"], purpose: "дочерние категории" },
+      { columns: ["name"], unique: true, purpose: "название категории уникально" },
+    ],
+  },
+  {
+    id: col.id(),
+    parentId: col.ref("material_categories", "restrict", {
+      nullable: true,
+      comment: "null — категория верхнего уровня",
+    }),
+    name: col.name(),
+    rules: col.textArray({
+      comment: "правила соответствия: основы слов в наименовании («кронштейн», «анкер»)",
+    }),
+    sortOrder: col.smallint({ comment: "порядок в дереве" }),
+  },
+);
+
+export const materials = table(
+  {
+    name: "materials",
+    comment: "Справочник номенклатуры: нормализованные наименования материалов",
+    primaryKey: ["id"],
+    audited: true,
+    indexes: [
+      {
+        columns: ["name", "unit"],
+        unique: true,
+        purpose: "один материал — одна строка справочника",
+      },
+      { columns: ["family"], purpose: "подбор замен и нормализация по семейству" },
+      { columns: ["categoryId"], purpose: "номенклатура по категории, подбор поставщиков" },
+    ],
+  },
+  {
+    id: col.id(),
+    family: col.name({ comment: "семейство: bracket, rail, tile…" }),
+    name: col.name(),
+    unit: col.name(),
+    categoryId: col.ref("material_categories", "restrict"),
+    characteristics: col.jsonb(z.array(characteristic)),
+    synonyms: col.textArray({ comment: "другие названия того же материала" }),
+    spellings: col.textArray({ comment: "типичные написания в проектной документации" }),
+  },
+);
+
+export const materialChanges = table(
+  {
+    name: "material_changes",
+    comment: "История изменений номенклатуры: кто, когда, какое поле, было и стало",
+    primaryKey: ["id"],
+    indexes: [{ columns: ["materialId", "at desc"], purpose: "история материала" }],
+  },
+  {
+    id: col.id(),
+    materialId: col.ref("materials", "cascade"),
+    at: col.timestamp(),
+    actorId: col.ref("employees", "restrict"),
+    field: col.name({ comment: "что изменено: «наименование», «синонимы»… или «создан»" }),
+    before: col.text({ nullable: true }),
+    after: col.text({ nullable: true }),
+  },
+);
+
+/** Состояние сопоставления позиции с номенклатурой (ADR-014, п. 1) */
+export const matchStatus = pgEnum(
+  "match_status",
+  ["none", "suggested", "confirmed"],
+  "Сопоставление позиции с материалом: нет, предложено системой, подтверждено человеком",
+  {
+    none: ["suggested", "confirmed"],
+    suggested: ["none", "confirmed"],
+    confirmed: ["confirmed"],
+  },
+);
+
+export const matchStatusLabel = {
+  none: "Не сопоставлено",
+  suggested: "Предложено системой",
+  confirmed: "Сопоставление подтверждено",
+} as const satisfies Record<z.infer<typeof matchStatus.schema>, string>;
+
 export const positions = table(
   {
     name: "positions",
@@ -99,6 +165,9 @@ export const positions = table(
       "handed_over_at is null or review in ('confirmed', 'corrected')",
       "purchase = 'none' or handed_over_at is not null",
       "(review = 'merged') = (merged_into is not null)",
+      "(match_status = 'none') = (material_id is null)",
+      "(match_status = 'confirmed') = (matched_by is not null)",
+      "(matched_at is null) = (matched_by is null)",
     ],
   },
   {
@@ -113,8 +182,14 @@ export const positions = table(
     projectName: col.name({ comment: "наименование как в проекте" }),
     materialId: col.ref("materials", "restrict", {
       nullable: true,
-      comment: "null — требует нормализации",
+      comment: "материал справочника: предложенный или подтверждённый; null — не сопоставлено",
     }),
+    matchStatus: col.enum(matchStatus),
+    matchedBy: col.ref("employees", "restrict", {
+      nullable: true,
+      comment: "кто подтвердил сопоставление",
+    }),
+    matchedAt: col.timestamp({ nullable: true }),
     characteristics: col.jsonb(z.array(characteristic)),
     qty: col.qty(),
     unit: col.name(),
@@ -126,6 +201,10 @@ export const positions = table(
     note: col.text({ nullable: true, comment: "почему распознавание не уверено" }),
     handedOverAt: col.timestamp({ nullable: true, comment: "передана в закупку" }),
     purchase: col.enum(purchaseStatus),
+    deliveredQty: col.qty({
+      nullable: true,
+      comment: "поставлено по актам приёмки; null — поставок не было (ADR-011)",
+    }),
     mergedInto: col.ref("positions", "restrict", { nullable: true }),
   },
 );
@@ -205,6 +284,10 @@ export const extractedPosition = z.object({
   materialId: idSchema.nullable(),
   /** Наименование по справочнику; null — требует нормализации */
   normalizedName: z.string().nullable(),
+  /** Сопоставление с материалом: предложено системой или подтверждено человеком (ADR-014) */
+  matchStatus: matchStatus.schema,
+  matchedBy: idSchema.nullable(),
+  matchedAt: timestampSchema.nullable(),
   characteristics: z.array(characteristic),
   qty: z.number().nonnegative(),
   unit: z.string().min(1),
@@ -216,6 +299,8 @@ export const extractedPosition = z.object({
   note: z.string().nullable(),
   handedOverAt: timestampSchema.nullable(),
   purchase: purchaseStatus.schema,
+  /** Поставлено по актам приёмки; null — поставок не было (ADR-011) */
+  deliveredQty: z.number().nonnegative().nullable(),
   /** Запросы, в строки которых вошла позиция */
   requestIds: z.array(idSchema),
   mergedInto: idSchema.nullable(),
@@ -224,6 +309,9 @@ export const extractedPosition = z.object({
 export const positionChange = positionChanges;
 
 export type Material = z.infer<typeof materials>;
+export type MaterialCategory = z.infer<typeof materialCategories>;
+export type MaterialChange = z.infer<typeof materialChanges>;
+export type MatchStatus = z.infer<typeof matchStatus.schema>;
 export type PositionRow = z.infer<typeof positions>;
 export type ExtractedPosition = z.infer<typeof extractedPosition>;
 export type PositionChange = z.infer<typeof positionChanges>;
@@ -271,10 +359,19 @@ export function isVerifiedPosition(item: Pick<ExtractedPosition, "review">) {
   return item.review === "confirmed" || item.review === "corrected";
 }
 
+/**
+ * Готова к запросу поставщикам: проверена, передана в закупку, ещё не запрошена и сопоставление
+ * с материалом подтверждено человеком — неподтверждённое не уходит поставщикам (ADR-014, п. 3)
+ */
 export function isReadyForRequest(
-  item: Pick<ExtractedPosition, "review" | "handedOverAt" | "purchase">,
+  item: Pick<ExtractedPosition, "review" | "handedOverAt" | "purchase" | "matchStatus">,
 ) {
-  return isVerifiedPosition(item) && item.handedOverAt !== null && item.purchase === "none";
+  return (
+    isVerifiedPosition(item) &&
+    item.handedOverAt !== null &&
+    item.purchase === "none" &&
+    item.matchStatus === "confirmed"
+  );
 }
 
 export type ConfidenceBand = "verified" | "clarify" | "check";

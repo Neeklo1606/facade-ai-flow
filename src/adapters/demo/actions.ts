@@ -11,23 +11,59 @@ import {
   type ProjectDecision,
   type ProjectDocument,
   type ProjectEvent,
+  type Delivery,
+  type DeliveryCard,
+  type DeliveryRemark,
+  type DeliveryStatus,
   type RequestLine,
   type SupplyRequest,
+  deliveryStatusLabel,
+  remarkKindLabel,
 } from "@/contracts";
 import { sheetsOf } from "@/adapters/fixtures";
 import { decisionLink } from "@/domain/timeline";
+import {
+  acceptanceError,
+  canMove,
+  checklistFor,
+  deliveryFamilies,
+  lineDiscrepancies,
+  withDeliveries,
+  type RequestPositionLink,
+} from "@/domain/deliveries";
+import { DEMO_DECISION_ORDER_NOTE } from "@/lib/demo-copy";
 import { ConflictError, NotFoundError } from "@/ports";
+import {
+  milestoneStatusLabel,
+  milestoneTransitions,
+  projectStatusLabel,
+  projectStatusTransitions,
+  reportStatusLabel,
+  reportTransitions,
+} from "@/contracts";
+import type { Material } from "@/contracts";
+import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
+  ResolveRemarkInput,
+  AcceptDeliveryInput,
   CorrectPositionInput,
+  MoveDeliveryInput,
   CreateProjectInput,
   CreateRequestInput,
   UndoReviewInput,
   ReviewReportInput,
   UploadRevisionInput,
+  SetProjectStatusInput,
+  CompleteMilestoneInput,
+  ResolveChangeInput,
+  ConfirmMatchInput,
+  SaveMaterialInput,
+  MaterialCard,
+  SupplierCard,
 } from "@/ports";
-import { tick } from "./clock";
+import { addDays, tick } from "./clock";
 import { liveId, positionChange, projectEvent } from "./records";
-import { orderJob, replyJobs, schedule, uploadJob } from "./simulator";
+import { replyJobs, schedule, shipmentJobs, uploadJob } from "./simulator";
 import { getState, update } from "./state";
 
 /**
@@ -172,11 +208,27 @@ export function correct({ id, ...patch }: CorrectPositionInput, actorId: string)
       ),
     );
   }
+  // Новое наименование — новое предложение материала, пока сопоставление не подтверждено (ADR-014)
+  const rematch =
+    item.projectName !== patch.projectName && item.matchStatus !== "confirmed"
+      ? suggestMaterial(patch.projectName, getState().materials)
+      : undefined;
+  const rematched =
+    rematch === undefined
+      ? {}
+      : {
+          materialId: rematch?.materialId ?? null,
+          normalizedName: rematch
+            ? (getState().materials.find((m) => m.id === rematch.materialId)?.name ?? null)
+            : null,
+          matchStatus: rematch ? ("suggested" as const) : ("none" as const),
+        };
   patchPositions(
     new Set([id]),
     (p) => ({
       ...p,
       ...patch,
+      ...rematched,
       review: "corrected",
       reviewedBy: actorId,
       reviewedAt: tick(),
@@ -547,19 +599,32 @@ const MAX_SHEETS = 200;
 
 export function upload(input: UploadRevisionInput, actorId: string) {
   const id = liveId("pd");
-  const documentId = liveId("doc");
+  // Новая ревизия существующего документа: тот же документ, номер на единицу больше, название
+  // и раздел — от документа. Раньше `documentId` игнорировался и появлялся новый документ «Рев. 1»
+  const previous = input.documentId
+    ? getState()
+        .documents.filter(
+          (item) => item.documentId === input.documentId && item.projectId === input.projectId,
+        )
+        .sort((a, b) => b.revision - a.revision)[0]
+    : undefined;
+  if (input.documentId && !previous) throw new NotFoundError("Документ", input.documentId);
+  const documentId = previous?.documentId ?? liveId("doc");
+  const revision = previous ? previous.revision + 1 : 1;
   const ext = input.fileName.split(".").pop()?.toLowerCase();
   const fileType: ProjectDocument["fileType"] =
     ext === "docx" ? "docx" : ext === "xlsx" ? "xlsx" : "pdf";
-  const section = /ар/i.test(input.fileName) ? "АР" : /км/i.test(input.fileName) ? "КМ" : "НВФ";
+  const section =
+    previous?.section ??
+    (/ар/i.test(input.fileName) ? "АР" : /км/i.test(input.fileName) ? "КМ" : "НВФ");
   const doc: ProjectDocument = {
     id,
     documentId,
-    revision: 1,
+    revision,
     projectId: input.projectId,
-    title: input.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
+    title: previous?.title ?? input.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
     section,
-    version: "Рев. 1",
+    version: `Рев. ${revision}`,
     fileName: input.fileName,
     fileType,
     sizeKb: input.sizeKb,
@@ -605,7 +670,9 @@ export function upload(input: UploadRevisionInput, actorId: string) {
         {
           projectId: input.projectId,
           type: "version_uploaded",
-          title: `Загружен документ «${doc.title}»`,
+          title: previous
+            ? `Загружена ${doc.version} документа «${doc.title}»`
+            : `Загружен документ «${doc.title}»`,
           details: `${doc.fileName}, ${doc.version}`,
           revisionId: id,
         },
@@ -625,37 +692,34 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
   const targets = s.positions.filter((item) => wanted.has(item.id) && isReadyForRequest(item));
   if (!targets.length) return null;
   const requestId = liveId("sr");
-  const number = `З-2026/${326 + s.requests.filter((r) => r.id.includes("-live-")).length}`;
+  // Следующий номер года — больше наибольшего: правило не зависит от вида ключа (ADR-005, п. 10)
+  const numbers = s.requests.map((r) => Number(/^З-2026\/(\d+)$/.exec(r.number)?.[1] ?? 0));
+  const number = `З-2026/${Math.max(0, ...numbers) + 1}`;
   const createdAt = tick();
 
-  // Строка без нормализации берёт материал у позиции с тем же проектным названием,
-  // иначе один материал ушёл бы поставщику двумя строками под разными именами
-  const baseName = (item: ExtractedPosition) => item.projectName.split(",")[0]!.trim();
-  const dictionary = new Map<string, string>();
-  for (const item of s.positions) {
-    if (item.projectId === input.projectId && item.materialId) {
-      dictionary.set(`${item.family}:${baseName(item)}`, item.materialId);
-    }
-  }
-  // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой
+  // Одинаковые материалы из разных строк спецификации уходят поставщику одной строкой с суммой.
+  // В запрос попадают только позиции с подтверждённым материалом (ADR-014, п. 3): материал
+  // не подставляется молча — строку называет справочник
   const lines = new Map<string, RequestLine>();
+  const links: RequestPositionLink[] = [];
   for (const item of targets) {
-    const materialId =
-      item.materialId ?? dictionary.get(`${item.family}:${baseName(item)}`) ?? null;
+    const materialId = item.materialId;
     const material = materialId ? s.materials.find((m) => m.id === materialId) : null;
-    const name = material?.name ?? baseName(item);
-    const key = materialId ?? `${name}:${item.unit}`;
+    const name = material?.name ?? item.projectName;
+    const key = `${materialId ?? name}:${item.unit}`;
     const existing = lines.get(key);
     if (existing) existing.qty += item.qty;
     else {
       lines.set(key, {
-        id: `${requestId}-l${lines.size + 1}`,
+        id: liveId("srl"),
         materialId,
         name,
         qty: item.qty,
         unit: item.unit,
       });
     }
+    // Из каких позиций собрана строка: по этой связи приёмка раскладывает принятое (ADR-011)
+    links.push({ requestLineId: lines.get(key)!.id, positionId: item.id });
   }
 
   const request: SupplyRequest = {
@@ -680,6 +744,7 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
   update((prev) => ({
     ...prev,
     requests: [request, ...prev.requests],
+    requestPositions: [...prev.requestPositions, ...links],
     positions: prev.positions.map((item) =>
       targetIds.has(item.id)
         ? { ...item, purchase: "requested", requestIds: [...item.requestIds, request.id] }
@@ -757,11 +822,360 @@ export function recordDecision(input: Omit<ProjectDecision, "id" | "approvedAt" 
         : item,
     ),
   }));
-  if (record.kind === "supplier" && record.requestId) schedule([orderJob(record.id)]);
+  if (record.kind === "supplier" && record.requestId && record.supplierId) {
+    const delivery = createDelivery(record);
+    if (delivery) schedule(shipmentJobs(delivery.id));
+  }
   return record;
 }
 
+/**
+ * Поставка по решению (ADR-011, п. 1): строки и цены — из предложения выбранного поставщика,
+ * срок — наибольший из его предложения, захватка — из запроса. Позиции переходят в «заказано».
+ */
+function createDelivery(decision: ProjectDecision) {
+  const s = getState();
+  const request = s.requests.find((item) => item.id === decision.requestId);
+  const supplierId = decision.supplierId;
+  if (!request || !supplierId || s.deliveries.some((item) => item.requestId === request.id))
+    return null;
+  const supplierName = s.counterparties.find((item) => item.id === supplierId)?.name ?? "—";
+  const offer = s.offers.find(
+    (item) => item.requestId === request.id && item.supplierId === supplierId,
+  );
+  const offerLines = s.offerLines.filter((line) => line.offerId === offer?.id);
+  const leadDays = Math.max(1, ...offerLines.map((line) => line.leadTimeDays));
+  const now = tick();
+  const delivery: Delivery = {
+    id: liveId("dl"),
+    requestId: request.id,
+    projectId: request.projectId,
+    zoneId: request.zoneId,
+    supplierId,
+    decisionId: decision.id,
+    expectedAt: addDays(now, leadDays).slice(0, 10),
+    receivedAt: null,
+    status: "expected",
+    sourceId: null,
+    items: request.items.map((line, index) => ({
+      id: liveId("dli"),
+      requestLineId: line.id,
+      materialId: line.materialId,
+      name: line.name,
+      qty: offerLines.find((o) => o.requestLineId === line.id)?.availableQty ?? line.qty,
+      unit: line.unit,
+      price: offerLines.find((o) => o.requestLineId === line.id)?.price ?? null,
+      acceptedQty: null,
+      remark: null,
+    })),
+  };
+  update((prev) => ({
+    ...prev,
+    deliveries: [delivery, ...prev.deliveries],
+    deliveryChanges: [
+      ...prev.deliveryChanges,
+      {
+        id: liveId("dsc"),
+        deliveryId: delivery.id,
+        status: "expected",
+        at: now,
+        actorKind: "user",
+        actorId: decision.approvedBy,
+        note: `Создана решением по запросу ${request.number}`,
+      },
+    ],
+    requests: prev.requests.map((item) =>
+      item.id === request.id ? { ...item, status: "ordered" } : item,
+    ),
+    positions: prev.positions.map((item) =>
+      item.requestIds.includes(request.id) &&
+      (item.purchase === "supplier_selected" ||
+        item.purchase === "requested" ||
+        item.purchase === "offers")
+        ? { ...item, purchase: "ordered" }
+        : item,
+    ),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: request.projectId,
+          type: "material_ordered",
+          title: `Поставка «${supplierName}» по запросу ${request.number} создана решением`,
+          details: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}. ${DEMO_DECISION_ORDER_NOTE}`,
+          requestId: request.id,
+          deliveryId: delivery.id,
+        },
+        decision.approvedBy,
+      ),
+    ],
+  }));
+  return delivery;
+}
+
+/** Карточка поставки: движение, акт, фото, замечания, номер запроса */
+export function deliveryCard(deliveryId: string): DeliveryCard | null {
+  const s = getState();
+  const delivery = s.deliveries.find((item) => item.id === deliveryId);
+  if (!delivery) return null;
+  return {
+    delivery,
+    requestNumber: s.requests.find((item) => item.id === delivery.requestId)?.number ?? "—",
+    statusChanges: s.deliveryChanges
+      .filter((item) => item.deliveryId === deliveryId)
+      .sort((a, b) => a.at.localeCompare(b.at)),
+    acceptance: s.acceptances.find((item) => item.deliveryId === deliveryId) ?? null,
+    photos: s.deliveryPhotos.filter((item) => item.deliveryId === deliveryId),
+    remarks: s.remarks.filter((item) => item.deliveryId === deliveryId),
+  };
+}
+
+/** Движение поставки до приёмки: отгружено, в пути, прибыло, или отклонение с причиной */
+export function moveDelivery(input: MoveDeliveryInput, actorId: string | null) {
+  const s = getState();
+  const delivery = s.deliveries.find((item) => item.id === input.deliveryId);
+  if (!delivery) throw new NotFoundError("Поставка", input.deliveryId);
+  const status: DeliveryStatus = input.status;
+  if (!canMove(delivery.status, status))
+    throw new ConflictError(
+      `Поставка «${deliveryStatusLabel[delivery.status]}»: перевести в «${deliveryStatusLabel[status]}» нельзя`,
+    );
+  const request = s.requests.find((item) => item.id === delivery.requestId);
+  const at = tick();
+  const remark: DeliveryRemark | null =
+    status === "rejected" && actorId
+      ? {
+          id: liveId("drm"),
+          deliveryId: delivery.id,
+          projectId: delivery.projectId,
+          lineId: null,
+          kind: "rejected",
+          text: input.note ?? "",
+          createdAt: at,
+          createdBy: actorId,
+          status: "open",
+          resolvedAt: null,
+          resolvedBy: null,
+          resolution: null,
+        }
+      : null;
+  update((prev) => ({
+    ...prev,
+    deliveries: prev.deliveries.map((item) =>
+      item.id === delivery.id ? { ...item, status } : item,
+    ),
+    deliveryChanges: [
+      ...prev.deliveryChanges,
+      {
+        id: liveId("dsc"),
+        deliveryId: delivery.id,
+        status,
+        at,
+        actorKind: actorId ? "user" : "system",
+        actorId,
+        note: input.note,
+      },
+    ],
+    remarks: remark ? [...prev.remarks, remark] : prev.remarks,
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: delivery.projectId,
+          type: status === "rejected" ? "delivery_rejected" : "delivery_moved",
+          title: `Поставка по запросу ${request?.number ?? "—"}: ${deliveryStatusLabel[status].toLowerCase()}`,
+          details: input.note,
+          requestId: delivery.requestId,
+          deliveryId: delivery.id,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return deliveryCard(delivery.id)!;
+}
+
+/**
+ * Акт приёмки (ADR-011, п. 3–7): правила — `acceptanceError`; факт по строкам, чек-лист, фото,
+ * замечания снабжению по расхождениям, поставленное количество позиций, события истории.
+ */
+export function acceptDelivery(input: AcceptDeliveryInput, actorId: string) {
+  const s = getState();
+  const delivery = s.deliveries.find((item) => item.id === input.deliveryId);
+  if (!delivery) throw new NotFoundError("Поставка", input.deliveryId);
+  const error = acceptanceError(
+    delivery,
+    {
+      result: input.result,
+      lines: input.lines,
+      checklist: input.checklist,
+      photos: input.photos.length,
+      reason: input.reason,
+      confirmed: input.confirmed,
+    },
+    // Состав чек-листа считает адаптер по семействам материалов поставки: экран подсказывает,
+    // но решает порт (ADR-011, п. 6)
+    checklistFor(deliveryFamilies(delivery, s.materials)),
+  );
+  if (error) throw new ConflictError(error);
+
+  const at = tick();
+  const request = s.requests.find((item) => item.id === delivery.requestId);
+  const acceptanceId = liveId("da");
+  const factByLine = new Map(input.lines.map((line) => [line.lineId, line]));
+  const accepted = input.result !== "rejected";
+  const nextDelivery: Delivery = {
+    ...delivery,
+    status: input.result,
+    receivedAt: accepted ? at.slice(0, 10) : null,
+    items: delivery.items.map((line) => ({
+      ...line,
+      acceptedQty: accepted ? (factByLine.get(line.id)?.acceptedQty ?? line.qty) : 0,
+      remark: factByLine.get(line.id)?.remark ?? null,
+    })),
+  };
+  const discrepancies = lineDiscrepancies(delivery, input);
+  const remarks: DeliveryRemark[] = [
+    ...discrepancies.map((item) => {
+      const line = delivery.items.find((row) => row.id === item.lineId)!;
+      const diff = Math.abs(item.declared - item.accepted);
+      return {
+        id: liveId("drm"),
+        deliveryId: delivery.id,
+        projectId: delivery.projectId,
+        lineId: item.lineId,
+        kind: item.kind,
+        text: `${line.name}: заявлено ${item.declared}, принято ${item.accepted} ${line.unit} (${item.kind === "shortage" ? "недостача" : "излишек"} ${diff})${factByLine.get(item.lineId)?.remark ? ` — ${factByLine.get(item.lineId)!.remark}` : ""}`,
+        createdAt: at,
+        createdBy: actorId,
+        status: "open" as const,
+        resolvedAt: null,
+        resolvedBy: null,
+        resolution: null,
+      };
+    }),
+    ...input.checklist
+      .filter((entry) => !entry.ok)
+      .map((entry) => ({
+        id: liveId("drm"),
+        deliveryId: delivery.id,
+        projectId: delivery.projectId,
+        lineId: null,
+        kind: "checklist" as const,
+        text: `${entry.label}: не пройдено${entry.note ? ` — ${entry.note}` : ""}`,
+        createdAt: at,
+        createdBy: actorId,
+        status: "open" as const,
+        resolvedAt: null,
+        resolvedBy: null,
+        resolution: null,
+      })),
+    ...(input.result === "rejected"
+      ? [
+          {
+            id: liveId("drm"),
+            deliveryId: delivery.id,
+            projectId: delivery.projectId,
+            lineId: null,
+            kind: "rejected" as const,
+            text: `Поставка отклонена: ${input.reason ?? ""}`,
+            createdAt: at,
+            createdBy: actorId,
+            status: "open" as const,
+            resolvedAt: null,
+            resolvedBy: null,
+            resolution: null,
+          },
+        ]
+      : []),
+  ];
+
+  update((prev) => {
+    const deliveries = prev.deliveries.map((item) =>
+      item.id === delivery.id ? nextDelivery : item,
+    );
+    return {
+      ...prev,
+      deliveries,
+      deliveryChanges: [
+        ...prev.deliveryChanges,
+        {
+          id: liveId("dsc"),
+          deliveryId: delivery.id,
+          status: input.result,
+          at,
+          actorKind: "user",
+          actorId,
+          note: input.reason,
+        },
+      ],
+      acceptances: [
+        ...prev.acceptances,
+        {
+          id: acceptanceId,
+          deliveryId: delivery.id,
+          acceptedAt: at,
+          acceptedBy: actorId,
+          result: input.result,
+          reason: input.reason,
+          checklist: input.checklist,
+        },
+      ],
+      deliveryPhotos: [
+        ...prev.deliveryPhotos,
+        ...input.photos.map((photo) => ({
+          id: liveId("dph"),
+          deliveryId: delivery.id,
+          acceptanceId,
+          takenAt: at,
+          takenBy: actorId,
+          dataUrl: photo.dataUrl,
+          caption: photo.caption,
+        })),
+      ],
+      remarks: [...prev.remarks, ...remarks],
+      // Поставленное считается тем же правилом, что и в фикстурах: по всем принятым актам
+      positions: withDeliveries(prev.positions, deliveries, prev.requestPositions),
+      events: [
+        ...prev.events,
+        projectEvent(
+          {
+            projectId: delivery.projectId,
+            type: input.result === "rejected" ? "delivery_rejected" : "delivery_received",
+            title:
+              input.result === "rejected"
+                ? `Поставка по запросу ${request?.number ?? "—"} отклонена`
+                : `Поставка по запросу ${request?.number ?? "—"} ${input.result === "accepted" ? "принята" : "принята с замечаниями"}`,
+            details:
+              input.result === "rejected"
+                ? input.reason
+                : `По акту приёмки: ${nextDelivery.items.map((line) => `${line.name} ${line.acceptedQty} ${line.unit}`).join(", ")}`,
+            requestId: delivery.requestId,
+            deliveryId: delivery.id,
+          },
+          actorId,
+        ),
+        ...remarks.map((remark) =>
+          projectEvent(
+            {
+              projectId: delivery.projectId,
+              type: "delivery_remark",
+              title: `${remarkKindLabel[remark.kind]}: замечание снабжению`,
+              details: remark.text,
+              requestId: delivery.requestId,
+              deliveryId: delivery.id,
+            },
+            actorId,
+          ),
+        ),
+      ],
+    };
+  });
+  return deliveryCard(delivery.id)!;
+}
+
 export function verifyContact(supplierId: string) {
+  // Метка свежести считается от даты проверки (ADR-014, п. 7): ставим дату — метка следует
   const checkedAt = tick().slice(0, 10);
   update((prev) => ({
     ...prev,
@@ -774,8 +1188,333 @@ export function verifyContact(supplierId: string) {
 }
 
 export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
+  const report = getState().reports.find((item) => item.id === id);
+  if (!report) throw new NotFoundError("Отчёт", id);
+  // Переход по таблице контракта: вернуть уже возвращённый или принять принятый нельзя
+  const allowed: readonly string[] = reportTransitions[report.status];
+  if (!allowed.includes(status)) {
+    throw new ConflictError(`Отчёт уже в статусе «${reportStatusLabel[report.status]}»`);
+  }
   update((prev) => ({
     ...prev,
     reports: prev.reports.map((r) => (r.id === id ? { ...r, status, acceptedQty } : r)),
   }));
+}
+
+/** Закрыть замечание по поставке: кто, когда и чем решено (ADR-011, п. 5) */
+export function resolveRemark(input: ResolveRemarkInput, actorId: string) {
+  const s = getState();
+  const remark = s.remarks.find((item) => item.id === input.remarkId);
+  if (!remark) throw new NotFoundError("Замечание", input.remarkId);
+  if (remark.status === "resolved") throw new ConflictError("Замечание уже закрыто");
+  const at = tick();
+  const request = s.deliveries.find((item) => item.id === remark.deliveryId);
+  update((prev) => ({
+    ...prev,
+    remarks: prev.remarks.map((item) =>
+      item.id === remark.id
+        ? {
+            ...item,
+            status: "resolved",
+            resolvedAt: at,
+            resolvedBy: actorId,
+            resolution: input.resolution,
+          }
+        : item,
+    ),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: remark.projectId,
+          type: "delivery_remark",
+          title: `Замечание по поставке закрыто: ${remarkKindLabel[remark.kind].toLowerCase()}`,
+          details: input.resolution,
+          requestId: request?.requestId ?? null,
+          deliveryId: remark.deliveryId,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return deliveryCard(remark.deliveryId)!;
+}
+
+/* ---------- Номенклатура и сопоставление (ADR-014) ---------- */
+
+/** Подтвердить сопоставление позиции с материалом: предложенным или выбранным человеком */
+export function confirmMatch({ positionId, materialId }: ConfirmMatchInput, actorId: string) {
+  const s = getState();
+  const item = requirePosition(s.positions, positionId);
+  const material = s.materials.find((m) => m.id === materialId);
+  if (!material) throw new NotFoundError("Материал", materialId);
+  if (item.purchase !== "none") {
+    throw new ConflictError(
+      `Поз. ${item.position} уже в запросе поставщикам — сопоставление не меняется`,
+    );
+  }
+  if (item.matchStatus === "confirmed" && item.materialId === materialId) {
+    throw new ConflictError("Сопоставление уже подтверждено");
+  }
+  const at = tick();
+  const action =
+    item.materialId === materialId ? "Сопоставление подтверждено" : "Сопоставлено с материалом";
+  patchPositions(
+    new Set([positionId]),
+    (p) => ({
+      ...p,
+      materialId,
+      normalizedName: material.name,
+      matchStatus: "confirmed",
+      matchedBy: actorId,
+      matchedAt: at,
+    }),
+    [positionChange(positionId, actorId, action, item.normalizedName ?? "—", material.name)],
+  );
+  return requirePosition(getState().positions, positionId);
+}
+
+/** Карточка материала: категория, путь в дереве, история, где используется */
+export function materialCard(materialId: string): MaterialCard | null {
+  const s = getState();
+  const material = s.materials.find((m) => m.id === materialId);
+  if (!material) return null;
+  const category = s.categories.find((c) => c.id === material.categoryId) ?? null;
+  const path: string[] = [];
+  let current = category;
+  while (current) {
+    path.unshift(current.name);
+    const parentId: string | null = current.parentId;
+    current = parentId ? (s.categories.find((c) => c.id === parentId) ?? null) : null;
+  }
+  const used = s.positions.filter((p) => p.materialId === materialId && isActivePosition(p));
+  return {
+    material,
+    category,
+    path,
+    changes: s.materialChanges
+      .filter((change) => change.materialId === materialId)
+      .sort((a, b) => b.at.localeCompare(a.at)),
+    usage: { positions: used.length, projects: new Set(used.map((p) => p.projectId)).size },
+  };
+}
+
+const list = (values: string[]) => values.join("; ");
+const characteristicsText = (values: Material["characteristics"]) =>
+  values.map((c) => `${c.label}: ${c.value}`).join("; ");
+
+/**
+ * Добавить или изменить материал справочника. История — по строке на изменённое поле.
+ * Семейство нового материала берётся у материалов той же категории: по нему работают
+ * замены и чек-лист приёмки
+ */
+export function saveMaterial(input: SaveMaterialInput, actorId: string): Material {
+  const s = getState();
+  if (!s.categories.some((c) => c.id === input.categoryId)) {
+    throw new NotFoundError("Категория", input.categoryId);
+  }
+  const duplicate = s.materials.find(
+    (m) =>
+      m.id !== input.id &&
+      m.name.toLowerCase() === input.name.toLowerCase() &&
+      m.unit === input.unit,
+  );
+  if (duplicate)
+    throw new ConflictError(`Материал «${input.name}» с единицей ${input.unit} уже есть`);
+  const at = tick();
+  const existing = input.id ? s.materials.find((m) => m.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Материал", input.id);
+
+  const family =
+    existing?.family ??
+    s.materials.find((m) => m.categoryId === input.categoryId)?.family ??
+    (topCategory(input.categoryId, s.categories)?.id ?? input.categoryId).replace(/^cat-/, "");
+  const material: Material = {
+    id: existing?.id ?? liveId("mat"),
+    family,
+    name: input.name,
+    unit: input.unit,
+    categoryId: input.categoryId,
+    characteristics: input.characteristics,
+    synonyms: input.synonyms,
+    spellings: input.spellings,
+  };
+  const categoryName = (id: string) => s.categories.find((c) => c.id === id)?.name ?? id;
+  const diff: [string, string | null, string | null][] = existing
+    ? (
+        [
+          ["наименование", existing.name, material.name],
+          ["единица", existing.unit, material.unit],
+          ["категория", categoryName(existing.categoryId), categoryName(material.categoryId)],
+          [
+            "характеристики",
+            characteristicsText(existing.characteristics),
+            characteristicsText(material.characteristics),
+          ],
+          ["синонимы", list(existing.synonyms), list(material.synonyms)],
+          ["типичные написания", list(existing.spellings), list(material.spellings)],
+        ] as [string, string, string][]
+      ).filter(([, before, after]) => before !== after)
+    : [["создан", null, null]];
+  if (!diff.length) return material;
+
+  update((prev) => ({
+    ...prev,
+    materials: existing
+      ? prev.materials.map((m) => (m.id === material.id ? material : m))
+      : [...prev.materials, material],
+    // Название материала — нормализованное имя его позиций: меняется вместе с ним
+    positions:
+      existing && existing.name !== material.name
+        ? prev.positions.map((p) =>
+            p.materialId === material.id ? { ...p, normalizedName: material.name } : p,
+          )
+        : prev.positions,
+    materialChanges: [
+      ...prev.materialChanges,
+      ...diff.map(([field, before, after]) => ({
+        id: liveId("mc"),
+        materialId: material.id,
+        at,
+        actorId,
+        field,
+        before: before || null,
+        after: after || null,
+      })),
+    ],
+  }));
+  return material;
+}
+
+/** Профиль поставщика с меткой свежести, посчитанной по дате проверки (ADR-014, п. 7) */
+export function freshProfile<P extends { contactCheckedAt: string; contactStatus: string }>(
+  profile: P,
+  now: string,
+): P {
+  return { ...profile, contactStatus: contactFreshness(profile.contactCheckedAt, now) };
+}
+
+export function supplierCard(supplierId: string, now: string): SupplierCard | null {
+  const s = getState();
+  const supplier = s.counterparties.find((c) => c.id === supplierId);
+  const profile = s.profiles.find((p) => p.supplierId === supplierId);
+  if (!supplier || !profile) return null;
+  const requests = s.requests
+    .filter((request) => request.sentTo.includes(supplierId))
+    .sort((a, b) => (b.sentAt ?? "").localeCompare(a.sentAt ?? ""))
+    .map((request) => ({
+      requestId: request.id,
+      number: request.number,
+      projectId: request.projectId,
+      projectName: s.projects.find((p) => p.id === request.projectId)?.name ?? "—",
+      sentAt: request.sentAt,
+      answered: s.offers.some((o) => o.requestId === request.id && o.supplierId === supplierId),
+      chosen: s.decisions.some((d) => d.requestId === request.id && d.supplierId === supplierId),
+    }));
+  return {
+    supplier,
+    profile: freshProfile(profile, now),
+    categories: s.categories.filter((c) => profile.categories.includes(c.id)),
+    stats: supplierStats(supplierId, s),
+    requests,
+  };
+}
+
+/* ---------- Статусы, которые показаны на экранах (ADR-015, п. 7) ---------- */
+
+/** Сменить статус объекта по таблице переходов; в истории — что было и что стало */
+export function setProjectStatus(input: SetProjectStatusInput, actorId: string) {
+  const project = getState().projects.find((item) => item.id === input.projectId);
+  if (!project) throw new NotFoundError("Объект", input.projectId);
+  const allowed: readonly string[] = projectStatusTransitions[project.status];
+  if (!allowed.includes(input.status)) {
+    throw new ConflictError(
+      project.status === "done"
+        ? "Объект завершён: статус больше не меняется"
+        : `Из статуса «${projectStatusLabel[project.status]}» в «${projectStatusLabel[input.status]}» перейти нельзя`,
+    );
+  }
+  const next = { ...project, status: input.status };
+  update((prev) => ({
+    ...prev,
+    projects: prev.projects.map((item) => (item.id === project.id ? next : item)),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: project.id,
+          type: "project_status_changed",
+          title: `Статус объекта: «${projectStatusLabel[project.status]}» → «${projectStatusLabel[input.status]}»`,
+          details: project.name,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return next;
+}
+
+/** Отметить контрольную точку выполненной; точка другого объекта — как будто её нет */
+export function completeMilestone(input: CompleteMilestoneInput, actorId: string) {
+  const milestone = getState().milestones.find(
+    (item) => item.id === input.milestoneId && item.projectId === input.projectId,
+  );
+  if (!milestone) throw new NotFoundError("Контрольная точка", input.milestoneId);
+  const allowed: readonly string[] = milestoneTransitions[milestone.status];
+  if (!allowed.includes("done")) {
+    throw new ConflictError(
+      `Контрольная точка уже в статусе «${milestoneStatusLabel[milestone.status]}»`,
+    );
+  }
+  const next = { ...milestone, status: "done" as const };
+  update((prev) => ({
+    ...prev,
+    milestones: prev.milestones.map((item) => (item.id === milestone.id ? next : item)),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: milestone.projectId,
+          type: "milestone_done",
+          title: `Контрольная точка выполнена: ${milestone.name}`,
+          details: `Было: ${milestoneStatusLabel[milestone.status].toLowerCase()}, срок ${milestone.dueDate}`,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return next;
+}
+
+/** Изменение ревизии разобрано: кто и когда; изменение другого объекта — как будто его нет */
+export function resolveChange(input: ResolveChangeInput, actorId: string) {
+  const s = getState();
+  const change = s.revisionChanges.find((item) => item.id === input.changeId);
+  const projectId = change
+    ? s.documents.find((item) => item.documentId === change.documentId)?.projectId
+    : null;
+  if (!change || projectId !== input.projectId) {
+    throw new NotFoundError("Изменение документации", input.changeId);
+  }
+  if (change.status === "resolved") throw new ConflictError("Изменение уже разобрано");
+  const at = tick();
+  const next = { ...change, status: "resolved" as const, resolvedBy: actorId, resolvedAt: at };
+  update((prev) => ({
+    ...prev,
+    revisionChanges: prev.revisionChanges.map((item) => (item.id === change.id ? next : item)),
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: input.projectId,
+          type: "change_resolved",
+          title: "Изменение документации разобрано",
+          details: change.description,
+          revisionId: change.toRevisionId,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return next;
 }
