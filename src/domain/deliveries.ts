@@ -184,7 +184,17 @@ export function acceptanceError(
   if (!everyLineOnce) return "Укажите факт по каждой строке";
   if (draft.lines.some((line) => !Number.isFinite(line.acceptedQty) || line.acceptedQty < 0))
     return "Фактическое количество не может быть отрицательным";
-  const passed = new Set(draft.checklist.map((item) => item.id));
+  // Пункты — ровно те, что даёт входной контроль этой поставки: ни лишних, ни повторов,
+  // ни переписанных подписей. Акт пополняется и не правится, поэтому в него не должно попасть
+  // ничего, чего человек не видел на экране
+  const labels = new Map(expected.map((item) => [item.id, item.label]));
+  const passed = new Set<string>();
+  for (const item of draft.checklist) {
+    if (!labels.has(item.id) || passed.has(item.id) || labels.get(item.id) !== item.label) {
+      return "Чек-лист не тот: пункты входного контроля этой поставки другие";
+    }
+    passed.add(item.id);
+  }
   const missing = expected.filter((item) => !passed.has(item.id));
   if (missing.length) {
     return `Пройдите чек-лист входного контроля: ${missing.map((item) => item.label.toLowerCase()).join(", ")}`;

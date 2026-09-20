@@ -272,11 +272,11 @@ async function check(
   args: unknown[],
   name: string,
 ) {
-  if (rule.sections === "session") return false;
   const denied = (why: string) => new ForbiddenError(`${name}: ${session.role}, ${why}`);
-  if (!canAny(session.role, rule.sections, rule.need)) throw denied("нет уровня в разделе");
   const why = rule.allow?.(session.role, ...args);
   if (why) throw denied(why);
+  if (rule.sections === "session") return false;
+  if (!canAny(session.role, rule.sections, rule.need)) throw denied("нет уровня в разделе");
   if (!ownOnly(session.role, rule.sections, rule.need)) return false;
 
   const target = rule.project?.(...args) ?? null;

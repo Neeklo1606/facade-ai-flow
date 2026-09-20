@@ -62,8 +62,13 @@ function delivery(overrides: Partial<Delivery> = {}): Delivery {
   };
 }
 
+/** Подписи пунктов — настоящие: акт сверяется с ними (ADR-011, п. 6) */
+const LABELS = new Map(
+  checklistFor(["tile", "wool", "bracket"]).map((item) => [item.id, item.label]),
+);
+
 function check(id: string, ok = true): ChecklistResult {
-  return { id, label: id, ok, note: null };
+  return { id, label: LABELS.get(id) ?? id, ok, note: null };
 }
 
 /** Общие пункты чек-листа (ADR-011, п. 6), все пройдены */
@@ -485,10 +490,20 @@ describe("acceptanceError", () => {
   });
 
   test("чек-лист не того состава — отказ: пункты придумать нельзя", () => {
+    const WRONG = "Чек-лист не тот: пункты входного контроля этой поставки другие";
     const invented = ["выдумка-1", "выдумка-2", "выдумка-3", "выдумка-4"].map((id) => check(id));
-    expect(acceptanceError(TWO_LINES, draft({ checklist: invented }), EXPECTED)).toContain(
-      CHECKLIST,
+    expect(acceptanceError(TWO_LINES, draft({ checklist: invented }), EXPECTED)).toBe(WRONG);
+    // Лишний пункт сверх ожидаемых
+    const extra = [...COMMON_OK, check("лишний")];
+    expect(acceptanceError(TWO_LINES, draft({ checklist: extra }), EXPECTED)).toBe(WRONG);
+    // Повтор пункта: в акт записалось бы больше строк, чем прошёл человек
+    const twice = [...COMMON_OK, check("complete")];
+    expect(acceptanceError(TWO_LINES, draft({ checklist: twice }), EXPECTED)).toBe(WRONG);
+    // Подменённая подпись: акт пополняется и не правится
+    const relabelled = COMMON_OK.map((item, index) =>
+      index === 0 ? { ...item, label: "Проверено на глаз" } : item,
     );
+    expect(acceptanceError(TWO_LINES, draft({ checklist: relabelled }), EXPECTED)).toBe(WRONG);
   });
 
   test("пункты по семейству материалов обязательны, их отсутствие — отказ", () => {

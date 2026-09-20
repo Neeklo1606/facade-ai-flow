@@ -122,7 +122,9 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
 
   const requestsQuery = useQuery(queries.requests(project.id));
   const remind = useRemindSuppliers();
-  const suppliersQuery = useQuery(queries.suppliers());
+  // Контакты поставщиков — раздел «Поставщики» (ADR-012): без права их не запрашиваем,
+  // иначе отказ уронил бы список запросов у роли, которой он открыт
+  const suppliersQuery = useQuery({ ...queries.suppliers(), enabled: canSuppliers });
   const summaries = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
   const profiles = useMemo(
     () => (suppliersQuery.data ?? []).map((item) => item.profile),
@@ -194,8 +196,8 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
 
   const isRequests = view === "requests";
   const screen = useScreenState({
-    pending: requestsQuery.isPending || suppliersQuery.isPending,
-    error: requestsQuery.isError || suppliersQuery.isError,
+    pending: requestsQuery.isPending || (canSuppliers && suppliersQuery.isPending),
+    error: requestsQuery.isError || (canSuppliers && suppliersQuery.isError),
     empty: isRequests ? requestRows.length === 0 : supplierRows.length === 0,
     filtered: isRequests ? visibleRequests.length === 0 : visibleSuppliers.length === 0,
     partial: isRequests ? waiting.length > 0 : staleContacts > 0,

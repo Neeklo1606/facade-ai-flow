@@ -12,7 +12,7 @@
 import { spawnSync } from "node:child_process";
 import pg from "pg";
 import { enums, sqlName, tables } from "../src/contracts";
-import { checklistFor } from "../src/domain/deliveries";
+import { checklistFor, deliveryFamilies } from "../src/domain/deliveries";
 import { createDemoRepositories, setClockSource, type ClockSource } from "../src/adapters/demo";
 import {
   createDbRepositories,
@@ -137,9 +137,36 @@ function stepClock(): ClockSource {
 }
 
 type Outcome = { ok: unknown } | { error: string };
-/** Blob не сравнить по полям: у него нет перечислимых свойств — сравниваем байты */
+/**
+ * Blob не сравнить по полям: у него нет перечислимых свойств. Байты тоже не годятся — .xlsx это
+ * zip, и в нём лежит время сборки: два одинаковых файла, собранные в разные секунды, различаются.
+ * Сравниваем содержимое: имена записей, их размеры и контрольные суммы из оглавления архива
+ */
+function zipContents(data: Uint8Array): string[] {
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  // Оглавление ищем с конца: сигнатура конца центрального каталога
+  let end = data.length - 22;
+  while (end >= 0 && view.getUint32(end, true) !== 0x06054b50) end -= 1;
+  if (end < 0) return ["не zip"];
+  const count = view.getUint16(end + 10, true);
+  let at = view.getUint32(end + 16, true);
+  const entries: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    if (view.getUint32(at, true) !== 0x02014b50) break;
+    const crc = view.getUint32(at + 16, true);
+    const size = view.getUint32(at + 24, true);
+    const nameLength = view.getUint16(at + 28, true);
+    const extraLength = view.getUint16(at + 30, true);
+    const commentLength = view.getUint16(at + 32, true);
+    const name = new TextDecoder().decode(data.subarray(at + 46, at + 46 + nameLength));
+    entries.push(`${name} ${size} ${crc.toString(16)}`);
+    at += 46 + nameLength + extraLength + commentLength;
+  }
+  return entries.sort();
+}
+
 const bytes = async (value: unknown) =>
-  value instanceof Blob ? new Uint8Array(await value.arrayBuffer()) : value;
+  value instanceof Blob ? zipContents(new Uint8Array(await value.arrayBuffer())) : value;
 const settle = (promise: Promise<unknown>): Promise<Outcome> =>
   promise.then(
     async (ok) => ({ ok: await bytes(ok) }),
@@ -498,7 +525,9 @@ const writes: Step[] = [
             acceptedQty: index === 0 ? Math.max(0, line.qty - 1) : line.qty,
             remark: index === 0 ? "Недостача одной единицы" : null,
           })),
-          checklist: checklistFor([]).map((item) => ({
+          checklist: checklistFor(
+            deliveryFamilies(card.delivery, await r.positions.materials()),
+          ).map((item) => ({
             id: item.id,
             label: item.label,
             ok: true,

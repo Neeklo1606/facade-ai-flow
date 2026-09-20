@@ -150,7 +150,7 @@ describe("приёмка с расхождением", () => {
       ),
     );
     expect(error).toBeInstanceOf(ConflictError);
-    expect(error?.message).toContain("Пройдите чек-лист входного контроля");
+    expect(error?.message).toBe("Чек-лист не тот: пункты входного контроля этой поставки другие");
   });
 
   test("недостача без фото не принимается", async () => {

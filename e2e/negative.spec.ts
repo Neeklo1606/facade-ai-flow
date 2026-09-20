@@ -94,6 +94,21 @@ test.describe("руководитель", () => {
   });
 });
 
+test.describe("раздел открыт на чтение — экран работает без данных закрытого раздела", () => {
+  test.use({ persona: "e-volkova" });
+
+  test("ПТО видит список запросов: контакты поставщиков ему закрыты, но экран цел", async ({
+    page,
+  }) => {
+    await open(page, "/projects/p-korona/procurement");
+    await expect(page.getByText("Не удалось")).toHaveCount(0);
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(page.getByRole("table").getByText("З-2026/323")).toBeVisible();
+    // Вкладки «Поставщики» у роли нет: раздел закрыт (ADR-012)
+    await expect(page.getByRole("button", { name: "Поставщики", exact: true })).toHaveCount(0);
+  });
+});
+
 test.describe("доступ без прав", () => {
   const cases = [
     { persona: "e-dorohov", path: "/projects/p-korona/timeline", section: "История и решения" },
