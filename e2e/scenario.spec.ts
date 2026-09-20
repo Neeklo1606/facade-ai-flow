@@ -99,8 +99,10 @@ test.describe("сценарий показа", () => {
       .click();
     await expect(toast(page, "Решение зафиксировано")).toBeVisible();
 
-    // 8. Поставка: симулятор отмечает отгрузку, прибытие и приёмку отмечает человек
+    // 8. Поставка: на старте видны все стадии, симулятор отмечает отгрузку новой поставки
     await open(page, "/projects/p-korona/deliveries");
+    await expect(page.getByText("В пути, позиций")).toBeVisible();
+    await expect(page.locator("main li button", { hasText: "Мембрана" }).first()).toBeVisible();
     await page.locator("main li button", { hasText: "Керамогранит" }).first().click();
     await expect(page.getByText(/статус «в пути» имитирован/).first()).toBeVisible({
       timeout: 45_000,

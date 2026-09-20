@@ -15,6 +15,7 @@ import {
   replyDue,
   rfqStatus,
   supplierDecision,
+  spread,
 } from "@/domain/procurement";
 
 /* ---------- Фабрики. Деньги — в копейках ---------- */
@@ -736,5 +737,35 @@ describe("supplierDecision", () => {
     const o = offer({ id: "o-A", supplierId: "A", sourceId: null });
     const c = compareOffers({ offers: [o], offerLines: linesA }, req);
     expect(decide("A", req, c).basisSourceId).toBeNull();
+  });
+});
+
+describe("spread: раскладка целой суммы по весам", () => {
+  const cases: [number, number[]][] = [
+    [100, [1, 1, 1]],
+    [1, [1, 1]],
+    [12_345_678, [3, 5, 7, 11]],
+    [999, [0, 1, 0, 2]],
+    [5, [1]],
+    [0, [2, 3]],
+    [7, [0, 0]],
+  ];
+
+  test("сумма долей равна исходной сумме, доли целые и неотрицательные", () => {
+    for (const [total, weights] of cases) {
+      const shares = spread(total, weights);
+      const sum = shares.reduce((acc, value) => acc + value, 0);
+      const expected = weights.some((weight) => weight > 0) ? total : 0;
+      expect(sum, `${total} по ${weights.join("/")}`).toBe(expected);
+      for (const share of shares) {
+        expect(Number.isInteger(share)).toBe(true);
+        expect(share).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  test("нулевой вес — нулевая доля, остаток уходит по наибольшему остатку", () => {
+    expect(spread(999, [0, 1, 0, 2])).toEqual([0, 333, 0, 666]);
+    expect(spread(10, [1, 1, 1])).toEqual([4, 3, 3]);
   });
 });

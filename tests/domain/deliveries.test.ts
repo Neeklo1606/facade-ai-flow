@@ -411,39 +411,41 @@ describe("acceptanceError", () => {
   const EACH_LINE = "Укажите факт по каждой строке";
   const NEGATIVE = "Фактическое количество не может быть отрицательным";
   const CHECKLIST = "Пройдите чек-лист входного контроля";
+  // Ожидаемый чек-лист поставки: у TWO_LINES материалов нет, значит только общие пункты
+  const EXPECTED = checklistFor([]);
   const NO_REASON = "Укажите причину отклонения";
   const HAS_DISCREPANCY = "Есть расхождение: принять можно только с замечаниями или отклонить";
   const NO_DISCREPANCY = "Расхождений нет: примите поставку полностью";
   const PHOTO = "При расхождении нужно хотя бы одно фото";
 
   test("полностью без расхождений и без фото — акт пишется", () => {
-    expect(acceptanceError(TWO_LINES, draft())).toBeNull();
+    expect(acceptanceError(TWO_LINES, draft(), EXPECTED)).toBeNull();
   });
 
   test("принять можно только прибывшую поставку", () => {
     for (const status of ["expected", "shipped", "in_transit"] as const) {
-      expect(acceptanceError({ ...TWO_LINES, status }, draft())).toBe(NOT_ARRIVED);
+      expect(acceptanceError({ ...TWO_LINES, status }, draft(), EXPECTED)).toBe(NOT_ARRIVED);
     }
   });
 
   test("повторная приёмка уже закрытой поставки запрещена", () => {
     for (const status of FINAL_STATUSES) {
-      expect(acceptanceError({ ...TWO_LINES, status }, draft())).toBe(NOT_ARRIVED);
+      expect(acceptanceError({ ...TWO_LINES, status }, draft(), EXPECTED)).toBe(NOT_ARRIVED);
     }
   });
 
   test("без подтверждения принявшего акт не пишется", () => {
-    expect(acceptanceError(TWO_LINES, draft({ confirmed: false }))).toBe(NOT_CONFIRMED);
+    expect(acceptanceError(TWO_LINES, draft({ confirmed: false }), EXPECTED)).toBe(NOT_CONFIRMED);
   });
 
   test("факт не по всем строкам", () => {
     const lines = [{ lineId: "l-1", acceptedQty: 100, remark: null }];
-    expect(acceptanceError(TWO_LINES, draft({ lines }))).toBe(EACH_LINE);
+    expect(acceptanceError(TWO_LINES, draft({ lines }), EXPECTED)).toBe(EACH_LINE);
   });
 
   test("лишняя строка факта", () => {
     const lines = [...facts(100, 50), { lineId: "l-3", acceptedQty: 1, remark: null }];
-    expect(acceptanceError(TWO_LINES, draft({ lines }))).toBe(EACH_LINE);
+    expect(acceptanceError(TWO_LINES, draft({ lines }), EXPECTED)).toBe(EACH_LINE);
   });
 
   test("две записи факта по одной строке и ни одной по другой — факт не по каждой строке", () => {
@@ -451,12 +453,14 @@ describe("acceptanceError", () => {
       { lineId: "l-1", acceptedQty: 100, remark: null },
       { lineId: "l-1", acceptedQty: 100, remark: null },
     ];
-    expect(acceptanceError(TWO_LINES, draft({ lines }))).toBe(EACH_LINE);
+    expect(acceptanceError(TWO_LINES, draft({ lines }), EXPECTED)).toBe(EACH_LINE);
   });
 
   test("отрицательный факт, NaN и бесконечность — отказ", () => {
     for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
-      expect(acceptanceError(TWO_LINES, draft({ lines: facts(100, bad) }))).toBe(NEGATIVE);
+      expect(acceptanceError(TWO_LINES, draft({ lines: facts(100, bad) }), EXPECTED)).toBe(
+        NEGATIVE,
+      );
     }
   });
 
@@ -464,51 +468,79 @@ describe("acceptanceError", () => {
     const result = acceptanceError(
       TWO_LINES,
       draft({ result: "accepted_with_remarks", lines: facts(0, 50), photos: 1 }),
+      EXPECTED,
     );
     expect(result).toBeNull();
   });
 
   test("чек-лист короче общих пунктов (3 из 4) — отказ", () => {
-    expect(acceptanceError(TWO_LINES, draft({ checklist: COMMON_OK.slice(0, 3) }))).toBe(CHECKLIST);
+    // Сообщение называет непройденные пункты, поэтому сверяем начало строки
+    expect(
+      acceptanceError(TWO_LINES, draft({ checklist: COMMON_OK.slice(0, 3) }), EXPECTED),
+    ).toContain(CHECKLIST);
   });
 
   test("пустой чек-лист — отказ", () => {
-    expect(acceptanceError(TWO_LINES, draft({ checklist: [] }))).toBe(CHECKLIST);
+    expect(acceptanceError(TWO_LINES, draft({ checklist: [] }), EXPECTED)).toContain(CHECKLIST);
+  });
+
+  test("чек-лист не того состава — отказ: пункты придумать нельзя", () => {
+    const invented = ["выдумка-1", "выдумка-2", "выдумка-3", "выдумка-4"].map((id) => check(id));
+    expect(acceptanceError(TWO_LINES, draft({ checklist: invented }), EXPECTED)).toContain(
+      CHECKLIST,
+    );
+  });
+
+  test("пункты по семейству материалов обязательны, их отсутствие — отказ", () => {
+    // У поставки керамогранита к общим пунктам добавляются пункты по облицовке
+    const expected = checklistFor(["tile"]);
+    expect(expected.length).toBeGreaterThan(COMMON_OK.length);
+    expect(acceptanceError(TWO_LINES, draft(), expected)).toContain(CHECKLIST);
+    const full = expected.map((item) => check(item.id));
+    expect(acceptanceError(TWO_LINES, draft({ checklist: full }), expected)).toBeNull();
   });
 
   test("принять полностью при недостаче — отказ", () => {
-    const result = acceptanceError(TWO_LINES, draft({ lines: facts(99, 50), photos: 1 }));
+    const result = acceptanceError(TWO_LINES, draft({ lines: facts(99, 50), photos: 1 }), EXPECTED);
     expect(result).toBe(HAS_DISCREPANCY);
   });
 
   test("принять полностью при излишке — отказ", () => {
-    const result = acceptanceError(TWO_LINES, draft({ lines: facts(100, 51), photos: 1 }));
+    const result = acceptanceError(
+      TWO_LINES,
+      draft({ lines: facts(100, 51), photos: 1 }),
+      EXPECTED,
+    );
     expect(result).toBe(HAS_DISCREPANCY);
   });
 
   test("принять полностью при непройденном пункте чек-листа — отказ", () => {
     const checklist = [...COMMON_OK.slice(0, 3), check("spec", false)];
-    expect(acceptanceError(TWO_LINES, draft({ checklist, photos: 1 }))).toBe(HAS_DISCREPANCY);
+    expect(acceptanceError(TWO_LINES, draft({ checklist, photos: 1 }), EXPECTED)).toBe(
+      HAS_DISCREPANCY,
+    );
   });
 
   test("с замечаниями без расхождений — отказ", () => {
     const result = acceptanceError(
       TWO_LINES,
       draft({ result: "accepted_with_remarks", photos: 1 }),
+      EXPECTED,
     );
     expect(result).toBe(NO_DISCREPANCY);
   });
 
   test("с замечаниями при расхождении без фото — отказ, с одним фото — можно", () => {
     const base = { result: "accepted_with_remarks" as const, lines: facts(90, 50) };
-    expect(acceptanceError(TWO_LINES, draft({ ...base, photos: 0 }))).toBe(PHOTO);
-    expect(acceptanceError(TWO_LINES, draft({ ...base, photos: 1 }))).toBeNull();
+    expect(acceptanceError(TWO_LINES, draft({ ...base, photos: 0 }), EXPECTED)).toBe(PHOTO);
+    expect(acceptanceError(TWO_LINES, draft({ ...base, photos: 1 }), EXPECTED)).toBeNull();
   });
 
   test("с замечаниями при излишке и фото — можно", () => {
     const result = acceptanceError(
       TWO_LINES,
       draft({ result: "accepted_with_remarks", lines: facts(100, 70), photos: 2 }),
+      EXPECTED,
     );
     expect(result).toBeNull();
   });
@@ -518,6 +550,7 @@ describe("acceptanceError", () => {
     const result = acceptanceError(
       TWO_LINES,
       draft({ result: "accepted_with_remarks", checklist, photos: 1 }),
+      EXPECTED,
     );
     expect(result).toBeNull();
   });
@@ -527,6 +560,7 @@ describe("acceptanceError", () => {
       const result = acceptanceError(
         TWO_LINES,
         draft({ result: "rejected", reason, lines: facts(10, 50), photos: 1 }),
+        EXPECTED,
       );
       expect(result).toBe(NO_REASON);
     }
@@ -536,14 +570,25 @@ describe("acceptanceError", () => {
     const result = acceptanceError(
       TWO_LINES,
       draft({ result: "rejected", reason: "Бой стекла", lines: facts(10, 50), photos: 0 }),
+      EXPECTED,
     );
     expect(result).toBe(PHOTO);
+  });
+
+  test("отклонение без расхождения и без фото — акт пишется: отклоняют и по документам", () => {
+    const result = acceptanceError(
+      TWO_LINES,
+      draft({ result: "rejected", reason: "Не тот сертификат", photos: 0 }),
+      EXPECTED,
+    );
+    expect(result).toBeNull();
   });
 
   test("отклонение с причиной и фото — акт пишется", () => {
     const result = acceptanceError(
       TWO_LINES,
       draft({ result: "rejected", reason: "Не та марка", lines: facts(10, 50), photos: 1 }),
+      EXPECTED,
     );
     expect(result).toBeNull();
   });

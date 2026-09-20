@@ -28,7 +28,8 @@ export function useAcceptanceRules(delivery: Delivery | null) {
         delivery ? lineDiscrepancies(delivery, draft) : [],
       hasDiscrepancy: (draft: Pick<AcceptanceDraft, "lines" | "checklist">) =>
         delivery ? hasDiscrepancy(delivery, draft) : false,
-      error: (draft: AcceptanceDraft) => (delivery ? acceptanceError(delivery, draft) : null),
+      error: (draft: AcceptanceDraft) =>
+        delivery ? acceptanceError(delivery, draft, checklist) : null,
     };
   }, [delivery, materials]);
 }

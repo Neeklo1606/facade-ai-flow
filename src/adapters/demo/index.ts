@@ -156,7 +156,8 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
 
     directory: {
       employees: () => done(state().employees),
-      counterparties: () => done(state().counterparties),
+      counterparties: () =>
+        done(state().counterparties.map(({ id, name, role }) => ({ id, name, role }))),
     },
 
     projects: {

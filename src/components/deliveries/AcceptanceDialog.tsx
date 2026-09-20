@@ -256,7 +256,7 @@ export function AcceptanceDialog({
 
           <fieldset className="grid gap-2">
             <legend className="mb-1 text-[13px] font-medium">
-              Фото {discrepancy || rejecting ? "— обязательно при расхождении" : ""}
+              Фото {discrepancy ? "— обязательно при расхождении" : ""}
             </legend>
             <div className="flex flex-wrap gap-2">
               {photos.map((dataUrl, index) => (

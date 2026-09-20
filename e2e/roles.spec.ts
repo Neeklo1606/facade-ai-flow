@@ -106,6 +106,14 @@ test("прораб: свой объект → отчёт с площадки →
   await page.getByRole("button", { name: "Принять", exact: true }).first().click();
   await expect(page.locator("[data-sonner-toast]", { hasText: "Отчёт принят" })).toBeVisible();
 
+  // Поставки: прораб отмечает прибытие и принимает, но не управляет поставкой (ADR-012)
+  await open(page, "/projects/p-korona/deliveries");
+  await page.locator("main li button", { hasText: "Мембрана" }).first().click();
+  await expect(page.getByRole("button", { name: "Поставка прибыла на объект" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "В пути", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Отменить…", exact: true })).toHaveCount(0);
+  await checkScreen(page, "поставки прораба");
+
   // В реестре прораба — только его объект
   await open(page, "/projects");
   const registry = page.locator("main");

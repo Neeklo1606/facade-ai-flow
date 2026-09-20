@@ -123,6 +123,36 @@ describe("приёмка с расхождением", () => {
     note: null,
   }));
 
+  test("чек-лист придумать нельзя: порт сверяет состав пунктов поставки", async () => {
+    const delivery = await arrivedDelivery();
+    const invented = ["выдумка-1", "выдумка-2", "выдумка-3", "выдумка-4"].map((id) => ({
+      id,
+      label: `Пункт ${id}`,
+      ok: true,
+      note: null,
+    }));
+    const error = await rejection(
+      repos.procurement.acceptDelivery(
+        {
+          deliveryId: delivery.id,
+          result: "accepted",
+          lines: delivery.items.map((line) => ({
+            lineId: line.id,
+            acceptedQty: line.qty,
+            remark: null,
+          })),
+          checklist: invented,
+          photos: [],
+          reason: null,
+          confirmed: true,
+        },
+        actor,
+      ),
+    );
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error?.message).toContain("Пройдите чек-лист входного контроля");
+  });
+
   test("недостача без фото не принимается", async () => {
     const delivery = await arrivedDelivery();
     const error = await rejection(
@@ -226,6 +256,90 @@ describe("доступ без прав", () => {
       ),
     );
     expect(request).toBeInstanceOf(ForbiddenError);
+  });
+
+  test("прораб принимает поставку на своём объекте, но не управляет ею", async () => {
+    const foreman = as("e-gareev");
+    const delivery = (await repos.procurement.deliveries("p-korona")).find((item) =>
+      ["expected", "shipped", "in_transit"].includes(item.status),
+    )!;
+    // Прибытие отмечает прораб: материал приходит на площадку к нему
+    const arrived = await foreman.procurement.moveDelivery(
+      { deliveryId: delivery.id, status: "arrived", note: null },
+      actor,
+    );
+    expect(arrived.delivery.status).toBe("arrived");
+    // Отгрузку и «в пути» — только снабжение
+    const other = (await repos.procurement.deliveries("p-korona"))[0]!;
+    const moved = await rejection(
+      foreman.procurement.moveDelivery(
+        { deliveryId: other.id, status: "in_transit", note: null },
+        actor,
+      ),
+    );
+    expect(moved).toBeInstanceOf(ForbiddenError);
+    expect(moved?.message).toBe(FORBIDDEN_MESSAGE);
+  });
+
+  test("прораб не закрывает замечание и не трогает чужой объект", async () => {
+    const foreman = as("e-gareev");
+    const remark = await rejection(
+      foreman.procurement.resolveRemark(
+        { remarkId: "drm-any", resolution: "Договорились с поставщиком" },
+        actor,
+      ),
+    );
+    expect(remark).toBeInstanceOf(ForbiddenError);
+    const foreign = await rejection(foreman.procurement.deliveries("p-meridian"));
+    expect(foreign).toBeInstanceOf(ForbiddenError);
+  });
+
+  test("справочник контрагентов отдаёт только имя и роль: контакты — в «Поставщиках»", async () => {
+    for (const persona of ["e-sokolov", "e-dorohov", "e-volkova", "e-gareev", "e-belyaev"]) {
+      const list = await as(persona).directory.counterparties();
+      expect(list.length).toBeGreaterThan(0);
+      for (const item of list) {
+        expect(Object.keys(item).sort(), persona).toEqual(["id", "name", "role"]);
+      }
+    }
+  });
+
+  test("карточку поставщика с контактами открывает только раздел «Поставщики»", async () => {
+    const supplier = (await repos.procurement.suppliers())[0]!.supplier.id;
+    for (const persona of ["e-volkova", "e-gareev"]) {
+      expect(await rejection(as(persona).procurement.suppliers()), persona).toBeInstanceOf(
+        ForbiddenError,
+      );
+      expect(await rejection(as(persona).procurement.supplier(supplier)), persona).toBeInstanceOf(
+        ForbiddenError,
+      );
+    }
+    // Снабжению и директору раздел открыт
+    expect((await as("e-dorohov").procurement.suppliers()).length).toBeGreaterThan(0);
+    expect((await as("e-belyaev").procurement.supplier(supplier))?.profile.phone).toBeTruthy();
+  });
+
+  test("автор действия — сотрудник сессии, а не переданный вызывающим", async () => {
+    const positions = await allPositions(repos, "p-korona");
+    const pending = positions.find((item) => item.review === "pending")!;
+    // ПТО подтверждает позицию, но в вызове подсовывает руководителя
+    await as("e-volkova").positions.confirm({ ids: [pending.id] }, { actorId: "e-sokolov" });
+    const after = await repos.positions.item(pending.id);
+    expect(after?.reviewedBy).toBe("e-volkova");
+    const history = await repos.positions.history(pending.id);
+    expect(history[0]?.actorId).toBe("e-volkova");
+  });
+
+  test("без сессии отказывают и чтения, и записи", async () => {
+    const anonymous = guardRepositories(repos, async () => null);
+    const read = await rejection(anonymous.projects.list());
+    expect(read).toBeInstanceOf(ForbiddenError);
+    const write = await rejection(
+      anonymous.positions.confirm({ ids: ["pos-0001"] }, { actorId: "e-sokolov" }),
+    );
+    expect(write).toBeInstanceOf(ForbiddenError);
+    const directory = await rejection(anonymous.directory.employees());
+    expect(directory).toBeInstanceOf(ForbiddenError);
   });
 
   test("прораб не видит чужой объект", async () => {

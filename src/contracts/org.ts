@@ -87,6 +87,12 @@ export const counterparties = table(
   },
 );
 
+/**
+ * Контрагент в справочнике экранов: имя и роль. Контакты (ИНН, контактное лицо, почта, телефон)
+ * отдаёт только раздел «Поставщики» — карточкой поставщика (ADR-012)
+ */
+export const counterpartyRef = counterparties.pick({ id: true, name: true, role: true });
+
 export const contactStatus = pgEnum(
   "contact_status",
   ["verified", "needs_check", "stale"],
@@ -164,6 +170,7 @@ export type Employee = z.infer<typeof employeeView>;
 export type EmployeeRole = Employee["role"];
 export type ProjectMember = z.infer<typeof projectMembers>;
 export type Counterparty = z.infer<typeof counterparties>;
+export type CounterpartyRef = z.infer<typeof counterpartyRef>;
 export type SupplierProfile = z.infer<typeof supplierProfiles>;
 export type ContactFreshness = z.infer<typeof contactStatus.schema>;
 export type CrewRow = z.infer<typeof crews>;

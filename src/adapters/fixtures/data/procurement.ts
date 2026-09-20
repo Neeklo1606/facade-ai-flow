@@ -514,6 +514,20 @@ export const deliveries = [
     status: "accepted",
     sourceId: "src-mail-sk-324",
   },
+  {
+    // Вторая машина по тому же решению: мембрана едет отдельно и ещё не принята.
+    // Демонстрация показывает все стадии поставки: заказано, в пути, принято
+    id: "dl-503",
+    requestId: "sr-324",
+    projectId: "p-korona",
+    zoneId: "z-korona-3",
+    supplierId: "c-sk",
+    decisionId: "dec-324",
+    expectedAt: "2026-09-08",
+    receivedAt: null,
+    status: "in_transit",
+    sourceId: null,
+  },
 ] satisfies DeliveryRow[];
 
 export const deliveryLines = [
@@ -536,12 +550,12 @@ export const deliveryLines = [
     remark: null,
   },
   {
-    id: "dl-502-2",
-    deliveryId: "dl-502",
+    id: "dl-503-1",
+    deliveryId: "dl-503",
     requestLineId: "sr-324-l2",
     qty: 5356,
     price: 9600,
-    acceptedQty: 5356,
+    acceptedQty: null,
     remark: null,
   },
 ] satisfies DeliveryLine[];
@@ -609,6 +623,33 @@ export const deliveryStatusChanges = [
     at: "2026-08-30T10:05:00",
     actorKind: "user",
     actorId: "e-gareev",
+    note: null,
+  },
+  {
+    id: "dsc-503-1",
+    deliveryId: "dl-503",
+    status: "expected",
+    at: "2026-08-21T11:02:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
+    note: "Мембрана отдельной машиной: на складе поставщика её не было",
+  },
+  {
+    id: "dsc-503-2",
+    deliveryId: "dl-503",
+    status: "shipped",
+    at: "2026-09-03T14:20:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
+    note: null,
+  },
+  {
+    id: "dsc-503-3",
+    deliveryId: "dl-503",
+    status: "in_transit",
+    at: "2026-09-04T09:30:00",
+    actorKind: "user",
+    actorId: "e-dorohov",
     note: null,
   },
 ] satisfies DeliveryStatusChange[];

@@ -80,7 +80,10 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const card = openId ? (cardQuery.data ?? null) : null;
   const move = useMoveDelivery();
   // Движение и приёмка — запись в поставках; директор видит поставки без действий (ADR-012)
+  // Прибытие и приёмка — право в «Поставках» (у прораба на своих объектах);
+  // отгрузка, «в пути», отмена и закрытие замечаний — право в «Закупках» (ADR-012, дополнение)
   const canWrite = useCanWrite("deliveries");
+  const canManage = useCanWrite("procurement");
   const [acceptOpen, setAcceptOpen] = useState(false);
 
   const open = (id: string | null) =>
@@ -128,13 +131,14 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           <DeliveryMoves
             status={card.delivery.status}
             pending={move.isPending}
+            canManage={canManage}
             onMove={onMove}
             onAccept={() => setAcceptOpen(true)}
           />
         ) : null
       }
       panel={
-        card ? <DeliveryDetails card={card} projectId={project.id} canWrite={canWrite} /> : null
+        card ? <DeliveryDetails card={card} projectId={project.id} canWrite={canManage} /> : null
       }
     >
       <SubpageHeader
@@ -143,7 +147,8 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         description="Что везут на объект, что уже приняли и с какими замечаниями. Поставка появляется после решения по запросу поставщикам."
         actions={
           toAccept[0] ? (
-            <Button variant="accent" onClick={() => open(toAccept[0]!.id)}>
+            // Панель открыта — главное действие в ней: одно оранжевое пятно на экране (EMBER)
+            <Button variant={card ? "secondary" : "accent"} onClick={() => open(toAccept[0]!.id)}>
               <PackageCheck className="size-4" /> К приёмке: {toAccept.length}
             </Button>
           ) : (

@@ -137,9 +137,12 @@ function stepClock(): ClockSource {
 }
 
 type Outcome = { ok: unknown } | { error: string };
+/** Blob не сравнить по полям: у него нет перечислимых свойств — сравниваем байты */
+const bytes = async (value: unknown) =>
+  value instanceof Blob ? new Uint8Array(await value.arrayBuffer()) : value;
 const settle = (promise: Promise<unknown>): Promise<Outcome> =>
   promise.then(
-    (ok) => ({ ok }),
+    async (ok) => ({ ok: await bytes(ok) }),
     (error: unknown) => ({
       error: error instanceof Error ? `${error.constructor.name}: ${error.message}` : String(error),
     }),
@@ -291,6 +294,42 @@ const reads: Step[] = [
   { name: "объекты прораба", run: (r) => r.scope.projectsOf("e-gareev") },
   { name: "объект поставки", run: (r) => r.scope.projectOf("delivery", "dl-501") },
   { name: "изменения документации", run: (r) => r.documents.changes({ projectId: "p-korona" }) },
+  {
+    name: "позиции листа",
+    run: (r) => r.positions.list({ revisionId: "pd-korona-spec", sheetId: "sh-84", limit: 50 }),
+  },
+  {
+    name: "позиции раздела",
+    run: (r) => r.positions.list({ projectId: "p-korona", group: "Подконструкция", limit: 50 }),
+  },
+  {
+    name: "позиции без характеристик",
+    run: (r) => r.positions.list({ projectId: "p-korona", chars: "without", limit: 50 }),
+  },
+  {
+    name: "счётчики листа и раздела",
+    run: (r) =>
+      r.positions.facets({
+        revisionId: "pd-korona-spec",
+        sheetId: "sh-85",
+        group: "Подконструкция",
+      }),
+  },
+  { name: "реестр: статус объекта", run: (r) => r.projects.list({ status: "at_risk" }) },
+  { name: "позиция", run: (r) => r.positions.item("pos-0001") },
+  { name: "история позиции", run: (r) => r.positions.history("pos-0001") },
+  { name: "номенклатура", run: (r) => r.positions.materials() },
+  { name: "предложенные замены", run: (r) => r.positions.replacements() },
+  { name: "карточка ревизии", run: (r) => r.documents.card("pd-korona-spec") },
+  { name: "карточка запроса", run: (r) => r.procurement.request("sr-323") },
+  { name: "карточка поставщика", run: (r) => r.procurement.supplier("c-fk") },
+  { name: "шаблоны писем", run: (r) => r.procurement.templates() },
+  { name: "карточка поставки", run: (r) => r.procurement.delivery("dl-503") },
+  { name: "отчёты с площадки", run: (r) => r.reports.list("p-korona") },
+  { name: "категории справочника", run: (r) => r.catalog.categories() },
+  { name: "карточка материала", run: (r) => r.catalog.material("mat-bracket") },
+  { name: "решения объекта", run: (r) => r.timeline.decisions("p-korona") },
+  { name: "контрагенты", run: (r) => r.directory.counterparties() },
 ];
 
 async function firstIds(r: Repositories, view: "pending" | "verified", count: number) {
@@ -384,6 +423,49 @@ const writes: Step[] = [
   {
     name: "напомнить поставщикам",
     run: (r) => r.procurement.remind({ requestId: "sr-318" }, supply),
+  },
+  {
+    name: "объединить позиции",
+    run: async (r) => {
+      const [source, target] = await firstIds(r, "pending", 2);
+      return r.positions.merge({ sourceId: source!, targetId: target! }, actor);
+    },
+  },
+  {
+    name: "отметить заголовком и вернуть в работу",
+    run: async (r) => {
+      const [id] = await firstIds(r, "pending", 1);
+      await r.positions.markHeader({ id: id! }, actor);
+      return r.positions.reopen({ id: id! }, actor);
+    },
+  },
+  {
+    name: "подтвердить все проверенные ревизии",
+    run: (r) => r.positions.confirmAutoVerified({ revisionId: "pd-korona-spec" }, actor),
+  },
+  {
+    name: "загрузка документа",
+    run: (r) =>
+      r.documents.upload(
+        { projectId: "p-korona", documentId: null, fileName: "dobory.pdf", sizeKb: 1200 },
+        actor,
+      ),
+  },
+  {
+    name: "проверка отчёта с площадки",
+    run: async (r) => {
+      const report = (await r.reports.list("p-korona")).find(
+        (item) => item.report.status === "review",
+      )!;
+      return r.reports.review(
+        { id: report.report.id, status: "accepted", acceptedQty: 120 },
+        actor,
+      );
+    },
+  },
+  {
+    name: "контакт поставщика проверен",
+    run: (r) => r.procurement.verifyContact({ supplierId: "c-fk" }, supply),
   },
   {
     name: "решение по запросу",
@@ -680,9 +762,9 @@ try {
   const seeded = performance.now();
   await seedDatabase(driver, fixtureCodec());
   console.log(`✓ сид из фикстур за ${Math.round(performance.now() - seeded)} мс`);
-  // Замер — на данных сида: 847 позиций, до записей паритета
-  await timing(driver);
   failed = (await parity(driver)) || failed;
+  // Замер последним: он делает записи и сдвинул бы данные под сравнением
+  await timing(driver);
   failed = (await concurrency(driver)) || failed;
 } catch (error) {
   failed = true;

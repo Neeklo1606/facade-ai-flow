@@ -28,7 +28,7 @@ const TABLE: Record<Section, [Cell, Cell, Cell, Cell, Cell]> = {
   materials: ["W", "W", "—", "R*", "R"],
   procurement: ["W", "W", "R", "—", "R"],
   suppliers: ["W", "W", "—", "—", "R"],
-  deliveries: ["W", "W", "—", "—", "R"],
+  deliveries: ["W", "W", "—", "W*", "R"],
   "field-reports": ["W", "—", "—", "W*", "R"],
   timeline: ["R", "—", "R", "—", "R"],
   // ADR-014, п. 4: раздел «Справочники» добавлен к матрице ADR-012

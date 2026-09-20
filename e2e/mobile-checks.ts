@@ -112,13 +112,19 @@ export function mobileCheck(page: Page): Promise<MobileCheck> {
       })
       .map(describe);
 
-    // Пометка видна в первом экране, без прокрутки и без открытия меню
+    // Пометка видна в первом экране: читаемый текст в содержимом, не пункт скрытого меню
+    // и не подпись для диктора размером в точку
     const demoMarked = [...document.querySelectorAll("body *")].some((el) => {
-      if (el.children.length > 0 || !/демонстрац|демо-данн|демо/i.test(el.textContent ?? "")) {
-        return false;
-      }
+      if (el.children.length > 0 || !/демо/i.test(el.textContent ?? "")) return false;
+      if (el.closest("[data-sidebar], nav, aside, [role=dialog]")) return false;
       const rect = el.getBoundingClientRect();
-      return shown(el) && rect.top < window.innerHeight && rect.bottom > 0;
+      return (
+        shown(el) &&
+        rect.height >= 10 &&
+        rect.width >= 20 &&
+        rect.top < window.innerHeight &&
+        rect.bottom > 0
+      );
     });
     // Фокус не уходит за экран: элементы, до которых дойдёт Tab, но которых не видно
     const offscreenFocusable = [

@@ -17,6 +17,8 @@ const screens: [string, string][] = [
   ["поставщики", "/projects/p-korona/procurement?view=suppliers"],
   ["сравнение предложений", "/projects/p-korona/procurement/sr-323"],
   ["поставки", "/projects/p-korona/deliveries"],
+  // Панель поставки открыта: в ней своё главное действие — на экране всё равно одно оранжевое пятно
+  ["поставка в панели", "/projects/p-korona/deliveries?delivery=dl-503"],
   ["отчёты с площадки", "/projects/p-korona/field-reports"],
   ["история и решения", "/projects/p-korona/timeline"],
   ["ассистент", "/agent"],

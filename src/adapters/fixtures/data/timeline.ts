@@ -136,7 +136,7 @@ export const projectEvents = [
     projectId: "p-korona",
     occurredAt: "2026-08-30T10:05:00",
     type: "delivery_received",
-    title: "Принята поставка: утеплитель и мембрана",
+    title: "Принята поставка: утеплитель",
     details: "По акту приёмки без замечаний, партия по счёту № 1184",
     actorKind: "user",
     actorId: "e-gareev",

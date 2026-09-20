@@ -4,6 +4,7 @@
  * вызывающим, заменяется сотрудником сессии. Одна обёртка на серверные функции и демо-контур.
  */
 import { canAny, ownOnly, type AccessSession, type Need, type Section } from "@/domain/access";
+import type { EmployeeRole } from "@/contracts";
 import { ForbiddenError, type Repositories, type ScopeKind } from "@/ports";
 
 type ProjectRef = { projectId: string } | { kind: ScopeKind; id: string };
@@ -18,6 +19,11 @@ interface Rule<A extends unknown[], R> {
   filter?: (result: R, projectIds: string[]) => R;
   /** Справочник без привязки к объекту: доступен и роли со «своими» */
   global?: true;
+  /**
+   * Право зависит не только от раздела, но и от входа вызова: возвращает причину отказа
+   * или null. Первый случай — прораб отмечает только прибытие поставки (ADR-012, дополнение)
+   */
+  allow?: (role: EmployeeRole, ...args: A) => string | null;
 }
 
 type PortRules<P> = {
@@ -132,8 +138,9 @@ export const ACCESS_RULES: AccessRules = {
     replacements: { sections: CATALOGS, need: READ, global: true },
   },
   procurement: {
-    suppliers: { sections: ["suppliers", "procurement"], need: READ, global: true },
-    supplier: { sections: ["suppliers", "procurement"], need: READ, global: true },
+    // Контакты поставщика — раздел «Поставщики»: закупки его не открывают (ADR-012)
+    suppliers: { sections: ["suppliers"], need: READ, global: true },
+    supplier: { sections: ["suppliers"], need: READ, global: true },
     verifyContact: { sections: ["suppliers"], need: WRITE, global: true },
     templates: { sections: ["procurement"], need: READ, global: true },
     requests: { sections: ["procurement"], need: READ, project: (id) => project(id) },
@@ -159,6 +166,11 @@ export const ACCESS_RULES: AccessRules = {
       sections: ["deliveries"],
       need: WRITE,
       project: (input) => ref("delivery", input.deliveryId),
+      // Отгрузку и «в пути» подтверждает поставщик через снабжение; на площадке этих фактов нет
+      allow: (role, input) =>
+        role === "foreman" && input.status !== "arrived"
+          ? "прораб отмечает только прибытие поставки"
+          : null,
     },
     acceptDelivery: {
       sections: ["deliveries"],
@@ -169,6 +181,8 @@ export const ACCESS_RULES: AccessRules = {
       sections: ["deliveries"],
       need: WRITE,
       project: (input) => ref("remark", input.remarkId),
+      // Замечание уходит снабжению — оно же его и закрывает (ADR-011, п. 5)
+      allow: (role) => (role === "foreman" ? "замечания по поставке закрывает снабжение" : null),
     },
   },
   reports: {
@@ -261,6 +275,8 @@ async function check(
   if (rule.sections === "session") return false;
   const denied = (why: string) => new ForbiddenError(`${name}: ${session.role}, ${why}`);
   if (!canAny(session.role, rule.sections, rule.need)) throw denied("нет уровня в разделе");
+  const why = rule.allow?.(session.role, ...args);
+  if (why) throw denied(why);
   if (!ownOnly(session.role, rule.sections, rule.need)) return false;
 
   const target = rule.project?.(...args) ?? null;

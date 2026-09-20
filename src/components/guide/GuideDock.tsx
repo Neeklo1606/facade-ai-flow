@@ -33,6 +33,10 @@ export function GuideDock() {
   const scenario = scenarioById(guide.scenarioId);
   const step = scenario?.steps[guide.stepIndex] ?? null;
   const finished = !!scenario && guide.stepIndex >= scenario.steps.length;
+  // Пропущенный шаг не пройден: итог говорит об этом прямо (ADR-008, честность)
+  const skipped = scenario
+    ? scenario.steps.filter((item) => guide.status[item.id] === "skipped").length
+    : 0;
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const mobile = useMediaQuery("(max-width: 767px)", false);
 
@@ -138,7 +142,11 @@ export function GuideDock() {
               <X className="size-4" strokeWidth={1.5} />
             </button>
           </header>
-          {finished ? <Finished /> : step && <StepBody step={step} done={stepDone} />}
+          {finished ? (
+            <Finished skipped={skipped} />
+          ) : (
+            step && <StepBody step={step} done={stepDone} />
+          )}
           <Progress
             total={scenario.steps.length}
             index={guide.stepIndex}
@@ -165,7 +173,11 @@ export function GuideDock() {
                 <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-text-3">
                   {stepDone && <Check className="size-4 text-ok" strokeWidth={2} aria-hidden />}
                   {finished ? (
-                    "Сценарий пройден"
+                    skipped > 0 ? (
+                      `Сценарий закончен, пропущено ${skipped}`
+                    ) : (
+                      "Сценарий пройден"
+                    )
                   ) : stepDone ? (
                     "Сделано"
                   ) : (
@@ -277,11 +289,13 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
   );
 }
 
-function Finished() {
+function Finished({ skipped }: { skipped: number }) {
   return (
     <div className="mt-2">
       <p className="text-[14px] leading-[1.45] text-text">
-        Сценарий пройден. Можно сменить роль в карточке пользователя внизу меню и пройти другой.
+        {skipped > 0
+          ? `Сценарий закончен. Пропущено шагов: ${skipped} — они не выполнены. Сценарий можно открыть заново и пройти их.`
+          : "Сценарий пройден. Можно сменить роль в карточке пользователя внизу меню и пройти другой."}
       </p>
       <Link
         to="/demo-stats"

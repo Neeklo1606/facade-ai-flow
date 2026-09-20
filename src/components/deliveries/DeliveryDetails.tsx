@@ -26,7 +26,7 @@ export function DeliveryDetails({
 }: {
   card: DeliveryCard;
   projectId: string;
-  /** Закрывать замечания может только роль с записью в поставках (ADR-012) */
+  /** Закрывать замечания может снабжение и руководитель — право записи в «Закупках» (ADR-012) */
   canWrite: boolean;
 }) {
   const { employeeById, counterpartyById } = useDirectory();
@@ -174,11 +174,14 @@ export function DeliveryDetails({
 export function DeliveryMoves({
   status,
   pending,
+  canManage,
   onMove,
   onAccept,
 }: {
   status: DeliveryStatus;
   pending: boolean;
+  /** Отгрузка, «в пути» и отмена — у снабжения; прораб отмечает прибытие и принимает */
+  canManage: boolean;
   onMove: (status: "shipped" | "in_transit" | "arrived" | "rejected", note: string | null) => void;
   onAccept: () => void;
 }) {
@@ -234,7 +237,7 @@ export function DeliveryMoves({
         Поставка прибыла на объект
       </Button>
       <div className="flex flex-wrap gap-2">
-        {status === "expected" && (
+        {canManage && status === "expected" && (
           <Button
             variant="secondary"
             size="sm"
@@ -244,7 +247,7 @@ export function DeliveryMoves({
             Отгружена
           </Button>
         )}
-        {status !== "in_transit" && (
+        {canManage && status !== "in_transit" && (
           <Button
             variant="secondary"
             size="sm"
@@ -254,9 +257,11 @@ export function DeliveryMoves({
             В пути
           </Button>
         )}
-        <Button variant="ghost" size="sm" onClick={() => setCancelling(true)}>
-          Отменить…
-        </Button>
+        {canManage && (
+          <Button variant="ghost" size="sm" onClick={() => setCancelling(true)}>
+            Отменить…
+          </Button>
+        )}
       </div>
     </div>
   );

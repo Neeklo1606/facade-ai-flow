@@ -162,8 +162,16 @@ export function hasDiscrepancy(
  * Проверка акта перед записью. Возвращает текст первой причины отказа или null.
  * Правила ADR-011: полностью — только без расхождений; расхождение — фото обязательно;
  * отклонение — с причиной; без подтверждения принявшего акт не пишется.
+ *
+ * `expected` — чек-лист этой поставки (`checklistFor(deliveryFamilies(...))`). Сверяется состав,
+ * а не длина: иначе акт с выдуманными пунктами проходил бы мимо пунктов по семействам материалов,
+ * а непройденный пункт — это расхождение.
  */
-export function acceptanceError(item: Delivery, draft: AcceptanceDraft): string | null {
+export function acceptanceError(
+  item: Delivery,
+  draft: AcceptanceDraft,
+  expected: ChecklistItem[],
+): string | null {
   if (item.status !== "arrived") return "Принять можно только прибывшую поставку";
   if (!draft.confirmed) return "Подтвердите приёмку от своего имени";
   // Факт — ровно по одному на каждую строку поставки: два факта по одной строке и ни одного
@@ -176,16 +184,20 @@ export function acceptanceError(item: Delivery, draft: AcceptanceDraft): string 
   if (!everyLineOnce) return "Укажите факт по каждой строке";
   if (draft.lines.some((line) => !Number.isFinite(line.acceptedQty) || line.acceptedQty < 0))
     return "Фактическое количество не может быть отрицательным";
-  const expected = checklistFor([]).length;
-  if (draft.checklist.length < expected) return "Пройдите чек-лист входного контроля";
+  const passed = new Set(draft.checklist.map((item) => item.id));
+  const missing = expected.filter((item) => !passed.has(item.id));
+  if (missing.length) {
+    return `Пройдите чек-лист входного контроля: ${missing.map((item) => item.label.toLowerCase()).join(", ")}`;
+  }
   const discrepancy = hasDiscrepancy(item, draft);
   if (draft.result === "rejected" && !draft.reason?.trim()) return "Укажите причину отклонения";
   if (draft.result === "accepted" && discrepancy)
     return "Есть расхождение: принять можно только с замечаниями или отклонить";
   if (draft.result === "accepted_with_remarks" && !discrepancy)
     return "Расхождений нет: примите поставку полностью";
-  if ((discrepancy || draft.result === "rejected") && draft.photos < 1)
-    return "При расхождении нужно хотя бы одно фото";
+  // Фото — доказательство расхождения. Отклонить можно и по документам: не та марка, нет
+  // паспорта, — там фотографировать нечего (ADR-011, решение владельца 2026-09-20)
+  if (discrepancy && draft.photos < 1) return "При расхождении нужно хотя бы одно фото";
   return null;
 }
 

@@ -115,6 +115,9 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     ...nothing(),
     projects: g("read", true),
     materials: g("read", true),
+    // Материал на объекте принимает прораб: прибытие и приёмка на своих объектах.
+    // Отгрузку, «в пути», отмену и закрытие замечаний оставляет снабжению (ADR-012, дополнение)
+    deliveries: g("write", true),
     "field-reports": g("write", true),
   },
   director: {

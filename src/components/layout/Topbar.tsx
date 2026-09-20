@@ -109,7 +109,9 @@ export function Topbar() {
               className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[11px] leading-none font-medium text-text-2"
               title={DEMO_MARK_NOTE}
             >
-              Демо<span className="sr-only">. {DEMO_MARK_NOTE}</span>
+              {/* Видимая метка — отдельным элементом: её ищет проверка честности */}
+              <span>Демо</span>
+              <span className="sr-only">. {DEMO_MARK_NOTE}</span>
             </span>
           )}
         </div>

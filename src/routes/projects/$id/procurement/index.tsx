@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import {
   contactStatusLabel as contactFreshnessLabel,
   type ContactFreshness,
-  type Counterparty,
+  type CounterpartyRef,
   type SupplierProfile,
   type SupplyRequest,
 } from "@/contracts";
@@ -620,7 +620,7 @@ function SuppliersView({
 }: {
   rows: {
     profile: SupplierProfile;
-    supplier: Counterparty | null;
+    supplier: CounterpartyRef | null;
     stats: SupplierListItem["stats"] | null;
     sent: number;
     replied: number;

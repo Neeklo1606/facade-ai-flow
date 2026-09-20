@@ -25,6 +25,8 @@ import { decisionLink } from "@/domain/timeline";
 import {
   acceptanceError,
   canMove,
+  checklistFor,
+  deliveryFamilies,
   lineDiscrepancies,
   withDeliveries,
   type RequestPositionLink,
@@ -1001,14 +1003,20 @@ export function acceptDelivery(input: AcceptDeliveryInput, actorId: string) {
   const s = getState();
   const delivery = s.deliveries.find((item) => item.id === input.deliveryId);
   if (!delivery) throw new NotFoundError("Поставка", input.deliveryId);
-  const error = acceptanceError(delivery, {
-    result: input.result,
-    lines: input.lines,
-    checklist: input.checklist,
-    photos: input.photos.length,
-    reason: input.reason,
-    confirmed: input.confirmed,
-  });
+  const error = acceptanceError(
+    delivery,
+    {
+      result: input.result,
+      lines: input.lines,
+      checklist: input.checklist,
+      photos: input.photos.length,
+      reason: input.reason,
+      confirmed: input.confirmed,
+    },
+    // Состав чек-листа считает адаптер по семействам материалов поставки: экран подсказывает,
+    // но решает порт (ADR-011, п. 6)
+    checklistFor(deliveryFamilies(delivery, s.materials)),
+  );
   if (error) throw new ConflictError(error);
 
   const at = tick();

@@ -102,6 +102,10 @@ export function CreateRfqDialog({
     profile: candidate.profile,
     categoryMatch: candidate.matched.map((id) => categoryById.get(id)?.name ?? id),
     regionMatch: candidate.regionMatch,
+    // Среднее время ответа — по фактическим ответам поставщика, а не из справочника (ADR-014)
+    replyHours:
+      supplierList?.find((item) => item.supplier.id === candidate.profile.supplierId)?.stats
+        .avgReplyHours ?? null,
   }));
   const inRegion = matched.filter((m) => m.regionMatch);
   const otherRegions = matched.filter((m) => !m.regionMatch);
@@ -492,14 +496,19 @@ function SupplierList({
   selected,
   onToggle,
 }: {
-  items: { profile: SupplierProfile; categoryMatch: string[]; regionMatch: boolean }[];
+  items: {
+    profile: SupplierProfile;
+    categoryMatch: string[];
+    regionMatch: boolean;
+    replyHours: number | null;
+  }[];
   selected: Set<string>;
   onToggle: (update: (prev: Set<string>) => Set<string>) => void;
 }) {
   const { counterpartyById } = useDirectory();
   return (
     <ul className="mt-3 divide-y divide-border rounded-[var(--r-md)] border border-border">
-      {items.map(({ profile, categoryMatch, regionMatch }) => {
+      {items.map(({ profile, categoryMatch, regionMatch, replyHours }) => {
         const supplier = counterpartyById(profile.supplierId);
         return (
           <li key={profile.supplierId}>
@@ -540,7 +549,8 @@ function SupplierList({
                   ))}
                 </span>
                 <span className="mt-1 block text-caption text-text-muted">
-                  {profile.contactName} · {profile.email} · отвечает за {supplier?.avgReplyHours} ч
+                  {profile.contactName} · {profile.email} ·{" "}
+                  {replyHours === null ? "ответов ещё не было" : `отвечает за ${replyHours} ч`}
                 </span>
               </span>
             </label>
