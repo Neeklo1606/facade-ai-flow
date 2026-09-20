@@ -98,8 +98,13 @@ export function TeamTab({ project }: { project: Project }) {
         items={team.metrics.map((metric) => ({
           icon: metricIcon[metric.key as keyof typeof metricIcon] ?? Users,
           label: metric.label,
-          value: metric.value,
-          ...(metric.note ? { note: metric.note } : {}),
+          // Показатель считается по отчётам: без доступа к ним он не показывается (ADR-012)
+          value: metric.key === "silent" && !team.reportsKnown ? "—" : metric.value,
+          ...(metric.key === "silent" && !team.reportsKnown
+            ? { note: "Отчёты с площадки закрыты вашей роли" }
+            : metric.note
+              ? { note: metric.note }
+              : {}),
           explain: (
             <ExplainPopover
               title={metric.explain.title}
@@ -108,11 +113,13 @@ export function TeamTab({ project }: { project: Project }) {
             />
           ),
           // Ячейка кликабельна, только если её нажатие что-то меняет (находка ревью LOW)
-          ...(metric.filter === "silent"
-            ? { onSelect: () => setOnlySilent((value) => !value), selected: onlySilent }
-            : metric.filter === "all" && onlySilent
-              ? { onSelect: () => setOnlySilent(false) }
-              : {}),
+          ...(metric.key === "silent" && !team.reportsKnown
+            ? {}
+            : metric.filter === "silent"
+              ? { onSelect: () => setOnlySilent((value) => !value), selected: onlySilent }
+              : metric.filter === "all" && onlySilent
+                ? { onSelect: () => setOnlySilent(false) }
+                : {}),
         }))}
       />
 
@@ -135,7 +142,13 @@ export function TeamTab({ project }: { project: Project }) {
         />
         <ul className="-mx-6 divide-y divide-line">
           {team.people.map((row) => (
-            <PersonRow key={row.id} row={row} now={now} onOpen={() => setPersonId(row.id)} />
+            <PersonRow
+              key={row.id}
+              row={row}
+              now={now}
+              reportsKnown={team.reportsKnown}
+              onOpen={() => setPersonId(row.id)}
+            />
           ))}
         </ul>
       </WidgetCard>
@@ -172,7 +185,7 @@ export function TeamTab({ project }: { project: Project }) {
                 key={crew.id}
                 crew={crew}
                 projectId={project.id}
-                silent={silentIds.has(crew.id)}
+                silent={team.reportsKnown && silentIds.has(crew.id)}
               />
             ))}
           </ul>
@@ -215,7 +228,9 @@ export function TeamTab({ project }: { project: Project }) {
                 <p className="mt-0.5 text-[14px] text-text">
                   {person.lastReport
                     ? `${fmtAgoFrom(person.lastReport.at, now)} · ${person.lastReport.zoneName}`
-                    : "Отчётов не было"}
+                    : team.reportsKnown
+                      ? "Отчётов не было"
+                      : "Отчёты с площадки закрыты вашей роли"}
                 </p>
               </div>
             </div>
@@ -237,7 +252,18 @@ export function TeamTab({ project }: { project: Project }) {
   );
 }
 
-function PersonRow({ row, now, onOpen }: { row: TeamPerson; now: string; onOpen: () => void }) {
+function PersonRow({
+  row,
+  now,
+  reportsKnown,
+  onOpen,
+}: {
+  row: TeamPerson;
+  now: string;
+  /** Отчёты с площадки доступны роли: иначе «без отчётов» было бы неправдой (ADR-012) */
+  reportsKnown: boolean;
+  onOpen: () => void;
+}) {
   return (
     <li className="group relative flex items-center gap-3 px-6 py-3 transition-fast is-hover:bg-surface-2">
       <button
@@ -257,7 +283,7 @@ function PersonRow({ row, now, onOpen }: { row: TeamPerson; now: string; onOpen:
           </span>
         </span>
         <span className="hidden shrink-0 text-right text-[12px] text-text-3 lg:block">
-          {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : "без отчётов"}
+          {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : reportsKnown ? "без отчётов" : "—"}
         </span>
       </button>
       {/* Звонок и сообщение — поверх строки: это отдельные действия, а не открытие карточки */}

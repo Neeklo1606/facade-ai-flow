@@ -109,6 +109,28 @@ test.describe("раздел открыт на чтение — экран раб
   });
 });
 
+test.describe("снабжение: карточка объекта без данных закрытого раздела", () => {
+  test.use({ persona: "e-dorohov" });
+
+  test("«Бригад без отчёта» не считается по пустому списку, а говорит, что раздел закрыт", async ({
+    page,
+  }) => {
+    await open(page, "/projects/p-korona?tab=team");
+    const main = page.locator("main");
+    await expect(main).toContainText("Бригад без отчёта");
+    await expect(main).toContainText("Отчёты с площадки закрыты вашей роли");
+    await expect(page.getByText("Без отчёта 7 дней")).toHaveCount(0);
+    await expect(page.getByText("без отчётов")).toHaveCount(0);
+
+    // Ход работ: последний принятый объём тоже из отчётов — панель захватки говорит правду
+    await open(page, "/projects/p-korona?tab=progress");
+    await page.locator("main ul li button").first().click();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer.getByText("Принятых отчётов по захватке ещё не было")).toHaveCount(0);
+    await expect(drawer.getByText(/раздел закрыт вашей роли/)).toBeVisible();
+  });
+});
+
 test.describe("доступ без прав", () => {
   const cases = [
     { persona: "e-dorohov", path: "/projects/p-korona/timeline", section: "История и решения" },

@@ -266,6 +266,8 @@ class Matcher {
 interface Step {
   name: string;
   run: (r: Repositories) => Promise<unknown>;
+  /** Шаг проверяет отказ: у остальных записей отказ — поломка цепочки, а не совпадение */
+  fails?: true;
 }
 
 const actor = { actorId: "e-volkova" };
@@ -426,6 +428,7 @@ const writes: Step[] = [
   },
   {
     name: "передача с неразобранными — отказ",
+    fails: true,
     run: (r) => r.positions.handOver({ revisionId: "pd-korona-spec" }, actor),
   },
   {
@@ -461,9 +464,11 @@ const writes: Step[] = [
   {
     name: "отметить заголовком и вернуть в работу",
     run: async (r) => {
-      const [id] = await firstIds(r, "pending", 1);
-      await r.positions.markHeader({ id: id! }, actor);
-      return r.positions.reopen({ id: id! }, actor);
+      // Не первая позиция: к ней уже присоединили другую на шаге объединения
+      const ids = await firstIds(r, "pending", 3);
+      const id = ids[2]!;
+      await r.positions.markHeader({ id }, actor);
+      return r.positions.reopen({ id }, actor);
     },
   },
   {
@@ -569,6 +574,7 @@ const writes: Step[] = [
   },
   {
     name: "повтор названия — отказ",
+    fails: true,
     run: (r) =>
       r.catalog.saveMaterial(
         {
@@ -604,6 +610,7 @@ const writes: Step[] = [
   },
   {
     name: "изменение чужого объекта — отказ",
+    fails: true,
     run: async (r) => {
       const [change] = await r.documents.changes({ projectId: "p-korona", status: "open" });
       return r.documents.resolveChange({ projectId: "p-meridian", changeId: change!.id }, actor);
@@ -638,6 +645,10 @@ async function parity(db: Driver) {
     const before = matcher.problems.length;
     const [a, b] = [await settle(step.run(demo)), await settle(step.run(base))];
     matcher.same(a, b, step.name);
+    // Совпадающий отказ там, где ждали выполнения, — не паритет, а сломанная цепочка
+    if (!step.fails && "error" in a && "error" in b) {
+      matcher.problems.push(`${step.name}: шаг не выполнился у обоих адаптеров — ${a.error}`);
+    }
     steps += 1;
     if (matcher.problems.length > before) console.error(`✗ ${step.name}`);
     return a;

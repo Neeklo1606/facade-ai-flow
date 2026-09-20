@@ -162,6 +162,7 @@ export function ProgressTab({
               <ZoneItem
                 key={row.id}
                 row={row}
+                reportsKnown={progress.reportsKnown}
                 onOpen={() => setZoneId(row.id)}
                 onSource={onSource}
               />
@@ -245,10 +246,15 @@ export function ProgressTab({
                   />
                 </p>
               </div>
-            ) : (
+            ) : progress.reportsKnown ? (
               <p className="text-[13px] text-text-3">
                 Принятых отчётов по захватке ещё не было: факт равен объёму, зафиксированному при
                 заведении захватки.
+              </p>
+            ) : (
+              // Отчётов не видно — и про них не говорится, как будто их нет (ADR-012)
+              <p className="text-[13px] text-text-3">
+                Последний принятый объём приходит из отчётов с площадки: раздел закрыт вашей роли.
               </p>
             )}
             {can("field-reports") && (
@@ -334,10 +340,13 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function ZoneItem({
+  reportsKnown,
   row,
   onOpen,
   onSource,
 }: {
+  /** Отчёты с площадки доступны роли: иначе вид работ не «ещё не приходил», а не виден */
+  reportsKnown: boolean;
   row: ZoneRow;
   onOpen: () => void;
   onSource: (sourceId: string) => void;
@@ -365,7 +374,10 @@ function ZoneItem({
           <span className="min-w-0">
             {[row.axes && `оси ${row.axes}`, row.floors && `этажи ${row.floors}`, row.workType]
               .filter(Boolean)
-              .join(" · ") || "Вид работ появится с первым отчётом"}
+              .join(" · ") ||
+              (reportsKnown
+                ? "Вид работ появится с первым отчётом"
+                : "Вид работ — из отчётов с площадки, раздел закрыт вашей роли")}
           </span>
           {row.lastFact?.sourceId && (
             <span className="pointer-events-auto relative z-[2] inline-flex">

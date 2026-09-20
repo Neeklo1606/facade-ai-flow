@@ -9,13 +9,22 @@ import {
   silentCrews,
 } from "@/domain/work-progress";
 import { queries } from "./queries";
+import { useAccess } from "./access";
 import { useNow } from "./clock";
+
+/**
+ * Вид работ, последний факт по захватке и «бригады без отчёта» считаются по отчётам с площадки.
+ * Роли без этого раздела их не получают (ADR-012), поэтому такие значения не показываются вовсе:
+ * посчитанные по пустому списку, они врали бы — «бригад без отчёта: 2» при пяти отчётах
+ */
 
 /** Ход работ объекта: захватки, контрольные точки и метрики — уже посчитанные (ADR-008) */
 export function useWorkProgress(projectId: string) {
   const now = useNow();
+  const { can } = useAccess();
+  const reportsKnown = can("field-reports");
   const cardQuery = useQuery(queries.project(projectId));
-  const reportsQuery = useQuery(queries.reports(projectId));
+  const reportsQuery = useQuery({ ...queries.reports(projectId), enabled: reportsKnown });
   const card = cardQuery.data ?? null;
   const reports = useMemo(
     () => (reportsQuery.data ?? []).map((item) => item.report),
@@ -25,8 +34,9 @@ export function useWorkProgress(projectId: string) {
   return useMemo(() => {
     if (!card)
       return {
-        pending: cardQuery.isPending || reportsQuery.isPending,
-        error: cardQuery.isError || reportsQuery.isError,
+        pending: cardQuery.isPending || (reportsKnown && reportsQuery.isPending),
+        error: cardQuery.isError || (reportsKnown && reportsQuery.isError),
+        reportsKnown,
         zones: [],
         timeline: { points: [], todayOffset: null, from: "", to: "" },
         metrics: [],
@@ -39,8 +49,9 @@ export function useWorkProgress(projectId: string) {
     const zones = zoneRows(card.zones, reports, card.project, now);
     const timeline = milestoneTimeline(card.milestones, card.project, now);
     return {
-      pending: cardQuery.isPending || reportsQuery.isPending,
-      error: cardQuery.isError || reportsQuery.isError,
+      pending: cardQuery.isPending || (reportsKnown && reportsQuery.isPending),
+      error: cardQuery.isError || (reportsKnown && reportsQuery.isError),
+      reportsKnown,
       zones,
       timeline,
       metrics: progressMetrics({ zones, timeline, contract: card.contract, now }),
@@ -50,14 +61,16 @@ export function useWorkProgress(projectId: string) {
         void reportsQuery.refetch();
       },
     };
-  }, [card, reports, now, cardQuery, reportsQuery]);
+  }, [card, reports, now, reportsKnown, cardQuery, reportsQuery]);
 }
 
 /** Команда объекта: люди, бригады и метрики */
 export function useTeam(projectId: string) {
   const now = useNow();
+  const { can } = useAccess();
+  const reportsKnown = can("field-reports");
   const cardQuery = useQuery(queries.project(projectId));
-  const reportsQuery = useQuery(queries.reports(projectId));
+  const reportsQuery = useQuery({ ...queries.reports(projectId), enabled: reportsKnown });
   const card = cardQuery.data ?? null;
   const reports = useMemo(
     () => (reportsQuery.data ?? []).map((item) => item.report),
@@ -66,8 +79,9 @@ export function useTeam(projectId: string) {
 
   return useMemo(() => {
     const empty = {
-      pending: cardQuery.isPending || reportsQuery.isPending,
-      error: cardQuery.isError || reportsQuery.isError,
+      pending: cardQuery.isPending || (reportsKnown && reportsQuery.isPending),
+      error: cardQuery.isError || (reportsKnown && reportsQuery.isError),
+      reportsKnown,
       people: [],
       crews: [],
       metrics: [],
@@ -91,5 +105,5 @@ export function useTeam(projectId: string) {
       metrics: teamMetrics({ people: rows.people, crews: rows.crews, now }),
       silent: silentCrews(rows.crews, now),
     };
-  }, [card, reports, now, cardQuery, reportsQuery]);
+  }, [card, reports, now, reportsKnown, cardQuery, reportsQuery]);
 }
