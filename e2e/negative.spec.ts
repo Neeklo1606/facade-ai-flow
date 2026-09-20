@@ -122,12 +122,30 @@ test.describe("снабжение: карточка объекта без дан
     await expect(page.getByText("Без отчёта 7 дней")).toHaveCount(0);
     await expect(page.getByText("без отчётов")).toHaveCount(0);
 
+    // Разбор значения собран по тем же отчётам: он не может перечислять бригады молчащими
+    await main.getByRole("button", { name: /Как получено значение: Бригады без отчёта/ }).click();
+    const explain = page.getByRole("dialog");
+    await expect(explain).toContainText("Отчёты с площадки закрыты вашей роли");
+    await expect(explain.getByText("отчётов не было")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    // Карточка бригады: захватка тоже из отчётов, «отчётов не было» было бы неправдой
+    await expect(page.getByText("Отчётов от бригады не было")).toHaveCount(0);
+    await expect(
+      main
+        .getByText("Последняя захватка — из отчётов с площадки, раздел закрыт вашей роли")
+        .first(),
+    ).toBeVisible();
+
     // Ход работ: последний принятый объём тоже из отчётов — панель захватки говорит правду
     await open(page, "/projects/p-korona?tab=progress");
     await page.locator("main ul li button").first().click();
     const drawer = page.getByRole("dialog");
     await expect(drawer.getByText("Принятых отчётов по захватке ещё не было")).toHaveCount(0);
     await expect(drawer.getByText(/раздел закрыт вашей роли/)).toBeVisible();
+    await page.keyboard.press("Escape");
+    // Строка захватки без вида работ говорит то же самое, а не «появится с первым отчётом»
+    await expect(page.getByText("Вид работ появится с первым отчётом")).toHaveCount(0);
   });
 });
 

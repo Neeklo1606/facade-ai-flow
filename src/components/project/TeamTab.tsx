@@ -33,6 +33,7 @@ import { toast } from "@/lib/toast";
 import type { TeamCrew, TeamPerson } from "@/api/types";
 import { fmtAgoFrom, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { reportsGapLine, reportsGapNote, type ReportsGap } from "@/lib/reports-gap";
 import type { Project } from "@/contracts";
 
 const metricIcon = { people: Users, crews: UsersRound, silent: HardHat } as const;
@@ -44,6 +45,8 @@ const metricIcon = { people: Users, crews: UsersRound, silent: HardHat } as cons
 export function TeamTab({ project }: { project: Project }) {
   const { can } = useAccess();
   const team = useTeam(project.id);
+  // Пропуск в отчётах с площадки: на нём держатся все значения вкладки, что считаются по отчётам
+  const gap = team.reportsGap;
   const now = useNow();
   const [personId, setPersonId] = useState<string | null>(null);
   const [onlySilent, setOnlySilent] = useState(false);
@@ -98,10 +101,10 @@ export function TeamTab({ project }: { project: Project }) {
         items={team.metrics.map((metric) => ({
           icon: metricIcon[metric.key as keyof typeof metricIcon] ?? Users,
           label: metric.label,
-          // Показатель считается по отчётам: без доступа к ним он не показывается (ADR-012)
-          value: metric.key === "silent" && !team.reportsKnown ? "—" : metric.value,
-          ...(metric.key === "silent" && !team.reportsKnown
-            ? { note: "Отчёты с площадки закрыты вашей роли" }
+          // Показатель считается по отчётам: без них он не показывается (`lib/reports-gap`)
+          value: metric.key === "silent" && gap ? "—" : metric.value,
+          ...(metric.key === "silent" && gap
+            ? { note: reportsGapNote[gap] }
             : metric.note
               ? { note: metric.note }
               : {}),
@@ -109,11 +112,16 @@ export function TeamTab({ project }: { project: Project }) {
             <ExplainPopover
               title={metric.explain.title}
               formula={metric.explain.formula}
-              sources={metric.explain.sources}
+              // Разбор считается по тем же отчётам: без них он перечислял бы все бригады молчащими
+              sources={
+                metric.key === "silent" && gap
+                  ? [{ label: reportsGapNote[gap] }]
+                  : metric.explain.sources
+              }
             />
           ),
           // Ячейка кликабельна, только если её нажатие что-то меняет (находка ревью LOW)
-          ...(metric.key === "silent" && !team.reportsKnown
+          ...(metric.key === "silent" && gap
             ? {}
             : metric.filter === "silent"
               ? { onSelect: () => setOnlySilent((value) => !value), selected: onlySilent }
@@ -146,7 +154,7 @@ export function TeamTab({ project }: { project: Project }) {
               key={row.id}
               row={row}
               now={now}
-              reportsKnown={team.reportsKnown}
+              gap={gap}
               onOpen={() => setPersonId(row.id)}
             />
           ))}
@@ -185,7 +193,8 @@ export function TeamTab({ project }: { project: Project }) {
                 key={crew.id}
                 crew={crew}
                 projectId={project.id}
-                silent={team.reportsKnown && silentIds.has(crew.id)}
+                gap={gap}
+                silent={!gap && silentIds.has(crew.id)}
               />
             ))}
           </ul>
@@ -228,9 +237,9 @@ export function TeamTab({ project }: { project: Project }) {
                 <p className="mt-0.5 text-[14px] text-text">
                   {person.lastReport
                     ? `${fmtAgoFrom(person.lastReport.at, now)} · ${person.lastReport.zoneName}`
-                    : team.reportsKnown
-                      ? "Отчётов не было"
-                      : "Отчёты с площадки закрыты вашей роли"}
+                    : gap
+                      ? reportsGapNote[gap]
+                      : "Отчётов не было"}
                 </p>
               </div>
             </div>
@@ -255,13 +264,13 @@ export function TeamTab({ project }: { project: Project }) {
 function PersonRow({
   row,
   now,
-  reportsKnown,
+  gap,
   onOpen,
 }: {
   row: TeamPerson;
   now: string;
-  /** Отчёты с площадки доступны роли: иначе «без отчётов» было бы неправдой (ADR-012) */
-  reportsKnown: boolean;
+  /** Отчётов нет на руках: «без отчётов» было бы неправдой (`lib/reports-gap`) */
+  gap: ReportsGap | null;
   onOpen: () => void;
 }) {
   return (
@@ -283,7 +292,7 @@ function PersonRow({
           </span>
         </span>
         <span className="hidden shrink-0 text-right text-[12px] text-text-3 lg:block">
-          {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : reportsKnown ? "без отчётов" : "—"}
+          {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : gap ? "—" : "без отчётов"}
         </span>
       </button>
       {/* Звонок и сообщение — поверх строки: это отдельные действия, а не открытие карточки */}
@@ -356,13 +365,15 @@ function ContactButton({
 function CrewCard({
   crew,
   projectId,
+  gap,
   silent,
 }: {
   crew: TeamCrew;
   projectId: string;
+  /** Отчётов нет на руках: захватка бригады из них и считается (`lib/reports-gap`) */
+  gap: ReportsGap | null;
   silent: boolean;
 }) {
-  const canReports = useAccess().can("field-reports");
   return (
     <li
       className={cn(
@@ -381,9 +392,8 @@ function CrewCard({
         <span className="tnum shrink-0 text-[13px] text-text-2">{crew.headcount} чел.</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {crew.lastZone && !canReports ? (
-          <span className="text-[13px] text-text-2">{crew.lastZone.name}</span>
-        ) : crew.lastZone ? (
+        {/* Захватка приходит из отчётов, поэтому со ссылкой на них: без них ветка недостижима */}
+        {crew.lastZone ? (
           <Link
             to="/projects/$id/field-reports"
             params={{ id: projectId }}
@@ -394,7 +404,9 @@ function CrewCard({
             <ArrowRight className="size-3.5 shrink-0" aria-hidden />
           </Link>
         ) : (
-          <span className="text-[13px] text-text-3">Отчётов от бригады не было</span>
+          <span className="text-[13px] text-text-3">
+            {gap ? reportsGapLine("Последняя захватка", gap) : "Отчётов от бригады не было"}
+          </span>
         )}
         {silent && <StatusBadge tone="warn">Без отчёта 7 дней</StatusBadge>}
       </div>

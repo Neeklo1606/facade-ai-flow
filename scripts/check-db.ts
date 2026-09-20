@@ -645,9 +645,13 @@ async function parity(db: Driver) {
     const before = matcher.problems.length;
     const [a, b] = [await settle(step.run(demo)), await settle(step.run(base))];
     matcher.same(a, b, step.name);
-    // Совпадающий отказ там, где ждали выполнения, — не паритет, а сломанная цепочка
-    if (!step.fails && "error" in a && "error" in b) {
+    // Пометка шага сверяется с делом: иначе ею можно прикрыть и мёртвый шаг, и ожившее правило
+    const refused = "error" in a && "error" in b;
+    if (!step.fails && refused) {
       matcher.problems.push(`${step.name}: шаг не выполнился у обоих адаптеров — ${a.error}`);
+    }
+    if (step.fails && !refused) {
+      matcher.problems.push(`${step.name}: шаг прошёл, хотя проверяет отказ`);
     }
     steps += 1;
     if (matcher.problems.length > before) console.error(`✗ ${step.name}`);

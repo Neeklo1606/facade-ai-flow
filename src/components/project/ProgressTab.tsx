@@ -21,6 +21,7 @@ import { useWorkProgress } from "@/api/work-progress";
 import type { MilestonePoint, ZoneRow } from "@/api/types";
 import { fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { reportsGapLine, type ReportsGap } from "@/lib/reports-gap";
 import { milestoneTransitions, type Project } from "@/contracts";
 import { useCompleteMilestone } from "@/api/mutations";
 import { toast } from "@/lib/toast";
@@ -162,7 +163,7 @@ export function ProgressTab({
               <ZoneItem
                 key={row.id}
                 row={row}
-                reportsKnown={progress.reportsKnown}
+                gap={progress.reportsGap}
                 onOpen={() => setZoneId(row.id)}
                 onSource={onSource}
               />
@@ -246,15 +247,15 @@ export function ProgressTab({
                   />
                 </p>
               </div>
-            ) : progress.reportsKnown ? (
+            ) : progress.reportsGap ? (
+              // Отчётов нет на руках — и про них говорится, а не молчится (`lib/reports-gap`)
+              <p className="text-[13px] text-text-3">
+                {reportsGapLine("Последний принятый объём", progress.reportsGap)}.
+              </p>
+            ) : (
               <p className="text-[13px] text-text-3">
                 Принятых отчётов по захватке ещё не было: факт равен объёму, зафиксированному при
                 заведении захватки.
-              </p>
-            ) : (
-              // Отчётов не видно — и про них не говорится, как будто их нет (ADR-012)
-              <p className="text-[13px] text-text-3">
-                Последний принятый объём приходит из отчётов с площадки: раздел закрыт вашей роли.
               </p>
             )}
             {can("field-reports") && (
@@ -340,13 +341,13 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function ZoneItem({
-  reportsKnown,
+  gap,
   row,
   onOpen,
   onSource,
 }: {
-  /** Отчёты с площадки доступны роли: иначе вид работ не «ещё не приходил», а не виден */
-  reportsKnown: boolean;
+  /** Отчётов нет на руках: вид работ тогда не «ещё не приходил», а не виден */
+  gap: ReportsGap | null;
   row: ZoneRow;
   onOpen: () => void;
   onSource: (sourceId: string) => void;
@@ -375,9 +376,7 @@ function ZoneItem({
             {[row.axes && `оси ${row.axes}`, row.floors && `этажи ${row.floors}`, row.workType]
               .filter(Boolean)
               .join(" · ") ||
-              (reportsKnown
-                ? "Вид работ появится с первым отчётом"
-                : "Вид работ — из отчётов с площадки, раздел закрыт вашей роли")}
+              (gap ? reportsGapLine("Вид работ", gap) : "Вид работ появится с первым отчётом")}
           </span>
           {row.lastFact?.sourceId && (
             <span className="pointer-events-auto relative z-[2] inline-flex">

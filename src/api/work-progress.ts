@@ -11,32 +11,41 @@ import {
 import { queries } from "./queries";
 import { useAccess } from "./access";
 import { useNow } from "./clock";
+import type { ReportsGap } from "@/lib/reports-gap";
 
 /**
- * Вид работ, последний факт по захватке и «бригады без отчёта» считаются по отчётам с площадки.
- * Роли без этого раздела их не получают (ADR-012), поэтому такие значения не показываются вовсе:
- * посчитанные по пустому списку, они врали бы — «бригад без отчёта: 2» при пяти отчётах
+ * Значения, которые считаются по отчётам с площадки, показываются, только когда отчёты на руках.
+ * Почему и как о пропуске говорит экран — `src/lib/reports-gap.ts`
  */
+
+/** Есть ли на руках отчёты объекта: раздел открыт роли (ADR-012) и запрос прошёл */
+function useReports(projectId: string) {
+  const allowed = useAccess().can("field-reports");
+  const query = useQuery({ ...queries.reports(projectId), enabled: allowed });
+  const gap: ReportsGap | null = !allowed ? "closed" : query.isError ? "failed" : null;
+  const reports = useMemo(() => (query.data ?? []).map((item) => item.report), [query.data]);
+  return { query, gap, reports, pending: allowed && query.isPending };
+}
 
 /** Ход работ объекта: захватки, контрольные точки и метрики — уже посчитанные (ADR-008) */
 export function useWorkProgress(projectId: string) {
   const now = useNow();
-  const { can } = useAccess();
-  const reportsKnown = can("field-reports");
   const cardQuery = useQuery(queries.project(projectId));
-  const reportsQuery = useQuery({ ...queries.reports(projectId), enabled: reportsKnown });
+  const {
+    query: reportsQuery,
+    gap: reportsGap,
+    reports,
+    pending: reportsPending,
+  } = useReports(projectId);
   const card = cardQuery.data ?? null;
-  const reports = useMemo(
-    () => (reportsQuery.data ?? []).map((item) => item.report),
-    [reportsQuery.data],
-  );
 
   return useMemo(() => {
     if (!card)
       return {
-        pending: cardQuery.isPending || (reportsKnown && reportsQuery.isPending),
-        error: cardQuery.isError || (reportsKnown && reportsQuery.isError),
-        reportsKnown,
+        pending: cardQuery.isPending || reportsPending,
+        // Упавший запрос отчётов — не ошибка экрана: он говорит о пропуске на месте значения
+        error: cardQuery.isError,
+        reportsGap,
         zones: [],
         timeline: { points: [], todayOffset: null, from: "", to: "" },
         metrics: [],
@@ -49,9 +58,9 @@ export function useWorkProgress(projectId: string) {
     const zones = zoneRows(card.zones, reports, card.project, now);
     const timeline = milestoneTimeline(card.milestones, card.project, now);
     return {
-      pending: cardQuery.isPending || (reportsKnown && reportsQuery.isPending),
-      error: cardQuery.isError || (reportsKnown && reportsQuery.isError),
-      reportsKnown,
+      pending: cardQuery.isPending || reportsPending,
+      error: cardQuery.isError,
+      reportsGap,
       zones,
       timeline,
       metrics: progressMetrics({ zones, timeline, contract: card.contract, now }),
@@ -61,27 +70,26 @@ export function useWorkProgress(projectId: string) {
         void reportsQuery.refetch();
       },
     };
-  }, [card, reports, now, reportsKnown, cardQuery, reportsQuery]);
+  }, [card, reports, now, reportsGap, reportsPending, cardQuery, reportsQuery]);
 }
 
 /** Команда объекта: люди, бригады и метрики */
 export function useTeam(projectId: string) {
   const now = useNow();
-  const { can } = useAccess();
-  const reportsKnown = can("field-reports");
   const cardQuery = useQuery(queries.project(projectId));
-  const reportsQuery = useQuery({ ...queries.reports(projectId), enabled: reportsKnown });
+  const {
+    query: reportsQuery,
+    gap: reportsGap,
+    reports,
+    pending: reportsPending,
+  } = useReports(projectId);
   const card = cardQuery.data ?? null;
-  const reports = useMemo(
-    () => (reportsQuery.data ?? []).map((item) => item.report),
-    [reportsQuery.data],
-  );
 
   return useMemo(() => {
     const empty = {
-      pending: cardQuery.isPending || (reportsKnown && reportsQuery.isPending),
-      error: cardQuery.isError || (reportsKnown && reportsQuery.isError),
-      reportsKnown,
+      pending: cardQuery.isPending || reportsPending,
+      error: cardQuery.isError,
+      reportsGap,
       people: [],
       crews: [],
       metrics: [],
@@ -105,5 +113,5 @@ export function useTeam(projectId: string) {
       metrics: teamMetrics({ people: rows.people, crews: rows.crews, now }),
       silent: silentCrews(rows.crews, now),
     };
-  }, [card, reports, now, reportsKnown, cardQuery, reportsQuery]);
+  }, [card, reports, now, reportsGap, reportsPending, cardQuery, reportsQuery]);
 }
