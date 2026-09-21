@@ -22,6 +22,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { prefetch } from "@/api/prefetch";
+import { themeBootScript } from "@/lib/theme";
 import { previewMeta } from "@/lib/access";
 import { queries } from "@/api/queries";
 import { api } from "@/api/client";
@@ -141,6 +142,8 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <head>
+        {/* Тема ставится до первой отрисовки, иначе светлая мигает тёмной (ADR-017, п. 7) */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
         <HeadContent />
       </head>
       <body>

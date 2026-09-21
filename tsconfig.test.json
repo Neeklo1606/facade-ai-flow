@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["tests/**/*.ts", "e2e/**/*.ts", "playwright.config.ts"],
+  "include": ["tests/**/*.ts", "e2e/**/*.ts", "playwright.config.ts", "src/env.d.ts"],
   "compilerOptions": {
     "types": ["vite/client", "bun"]
   }

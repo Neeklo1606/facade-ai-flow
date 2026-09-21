@@ -32,10 +32,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { themeChoices, themeLabels, type ThemeChoice } from "@/lib/theme";
 import { toast } from "@/lib/toast";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
@@ -111,7 +114,7 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { setProjectId, personaId } = useApp();
+  const { setProjectId, personaId, themeChoice, setThemeChoice } = useApp();
   const enterAs = useEnterAs();
   const user = useCurrentUser();
   // Меню зависит от роли выбранной персоны (ADR-008): снабжение не ведёт площадку,
@@ -438,6 +441,21 @@ function SidebarInner({
               У каждой роли свои права: закрытые разделы не показываются, сервер отклоняет действия
               без права. Матрица — в разделе «Права доступа».
             </p>
+            <DropdownMenuSeparator />
+            {/* Тема здесь же: на телефоне переключателя в шапке нет (ADR-017, п. 5) */}
+            <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
+              Тема оформления
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={themeChoice}
+              onValueChange={(value) => setThemeChoice(value as ThemeChoice)}
+            >
+              {themeChoices.map((choice) => (
+                <DropdownMenuRadioItem key={choice} value={choice} className="gap-2">
+                  <span className="min-w-0 flex-1 truncate text-[13px]">{themeLabels[choice]}</span>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

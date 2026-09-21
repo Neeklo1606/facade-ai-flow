@@ -9,24 +9,30 @@ import { mobileCheck } from "./mobile-checks";
  *   роли и есть сценарий);
  * — проверки EMBER и axe вызываются на экранах явно.
  */
-type Options = { persona: string | null };
+export type Options = { persona: string | null; theme: "light" | "dark" | null };
 
 export const test = base.extend<Options & { consoleGuard: void }>({
   persona: [null, { option: true }],
+  /** Тема вкладки: null — умолчание контура (в демонстрации тёмная) */
+  theme: [null, { option: true }],
 
   // Второй аргумент фикстуры Playwright — функция, отдающая значение тесту
-  page: async ({ page, persona }, provide) => {
-    await page.addInitScript((id) => {
-      try {
-        if (id) {
-          sessionStorage.setItem("neeklo-fieldops-role-chosen", "1");
-          sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
-          sessionStorage.setItem("neeklo-fieldops-persona", id);
+  page: async ({ page, persona, theme }, provide) => {
+    await page.addInitScript(
+      ({ id, mode }) => {
+        try {
+          if (id) {
+            sessionStorage.setItem("neeklo-fieldops-role-chosen", "1");
+            sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
+            sessionStorage.setItem("neeklo-fieldops-persona", id);
+          }
+          if (mode) localStorage.setItem("neeklo-fieldops-theme", mode);
+        } catch {
+          // Приватный режим: тест увидит экран выбора роли
         }
-      } catch {
-        // Приватный режим: тест увидит экран выбора роли
-      }
-    }, persona);
+      },
+      { id: persona, mode: theme },
+    );
     await provide(page);
   },
 
@@ -166,4 +172,129 @@ export async function expectMobile(page: Page, screen: string) {
   expect(check.small, `${screen}: области нажатия меньше 44 px`).toEqual([]);
   expect(check.hoverOnly, `${screen}: действия только по наведению`).toEqual([]);
   expect(check.offscreenFocusable, `${screen}: фокус уходит за край экрана`).toEqual([]);
+}
+
+/**
+ * Читаемость текста на фирменном градиенте (ADR-017, п. 9). Пикселей взять неоткуда, поэтому
+ * цвет под текстом считается честно: берём стопы `--ember`, проектируем центр строки на ось
+ * градиента (135°), смешиваем соседние стопы и накладываем затемнение слоя поверх. Контраст —
+ * по WCAG: 3:1 для крупного текста (≥ 24px или ≥ 18,66px полужирный), 4,5:1 для остального.
+ */
+export async function expectEmberGradient(page: Page, screen: string) {
+  await settle(page);
+  const bad = await page.evaluate(() => {
+    const hero = document.querySelector("main section .bg-ember")?.closest("section");
+    if (!hero) return null;
+    const hex = (value: string) => {
+      const v = value.trim().replace("#", "");
+      const full = v.length === 3 ? [...v].map((c) => c + c).join("") : v;
+      return {
+        r: parseInt(full.slice(0, 2), 16),
+        g: parseInt(full.slice(2, 4), 16),
+        b: parseInt(full.slice(4, 6), 16),
+        a: 1,
+      };
+    };
+    type Rgb = { r: number; g: number; b: number; a: number };
+    /*
+     * Смешение слоёв рисует браузер: цвета приходят и как `rgba()`, и как `oklab(… / .3)`,
+     * и разбирать их строкой — значит однажды тихо пропустить слой (так и случилось).
+     */
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    const blend = (layers: string[]): Rgb => {
+      ctx.clearRect(0, 0, 1, 1);
+      for (const layer of layers) {
+        ctx.fillStyle = layer;
+        ctx.fillRect(0, 0, 1, 1);
+      }
+      const [r = 0, g = 0, b = 0] = ctx.getImageData(0, 0, 1, 1).data;
+      return { r, g, b, a: 1 };
+    };
+    const css = (c: Rgb) => `rgb(${Math.round(c.r)} ${Math.round(c.g)} ${Math.round(c.b)})`;
+    const lum = ({ r, g, b }: Rgb) => {
+      const f = (v: number) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const contrast = (a: Rgb, b: Rgb) => {
+      const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p) as [number, number];
+      return (x + 0.05) / (y + 0.05);
+    };
+
+    // Стопы градиента из токена: «#hex доля%»
+    const ember = getComputedStyle(document.documentElement).getPropertyValue("--ember");
+    const stops = [...ember.matchAll(/(#[0-9a-f]{3,8})\s+([\d.]+)%/gi)].map((m) => ({
+      color: hex(m[1] as string),
+      at: Number(m[2]) / 100,
+    }));
+    if (stops.length < 2) return [`не разобрать стопы градиента: ${ember}`];
+
+    // Слои поверх градиента: зерно (overlay, 4%) не меняет цвет заметно, затемнение — меняет
+    const scrims = [...hero.querySelectorAll(":scope > [aria-hidden]")]
+      .map((layer) => getComputedStyle(layer).backgroundColor)
+      .filter((color) => color && color !== "rgba(0, 0, 0, 0)" && color !== "transparent");
+
+    const box = hero.getBoundingClientRect();
+    // Ось градиента 135deg: слева сверху вправо вниз
+    const axis = { x: Math.SQRT1_2, y: Math.SQRT1_2 };
+    const length = Math.abs(box.width * axis.x) + Math.abs(box.height * axis.y);
+    const colorAt = (x: number, y: number) => {
+      const t = Math.min(
+        1,
+        Math.max(0, ((x - box.left) * axis.x + (y - box.top) * axis.y) / length),
+      );
+      let base = stops[stops.length - 1]!.color;
+      for (let i = 0; i < stops.length - 1; i += 1) {
+        const a = stops[i]!;
+        const b = stops[i + 1]!;
+        if (t >= a.at && t <= b.at) {
+          const k = b.at === a.at ? 0 : (t - a.at) / (b.at - a.at);
+          base = {
+            r: a.color.r + (b.color.r - a.color.r) * k,
+            g: a.color.g + (b.color.g - a.color.g) * k,
+            b: a.color.b + (b.color.b - a.color.b) * k,
+            a: 1,
+          };
+          break;
+        }
+      }
+      return blend([css(base), ...scrims]);
+    };
+
+    const problems: string[] = [];
+    const texts = [...hero.querySelectorAll("*")].filter((el) =>
+      [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent?.trim()),
+    );
+    for (const el of texts) {
+      const style = getComputedStyle(el);
+      const color = style.color;
+      const size = parseFloat(style.fontSize);
+      const weight = Number(style.fontWeight) || 400;
+      const large = size >= 24 || (size >= 18.66 && weight >= 700);
+      const need = large ? 3 : 4.5;
+      // Меряем по строкам текста, а не по блоку: пустое место справа от короткой строки
+      // фон не портит, а блок растянут на всю ширину карточки
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      for (const rect of [...range.getClientRects()]) {
+        if (rect.width < 1 || rect.height < 1) continue;
+        // Худший край строки: в 135° это правый нижний, там градиент светлее всего
+        const under = colorAt(rect.right, rect.bottom);
+        const ratio = contrast(blend([css(under), color]), under);
+        if (ratio < need) {
+          const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 30);
+          problems.push(`«${text}» — ${ratio.toFixed(2)}:1 при норме ${need}:1`);
+          break;
+        }
+      }
+    }
+    return problems;
+  });
+  if (bad === null) return; // на экране нет главной метрики
+  expect(bad, `${screen}: текст на градиенте`).toEqual([]);
 }

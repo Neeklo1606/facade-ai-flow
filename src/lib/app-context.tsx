@@ -9,6 +9,15 @@ import {
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  applyTheme,
+  defaultChoice,
+  readChoice,
+  resolveTheme,
+  systemTheme,
+  writeChoice,
+  type ThemeChoice,
+} from "@/lib/theme";
 import { api } from "@/api/client";
 import {
   DEMO_PERSONAS,
@@ -51,8 +60,9 @@ function saveProjectId(id: string) {
 export const ALL_PROJECTS = "all";
 
 interface AppContextValue {
-  theme: "light" | "dark";
-  toggleTheme: () => void;
+  /** Выбор пользователя из трёх положений; применённая тема — в `data-theme` на <html> */
+  themeChoice: ThemeChoice;
+  setThemeChoice: (choice: ThemeChoice) => void;
   /** Выбранный в шапке объект: id объекта или ALL_PROJECTS */
   projectId: string;
   setProjectId: (id: string) => void;
@@ -84,8 +94,9 @@ export function AppProvider({
   /** Сотрудник сессии сервера (рабочий режим); в демо — null, персона берётся из вкладки */
   initialPersona?: string | null;
 }) {
-  // Светлая тема по умолчанию, переключатель в шапке действует во всей системе.
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  // Умолчание контура; выбор пользователя поднимается из браузера после гидратации (ADR-017)
+  const [themeChoice, setChoice] = useState<ThemeChoice>(defaultChoice);
+  const [themeReady, setThemeReady] = useState(false);
   // Начальное значение одинаково на сервере и клиенте, восстановление — после гидратации,
   // иначе разметка сервера и первый рендер разошлись бы
   const [projectId, setProjectIdState] = useState<string>(ALL_PROJECTS);
@@ -145,15 +156,26 @@ export function AppProvider({
     if (initialPersona) adoptPersona(initialPersona);
   }, [initialPersona]);
 
-  // На телефоне тема всегда светлая: экран читают на улице, при солнце
   useEffect(() => {
-    const mobile = window.matchMedia("(max-width: 1023px)");
-    const apply = () =>
-      document.documentElement.classList.toggle("dark", theme === "dark" && !mobile.matches);
-    apply();
-    mobile.addEventListener("change", apply);
-    return () => mobile.removeEventListener("change", apply);
-  }, [theme]);
+    setChoice(readChoice());
+    setThemeReady(true);
+  }, []);
+
+  // До гидратации тему уже поставил скрипт в <head>: раньше времени её трогать нечем и незачем
+  useEffect(() => {
+    if (!themeReady) return;
+    applyTheme(resolveTheme(themeChoice));
+    if (themeChoice !== "system") return;
+    const system = window.matchMedia("(prefers-color-scheme: light)");
+    const follow = () => applyTheme(systemTheme());
+    system.addEventListener("change", follow);
+    return () => system.removeEventListener("change", follow);
+  }, [themeChoice, themeReady]);
+
+  const setThemeChoice = useCallback((choice: ThemeChoice) => {
+    writeChoice(choice);
+    setChoice(choice);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -168,8 +190,8 @@ export function AppProvider({
 
   const value = useMemo<AppContextValue>(
     () => ({
-      theme,
-      toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
+      themeChoice,
+      setThemeChoice,
       projectId,
       setProjectId,
       sidebarCollapsed,
@@ -183,7 +205,8 @@ export function AppProvider({
       personaSwitching,
     }),
     [
-      theme,
+      themeChoice,
+      setThemeChoice,
       projectId,
       setProjectId,
       sidebarCollapsed,
