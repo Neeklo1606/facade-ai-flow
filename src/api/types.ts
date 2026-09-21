@@ -19,6 +19,9 @@ export type {
   SupplierListItem,
 } from "@/ports";
 
+/** Связи между сущностями и происхождение значения (ADR-018): считает домен, показывают экраны */
+export type { EntityLink, OriginStep } from "@/domain/links";
+
 /** Вид проверки в фильтре позиций */
 export type PositionView = NonNullable<import("@/ports").ListPositionsInput["view"]>;
 

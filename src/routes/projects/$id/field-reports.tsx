@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -368,7 +368,19 @@ function ReportCard({
         <div className="space-y-3 px-4 py-3">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
             <div className="min-w-0">
-              <p className="text-caption text-text-muted">{zone?.name}</p>
+              {/* Захватка — ссылка в «Ход работ»: там план, факт и отклонение (ADR-018) */}
+              {zone ? (
+                <Link
+                  to="/projects/$id"
+                  params={{ id: report.projectId }}
+                  search={{ tab: "progress" }}
+                  className="focus-ring inline-flex min-h-11 items-center rounded-[var(--r-xs)] text-caption text-text-muted underline-offset-2 transition-fast is-hover:text-text-2 is-hover:underline lg:min-h-0"
+                >
+                  {zone.name}
+                </Link>
+              ) : (
+                <p className="text-caption text-text-muted">Захватка не указана</p>
+              )}
               <p className="text-[14px] font-medium">{report.workType}</p>
             </div>
             <div className="text-right">
