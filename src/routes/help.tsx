@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Check, Search } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { helpArticles, searchHelp, sortForRole, type HelpArticle } from "@/lib/help/articles";
+import { Comparison } from "@/components/help/Comparison";
 import { useCurrentUser } from "@/lib/project-scope";
 import { EmptyState, WidgetCard } from "@/components/common";
 import { Input } from "@/components/ui/input";
@@ -143,6 +144,8 @@ function ArticleView({ article }: { article: HelpArticle }) {
             </li>
           ))}
         </ol>
+
+        {article.compare && <Comparison />}
 
         <div className="grid gap-2 rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
           <p className="flex gap-2 text-[13px] leading-[1.45] text-text">

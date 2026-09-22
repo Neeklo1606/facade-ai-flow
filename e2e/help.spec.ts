@@ -40,6 +40,21 @@ test.describe("справка", () => {
   });
 });
 
+test.describe("сравнение с альтернативами", () => {
+  test.use({ persona: "e-sokolov" });
+
+  test("статья показывает пять параметров и честную пометку «не проверено»", async ({ page }) => {
+    await open(page, "/help?article=alternatives");
+    const section = page.getByRole("region", { name: "Сравнение с другими системами" });
+    await expect(section).toBeVisible();
+    // Пять параметров, о которых договорились: больше на встрече не обсуждают
+    await expect(section.getByRole("heading", { level: 3 })).toHaveCount(5);
+    await expect(section.getByText("не проверено").first()).toBeVisible();
+    // Наружу из показа не уводим: ссылок на чужие сайты в статье нет
+    await expect(section.locator('a[href^="http"]')).toHaveCount(0);
+  });
+});
+
 test.describe("подсказка экрана ведёт в справку", () => {
   test.use({ persona: "e-sokolov" });
 
