@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BookOpen, Check, Search } from "lucide-react";
+import { BookOpen, Check, Search } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { helpArticles, searchHelp, sortForRole, type HelpArticle } from "@/lib/help/articles";
 import { Comparison } from "@/components/help/Comparison";
+import { StepTarget } from "@/components/help/StepTarget";
 import { useCurrentUser } from "@/lib/project-scope";
 import { EmptyState, WidgetCard } from "@/components/common";
 import { Input } from "@/components/ui/input";
@@ -36,13 +37,15 @@ function HelpPage() {
   const user = useCurrentUser();
   const search = Route.useSearch();
   const [query, setQuery] = useState("");
-  const [openId, setOpenId] = useState<string | null>(
-    search.article ?? helpArticles[0]?.id ?? null,
-  );
 
   const role: EmployeeRole | null = user?.role ?? null;
   const found = useMemo(() => sortForRole(searchHelp(query), role), [query, role]);
-  const article = found.find((item) => item.id === openId) ?? found[0] ?? null;
+  /*
+   * Открытая статья живёт в адресе, а не в состоянии экрана: адрес можно отправить коллеге
+   * (ADR-019, п. 4), работает кнопка «назад», и обход кликабельности видит каждую статью
+   * как отдельный экран — раньше он доходил только до первой (находка независимой проверки).
+   */
+  const article = found.find((item) => item.id === search.article) ?? found[0] ?? null;
 
   return (
     <div className="grid gap-4">
@@ -50,7 +53,8 @@ function HelpPage() {
         <h1 className="sr-only">Справка</h1>
         <p className="text-[13px] leading-[1.5] text-text-2">
           Как работать в системе — по задачам, а не по экранам. Шаги ведут на живой экран
-          демонстрации: можно читать и сразу делать.
+          демонстрации: можно читать и сразу делать. Если экран закрыт вашей роли, шаг говорит об
+          этом прямо, а не приводит в отказ.
           {role && ` Ваша роль — ${employeeRoleLabel[role].toLowerCase()}, её статьи сверху.`}
         </p>
       </div>
@@ -85,10 +89,11 @@ function HelpPage() {
         <div className="grid gap-4 lg:grid-cols-[320px_1fr] lg:items-start">
           <nav aria-label="Статьи справки" className="grid gap-1.5">
             {found.map((item) => (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                onClick={() => setOpenId(item.id)}
+                to="/help"
+                search={{ article: item.id }}
+                resetScroll={false}
                 aria-current={article?.id === item.id ? "true" : undefined}
                 className={cn(
                   "focus-ring min-h-11 rounded-[var(--r-sm)] border px-3 py-2.5 text-left transition-fast",
@@ -103,7 +108,7 @@ function HelpPage() {
                 <span className="mt-0.5 block text-[12px] leading-[1.4] text-text-3">
                   {item.roles.map((role) => employeeRoleLabel[role]).join(", ")}
                 </span>
-              </button>
+              </Link>
             ))}
           </nav>
 
@@ -131,15 +136,7 @@ function ArticleView({ article }: { article: HelpArticle }) {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] leading-[1.5] text-text">{step.text}</span>
-                {step.to && (
-                  <Link
-                    to={step.to as string}
-                    search={{}}
-                    className="focus-ring mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-[var(--r-xs)] text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
-                  >
-                    Открыть экран <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
-                  </Link>
-                )}
+                {step.to && <StepTarget to={step.to} />}
               </span>
             </li>
           ))}

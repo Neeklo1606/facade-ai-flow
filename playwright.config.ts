@@ -33,7 +33,9 @@ export default defineConfig<Options>({
     {
       // Светлая тема (ADR-017, п. 9): те же экраны, то же правило одного оранжевого, тот же axe
       name: "desktop-light",
-      testMatch: /screens\.spec\.ts/,
+      // Экраны и окна: нарушение контраста жило в открытом диалоге, которого в светлом
+      // прогоне не было вообще (поправка к ADR-017 от 22.09.2026)
+      testMatch: /(screens|dialogs)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 900 },

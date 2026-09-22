@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { articleForScreen, helpArticles, searchHelp, sortForRole } from "@/lib/help/articles";
 import { screenFor } from "@/lib/guide/screens";
+import { rolesWith, sectionOfPath } from "@/domain/access";
+import { createDemoRepositories } from "@/adapters/demo";
 
 /**
  * Справка (ADR-019). Проверяется то, что молча разойдётся с продуктом: адреса шагов, связь
@@ -27,6 +29,37 @@ describe("статьи справки", () => {
     for (const target of targets) {
       const [path = "/", search = ""] = target.to.split("?");
       expect(screenFor(path, search).key, `${target.article}: ${target.to}`).not.toBe("not-found");
+    }
+  });
+
+  test("объект из адреса шага есть в данных, а не только в форме адреса", async () => {
+    // screenFor разбирает адрес по форме и не знает, существует ли объект: с несуществующим
+    // ключом проверка выше оставалась зелёной (находка независимой проверки)
+    const repos = createDemoRepositories({ persist: false });
+    const projects = await repos.projects.list();
+    const known = new Set(projects.map((item) => item.project.id));
+    const used = new Set(
+      helpArticles.flatMap((article) =>
+        article.steps.flatMap((step) => {
+          const id = step.to?.match(/^\/projects\/([^/?]+)/u)?.[1];
+          return id ? [id] : [];
+        }),
+      ),
+    );
+    expect(used.size).toBeGreaterThan(0);
+    for (const id of used) expect(known.has(id), `объекта ${id} нет в данных`).toBe(true);
+  });
+
+  test("шаг ведёт в раздел, у которого есть роль с доступом", () => {
+    // Иначе ссылку не увидит никто, и шаг молча превращается в мёртвый текст
+    for (const article of helpArticles) {
+      for (const step of article.steps) {
+        if (!step.to) continue;
+        const url = new URL(step.to, "http://local");
+        const section = sectionOfPath(url.pathname, url.searchParams.get("view") ?? undefined);
+        if (!section) continue;
+        expect(rolesWith(section).length, `${article.title}: ${step.to}`).toBeGreaterThan(0);
+      }
     }
   });
 

@@ -120,9 +120,15 @@ export async function expectEmber(page: Page, screen: string) {
     };
     const describe = (el: Element) =>
       `${el.tagName.toLowerCase()}:${(el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40)}`;
-    const all = [...document.querySelectorAll("body *")].filter(
-      (el) => inContent(el) && rendered(el),
-    );
+    /*
+     * Открытое модальное окно закрывает страницу затемнением `bg-black/80` на z-50 (шапка —
+     * z-30): пиксель под оранжевой кнопкой страницы при открытом окне почти чёрный, замерено.
+     * Правило одного оранжевого — про то, что видит глаз, поэтому при открытом окне считаем
+     * пятна внутри него, а не по всей разметке.
+     */
+    const modal = document.querySelector("[role=dialog][data-state=open], [role=alertdialog]");
+    const scope: ParentNode = modal ?? document;
+    const all = [...scope.querySelectorAll("*")].filter((el) => inContent(el) && rendered(el));
     const orange: Element[] = [];
     const caps: string[] = [];
     for (const el of all) {

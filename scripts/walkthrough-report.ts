@@ -5,6 +5,7 @@
  * Запуск: bun run walkthrough:report
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import type { RoleReport } from "../e2e/walkthrough/helpers";
@@ -51,11 +52,26 @@ const effectLabel: Record<string, string> = {
   "предел обхода": "предел обхода экрана: остальные элементы — однотипные строки списка",
 };
 
+/**
+ * На каком коде прогнан обход. Без этой отметки отчёт нельзя отличить от устаревшего:
+ * зелёный вывод S4 уже один раз пережил экран, которого не видел (находка независимой проверки).
+ */
+const stamp = (() => {
+  try {
+    const head = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+    const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim().length > 0;
+    return `${head}${dirty ? " с несохранёнными правками в рабочем дереве" : ""}`;
+  } catch {
+    return "коммит неизвестен: git недоступен";
+  }
+})();
+
 const lines: string[] = [
   "# Обход продукта: отчёт",
   "",
   "Сгенерировано `bun run walkthrough:report` из отчётов `bun run walkthrough` (ADR-015).",
   `Темы: ${themes.map((theme) => themeLabel[theme] ?? theme).join(", ")}. Ширины: ${widths.join(", ")} px.`,
+  `Прогнан ${new Date().toLocaleDateString("ru-RU")} на коммите ${stamp}.`,
   "Итог и выводы — в [STATE.md](../STATE.md).",
   "",
   "## Нажатия",
@@ -113,6 +129,24 @@ lines.push(
     ? ["| Тема | Роль | Экран | Сколько нажато |", "| --- | --- | --- | --- |", ...budget]
     : ["Нет: каждый экран обойдён целиком."]),
 );
+/*
+ * Какие экраны обойдены. Без списка по отчёту нельзя проверить, что новый экран в него попал:
+ * отчёт перечислял только экраны с находками, и появление справки в нём не читалось никак.
+ */
+const screens = new Map<string, Set<string>>();
+for (const walk of walks) {
+  for (const page of walk.pages) {
+    if (!screens.has(page.pattern)) screens.set(page.pattern, new Set());
+    screens.get(page.pattern)!.add(walk.role);
+  }
+}
+lines.push("", "### Какие экраны обойдены", "");
+lines.push(`Всего шаблонов адресов: ${screens.size}. Роли, которым экран доступен:`, "");
+lines.push("| Экран | Роли |", "| --- | --- |");
+for (const [screen, roles] of [...screens.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+  lines.push(`| \`${screen}\` | ${[...roles].sort().join(", ")} |`);
+}
+
 lines.push("", "### Ссылки, ведущие в никуда", "");
 lines.push(
   ...(deadLinks.length

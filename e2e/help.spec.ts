@@ -11,10 +11,10 @@ test.describe("справка", () => {
   test("открывается из меню и показывает статьи роли первыми @mobile", async ({ page }) => {
     await open(page, "/help");
     await expect(page.getByRole("heading", { level: 2 })).toBeVisible();
-    // Прорабу первой нужна приёмка, а не права доступа
+    // Прорабу первой нужна приёмка, а не права доступа. Статьи — ссылки: у каждой свой адрес
     const first = page
       .getByRole("navigation", { name: "Статьи справки" })
-      .getByRole("button")
+      .getByRole("link")
       .first();
     await expect(first).toContainText(/начать работу|принять поставку|отчитаться/);
   });
@@ -37,6 +37,32 @@ test.describe("справка", () => {
     await page.getByRole("link", { name: "Открыть экран" }).first().click();
     await expect(page).toHaveURL(/\/deliveries/);
     await expect(page.getByText("Поставки").first()).toBeVisible();
+  });
+});
+
+test.describe("шаг в закрытый роли раздел", () => {
+  test.describe("прораб", () => {
+    test.use({ persona: "e-gareev" });
+
+    test("вместо ссылки — причина, а не стена", async ({ page }) => {
+      await open(page, "/help?article=start");
+      const article = page.locator("article");
+      // Шаг остаётся: прорабу полезно знать, как устроена работа целиком
+      await expect(article.getByText("Откройте дашборд", { exact: false })).toBeVisible();
+      await expect(article.getByText(/Экран «Дашборд» вашей роли закрыт/)).toBeVisible();
+      await expect(article.locator('a[href="/"]')).toHaveCount(0);
+    });
+  });
+
+  test.describe("руководитель проекта", () => {
+    test.use({ persona: "e-sokolov" });
+
+    test("тот же шаг даёт живой экран", async ({ page }) => {
+      await open(page, "/help?article=start");
+      const article = page.locator("article");
+      await expect(article.getByRole("link", { name: "Открыть экран" }).first()).toBeVisible();
+      await expect(article.getByText(/вашей роли закрыт/)).toHaveCount(0);
+    });
   });
 });
 

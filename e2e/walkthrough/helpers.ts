@@ -88,7 +88,9 @@ export function pattern(url: string) {
     .replace(/\/projects\/[^/]+/, "/projects/:id")
     .replace(/\/documents\/[^/]+/, "/documents/:doc")
     .replace(/\/procurement\/[^/]+/, "/procurement/:rfq");
-  const keep = new Set(["tab", "view", "review", "purchase", "stage", "chars"]);
+  // `article` со значением: статьи справки — разные экраны с разными переходами,
+  // под одним шаблоном обход доходил бы только до первой (находка независимой проверки)
+  const keep = new Set(["tab", "view", "review", "purchase", "stage", "chars", "article"]);
   const query = [...parsed.searchParams.entries()]
     .filter(([key]) => key !== "k")
     .map(([key, value]) => (keep.has(key) ? `${key}=${value}` : key))
