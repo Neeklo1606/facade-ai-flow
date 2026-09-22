@@ -41,6 +41,19 @@ describe("утверждение о чужой системе", () => {
     expect(isVerified(invented) || invented.text.toLowerCase().includes(UNVERIFIED)).toBe(false);
   });
 
+  test("утверждение об отсутствии называет страницу, на которой смотрели", () => {
+    /*
+     * «На сайте не заявлено» проверяется за минуту, только если сказано, на каком сайте.
+     * Дважды подряд проверка ловила обратное: строки утверждали, что срок внедрения
+     * не указан, а он был указан на той самой странице, которая стояла источником.
+     */
+    const absence = /не заявлен|не указан|не описан|не называет/iu;
+    const unsourced = claims()
+      .filter(({ claim }) => absence.test(claim.text) && !isVerified(claim))
+      .map(({ where }) => where);
+    expect(unsourced).toEqual([]);
+  });
+
   test("у каждого источника адрес и дата обращения: по ней видно, когда перепроверять", () => {
     for (const source of allSources()) {
       expect(source.url, source.title).toMatch(/^https:\/\//u);

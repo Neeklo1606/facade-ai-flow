@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { articleForScreen, helpArticles, searchHelp, sortForRole } from "@/lib/help/articles";
 import { screenFor } from "@/lib/guide/screens";
-import { rolesWith, sectionOfPath } from "@/domain/access";
+import { can, sectionOfPath } from "@/domain/access";
 import { createDemoRepositories } from "@/adapters/demo";
 
 /**
@@ -50,15 +50,23 @@ describe("статьи справки", () => {
     for (const id of used) expect(known.has(id), `объекта ${id} нет в данных`).toBe(true);
   });
 
-  test("шаг ведёт в раздел, у которого есть роль с доступом", () => {
-    // Иначе ссылку не увидит никто, и шаг молча превращается в мёртвый текст
+  test("у статьи есть переход, открытый той роли, для которой она написана", () => {
+    /*
+     * Иначе статья «для прораба» состоит из экранов, которые прораб открыть не может:
+     * все переходы превращаются в замок с причиной, и делать по ней нечего. Первая
+     * проверка этого места была холостой — у руководителя есть доступ ко всем разделам,
+     * и «у раздела есть хоть одна роль» выполнялось всегда (находка второго круга).
+     */
     for (const article of helpArticles) {
-      for (const step of article.steps) {
-        if (!step.to) continue;
-        const url = new URL(step.to, "http://local");
-        const section = sectionOfPath(url.pathname, url.searchParams.get("view") ?? undefined);
-        if (!section) continue;
-        expect(rolesWith(section).length, `${article.title}: ${step.to}`).toBeGreaterThan(0);
+      const targets = article.steps.flatMap((step) => (step.to ? [step.to] : []));
+      if (!targets.length) continue;
+      for (const role of article.roles) {
+        const open = targets.filter((to) => {
+          const url = new URL(to, "http://local");
+          const section = sectionOfPath(url.pathname, url.searchParams.get("view") ?? undefined);
+          return !section || can(role, section);
+        });
+        expect(open.length, `${article.title}: роли ${role} нечего открыть`).toBeGreaterThan(0);
       }
     }
   });

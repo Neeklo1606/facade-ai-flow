@@ -53,17 +53,34 @@ const effectLabel: Record<string, string> = {
 };
 
 /**
- * На каком коде прогнан обход. Без этой отметки отчёт нельзя отличить от устаревшего:
- * зелёный вывод S4 уже один раз пережил экран, которого не видел (находка независимой проверки).
+ * На каком коде прогнан обход. Отметку ставит сам обход и кладёт в свой отчёт: снимать её
+ * здесь нельзя — сводку пересобирают отдельной командой, и через неделю она проставила бы
+ * сегодняшний коммит прогону недельной давности (находка второго круга проверки).
+ *
+ * Если роли прогнаны на разном коде, отчёт называет все отметки: это и есть признак того,
+ * что половина обхода устарела.
  */
+/** Когда прогнан обход — по самому позднему отчёту роли, а не по времени сборки сводки */
+const ranAt = (() => {
+  const dates = walks.map((walk) => walk.at).filter((value): value is string => !!value);
+  if (!dates.length) return "неизвестно когда";
+  return new Date(dates.sort().at(-1)!).toLocaleDateString("ru-RU");
+})();
+
 const stamp = (() => {
-  try {
-    const head = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
-    const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim().length > 0;
-    return `${head}${dirty ? " с несохранёнными правками в рабочем дереве" : ""}`;
-  } catch {
-    return "коммит неизвестен: git недоступен";
-  }
+  const marks = [...new Set(walks.map((walk) => walk.commit ?? "без отметки"))].sort();
+  const head = (() => {
+    try {
+      return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+    } catch {
+      return null;
+    }
+  })();
+  const behind =
+    head && marks.length === 1 && marks[0] && !marks[0].startsWith(head)
+      ? ` Сводка собрана на ${head}: код с тех пор менялся, обход этих правок не видел.`
+      : "";
+  return `${marks.join(", ")}.${behind}`;
 })();
 
 const lines: string[] = [
@@ -71,7 +88,7 @@ const lines: string[] = [
   "",
   "Сгенерировано `bun run walkthrough:report` из отчётов `bun run walkthrough` (ADR-015).",
   `Темы: ${themes.map((theme) => themeLabel[theme] ?? theme).join(", ")}. Ширины: ${widths.join(", ")} px.`,
-  `Прогнан ${new Date().toLocaleDateString("ru-RU")} на коммите ${stamp}.`,
+  `Прогнан ${ranAt} на коммите ${stamp}`,
   "Итог и выводы — в [STATE.md](../STATE.md).",
   "",
   "## Нажатия",

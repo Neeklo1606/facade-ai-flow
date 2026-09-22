@@ -121,14 +121,27 @@ export async function expectEmber(page: Page, screen: string) {
     const describe = (el: Element) =>
       `${el.tagName.toLowerCase()}:${(el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40)}`;
     /*
-     * Открытое модальное окно закрывает страницу затемнением `bg-black/80` на z-50 (шапка —
-     * z-30): пиксель под оранжевой кнопкой страницы при открытом окне почти чёрный, замерено.
-     * Правило одного оранжевого — про то, что видит глаз, поэтому при открытом окне считаем
-     * пятна внутри него, а не по всей разметке.
+     * Пятном считается только то, что видно глазу. Открытое модальное окно закрывает страницу
+     * затемнением `bg-black/80` на z-50 (шапка — z-30): оранжевая кнопка под ним даёт почти
+     * чёрный пиксель — замерено. Поэтому элемент проверяется на перекрытие в своей же точке:
+     * если в центр элемента попадает что-то постороннее, глаз его не видит.
+     *
+     * Так проверка не зависит от разметки окна. Сужение по `role=dialog` было ошибкой: эту
+     * роль носят и всплывающие подсказки Radix, которые ничего не закрывают, и проверка
+     * переставала видеть страницу целиком (находка второго круга проверки). Признак «поверх
+     * лежит полноэкранный тёмный слой» тоже не годится: под него попадает и оболочка
+     * приложения, и декоративное свечение.
      */
-    const modal = document.querySelector("[role=dialog][data-state=open], [role=alertdialog]");
-    const scope: ParentNode = modal ?? document;
-    const all = [...scope.querySelectorAll("*")].filter((el) => inContent(el) && rendered(el));
+    const visibleToEye = (el: Element) => {
+      const rect = el.getBoundingClientRect();
+      const x = Math.min(Math.max(rect.left + rect.width / 2, 1), innerWidth - 1);
+      const y = Math.min(Math.max(rect.top + rect.height / 2, 1), innerHeight - 1);
+      const hit = document.elementFromPoint(x, y);
+      return !!hit && (el.contains(hit) || hit.contains(el));
+    };
+    const all = [...document.querySelectorAll("body *")].filter(
+      (el) => inContent(el) && rendered(el) && visibleToEye(el),
+    );
     const orange: Element[] = [];
     const caps: string[] = [];
     for (const el of all) {

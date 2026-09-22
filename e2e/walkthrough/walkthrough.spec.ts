@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test, type BrowserContext, type Page } from "@playwright/test";
 import {
+  COMMIT,
   INTERACTIVE,
   MAX_INNER,
   MAX_PER_SCREEN,
@@ -306,6 +307,8 @@ for (const [persona, role] of Object.entries(ROLES)) {
       role,
       persona,
       theme: THEME,
+      commit: COMMIT,
+      at: new Date().toISOString(),
       pages: await discover(page),
       elements: [],
     };

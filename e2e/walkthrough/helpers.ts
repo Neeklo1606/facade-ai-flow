@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import type { BrowserContext, Page } from "@playwright/test";
 
 /** Общее для обхода (Q8): роли, загрузка экрана, шаблон адреса, поиск экранов по ссылкам */
@@ -13,6 +14,21 @@ export const ROLES: Record<string, string> = {
   "e-gareev": "прораб",
   "e-belyaev": "директор",
 };
+/**
+ * Код, на котором идёт обход. Снимается в момент прогона и уезжает в отчёт роли: отметка,
+ * снятая при сборке сводки, врала бы — сводку можно пересобрать через неделю одной командой
+ * (находка второго круга проверки).
+ */
+export const COMMIT = (() => {
+  try {
+    const head = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+    const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim().length > 0;
+    return `${head}${dirty ? " + несохранённые правки" : ""}`;
+  } catch {
+    return "неизвестен";
+  }
+})();
+
 export const MAX_PAGES = 60;
 export const MAX_INNER = 30;
 /**
@@ -37,6 +53,10 @@ export interface RoleReport {
   role: string;
   persona: string;
   theme: string;
+  /** Коммит, на котором прогнан обход: сводка берёт отметку отсюда, а не из своего запуска */
+  commit?: string;
+  /** Когда прогнан: по той же причине — дата сборки сводки это другая дата */
+  at?: string;
   pages: { pattern: string; url: string; title: string; exits: number; errors: string[] }[];
   elements: ElementResult[];
 }
