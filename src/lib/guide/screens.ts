@@ -148,6 +148,14 @@ const screens = {
       "Чтобы изменить права роли, обратитесь к владельцу системы: правка с экрана пока не предусмотрена.",
     ],
   },
+  help: {
+    name: "Справка",
+    help: [
+      "Статьи по задачам: загрузка документации, запросы поставщикам, приёмка, отчёты с площадки, права.",
+      "Отвечает на вопрос, как сделать работу, а не что за экран перед вами.",
+      "Шаги статьи ведут на живой экран: можно читать и сразу делать.",
+    ],
+  },
   "demo-stats": {
     name: "Статистика сессии",
     help: [
@@ -198,6 +206,7 @@ export function screenFor(
   if (path === "/agent") return info("agent");
   if (path === "/access") return info("access");
   if (path === "/catalogs") return info("catalogs");
+  if (path === "/help") return info("help");
   if (path === "/demo-stats") return info("demo-stats");
 
   const inProject = path.match(/^\/projects\/[^/]+(?:\/([^/]+)(?:\/([^/]+))?)?$/);
