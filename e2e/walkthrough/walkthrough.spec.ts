@@ -4,8 +4,11 @@ import { test, type BrowserContext, type Page } from "@playwright/test";
 import {
   INTERACTIVE,
   MAX_INNER,
+  MAX_PER_SCREEN,
   OUT,
+  SCREEN_BUDGET_MS,
   ROLES,
+  THEME,
   asPersona,
   discover,
   load,
@@ -219,11 +222,20 @@ async function effectOf(
       notFound:
         !!document.querySelector("[data-screen='not-found']") ||
         /Раздел не найден/.test(document.body.innerText),
+      // Отказ — такой же тупик: человек нажал ссылку и попал в стену (ADR-015, дополнение S4)
+      noAccess: !!document.querySelector("[data-screen='no-access']"),
     };
   });
   const effect: string[] = [];
-  if (after.url !== before.url)
-    effect.push(after.notFound ? "переход: РАЗДЕЛ НЕ НАЙДЕН" : "переход");
+  if (after.url !== before.url) {
+    effect.push(
+      after.notFound
+        ? "переход: РАЗДЕЛ НЕ НАЙДЕН"
+        : after.noAccess
+          ? "переход: НЕТ ДОСТУПА"
+          : "переход",
+    );
+  }
   if (after.dialogs > before.dialogs) effect.push("диалог");
   if (after.dialogs < before.dialogs) effect.push("закрыл диалог");
   if (after.toasts > before.toasts) effect.push("уведомление");
@@ -281,7 +293,7 @@ async function closePopups(context: BrowserContext, keep: Page) {
 test.describe.configure({ mode: "parallel" });
 
 for (const [persona, role] of Object.entries(ROLES)) {
-  test(`обход: ${role}`, async ({ browser }) => {
+  test(`обход: ${role}, тема ${THEME}`, async ({ browser }) => {
     test.setTimeout(3 * 60 * 60 * 1000);
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
@@ -290,17 +302,38 @@ for (const [persona, role] of Object.entries(ROLES)) {
     });
     await asPersona(context, persona);
     const page = await context.newPage();
-    const report: RoleReport = { role, persona, pages: await discover(page), elements: [] };
+    const report: RoleReport = {
+      role,
+      persona,
+      theme: THEME,
+      pages: await discover(page),
+      elements: [],
+    };
 
     const save = () => {
       mkdirSync(OUT, { recursive: true });
-      writeFileSync(join(OUT, `walk-${persona}.json`), JSON.stringify(report, null, 2));
+      writeFileSync(join(OUT, `walk-${THEME}-${persona}.json`), JSON.stringify(report, null, 2));
     };
     for (const screen of report.pages) {
       save();
       await load(page, screen.url);
       const items = await catalog(page, null);
+      /*
+       * Границы обхода одного экрана. Реестр материалов даёт сотни однотипных строк, и у каждой
+       * своя панель: без границы обход упирался в предел теста и не доходил до следующих экранов.
+       * Сколько пропущено — записывается, чтобы отчёт не выдавал неполный обход за полный.
+       */
+      const deadline = Date.now() + SCREEN_BUDGET_MS;
+      let pressedHere = 0;
+      let skipped = 0;
       for (const item of items) {
+        if (pressedHere >= MAX_PER_SCREEN || Date.now() > deadline) {
+          skipped = items.length - pressedHere;
+          break;
+        }
+        pressedHere += 1;
+        // Прогресс не теряется, если тест упрётся в предел: сохраняем по ходу, а не только в конце
+        if (pressedHere % 25 === 0) save();
         await load(page, screen.url);
         const target = await locate(page, item.signature, null);
         if (!target) continue;
@@ -390,6 +423,15 @@ for (const [persona, role] of Object.entries(ROLES)) {
             });
           }
         }
+      }
+      if (skipped > 0) {
+        report.elements.push({
+          page: screen.pattern,
+          signature: "__budget__",
+          label: `не обойдено: ещё ${skipped} однотипных элементов`,
+          effect: ["предел обхода"],
+          note: `нажато ${pressedHere} из ${items.length}; предел — ${MAX_PER_SCREEN} элементов или ${Math.round(SCREEN_BUDGET_MS / 60000)} мин на экран`,
+        });
       }
     }
 
