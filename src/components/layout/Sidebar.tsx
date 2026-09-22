@@ -205,8 +205,14 @@ function SidebarInner({
           <PanelsTopLeft className="size-[15px]" strokeWidth={1.5} />
         </span>
         <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", collapsed && "lg:hidden")}>
-          <span className="truncate text-[15px] leading-tight font-semibold text-text">
-            neeklo FieldOps
+          {/* Марка в две строки: продукт и отраслевой пакет — имя одно везде (ADR-020) */}
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] leading-tight font-semibold text-text">
+              neeklo FieldOps
+            </span>
+            <span className="block truncate text-[11px] leading-tight text-text-3">
+              пакет Фасады
+            </span>
           </span>
           <ChevronDown className="size-4 shrink-0 text-text-3" strokeWidth={1.5} />
         </div>
