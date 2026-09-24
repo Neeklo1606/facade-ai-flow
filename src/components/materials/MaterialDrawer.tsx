@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAccess } from "@/api/access";
 import { MatchLine } from "./MatchLine";
 import { queries } from "@/api/queries";
+import { usePositionLinks } from "@/api/links";
+import { RelatedList } from "@/components/common/RelatedList";
 import { rfqStatusMeta } from "@/lib/procurement";
 import { purchaseTone, reviewLabel } from "@/lib/project-meta";
 import { fmtDateTime, fmtMoney, fmtNum } from "@/lib/format";
@@ -55,6 +57,8 @@ export function MaterialDrawer({
   const replacements = (useQuery(queries.replacements()).data ?? []).filter(
     (r) => r.family === item.family,
   );
+  // Связи считает слой данных: запросы, в которые вошла позиция, и поставка, которой привезли
+  const links = usePositionLinks(item);
   const review = reviewLabel(item);
   const stage = purchaseOrder.indexOf(item.purchase);
 
@@ -135,6 +139,13 @@ export function MaterialDrawer({
             </p>
           )}
         </Section>
+
+        {/* Происхождение и связи (ADR-018): откуда позиция пришла и куда ушла */}
+        {links.length > 0 && (
+          <Section title="Связано">
+            <RelatedList links={links} />
+          </Section>
+        )}
 
         <Section title="Источник">
           <div className="flex items-start justify-between gap-3 rounded-[var(--r-md)] border border-border px-3 py-2.5">

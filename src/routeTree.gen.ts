@@ -17,6 +17,7 @@ import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as QualityRouteImport } from './routes/quality'
@@ -79,6 +80,11 @@ const DemoStatsRoute = DemoStatsRouteImport.update({
 const DesignSystemRoute = DesignSystemRouteImport.update({
   id: '/design-system',
   path: '/design-system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegrationsRoute = IntegrationsRouteImport.update({
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/help': typeof HelpRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/quality': typeof QualityRoute
@@ -243,6 +250,7 @@ export interface FileRoutesByTo {
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/help': typeof HelpRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/quality': typeof QualityRoute
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/help': typeof HelpRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/quality': typeof QualityRoute
@@ -312,6 +321,7 @@ export interface FileRouteTypes {
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/help'
     | '/integrations'
     | '/knowledge'
     | '/quality'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/help'
     | '/integrations'
     | '/knowledge'
     | '/quality'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/help'
     | '/integrations'
     | '/knowledge'
     | '/quality'
@@ -412,6 +424,7 @@ export interface RootRouteChildren {
   ContractsRoute: typeof ContractsRoute
   DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
+  HelpRoute: typeof HelpRoute
   IntegrationsRoute: typeof IntegrationsRoute
   KnowledgeRoute: typeof KnowledgeRoute
   QualityRoute: typeof QualityRoute
@@ -493,6 +506,13 @@ declare module '@tanstack/react-router' {
       path: '/design-system'
       fullPath: '/design-system'
       preLoaderRoute: typeof DesignSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/integrations': {
@@ -668,6 +688,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContractsRoute: ContractsRoute,
   DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
+  HelpRoute: HelpRoute,
   IntegrationsRoute: IntegrationsRoute,
   KnowledgeRoute: KnowledgeRoute,
   QualityRoute: QualityRoute,

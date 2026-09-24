@@ -58,6 +58,13 @@
   --text-3: #8e8e8e;
   --text-4: #333333;
   --on-orange: #ffffff;
+  /*
+   * Текст поверх фирменного градиента. Градиент тёмный в обеих темах, поэтому эти два цвета
+   * теме не подчиняются: в светлой `--sand` темнеет для читаемости на белом и на градиенте
+   * стал бы хуже (ADR-017, п. 4)
+   */
+  --on-ember: #ffffff;
+  --on-ember-2: #f0e4d8;
 
   /* Бренд */
   --orange: #e85002;
@@ -173,6 +180,76 @@
   --shadow-shell: var(--lift-3);
 }
 
+/*
+ * EMBER Light (ADR-017). Переопределяется только палитра: семантический слой выше берёт
+ * значения отсюда, поэтому ни один экран не правится. Философия та же: одно оранжевое пятно,
+ * песочный как тёплый акцент, один градиент.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --void: #f4f2ee;
+  --base: #faf9f6;
+  --surface: #ffffff;
+  --surface-2: #f4f2ee;
+  --surface-3: #eae7e1;
+
+  --line: rgba(28, 24, 20, 0.08);
+  --line-2: rgba(28, 24, 20, 0.14);
+  --line-warm: rgba(158, 132, 104, 0.22);
+
+  --text: #1c1814;
+  --text-2: #5a544c;
+  /*
+   * Подписи. #8A837A из палитры давал 3,7:1 на белом и 3,0:1 на --surface-3 — ниже WCAG AA.
+   * Поднято до 5,6:1 / 4,5:1 с сохранением тёплого оттенка (см. дополнение к ADR-017)
+   */
+  --text-3: #6e675e;
+  --text-4: #d5d0c8;
+
+  /* Текстом оранжевый должен читаться: #D94A04 давал 4,3:1 на белом, здесь 5,2:1 */
+  --orange: #c24103;
+  --orange-hot: #d94a04;
+  /* Заливка под белым текстом: на --orange белый 14px даёт 4,1:1, на --orange-strong — 5,3:1 */
+  --orange-strong: #bf4103;
+  --orange-strong-hover: #a63803;
+  --orange-dim: rgba(217, 74, 4, 0.1);
+  --orange-line: rgba(217, 74, 4, 0.3);
+  /* Песочный как текст: #9E8468 давал 3,5:1 на белом. Здесь 6,4:1, на своей плашке — 4,9:1 */
+  --sand: #6e5a48;
+  --sand-dim: rgba(158, 132, 104, 0.12);
+
+  --ember: linear-gradient(135deg, #1c1814 0%, #c10801 38%, #f16001 68%, #d9c3ab 100%);
+
+  /*
+   * Статусы. Оттенки палитры, притемнённые до WCAG AA как текст на всех трёх светлых
+   * поверхностях: исходные #1F8A4C, #A8700A и #C8303F давали 3,4–4,3:1 на --surface-3.
+   * Зелёный притемнён второй раз: #177A41 давал на --surface-3 4,37:1 — ниже нормы, и это
+   * ловил axe на подписи «лучшее по итогу» в окне решения (находка независимой проверки).
+   * Здесь 5,05:1 на --surface-3 и 6,23:1 на белом.
+   */
+  --ok: #166f3b;
+  --ok-bg: rgba(31, 138, 76, 0.1);
+  /* На собственной подложке (--warn-bg поверх светлой) #946208 давал 4,3:1 — здесь 5,2:1 */
+  --warn: #835606;
+  --warn-bg: rgba(168, 112, 10, 0.12);
+  --danger: #b32837;
+  --danger-bg: rgba(200, 48, 63, 0.1);
+  --info: #2f5db8;
+  --info-bg: rgba(47, 93, 184, 0.1);
+
+  /* Тени вместо внутреннего света: на белом свет не виден */
+  --lift-1: 0 1px 2px rgba(28, 24, 20, 0.05);
+  --lift-2: 0 1px 2px rgba(28, 24, 20, 0.05), 0 4px 16px rgba(28, 24, 20, 0.06);
+  --lift-3: 0 4px 16px rgba(28, 24, 20, 0.06), 0 24px 48px rgba(28, 24, 20, 0.1);
+  --glow-orange: 0 0 24px rgba(217, 74, 4, 0.18);
+  --glow-soft: 0 8px 32px rgba(28, 24, 20, 0.07);
+
+  /* Инверсный текст: на светлой теме это белый по тёмному, а не наоборот */
+  --text-inverse: #ffffff;
+  --ink-hover: #000000;
+}
+
 @media (min-width: 768px) {
   :root {
     --bottom-nav-h: 0px;
@@ -208,6 +285,8 @@
   --color-text-3: var(--text-3);
   --color-text-4: var(--text-4);
   --color-on-orange: var(--on-orange);
+  --color-on-ember: var(--on-ember);
+  --color-on-ember-2: var(--on-ember-2);
   --color-orange: var(--orange);
   --color-orange-hot: var(--orange-hot);
   --color-orange-strong: var(--orange-strong);
@@ -967,4 +1046,85 @@
 .guide-target {
   outline: 1.5px solid var(--orange);
   outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- Печать (ADR-017, п. 8) */
+
+/*
+ * На бумаге — всегда светлая тема, независимо от выбранной на экране: тёмный реестр съедает
+ * картридж и плохо читается. Оболочка не печатается: меню, шапка, проводка и кнопки действий
+ * на листе бесполезны.
+ */
+@media print {
+  :root,
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    color-scheme: light;
+
+    --void: #ffffff;
+    --base: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #ffffff;
+    --surface-3: #ffffff;
+    --line: rgba(28, 24, 20, 0.25);
+    --line-2: rgba(28, 24, 20, 0.4);
+    --line-warm: rgba(28, 24, 20, 0.25);
+    --text: #000000;
+    --text-2: #1c1814;
+    --text-3: #3a352f;
+    --text-4: #8a837a;
+    --orange: #b33c00;
+    --orange-hot: #b33c00;
+    --orange-strong: #b33c00;
+    --orange-dim: transparent;
+    --orange-line: rgba(179, 60, 0, 0.5);
+    --sand: #5a544c;
+    --sand-dim: transparent;
+    --ok: #146b38;
+    --warn: #7a5207;
+    --danger: #a3202c;
+    --info: #21447f;
+    --ok-bg: transparent;
+    --warn-bg: transparent;
+    --danger-bg: transparent;
+    --info-bg: transparent;
+    --lift-1: none;
+    --lift-2: none;
+    --lift-3: none;
+    --glow-orange: none;
+    --glow-soft: none;
+  }
+
+  /* Оболочка на листе не нужна */
+  .app-glow,
+  [data-sidebar="app"],
+  .content-header,
+  [data-print="hide"],
+  [role="dialog"],
+  [role="tooltip"] {
+    display: none !important;
+  }
+
+  .app-window,
+  .app-shell {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+    background: #ffffff;
+  }
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  /* Таблицы на бумаге: линии видны, строки не рвутся между листами */
+  table {
+    border-collapse: collapse;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tr,
+  li {
+    break-inside: avoid;
+  }
 }

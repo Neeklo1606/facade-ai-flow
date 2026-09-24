@@ -39,6 +39,8 @@ import {
   type SupplyRequest,
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useRequestLinks } from "@/api/links";
+import { RelatedList } from "@/components/common/RelatedList";
 import { useRemindSuppliers, useVerifyContact } from "@/api/mutations";
 import { prefetch } from "@/api/prefetch";
 
@@ -425,7 +427,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
           </Button>
         ) : null
       }
-      panel={current ? <RequestDetails row={current} /> : null}
+      panel={current ? <RequestDetails row={current} projectId={projectId} /> : null}
     >
       <div className="hidden overflow-x-auto lg:block">
         <table data-tour="requests-list" className="w-full min-w-[980px] text-table">
@@ -574,9 +576,11 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
 }
 
 /** Сводка запроса в панели деталей */
-function RequestDetails({ row }: { row: RequestRow }) {
+function RequestDetails({ row, projectId }: { row: RequestRow; projectId: string }) {
   const { counterpartyById } = useDirectory();
   const meta = rfqStatusMeta[row.status];
+  // Куда ведёт запрос дальше: позиции в реестре и поставка по решению (ADR-018)
+  const links = useRequestLinks(row.request, projectId);
   return (
     <div className="space-y-5">
       <StatusBadge tone={meta.tone} dot>
@@ -612,6 +616,12 @@ function RequestDetails({ row }: { row: RequestRow }) {
           ))}
         </ul>
       </section>
+      {links.length > 0 && (
+        <section>
+          <h3 className="mb-2 text-[12px] text-text-3">Связано</h3>
+          <RelatedList links={links} />
+        </section>
+      )}
     </div>
   );
 }

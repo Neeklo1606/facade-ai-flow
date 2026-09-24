@@ -8,6 +8,7 @@ import {
   HardHat,
   History,
   LayoutDashboard,
+  LifeBuoy,
   PackageCheck,
   PackageSearch,
   ShieldCheck,
@@ -34,7 +35,11 @@ export interface NavItem {
   icon: LucideIcon;
   badge?: BadgeKey;
   /** Раздел прав (ADR-012): пункт виден роли, которой раздел доступен хотя бы на чтение */
-  access: Section;
+  /**
+   * Раздел прав, которым открывается пункт (ADR-012). Без него пункт видят все роли:
+   * так открыта справка — она не показывает данные объекта, а учит с ними работать
+   */
+  access?: Section;
   /** Раздел объекта; без выбранного объекта пункт ведёт в реестр с просьбой выбрать объект */
   section?: ProjectSection;
   /** Экран вне объекта: ведёт по этому адресу, а не в раздел объекта */
@@ -140,6 +145,8 @@ export const navGroups: NavGroup[] = [
         to: "/access",
         access: "access",
       },
+      // Справка открыта всем ролям: она не показывает данные объекта (ADR-019)
+      { key: "help", label: "Справка", icon: LifeBuoy, to: "/help" },
     ],
   },
 ];
@@ -148,7 +155,7 @@ export const allNavItems = navGroups.flatMap((g) => g.items);
 
 /** Видит ли роль этот пункт меню: по матрице прав (ADR-012) */
 export function visibleFor(item: NavItem, role: EmployeeRole) {
-  return can(role, item.access);
+  return item.access ? can(role, item.access) : true;
 }
 
 /** Меню для роли: пустые группы не показываем (ADR-008) */

@@ -1,4 +1,4 @@
-import { expectA11y, expectEmber, expectMobile, open, test } from "./fixtures";
+import { expectA11y, expectEmber, expectEmberGradient, expectMobile, open, test } from "./fixtures";
 
 /**
  * Правила EMBER и доступность на всех экранах — на десктопе и на телефоне (@mobile).
@@ -24,6 +24,7 @@ const screens: [string, string][] = [
   ["ассистент", "/agent"],
   ["права доступа", "/access"],
   ["справочники", "/catalogs"],
+  ["справка", "/help"],
   ["материалы без загруженных позиций", "/projects/p-meridian/materials"],
 ];
 
@@ -33,6 +34,7 @@ test.describe("экраны", () => {
     test(`${name} @mobile`, async ({ page }) => {
       await open(page, path);
       await expectEmber(page, name);
+      await expectEmberGradient(page, name);
       await expectA11y(page, name);
       await expectMobile(page, name);
     });

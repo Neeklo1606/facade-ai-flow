@@ -9,6 +9,7 @@ import { queries } from "@/api/queries";
 import { screenStatesEnabled } from "@/lib/screen-state";
 import { StatePicker } from "./StatePicker";
 import { ScreenHelp } from "@/components/guide/ScreenHelp";
+import { ThemeToggle } from "./ThemeToggle";
 import { screenFor } from "@/lib/guide/screens";
 import { useCurrentUser } from "@/lib/project-scope";
 import { dataSource } from "@/api/config";
@@ -165,6 +166,7 @@ export function Topbar() {
         >
           <Search strokeWidth={1.5} />
         </button>
+        <ThemeToggle className="hidden sm:grid" />
         {screenStatesEnabled && <StatePicker />}
         {/* Действия экрана: страница отдаёт их сюда через PageActions. На телефоне главное действие
             закреплено снизу над панелью навигации */}

@@ -9,6 +9,8 @@ import {
   type DeliveryStatus,
 } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { useDeliveryLinks } from "@/api/links";
+import { RelatedList } from "@/components/common/RelatedList";
 import { useResolveRemark } from "@/api/mutations";
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -30,6 +32,7 @@ export function DeliveryDetails({
   canWrite: boolean;
 }) {
   const { employeeById, counterpartyById } = useDirectory();
+  const links = useDeliveryLinks(card, projectId);
   const { delivery, acceptance } = card;
   const who = (id: string | null) => (id ? (employeeById(id)?.name ?? "—") : "Обработка");
 
@@ -77,6 +80,16 @@ export function DeliveryDetails({
           ))}
         </ul>
       </section>
+
+      {/* Куда ведёт эта поставка дальше (ADR-018): запрос и материалы её состава */}
+      {links.length > 0 && (
+        <section aria-labelledby="dl-links">
+          <h3 id="dl-links" className="mb-2 text-[13px] font-medium text-text">
+            Связано
+          </h3>
+          <RelatedList links={links} />
+        </section>
+      )}
 
       <section aria-labelledby="dl-moves">
         <h3 id="dl-moves" className="mb-2 text-[13px] font-medium text-text">

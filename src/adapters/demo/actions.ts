@@ -614,15 +614,20 @@ export function upload(input: UploadRevisionInput, actorId: string) {
   const ext = input.fileName.split(".").pop()?.toLowerCase();
   const fileType: ProjectDocument["fileType"] =
     ext === "docx" ? "docx" : ext === "xlsx" ? "xlsx" : "pdf";
+  // Раздел и название: выбор человека главнее догадки, ревизия наследует их у документа
   const section =
     previous?.section ??
+    input.section ??
     (/ар/i.test(input.fileName) ? "АР" : /км/i.test(input.fileName) ? "КМ" : "НВФ");
   const doc: ProjectDocument = {
     id,
     documentId,
     revision,
     projectId: input.projectId,
-    title: previous?.title ?? input.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
+    title:
+      previous?.title ??
+      input.title ??
+      input.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
     section,
     version: `Рев. ${revision}`,
     fileName: input.fileName,

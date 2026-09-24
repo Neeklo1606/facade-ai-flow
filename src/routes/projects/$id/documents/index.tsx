@@ -20,6 +20,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { UploadZone, type UploadZoneHandle } from "@/components/documents/UploadZone";
+import { UploadDialog } from "@/components/documents/UploadDialog";
 import { RevisionChanges } from "@/components/documents/RevisionChanges";
 import { ProcessingStages } from "@/components/documents/ProcessingStages";
 import { FilterChip } from "@/components/common/FilterBar";
@@ -87,6 +88,8 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   const canUpload = useCanWrite("documents");
   const zone = useRef<UploadZoneHandle>(null);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
+  // Очередь выбранных файлов: окно загрузки ведёт их по одному (ADR-018, п. 5)
+  const [pending, setPending] = useState<File[]>([]);
 
   // Экран показывает действующие ревизии; прошлые — в карточке объекта, «Ревизии спецификации»
   const query = useQuery(queries.documents(project.id));
@@ -114,27 +117,12 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         : doc.status === filter,
   );
 
-  async function handleFiles(files: File[]) {
-    const results = await Promise.allSettled(
-      files.map((file) =>
-        upload.mutateAsync({
-          projectId: project.id,
-          fileName: file.name,
-          sizeKb: Math.max(1, Math.round(file.size / 1024)),
-        }),
-      ),
-    );
-    const loaded = results.filter((result) => result.status === "fulfilled").length;
-    if (loaded) {
-      toast(`Загружено: ${loaded} ${plural(loaded, "документ", "документа", "документов")}`, {
-        description: DEMO_UPLOAD_NOTE,
-      });
-    }
-    if (loaded < files.length) {
-      toast.error(`Не загружено: ${files.length - loaded}`, {
-        description: "Проверьте размер файла (до 500 МБ) и повторите.",
-      });
-    }
+  /*
+   * Файлы не уходят сразу: человек видит, что уйдёт, под каким именем и в какой раздел,
+   * а потом — стадии разбора (ADR-018, п. 5). Несколько файлов идут по очереди.
+   */
+  function handleFiles(files: File[]) {
+    setPending(files);
   }
 
   const open = (doc: ProjectDocument) =>
@@ -465,6 +453,16 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
           </ScreenGate>
         </section>
       </div>
+
+      {pending[0] && (
+        <UploadDialog
+          projectId={project.id}
+          file={pending[0]}
+          queue={pending.length - 1}
+          onClose={() => setPending([])}
+          onNext={() => setPending((files) => files.slice(1))}
+        />
+      )}
 
       {!blocked && canUpload && (
         <MobileActionBar>

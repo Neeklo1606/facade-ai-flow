@@ -46,6 +46,10 @@ export const uploadRevisionInput = z.object({
   /** Новая ревизия существующего документа; null — новый документ */
   documentId: z.string().min(1).nullable().default(null),
   fileName: z.string().min(1),
+  /** Название документа, если человек поправил предложенное; null — берём из имени файла */
+  title: z.string().trim().min(1).max(200).nullable().default(null),
+  /** Раздел проекта, выбранный при загрузке; null — адаптер угадывает по имени файла */
+  section: z.string().trim().min(1).max(40).nullable().default(null),
   /** До 500 МБ: от размера зависит число листов, которое адаптер создаёт */
   sizeKb: z.number().int().positive().max(512_000),
   /** Ключ файла в хранилище объектов; в демо файла нет */

@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { deliveryStatusLabel, type Delivery } from "@/contracts";
 import { useDirectory } from "@/api/directory";
 import { useMoveDelivery } from "@/api/mutations";
-import { useCanWrite } from "@/api/access";
+import { useAccess, useCanWrite } from "@/api/access";
 import { prefetch } from "@/api/prefetch";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
@@ -84,6 +84,8 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   // отгрузка, «в пути», отмена и закрытие замечаний — право в «Закупках» (ADR-012, дополнение)
   const canWrite = useCanWrite("deliveries");
   const canManage = useCanWrite("procurement");
+  // Ссылка в закупки — только тем, кому раздел открыт: иначе она ведёт на «Нет доступа» (S4)
+  const seesProcurement = useAccess().can("procurement");
   const [acceptOpen, setAcceptOpen] = useState(false);
 
   const open = (id: string | null) =>
@@ -151,13 +153,13 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             <Button variant={card ? "secondary" : "accent"} onClick={() => open(toAccept[0]!.id)}>
               <PackageCheck className="size-4" /> К приёмке: {toAccept.length}
             </Button>
-          ) : (
+          ) : seesProcurement ? (
             <Button variant="secondary" asChild>
               <Link to="/projects/$id/procurement" params={{ id: project.id }}>
                 К закупкам <ArrowRight className="size-4" />
               </Link>
             </Button>
-          )
+          ) : null
         }
       />
 
@@ -190,9 +192,13 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             title: "Поставок по объекту пока нет",
             description:
               "Поставка создаётся, когда по запросу поставщикам зафиксировано решение. Выберите поставщика в сравнении предложений.",
-            actionLabel: "К закупкам",
-            onAction: () =>
-              navigate({ to: "/projects/$id/procurement", params: { id: project.id } }),
+            ...(seesProcurement
+              ? {
+                  actionLabel: "К закупкам",
+                  onAction: () =>
+                    navigate({ to: "/projects/$id/procurement", params: { id: project.id } }),
+                }
+              : {}),
           },
         }}
       >

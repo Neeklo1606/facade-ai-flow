@@ -1,9 +1,12 @@
+import { execSync } from "node:child_process";
 import type { BrowserContext, Page } from "@playwright/test";
 
 /** Общее для обхода (Q8): роли, загрузка экрана, шаблон адреса, поиск экранов по ссылкам */
 
 // Не в test-results: Playwright очищает её при каждом запуске, и отчёт прошлого прохода пропадёт
 export const OUT = process.env["WALK_OUT"] ?? ".walkthrough";
+/** Тема обхода (ADR-015, дополнение S4): отчёты и снимки раскладываются по ней */
+export const THEME = process.env["WALK_THEME"] === "light" ? "light" : "dark";
 export const ROLES: Record<string, string> = {
   "e-sokolov": "руководитель проекта",
   "e-dorohov": "снабжение",
@@ -11,8 +14,30 @@ export const ROLES: Record<string, string> = {
   "e-gareev": "прораб",
   "e-belyaev": "директор",
 };
+/**
+ * Код, на котором идёт обход. Снимается в момент прогона и уезжает в отчёт роли: отметка,
+ * снятая при сборке сводки, врала бы — сводку можно пересобрать через неделю одной командой
+ * (находка второго круга проверки).
+ */
+export const COMMIT = (() => {
+  try {
+    const head = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+    const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim().length > 0;
+    return `${head}${dirty ? " + несохранённые правки" : ""}`;
+  } catch {
+    return "неизвестен";
+  }
+})();
+
 export const MAX_PAGES = 60;
 export const MAX_INNER = 30;
+/**
+ * Границы обхода одного экрана (S4). Реестр материалов — сотни однотипных строк, у каждой
+ * своя панель: без границы обход одного экрана съедал весь бюджет теста. Сколько элементов
+ * осталось, отчёт называет прямо — неполный обход не выдаётся за полный.
+ */
+export const MAX_PER_SCREEN = Number(process.env["WALK_MAX_PER_SCREEN"] ?? 120);
+export const SCREEN_BUDGET_MS = Number(process.env["WALK_SCREEN_MINUTES"] ?? 8) * 60_000;
 
 export { INTERACTIVE } from "../mobile-checks";
 
@@ -27,20 +52,30 @@ export interface ElementResult {
 export interface RoleReport {
   role: string;
   persona: string;
+  theme: string;
+  /** Коммит, на котором прогнан обход: сводка берёт отметку отсюда, а не из своего запуска */
+  commit?: string;
+  /** Когда прогнан: по той же причине — дата сборки сводки это другая дата */
+  at?: string;
   pages: { pattern: string; url: string; title: string; exits: number; errors: string[] }[];
   elements: ElementResult[];
 }
 
-export async function asPersona(context: BrowserContext, persona: string) {
-  await context.addInitScript((id) => {
-    try {
-      sessionStorage.setItem("neeklo-fieldops-role-chosen", "1");
-      sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
-      sessionStorage.setItem("neeklo-fieldops-persona", id);
-    } catch {
-      // приватный режим
-    }
-  }, persona);
+export async function asPersona(context: BrowserContext, persona: string, theme = THEME) {
+  await context.addInitScript(
+    ({ id, mode }) => {
+      try {
+        sessionStorage.setItem("neeklo-fieldops-role-chosen", "1");
+        sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
+        sessionStorage.setItem("neeklo-fieldops-persona", id);
+        // Тема ставится так же, как её ставит человек: выбором, который читает скрипт в <head>
+        localStorage.setItem("neeklo-fieldops-theme", mode);
+      } catch {
+        // приватный режим
+      }
+    },
+    { id: persona, mode: theme },
+  );
 }
 
 /** Открыть адрес и дождаться, пока уйдут скелетоны */
@@ -73,7 +108,9 @@ export function pattern(url: string) {
     .replace(/\/projects\/[^/]+/, "/projects/:id")
     .replace(/\/documents\/[^/]+/, "/documents/:doc")
     .replace(/\/procurement\/[^/]+/, "/procurement/:rfq");
-  const keep = new Set(["tab", "view", "review", "purchase", "stage", "chars"]);
+  // `article` со значением: статьи справки — разные экраны с разными переходами,
+  // под одним шаблоном обход доходил бы только до первой (находка независимой проверки)
+  const keep = new Set(["tab", "view", "review", "purchase", "stage", "chars", "article"]);
   const query = [...parsed.searchParams.entries()]
     .filter(([key]) => key !== "k")
     .map(([key, value]) => (keep.has(key) ? `${key}=${value}` : key))

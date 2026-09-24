@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import type { Options } from "./e2e/fixtures";
 
 /**
  * Сквозные тесты (ADR-013, п. 3): демо-сборка на node-сервере, данные живут во вкладке.
@@ -8,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
 const port = Number(process.env["E2E_PORT"] ?? 4630);
 const executablePath = process.env["PW_CHROMIUM"];
 
-export default defineConfig({
+export default defineConfig<Options>({
   testDir: "e2e",
   // Обход продукта (Q8) — отдельный запуск: playwright.walkthrough.config.ts
   testIgnore: ["**/walkthrough/**"],
@@ -28,6 +29,19 @@ export default defineConfig({
     {
       name: "desktop",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      // Светлая тема (ADR-017, п. 9): те же экраны, то же правило одного оранжевого, тот же axe
+      name: "desktop-light",
+      // Экраны и окна: нарушение контраста жило в открытом диалоге, которого в светлом
+      // прогоне не было вообще (поправка к ADR-017 от 22.09.2026)
+      testMatch: /(screens|dialogs)\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+        theme: "light",
+        colorScheme: "light",
+      },
     },
     {
       name: "mobile",

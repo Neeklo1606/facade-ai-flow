@@ -135,6 +135,11 @@ function CatalogsPage() {
               icon={BookOpen}
               title="Материалов не найдено"
               description="Смените категорию или уточните поиск: он идёт по названию, синонимам и написаниям."
+              actionLabel="Показать все материалы"
+              onAction={() => {
+                setCategoryId(null);
+                setQuery("");
+              }}
             />
           ) : (
             <>
