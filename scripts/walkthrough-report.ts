@@ -68,7 +68,8 @@ const ranAt = (() => {
 })();
 
 const stamp = (() => {
-  const marks = [...new Set(walks.map((walk) => walk.commit ?? "без отметки"))].sort();
+  const marks = [...new Set(walks.map((walk) => walk.commit ?? null))];
+  const known = marks.filter((mark): mark is string => !!mark).sort();
   const head = (() => {
     try {
       return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
@@ -76,11 +77,23 @@ const stamp = (() => {
       return null;
     }
   })();
-  const behind =
-    head && marks.length === 1 && marks[0] && !marks[0].startsWith(head)
-      ? ` Сводка собрана на ${head}: код с тех пор менялся, обход этих правок не видел.`
-      : "";
-  return `${marks.join(", ")}.${behind}`;
+  const notes: string[] = [];
+  // Роли прогнаны на разном коде — половина обхода старше другой половины
+  if (known.length > 1) {
+    notes.push("Роли прогнаны на разном коде: часть обхода старше остальных, нужен общий прогон.");
+  }
+  // Отметки нет вовсе: старый обход или подложенные данные. Сказать это, а не домысливать
+  if (marks.includes(null)) {
+    notes.push(
+      "У части ролей отметки нет: отчёт сделан обходом до того, как отметку стали ставить — на каком коде он шёл, неизвестно.",
+    );
+  }
+  // Сравнивать с текущим кодом можно, только когда отметка одна и она известна
+  if (head && known.length === 1 && known[0] && !known[0].startsWith(head)) {
+    notes.push(`Сводка собрана на ${head}: код с тех пор менялся, обход этих правок не видел.`);
+  }
+  const label = known.length ? known.join(", ") : "без отметки";
+  return `${label}.${notes.length ? " " + notes.join(" ") : ""}`;
 })();
 
 const lines: string[] = [
