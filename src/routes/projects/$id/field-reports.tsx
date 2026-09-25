@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { useNow } from "@/api/clock";
+import { CreateReportDialog } from "@/components/field/CreateReportDialog";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
 import { note } from "@/lib/contour-copy";
@@ -110,6 +111,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
   const navigate = useNavigate({ from: Route.fullPath });
   const reportsQuery = useQuery(queries.reports(project.id));
   const [source, setSource] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const feed = useRef<HTMLOListElement>(null);
 
   const reports = useMemo(
@@ -136,6 +138,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
     });
 
   const now = useNow();
+  const today = now.slice(0, 10);
   const screen = useScreenState({
     pending: reportsQuery.isPending,
     error: reportsQuery.isError,
@@ -162,15 +165,30 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
         project={project}
         title="Отчёты с площадки"
         actions={
-          // Как на телефоне: кнопка есть, когда есть что проверять и право проверять (ADR-015)
           !blocked &&
-          toReview.length > 0 &&
           canWriteReports && (
-            <Button variant="accent" onClick={nextToReview}>
-              <Check className="size-4" /> К следующему на проверке
-            </Button>
+            <span className="flex flex-wrap gap-2">
+              {/* Пока нет бота, это единственный способ сдать объём (ADR-022) */}
+              <Button variant="secondary" onClick={() => setCreateOpen(true)}>
+                <HardHat className="size-4" /> Завести отчёт
+              </Button>
+              {/* Как на телефоне: кнопка есть, когда есть что проверять и право проверять (ADR-015) */}
+              {toReview.length > 0 && (
+                <Button variant="accent" onClick={nextToReview}>
+                  <Check className="size-4" /> К следующему на проверке
+                </Button>
+              )}
+            </span>
           )
         }
+      />
+
+      <CreateReportDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        projectId={project.id}
+        zones={zones}
+        today={today}
       />
 
       <p className="sr-only">
@@ -351,6 +369,8 @@ function ReportCard({
               <span className="inline-flex items-center gap-1">
                 <kind.icon className="size-3" /> {kind.label}
               </span>
+              {/* Отчёт, заведённый руками, не притворяется сообщением с площадки (ADR-022, п. 2) */}
+              {card?.source?.kind === "manual" && <span>· внесён вручную</span>}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">

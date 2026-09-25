@@ -187,6 +187,12 @@ export const ACCESS_RULES: AccessRules = {
   },
   reports: {
     list: { sections: ["field-reports"], need: READ, project: (id) => project(id) },
+    // Завести отчёт может и прораб: до бота это его единственный способ отчитаться (ADR-022)
+    create: {
+      sections: ["field-reports"],
+      need: WRITE,
+      project: (input: { projectId: string }) => project(input.projectId),
+    },
     review: {
       sections: ["field-reports"],
       need: WRITE,

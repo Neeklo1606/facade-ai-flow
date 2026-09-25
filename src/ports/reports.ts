@@ -24,6 +24,25 @@ export const reviewReportInput = z
     path: ["acceptedQty"],
   });
 
+/**
+ * Отчёт, заведённый руками (ADR-022): поля те же, что прораб диктует голосом. Фото —
+ * по желанию: без бота их приносят на флешке.
+ */
+export const createReportInput = z.object({
+  projectId: z.string().min(1),
+  zoneId: z.string().min(1),
+  workType: z.string().min(2).max(120),
+  declaredQty: z.number().positive(),
+  unit: z.string().min(1).max(12),
+  /** Дата смены: задним числом можно, вперёд — нет, это не план */
+  reportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u),
+  headcount: z.number().int().min(0).max(200),
+  summary: z.string().min(3).max(600),
+  issue: z.string().max(300).optional(),
+});
+
+export type CreateReportInput = z.infer<typeof createReportInput>;
+
 export const reportCard = z.object({
   report: fieldReport,
   /** Первоисточник отчёта: расшифровка голосового сообщения или текст */
@@ -58,6 +77,8 @@ export interface SourceCard {
 export interface ReportsPort {
   /** Отчёты объекта с материалами и распознанными полями, новые сверху */
   list(projectId: string): Promise<ReportCard[]>;
+  /** Завести отчёт руками, пока нет бота: источник — «внесён вручную» (ADR-022) */
+  create(input: CreateReportInput, actor: Actor): Promise<FieldReport>;
   /** Приёмка или возврат на уточнение */
   review(input: ReviewReportInput, actor: Actor): Promise<void>;
   source(sourceId: string): Promise<SourceCard | null>;

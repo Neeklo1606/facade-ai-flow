@@ -20,6 +20,7 @@ import type {
   ResolveRemarkInput,
   PositionFilterInput,
   Repositories,
+  CreateReportInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -258,6 +259,8 @@ export const api = {
       server
         ? fn.reportsFn({ data: { projectId } })
         : local().then((r) => r.reports.list(projectId)),
+    create: (data: CreateReportInput) =>
+      server ? fn.createReportFn({ data }) : local().then((r) => r.reports.create(data, actor())),
     review: (data: ReviewReportInput) =>
       server
         ? fn.reviewReportFn({ data }).then(() => undefined)

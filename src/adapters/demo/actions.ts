@@ -41,9 +41,10 @@ import {
   reportStatusLabel,
   reportTransitions,
 } from "@/contracts";
-import type { Material } from "@/contracts";
+import type { FieldReport, Material, Source } from "@/contracts";
 import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
+  CreateReportInput,
   ResolveRemarkInput,
   AcceptDeliveryInput,
   CorrectPositionInput,
@@ -1190,6 +1191,78 @@ export function verifyContact(supplierId: string) {
         : p,
     ),
   }));
+}
+
+/**
+ * Завести отчёт руками, пока нет приёма из Telegram (ADR-022). Источник записывается честно:
+ * `manual`, автор — тот, кто внёс, время — сейчас. Расшифровки и распознанных полей у такого
+ * отчёта нет, и панель источника об этом говорит.
+ */
+export function createReport(input: CreateReportInput, actorId: string) {
+  const s = getState();
+  const project = s.projects.find((item) => item.id === input.projectId);
+  if (!project) throw new NotFoundError("Объект", input.projectId);
+  const zone = s.zones.find((item) => item.id === input.zoneId);
+  if (!zone || zone.projectId !== input.projectId) {
+    throw new NotFoundError("Захватка", input.zoneId);
+  }
+  const at = tick();
+  const today = at.slice(0, 10);
+  // Дата смены задним числом — норма, вперёд — нет: это отчёт, а не план
+  if (input.reportDate > today) throw new ConflictError("Дата смены не может быть в будущем");
+  const author = s.employees.find((item) => item.id === actorId);
+  const sourceId = liveId("src");
+  const source: Source = {
+    id: sourceId,
+    kind: "manual",
+    title: `Отчёт с площадки за ${input.reportDate.split("-").reverse().join(".")}`,
+    author: author?.name ?? actorId,
+    receivedAt: at,
+    projectId: input.projectId,
+    location: "внесён вручную",
+    excerpt: input.summary,
+  };
+  const report: FieldReport = {
+    id: liveId("fr"),
+    projectId: input.projectId,
+    zoneId: input.zoneId,
+    authorId: actorId,
+    crewId: null,
+    date: input.reportDate,
+    sentAt: at,
+    kind: "text",
+    workType: input.workType,
+    status: "review",
+    summary: input.summary,
+    declaredQty: input.declaredQty,
+    unit: input.unit,
+    acceptedQty: null,
+    headcount: input.headcount,
+    sourceId,
+    issues: input.issue
+      ? [{ id: liveId("fri"), text: input.issue, severity: "warning" as const }]
+      : [],
+    evidenceIds: [],
+  };
+  update((prev) => ({
+    ...prev,
+    sources: [...prev.sources, source],
+    reports: [...prev.reports, report],
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: input.projectId,
+          type: "report_added",
+          title: `Отчёт с площадки: ${input.workType}`,
+          details: `${input.declaredQty} ${input.unit}, захватка «${zone.name}». Внесён вручную.`,
+          sourceId,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return report;
 }
 
 export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   extractedPosition,
+  fieldReport,
   milestoneView,
   materials as materialRow,
   projectDecision,
@@ -57,6 +58,7 @@ import {
   reportCard,
   requestCard,
   requestSummary,
+  createReportInput,
   reviewReportInput,
   revisionChangeView,
   sourceCard,
@@ -403,6 +405,10 @@ export const reportsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) =>
     respond(z.array(reportCard), await repos().reports.list(data.projectId)),
   );
+
+export const createReportFn = createServerFn({ method: "POST" })
+  .validator(input(createReportInput))
+  .handler(async ({ data }) => respond(fieldReport, await repos().reports.create(data, actor())));
 
 export const reviewReportFn = createServerFn({ method: "POST" })
   .validator(input(reviewReportInput))

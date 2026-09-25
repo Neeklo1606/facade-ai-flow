@@ -22,6 +22,7 @@ import type {
   SetProjectStatusInput,
   MergePositionsInput,
   Page,
+  CreateReportInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -388,6 +389,17 @@ export function useVerifyContact() {
     meta: { action: "verifyContact" },
     mutationFn: (supplierId: string) => api.procurement.verifyContact(supplierId),
     onSettled: () => invalidate(queryClient, ["procurement"]),
+  });
+}
+
+/** Завести отчёт руками, пока нет бота (ADR-022) */
+export function useCreateReport(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "createReport" },
+    mutationFn: (input: CreateReportInput) => api.reports.create(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["reports", "timeline", "projects"]),
   });
 }
 

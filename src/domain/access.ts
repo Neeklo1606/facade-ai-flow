@@ -108,6 +108,13 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     projects: READ,
     documents: WRITE,
     procurement: READ,
+    /*
+     * Отчёты с площадки открыты ПТО на запись (ADR-022): пока нет бота, отчёт за прораба
+     * заводит офис, и запретить это значит оставить обещание из плана внедрения без опоры.
+     * Следствие, которое надо видеть: приёмка объёма этой же ячейкой открывается и ПТО —
+     * матрица одна на всё, отдельного права «только заводить» в ней нет.
+     */
+    "field-reports": WRITE,
     timeline: READ,
     catalogs: WRITE,
   },
