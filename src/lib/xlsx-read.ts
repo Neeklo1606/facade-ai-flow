@@ -117,13 +117,20 @@ export async function readXlsx(file: ArrayBuffer, limit = Infinity): Promise<She
 
   const rows: string[][] = [];
   let total = 0;
-  for (const rowMatch of xml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)) {
+  /*
+   * Пустые строки и ячейки Excel пишет самозакрывающимися: `<c r="B2" s="1"/>`. Регулярное
+   * выражение без этой ветки склеивало такую ячейку со следующей — значение соседа
+   * оказывалось в чужой колонке. Выгрузка из 1С полна таких ячеек, и сдвиг был бы молчаливым.
+   */
+  for (const rowMatch of xml.matchAll(/<row\b[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g)) {
     total += 1;
     if (rows.length >= limit) continue;
     const cells: string[] = [];
-    for (const cell of rowMatch[1]!.matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)) {
+    for (const cell of (rowMatch[1] ?? "").matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const attrs = cell[1]!;
-      const body = cell[2]!;
+      const body = cell[2];
+      // Самозакрывающаяся ячейка пуста: колонку не занимаем, дыру дополнит выравнивание ниже
+      if (body === undefined) continue;
       const at = columnIndex(/r="([A-Z]+\d+)"/.exec(attrs)?.[1] ?? "A1");
       const type = /t="([^"]+)"/.exec(attrs)?.[1] ?? "n";
       const raw = /<v>([\s\S]*?)<\/v>/.exec(body)?.[1] ?? "";
@@ -145,6 +152,15 @@ export async function readXlsx(file: ArrayBuffer, limit = Infinity): Promise<She
     }
     const width = cells.length;
     rows.push(Array.from({ length: width }, (_, i) => cells[i] ?? ""));
+  }
+  /*
+   * Хвост из пустых строк Excel держит в файле после удаления данных. Обрезаем только хвост:
+   * пустая строка в середине остаётся на месте, чтобы номера строк в отчёте о загрузке
+   * совпадали с номерами в файле — по ним человек и правит выгрузку.
+   */
+  while (rows.length && rows[rows.length - 1]!.every((cell) => cell === "")) {
+    rows.pop();
+    total -= 1;
   }
   const width = rows.reduce((max, row) => Math.max(max, row.length), 0);
   return { rows: rows.map((row) => Array.from({ length: width }, (_, i) => row[i] ?? "")), total };
