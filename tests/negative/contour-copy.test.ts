@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { DEMO_ONLY_NOTES, PROMISE_NOTES, demoOnly, note } from "@/lib/contour-copy";
+import {
+  DEMO_ONLY_NOTES,
+  PROMISE_NOTES,
+  demoOnly,
+  extractsDocuments,
+  note,
+} from "@/lib/contour-copy";
 
 /**
  * Честность в обоих контурах. Находка аудита соответствия: окно загрузки обещало разбор
@@ -70,6 +76,21 @@ describe("пометки контуров", () => {
       .map((file) => file.path)
       .filter((path) => !allowed.has(path));
     expect(offenders).toEqual([]);
+  });
+
+  test("поведение не обещает того, чего нет: разбор документов идёт только в демонстрации", () => {
+    /*
+     * Пометка и поведение обязаны ехать вместе. Пока `extractsDocuments` отвечает «нет»,
+     * экран проверки не имеет права говорить «документ обрабатывается»: обрабатывать его
+     * некому. И наоборот: если разбор подключат, пометку придётся переписать этой же правкой.
+     */
+    expect(extractsDocuments("demo")).toBe(true);
+    expect(extractsDocuments("server")).toBe(false);
+    const server = note("extraction", "server");
+    expect(server).toContain("подключается отдельно");
+    // Обещания «позиции заводятся вручную» быть не должно: заводить их пока негде
+    expect(/позиции заводятся вручную|заведены людьми/.test(server)).toBe(false);
+    expect(/позиции заводятся вручную/.test(note("upload", "server"))).toBe(false);
   });
 
   test("обход проверки закрыт: сырые тексты пометок не разбросаны по экранам", () => {
