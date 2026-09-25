@@ -535,10 +535,21 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             </Link>
           </Button>
         ) : allHandedOver ? (
-          canMaterials && (
+          canMaterials ? (
             <Button variant="accent" asChild>
               <Link to="/projects/$id/materials" params={{ id: project.id }}>
                 Открыть материалы <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          ) : (
+            /*
+             * Роли без доступа к материалам — ПТО — оставались без действия и без объяснения:
+             * экран проверки заканчивался ничем, а справка обещала здесь «Передать в закупку»
+             * (находка аудита соответствия). Говорим, что передавать нечего, и ведём дальше.
+             */
+            <Button variant="secondary" asChild>
+              <Link to="/projects/$id/documents" params={{ id: project.id }}>
+                Всё проверенное передано · к документации <ArrowRight className="size-4" />
               </Link>
             </Button>
           )

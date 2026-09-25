@@ -71,6 +71,8 @@ interface MaterialsSearch {
   purchase?: PurchaseStatus | undefined;
   chars?: CharsFilter | undefined;
   position?: string | undefined;
+  /** Только готовые к запросу: за этим счётчиком в шапке приходят чаще всего */
+  ready?: true | undefined;
 }
 
 const str = (value: unknown) => (typeof value === "string" && value ? value : undefined);
@@ -93,6 +95,7 @@ export const Route = createFileRoute("/projects/$id/materials")({
           : undefined,
       chars: chars === "with" || chars === "without" ? chars : undefined,
       position: str(search["position"]),
+      ...(search["ready"] === true || search["ready"] === "1" ? { ready: true as const } : {}),
     };
   },
   loader: async ({ params, context }) => {
@@ -128,6 +131,30 @@ const viewOfReview: Record<ReviewFilter, PositionView> = {
   excluded: "excluded",
 };
 
+/** Счётчик-ссылка в шапке: цифра и список всегда об одном (ADR-007, то же правило на дашборде) */
+function CounterLink({
+  label,
+  value,
+  active,
+  onSelect,
+}: {
+  label: string;
+  value: number;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      className="focus-ring rounded-[var(--r-xs)] px-0.5 transition-fast is-hover:text-text"
+    >
+      {label} <b className="tnum font-semibold text-text-primary">{fmtNum(value)}</b>
+    </button>
+  );
+}
+
 /** Строк раздела за один запрос: следующие — по «Показать ещё» (P3-3) */
 const PAGE = 40;
 
@@ -136,6 +163,7 @@ interface GroupFilter {
   view: PositionView;
   stage?: PurchaseStatus | undefined;
   chars?: CharsFilter | undefined;
+  readyForRequest?: boolean | undefined;
 }
 
 /** Выделенная позиция: раздел — для счётчика раздела, ready — можно ли запросить цены */
@@ -160,6 +188,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
     view: search.review ? viewOfReview[search.review] : "active",
     stage: search.purchase,
     chars: search.chars,
+    ...(search.ready ? { readyForRequest: true } : {}),
   };
   // Счётчики объекта (этапы закупки, список разделов) и счётчики под фильтрами считает сервер
   const scopeQuery = useQuery(queries.positionFacets({ projectId: project.id }));
@@ -198,7 +227,9 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
   const readyTotal = scopeQuery.data?.readyForRequest ?? 0;
 
   const eligibleCount = [...selected.values()].filter((item) => item.ready).length;
-  const filtersActive = Boolean(search.group || search.review || search.purchase || search.chars);
+  const filtersActive = Boolean(
+    search.group || search.review || search.purchase || search.chars || search.ready,
+  );
   const openItem = openItemQuery.data ?? null;
   const docTitle = (id: string) => documents.find((doc) => doc.id === id)?.title ?? "Документ";
 
@@ -247,18 +278,51 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
       <SubpageHeader
         project={project}
         title="Материалы"
+        /*
+          Счётчик — это фильтр. На дашборде цифра ведёт в список с тем же условием, а здесь
+          «готовы к запросу 23» была просто текстом: чтобы их увидеть, снабженец открывал
+          селект и выбирал значение — три действия там, где хватает одного (находка аудита).
+        */
         meta={
           <span id="materials-summary" className="text-caption text-text-secondary">
-            Позиций{" "}
-            <b className="tnum font-semibold text-text-primary">
-              {fmtNum(overview?.specTotal ?? 0)}
-            </b>{" "}
-            · проверено{" "}
-            <b className="tnum font-semibold text-text-primary">
-              {fmtNum((overview?.specTotal ?? 0) - (overview?.specUnverified ?? 0))}
-            </b>{" "}
-            · готовы к запросу{" "}
-            <b className="tnum font-semibold text-text-primary">{fmtNum(readyTotal)}</b>
+            <CounterLink
+              label="Позиций"
+              value={overview?.specTotal ?? 0}
+              active={!filtersActive}
+              onSelect={() =>
+                setSearch({
+                  review: undefined,
+                  purchase: undefined,
+                  chars: undefined,
+                  ready: undefined,
+                })
+              }
+            />{" "}
+            ·{" "}
+            <CounterLink
+              label="проверено"
+              value={(overview?.specTotal ?? 0) - (overview?.specUnverified ?? 0)}
+              active={search.review === "verified"}
+              onSelect={() =>
+                setSearch({
+                  review: search.review === "verified" ? undefined : "verified",
+                  ready: undefined,
+                })
+              }
+            />{" "}
+            ·{" "}
+            <CounterLink
+              label="готовы к запросу"
+              value={readyTotal}
+              active={!!search.ready}
+              onSelect={() =>
+                setSearch({
+                  ready: search.ready ? undefined : true,
+                  review: undefined,
+                  purchase: undefined,
+                })
+              }
+            />
           </span>
         }
         actions={

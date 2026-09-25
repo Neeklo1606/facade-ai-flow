@@ -150,6 +150,8 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
     },
     { extracted: 0, verified: 0 },
   );
+  /** Документ, в котором лежат позиции: туда и ведут счётчики шапки */
+  const withPositions = documents.find((doc) => (stats.get(doc.id)?.extracted ?? 0) > 0) ?? null;
 
   return (
     <>
@@ -169,12 +171,43 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         проверку.
       </p>
 
+      {/*
+        Цифра ведёт туда, где она собрана: из «Извлечено позиций» и «Проверено» открывается
+        проверка того документа, в котором позиции лежат. Раньше счётчики были подписями,
+        и к проверке шли через таблицу (находка аудита соответствия).
+      */}
       <MetricStrip
         className="mb-6"
         items={[
           { icon: FileText, label: "Документов", value: fmtNum(documents.length) },
-          { icon: FileSearch, label: "Извлечено позиций", value: fmtNum(totals.extracted) },
-          { icon: FileCheck2, label: "Проверено", value: fmtNum(totals.verified) },
+          {
+            icon: FileSearch,
+            label: "Извлечено позиций",
+            value: fmtNum(totals.extracted),
+            ...(withPositions
+              ? {
+                  onSelect: () =>
+                    navigate({
+                      to: "/projects/$id/documents/$docId",
+                      params: { id: project.id, docId: withPositions.id },
+                    }),
+                }
+              : {}),
+          },
+          {
+            icon: FileCheck2,
+            label: "Проверено",
+            value: fmtNum(totals.verified),
+            ...(withPositions
+              ? {
+                  onSelect: () =>
+                    navigate({
+                      to: "/projects/$id/documents/$docId",
+                      params: { id: project.id, docId: withPositions.id },
+                    }),
+                }
+              : {}),
+          },
         ]}
       />
 
