@@ -34,6 +34,8 @@ const steps: Step[] = [
   { name: "Линтер", cmd: ["bun", "run", "lint"] },
   { name: "Тесты: домен, согласованность, негативные", cmd: ["bun", "run", "test"] },
   { name: "Фикстуры против схемы", cmd: ["bun", "run", "check:fixtures"] },
+  // Ссылки в документах: README уже вёл на ADR, которого в main не было (аудит соответствия)
+  { name: "Ссылки в документах", cmd: ["bun", "run", "check:links"] },
   {
     name: "PostgreSQL: миграции, паритет с демо, версия данных",
     cmd: ["bun", "run", "check:db"],

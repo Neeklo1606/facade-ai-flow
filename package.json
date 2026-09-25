@@ -23,6 +23,7 @@
     "walkthrough:report": "bun scripts/walkthrough-report.ts && prettier --write docs/state/walkthrough.md",
     "check:bundle": "bun scripts/check-bundle.ts",
     "check:sources": "bun scripts/check-sources.ts",
+    "check:links": "bun scripts/check-links.ts",
     "lighthouse": "bun scripts/lighthouse.ts",
     "ci": "bun scripts/ci.ts"
   },
