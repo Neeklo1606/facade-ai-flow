@@ -9,15 +9,15 @@ import { readXlsx } from "@/lib/xlsx-read";
  */
 
 async function xlsx(rows: (string | number)[][]) {
+  // Сборка `/node` всегда отдаёт `{ toBuffer, toStream, toFile }` — отдельная настройка не нужна
   const written = await writeXlsxFile(
     rows.map((row) =>
       row.map((value) =>
         typeof value === "number" ? { type: Number, value } : { type: String, value },
       ),
     ),
-    { buffer: true },
   );
-  const buffer: Buffer = await (written as unknown as { toBuffer(): Promise<Buffer> }).toBuffer();
+  const buffer = await written.toBuffer();
   return buffer.buffer.slice(
     buffer.byteOffset,
     buffer.byteOffset + buffer.byteLength,

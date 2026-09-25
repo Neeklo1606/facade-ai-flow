@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import writeXlsxFile from "write-excel-file/node";
 import { expect, expectA11y, expectEmber, open, test } from "./fixtures";
@@ -73,12 +73,8 @@ test.describe("окна", () => {
           ["", "шт", "Подконструкция", ""],
           ["Профиль Т-образный 3 м", "м", "Такой категории нет", ""],
         ].map((row) => row.map((value) => ({ type: String, value }))),
-        { buffer: true },
       );
-      await writeFile(
-        path,
-        await (written as unknown as { toBuffer(): Promise<Buffer> }).toBuffer(),
-      );
+      await written.toFile(path);
 
       await open(page, "/catalogs");
       await page.getByRole("button", { name: "Загрузить из Excel" }).click();
