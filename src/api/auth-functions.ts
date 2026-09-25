@@ -38,12 +38,14 @@ export const requestCodeFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => phoneInput.parse(input))
   .handler(async ({ data }) => {
     if (!authAvailable()) return { ok: false as const, reason: "no-database" as const };
+    // Канал проверяем до всего остального: без него код не создаём и не выдаём
+    const channel = authChannel();
+    if (!channel) return { ok: false as const, reason: "no-channel" as const };
     const phone = normalizePhone(data.phone);
     const employee = await employeeByPhone(phone);
     if (!employee) return { ok: true as const, shown: null };
     const created = await createCode(phone);
     if ("refusal" in created) return { ok: false as const, reason: created.refusal };
-    const channel = authChannel();
     const sent = await channel.sendCode(phone, created.code);
     // Заглушка возвращает код: экран покажет его и скажет, что SMS не подключены
     return { ok: true as const, shown: channel.kind === "log" ? sent.shown : null };
@@ -91,7 +93,7 @@ export const signOutFn = createServerFn({ method: "POST" }).handler(async () => 
 /** Нужен ли вход: экран входа спрашивает это до того, как показать форму */
 export const authStateFn = createServerFn({ method: "GET" }).handler(async () => ({
   required: authAvailable(),
-  channel: authAvailable() ? authChannel().kind : null,
+  channel: authAvailable() ? (authChannel()?.kind ?? "none") : null,
 }));
 
 /* ---------- Приглашения и доступ сотрудников (ADR-021, п. 8) ---------- */
@@ -121,9 +123,13 @@ export const inviteEmployeeFn = createServerFn({ method: "POST" })
     const origin = new URL(getRequest().url).origin;
     const url = `${origin}/login?invite=${token}`;
     const channel = authChannel();
-    if (employee.email) await channel.sendLink(employee.email, url);
-    // Заглушка возвращает ссылку экрану: настоящая отправка её не показывает
-    return { ok: true as const, url: channel.kind === "log" ? url : null };
+    if (channel && employee.email) await channel.sendLink(employee.email, url);
+    /*
+     * Ссылку показываем руководителю, когда отправлять её нечем: приглашение — единственный
+     * путь внутрь без канала, и передать его из рук в руки лучше, чем не пустить человека.
+     * Настоящая отправка ссылку на экране не показывает.
+     */
+    return { ok: true as const, url: !channel || channel.kind === "log" ? url : null };
   });
 
 /** Выключить доступ: сотрудник помечается неактивным, его сессии гаснут */

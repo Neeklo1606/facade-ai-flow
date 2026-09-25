@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { normalizePhone, newCode } from "@/api/auth-store";
+import { authChannel } from "@/api/auth-channel";
 import { PERSONA_PREFIX, SESSION_PREFIX, signSession, verifySession } from "@/lib/session-token";
 
 /**
@@ -44,5 +45,33 @@ describe("значение сессии", () => {
     const signed = await signSession(`${SESSION_PREFIX}0ddac062-3a8a-4cd9-8748-d8bfd685ded0`);
     const other = signed.replace(`${SESSION_PREFIX}0ddac062`, `${SESSION_PREFIX}1ddac062`);
     expect(await verifySession(other)).toBeNull();
+  });
+});
+
+describe("канал отправки кода", () => {
+  /*
+   * Заглушка показывает код на экране входа. Пока она стояла по умолчанию, рабочая установка
+   * без `AUTH_CHANNEL` пускала внутрь любого, кто знает чужой телефон. Настройка по умолчанию
+   * не имеет права быть открытой дверью: без канала вход возможен только по приглашению.
+   */
+  const saved = process.env["AUTH_CHANNEL"];
+  afterEach(() => {
+    if (saved === undefined) delete process.env["AUTH_CHANNEL"];
+    else process.env["AUTH_CHANNEL"] = saved;
+  });
+
+  test("без переменной канала нет", () => {
+    delete process.env["AUTH_CHANNEL"];
+    expect(authChannel()).toBeNull();
+  });
+
+  test("заглушку включают явно", () => {
+    process.env["AUTH_CHANNEL"] = "log";
+    expect(authChannel()?.kind).toBe("log");
+  });
+
+  test("неизвестный канал отказывает, а не притворяется отправкой", () => {
+    process.env["AUTH_CHANNEL"] = "sms";
+    expect(() => authChannel()).toThrow(/не подключён/);
   });
 });
