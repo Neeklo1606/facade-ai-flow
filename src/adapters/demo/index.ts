@@ -274,6 +274,9 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           ),
         ),
       correct: (input, { actorId }) => done(actions.correct(input, actorId)),
+      // Заведение руками и загрузка спецификации (ADR-025): разбора файла нет
+      create: (input, { actorId }) => attempt(() => actions.createPosition(input, actorId)),
+      importSpec: (input, { actorId }) => attempt(() => actions.importSpec(input, actorId)),
       exclude: ({ id }, { actorId }) =>
         done(actions.setReview(id, "excluded", "Исключено из спецификации", actorId)),
       markHeader: ({ id }, { actorId }) =>

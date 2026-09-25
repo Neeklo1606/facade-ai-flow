@@ -156,6 +156,16 @@ export const PositionRow = memo(function PositionRow({
             )}
           </div>
 
+          {/*
+            Строка, заведённая человеком: места на листе у неё нет, и это видно сразу (ADR-025).
+            Нулевая рамка — признак ввода руками: у разобранной строки есть место на чертеже.
+          */}
+          {item.note && !pending && item.region.w === 0 && item.region.h === 0 && (
+            <p className="mt-1.5 rounded-[var(--r-xs)] bg-subtle px-2 py-1 text-caption text-text-secondary">
+              {item.note}: места на листе нет
+            </p>
+          )}
+
           {item.note && pending && (
             <p
               className={cn(

@@ -11,6 +11,8 @@ import type {
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  CreatePositionInput,
+  ImportSpecInput,
   ConfirmMatchInput,
   SaveMaterialInput,
   MoveDeliveryInput,
@@ -513,6 +515,28 @@ export function useCompleteMilestone() {
     meta: { action: "completeMilestone" },
     mutationFn: (input: CompleteMilestoneInput) => api.projects.completeMilestone(input),
     onSettled: () => invalidate(queryClient, ["projects", "timeline"]),
+  });
+}
+
+/** Позиция заведена руками (ADR-025): список проверки, счётчики, история */
+export function useCreatePosition(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "createPosition" },
+    mutationFn: (input: CreatePositionInput) => api.positions.create(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents", "projects"]),
+  });
+}
+
+/** Спецификация загружена пачкой из файла (ADR-025, п. 2) */
+export function useImportSpec(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "importSpec" },
+    mutationFn: (input: ImportSpecInput) => api.positions.importSpec(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents", "projects"]),
   });
 }
 

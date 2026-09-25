@@ -70,6 +70,8 @@ import type {
   UploadRevisionInput,
   SetProjectStatusInput,
   CompleteMilestoneInput,
+  CreatePositionInput,
+  ImportSpecInput,
   SaveZoneInput,
   ResolveChangeInput,
   ConfirmMatchInput,
@@ -79,7 +81,7 @@ import type {
 } from "@/ports";
 import { addDays, tick } from "./clock";
 import { liveId, positionChange, projectEvent } from "./records";
-import { replyJobs, schedule, shipmentJobs, uploadJob } from "./simulator";
+import { replyJobs, schedule, shipmentJobs, simulatorRuns, uploadJob } from "./simulator";
 import { getState, update } from "./state";
 
 /**
@@ -175,6 +177,148 @@ export function confirm(ids: string[], actorId: string) {
     targets.map((item) => reviewChange(item, "confirmed", actorId, "Подтверждено")),
   );
   return targets.map((item) => item.id);
+}
+
+/**
+ * Завести позицию руками (ADR-025). Разбора файла нет, строку вводит человек: уверенность
+ * единица — её не распознавали, места на листе нет, проверка пройдена вводом. Сопоставление
+ * с номенклатурой предлагается тем же правилом, что при разборе, и подтверждает его человек.
+ */
+function buildPosition(
+  input: {
+    revisionId: string;
+    position?: string | undefined;
+    projectName: string;
+    qty: number;
+    unit: string;
+    note?: string | undefined;
+  },
+  actorId: string,
+  origin: string,
+): ExtractedPosition {
+  const s = getState();
+  const revision = s.documents.find((item) => item.id === input.revisionId);
+  if (!revision) throw new NotFoundError("Ревизия документа", input.revisionId);
+  const sheet = s.sheets.find((item) => item.documentId === revision.id);
+  if (!sheet) throw new ConflictError("У ревизии нет листов: позицию не к чему привязать");
+  const name = input.projectName.trim();
+  const unit = input.unit.trim();
+  const inRevision = s.positions.filter((item) => item.documentId === revision.id);
+  const label = input.position?.trim();
+  if (label && inRevision.some((item) => item.position === label)) {
+    throw new ConflictError(`Позиция «${label}» в этой ревизии уже есть`);
+  }
+  // Следующий свободный номер: наибольший целый плюс один, как в таблице документа
+  const next = String(
+    Math.max(0, ...inRevision.map((item) => Math.floor(Number(item.position)) || 0)) + 1,
+  );
+  const suggestion = suggestMaterial(name, s.materials);
+  const material = suggestion
+    ? s.materials.find((item) => item.id === suggestion.materialId)
+    : null;
+  return {
+    id: liveId("pos"),
+    projectId: revision.projectId,
+    documentId: revision.id,
+    sheetId: sheet.id,
+    sheetNumber: sheet.number,
+    position: label || next,
+    group: sheet.group,
+    family: material?.family ?? "прочее",
+    projectName: name,
+    materialId: material?.id ?? null,
+    normalizedName: material?.name ?? null,
+    matchStatus: material ? "suggested" : "none",
+    matchedBy: null,
+    matchedAt: null,
+    characteristics: [],
+    qty: round3(input.qty),
+    unit,
+    // Не распознавали — значит и не сомневаемся: значение ввёл человек
+    confidence: 1,
+    // Места на листе нет: нулевая рамка означает «на чертеже не показать», и экран так и говорит
+    region: { x: 0, y: 0, w: 0, h: 0 },
+    review: "confirmed",
+    reviewedBy: actorId,
+    reviewedAt: tick(),
+    note: origin,
+    handedOverAt: null,
+    purchase: "none",
+    deliveredQty: null,
+    requestIds: [],
+    mergedInto: null,
+  };
+}
+
+export function createPosition(input: CreatePositionInput, actorId: string): ExtractedPosition {
+  const position = buildPosition(input, actorId, input.note?.trim() || "заведена вручную");
+  update((prev) => ({
+    ...prev,
+    positions: [...prev.positions, position],
+    changes: [
+      ...prev.changes,
+      positionChange(position.id, actorId, "Позиция заведена вручную", null, position.projectName),
+    ],
+  }));
+  return position;
+}
+
+/** Спецификация пачкой из файла (ADR-025, п. 2): отказ строки называется номером и причиной */
+export function importSpec(input: ImportSpecInput, actorId: string): ImportReport {
+  const refused: { row: number; reason: string }[] = [];
+  let added = 0;
+  input.rows.forEach((row, index) => {
+    // Номер строки в файле: первая — заголовок, поэтому смещение на две
+    const at = index + 2;
+    const name = row.name.trim();
+    if (name.length < 3) {
+      refused.push({
+        row: at,
+        reason: name ? "наименование короче трёх знаков" : "пустое наименование",
+      });
+      return;
+    }
+    const qty = Number(row.qty.replace(/\s/g, "").replace(",", "."));
+    if (!Number.isFinite(qty) || qty < 0) {
+      refused.push({ row: at, reason: `количество «${row.qty}» не число` });
+      return;
+    }
+    if (!row.unit.trim()) {
+      refused.push({ row: at, reason: "пустая единица измерения" });
+      return;
+    }
+    try {
+      const position = buildPosition(
+        {
+          revisionId: input.revisionId,
+          ...(row.position?.trim() ? { position: row.position.trim() } : {}),
+          projectName: name,
+          qty,
+          unit: row.unit,
+        },
+        actorId,
+        "загружена из файла",
+      );
+      update((prev) => ({
+        ...prev,
+        positions: [...prev.positions, position],
+        changes: [
+          ...prev.changes,
+          positionChange(
+            position.id,
+            actorId,
+            "Позиция загружена из файла",
+            null,
+            position.projectName,
+          ),
+        ],
+      }));
+      added += 1;
+    } catch (error) {
+      refused.push({ row: at, reason: error instanceof Error ? error.message : "не сохранилось" });
+    }
+  });
+  return { added, updated: 0, refused };
 }
 
 export function correct({ id, ...patch }: CorrectPositionInput, actorId: string) {
@@ -651,8 +795,14 @@ export function upload(input: UploadRevisionInput, actorId: string) {
     sizeKb: input.sizeKb,
     uploadedAt: tick(),
     uploadedBy: actorId,
-    sheetCount:
-      fileType === "xlsx"
+    /*
+     * Число листов угадывалось по размеру файла — и попадало в базу заказчика как факт.
+     * Без разбора файла у ревизии один лист: выдумывать структуру чужого документа нельзя
+     * (ADR-025, п. 5). В демонстрации листы по-прежнему нужны: там их показывает симулятор.
+     */
+    sheetCount: !simulatorRuns()
+      ? 1
+      : fileType === "xlsx"
         ? 1
         : Math.min(MAX_SHEETS, 1 + Math.round((input.sizeKb * 1024) / 180_000)),
     status: "uploaded",
@@ -660,31 +810,47 @@ export function upload(input: UploadRevisionInput, actorId: string) {
     positionsTotal: null,
     positionsVerified: null,
   };
-  const sheets = sheetsOf(doc, section).map((row) => ({
-    id: row.id,
-    documentId: row.revisionId,
-    number: row.number,
-    title: row.title,
-    group: row.groupName,
-  }));
+  const sheets = simulatorRuns()
+    ? sheetsOf(doc, section).map((row) => ({
+        id: row.id,
+        documentId: row.revisionId,
+        number: row.number,
+        title: row.title,
+        group: row.groupName,
+      }))
+    : [
+        {
+          id: `${doc.id}-sh-1`,
+          documentId: doc.id,
+          number: 1,
+          title: "Без разбора листов",
+          group: section,
+        },
+      ];
   update((prev) => ({
     ...prev,
     documents: [doc, ...prev.documents],
     sheets: [...prev.sheets, ...sheets],
-    // Задача извлечения в очереди; стадии проводит симулятор, как обработчик на сервере
-    extractionJobs: [
-      ...prev.extractionJobs,
-      {
-        id: liveId("ej"),
-        revisionId: id,
-        status: "queued",
-        stage: 0,
-        queuedAt: doc.uploadedAt,
-        startedAt: null,
-        finishedAt: null,
-        error: null,
-      },
-    ],
+    /*
+     * Задача извлечения ставится только там, где её кто-то проводит: стадии двигает симулятор.
+     * В рабочем контуре обработчика разбора нет, и очередь из одной вечной задачи означала бы
+     * «документ обрабатывается» без конца (ADR-025, п. 6).
+     */
+    extractionJobs: simulatorRuns()
+      ? [
+          ...prev.extractionJobs,
+          {
+            id: liveId("ej"),
+            revisionId: id,
+            status: "queued" as const,
+            stage: 0,
+            queuedAt: doc.uploadedAt,
+            startedAt: null,
+            finishedAt: null,
+            error: null,
+          },
+        ]
+      : prev.extractionJobs,
     events: [
       ...prev.events,
       projectEvent(

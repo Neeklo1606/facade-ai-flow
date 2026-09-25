@@ -194,6 +194,8 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
         "correct",
         "exclude",
         "markHeader",
+        "create",
+        "importSpec",
         "reopen",
         "undoReview",
         "merge",

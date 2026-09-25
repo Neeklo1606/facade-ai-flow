@@ -10,6 +10,8 @@ import {
   Rows3,
   Send,
   X,
+  Plus,
+  Upload,
 } from "lucide-react";
 import {
   loadProject,
@@ -41,6 +43,8 @@ import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { dataSource } from "@/api/config";
 import { extractsDocuments, note } from "@/lib/contour-copy";
+import { CreatePositionDialog } from "@/components/documents/CreatePositionDialog";
+import { ImportSpecDialog } from "@/components/documents/ImportSpecDialog";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -152,6 +156,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
   const [mergeSourceId, setMergeSourceId] = useState<string | null>(null);
   const [splitId, setSplitId] = useState<string | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  // Заведение позиции руками и загрузка спецификации (ADR-025)
+  const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"tree" | "viewer" | "list">("list");
 
@@ -732,11 +739,22 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                 </div>
               </div>
             ) : totalPositions === 0 && !extractsDocuments() ? (
-              // Честный тупик вместо «таблиц не найдено»: никто не искал, разбор не подключён
-              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+              // Честный тупик вместо «таблиц не найдено»: никто не искал, разбор не подключён.
+              // Но тупик с выходом: строки заводят руками или загружают из файла (ADR-025)
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                 <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
-                <p className="mt-3 text-[14px] font-medium">Позиций из этого файла нет</p>
-                <p className="mt-1 text-caption text-text-muted">{note("extraction")}</p>
+                <p className="text-[14px] font-medium">Позиций из этого файла нет</p>
+                <p className="text-caption text-text-muted">{note("extraction")}</p>
+                {canEdit && (
+                  <div className="mt-1 grid w-full max-w-[280px] gap-2">
+                    <Button variant="accent" onClick={() => setImportOpen(true)}>
+                      <Upload className="size-4" /> Загрузить спецификацию из Excel
+                    </Button>
+                    <Button variant="secondary" onClick={() => setCreateOpen(true)}>
+                      <Plus className="size-4" /> Завести позицию
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : totalPositions === 0 && document.positionsTotal ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -812,6 +830,27 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                         <span className="tnum text-text-muted">{fmtNum(autoVerified)}</span>
                       )}
                     </Button>
+                  )}
+                  {/* Строку, которой в списке нет, надо чем-то добавить: разбор её не принесёт */}
+                  {canEdit && (
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-11 flex-1 lg:h-8"
+                        onClick={() => setCreateOpen(true)}
+                      >
+                        <Plus className="size-4" /> Позиция
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-11 flex-1 lg:h-8"
+                        onClick={() => setImportOpen(true)}
+                      >
+                        <Upload className="size-4" /> Из Excel
+                      </Button>
+                    </div>
                   )}
                   <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none]">
                     {(
@@ -1058,6 +1097,8 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
         }}
       />
       <SendDialog open={sendOpen} summary={summary} onOpenChange={setSendOpen} onConfirm={send} />
+      <CreatePositionDialog open={createOpen} onOpenChange={setCreateOpen} revisionId={docId} />
+      <ImportSpecDialog open={importOpen} onOpenChange={setImportOpen} revisionId={docId} />
     </div>
   );
 }

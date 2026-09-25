@@ -113,6 +113,17 @@ export const ACCESS_RULES: AccessRules = {
       need: WRITE,
       project: (input) => ref("position", input.id),
     },
+    // Заведение и загрузка спецификации — та же работа с документом, что проверка (ADR-025)
+    create: {
+      sections: ["documents"],
+      need: WRITE,
+      project: (input) => ref("revision", input.revisionId),
+    },
+    importSpec: {
+      sections: ["documents"],
+      need: WRITE,
+      project: (input) => ref("revision", input.revisionId),
+    },
     exclude: {
       sections: ["documents"],
       need: WRITE,

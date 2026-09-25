@@ -22,6 +22,8 @@ import {
   supplierCard,
   askAgentInput,
   correctPositionInput,
+  createPositionInput,
+  importSpecInput,
   counterpartyList,
   createProjectInput,
   setProjectStatusInput,
@@ -247,6 +249,19 @@ export const confirmFn = createServerFn({ method: "POST" })
   .validator(input(idsInput))
   .handler(async ({ data }) =>
     respond(z.array(z.string()), await repos().positions.confirm(data, actor())),
+  );
+
+/** Позиция заведена руками или загружена пачкой из файла (ADR-025) */
+export const createPositionFn = createServerFn({ method: "POST" })
+  .validator(input(createPositionInput))
+  .handler(async ({ data }) =>
+    respond(extractedPosition, await repos().positions.create(data, actor())),
+  );
+
+export const importSpecFn = createServerFn({ method: "POST" })
+  .validator(input(importSpecInput))
+  .handler(async ({ data }) =>
+    respond(importReport, await repos().positions.importSpec(data, actor())),
   );
 
 export const correctFn = createServerFn({ method: "POST" })

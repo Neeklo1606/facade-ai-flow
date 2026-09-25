@@ -4,6 +4,8 @@ import type {
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  CreatePositionInput,
+  ImportSpecInput,
   ConfirmMatchInput,
   SaveMaterialInput,
   CreateProjectInput,
@@ -170,6 +172,14 @@ export const api = {
       server
         ? fn.confirmFn({ data: { ids } })
         : local().then((r) => r.positions.confirm({ ids }, actor())),
+    create: (data: CreatePositionInput) =>
+      server
+        ? fn.createPositionFn({ data })
+        : local().then((r) => r.positions.create(data, actor())),
+    importSpec: (data: ImportSpecInput) =>
+      server
+        ? fn.importSpecFn({ data })
+        : local().then((r) => r.positions.importSpec(data, actor())),
     correct: (data: CorrectPositionInput) =>
       server
         ? fn.correctFn({ data }).then(() => undefined)

@@ -14,6 +14,7 @@ import {
 } from "@/contracts";
 import { positionViews, type PositionView } from "@/domain/positions";
 import { type Actor, type Page } from "./common";
+import { importReport, type ImportReport } from "./catalog";
 
 /**
  * Фильтр позиций (P3-3): область — объект или ревизия, остальное сужает список.
@@ -98,6 +99,41 @@ const id = z.string().min(1);
 export const idsInput = z.object({ ids: z.array(id).min(1) });
 export const idInput = z.object({ id });
 
+/** Количество как numeric(14,3): не больше трёх знаков после запятой */
+const qtyValue = z
+  .number()
+  .nonnegative()
+  .max(99_999_999_999)
+  .refine((value) => Math.abs(Math.round(value * 1000) - value * 1000) < 1e-6, {
+    message: "Не больше трёх знаков после запятой",
+  });
+
+/** Позиция, заведённая человеком (ADR-025): разбора файла нет, строку вводят руками */
+export const createPositionInput = z.object({
+  revisionId: id,
+  /** Пусто — следующий свободный номер в ревизии */
+  position: z.string().trim().max(24).optional(),
+  projectName: z.string().trim().min(3).max(300),
+  qty: qtyValue,
+  unit: z.string().trim().min(1).max(20),
+  note: z.string().trim().max(300).optional(),
+});
+
+/** Спецификация пачкой из файла (ADR-025, п. 2): то, что человек сопоставил с колонками */
+export const importSpecInput = z.object({
+  revisionId: id,
+  rows: z
+    .array(
+      z.object({
+        position: z.string().trim().max(24).optional(),
+        name: z.string().trim().max(300),
+        qty: z.string().trim().max(32),
+        unit: z.string().trim().max(20),
+      }),
+    )
+    .max(5000),
+});
+
 export const correctPositionInput = z.object({
   id,
   projectName: z.string().trim().min(1),
@@ -159,6 +195,8 @@ export type PositionFilterInput = z.input<typeof positionFilter>;
 export type PositionFacetsResult = z.infer<typeof positionFacets>;
 export type PositionSelection = z.infer<typeof positionSelection>;
 export type CorrectPositionInput = z.infer<typeof correctPositionInput>;
+export type CreatePositionInput = z.infer<typeof createPositionInput>;
+export type ImportSpecInput = z.infer<typeof importSpecInput>;
 export type UndoReviewInput = z.infer<typeof undoReviewInput>;
 export type MergePositionsInput = z.infer<typeof mergePositionsInput>;
 export type SplitPositionInput = z.infer<typeof splitPositionInput>;
@@ -180,6 +218,10 @@ export interface PositionsPort {
   /** Подтверждает непроверенные позиции ревизии с высокой уверенностью; какие — решает сервер */
   confirmAutoVerified(input: z.infer<typeof handOverInput>, actor: Actor): Promise<string[]>;
   correct(input: CorrectPositionInput, actor: Actor): Promise<void>;
+  /** Завести позицию руками: разбора файла нет, строку вводит человек (ADR-025) */
+  create(input: CreatePositionInput, actor: Actor): Promise<ExtractedPosition>;
+  /** Загрузить спецификацию пачкой; не принятые строки возвращаются с номерами и причинами */
+  importSpec(input: ImportSpecInput, actor: Actor): Promise<ImportReport>;
   exclude(input: z.infer<typeof idInput>, actor: Actor): Promise<void>;
   markHeader(input: z.infer<typeof idInput>, actor: Actor): Promise<void>;
   /** Возвращает исключённую, объединённую или заголовок на проверку */

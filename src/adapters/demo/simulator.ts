@@ -44,6 +44,11 @@ let running = false;
 /** Без симулятора события не заводятся вовсе: режим базы и паритетный тест (ADR-005, п. 12) */
 let enabled = true;
 
+/** Идут ли имитации: без них не выдумываются ни листы документа, ни очередь разбора (ADR-025) */
+export function simulatorRuns() {
+  return enabled;
+}
+
 export function disableSimulator() {
   enabled = false;
   stopSimulator();
