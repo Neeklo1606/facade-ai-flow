@@ -75,9 +75,6 @@ function CatalogsPage() {
         actions={
           canEdit && (
             <>
-              <Button variant="ghost" onClick={() => setJournalOpen(true)}>
-                <History className="size-4" /> Журнал
-              </Button>
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 <Upload className="size-4" /> Загрузить из Excel
               </Button>
@@ -156,19 +153,27 @@ function CatalogsPage() {
         </nav>
 
         <section aria-label="Номенклатура" className="grid content-start gap-3">
-          <label className="relative block">
-            <span className="sr-only">Поиск по названию, синонимам и написаниям</span>
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-3"
-              aria-hidden
-            />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Название, синоним или написание в проекте"
-              className="focus-ring h-11 w-full rounded-[var(--r-md)] border border-line bg-surface-2 pr-3 pl-9 text-[14px] text-text placeholder:text-text-3"
-            />
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="relative block flex-1">
+              <span className="sr-only">Поиск по названию, синонимам и написаниям</span>
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-3"
+                aria-hidden
+              />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Название, синоним или написание в проекте"
+                className="focus-ring h-11 w-full rounded-[var(--r-md)] border border-line bg-surface-2 pr-3 pl-9 text-[14px] text-text placeholder:text-text-3"
+              />
+            </label>
+            {/* Журнал доступен на любой ширине: в шапке экрана его на телефоне не видно */}
+            {canEdit && (
+              <Button variant="secondary" onClick={() => setJournalOpen(true)}>
+                <History className="size-4" /> Журнал
+              </Button>
+            )}
+          </div>
 
           {rows.length === 0 ? (
             <EmptyState
@@ -269,12 +274,9 @@ function CatalogsPage() {
       {/* На телефоне действие шапки — в нижней панели, как на остальных экранах */}
       {canEdit && (
         <MobileActionBar>
-          {/* Загрузка из файла — действие с компьютера: на телефоне её в панели нет */}
-          <Button variant="secondary" onClick={() => setJournalOpen(true)}>
-            <History className="size-4" /> Журнал
-          </Button>
+          {/* Одно главное действие: журнал открывается кнопкой у поиска, загрузка — с компьютера */}
           <Button variant="accent" onClick={() => setEditing(null)}>
-            <Plus className="size-4" /> Материал
+            <Plus className="size-4" /> Добавить материал
           </Button>
         </MobileActionBar>
       )}

@@ -148,7 +148,12 @@ function CounterLink({
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      className="focus-ring rounded-[var(--r-xs)] px-0.5 transition-fast is-hover:text-text"
+      /*
+        Счётчик стал кнопкой (аудит соответствия) — и должен быть кнопкой по правилам касания:
+        на телефоне цель 44 px, иначе в перчатке попадёшь в соседний счётчик. На широком экране
+        строка остаётся строкой подписи.
+      */
+      className="focus-ring inline-flex min-h-11 items-center rounded-[var(--r-xs)] px-1 transition-fast is-hover:text-text md:min-h-0 md:px-0.5"
     >
       {label} <b className="tnum font-semibold text-text-primary">{fmtNum(value)}</b>
     </button>
