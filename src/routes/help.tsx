@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, Check, Search } from "lucide-react";
+import { AlertTriangle, BookOpen, Check, Search } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { helpArticles, searchHelp, sortForRole, type HelpArticle } from "@/lib/help/articles";
 import { Comparison } from "@/components/help/Comparison";
@@ -127,6 +127,17 @@ function ArticleView({ article }: { article: HelpArticle }) {
           <h2 className="text-[18px] leading-[1.25] font-semibold text-text">{article.title}</h2>
           <p className="mt-1 text-[14px] leading-[1.45] text-text-2">{article.goal}</p>
         </header>
+
+        {article.limit && (
+          <p className="flex gap-2 rounded-[var(--r-sm)] border border-line bg-warn-bg p-3 text-[13px] leading-[1.45] text-text">
+            <AlertTriangle
+              className="mt-0.5 size-4 shrink-0 text-warn"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <span>{article.limit}</span>
+          </p>
+        )}
 
         <ol className="grid gap-2.5">
           {article.steps.map((step, index) => (

@@ -71,6 +71,22 @@ describe("статьи справки", () => {
     }
   });
 
+  test("статья про то, чего ещё нет, говорит об этом сама", () => {
+    /*
+     * Пометка про заготовку жила в другой статье («Частые вопросы»), а статья про Telegram
+     * описывала работу с ботом в настоящем времени. Человек читает одну статью, а не все
+     * девять (находка аудита соответствия).
+     */
+    const telegram = helpArticles.find((article) => article.id === "field-reports");
+    expect(telegram?.limit ?? "", "статья про бота молчит о том, что бота нет").toMatch(
+      /не подключ|пока нет|вручную/iu,
+    );
+    for (const article of helpArticles) {
+      if (!article.limit) continue;
+      expect(article.limit.length, `${article.title}: пометка ни о чём`).toBeGreaterThan(40);
+    }
+  });
+
   test("экран находит свою статью", () => {
     for (const key of ["documents", "deliveries", "field-reports", "materials", "access"]) {
       expect(articleForScreen(key), key).not.toBeNull();
