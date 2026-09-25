@@ -41,10 +41,11 @@ import {
   reportStatusLabel,
   reportTransitions,
 } from "@/contracts";
-import type { FieldReport, Material, Source } from "@/contracts";
+import type { Employee, FieldReport, Material, Source } from "@/contracts";
 import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
   CreateReportInput,
+  SaveEmployeeInput,
   ResolveRemarkInput,
   AcceptDeliveryInput,
   CorrectPositionInput,
@@ -1198,6 +1199,48 @@ export function verifyContact(supplierId: string) {
  * `manual`, автор — тот, кто внёс, время — сейчас. Расшифровки и распознанных полей у такого
  * отчёта нет, и панель источника об этом говорит.
  */
+/**
+ * Завести сотрудника или изменить его роль, объекты и контакты (ADR-021, п. 8).
+ * Телефон — ключ входа: он приводится к одному виду и не может повториться, иначе
+ * два человека войдут в одну учётную запись.
+ */
+export function saveEmployee(input: SaveEmployeeInput, actorId: string) {
+  const s = getState();
+  const phone = input.phone.trim();
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) throw new ConflictError("Телефон нужен полный: по нему сотрудник входит");
+  const clash = s.employees.find(
+    (item) => item.id !== input.id && item.phone.replace(/\D/g, "") === digits,
+  );
+  if (clash) throw new ConflictError(`Телефон уже у сотрудника «${clash.name}»`);
+  const existing = input.id ? s.employees.find((item) => item.id === input.id) : undefined;
+  if (input.id && !existing) throw new NotFoundError("Сотрудник", input.id);
+  const unknownProject = input.projectIds.find(
+    (id) => !s.projects.some((project) => project.id === id),
+  );
+  if (unknownProject) throw new NotFoundError("Объект", unknownProject);
+
+  const employee: Employee = {
+    id: existing?.id ?? liveId("e"),
+    name: input.name.trim(),
+    position: input.position.trim(),
+    role: input.role,
+    phone,
+    email: input.email?.trim() || null,
+    telegram: input.telegram?.trim() || null,
+    status: input.status ?? existing?.status ?? "active",
+    projectIds: input.projectIds,
+  };
+  update((prev) => ({
+    ...prev,
+    employees: existing
+      ? prev.employees.map((item) => (item.id === employee.id ? employee : item))
+      : [...prev.employees, employee],
+  }));
+  void actorId;
+  return employee;
+}
+
 export function createReport(input: CreateReportInput, actorId: string) {
   const s = getState();
   const project = s.projects.find((item) => item.id === input.projectId);

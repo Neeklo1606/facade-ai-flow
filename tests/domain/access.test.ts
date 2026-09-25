@@ -37,7 +37,8 @@ const TABLE: Record<Section, [Cell, Cell, Cell, Cell, Cell]> = {
   agent: ["R", "—", "—", "—", "R"],
   analytics: ["R", "—", "—", "—", "R"],
   export: ["R", "—", "—", "—", "R"],
-  access: ["R", "—", "—", "—", "R"],
+  // ADR-021: руководитель заводит сотрудников и шлёт приглашения
+  access: ["W", "—", "—", "—", "R"],
 };
 const ROLES: EmployeeRole[] = ["manager", "supply", "pto", "foreman", "director"];
 
@@ -95,7 +96,7 @@ describe("can, canAny, ownOnly, rolesWith", () => {
   test("rolesWith: у кого есть доступ, в порядке столбцов", () => {
     expect(rolesWith("timeline")).toEqual(["manager", "pto", "director"]);
     expect(rolesWith("field-reports", "write")).toEqual(["manager", "pto", "foreman"]);
-    expect(rolesWith("access", "write")).toEqual([]);
+    expect(rolesWith("access", "write")).toEqual(["manager"]);
   });
 });
 

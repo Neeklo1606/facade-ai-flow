@@ -21,6 +21,7 @@ import type {
   PositionFilterInput,
   Repositories,
   CreateReportInput,
+  SaveEmployeeInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -97,6 +98,10 @@ export const api = {
     employees: () => (server ? fn.employeesFn() : local().then((r) => r.directory.employees())),
     counterparties: () =>
       server ? fn.counterpartiesFn() : local().then((r) => r.directory.counterparties()),
+    saveEmployee: (data: SaveEmployeeInput) =>
+      server
+        ? fn.saveEmployeeFn({ data })
+        : local().then((r) => r.directory.saveEmployee(data, actor())),
   },
   projects: {
     list: (data: ListProjectsInput = {}) =>

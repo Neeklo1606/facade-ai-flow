@@ -189,11 +189,11 @@ export async function createInvite(input: {
     `insert into auth_invites (employee_id, token_hash, phone, email, created_by, expires_at)
        values ($1::uuid, $2, $3, $4, $5::uuid, now() + ($6 || ' hours')::interval)`,
     [
-      input.employeeId,
+      toDb(input.employeeId),
       await hash(token),
       input.phone,
       input.email,
-      input.createdBy,
+      toDb(input.createdBy),
       String(INVITE_HOURS),
     ],
   );

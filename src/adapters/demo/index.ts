@@ -158,6 +158,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       employees: () => done(state().employees),
       counterparties: () =>
         done(state().counterparties.map(({ id, name, role }) => ({ id, name, role }))),
+      saveEmployee: (input, actor) => attempt(() => actions.saveEmployee(input, actor.actorId)),
     },
 
     projects: {

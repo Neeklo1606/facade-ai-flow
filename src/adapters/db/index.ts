@@ -139,6 +139,7 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
     clock: { now: async () => clock.peek() },
 
     directory: {
+      ...bridged("directory", ["saveEmployee"]),
       employees: () => staff((r) => r.directory.employees()),
       counterparties: () =>
         readFrom({ where: { counterparties: "true" }, values: [] })((r) =>

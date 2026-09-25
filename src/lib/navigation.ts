@@ -1,6 +1,7 @@
 import type { EmployeeRole } from "@/contracts";
 import { can, type Section } from "@/domain/access";
 import {
+  Users,
   BookOpen,
   Boxes,
   Building2,
@@ -137,6 +138,13 @@ export const navGroups: NavGroup[] = [
         icon: BookOpen,
         to: "/catalogs",
         access: "catalogs",
+      },
+      {
+        key: "users",
+        label: "Сотрудники и доступ",
+        icon: Users,
+        to: "/users",
+        access: "access",
       },
       {
         key: "access",

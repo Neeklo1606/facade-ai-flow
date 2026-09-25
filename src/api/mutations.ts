@@ -23,6 +23,7 @@ import type {
   MergePositionsInput,
   Page,
   CreateReportInput,
+  SaveEmployeeInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -389,6 +390,17 @@ export function useVerifyContact() {
     meta: { action: "verifyContact" },
     mutationFn: (supplierId: string) => api.procurement.verifyContact(supplierId),
     onSettled: () => invalidate(queryClient, ["procurement"]),
+  });
+}
+
+/** Завести сотрудника или изменить его роль и объекты (ADR-021, п. 8) */
+export function useSaveEmployee(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveEmployee" },
+    mutationFn: (input: SaveEmployeeInput) => api.directory.saveEmployee(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["directory", "projects"]),
   });
 }
 

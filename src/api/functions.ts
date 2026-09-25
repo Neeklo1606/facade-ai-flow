@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
+  employeeView,
   extractedPosition,
   fieldReport,
   milestoneView,
@@ -59,6 +60,7 @@ import {
   requestCard,
   requestSummary,
   createReportInput,
+  saveEmployeeInput,
   reviewReportInput,
   revisionChangeView,
   sourceCard,
@@ -404,6 +406,12 @@ export const reportsFn = createServerFn({ method: "GET" })
   .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(z.array(reportCard), await repos().reports.list(data.projectId)),
+  );
+
+export const saveEmployeeFn = createServerFn({ method: "POST" })
+  .validator(input(saveEmployeeInput))
+  .handler(async ({ data }) =>
+    respond(employeeView, await repos().directory.saveEmployee(data, actor())),
   );
 
 export const createReportFn = createServerFn({ method: "POST" })

@@ -43,7 +43,12 @@ const CATALOGS: Section[] = ["catalogs", "documents", "materials", "procurement"
 
 export const ACCESS_RULES: AccessRules = {
   clock: { now: SESSION },
-  directory: { employees: SESSION, counterparties: SESSION },
+  directory: {
+    employees: SESSION,
+    counterparties: SESSION,
+    // Кто заводит сотрудников и раздаёт роли — тот же, кто видит матрицу прав (ADR-021, п. 8)
+    saveEmployee: { sections: ["access"], need: WRITE, global: true },
+  },
   projects: {
     list: {
       sections: ["projects"],

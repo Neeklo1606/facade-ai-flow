@@ -90,7 +90,8 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     agent: READ,
     analytics: READ,
     export: READ,
-    access: READ,
+    // Заводит сотрудников, назначает роли и объекты, шлёт приглашения (ADR-021, п. 8)
+    access: WRITE,
   },
   supply: {
     ...nothing(),

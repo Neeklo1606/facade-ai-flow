@@ -4,15 +4,20 @@ import { z } from "zod";
 import { authChannel } from "./auth-channel";
 import {
   authAvailable,
+  closeEmployeeSessions,
   closeSession,
   createCode,
+  createInvite,
+  invitesByEmployee,
+  lastSeenByEmployee,
   normalizePhone,
   openSession,
   useCode,
   useInvite,
 } from "./auth-store";
 import { clearSessionCookie, currentSessionId, grantAuthSession } from "./session";
-import { serverRepositories } from "./server-repositories";
+import { requestSession, serverRepositories } from "./server-repositories";
+import { can as canRole } from "@/domain/access";
 
 /**
  * Вход сотрудника (ADR-021). Экран входа знает об учётных записях ровно столько, сколько знает
@@ -88,3 +93,63 @@ export const authStateFn = createServerFn({ method: "GET" }).handler(async () =>
   required: authAvailable(),
   channel: authAvailable() ? authChannel().kind : null,
 }));
+
+/* ---------- Приглашения и доступ сотрудников (ADR-021, п. 8) ---------- */
+
+/**
+ * Пригласить сотрудника: одноразовая ссылка на 72 часа. Живое приглашение на человека одно —
+ * новое гасит прежнее, иначе по старой ссылке войдёт тот, у кого она осталась.
+ */
+export const inviteEmployeeFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ employeeId: z.string().min(1) }).parse(input))
+  .handler(async ({ data }) => {
+    if (!authAvailable()) return { ok: false as const, reason: "no-database" as const };
+    const session = await requestSession();
+    // Приглашать может тот, кому открыта запись в «Правах доступа» — проверка та же, что у порта
+    if (!session || !canRole(session.role, "access", "write")) {
+      return { ok: false as const, reason: "forbidden" as const };
+    }
+    const employees = await serverRepositories().directory.employees();
+    const employee = employees.find((item) => item.id === data.employeeId);
+    if (!employee) return { ok: false as const, reason: "unknown" as const };
+    const token = await createInvite({
+      employeeId: employee.id,
+      createdBy: session.actorId,
+      phone: employee.phone,
+      email: employee.email,
+    });
+    const origin = new URL(getRequest().url).origin;
+    const url = `${origin}/login?invite=${token}`;
+    const channel = authChannel();
+    if (employee.email) await channel.sendLink(employee.email, url);
+    // Заглушка возвращает ссылку экрану: настоящая отправка её не показывает
+    return { ok: true as const, url: channel.kind === "log" ? url : null };
+  });
+
+/** Выключить доступ: сотрудник помечается неактивным, его сессии гаснут */
+export const revokeEmployeeFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ employeeId: z.string().min(1) }).parse(input))
+  .handler(async ({ data }) => {
+    if (!authAvailable()) return { ok: false as const, reason: "no-database" as const };
+    const session = await requestSession();
+    if (!session || !canRole(session.role, "access", "write")) {
+      return { ok: false as const, reason: "forbidden" as const };
+    }
+    await closeEmployeeSessions(data.employeeId);
+    return { ok: true as const };
+  });
+
+/** Состояние доступа сотрудников для экрана пользователей */
+export const accessStateFn = createServerFn({ method: "GET" }).handler(async () => {
+  if (!authAvailable()) return { enabled: false as const, invites: [], lastSeen: [] };
+  const [invites, lastSeen] = await Promise.all([invitesByEmployee(), lastSeenByEmployee()]);
+  return {
+    enabled: true as const,
+    invites: invites.map((row) => ({
+      employeeId: row.employee_id,
+      expiresAt: row.expires_at,
+      acceptedAt: row.accepted_at,
+    })),
+    lastSeen: lastSeen.map((row) => ({ employeeId: row.employee_id, at: row.last_seen_at })),
+  };
+});
