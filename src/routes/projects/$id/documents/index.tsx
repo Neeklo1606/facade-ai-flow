@@ -32,7 +32,7 @@ import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
 import { fmtDateTime, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import {
   type DocProcessingStatus,
@@ -198,7 +198,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
             title={`Распознаётся: ${recognizing.map((d) => `«${d.title}»`).join(", ")}`}
           >
             Обработка идёт на сервере: позиции появятся в реестре и на экране проверки, страницу
-            можно закрыть. {DEMO_UPLOAD_NOTE}
+            можно закрыть. {note("upload")}
           </StateBanner>
         )}
         {screen === "processing" && recognizing.length === 0 && inProgress.length === 0 && (
@@ -285,7 +285,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
               empty: {
                 icon: FileText,
                 title: "Документации пока нет",
-                description: `Загрузите проектную документацию — позиции появятся здесь и уйдут на проверку. ${DEMO_UPLOAD_NOTE}`,
+                description: `Загрузите проектную документацию — позиции появятся здесь и уйдут на проверку. ${note("upload")}`,
                 ...(canUpload && {
                   actionLabel: "Загрузить документ",
                   onAction: () => zone.current?.open(),

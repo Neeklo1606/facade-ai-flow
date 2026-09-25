@@ -29,7 +29,7 @@ import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDate, fmtDateTime, fmtMoney, fmtReplyDue, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_REMIND_NOTE, DEMO_REMIND_TITLE } from "@/lib/demo-copy";
+import { demoOnly } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import {
   contactStatusLabel as contactFreshnessLabel,
@@ -264,8 +264,8 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                     );
                     const queued = results.reduce((acc, result) => acc + result.reminded.length, 0);
                     toast.success(
-                      `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
-                      { description: DEMO_REMIND_NOTE },
+                      `${demoOnly("remindTitle")}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                      { description: demoOnly("remind") },
                     );
                   }}
                 >

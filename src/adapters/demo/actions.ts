@@ -31,7 +31,7 @@ import {
   withDeliveries,
   type RequestPositionLink,
 } from "@/domain/deliveries";
-import { DEMO_DECISION_ORDER_NOTE } from "@/lib/demo-copy";
+import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
 import { ConflictError, NotFoundError } from "@/ports";
 import {
   milestoneStatusLabel,
@@ -907,7 +907,7 @@ function createDelivery(decision: ProjectDecision) {
           projectId: request.projectId,
           type: "material_ordered",
           title: `Поставка «${supplierName}» по запросу ${request.number} создана решением`,
-          details: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}. ${DEMO_DECISION_ORDER_NOTE}`,
+          details: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}. ${DEMO_ONLY_NOTES.decisionOrder.text}`,
           requestId: request.id,
           deliveryId: delivery.id,
         },

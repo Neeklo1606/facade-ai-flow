@@ -36,7 +36,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNow } from "@/api/clock";
 import { queries } from "@/api/queries";
 import { useScreenState } from "@/lib/screen-state";
-import { DEMO_TELEGRAM_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { fmtDayTitle, fmtNum, fmtTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -175,7 +175,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
 
       <p className="sr-only">
         Отчёты прорабов: объём за смену, фото и проблемы. Проверьте объём и примите отчёт или
-        верните на уточнение. {DEMO_TELEGRAM_NOTE}
+        верните на уточнение. {note("telegram")}
       </p>
 
       {/* Ячейка полосы — фильтр ленты по статусу проверки */}
@@ -228,7 +228,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
             empty: {
               icon: HardHat,
               title: "Отчётов с площадки пока нет",
-              description: `Отчёты приходят от прорабов бригад объекта: объём за смену, фото и проблемы. Проверьте, что бригады и их прорабы заведены. ${DEMO_TELEGRAM_NOTE}`,
+              description: `Отчёты приходят от прорабов бригад объекта: объём за смену, фото и проблемы. Проверьте, что бригады и их прорабы заведены. ${note("telegram")}`,
               actionLabel: "Проверить бригады объекта",
               onAction: () =>
                 navigate({

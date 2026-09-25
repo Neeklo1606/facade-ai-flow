@@ -15,7 +15,7 @@ import {
 import { queries } from "@/api/queries";
 import { useUploadDocument } from "@/api/mutations";
 import { dataSource } from "@/api/config";
-import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { processingStages } from "@/contracts";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -183,7 +183,7 @@ export function UploadDialog({
             <p className="text-[13px] leading-[1.45] text-text-3">
               Система распознает текст, найдёт таблицы и извлечёт позиции. Проверять их будете вы:
               каждая позиция показана рядом со строкой оригинала.
-              {dataSource === "demo" && ` ${DEMO_UPLOAD_NOTE}`}
+              {` ${note("upload")}`}
             </p>
 
             {failure && (
@@ -256,9 +256,7 @@ export function UploadDialog({
                     </>
                   )}
                 </p>
-                {dataSource === "demo" && (
-                  <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{DEMO_UPLOAD_NOTE}</p>
-                )}
+                <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{note("upload")}</p>
               </div>
             )}
 

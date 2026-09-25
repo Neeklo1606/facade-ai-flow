@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { DEMO_POSITIONS_NOT_LOADED } from "@/lib/demo-copy";
+import { demoOnly } from "@/lib/contour-copy";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronRight,
@@ -403,7 +403,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
                 ? {
                     icon: PackageSearch,
                     title: `Позиции не загружены: ${fmtNum(overview?.specTotal ?? 0)} по документации`,
-                    description: DEMO_POSITIONS_NOT_LOADED,
+                    description: demoOnly("positionsNotLoaded"),
                   }
                 : {
                     icon: PackageSearch,

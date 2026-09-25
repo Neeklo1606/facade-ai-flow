@@ -48,7 +48,7 @@ import { useApp } from "@/lib/app-context";
 import { ProjectStatusControl } from "@/components/project/ProjectStatusControl";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import { mainSpecification } from "@/lib/documents";
 import { useQuery } from "@tanstack/react-query";
@@ -379,7 +379,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
               })
               .then((doc) =>
                 toast.success(`«${doc.title}» принят как ${doc.version}`, {
-                  description: DEMO_UPLOAD_NOTE,
+                  description: note("upload"),
                 }),
               )
               .catch(() =>
@@ -543,7 +543,7 @@ function UploadDialog({
 
         <p className="text-caption text-text-muted">
           После загрузки позиции спецификации попадают на проверку, проверенные уходят в запросы
-          поставщикам. {DEMO_UPLOAD_NOTE}
+          поставщикам. {note("upload")}
         </p>
 
         <DialogFooter>

@@ -40,7 +40,7 @@ import { queries } from "@/api/queries";
 import { docStatusTone, stageOfStatus } from "@/lib/project-meta";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { dataSource } from "@/api/config";
-import { DEMO_EXTRACTION_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -775,11 +775,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   </div>
                   {/* Пометка под результатом разбора, а не только в шапке (ADR-018, п. 6):
                       человек смотрит на свои позиции из своего файла */}
-                  {dataSource === "demo" && (
-                    <p data-demo-extraction className="mt-2 text-[12px] leading-[1.4] text-text-3">
-                      {DEMO_EXTRACTION_NOTE}
-                    </p>
-                  )}
+                  <p data-demo-extraction className="mt-2 text-[12px] leading-[1.4] text-text-3">
+                    {note("extraction")}
+                  </p>
                   {canEdit && (
                     <Button
                       size="sm"
