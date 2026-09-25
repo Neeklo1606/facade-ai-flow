@@ -194,6 +194,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       setStatus: (input, { actorId }) => attempt(() => actions.setProjectStatus(input, actorId)),
       completeMilestone: (input, { actorId }) =>
         attempt(() => actions.completeMilestone(input, actorId)),
+      saveZone: (input, { actorId }) => attempt(() => actions.saveZone(input, actorId)),
     },
 
     documents: {

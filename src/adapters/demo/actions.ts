@@ -40,6 +40,7 @@ import {
   projectStatusTransitions,
   reportStatusLabel,
   reportTransitions,
+  zoneLevelLabel,
 } from "@/contracts";
 import type {
   CatalogChange,
@@ -48,6 +49,7 @@ import type {
   Material,
   MaterialCategory,
   Source,
+  WorkZone,
 } from "@/contracts";
 import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
@@ -68,6 +70,7 @@ import type {
   UploadRevisionInput,
   SetProjectStatusInput,
   CompleteMilestoneInput,
+  SaveZoneInput,
   ResolveChangeInput,
   ConfirmMatchInput,
   SaveMaterialInput,
@@ -1327,9 +1330,21 @@ export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
   if (!allowed.includes(status)) {
     throw new ConflictError(`Отчёт уже в статусе «${reportStatusLabel[report.status]}»`);
   }
+  /*
+   * Принятый объём идёт в факт захватки той же операцией (ADR-024, поправка от 26.09.2026).
+   * Раньше приёмка меняла только статус отчёта, и «Ход работ» после неё не двигался:
+   * критерий внедрения «принятый объём виден в Ходе работ» был невыполним.
+   * Возврат на уточнение факт не меняет: возвращённый отчёт — вопрос, а не факт.
+   */
+  const added = status === "accepted" ? (acceptedQty ?? 0) : 0;
   update((prev) => ({
     ...prev,
     reports: prev.reports.map((r) => (r.id === id ? { ...r, status, acceptedQty } : r)),
+    zones: added
+      ? prev.zones.map((zone) =>
+          zone.id === report.zoneId ? { ...zone, factQty: zone.factQty + added } : zone,
+        )
+      : prev.zones,
   }));
 }
 
@@ -1895,6 +1910,109 @@ export function setProjectStatus(input: SetProjectStatusInput, actorId: string) 
 }
 
 /** Отметить контрольную точку выполненной; точка другого объекта — как будто её нет */
+/**
+ * Завести или изменить захватку объекта (ADR-024). Удаления нет: на захватку ссылаются
+ * принятые отчёты, и убрать её значило бы отвязать факт от места, где он получен.
+ */
+export function saveZone(input: SaveZoneInput, actorId: string): WorkZone {
+  const s = getState();
+  const project = s.projects.find((item) => item.id === input.projectId);
+  if (!project) throw new NotFoundError("Объект", input.projectId);
+  const existing = input.id ? s.zones.find((item) => item.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Захватка", input.id);
+  if (existing && existing.projectId !== input.projectId) {
+    throw new ConflictError("Захватка принадлежит другому объекту");
+  }
+  const name = input.name.trim();
+  const sameName = s.zones.find(
+    (item) =>
+      item.id !== input.id &&
+      item.projectId === input.projectId &&
+      item.parentId === input.parentId &&
+      item.name.toLowerCase() === name.toLowerCase(),
+  );
+  if (sameName) throw new ConflictError(`На этом уровне уже есть «${name}»`);
+
+  if (input.parentId) {
+    const parent = s.zones.find((item) => item.id === input.parentId);
+    if (!parent || parent.projectId !== input.projectId) {
+      throw new NotFoundError("Участок", input.parentId);
+    }
+    // Спуск от переносимой вниз: встретили нового родителя — это её же поддерево
+    if (existing) {
+      const inside = new Set([existing.id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const item of s.zones) {
+          if (item.parentId && inside.has(item.parentId) && !inside.has(item.id)) {
+            inside.add(item.id);
+            grew = true;
+          }
+        }
+      }
+      if (inside.has(input.parentId)) {
+        throw new ConflictError("Участок нельзя перенести внутрь самого себя");
+      }
+    }
+  }
+
+  /*
+   * «Выполнено до начала учёта» лежит в том же числе, что принятые объёмы (ADR-024, границы).
+   * Пока приёмок не было — правится; после первой правка переписывала бы факт с площадки.
+   */
+  const acceptedFact = s.reports.some(
+    (report) => report.zoneId === existing?.id && report.status === "accepted",
+  );
+  if (existing && acceptedFact && input.baselineFactQty !== existing.factQty) {
+    throw new ConflictError(
+      "По захватке уже приняты объёмы: выполненное до начала учёта больше не правится",
+    );
+  }
+  const zone: WorkZone = {
+    id: existing?.id ?? liveId("wz"),
+    projectId: input.projectId,
+    parentId: input.parentId,
+    level: input.level,
+    name,
+    axes: input.axes,
+    floors: input.floors,
+    planQty: input.planQty,
+    factQty: existing && acceptedFact ? existing.factQty : input.baselineFactQty,
+    unit: input.unit.trim(),
+  };
+  const what = !existing ? `Заведена захватка «${zone.name}»` : `Изменена захватка «${zone.name}»`;
+  const details = !existing
+    ? `${zoneLevelLabel[zone.level]}, план ${zone.planQty} ${zone.unit}`
+    : [
+        existing.name !== zone.name ? `название: ${existing.name} → ${zone.name}` : null,
+        existing.planQty !== zone.planQty
+          ? `план: ${existing.planQty} → ${zone.planQty} ${zone.unit}`
+          : null,
+        existing.parentId !== zone.parentId ? "перенесена на другой уровень" : null,
+        existing.axes !== zone.axes ? `оси: ${existing.axes ?? "—"} → ${zone.axes ?? "—"}` : null,
+        existing.floors !== zone.floors
+          ? `этажи: ${existing.floors ?? "—"} → ${zone.floors ?? "—"}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(", ") || "без изменений полей";
+  update((prev) => ({
+    ...prev,
+    zones: existing
+      ? prev.zones.map((item) => (item.id === zone.id ? zone : item))
+      : [...prev.zones, zone],
+    events: [
+      ...prev.events,
+      projectEvent(
+        { projectId: zone.projectId, type: "zone_changed", title: what, details },
+        actorId,
+      ),
+    ],
+  }));
+  return zone;
+}
+
 export function completeMilestone(input: CompleteMilestoneInput, actorId: string) {
   const milestone = getState().milestones.find(
     (item) => item.id === input.milestoneId && item.projectId === input.projectId,

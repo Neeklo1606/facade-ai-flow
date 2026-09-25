@@ -12,6 +12,7 @@ import { queries } from "./queries";
 import { useAccess } from "./access";
 import { useNow } from "./clock";
 import type { ReportsGap } from "@/lib/reports-gap";
+import type { WorkZone } from "@/contracts";
 
 /**
  * Значения, которые считаются по отчётам с площадки, показываются, только когда отчёты на руках.
@@ -45,6 +46,8 @@ export function useWorkProgress(projectId: string) {
         pending: cardQuery.isPending || reportsPending,
         reportsGap,
         zones: [],
+        // Захватки как они лежат: уровень и родитель нужны форме правки (ADR-024)
+        raw: [] as WorkZone[],
         timeline: { points: [], todayOffset: null, from: "", to: "" },
         metrics: [],
         contract: null,
@@ -55,6 +58,7 @@ export function useWorkProgress(projectId: string) {
       pending: cardQuery.isPending || reportsPending,
       reportsGap,
       zones,
+      raw: card.zones,
       timeline,
       metrics: progressMetrics({ zones, timeline, contract: card.contract, now }),
       contract: card.contract,

@@ -88,7 +88,7 @@ create type issue_severity as enum ('blocker', 'warning');
 create type evidence_kind as enum ('photo', 'audio', 'file');
 
 -- Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении
-create type event_type as enum ('version_uploaded', 'spec_extracted', 'qty_corrected', 'request_created', 'offer_received', 'replacement_proposed', 'replacement_agreed', 'material_ordered', 'delivery_moved', 'delivery_received', 'delivery_rejected', 'delivery_remark', 'report_added', 'project_status_changed', 'milestone_done', 'change_resolved');
+create type event_type as enum ('version_uploaded', 'spec_extracted', 'qty_corrected', 'request_created', 'offer_received', 'replacement_proposed', 'replacement_agreed', 'material_ordered', 'delivery_moved', 'delivery_received', 'delivery_rejected', 'delivery_remark', 'report_added', 'project_status_changed', 'milestone_done', 'change_resolved', 'zone_changed');
 
 -- Сотрудники и пользователи системы
 create table employees (
@@ -289,7 +289,7 @@ create table work_zones (
   check (plan_qty >= 0),
   check (baseline_fact_qty >= 0)
 );
-comment on column work_zones.baseline_fact_qty is 'выполнено до начала учёта отчётами; факт = это значение + принятые объёмы (R15)';
+comment on column work_zones.baseline_fact_qty is 'текущий факт захватки: заведённое при создании плюс принятые объёмы отчётов (ADR-024)';
 create index work_zones_project_id_name_idx on work_zones (project_id, name); -- захватки объекта в фильтрах и «Ходе работ»
 create index work_zones_parent_id_idx on work_zones (parent_id); -- дерево участков
 

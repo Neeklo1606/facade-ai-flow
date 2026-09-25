@@ -22,6 +22,8 @@ export const eventType = pgEnum(
     "project_status_changed",
     "milestone_done",
     "change_resolved",
+    // Захватка объекта заведена или изменена с экрана (ADR-024)
+    "zone_changed",
   ],
   "Тип события в истории объекта. Решения живут в project_decisions и в ленту добавляются при чтении",
 );
@@ -94,5 +96,6 @@ export const timelineTypeLabel: Record<TimelineEventType, string> = {
   project_status_changed: "Изменён статус объекта",
   milestone_done: "Контрольная точка выполнена",
   change_resolved: "Изменение документации разобрано",
+  zone_changed: "Захватка заведена или изменена",
   decision: "Зафиксировано решение",
 };

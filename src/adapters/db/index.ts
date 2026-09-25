@@ -148,7 +148,7 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
     },
 
     projects: {
-      ...bridged("projects", ["create", "setStatus", "completeMilestone"]),
+      ...bridged("projects", ["create", "setStatus", "completeMilestone", "saveZone"]),
       list: registry,
       exportRegistry: async (input) => {
         const [rows, employees] = await Promise.all([

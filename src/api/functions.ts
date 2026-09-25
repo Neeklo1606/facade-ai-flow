@@ -6,6 +6,7 @@ import {
   materialCategories,
   fieldReport,
   milestoneView,
+  workZoneView,
   materials as materialRow,
   projectDecision,
   projectDocument,
@@ -25,6 +26,7 @@ import {
   createProjectInput,
   setProjectStatusInput,
   completeMilestoneInput,
+  saveZoneInput,
   resolveChangeInput,
   createRequestInput,
   createRequestResult,
@@ -164,6 +166,13 @@ export const completeMilestoneFn = createServerFn({ method: "POST" })
   .validator(input(completeMilestoneInput))
   .handler(async ({ data }) =>
     respond(milestoneView, await repos().projects.completeMilestone(data, actor())),
+  );
+
+/** Захватка объекта: завести или изменить (ADR-024) */
+export const saveZoneFn = createServerFn({ method: "POST" })
+  .validator(input(saveZoneInput))
+  .handler(async ({ data }) =>
+    respond(workZoneView, await repos().projects.saveZone(data, actor())),
   );
 
 /* ---------- Документы ---------- */

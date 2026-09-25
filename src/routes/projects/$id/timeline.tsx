@@ -20,6 +20,7 @@ import {
   ThumbsUp,
   Truck,
   type LucideIcon,
+  Layers,
 } from "lucide-react";
 import {
   loadProject,
@@ -96,6 +97,7 @@ const typeStyle: Record<TimelineEventType, { icon: LucideIcon; tone: string }> =
   report_added: { icon: HardHat, tone: "bg-subtle text-text-secondary" },
   project_status_changed: { icon: Building2, tone: "bg-subtle text-text-secondary" },
   milestone_done: { icon: CalendarCheck, tone: "bg-ok-bg text-ok" },
+  zone_changed: { icon: Layers, tone: "bg-subtle text-text-secondary" },
   change_resolved: { icon: FileDiff, tone: "bg-subtle text-text-secondary" },
   decision: { icon: Gavel, tone: "bg-ok-bg text-ok" },
 };

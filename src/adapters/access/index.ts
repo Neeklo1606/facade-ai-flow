@@ -68,6 +68,12 @@ export const ACCESS_RULES: AccessRules = {
       need: WRITE,
       project: (input) => project(input.projectId),
     },
+    // Захватка — структура объекта, а не справочник: право то же, что у смены статуса (ADR-024)
+    saveZone: {
+      sections: ["projects"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
   },
   documents: {
     list: {

@@ -9,6 +9,7 @@ import type {
   CreateProjectInput,
   CreateRequestInput,
   CompleteMilestoneInput,
+  SaveZoneInput,
   ResolveChangeInput,
   SetProjectStatusInput,
   ListChangesInput,
@@ -125,6 +126,8 @@ export const api = {
       server
         ? fn.setProjectStatusFn({ data })
         : local().then((r) => r.projects.setStatus(data, actor())),
+    saveZone: (data: SaveZoneInput) =>
+      server ? fn.saveZoneFn({ data }) : local().then((r) => r.projects.saveZone(data, actor())),
     completeMilestone: (data: CompleteMilestoneInput) =>
       server
         ? fn.completeMilestoneFn({ data })

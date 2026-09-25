@@ -14,6 +14,7 @@ import {
   PencilLine,
   Send,
   type LucideIcon,
+  Layers,
 } from "lucide-react";
 import { SourceRef } from "@/components/common/SourceRef";
 import { StatList } from "@/components/common/StatList";
@@ -386,6 +387,7 @@ const activityIcon: Record<TimelineEventType, LucideIcon> = {
   report_added: HardHat,
   project_status_changed: Building2,
   milestone_done: CalendarCheck,
+  zone_changed: Layers,
   change_resolved: FileDiff,
   decision: ListChecks,
 };

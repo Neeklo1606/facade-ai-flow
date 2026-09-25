@@ -18,6 +18,7 @@ import type {
   CreateProjectInput,
   CreateRequestInput,
   CompleteMilestoneInput,
+  SaveZoneInput,
   ResolveChangeInput,
   SetProjectStatusInput,
   MergePositionsInput,
@@ -512,6 +513,17 @@ export function useCompleteMilestone() {
     meta: { action: "completeMilestone" },
     mutationFn: (input: CompleteMilestoneInput) => api.projects.completeMilestone(input),
     onSettled: () => invalidate(queryClient, ["projects", "timeline"]),
+  });
+}
+
+/** Захватка заведена или изменена (ADR-024): ход работ, карточка объекта, история */
+export function useSaveZone(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveZone" },
+    mutationFn: (input: SaveZoneInput) => api.projects.saveZone(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["projects", "timeline", "reports"]),
   });
 }
 
