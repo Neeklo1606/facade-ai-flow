@@ -918,7 +918,14 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
     createdAt,
     sentAt: createdAt,
     replyDueAt: input.replyDueAt,
-    templateId: input.templateId ?? s.templates[0]?.id ?? null,
+    /*
+     * Ссылка только на сохранённый шаблон: встроенный (ADR-025, поправка) в таблице не лежит,
+     * и запись его идентификатора роняла вставку по внешнему ключу. Письмо у запроса своё,
+     * а `template_id` отвечает на вопрос «из какого сохранённого шаблона его начали».
+     */
+    templateId: s.templates.some((item) => item.id === input.templateId)
+      ? (input.templateId ?? null)
+      : (s.templates[0]?.id ?? null),
     status: "sent",
     sourceId: null,
     items: [...lines.values()],

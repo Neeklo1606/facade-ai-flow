@@ -308,11 +308,11 @@ if (await next3.count()) {
   await page.waitForTimeout(1000);
 }
 await shot("w24-zapros-predprosmotr");
-const create = (await scope()).getByRole("button", { name: /Создать запрос|Отправить/ });
+const create = (await scope()).getByRole("button", { name: /Отправить \d+ поставщик/ });
 if (await create.count()) {
-  await create.last().click();
-  await page.waitForTimeout(3000);
-  step(`13. Запрос создан: ${page.url()}`);
+  await create.first().click();
+  await page.waitForTimeout(3500);
+  step(`13. Запрос отправлен: ${page.url()}`);
 } else {
   step("13. Кнопки создания запроса в мастере нет");
 }
