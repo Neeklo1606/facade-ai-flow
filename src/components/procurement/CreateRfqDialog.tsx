@@ -80,6 +80,7 @@ export function CreateRfqDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [suppliers, setSuppliers] = useState<Set<string>>(new Set());
   const [showOtherRegions, setShowOtherRegions] = useState(false);
+  // Список приходит не пустым: без своих шаблонов слой данных отдаёт встроенный (ADR-025)
   const emailTemplates = useQuery({ ...queries.templates(), enabled: open }).data ?? [];
   const [templateId, setTemplateId] = useState<string>(emailTemplates[0]?.id ?? "");
   const [subject, setSubject] = useState<string>(emailTemplates[0]?.subject ?? "");

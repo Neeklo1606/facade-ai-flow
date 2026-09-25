@@ -744,7 +744,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                 <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
                 <p className="text-[14px] font-medium">Позиций из этого файла нет</p>
-                <p className="text-caption text-text-muted">{note("extraction")}</p>
+                <p className="text-caption text-text-muted">{note("extractionEmpty")}</p>
                 {canEdit && (
                   <div className="mt-1 grid w-full max-w-[280px] gap-2">
                     <Button variant="accent" onClick={() => setImportOpen(true)}>

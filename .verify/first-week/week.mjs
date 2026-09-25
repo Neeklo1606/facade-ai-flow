@@ -187,8 +187,7 @@ await shot("w12-hod-rabot");
 /* ---------- День 4: документ и спецификация ---------- */
 await page.goto(`${base}${projectPath}/documents`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(1500);
-await click(/Загрузить документацию/);
-await page.waitForTimeout(700);
+
 const spec = `${out}/specifikaciya.xlsx`;
 const specFile = await writeXlsxFile(
   [
@@ -199,18 +198,24 @@ const specFile = await writeXlsxFile(
   ].map((row) => row.map((value) => ({ type: String, value }))),
 );
 await specFile.toFile(spec);
-const uploadInput = (await scope()).locator("input[type=file]").first();
-await uploadInput.setInputFiles(spec);
-await page.waitForTimeout(900);
+// Зона загрузки на экране: файл выбирается прямо там, окно открывается после выбора
+await page.locator("input[type=file]").first().setInputFiles(spec);
+await page.waitForTimeout(1500);
 await shot("w13-zagruzka-dokumenta");
-await click(/^Загрузить$|Загрузить документ|^Добавить$/);
+await click(/Загрузить в реестр|Загрузить и разобрать/);
 await page.waitForTimeout(2500);
 step(`8. Документ загружен: ${page.url()}`);
 await shot("w14-dokumenty");
 
-// Открываем ревизию: строка документа ведёт на экран проверки
-await page.getByText("специфик", { exact: false }).first().click().catch(() => {});
-await page.waitForTimeout(2500);
+// После загрузки окно предлагает перейти к проверке; иначе открываем документ из списка
+const toReview = page.getByRole("link", { name: /Открыть документ|Перейти к проверке/ });
+if (await toReview.count()) {
+  await toReview.first().click();
+  await page.waitForTimeout(2500);
+} else {
+  await page.getByText(/specifikaciya/i).first().click();
+  await page.waitForTimeout(2500);
+}
 step(`   экран проверки: ${page.url()}`);
 await shot("w15-proverka-pusto");
 
@@ -231,6 +236,127 @@ await shot("w17-specifikaciya-itog");
 await click(/Готово/);
 await page.waitForTimeout(1500);
 await shot("w18-pozicii");
+
+/* ---------- День 4: сопоставление, передача в закупку ---------- */
+const listText = await page.locator("body").innerText();
+step(`   на экране проверки: ${listText.match(/Проверено[^\n]*/)?.[0] ?? "—"}`);
+
+/*
+ * Сопоставление подтверждается у выбранной строки: материал предложен, но подтверждает человек.
+ * Идём по строкам списка: щёлкаем строку, затем «Подтвердить сопоставление».
+ */
+const rowsList = page.locator('[role="list"][aria-label="Извлечённые позиции"] [role="listitem"]');
+const rowCount = await rowsList.count();
+step(`   строк в списке: ${rowCount}`);
+for (let index = 0; index < rowCount; index += 1) {
+  await rowsList.nth(index).click();
+  await page.waitForTimeout(700);
+  const confirmMatch = page.getByRole("button", { name: /Подтвердить сопоставление/ });
+  if (await confirmMatch.count()) {
+    await confirmMatch.first().click();
+    await page.waitForTimeout(900);
+  }
+}
+await shot("w19-sopostavlenie");
+const afterMatch = await page.locator("body").innerText();
+step(`10. Сопоставление: ${afterMatch.match(/Не удалось определить[^\n]*/)?.[0] ?? "строк «не удалось определить» нет"}`);
+
+const handOver = page.getByRole("button", { name: /Передать в закупку/ });
+if (await handOver.count()) {
+  await handOver.first().click();
+  await page.waitForTimeout(900);
+  const confirm = page.getByRole("button", { name: /Передать \d+ поз\./ });
+  if (await confirm.count()) {
+    await confirm.last().click();
+    await page.waitForTimeout(2500);
+    step("11. Позиции переданы в закупку");
+  } else {
+    step("11. Окно передачи не подтвердилось: кнопки «Передать N поз.» нет");
+  }
+} else {
+  step("11. Кнопки «Передать в закупку» на экране нет");
+}
+await shot("w20-peredano");
+
+/* ---------- День 4: запрос поставщику ---------- */
+await page.goto(`${base}${projectPath}/materials`, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(2000);
+const materialsText = await page.locator("body").innerText();
+step(`12. Материалы: ${materialsText.match(/готовы к запросу[^\n]*/)?.[0] ?? "—"}`);
+await shot("w21-materialy");
+
+// Запрос — мастер из четырёх шагов: позиции, поставщики, письмо, предпросмотр
+await click(/Создать запрос поставщикам/);
+await page.waitForTimeout(1200);
+await shot("w22-zapros-pozicii");
+await click(/Далее: Поставщики/);
+await page.waitForTimeout(1200);
+const supplierBox = (await scope()).getByRole("checkbox");
+if (await supplierBox.count()) {
+  await supplierBox.first().check().catch(() => {});
+  await page.waitForTimeout(500);
+}
+await shot("w23-zapros-postavshchiki");
+const next2 = (await scope()).getByRole("button", { name: /Далее: Письмо/ });
+if (await next2.count()) {
+  await next2.first().click();
+  await page.waitForTimeout(1000);
+}
+const next3 = (await scope()).getByRole("button", { name: /Далее: Предпросмотр/ });
+if (await next3.count()) {
+  await next3.first().click();
+  await page.waitForTimeout(1000);
+}
+await shot("w24-zapros-predprosmotr");
+const create = (await scope()).getByRole("button", { name: /Создать запрос|Отправить/ });
+if (await create.count()) {
+  await create.last().click();
+  await page.waitForTimeout(3000);
+  step(`13. Запрос создан: ${page.url()}`);
+} else {
+  step("13. Кнопки создания запроса в мастере нет");
+}
+await shot("w25-zapros-itog");
+
+/* ---------- День 5: отчёт с площадки и приёмка ---------- */
+await page.goto(`${base}${projectPath}/field-reports`, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(1800);
+await click(/Завести отчёт/);
+await page.waitForTimeout(700);
+const fields = await (await scope()).locator("input, select, textarea").count();
+step(`14. Окно отчёта открылось, полей: ${fields}`);
+await shot("w26-otchet-forma");
+await fill("Вид работ", "Монтаж кронштейнов");
+await fill("Объём за смену", "180");
+await fill("Человек в смене", "6");
+await fill("Что сделали", "Ось 1–4: кронштейны по проекту, крепёж анкерный");
+await shot("w27-otchet-zapolnen");
+await click(/^Завести отчёт$|^Завести$|^Отправить$/);
+await page.waitForTimeout(2500);
+step("15. Отчёт с площадки заведён");
+await shot("w28-otchet");
+
+const accept = page.getByRole("button", { name: /Принять|Принять объём/ });
+if (await accept.count()) {
+  await accept.first().click();
+  await page.waitForTimeout(1200);
+  const confirm = (await scope()).getByRole("button", { name: /Принять/ });
+  if (await confirm.count()) {
+    await confirm.last().click();
+    await page.waitForTimeout(2000);
+  }
+  step("16. Объём принят");
+} else {
+  step("16. Кнопки приёмки нет");
+}
+await shot("w29-priyomka");
+
+await page.goto(`${base}${projectPath}?tab=progress`, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(2000);
+const progressText = await page.locator("body").innerText();
+step(`17. Ход работ: ${progressText.match(/Фасад А[^\n]*/)?.[0] ?? "захватки не видно"}`);
+step(`    выполнено: ${progressText.match(/\d+ \/ \d+ м²[^\n]*/)?.[0] ?? "—"}`);
+await shot("w30-hod-rabot-itog");
 
 await browser.close();
 console.log("\n".concat(log.join("\n")));

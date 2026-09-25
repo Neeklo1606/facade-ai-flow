@@ -1,1 +1,1 @@
-http://localhost:4712/login?invite=1v6e455q166i6g4d1m210g3x64685563
+http://localhost:4712/login?invite=4s52073l5t67432w3q3k1v016v6x0v6b

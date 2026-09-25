@@ -207,7 +207,41 @@ export function UploadDialog({
           </div>
         )}
 
-        {revisionId && (
+        {/*
+          Без разбора стадий нет: список с вечным крутящимся «загружен» обещал обработку,
+          которой никто не делает. Говорим, что файл в реестре, и ведём туда, где заводят
+          позиции (ADR-025, п. 6).
+        */}
+        {revisionId && !extractsDocuments() && (
+          <div className="space-y-4">
+            <div className="rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
+              <p className="text-[14px]">Файл в реестре ревизий</p>
+              <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{note("upload")}</p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              {queue > 0 && (
+                <Button variant="secondary" onClick={onNext}>
+                  Следующий файл ({queue})
+                </Button>
+              )}
+              <Button variant="secondary" onClick={onClose}>
+                Закрыть
+              </Button>
+              <Button asChild>
+                <Link
+                  to="/projects/$id/documents/$docId"
+                  params={{ id: projectId, docId: revisionId }}
+                  search={{}}
+                  onClick={onClose}
+                >
+                  Открыть документ <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {revisionId && extractsDocuments() && (
           <div className="space-y-4">
             <ol className="space-y-2">
               {processingStages.map((name, index) => {

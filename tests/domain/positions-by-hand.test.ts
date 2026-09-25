@@ -148,3 +148,12 @@ describe("спецификация из файла", () => {
     expect(new Set(numbers).size).toBe(numbers.length);
   });
 });
+
+describe("письмо запроса", () => {
+  test("шаблон есть и на пустой базе: мастер не зависит от фикстур", async () => {
+    const templates = await repos.procurement.templates();
+    expect(templates.length).toBeGreaterThan(0);
+    expect(templates[0]?.subject).toContain("{объект}");
+    expect(templates[0]?.body).toContain("{контакт}");
+  });
+});

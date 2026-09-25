@@ -36,6 +36,7 @@ import {
 import * as actions from "./actions";
 import { peek, resetClock, restoreClock } from "./clock";
 import { disableSimulator, startSimulator, stopSimulator } from "./simulator";
+import { rfqTemplates } from "@/domain/rfq-template";
 import { getState, resetState, restoreState, type DemoState } from "./state";
 import { enableStorage } from "./storage";
 
@@ -320,7 +321,9 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       },
       supplier: (supplierId) => done(actions.supplierCard(supplierId, peek())),
       verifyContact: ({ supplierId }) => done(actions.verifyContact(supplierId)),
-      templates: () => done(state().templates),
+      // Без шаблонов заказчика мастер запроса получает встроенный: он не должен зависеть
+      // от фикстур демонстрации (ADR-025, поправка от 26.09.2026)
+      templates: () => done(rfqTemplates(state().templates)),
       requests: (projectId) => {
         const s = state();
         return done(
