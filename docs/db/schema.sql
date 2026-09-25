@@ -45,6 +45,9 @@ create type position_review as enum ('pending', 'confirmed', 'corrected', 'exclu
 -- Этап закупки позиции; меняется событиями закупки
 create type purchase_status as enum ('none', 'requested', 'offers', 'supplier_selected', 'ordered', 'delivered');
 
+-- Что менялось в справочнике: категория или поставщик
+create type catalog_entity as enum ('category', 'supplier');
+
 -- Сопоставление позиции с материалом: нет, предложено системой, подтверждено человеком
 create type match_status as enum ('none', 'suggested', 'confirmed');
 
@@ -437,6 +440,24 @@ comment on column materials.spellings is 'типичные написания в
 create unique index materials_name_unit_key on materials (name, unit); -- один материал — одна строка справочника
 create index materials_family_idx on materials (family); -- подбор замен и нормализация по семейству
 create index materials_category_id_idx on materials (category_id); -- номенклатура по категории, подбор поставщиков
+
+-- История изменений справочников: кто, когда, что изменил (ADR-023, п. 6) (журнал: только insert)
+create table catalog_changes (
+  id uuid not null default gen_random_uuid(),
+  entity catalog_entity not null,
+  entity_id text not null,
+  entity_name text not null,
+  field text not null,
+  before text,
+  after text,
+  at timestamptz not null,
+  by uuid not null,
+  row_order double precision not null default 0,
+  primary key (id)
+);
+comment on column catalog_changes.entity_name is 'как называлась запись в момент изменения';
+create index catalog_changes_entity_at_idx on catalog_changes (entity, at desc); -- журнал изменений справочника
+create index catalog_changes_by_idx on catalog_changes (by); -- внешний ключ: выборка по связи
 
 -- История изменений номенклатуры: кто, когда, какое поле, было и стало
 create table material_changes (
@@ -1006,6 +1027,7 @@ alter table material_categories add foreign key (parent_id) references material_
 alter table material_categories add foreign key (created_by) references employees (id) on delete restrict;
 alter table materials add foreign key (category_id) references material_categories (id) on delete restrict;
 alter table materials add foreign key (created_by) references employees (id) on delete restrict;
+alter table catalog_changes add foreign key (by) references employees (id) on delete restrict;
 alter table material_changes add foreign key (material_id) references materials (id) on delete cascade;
 alter table material_changes add foreign key (actor_id) references employees (id) on delete restrict;
 alter table positions add foreign key (project_id) references projects (id) on delete restrict;
@@ -1087,6 +1109,7 @@ alter table project_events add foreign key (report_id) references field_reports 
 alter table project_events add foreign key (delivery_id) references deliveries (id) on delete restrict;
 
 -- Журналы: роль приложения может только добавлять строки
+revoke update, delete on catalog_changes from app_user;
 revoke update, delete on position_changes from app_user;
 revoke update, delete on delivery_status_changes from app_user;
 revoke update, delete on delivery_acceptances from app_user;

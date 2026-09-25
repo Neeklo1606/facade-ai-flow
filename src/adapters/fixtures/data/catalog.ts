@@ -1,4 +1,4 @@
-import type { MaterialCategory, MaterialChange } from "@/contracts";
+import type { CatalogChange, MaterialCategory, MaterialChange } from "@/contracts";
 
 /**
  * Дерево категорий материалов (ADR-014, п. 5). Верхний уровень — прежние разделы спецификации:
@@ -119,3 +119,10 @@ export const materialChanges: MaterialChange[] = [
     after: "Утеплитель базальтовый 100 мм; Каменная вата 100 мм",
   },
 ];
+
+/**
+ * Журнал изменений категорий и поставщиков (ADR-023, п. 6). В демонстрации он пуст: его
+ * заполняют действия человека, а не подготовленный набор — иначе первая же запись
+ * выглядела бы как чужая правка.
+ */
+export const catalogChanges: CatalogChange[] = [];

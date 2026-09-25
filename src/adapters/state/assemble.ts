@@ -17,6 +17,7 @@ import type {
   FieldReport,
   Material,
   MaterialCategory,
+  CatalogChange,
   MaterialChange,
   Milestone,
   OfferLine,
@@ -51,6 +52,7 @@ export interface FixtureSnapshot {
   /** Дерево категорий и история номенклатуры (ADR-014) */
   categories: MaterialCategory[];
   materialChanges: MaterialChange[];
+  catalogChanges: CatalogChange[];
   replacements: ReplacementSuggestion[];
   projects: Project[];
   contracts: Contract[];
@@ -190,6 +192,7 @@ export function buildSnapshot(t: FixtureTables): FixtureSnapshot {
     materials: t.materials,
     categories: t.material_categories,
     materialChanges: t.material_changes,
+    catalogChanges: t.catalog_changes,
     replacements: t.replacement_suggestions,
 
     projects: t.projects.map((row) =>
@@ -334,6 +337,7 @@ export function snapshotTables(s: FixtureSnapshot): FixtureTables {
     material_categories: s.categories,
     materials: s.materials,
     material_changes: s.materialChanges,
+    catalog_changes: s.catalogChanges,
     positions: s.positions.map(
       ({
         documentId,

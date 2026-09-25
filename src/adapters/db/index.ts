@@ -217,7 +217,12 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
     ]),
     reports: bridged("reports", ["create", "review"]),
     timeline: bridged("timeline"),
-    catalog: bridged("catalog", ["saveMaterial"]),
+    catalog: bridged("catalog", [
+      "saveMaterial",
+      "saveCategory",
+      "saveSupplier",
+      "importMaterials",
+    ]),
 
     // Права проверяются на каждом запросе: объекты сотрудника и объект записи — запросами SQL
     scope: {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   employeeView,
   extractedPosition,
+  materialCategories,
   fieldReport,
   milestoneView,
   materials as materialRow,
@@ -12,6 +13,7 @@ import {
 } from "@/contracts";
 import {
   agentReply,
+  catalogJournal,
   categoryList,
   confirmMatchInput,
   materialCard,
@@ -60,7 +62,11 @@ import {
   requestCard,
   requestSummary,
   createReportInput,
+  importMaterialsInput,
+  importReport,
+  saveCategoryInput,
   saveEmployeeInput,
+  saveSupplierInput,
   reviewReportInput,
   revisionChangeView,
   sourceCard,
@@ -317,6 +323,10 @@ export const categoriesFn = createServerFn({ method: "GET" }).handler(async () =
   respond(categoryList, await repos().catalog.categories()),
 );
 
+export const catalogChangesFn = createServerFn({ method: "GET" }).handler(async () =>
+  respond(catalogJournal, await repos().catalog.catalogChanges()),
+);
+
 export const materialCardFn = createServerFn({ method: "GET" })
   .validator(input(byId))
   .handler(async ({ data }) =>
@@ -406,6 +416,22 @@ export const reportsFn = createServerFn({ method: "GET" })
   .validator(input(projectId))
   .handler(async ({ data }) =>
     respond(z.array(reportCard), await repos().reports.list(data.projectId)),
+  );
+
+export const saveCategoryFn = createServerFn({ method: "POST" })
+  .validator(input(saveCategoryInput))
+  .handler(async ({ data }) =>
+    respond(materialCategories, await repos().catalog.saveCategory(data, actor())),
+  );
+
+export const saveSupplierFn = createServerFn({ method: "POST" })
+  .validator(input(saveSupplierInput))
+  .handler(async ({ data }) => repos().catalog.saveSupplier(data, actor()));
+
+export const importMaterialsFn = createServerFn({ method: "POST" })
+  .validator(input(importMaterialsInput))
+  .handler(async ({ data }) =>
+    respond(importReport, await repos().catalog.importMaterials(data, actor())),
   );
 
 export const saveEmployeeFn = createServerFn({ method: "POST" })

@@ -21,7 +21,10 @@ import type {
   PositionFilterInput,
   Repositories,
   CreateReportInput,
+  ImportMaterialsInput,
+  SaveCategoryInput,
   SaveEmployeeInput,
+  SaveSupplierInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -206,10 +209,24 @@ export const api = {
     categories: () => (server ? fn.categoriesFn() : local().then((r) => r.catalog.categories())),
     material: (id: string) =>
       server ? fn.materialCardFn({ data: { id } }) : local().then((r) => r.catalog.material(id)),
+    catalogChanges: () =>
+      server ? fn.catalogChangesFn() : local().then((r) => r.catalog.catalogChanges()),
     saveMaterial: (data: SaveMaterialInput) =>
       server
         ? fn.saveMaterialFn({ data })
         : local().then((r) => r.catalog.saveMaterial(data, actor())),
+    saveCategory: (data: SaveCategoryInput) =>
+      server
+        ? fn.saveCategoryFn({ data })
+        : local().then((r) => r.catalog.saveCategory(data, actor())),
+    saveSupplier: (data: SaveSupplierInput) =>
+      server
+        ? fn.saveSupplierFn({ data })
+        : local().then((r) => r.catalog.saveSupplier(data, actor())),
+    importMaterials: (data: ImportMaterialsInput) =>
+      server
+        ? fn.importMaterialsFn({ data })
+        : local().then((r) => r.catalog.importMaterials(data, actor())),
   },
   procurement: {
     suppliers: () => (server ? fn.suppliersFn() : local().then((r) => r.procurement.suppliers())),

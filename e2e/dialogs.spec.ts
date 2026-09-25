@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import writeXlsxFile from "write-excel-file/node";
 import { expect, expectA11y, expectEmber, open, test } from "./fixtures";
 
 /**
@@ -49,6 +52,70 @@ test.describe("окна", () => {
       await expect(page.getByRole("dialog")).toBeVisible();
       await expectEmber(page, "окно материала");
       await expectA11y(page, "окно материала");
+    });
+
+    test("создать категорию", async ({ page }) => {
+      await open(page, "/catalogs");
+      await page.getByRole("button", { name: "Категория верхнего уровня" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expectEmber(page, "окно категории");
+      await expectA11y(page, "окно категории");
+    });
+
+    // Разбор .xlsx живёт в браузере (ADR-023, п. 4): здесь он проходит на настоящем файле
+    test("загрузить номенклатуру из файла", async ({ page }, testInfo) => {
+      const path = testInfo.outputPath("nomenclature.xlsx");
+      await mkdir(dirname(path), { recursive: true });
+      const written = await writeXlsxFile(
+        [
+          ["Наименование", "Ед. изм.", "Категория", "Характеристики"],
+          ["Кронштейн КР-180 оцинкованный", "шт", "Подконструкция", "вылет: 180 мм"],
+          ["", "шт", "Подконструкция", ""],
+          ["Профиль Т-образный 3 м", "м", "Такой категории нет", ""],
+        ].map((row) => row.map((value) => ({ type: String, value }))),
+        { buffer: true },
+      );
+      await writeFile(
+        path,
+        await (written as unknown as { toBuffer(): Promise<Buffer> }).toBuffer(),
+      );
+
+      await open(page, "/catalogs");
+      await page.getByRole("button", { name: "Загрузить из Excel" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.locator("input[type=file]").setInputFiles(path);
+
+      // Колонки угаданы по заголовкам, предпросмотр показывает то, что уйдёт в справочник
+      await expect(page.getByText("Так это будет загружено")).toBeVisible();
+      await expect(page.getByText("Кронштейн КР-180 оцинкованный")).toBeVisible();
+      await expectEmber(page, "окно загрузки");
+      await expectA11y(page, "окно загрузки");
+
+      await page.getByRole("button", { name: /^Загрузить 3$/ }).click();
+      await expect(page.getByText(/Добавлено/)).toBeVisible();
+      // Непринятые строки названы номерами строк файла, а не «часть не прошла»
+      await expect(page.getByText("строка 3 — пустое наименование")).toBeVisible();
+      await expect(page.getByText(/строка 4 — нет категории/)).toBeVisible();
+      await expectA11y(page, "итог загрузки");
+    });
+
+    test("журнал справочников", async ({ page }) => {
+      await open(page, "/catalogs");
+      await page.getByRole("button", { name: "Журнал" }).first().click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expectA11y(page, "журнал справочников");
+    });
+  });
+
+  test.describe("руководитель проекта заводит поставщика", () => {
+    test.use({ persona: "e-sokolov" });
+
+    test("новый поставщик", async ({ page }) => {
+      await open(page, "/projects/p-korona/procurement?view=suppliers");
+      await page.getByRole("button", { name: "Завести поставщика" }).first().click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expectEmber(page, "окно поставщика");
+      await expectA11y(page, "окно поставщика");
     });
   });
 });

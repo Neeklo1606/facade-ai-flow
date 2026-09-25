@@ -151,6 +151,11 @@ export const queries = {
       queryKey: keys.positions.material(id),
       queryFn: () => api.catalog.material(id),
     }),
+  catalogChanges: () =>
+    queryOptions({
+      queryKey: keys.positions.catalogChanges(),
+      queryFn: api.catalog.catalogChanges,
+    }),
   templates: () =>
     queryOptions({
       queryKey: keys.procurement.templates(),

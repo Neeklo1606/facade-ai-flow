@@ -23,6 +23,7 @@ export interface TableRows {
   material_categories: Rows<typeof c.materialCategories>;
   materials: Rows<typeof c.materials>;
   material_changes: Rows<typeof c.materialChanges>;
+  catalog_changes: Rows<typeof c.catalogChanges>;
   positions: Rows<typeof c.positions>;
   position_changes: Rows<typeof c.positionChanges>;
   replacement_suggestions: Rows<typeof c.replacementSuggestions>;

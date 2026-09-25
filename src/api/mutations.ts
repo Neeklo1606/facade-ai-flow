@@ -23,7 +23,10 @@ import type {
   MergePositionsInput,
   Page,
   CreateReportInput,
+  ImportMaterialsInput,
+  SaveCategoryInput,
   SaveEmployeeInput,
+  SaveSupplierInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -390,6 +393,39 @@ export function useVerifyContact() {
     meta: { action: "verifyContact" },
     mutationFn: (supplierId: string) => api.procurement.verifyContact(supplierId),
     onSettled: () => invalidate(queryClient, ["procurement"]),
+  });
+}
+
+/** Категория дерева: создать, переименовать, перенести (ADR-023, п. 2) */
+export function useSaveCategory(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveCategory" },
+    mutationFn: (input: SaveCategoryInput) => api.catalog.saveCategory(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents"]),
+  });
+}
+
+/** Поставщик вместе с профилем подбора (ADR-023, п. 1) */
+export function useSaveSupplier(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveSupplier" },
+    mutationFn: (input: SaveSupplierInput) => api.catalog.saveSupplier(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["procurement", "directory"]),
+  });
+}
+
+/** Загрузка номенклатуры из файла (ADR-023, п. 3) */
+export function useImportMaterials(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "importMaterials" },
+    mutationFn: (input: ImportMaterialsInput) => api.catalog.importMaterials(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents"]),
   });
 }
 

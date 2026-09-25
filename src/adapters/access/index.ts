@@ -218,7 +218,13 @@ export const ACCESS_RULES: AccessRules = {
   catalog: {
     categories: { sections: CATALOGS, need: READ, global: true },
     material: { sections: CATALOGS, need: READ, global: true },
+    // Журнал справочников видит тот, кто их правит: это проверка его же работы
+    catalogChanges: { sections: ["catalogs"], need: READ, global: true },
     saveMaterial: { sections: ["catalogs"], need: WRITE, global: true },
+    saveCategory: { sections: ["catalogs"], need: WRITE, global: true },
+    // Поставщик — часть подбора в запрос, поэтому право то же, что у раздела поставщиков
+    saveSupplier: { sections: ["suppliers"], need: WRITE, global: true },
+    importMaterials: { sections: ["catalogs"], need: WRITE, global: true },
   },
   scope: {
     projectsOf: SESSION,

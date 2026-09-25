@@ -16,7 +16,7 @@
 - Индексы подобраны под списки и фильтры экранов; колонка «Для чего» называет экран.
 - Фикстуры проверяются по этому описанию: `bun run check:fixtures` (схемы, ключи, уникальности, представления); на PostgreSQL — `psql -f docs/db/schema.sql` и `bun run db:fixtures-sql | psql`.
 
-Таблиц: 41, перечислений: 28.
+Таблиц: 42, перечислений: 29.
 
 ## Перечисления
 
@@ -36,6 +36,7 @@
 | `change_status`          | `open`, `resolved`                                                                                                                                                                                                                                                                                                         | open → resolved                                                                                                                                                                                                      | Разобрано ли изменение документации                                                                 |
 | `position_review`        | `pending`, `confirmed`, `corrected`, `excluded`, `merged`, `header`                                                                                                                                                                                                                                                        | pending → confirmed, corrected, excluded, merged, header; confirmed → pending, corrected, excluded, merged; corrected → pending, corrected, excluded, merged; excluded → pending; merged → pending; header → pending | Решение человека по извлечённой позиции                                                             |
 | `purchase_status`        | `none`, `requested`, `offers`, `supplier_selected`, `ordered`, `delivered`                                                                                                                                                                                                                                                 | none → requested; requested → offers, supplier_selected; offers → supplier_selected; supplier_selected → ordered; ordered → delivered                                                                                | Этап закупки позиции; меняется событиями закупки                                                    |
+| `catalog_entity`         | `category`, `supplier`                                                                                                                                                                                                                                                                                                     |                                                                                                                                                                                                                      | Что менялось в справочнике: категория или поставщик                                                 |
 | `match_status`           | `none`, `suggested`, `confirmed`                                                                                                                                                                                                                                                                                           | none → suggested, confirmed; suggested → none, confirmed; confirmed → confirmed                                                                                                                                      | Сопоставление позиции с материалом: нет, предложено системой, подтверждено человеком                |
 | `actor_kind`             | `user`, `system`                                                                                                                                                                                                                                                                                                           |                                                                                                                                                                                                                      | Кто совершил действие: человек или обработка                                                        |
 | `replacement_status`     | `proposed`, `agreed`, `rejected`                                                                                                                                                                                                                                                                                           | proposed → agreed, rejected                                                                                                                                                                                          | Решение по предложенной замене                                                                      |
@@ -432,6 +433,7 @@ erDiagram
   material_categories ||--o{ materials : category_id
   materials ||--o{ material_changes : material_id
   employees ||--o{ material_changes : actor_id
+  employees ||--o{ catalog_changes : by
   projects ||--o{ positions : project_id
   document_revisions ||--o{ positions : revision_id
   document_sheets ||--o{ positions : sheet_id
@@ -516,6 +518,17 @@ erDiagram
     text field
     text before
     text after
+  }
+  catalog_changes {
+    uuid id PK
+    catalog_entity entity
+    text entity_id
+    text entity_name
+    text field
+    text before
+    text after
+    timestamptz at
+    uuid by FK
   }
   positions {
     uuid id PK
@@ -752,6 +765,28 @@ erDiagram
 | ------ | ---------------------- | ------------------------------ |
 | btree  | `material_id, at desc` | история материала              |
 | btree  | `actor_id`             | внешний ключ: выборка по связи |
+
+#### `catalog_changes`
+
+История изменений справочников: кто, когда, что изменил (ADR-023, п. 6). **Журнал: только добавление.**
+
+| Колонка       | Тип              | Пусто | Ссылка                   | Комментарий                                      |
+| ------------- | ---------------- | ----- | ------------------------ | ------------------------------------------------ |
+| `id` **PK**   | `uuid`           |       |                          |                                                  |
+| `entity`      | `catalog_entity` |       |                          |                                                  |
+| `entity_id`   | `text`           |       |                          |                                                  |
+| `entity_name` | `text`           |       |                          | как называлась запись в момент изменения         |
+| `field`       | `text`           |       |                          |                                                  |
+| `before`      | `text`           | да    |                          |                                                  |
+| `after`       | `text`           | да    |                          |                                                  |
+| `at`          | `timestamptz`    |       |                          |                                                  |
+| `by`          | `uuid`           |       | → `employees` (restrict) |                                                  |
+| `row_order`   | служебная        |       |                          | порядок строк в представлении, не отдаётся в API |
+
+| Индекс | Колонки           | Для чего                       |
+| ------ | ----------------- | ------------------------------ |
+| btree  | `entity, at desc` | журнал изменений справочника   |
+| btree  | `by`              | внешний ключ: выборка по связи |
 
 #### `positions`
 

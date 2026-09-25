@@ -41,11 +41,22 @@ import {
   reportStatusLabel,
   reportTransitions,
 } from "@/contracts";
-import type { Employee, FieldReport, Material, Source } from "@/contracts";
+import type {
+  CatalogChange,
+  Employee,
+  FieldReport,
+  Material,
+  MaterialCategory,
+  Source,
+} from "@/contracts";
 import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
   CreateReportInput,
+  ImportMaterialsInput,
+  ImportReport,
+  SaveCategoryInput,
   SaveEmployeeInput,
+  SaveSupplierInput,
   ResolveRemarkInput,
   AcceptDeliveryInput,
   CorrectPositionInput,
@@ -1429,6 +1440,308 @@ const characteristicsText = (values: Material["characteristics"]) =>
  * Семейство нового материала берётся у материалов той же категории: по нему работают
  * замены и чек-лист приёмки
  */
+/** Запись в журнал справочника (ADR-023, п. 6): что менялось, было и стало */
+function catalogChange(
+  entity: CatalogChange["entity"],
+  entityId: string,
+  entityName: string,
+  field: string,
+  before: string | null,
+  after: string | null,
+  actorId: string,
+): CatalogChange {
+  return {
+    id: liveId("cc"),
+    entity,
+    entityId,
+    entityName,
+    field,
+    before,
+    after,
+    at: tick(),
+    by: actorId,
+  };
+}
+
+/**
+ * Категория: создать, переименовать, перенести (ADR-023, п. 2). Перенос внутрь своего
+ * поддерева запрещён — иначе дерево замыкается в кольцо и обход категорий зависает.
+ */
+export function saveCategory(input: SaveCategoryInput, actorId: string): MaterialCategory {
+  const s = getState();
+  const existing = input.id ? s.categories.find((item) => item.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Категория", input.id);
+  const sameName = s.categories.find(
+    (item) => item.id !== input.id && item.name.toLowerCase() === input.name.trim().toLowerCase(),
+  );
+  if (sameName) throw new ConflictError(`Категория «${input.name}» уже есть`);
+  if (input.parentId) {
+    const parent = s.categories.find((item) => item.id === input.parentId);
+    if (!parent) throw new NotFoundError("Категория", input.parentId);
+    // Спуск от переносимой вниз: если встретили нового родителя — это её же поддерево
+    if (existing) {
+      const inside = new Set([existing.id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const item of s.categories) {
+          if (item.parentId && inside.has(item.parentId) && !inside.has(item.id)) {
+            inside.add(item.id);
+            grew = true;
+          }
+        }
+      }
+      if (inside.has(input.parentId)) {
+        throw new ConflictError("Категорию нельзя перенести внутрь самой себя");
+      }
+    }
+  }
+  const category: MaterialCategory = {
+    id: existing?.id ?? liveId("cat"),
+    parentId: input.parentId,
+    name: input.name.trim(),
+    rules: input.rules,
+    sortOrder: existing?.sortOrder ?? s.categories.length + 1,
+  };
+  const changes: CatalogChange[] = [];
+  if (!existing) {
+    changes.push(
+      catalogChange(
+        "category",
+        category.id,
+        category.name,
+        "создана",
+        null,
+        category.name,
+        actorId,
+      ),
+    );
+  } else {
+    if (existing.name !== category.name) {
+      changes.push(
+        catalogChange(
+          "category",
+          category.id,
+          category.name,
+          "название",
+          existing.name,
+          category.name,
+          actorId,
+        ),
+      );
+    }
+    if (existing.parentId !== category.parentId) {
+      const nameOf = (id: string | null) =>
+        id ? (s.categories.find((item) => item.id === id)?.name ?? id) : "верхний уровень";
+      changes.push(
+        catalogChange(
+          "category",
+          category.id,
+          category.name,
+          "родитель",
+          nameOf(existing.parentId),
+          nameOf(category.parentId),
+          actorId,
+        ),
+      );
+    }
+    if (existing.rules.join(", ") !== category.rules.join(", ")) {
+      changes.push(
+        catalogChange(
+          "category",
+          category.id,
+          category.name,
+          "правила",
+          existing.rules.join(", "),
+          category.rules.join(", "),
+          actorId,
+        ),
+      );
+    }
+  }
+  update((prev) => ({
+    ...prev,
+    categories: existing
+      ? prev.categories.map((item) => (item.id === category.id ? category : item))
+      : [...prev.categories, category],
+    catalogChanges: [...prev.catalogChanges, ...changes],
+  }));
+  return category;
+}
+
+/**
+ * Поставщик вместе с профилем подбора (ADR-023, п. 1). Без региона и категорий он не попадёт
+ * ни в один запрос, поэтому и то и другое обязательно — это не украшение карточки.
+ */
+export function saveSupplier(input: SaveSupplierInput, actorId: string) {
+  const s = getState();
+  const existing = input.id ? s.counterparties.find((item) => item.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Поставщик", input.id);
+  const sameName = s.counterparties.find(
+    (item) => item.id !== input.id && item.name.toLowerCase() === input.name.trim().toLowerCase(),
+  );
+  if (sameName) throw new ConflictError(`Контрагент «${input.name}» уже есть`);
+  const unknown = input.categories.find((id) => !s.categories.some((item) => item.id === id));
+  if (unknown) throw new NotFoundError("Категория", unknown);
+  const at = tick();
+  const id = existing?.id ?? liveId("c");
+  const supplier = {
+    id,
+    name: input.name.trim(),
+    role: "supplier" as const,
+    inn: input.inn,
+    contactName: input.contactName.trim(),
+    email: input.email.trim(),
+    phone: input.phone.trim(),
+    avgReplyHours: existing?.avgReplyHours ?? 24,
+    rating: existing?.rating ?? 0,
+  };
+  const previousProfile = s.profiles.find((item) => item.supplierId === id);
+  const profile = {
+    supplierId: id,
+    region: input.region.trim(),
+    categories: input.categories,
+    contactName: supplier.contactName,
+    phone: supplier.phone,
+    email: supplier.email,
+    contactSource: previousProfile?.contactSource ?? "заведён вручную",
+    contactCheckedAt: at.slice(0, 10),
+    contactStatus: "verified" as const,
+  };
+  const changes: CatalogChange[] = [];
+  if (!existing) {
+    changes.push(
+      catalogChange("supplier", id, supplier.name, "заведён", null, supplier.name, actorId),
+    );
+  } else {
+    if (existing.name !== supplier.name) {
+      changes.push(
+        catalogChange(
+          "supplier",
+          id,
+          supplier.name,
+          "название",
+          existing.name,
+          supplier.name,
+          actorId,
+        ),
+      );
+    }
+    if (previousProfile && previousProfile.region !== profile.region) {
+      changes.push(
+        catalogChange(
+          "supplier",
+          id,
+          supplier.name,
+          "регион",
+          previousProfile.region,
+          profile.region,
+          actorId,
+        ),
+      );
+    }
+    if (
+      previousProfile &&
+      previousProfile.categories.join(", ") !== profile.categories.join(", ")
+    ) {
+      const names = (ids: string[]) =>
+        ids.map((cid) => s.categories.find((item) => item.id === cid)?.name ?? cid).join(", ");
+      changes.push(
+        catalogChange(
+          "supplier",
+          id,
+          supplier.name,
+          "категории",
+          names(previousProfile.categories),
+          names(profile.categories),
+          actorId,
+        ),
+      );
+    }
+  }
+  update((prev) => ({
+    ...prev,
+    counterparties: existing
+      ? prev.counterparties.map((item) => (item.id === id ? supplier : item))
+      : [...prev.counterparties, supplier],
+    profiles: previousProfile
+      ? prev.profiles.map((item) => (item.supplierId === id ? profile : item))
+      : [...prev.profiles, profile],
+    catalogChanges: [...prev.catalogChanges, ...changes],
+  }));
+  return { id };
+}
+
+/**
+ * Загрузка номенклатуры пачкой (ADR-023, п. 3 и 5). Обновляет по «наименование + единица»,
+ * добавляет новое и **не удаляет ничего**: файл заказчика не должен уметь стереть справочник.
+ * Непринятая строка называется номером и причиной — молчаливого «частично прошло» не бывает.
+ */
+export function importMaterials(input: ImportMaterialsInput, actorId: string): ImportReport {
+  const refused: { row: number; reason: string }[] = [];
+  let added = 0;
+  let updated = 0;
+  input.rows.forEach((row, index) => {
+    // Номер строки в файле: первая — заголовок, поэтому смещение на две
+    const at = index + 2;
+    const name = row.name.trim();
+    const unit = row.unit.trim();
+    if (!name) {
+      refused.push({ row: at, reason: "пустое наименование" });
+      return;
+    }
+    if (!unit) {
+      refused.push({ row: at, reason: "пустая единица измерения" });
+      return;
+    }
+    if (unit.length > 20) {
+      refused.push({ row: at, reason: "единица длиннее 20 знаков" });
+      return;
+    }
+    const s = getState();
+    const category = s.categories.find(
+      (item) => item.name.toLowerCase() === row.category.trim().toLowerCase(),
+    );
+    if (!category) {
+      refused.push({ row: at, reason: `нет категории «${row.category.trim() || "—"}»` });
+      return;
+    }
+    const existing = s.materials.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase() && item.unit === unit,
+    );
+    const characteristics = (row.characteristics ?? "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const [label, value] = part.split(":").map((piece) => piece.trim());
+        return { label: label ?? part, value: value ?? "" };
+      })
+      .slice(0, 20);
+    try {
+      saveMaterial(
+        {
+          id: existing?.id ?? null,
+          name,
+          unit,
+          categoryId: category.id,
+          characteristics: characteristics.length
+            ? characteristics
+            : (existing?.characteristics ?? []),
+          synonyms: existing?.synonyms ?? [],
+          spellings: existing?.spellings ?? [],
+        },
+        actorId,
+      );
+      if (existing) updated += 1;
+      else added += 1;
+    } catch (error) {
+      refused.push({ row: at, reason: error instanceof Error ? error.message : "не сохранилось" });
+    }
+  });
+  return { added, updated, refused };
+}
+
 export function saveMaterial(input: SaveMaterialInput, actorId: string): Material {
   const s = getState();
   if (!s.categories.some((c) => c.id === input.categoryId)) {

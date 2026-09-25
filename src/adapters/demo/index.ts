@@ -502,7 +502,21 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
     catalog: {
       categories: () => done([...state().categories].sort((a, b) => a.sortOrder - b.sortOrder)),
       material: (materialId) => done(actions.materialCard(materialId)),
+      catalogChanges: (limit = 100) =>
+        done(
+          // Свежие сверху. Две правки одной секунды по времени не различить, поэтому при равном
+          // времени порядок обратный порядку записи: журнал append-only, и он и есть «позже»
+          state()
+            .catalogChanges.map((row, index) => ({ row, index }))
+            .sort((a, b) => b.row.at.localeCompare(a.row.at) || b.index - a.index)
+            .slice(0, Math.max(limit, 0))
+            .map((item) => item.row),
+        ),
       saveMaterial: (input, { actorId }) => attempt(() => actions.saveMaterial(input, actorId)),
+      saveCategory: (input, { actorId }) => attempt(() => actions.saveCategory(input, actorId)),
+      saveSupplier: (input, { actorId }) => attempt(() => actions.saveSupplier(input, actorId)),
+      importMaterials: (input, { actorId }) =>
+        attempt(() => actions.importMaterials(input, actorId)),
     },
 
     scope: {
