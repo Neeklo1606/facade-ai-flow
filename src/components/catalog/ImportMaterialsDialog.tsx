@@ -20,6 +20,9 @@ import {
  * артикулом, и человек должен это увидеть до загрузки, а не после.
  */
 
+/** Столько строк принимает порт за один вызов (`importMaterialsInput`) */
+const LIMIT = 5000;
+
 type Field = "name" | "unit" | "category" | "characteristics" | "skip";
 
 const FIELD_LABEL: Record<Field, string> = {
@@ -71,6 +74,14 @@ export function ImportMaterialsDialog({
     try {
       const read = await readXlsx(await file.arrayBuffer());
       if (!read.rows.length) throw new Error("В файле нет строк");
+      // Предел загрузки — 5000 строк за раз (порт). Сказать это здесь дешевле, чем показать
+      // человеку отказ проверки схемы после того, как он прошёл весь мастер
+      if (read.total - 1 > LIMIT) {
+        throw new Error(
+          `В файле ${fmtNum(read.total - 1)} строк, за один раз загружается ${fmtNum(LIMIT)}. ` +
+            "Разделите выгрузку на части — загрузки складываются, повторы обновляются.",
+        );
+      }
       setFileName(file.name);
       setRows(read.rows);
       setTotal(read.total);
