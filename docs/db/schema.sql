@@ -94,6 +94,7 @@ create table employees (
   position text not null,
   role employee_role not null,
   phone text not null,
+  email text,
   telegram text,
   status employee_status not null,
   created_at timestamptz not null default now(),

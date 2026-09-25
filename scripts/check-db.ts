@@ -106,9 +106,21 @@ async function checkColumns(db: Driver) {
       );
     }
   }
+  /**
+   * Таблицы входа (ADR-021, п. 9) живут вне контрактов: это инфраструктура сервера, её нет
+   * в демо-контуре и в паритете. Список закрытый — новая таблица мимо контрактов требует
+   * записи здесь, а не молчания.
+   */
+  const infrastructure = new Map([
+    ["app_state", "состояние приложения"],
+    ["schema_migrations", "журнал миграций dbmate"],
+    ["auth_codes", "коды подтверждения входа (ADR-021)"],
+    ["auth_sessions", "серверные сессии: выход гасит строку (ADR-021)"],
+    ["auth_invites", "одноразовые приглашения сотрудников (ADR-021)"],
+  ]);
   for (const [name] of actual) {
     const [table, column] = name.split(".") as [string, string];
-    if (table === "app_state" || table === "schema_migrations") continue;
+    if (infrastructure.has(table)) continue;
     if (!expected.has(name) && !service.has(column)) problems.push(`лишняя колонка ${name}`);
   }
   if (problems.length) {

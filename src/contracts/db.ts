@@ -60,6 +60,12 @@ export interface TableDef {
 
 const columnMeta = new WeakMap<z.ZodTypeAny, ColumnMeta>();
 
+/**
+ * Куда `table()` и `pgEnum()` складывают описания при выполнении модуля. Сам по себе этот
+ * список ненадёжен: в `package.json` стоит `"sideEffects": false`, и сборщик выбрасывает
+ * модуль контрактов, из которого берут только типы, — вместе с регистрацией. Списком для
+ * работы служит `collectTables()` из `index.ts`, он ссылается на модули живым кодом.
+ */
 export const tables: TableDef[] = [];
 export const enums: EnumMeta[] = [];
 

@@ -20,6 +20,7 @@ import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RisksRouteImport } from './routes/risks'
 import { Route as ScheduleRouteImport } from './routes/schedule'
@@ -95,6 +96,11 @@ const IntegrationsRoute = IntegrationsRouteImport.update({
 const KnowledgeRoute = KnowledgeRouteImport.update({
   id: '/knowledge',
   path: '/knowledge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QualityRoute = QualityRouteImport.update({
@@ -219,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
+  '/login': typeof LoginRoute
   '/quality': typeof QualityRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
+  '/login': typeof LoginRoute
   '/quality': typeof QualityRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
+  '/login': typeof LoginRoute
   '/quality': typeof QualityRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/integrations'
     | '/knowledge'
+    | '/login'
     | '/quality'
     | '/risks'
     | '/schedule'
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/integrations'
     | '/knowledge'
+    | '/login'
     | '/quality'
     | '/risks'
     | '/schedule'
@@ -392,6 +403,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/integrations'
     | '/knowledge'
+    | '/login'
     | '/quality'
     | '/risks'
     | '/schedule'
@@ -427,6 +439,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   IntegrationsRoute: typeof IntegrationsRoute
   KnowledgeRoute: typeof KnowledgeRoute
+  LoginRoute: typeof LoginRoute
   QualityRoute: typeof QualityRoute
   RisksRoute: typeof RisksRoute
   ScheduleRoute: typeof ScheduleRoute
@@ -527,6 +540,13 @@ declare module '@tanstack/react-router' {
       path: '/knowledge'
       fullPath: '/knowledge'
       preLoaderRoute: typeof KnowledgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quality': {
@@ -691,6 +711,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   IntegrationsRoute: IntegrationsRoute,
   KnowledgeRoute: KnowledgeRoute,
+  LoginRoute: LoginRoute,
   QualityRoute: QualityRoute,
   RisksRoute: RisksRoute,
   ScheduleRoute: ScheduleRoute,

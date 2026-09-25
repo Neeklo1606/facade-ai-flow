@@ -32,6 +32,8 @@ export const employees = table(
     position: col.name({ comment: "должность словами" }),
     role: col.enum(employeeRole),
     phone: col.name(),
+    /** Запасной способ входа и приглашение по ссылке: у прораба почты часто нет (ADR-021) */
+    email: col.text({ nullable: true }),
     telegram: col.text({ nullable: true }),
     status: col.enum(employeeStatus),
   },

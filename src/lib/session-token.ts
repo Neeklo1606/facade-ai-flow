@@ -8,7 +8,10 @@ export const SESSION_COOKIE = "fieldops_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 /** Метка назначения: ключ сессии, производный от ключа демонстрации, не совпадает с ним */
 const PURPOSE = "fieldops-session-v1";
-const ID = /^[a-z0-9-]{1,64}$/;
+/** Значение куки: `p:<персона демо>` или `s:<идентификатор серверной сессии>` (ADR-021) */
+const ID = /^[a-z0-9:-]{1,72}$/;
+export const PERSONA_PREFIX = "p:";
+export const SESSION_PREFIX = "s:";
 
 const encoder = new TextEncoder();
 let cached: { source: string; key: Promise<CryptoKey> } | null = null;
@@ -65,8 +68,14 @@ export async function signSession(actorId: string) {
 }
 
 /** Сотрудник из значения cookie или null: испорчена или подпись не сходится */
-export async function verifySession(value: string | null | undefined): Promise<string | null> {
-  if (!value) return null;
+export async function verifySession(raw: string | null | undefined): Promise<string | null> {
+  if (!raw) return null;
+  /*
+   * Значение приходит из cookie процентно-закодированным: двоеточие в `s:<сессия>` браузер
+   * пишет как `%3A`. Без расшифровки приставка не узнаётся, и вход молча не срабатывал —
+   * кука ставилась, а сервер её не признавал.
+   */
+  const value = decodeCookieValue(raw);
   const dot = value.lastIndexOf(".");
   const actorId = value.slice(0, dot);
   const signature = fromBase64Url(value.slice(dot + 1));
@@ -79,6 +88,14 @@ export async function verifySession(value: string | null | undefined): Promise<s
     encoder.encode(actorId),
   );
   return valid ? actorId : null;
+}
+
+function decodeCookieValue(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 /** Значение сессии из заголовка Cookie запроса */

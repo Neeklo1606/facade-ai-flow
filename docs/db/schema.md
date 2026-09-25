@@ -68,6 +68,7 @@ erDiagram
     text position
     employee_role role
     text phone
+    text email
     text telegram
     employee_status status
   }
@@ -125,6 +126,7 @@ erDiagram
 | `position`                               | `text`            |       |               | должность словами                                |
 | `role`                                   | `employee_role`   |       |               |                                                  |
 | `phone`                                  | `text`            |       |               |                                                  |
+| `email`                                  | `text`            | да    |               |                                                  |
 | `telegram`                               | `text`            | да    |               |                                                  |
 | `status`                                 | `employee_status` |       |               |                                                  |
 | `created_at`, `updated_at`, `created_by` | служебные         |       | → `employees` | не отдаются в API                                |

@@ -3,13 +3,11 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { rememberEnv } from "./lib/runtime-env";
-import {
-  sessionFromCookieHeader,
-  sessionSetCookie,
-  signSession,
-  verifySession,
-} from "./lib/session-token";
-import { DEFAULT_USER_ID } from "./api/config";
+import { SESSION_PREFIX, sessionFromCookieHeader, verifySession } from "./lib/session-token";
+import { authAvailable, sessionEmployee } from "./api/auth-store";
+
+/** Экран входа: единственный адрес, открытый без сессии в рабочем контуре (ADR-021) */
+const LOGIN_PATH = "/login";
 import {
   accessKey,
   accessParam,
@@ -76,23 +74,28 @@ function withNoIndex(response: Response) {
 }
 
 /**
- * Рабочий контур: документ страницы без сессии выдаёт сессию сотрудника по умолчанию
- * (ADR-012, уточнение п. 4) — иначе первые запросы данных новой вкладки получали 403.
- * Серверные функции и выгрузки сессию не выдают: прямой вызов без неё — 403.
+ * Рабочий контур: без входа доступен только экран входа (ADR-021, п. 5). Раньше здесь выдавалась
+ * сессия сотрудника по умолчанию — кто открыл адрес, тот и работал руководителем проекта.
+ *
+ * Проверяется живая сессия, а не только подпись: выход и выключение доступа гасят строку
+ * в базе, и кука должна перестать работать в тот же миг.
  */
-async function withDefaultSession(request: Request, response: Response) {
-  if (import.meta.env.VITE_DATA_SOURCE !== "server") return response;
-  if (request.method !== "GET") return response;
-  if (!(response.headers.get("content-type") ?? "").includes("text/html")) return response;
-  const current = sessionFromCookieHeader(request.headers.get("cookie"));
-  if (await verifySession(current)) return response;
-  const headers = new Headers(response.headers);
-  const secure = new URL(request.url).protocol === "https:";
-  headers.append("set-cookie", sessionSetCookie(await signSession(DEFAULT_USER_ID), secure));
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
+async function requireLogin(request: Request): Promise<Response | null> {
+  if (!authAvailable()) return null;
+  if (request.method !== "GET") return null;
+  const url = new URL(request.url);
+  if (url.pathname === LOGIN_PATH || isPublicPath(url.pathname)) return null;
+  if (url.pathname.startsWith("/_serverFn") || url.pathname.startsWith("/api/")) return null;
+  const value = await verifySession(sessionFromCookieHeader(request.headers.get("cookie")));
+  if (value?.startsWith(SESSION_PREFIX)) {
+    const employee = await sessionEmployee(value.slice(SESSION_PREFIX.length));
+    if (employee) return null;
+  }
+  const to = new URL(LOGIN_PATH, url);
+  if (url.pathname !== "/") to.searchParams.set("to", url.pathname + url.search);
+  return new Response(null, {
+    status: 302,
+    headers: { location: to.pathname + to.search, "cache-control": "no-store" },
   });
 }
 
@@ -127,6 +130,8 @@ export default {
       rememberEnv(env);
       const gate = accessGate(request, env);
       if (gate) return gate;
+      const login = await requireLogin(request);
+      if (login) return login;
       // Витрина дизайн-системы в production не существует. Путь подменяется несуществующим
       // до рендера: маршрут не резолвится, а ответ — тот же 404-экран приложения, что и у любого
       // другого несуществующего адреса (находки ревью BLOCKER-2 и повторного ревью LOW)
@@ -138,10 +143,7 @@ export default {
       }
       const handler = await getServerEntry();
       const response = await handler.fetch(incoming, env, ctx);
-      return withDefaultSession(
-        incoming,
-        withNoIndex(await normalizeCatastrophicSsrResponse(response)),
-      );
+      return withNoIndex(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
