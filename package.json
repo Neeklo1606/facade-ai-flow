@@ -15,6 +15,7 @@
     "db:fixtures-sql": "bun scripts/fixtures-sql.ts",
     "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
     "db:seed": "bun scripts/db-seed.ts",
+    "db:owner": "bun scripts/db-owner.ts",
     "check:db": "bun scripts/check-db.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test": "bun test tests",
