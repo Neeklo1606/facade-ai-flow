@@ -153,3 +153,16 @@ describe("загрузка номенклатуры", () => {
     expect(report.refused).toEqual([]);
   });
 });
+
+describe("загрузка и форма согласованы", () => {
+  test("слишком короткое наименование не заводится загрузкой", async () => {
+    // Форма требует три знака. Пропусти загрузка «ЛС» — материал появился бы, а править
+    // его с экрана было бы нельзя: та же проверка отклоняла бы сохранение
+    const report = await repos.catalog.importMaterials(
+      { rows: [{ name: "ЛС", unit: "шт", category: "Крепёж" }] },
+      actor,
+    );
+    expect(report.added).toBe(0);
+    expect(report.refused).toEqual([{ row: 2, reason: "наименование короче трёх знаков" }]);
+  });
+});

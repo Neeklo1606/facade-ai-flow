@@ -1690,6 +1690,12 @@ export function importMaterials(input: ImportMaterialsInput, actorId: string): I
       refused.push({ row: at, reason: "пустое наименование" });
       return;
     }
+    // Та же нижняя граница, что у формы материала: иначе загрузка заводила бы запись,
+    // которую потом нельзя сохранить с экрана — правка отклонялась бы проверкой
+    if (name.length < 3) {
+      refused.push({ row: at, reason: "наименование короче трёх знаков" });
+      return;
+    }
     if (!unit) {
       refused.push({ row: at, reason: "пустая единица измерения" });
       return;
