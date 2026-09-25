@@ -92,6 +92,77 @@ function UsersPage() {
 
   const inviteOf = (id: string) => state?.invites.find((item) => item.employeeId === id);
   const seenOf = (id: string) => state?.lastSeen.find((item) => item.employeeId === id);
+  const projectNames = (employee: Employee) =>
+    employee.projectIds.length
+      ? employee.projectIds
+          .map((id) => projects.find((item) => item.project.id === id)?.project.name ?? id)
+          .join(", ")
+      : "все";
+  /** Состояние доступа словами: «входил тогда-то», «приглашение отправлено», «выключен» */
+  const accessState = (employee: Employee) => {
+    if (employee.status !== "active") return "выключен";
+    const seen = seenOf(employee.id);
+    if (seen) return `входил ${fmtDateTime(seen.at)}`;
+    const pending = inviteOf(employee.id);
+    return pending && !pending.acceptedAt ? "приглашение отправлено" : "не входил";
+  };
+
+  /** Действия строки: одна разметка для таблицы и для карточки телефона */
+  function RowActions({
+    employee,
+    pending,
+  }: {
+    employee: Employee;
+    pending: { acceptedAt: string | null } | undefined;
+  }) {
+    return (
+      <span className="inline-flex flex-wrap gap-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setEditing(employee)}
+          aria-label={`Изменить ${employee.name}`}
+        >
+          Изменить
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void invite(employee)}
+          aria-label={`Пригласить ${employee.name}`}
+        >
+          {pending && !pending.acceptedAt ? (
+            <Link2 className="size-3.5" />
+          ) : (
+            <Send className="size-3.5" />
+          )}
+          Пригласить
+        </Button>
+        {/* Выключение спрашивает: промах по значку рядом с «Пригласить» выбрасывал человека
+            из системы посреди смены */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button size="sm" variant="ghost" aria-label={`Выключить доступ ${employee.name}`}>
+              <ShieldOff className="size-3.5" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Выключить доступ «{employee.name}»?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Его сессии завершатся сразу, на всех устройствах. Войти снова он сможет только по
+                новому приглашению. Записи, которые он сделал, остаются на месте.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogAction onClick={() => void revoke(employee)}>Выключить</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </span>
+    );
+  }
 
   return (
     <>
@@ -109,7 +180,8 @@ function UsersPage() {
 
       <div data-main-zone className="space-y-4">
         <Panel>
-          <table className="w-full text-[13px]">
+          {/* Таблица — от планшета: на телефоне её колонки уводили действия за край экрана */}
+          <table className="hidden w-full text-[13px] lg:table">
             <thead className="text-caption text-text-muted">
               <tr className="border-b border-line">
                 <th className="py-2 text-left font-normal">Сотрудник</th>
@@ -122,102 +194,51 @@ function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((employee) => {
-                const pending = inviteOf(employee.id);
-                const seen = seenOf(employee.id);
-                return (
-                  <tr key={employee.id} className="border-b border-line last:border-0">
-                    <td className="py-2.5">
-                      <span className="block font-medium text-text">{employee.name}</span>
-                      <span className="block text-caption text-text-muted">
-                        {employee.position}
-                      </span>
-                    </td>
-                    <td className="py-2.5">{employeeRoleLabel[employee.role]}</td>
-                    <td className="py-2.5 text-text-2">
-                      {employee.projectIds.length
-                        ? employee.projectIds
-                            .map(
-                              (id) =>
-                                projects.find((item) => item.project.id === id)?.project.name ?? id,
-                            )
-                            .join(", ")
-                        : "все"}
-                    </td>
-                    <td className="tnum py-2.5 text-text-2">{employee.phone}</td>
-                    <td className="py-2.5 text-text-2">{employee.telegram ?? "—"}</td>
-                    <td className="py-2.5 text-text-2">
-                      {employee.status !== "active"
-                        ? "выключен"
-                        : seen
-                          ? `входил ${fmtDateTime(seen.at)}`
-                          : pending && !pending.acceptedAt
-                            ? "приглашение отправлено"
-                            : "не входил"}
-                    </td>
-                    <td className="py-2.5 text-right whitespace-nowrap">
-                      {canManage && (
-                        <span className="inline-flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditing(employee)}
-                            aria-label={`Изменить ${employee.name}`}
-                          >
-                            Изменить
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => void invite(employee)}
-                            aria-label={`Пригласить ${employee.name}`}
-                          >
-                            {pending && !pending.acceptedAt ? (
-                              <Link2 className="size-3.5" />
-                            ) : (
-                              <Send className="size-3.5" />
-                            )}
-                            Пригласить
-                          </Button>
-                          {/* Выключение спрашивает: промах по значку рядом с «Пригласить»
-                              выбрасывал человека из системы посреди смены */}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                aria-label={`Выключить доступ ${employee.name}`}
-                              >
-                                <ShieldOff className="size-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Выключить доступ «{employee.name}»?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Его сессии завершатся сразу, на всех устройствах. Войти снова он
-                                  сможет только по новому приглашению. Записи, которые он сделал,
-                                  остаются на месте.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => void revoke(employee)}>
-                                  Выключить
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {employees.map((employee) => (
+                <tr key={employee.id} className="border-b border-line last:border-0">
+                  <td className="py-2.5">
+                    <span className="block font-medium text-text">{employee.name}</span>
+                    <span className="block text-caption text-text-muted">{employee.position}</span>
+                  </td>
+                  <td className="py-2.5">{employeeRoleLabel[employee.role]}</td>
+                  <td className="py-2.5 text-text-2">{projectNames(employee)}</td>
+                  <td className="tnum py-2.5 text-text-2">{employee.phone}</td>
+                  <td className="py-2.5 text-text-2">{employee.telegram ?? "—"}</td>
+                  <td className="py-2.5 text-text-2">{accessState(employee)}</td>
+                  <td className="py-2.5 text-right whitespace-nowrap">
+                    {canManage && (
+                      <RowActions employee={employee} pending={inviteOf(employee.id)} />
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
+
+          {/* Телефон: карточка на человека, действия — в строку под ним, целиком на экране */}
+          <ul className="grid gap-3 lg:hidden">
+            {employees.map((employee) => (
+              <li key={employee.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
+                <span className="block text-[15px] font-medium text-text">{employee.name}</span>
+                <span className="block text-caption text-text-muted">
+                  {employee.position} · {employeeRoleLabel[employee.role]}
+                </span>
+                <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[13px]">
+                  <dt className="text-text-3">Объекты</dt>
+                  <dd className="text-text-2">{projectNames(employee)}</dd>
+                  <dt className="text-text-3">Телефон</dt>
+                  <dd className="tnum text-text-2">{employee.phone}</dd>
+                  <dt className="text-text-3">Доступ</dt>
+                  <dd className="text-text-2">{accessState(employee)}</dd>
+                </dl>
+                {canManage && (
+                  <div className="mt-2">
+                    <RowActions employee={employee} pending={inviteOf(employee.id)} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
         </Panel>
 
         <p className="text-[13px] leading-[1.5] text-text-3">
