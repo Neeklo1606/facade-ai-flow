@@ -21,6 +21,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 /**
  * Сотрудники и доступ (ADR-021, п. 8). Завести человека в систему можно было только вставкой
@@ -168,14 +179,37 @@ function UsersPage() {
                             )}
                             Пригласить
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => void revoke(employee)}
-                            aria-label={`Выключить доступ ${employee.name}`}
-                          >
-                            <ShieldOff className="size-3.5" />
-                          </Button>
+                          {/* Выключение спрашивает: промах по значку рядом с «Пригласить»
+                              выбрасывал человека из системы посреди смены */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                aria-label={`Выключить доступ ${employee.name}`}
+                              >
+                                <ShieldOff className="size-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Выключить доступ «{employee.name}»?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Его сессии завершатся сразу, на всех устройствах. Войти снова он
+                                  сможет только по новому приглашению. Записи, которые он сделал,
+                                  остаются на месте.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => void revoke(employee)}>
+                                  Выключить
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </span>
                       )}
                     </td>
