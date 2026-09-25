@@ -15,7 +15,7 @@ import {
 import { queries } from "@/api/queries";
 import { useUploadDocument } from "@/api/mutations";
 import { dataSource } from "@/api/config";
-import { note } from "@/lib/contour-copy";
+import { extractsDocuments, note, uploadActionLabel } from "@/lib/contour-copy";
 import { processingStages } from "@/contracts";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -154,7 +154,9 @@ export function UploadDialog({
               </div>
             ) : (
               <p className="text-[13px] leading-[1.45] text-text-3">
-                Предпросмотр доступен для PDF. Таблицы из DOCX и XLSX система читает при разборе.
+                {extractsDocuments()
+                  ? "Предпросмотр доступен для PDF. Таблицы из DOCX и XLSX система читает при разборе."
+                  : "Предпросмотр доступен для PDF."}
               </p>
             )}
 
@@ -180,9 +182,11 @@ export function UploadDialog({
               </label>
             </div>
 
+            {/* Обещание разбора — только там, где он есть: иначе абзац спорил сам с собой */}
             <p className="text-[13px] leading-[1.45] text-text-3">
-              Система распознает текст, найдёт таблицы и извлечёт позиции. Проверять их будете вы:
-              каждая позиция показана рядом со строкой оригинала.
+              {extractsDocuments()
+                ? "Система распознает текст, найдёт таблицы и извлечёт позиции. Проверять их будете вы: каждая позиция показана рядом со строкой оригинала."
+                : "Файл ложится в реестр ревизий: его видно в истории объекта, и на него ссылаются позиции."}
               {` ${note("upload")}`}
             </p>
 
@@ -197,7 +201,7 @@ export function UploadDialog({
                 Отмена
               </Button>
               <Button onClick={submit} loading={upload.isPending} disabled={!title.trim()}>
-                Загрузить и разобрать
+                {uploadActionLabel()}
               </Button>
             </div>
           </div>

@@ -169,5 +169,68 @@ if (inviteCount) {
 }
 await shot("w10-priglashenie");
 
+/* ---------- День 3: захватка ---------- */
+await page.goto(`${base}${projectPath}?tab=progress`, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(1800);
+await click(/Завести захватку|^Захватка$/);
+await page.waitForTimeout(600);
+await fill("Название", "Фасад А, оси 1–8");
+await fill("Оси", "1–8");
+await fill("Этажи", "1–12");
+await fill("План", "1240");
+await shot("w11-zahvatka-forma");
+await click(/^Завести$/);
+await page.waitForTimeout(2000);
+step("7. Захватка заведена");
+await shot("w12-hod-rabot");
+
+/* ---------- День 4: документ и спецификация ---------- */
+await page.goto(`${base}${projectPath}/documents`, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(1500);
+await click(/Загрузить документацию/);
+await page.waitForTimeout(700);
+const spec = `${out}/specifikaciya.xlsx`;
+const specFile = await writeXlsxFile(
+  [
+    ["№", "Наименование", "Количество", "Ед."],
+    ["1.1", "Кронштейн КР-150 оцинкованный", "420", "шт"],
+    ["1.2", "Профиль Т-образный 3 м", "310", "м"],
+    ["1.3", "Анкер клиновой 10×100", "1680", "шт"],
+  ].map((row) => row.map((value) => ({ type: String, value }))),
+);
+await specFile.toFile(spec);
+const uploadInput = (await scope()).locator("input[type=file]").first();
+await uploadInput.setInputFiles(spec);
+await page.waitForTimeout(900);
+await shot("w13-zagruzka-dokumenta");
+await click(/^Загрузить$|Загрузить документ|^Добавить$/);
+await page.waitForTimeout(2500);
+step(`8. Документ загружен: ${page.url()}`);
+await shot("w14-dokumenty");
+
+// Открываем ревизию: строка документа ведёт на экран проверки
+await page.getByText("специфик", { exact: false }).first().click().catch(() => {});
+await page.waitForTimeout(2500);
+step(`   экран проверки: ${page.url()}`);
+await shot("w15-proverka-pusto");
+
+const bodyText = await page.locator("body").innerText();
+step(`   пустой список говорит: ${bodyText.match(/Позиций из этого файла нет[^\n]*/)?.[0] ?? "—"}`);
+step(`   и рядом: ${bodyText.match(/Разбор документов[^\n]*/)?.[0]?.slice(0, 120) ?? "—"}`);
+
+await click(/Загрузить спецификацию из Excel/);
+await page.waitForTimeout(700);
+await (await scope()).locator("input[type=file]").setInputFiles(spec);
+await page.waitForTimeout(900);
+await shot("w16-specifikaciya-master");
+await click(/^Загрузить \d+$/);
+await page.waitForTimeout(2500);
+const specText = await page.locator("body").innerText();
+step(`9. Спецификация загружена: ${specText.match(/Добавлено[^\n]*/)?.[0] ?? "нет итога"}`);
+await shot("w17-specifikaciya-itog");
+await click(/Готово/);
+await page.waitForTimeout(1500);
+await shot("w18-pozicii");
+
 await browser.close();
 console.log("\n".concat(log.join("\n")));
