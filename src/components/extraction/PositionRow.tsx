@@ -95,18 +95,22 @@ export const PositionRow = memo(function PositionRow({
             {badge.label}
           </span>
         )}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAction(item.id, "source");
-          }}
-          title={`Показать на листе ${item.sheetNumber}`}
-          className="focus-ring ml-auto inline-flex h-11 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[11px] text-info transition-fast hover:bg-info-bg md:h-6"
-        >
-          <FileText className="size-3" strokeWidth={1.75} />
-          <span className="tnum">л. {item.sheetNumber}</span>
-        </button>
+        {/* Показывать на листе нечего, если места на листе нет: у строки, заведённой руками,
+            кнопка была бы нажатием без ответа (ADR-025, п. 3) */}
+        {item.region.w > 0 && item.region.h > 0 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction(item.id, "source");
+            }}
+            title={`Показать на листе ${item.sheetNumber}`}
+            className="focus-ring ml-auto inline-flex h-11 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[11px] text-info transition-fast hover:bg-info-bg md:h-6"
+          >
+            <FileText className="size-3" strokeWidth={1.75} />
+            <span className="tnum">л. {item.sheetNumber}</span>
+          </button>
+        )}
       </div>
 
       {editing ? (
