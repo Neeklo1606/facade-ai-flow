@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
 
 /**
@@ -105,7 +106,7 @@ export function ZoneDialog({
       {
         onSuccess: (saved) => {
           toast.success(zone ? "Захватка изменена" : "Захватка заведена", {
-            description: `${saved.name}: план ${saved.planQty} ${saved.unit}. Запись — в истории объекта.`,
+            description: `${saved.name}: план ${fmtNum(saved.planQty)} ${saved.unit}. Запись — в истории объекта.`,
           });
           onOpenChange(false);
         },

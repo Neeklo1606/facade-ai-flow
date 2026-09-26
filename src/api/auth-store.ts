@@ -95,6 +95,13 @@ export async function codesLastHour(phone: string) {
 }
 
 export async function createCode(phone: string) {
+  /*
+   * Использованные и просроченные коды не нужны никому: без уборки таблица растёт на каждую
+   * попытку входа и хранит хэши, которые уже ничего не открывают (аудит перед выпуском).
+   */
+  await db().query(
+    `delete from auth_codes where created_at < now() - interval '1 day' and (used_at is not null or expires_at < now())`,
+  );
   if ((await codesLastHour(phone)) >= CODE_PER_HOUR) return { refusal: "too-often" as const };
   const code = newCode();
   await db().query(
