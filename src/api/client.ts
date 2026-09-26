@@ -4,11 +4,14 @@ import type {
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  CreatePositionInput,
+  ImportSpecInput,
   ConfirmMatchInput,
   SaveMaterialInput,
   CreateProjectInput,
   CreateRequestInput,
   CompleteMilestoneInput,
+  SaveZoneInput,
   ResolveChangeInput,
   SetProjectStatusInput,
   ListChangesInput,
@@ -20,6 +23,11 @@ import type {
   ResolveRemarkInput,
   PositionFilterInput,
   Repositories,
+  CreateReportInput,
+  ImportMaterialsInput,
+  SaveCategoryInput,
+  SaveEmployeeInput,
+  SaveSupplierInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -96,6 +104,10 @@ export const api = {
     employees: () => (server ? fn.employeesFn() : local().then((r) => r.directory.employees())),
     counterparties: () =>
       server ? fn.counterpartiesFn() : local().then((r) => r.directory.counterparties()),
+    saveEmployee: (data: SaveEmployeeInput) =>
+      server
+        ? fn.saveEmployeeFn({ data })
+        : local().then((r) => r.directory.saveEmployee(data, actor())),
   },
   projects: {
     list: (data: ListProjectsInput = {}) =>
@@ -116,6 +128,8 @@ export const api = {
       server
         ? fn.setProjectStatusFn({ data })
         : local().then((r) => r.projects.setStatus(data, actor())),
+    saveZone: (data: SaveZoneInput) =>
+      server ? fn.saveZoneFn({ data }) : local().then((r) => r.projects.saveZone(data, actor())),
     completeMilestone: (data: CompleteMilestoneInput) =>
       server
         ? fn.completeMilestoneFn({ data })
@@ -158,6 +172,14 @@ export const api = {
       server
         ? fn.confirmFn({ data: { ids } })
         : local().then((r) => r.positions.confirm({ ids }, actor())),
+    create: (data: CreatePositionInput) =>
+      server
+        ? fn.createPositionFn({ data })
+        : local().then((r) => r.positions.create(data, actor())),
+    importSpec: (data: ImportSpecInput) =>
+      server
+        ? fn.importSpecFn({ data })
+        : local().then((r) => r.positions.importSpec(data, actor())),
     correct: (data: CorrectPositionInput) =>
       server
         ? fn.correctFn({ data }).then(() => undefined)
@@ -200,10 +222,24 @@ export const api = {
     categories: () => (server ? fn.categoriesFn() : local().then((r) => r.catalog.categories())),
     material: (id: string) =>
       server ? fn.materialCardFn({ data: { id } }) : local().then((r) => r.catalog.material(id)),
+    catalogChanges: () =>
+      server ? fn.catalogChangesFn() : local().then((r) => r.catalog.catalogChanges()),
     saveMaterial: (data: SaveMaterialInput) =>
       server
         ? fn.saveMaterialFn({ data })
         : local().then((r) => r.catalog.saveMaterial(data, actor())),
+    saveCategory: (data: SaveCategoryInput) =>
+      server
+        ? fn.saveCategoryFn({ data })
+        : local().then((r) => r.catalog.saveCategory(data, actor())),
+    saveSupplier: (data: SaveSupplierInput) =>
+      server
+        ? fn.saveSupplierFn({ data })
+        : local().then((r) => r.catalog.saveSupplier(data, actor())),
+    importMaterials: (data: ImportMaterialsInput) =>
+      server
+        ? fn.importMaterialsFn({ data })
+        : local().then((r) => r.catalog.importMaterials(data, actor())),
   },
   procurement: {
     suppliers: () => (server ? fn.suppliersFn() : local().then((r) => r.procurement.suppliers())),
@@ -258,6 +294,8 @@ export const api = {
       server
         ? fn.reportsFn({ data: { projectId } })
         : local().then((r) => r.reports.list(projectId)),
+    create: (data: CreateReportInput) =>
+      server ? fn.createReportFn({ data }) : local().then((r) => r.reports.create(data, actor())),
     review: (data: ReviewReportInput) =>
       server
         ? fn.reviewReportFn({ data }).then(() => undefined)

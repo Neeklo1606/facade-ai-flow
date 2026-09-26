@@ -32,7 +32,7 @@ import { docStatusTone } from "@/lib/project-meta";
 import { Button } from "@/components/ui/button";
 import { fmtDateTime, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import {
   type DocProcessingStatus,
@@ -150,6 +150,8 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
     },
     { extracted: 0, verified: 0 },
   );
+  /** Документ, в котором лежат позиции: туда и ведут счётчики шапки */
+  const withPositions = documents.find((doc) => (stats.get(doc.id)?.extracted ?? 0) > 0) ?? null;
 
   return (
     <>
@@ -169,12 +171,43 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
         проверку.
       </p>
 
+      {/*
+        Цифра ведёт туда, где она собрана: из «Извлечено позиций» и «Проверено» открывается
+        проверка того документа, в котором позиции лежат. Раньше счётчики были подписями,
+        и к проверке шли через таблицу (находка аудита соответствия).
+      */}
       <MetricStrip
         className="mb-6"
         items={[
           { icon: FileText, label: "Документов", value: fmtNum(documents.length) },
-          { icon: FileSearch, label: "Извлечено позиций", value: fmtNum(totals.extracted) },
-          { icon: FileCheck2, label: "Проверено", value: fmtNum(totals.verified) },
+          {
+            icon: FileSearch,
+            label: "Извлечено позиций",
+            value: fmtNum(totals.extracted),
+            ...(withPositions
+              ? {
+                  onSelect: () =>
+                    navigate({
+                      to: "/projects/$id/documents/$docId",
+                      params: { id: project.id, docId: withPositions.id },
+                    }),
+                }
+              : {}),
+          },
+          {
+            icon: FileCheck2,
+            label: "Проверено",
+            value: fmtNum(totals.verified),
+            ...(withPositions
+              ? {
+                  onSelect: () =>
+                    navigate({
+                      to: "/projects/$id/documents/$docId",
+                      params: { id: project.id, docId: withPositions.id },
+                    }),
+                }
+              : {}),
+          },
         ]}
       />
 
@@ -198,7 +231,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
             title={`Распознаётся: ${recognizing.map((d) => `«${d.title}»`).join(", ")}`}
           >
             Обработка идёт на сервере: позиции появятся в реестре и на экране проверки, страницу
-            можно закрыть. {DEMO_UPLOAD_NOTE}
+            можно закрыть. {note("upload")}
           </StateBanner>
         )}
         {screen === "processing" && recognizing.length === 0 && inProgress.length === 0 && (
@@ -285,7 +318,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
               empty: {
                 icon: FileText,
                 title: "Документации пока нет",
-                description: `Загрузите проектную документацию — позиции появятся здесь и уйдут на проверку. ${DEMO_UPLOAD_NOTE}`,
+                description: `Загрузите проектную документацию — позиции появятся здесь и уйдут на проверку. ${note("upload")}`,
                 ...(canUpload && {
                   actionLabel: "Загрузить документ",
                   onAction: () => zone.current?.open(),

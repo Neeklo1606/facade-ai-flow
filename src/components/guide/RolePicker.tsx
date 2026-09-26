@@ -5,7 +5,7 @@ import { Building2, ClipboardCheck, HardHat, LineChart, PackageSearch } from "lu
 import type { LucideIcon } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { queries } from "@/api/queries";
-import { DEMO_PERSONAS } from "@/api/config";
+import { DEMO_PERSONAS, dataSource } from "@/api/config";
 import { useEnterAs } from "@/lib/persona";
 import { markStartScreenApplied } from "@/lib/navigation";
 import { markRoleChosen, startScenario, useRoleChosen } from "@/lib/guide/store";
@@ -34,12 +34,20 @@ export function RolePicker() {
 
   // Пока выбирается роль, приложение под экраном выбора недоступно ни мышью, ни клавиатурой
   useEffect(() => {
-    if (chosen !== false) return;
+    // В рабочем контуре экрана выбора нет — и приложение под ним запирать не за чем.
+    // Без этой проверки оболочка оставалась inert: кнопки видны, но не нажимаются
+    if (dataSource === "server" || chosen !== false) return;
     const shell = document.querySelector(".app-window");
     shell?.setAttribute("inert", "");
     return () => shell?.removeAttribute("inert");
   }, [chosen]);
 
+  /*
+   * В рабочем контуре роли не выбирают: она приходит из учётной записи, за которую вошли
+   * (ADR-021, п. 7). Раньше экран выбора появлялся и там — поверх рабочего места, сразу
+   * после входа по телефону и коду.
+   */
+  if (dataSource === "server") return null;
   if (chosen !== false) return null;
 
   const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id)).filter(

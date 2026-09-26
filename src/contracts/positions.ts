@@ -95,6 +95,34 @@ export const materials = table(
   },
 );
 
+export const catalogEntity = pgEnum(
+  "catalog_entity",
+  ["category", "supplier"],
+  "Что менялось в справочнике: категория или поставщик",
+);
+
+export const catalogChanges = table(
+  {
+    name: "catalog_changes",
+    comment: "История изменений справочников: кто, когда, что изменил (ADR-023, п. 6)",
+    primaryKey: ["id"],
+    appendOnly: true,
+    indexes: [{ columns: ["entity", "at desc"], purpose: "журнал изменений справочника" }],
+  },
+  {
+    id: col.id(),
+    entity: col.enum(catalogEntity),
+    /** Ключ записи справочника: без внешнего ключа — запись переживает свою строку */
+    entityId: col.name(),
+    entityName: col.name({ comment: "как называлась запись в момент изменения" }),
+    field: col.name(),
+    before: col.text({ nullable: true }),
+    after: col.text({ nullable: true }),
+    at: col.timestamp(),
+    by: col.ref("employees", "restrict"),
+  },
+);
+
 export const materialChanges = table(
   {
     name: "material_changes",
@@ -311,6 +339,7 @@ export const positionChange = positionChanges;
 export type Material = z.infer<typeof materials>;
 export type MaterialCategory = z.infer<typeof materialCategories>;
 export type MaterialChange = z.infer<typeof materialChanges>;
+export type CatalogChange = z.infer<typeof catalogChanges>;
 export type MatchStatus = z.infer<typeof matchStatus.schema>;
 export type PositionRow = z.infer<typeof positions>;
 export type ExtractedPosition = z.infer<typeof extractedPosition>;

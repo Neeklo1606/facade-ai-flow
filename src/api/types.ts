@@ -7,6 +7,7 @@ export type {
   ComparisonColumn,
   DocumentCard,
   DocumentListItem,
+  ImportReport,
   OfferComparison,
   PendingDecision,
   PositionFacetsResult,

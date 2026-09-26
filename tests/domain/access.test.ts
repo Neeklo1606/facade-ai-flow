@@ -29,14 +29,16 @@ const TABLE: Record<Section, [Cell, Cell, Cell, Cell, Cell]> = {
   procurement: ["W", "W", "R", "—", "R"],
   suppliers: ["W", "W", "—", "—", "R"],
   deliveries: ["W", "W", "—", "W*", "R"],
-  "field-reports": ["W", "—", "—", "W*", "R"],
+  // ADR-022: ПТО заводит отчёт за прораба, пока нет бота; ячейка открывает и приёмку
+  "field-reports": ["W", "—", "W", "W*", "R"],
   timeline: ["R", "—", "R", "—", "R"],
   // ADR-014, п. 4: раздел «Справочники» добавлен к матрице ADR-012
   catalogs: ["W", "W", "W", "—", "R"],
   agent: ["R", "—", "—", "—", "R"],
   analytics: ["R", "—", "—", "—", "R"],
   export: ["R", "—", "—", "—", "R"],
-  access: ["R", "—", "—", "—", "R"],
+  // ADR-021: руководитель заводит сотрудников и шлёт приглашения
+  access: ["W", "—", "—", "—", "R"],
 };
 const ROLES: EmployeeRole[] = ["manager", "supply", "pto", "foreman", "director"];
 
@@ -93,8 +95,8 @@ describe("can, canAny, ownOnly, rolesWith", () => {
 
   test("rolesWith: у кого есть доступ, в порядке столбцов", () => {
     expect(rolesWith("timeline")).toEqual(["manager", "pto", "director"]);
-    expect(rolesWith("field-reports", "write")).toEqual(["manager", "foreman"]);
-    expect(rolesWith("access", "write")).toEqual([]);
+    expect(rolesWith("field-reports", "write")).toEqual(["manager", "pto", "foreman"]);
+    expect(rolesWith("access", "write")).toEqual(["manager"]);
   });
 });
 

@@ -36,6 +36,7 @@ import {
 import * as actions from "./actions";
 import { peek, resetClock, restoreClock } from "./clock";
 import { disableSimulator, startSimulator, stopSimulator } from "./simulator";
+import { rfqTemplates } from "@/domain/rfq-template";
 import { getState, resetState, restoreState, type DemoState } from "./state";
 import { enableStorage } from "./storage";
 
@@ -158,6 +159,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       employees: () => done(state().employees),
       counterparties: () =>
         done(state().counterparties.map(({ id, name, role }) => ({ id, name, role }))),
+      saveEmployee: (input, actor) => attempt(() => actions.saveEmployee(input, actor.actorId)),
     },
 
     projects: {
@@ -193,6 +195,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       setStatus: (input, { actorId }) => attempt(() => actions.setProjectStatus(input, actorId)),
       completeMilestone: (input, { actorId }) =>
         attempt(() => actions.completeMilestone(input, actorId)),
+      saveZone: (input, { actorId }) => attempt(() => actions.saveZone(input, actorId)),
     },
 
     documents: {
@@ -272,6 +275,9 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           ),
         ),
       correct: (input, { actorId }) => done(actions.correct(input, actorId)),
+      // Заведение руками и загрузка спецификации (ADR-025): разбора файла нет
+      create: (input, { actorId }) => attempt(() => actions.createPosition(input, actorId)),
+      importSpec: (input, { actorId }) => attempt(() => actions.importSpec(input, actorId)),
       exclude: ({ id }, { actorId }) =>
         done(actions.setReview(id, "excluded", "Исключено из спецификации", actorId)),
       markHeader: ({ id }, { actorId }) =>
@@ -315,7 +321,9 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       },
       supplier: (supplierId) => done(actions.supplierCard(supplierId, peek())),
       verifyContact: ({ supplierId }) => done(actions.verifyContact(supplierId)),
-      templates: () => done(state().templates),
+      // Без шаблонов заказчика мастер запроса получает встроенный: он не должен зависеть
+      // от фикстур демонстрации (ADR-025, поправка от 26.09.2026)
+      templates: () => done(rfqTemplates(state().templates)),
       requests: (projectId) => {
         const s = state();
         return done(
@@ -436,6 +444,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
             })),
         );
       },
+      create: (input, actor) => attempt(() => actions.createReport(input, actor.actorId)),
       review: (input) => attempt(() => actions.reviewReport(input)),
       source: (sourceId) => {
         const s = state();
@@ -500,7 +509,21 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
     catalog: {
       categories: () => done([...state().categories].sort((a, b) => a.sortOrder - b.sortOrder)),
       material: (materialId) => done(actions.materialCard(materialId)),
+      catalogChanges: (limit = 100) =>
+        done(
+          // Свежие сверху. Две правки одной секунды по времени не различить, поэтому при равном
+          // времени порядок обратный порядку записи: журнал append-only, и он и есть «позже»
+          state()
+            .catalogChanges.map((row, index) => ({ row, index }))
+            .sort((a, b) => b.row.at.localeCompare(a.row.at) || b.index - a.index)
+            .slice(0, Math.max(limit, 0))
+            .map((item) => item.row),
+        ),
       saveMaterial: (input, { actorId }) => attempt(() => actions.saveMaterial(input, actorId)),
+      saveCategory: (input, { actorId }) => attempt(() => actions.saveCategory(input, actorId)),
+      saveSupplier: (input, { actorId }) => attempt(() => actions.saveSupplier(input, actorId)),
+      importMaterials: (input, { actorId }) =>
+        attempt(() => actions.importMaterials(input, actorId)),
     },
 
     scope: {

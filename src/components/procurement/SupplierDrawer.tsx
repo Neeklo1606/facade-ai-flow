@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone } from "lucide-react";
+import { Mail, Pencil, Phone } from "lucide-react";
 import { queries } from "@/api/queries";
 import { useAccess } from "@/api/access";
 import { EntityDrawer } from "@/components/common/EntityDrawer";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { Button } from "@/components/ui/button";
 import { ContactFreshnessBadge } from "./ContactFreshnessBadge";
 import { fmtDate, fmtNum } from "@/lib/format";
 
@@ -16,9 +17,12 @@ import { fmtDate, fmtNum } from "@/lib/format";
 export function SupplierDrawer({
   supplierId,
   onOpenChange,
+  onEdit,
 }: {
   supplierId: string;
   onOpenChange: (open: boolean) => void;
+  /** Правка контактов и категорий — там же, где их видят (ADR-023, п. 1) */
+  onEdit?: (() => void) | undefined;
 }) {
   const card = useQuery(queries.supplier(supplierId)).data;
   const { canOpen } = useAccess();
@@ -32,6 +36,13 @@ export function SupplierDrawer({
       title={supplier.name}
       subtitle={`${profile.region} · ${categories.map((c) => c.name).join(", ")}`}
       badges={<ContactFreshnessBadge status={profile.contactStatus} />}
+      footer={
+        onEdit ? (
+          <Button size="sm" variant="secondary" onClick={onEdit}>
+            <Pencil className="size-4" /> Изменить
+          </Button>
+        ) : undefined
+      }
     >
       <div className="grid gap-5 text-[13px]">
         <section aria-labelledby="supplier-stats">

@@ -139,6 +139,7 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
     clock: { now: async () => clock.peek() },
 
     directory: {
+      ...bridged("directory", ["saveEmployee"]),
       employees: () => staff((r) => r.directory.employees()),
       counterparties: () =>
         readFrom({ where: { counterparties: "true" }, values: [] })((r) =>
@@ -147,7 +148,7 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
     },
 
     projects: {
-      ...bridged("projects", ["create", "setStatus", "completeMilestone"]),
+      ...bridged("projects", ["create", "setStatus", "completeMilestone", "saveZone"]),
       list: registry,
       exportRegistry: async (input) => {
         const [rows, employees] = await Promise.all([
@@ -193,6 +194,8 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
         "correct",
         "exclude",
         "markHeader",
+        "create",
+        "importSpec",
         "reopen",
         "undoReview",
         "merge",
@@ -214,9 +217,14 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
       "acceptDelivery",
       "resolveRemark",
     ]),
-    reports: bridged("reports", ["review"]),
+    reports: bridged("reports", ["create", "review"]),
     timeline: bridged("timeline"),
-    catalog: bridged("catalog", ["saveMaterial"]),
+    catalog: bridged("catalog", [
+      "saveMaterial",
+      "saveCategory",
+      "saveSupplier",
+      "importMaterials",
+    ]),
 
     // Права проверяются на каждом запросе: объекты сотрудника и объект записи — запросами SQL
     scope: {

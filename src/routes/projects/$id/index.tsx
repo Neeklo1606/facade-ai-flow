@@ -48,7 +48,7 @@ import { useApp } from "@/lib/app-context";
 import { ProjectStatusControl } from "@/components/project/ProjectStatusControl";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import { mainSpecification } from "@/lib/documents";
 import { useQuery } from "@tanstack/react-query";
@@ -117,17 +117,22 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
     (d) => d.status === "recognizing" || d.status === "uploaded",
   );
   const hasDocuments = liveDocuments.length > 0;
-  const screen = useScreenState({
-    pending: canDocuments && documents.isPending,
-    error: canDocuments && documents.isError,
-    empty: !hasDocuments && overview.specTotal === 0,
-    processing: recognizingDocs.length > 0,
-  });
-  const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   const { tab: requested = "summary" } = Route.useSearch();
   const visibleTabs = tabs.filter((item) => can(item.section));
   // Вкладка раздела, закрытого роли, по ссылке не открывается — показываем сводку
   const tab: TabId = visibleTabs.some((item) => item.id === requested) ? requested : "summary";
+  const screen = useScreenState({
+    pending: canDocuments && documents.isPending,
+    error: canDocuments && documents.isError,
+    /*
+     * «По объекту ещё нет данных» — про сводку, а не про весь объект. Пока это стояло на всей
+     * карточке, у нового объекта закрывались и «Ход работ», и «Документация»: завести захватку
+     * было нельзя, потому что до неё не доходили (ADR-024, ADR-025).
+     */
+    empty: tab === "summary" && !hasDocuments && overview.specTotal === 0,
+    processing: recognizingDocs.length > 0,
+  });
+  const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   const navigate = useNavigate({ from: Route.fullPath });
   const upload = useUploadDocument();
   const { setProjectId } = useApp();
@@ -326,8 +331,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
             empty: {
               icon: FileUp,
               title: "По объекту ещё нет данных",
-              description:
-                "Загрузите проектную документацию, и система найдёт в ней материалы. Затем подключите прорабов к Telegram-боту — отчёты и сроки появятся в сводке.",
+              description: note("projectEmpty"),
               ...(can("documents", "write") && {
                 actionLabel: "Загрузить документацию",
                 onAction: () => setUploadOpen(true),
@@ -379,7 +383,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
               })
               .then((doc) =>
                 toast.success(`«${doc.title}» принят как ${doc.version}`, {
-                  description: DEMO_UPLOAD_NOTE,
+                  description: note("upload"),
                 }),
               )
               .catch(() =>
@@ -543,7 +547,7 @@ function UploadDialog({
 
         <p className="text-caption text-text-muted">
           После загрузки позиции спецификации попадают на проверку, проверенные уходят в запросы
-          поставщикам. {DEMO_UPLOAD_NOTE}
+          поставщикам. {note("upload")}
         </p>
 
         <DialogFooter>

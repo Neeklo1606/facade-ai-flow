@@ -80,3 +80,24 @@ test.describe("руководитель: голосовой отчёт с пло
     }
   });
 });
+
+test.describe("отчёт с площадки заводится вручную", () => {
+  test.use({ persona: "e-gareev" });
+
+  test("прораб заводит отчёт, и он помечен как внесённый вручную", async ({ page }) => {
+    await open(page, "/projects/p-korona/field-reports");
+    await page.getByRole("button", { name: "Завести отчёт" }).click();
+    await page.getByLabel("Вид работ").fill("Монтаж примыканий");
+    await page.getByLabel("Объём за смену").fill("42");
+    await page.getByLabel("Что сделали").fill("Примыкания на захватке 2, этаж 9.");
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /Завести отчёт/ })
+      .click();
+    const card = page.locator("[id^=report-]", { hasText: "Монтаж примыканий" }).first();
+    await expect(card).toBeVisible();
+    // Честность: такой отчёт не притворяется сообщением из Telegram
+    await expect(card.getByText("внесён вручную")).toBeVisible();
+    await expect(card.getByText("На проверке").first()).toBeVisible();
+  });
+});

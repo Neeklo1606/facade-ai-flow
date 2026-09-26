@@ -42,6 +42,7 @@ export const fixtureTables: TableRows = {
   material_categories: catalog.materialCategories,
   materials: spec.materials,
   material_changes: catalog.materialChanges,
+  catalog_changes: catalog.catalogChanges,
   positions: spec.positions,
   position_changes: spec.positionChanges,
   replacement_suggestions: spec.replacementSuggestions,

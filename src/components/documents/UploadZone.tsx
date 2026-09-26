@@ -2,7 +2,7 @@ import { forwardRef, useImperativeHandle, useRef, useState, type DragEvent } fro
 import { FileUp } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 
 const ACCEPT = [".pdf", ".docx", ".xlsx"];
 
@@ -62,7 +62,7 @@ export const UploadZone = forwardRef<
             : "Перетащите документы сюда или выберите на диске"}
         </span>
         <span className="mt-0.5 block text-caption text-text-muted">
-          PDF, DOCX, XLSX · спецификации, ведомости, разделы АР и КМ. {DEMO_UPLOAD_NOTE}
+          PDF, DOCX, XLSX · спецификации, ведомости, разделы АР и КМ. {note("upload")}
         </span>
       </span>
       <input

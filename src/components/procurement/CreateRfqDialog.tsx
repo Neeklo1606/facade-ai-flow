@@ -20,7 +20,7 @@ import { queries } from "@/api/queries";
 import { useCatalog, useSupplierCandidates } from "@/api/catalog";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_MAIL_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import { type Project, type SupplierProfile } from "@/contracts";
 import { useDirectory } from "@/api/directory";
@@ -80,6 +80,7 @@ export function CreateRfqDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [suppliers, setSuppliers] = useState<Set<string>>(new Set());
   const [showOtherRegions, setShowOtherRegions] = useState(false);
+  // Список приходит не пустым: без своих шаблонов слой данных отдаёт встроенный (ADR-025)
   const emailTemplates = useQuery({ ...queries.templates(), enabled: open }).data ?? [];
   const [templateId, setTemplateId] = useState<string>(emailTemplates[0]?.id ?? "");
   const [subject, setSubject] = useState<string>(emailTemplates[0]?.subject ?? "");
@@ -203,7 +204,7 @@ export function CreateRfqDialog({
           onOpenChange(false);
           setSuppliers(new Set());
           toast.success(`Запрос ${result.request.number} создан`, {
-            description: `${fmtNum(result.positions)} поз. · ${recipients.length} ${recipients.length === 1 ? "поставщик" : "поставщика"}. ${DEMO_MAIL_NOTE}`,
+            description: `${fmtNum(result.positions)} поз. · ${recipients.length} ${recipients.length === 1 ? "поставщик" : "поставщика"}. ${note("mail")}`,
           });
           onCreated?.(result.request.id);
         },
@@ -441,8 +442,8 @@ export function CreateRfqDialog({
                 </p>
               </article>
               <p className="text-caption text-text-muted">
-                Так письмо будет выглядеть для поставщика. {DEMO_MAIL_NOTE} Цены из ответов попадут
-                в сравнение со ссылкой на источник.
+                Так письмо будет выглядеть для поставщика. {note("mail")} Цены из ответов попадут в
+                сравнение со ссылкой на источник.
               </p>
             </div>
           )}

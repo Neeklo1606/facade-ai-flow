@@ -51,6 +51,8 @@ export const keys = {
     /** Номенклатура в области позиций: правка материала меняет нормализованные имена позиций */
     categories: () => ["positions", "categories"] as const,
     material: (id: string) => ["positions", "material", id] as const,
+    /** Журнал справочников (ADR-023, п. 6) */
+    catalogChanges: () => ["positions", "catalog-changes"] as const,
     replacements: () => ["positions", "replacements"] as const,
   },
   procurement: {

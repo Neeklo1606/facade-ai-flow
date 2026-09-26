@@ -31,7 +31,7 @@ import {
   withDeliveries,
   type RequestPositionLink,
 } from "@/domain/deliveries";
-import { DEMO_DECISION_ORDER_NOTE } from "@/lib/demo-copy";
+import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
 import { ConflictError, NotFoundError } from "@/ports";
 import {
   milestoneStatusLabel,
@@ -40,10 +40,25 @@ import {
   projectStatusTransitions,
   reportStatusLabel,
   reportTransitions,
+  zoneLevelLabel,
 } from "@/contracts";
-import type { Material } from "@/contracts";
+import type {
+  CatalogChange,
+  Employee,
+  FieldReport,
+  Material,
+  MaterialCategory,
+  Source,
+  WorkZone,
+} from "@/contracts";
 import { suggestMaterial, supplierStats, contactFreshness, topCategory } from "@/domain/catalog";
 import type {
+  CreateReportInput,
+  ImportMaterialsInput,
+  ImportReport,
+  SaveCategoryInput,
+  SaveEmployeeInput,
+  SaveSupplierInput,
   ResolveRemarkInput,
   AcceptDeliveryInput,
   CorrectPositionInput,
@@ -55,6 +70,9 @@ import type {
   UploadRevisionInput,
   SetProjectStatusInput,
   CompleteMilestoneInput,
+  CreatePositionInput,
+  ImportSpecInput,
+  SaveZoneInput,
   ResolveChangeInput,
   ConfirmMatchInput,
   SaveMaterialInput,
@@ -63,7 +81,7 @@ import type {
 } from "@/ports";
 import { addDays, tick } from "./clock";
 import { liveId, positionChange, projectEvent } from "./records";
-import { replyJobs, schedule, shipmentJobs, uploadJob } from "./simulator";
+import { replyJobs, schedule, shipmentJobs, simulatorRuns, uploadJob } from "./simulator";
 import { getState, update } from "./state";
 
 /**
@@ -159,6 +177,148 @@ export function confirm(ids: string[], actorId: string) {
     targets.map((item) => reviewChange(item, "confirmed", actorId, "Подтверждено")),
   );
   return targets.map((item) => item.id);
+}
+
+/**
+ * Завести позицию руками (ADR-025). Разбора файла нет, строку вводит человек: уверенность
+ * единица — её не распознавали, места на листе нет, проверка пройдена вводом. Сопоставление
+ * с номенклатурой предлагается тем же правилом, что при разборе, и подтверждает его человек.
+ */
+function buildPosition(
+  input: {
+    revisionId: string;
+    position?: string | undefined;
+    projectName: string;
+    qty: number;
+    unit: string;
+    note?: string | undefined;
+  },
+  actorId: string,
+  origin: string,
+): ExtractedPosition {
+  const s = getState();
+  const revision = s.documents.find((item) => item.id === input.revisionId);
+  if (!revision) throw new NotFoundError("Ревизия документа", input.revisionId);
+  const sheet = s.sheets.find((item) => item.documentId === revision.id);
+  if (!sheet) throw new ConflictError("У ревизии нет листов: позицию не к чему привязать");
+  const name = input.projectName.trim();
+  const unit = input.unit.trim();
+  const inRevision = s.positions.filter((item) => item.documentId === revision.id);
+  const label = input.position?.trim();
+  if (label && inRevision.some((item) => item.position === label)) {
+    throw new ConflictError(`Позиция «${label}» в этой ревизии уже есть`);
+  }
+  // Следующий свободный номер: наибольший целый плюс один, как в таблице документа
+  const next = String(
+    Math.max(0, ...inRevision.map((item) => Math.floor(Number(item.position)) || 0)) + 1,
+  );
+  const suggestion = suggestMaterial(name, s.materials);
+  const material = suggestion
+    ? s.materials.find((item) => item.id === suggestion.materialId)
+    : null;
+  return {
+    id: liveId("pos"),
+    projectId: revision.projectId,
+    documentId: revision.id,
+    sheetId: sheet.id,
+    sheetNumber: sheet.number,
+    position: label || next,
+    group: sheet.group,
+    family: material?.family ?? "прочее",
+    projectName: name,
+    materialId: material?.id ?? null,
+    normalizedName: material?.name ?? null,
+    matchStatus: material ? "suggested" : "none",
+    matchedBy: null,
+    matchedAt: null,
+    characteristics: [],
+    qty: round3(input.qty),
+    unit,
+    // Не распознавали — значит и не сомневаемся: значение ввёл человек
+    confidence: 1,
+    // Места на листе нет: нулевая рамка означает «на чертеже не показать», и экран так и говорит
+    region: { x: 0, y: 0, w: 0, h: 0 },
+    review: "confirmed",
+    reviewedBy: actorId,
+    reviewedAt: tick(),
+    note: origin,
+    handedOverAt: null,
+    purchase: "none",
+    deliveredQty: null,
+    requestIds: [],
+    mergedInto: null,
+  };
+}
+
+export function createPosition(input: CreatePositionInput, actorId: string): ExtractedPosition {
+  const position = buildPosition(input, actorId, input.note?.trim() || "заведена вручную");
+  update((prev) => ({
+    ...prev,
+    positions: [...prev.positions, position],
+    changes: [
+      ...prev.changes,
+      positionChange(position.id, actorId, "Позиция заведена вручную", null, position.projectName),
+    ],
+  }));
+  return position;
+}
+
+/** Спецификация пачкой из файла (ADR-025, п. 2): отказ строки называется номером и причиной */
+export function importSpec(input: ImportSpecInput, actorId: string): ImportReport {
+  const refused: { row: number; reason: string }[] = [];
+  let added = 0;
+  input.rows.forEach((row, index) => {
+    // Номер строки в файле: первая — заголовок, поэтому смещение на две
+    const at = index + 2;
+    const name = row.name.trim();
+    if (name.length < 3) {
+      refused.push({
+        row: at,
+        reason: name ? "наименование короче трёх знаков" : "пустое наименование",
+      });
+      return;
+    }
+    const qty = Number(row.qty.replace(/\s/g, "").replace(",", "."));
+    if (!Number.isFinite(qty) || qty < 0) {
+      refused.push({ row: at, reason: `количество «${row.qty}» не число` });
+      return;
+    }
+    if (!row.unit.trim()) {
+      refused.push({ row: at, reason: "пустая единица измерения" });
+      return;
+    }
+    try {
+      const position = buildPosition(
+        {
+          revisionId: input.revisionId,
+          ...(row.position?.trim() ? { position: row.position.trim() } : {}),
+          projectName: name,
+          qty,
+          unit: row.unit,
+        },
+        actorId,
+        "загружена из файла",
+      );
+      update((prev) => ({
+        ...prev,
+        positions: [...prev.positions, position],
+        changes: [
+          ...prev.changes,
+          positionChange(
+            position.id,
+            actorId,
+            "Позиция загружена из файла",
+            null,
+            position.projectName,
+          ),
+        ],
+      }));
+      added += 1;
+    } catch (error) {
+      refused.push({ row: at, reason: error instanceof Error ? error.message : "не сохранилось" });
+    }
+  });
+  return { added, updated: 0, refused };
 }
 
 export function correct({ id, ...patch }: CorrectPositionInput, actorId: string) {
@@ -635,8 +795,14 @@ export function upload(input: UploadRevisionInput, actorId: string) {
     sizeKb: input.sizeKb,
     uploadedAt: tick(),
     uploadedBy: actorId,
-    sheetCount:
-      fileType === "xlsx"
+    /*
+     * Число листов угадывалось по размеру файла — и попадало в базу заказчика как факт.
+     * Без разбора файла у ревизии один лист: выдумывать структуру чужого документа нельзя
+     * (ADR-025, п. 5). В демонстрации листы по-прежнему нужны: там их показывает симулятор.
+     */
+    sheetCount: !simulatorRuns()
+      ? 1
+      : fileType === "xlsx"
         ? 1
         : Math.min(MAX_SHEETS, 1 + Math.round((input.sizeKb * 1024) / 180_000)),
     status: "uploaded",
@@ -644,31 +810,47 @@ export function upload(input: UploadRevisionInput, actorId: string) {
     positionsTotal: null,
     positionsVerified: null,
   };
-  const sheets = sheetsOf(doc, section).map((row) => ({
-    id: row.id,
-    documentId: row.revisionId,
-    number: row.number,
-    title: row.title,
-    group: row.groupName,
-  }));
+  const sheets = simulatorRuns()
+    ? sheetsOf(doc, section).map((row) => ({
+        id: row.id,
+        documentId: row.revisionId,
+        number: row.number,
+        title: row.title,
+        group: row.groupName,
+      }))
+    : [
+        {
+          id: `${doc.id}-sh-1`,
+          documentId: doc.id,
+          number: 1,
+          title: "Без разбора листов",
+          group: section,
+        },
+      ];
   update((prev) => ({
     ...prev,
     documents: [doc, ...prev.documents],
     sheets: [...prev.sheets, ...sheets],
-    // Задача извлечения в очереди; стадии проводит симулятор, как обработчик на сервере
-    extractionJobs: [
-      ...prev.extractionJobs,
-      {
-        id: liveId("ej"),
-        revisionId: id,
-        status: "queued",
-        stage: 0,
-        queuedAt: doc.uploadedAt,
-        startedAt: null,
-        finishedAt: null,
-        error: null,
-      },
-    ],
+    /*
+     * Задача извлечения ставится только там, где её кто-то проводит: стадии двигает симулятор.
+     * В рабочем контуре обработчика разбора нет, и очередь из одной вечной задачи означала бы
+     * «документ обрабатывается» без конца (ADR-025, п. 6).
+     */
+    extractionJobs: simulatorRuns()
+      ? [
+          ...prev.extractionJobs,
+          {
+            id: liveId("ej"),
+            revisionId: id,
+            status: "queued" as const,
+            stage: 0,
+            queuedAt: doc.uploadedAt,
+            startedAt: null,
+            finishedAt: null,
+            error: null,
+          },
+        ]
+      : prev.extractionJobs,
     events: [
       ...prev.events,
       projectEvent(
@@ -736,7 +918,14 @@ export function createRequest(input: CreateRequestInput, actorId: string) {
     createdAt,
     sentAt: createdAt,
     replyDueAt: input.replyDueAt,
-    templateId: input.templateId ?? s.templates[0]?.id ?? null,
+    /*
+     * Ссылка только на сохранённый шаблон: встроенный (ADR-025, поправка) в таблице не лежит,
+     * и запись его идентификатора роняла вставку по внешнему ключу. Письмо у запроса своё,
+     * а `template_id` отвечает на вопрос «из какого сохранённого шаблона его начали».
+     */
+    templateId: s.templates.some((item) => item.id === input.templateId)
+      ? (input.templateId ?? null)
+      : (s.templates[0]?.id ?? null),
     status: "sent",
     sourceId: null,
     items: [...lines.values()],
@@ -907,7 +1096,7 @@ function createDelivery(decision: ProjectDecision) {
           projectId: request.projectId,
           type: "material_ordered",
           title: `Поставка «${supplierName}» по запросу ${request.number} создана решением`,
-          details: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}. ${DEMO_DECISION_ORDER_NOTE}`,
+          details: `${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}. ${DEMO_ONLY_NOTES.decisionOrder.text}`,
           requestId: request.id,
           deliveryId: delivery.id,
         },
@@ -1192,6 +1381,120 @@ export function verifyContact(supplierId: string) {
   }));
 }
 
+/**
+ * Завести отчёт руками, пока нет приёма из Telegram (ADR-022). Источник записывается честно:
+ * `manual`, автор — тот, кто внёс, время — сейчас. Расшифровки и распознанных полей у такого
+ * отчёта нет, и панель источника об этом говорит.
+ */
+/**
+ * Завести сотрудника или изменить его роль, объекты и контакты (ADR-021, п. 8).
+ * Телефон — ключ входа: он приводится к одному виду и не может повториться, иначе
+ * два человека войдут в одну учётную запись.
+ */
+export function saveEmployee(input: SaveEmployeeInput, actorId: string) {
+  const s = getState();
+  const phone = input.phone.trim();
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) throw new ConflictError("Телефон нужен полный: по нему сотрудник входит");
+  const clash = s.employees.find(
+    (item) => item.id !== input.id && item.phone.replace(/\D/g, "") === digits,
+  );
+  if (clash) throw new ConflictError(`Телефон уже у сотрудника «${clash.name}»`);
+  const existing = input.id ? s.employees.find((item) => item.id === input.id) : undefined;
+  if (input.id && !existing) throw new NotFoundError("Сотрудник", input.id);
+  const unknownProject = input.projectIds.find(
+    (id) => !s.projects.some((project) => project.id === id),
+  );
+  if (unknownProject) throw new NotFoundError("Объект", unknownProject);
+
+  const employee: Employee = {
+    id: existing?.id ?? liveId("e"),
+    name: input.name.trim(),
+    position: input.position.trim(),
+    role: input.role,
+    phone,
+    email: input.email?.trim() || null,
+    telegram: input.telegram?.trim() || null,
+    status: input.status ?? existing?.status ?? "active",
+    projectIds: input.projectIds,
+  };
+  update((prev) => ({
+    ...prev,
+    employees: existing
+      ? prev.employees.map((item) => (item.id === employee.id ? employee : item))
+      : [...prev.employees, employee],
+  }));
+  void actorId;
+  return employee;
+}
+
+export function createReport(input: CreateReportInput, actorId: string) {
+  const s = getState();
+  const project = s.projects.find((item) => item.id === input.projectId);
+  if (!project) throw new NotFoundError("Объект", input.projectId);
+  const zone = s.zones.find((item) => item.id === input.zoneId);
+  if (!zone || zone.projectId !== input.projectId) {
+    throw new NotFoundError("Захватка", input.zoneId);
+  }
+  const at = tick();
+  const today = at.slice(0, 10);
+  // Дата смены задним числом — норма, вперёд — нет: это отчёт, а не план
+  if (input.reportDate > today) throw new ConflictError("Дата смены не может быть в будущем");
+  const author = s.employees.find((item) => item.id === actorId);
+  const sourceId = liveId("src");
+  const source: Source = {
+    id: sourceId,
+    kind: "manual",
+    title: `Отчёт с площадки за ${input.reportDate.split("-").reverse().join(".")}`,
+    author: author?.name ?? actorId,
+    receivedAt: at,
+    projectId: input.projectId,
+    location: "внесён вручную",
+    excerpt: input.summary,
+  };
+  const report: FieldReport = {
+    id: liveId("fr"),
+    projectId: input.projectId,
+    zoneId: input.zoneId,
+    authorId: actorId,
+    crewId: null,
+    date: input.reportDate,
+    sentAt: at,
+    kind: "text",
+    workType: input.workType,
+    status: "review",
+    summary: input.summary,
+    declaredQty: input.declaredQty,
+    unit: input.unit,
+    acceptedQty: null,
+    headcount: input.headcount,
+    sourceId,
+    issues: input.issue
+      ? [{ id: liveId("fri"), text: input.issue, severity: "warning" as const }]
+      : [],
+    evidenceIds: [],
+  };
+  update((prev) => ({
+    ...prev,
+    sources: [...prev.sources, source],
+    reports: [...prev.reports, report],
+    events: [
+      ...prev.events,
+      projectEvent(
+        {
+          projectId: input.projectId,
+          type: "report_added",
+          title: `Отчёт с площадки: ${input.workType}`,
+          details: `${input.declaredQty} ${input.unit}, захватка «${zone.name}». Внесён вручную.`,
+          sourceId,
+        },
+        actorId,
+      ),
+    ],
+  }));
+  return report;
+}
+
 export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
   const report = getState().reports.find((item) => item.id === id);
   if (!report) throw new NotFoundError("Отчёт", id);
@@ -1200,9 +1503,21 @@ export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
   if (!allowed.includes(status)) {
     throw new ConflictError(`Отчёт уже в статусе «${reportStatusLabel[report.status]}»`);
   }
+  /*
+   * Принятый объём идёт в факт захватки той же операцией (ADR-024, поправка от 26.09.2026).
+   * Раньше приёмка меняла только статус отчёта, и «Ход работ» после неё не двигался:
+   * критерий внедрения «принятый объём виден в Ходе работ» был невыполним.
+   * Возврат на уточнение факт не меняет: возвращённый отчёт — вопрос, а не факт.
+   */
+  const added = status === "accepted" ? (acceptedQty ?? 0) : 0;
   update((prev) => ({
     ...prev,
     reports: prev.reports.map((r) => (r.id === id ? { ...r, status, acceptedQty } : r)),
+    zones: added
+      ? prev.zones.map((zone) =>
+          zone.id === report.zoneId ? { ...zone, factQty: zone.factQty + added } : zone,
+        )
+      : prev.zones,
   }));
 }
 
@@ -1313,6 +1628,314 @@ const characteristicsText = (values: Material["characteristics"]) =>
  * Семейство нового материала берётся у материалов той же категории: по нему работают
  * замены и чек-лист приёмки
  */
+/** Запись в журнал справочника (ADR-023, п. 6): что менялось, было и стало */
+function catalogChange(
+  entity: CatalogChange["entity"],
+  entityId: string,
+  entityName: string,
+  field: string,
+  before: string | null,
+  after: string | null,
+  actorId: string,
+): CatalogChange {
+  return {
+    id: liveId("cc"),
+    entity,
+    entityId,
+    entityName,
+    field,
+    before,
+    after,
+    at: tick(),
+    by: actorId,
+  };
+}
+
+/**
+ * Категория: создать, переименовать, перенести (ADR-023, п. 2). Перенос внутрь своего
+ * поддерева запрещён — иначе дерево замыкается в кольцо и обход категорий зависает.
+ */
+export function saveCategory(input: SaveCategoryInput, actorId: string): MaterialCategory {
+  const s = getState();
+  const existing = input.id ? s.categories.find((item) => item.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Категория", input.id);
+  const sameName = s.categories.find(
+    (item) => item.id !== input.id && item.name.toLowerCase() === input.name.trim().toLowerCase(),
+  );
+  if (sameName) throw new ConflictError(`Категория «${input.name}» уже есть`);
+  if (input.parentId) {
+    const parent = s.categories.find((item) => item.id === input.parentId);
+    if (!parent) throw new NotFoundError("Категория", input.parentId);
+    // Спуск от переносимой вниз: если встретили нового родителя — это её же поддерево
+    if (existing) {
+      const inside = new Set([existing.id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const item of s.categories) {
+          if (item.parentId && inside.has(item.parentId) && !inside.has(item.id)) {
+            inside.add(item.id);
+            grew = true;
+          }
+        }
+      }
+      if (inside.has(input.parentId)) {
+        throw new ConflictError("Категорию нельзя перенести внутрь самой себя");
+      }
+    }
+  }
+  const category: MaterialCategory = {
+    id: existing?.id ?? liveId("cat"),
+    parentId: input.parentId,
+    name: input.name.trim(),
+    rules: input.rules,
+    sortOrder: existing?.sortOrder ?? s.categories.length + 1,
+  };
+  const changes: CatalogChange[] = [];
+  if (!existing) {
+    changes.push(
+      catalogChange(
+        "category",
+        category.id,
+        category.name,
+        "создана",
+        null,
+        category.name,
+        actorId,
+      ),
+    );
+  } else {
+    if (existing.name !== category.name) {
+      changes.push(
+        catalogChange(
+          "category",
+          category.id,
+          category.name,
+          "название",
+          existing.name,
+          category.name,
+          actorId,
+        ),
+      );
+    }
+    if (existing.parentId !== category.parentId) {
+      const nameOf = (id: string | null) =>
+        id ? (s.categories.find((item) => item.id === id)?.name ?? id) : "верхний уровень";
+      changes.push(
+        catalogChange(
+          "category",
+          category.id,
+          category.name,
+          "родитель",
+          nameOf(existing.parentId),
+          nameOf(category.parentId),
+          actorId,
+        ),
+      );
+    }
+    if (existing.rules.join(", ") !== category.rules.join(", ")) {
+      changes.push(
+        catalogChange(
+          "category",
+          category.id,
+          category.name,
+          "правила",
+          existing.rules.join(", "),
+          category.rules.join(", "),
+          actorId,
+        ),
+      );
+    }
+  }
+  update((prev) => ({
+    ...prev,
+    categories: existing
+      ? prev.categories.map((item) => (item.id === category.id ? category : item))
+      : [...prev.categories, category],
+    catalogChanges: [...prev.catalogChanges, ...changes],
+  }));
+  return category;
+}
+
+/**
+ * Поставщик вместе с профилем подбора (ADR-023, п. 1). Без региона и категорий он не попадёт
+ * ни в один запрос, поэтому и то и другое обязательно — это не украшение карточки.
+ */
+export function saveSupplier(input: SaveSupplierInput, actorId: string) {
+  const s = getState();
+  const existing = input.id ? s.counterparties.find((item) => item.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Поставщик", input.id);
+  const sameName = s.counterparties.find(
+    (item) => item.id !== input.id && item.name.toLowerCase() === input.name.trim().toLowerCase(),
+  );
+  if (sameName) throw new ConflictError(`Контрагент «${input.name}» уже есть`);
+  const unknown = input.categories.find((id) => !s.categories.some((item) => item.id === id));
+  if (unknown) throw new NotFoundError("Категория", unknown);
+  const at = tick();
+  const id = existing?.id ?? liveId("c");
+  const supplier = {
+    id,
+    name: input.name.trim(),
+    role: "supplier" as const,
+    inn: input.inn,
+    contactName: input.contactName.trim(),
+    email: input.email.trim(),
+    phone: input.phone.trim(),
+    avgReplyHours: existing?.avgReplyHours ?? 24,
+    rating: existing?.rating ?? 0,
+  };
+  const previousProfile = s.profiles.find((item) => item.supplierId === id);
+  const profile = {
+    supplierId: id,
+    region: input.region.trim(),
+    categories: input.categories,
+    contactName: supplier.contactName,
+    phone: supplier.phone,
+    email: supplier.email,
+    contactSource: previousProfile?.contactSource ?? "заведён вручную",
+    contactCheckedAt: at.slice(0, 10),
+    contactStatus: "verified" as const,
+  };
+  const changes: CatalogChange[] = [];
+  if (!existing) {
+    changes.push(
+      catalogChange("supplier", id, supplier.name, "заведён", null, supplier.name, actorId),
+    );
+  } else {
+    if (existing.name !== supplier.name) {
+      changes.push(
+        catalogChange(
+          "supplier",
+          id,
+          supplier.name,
+          "название",
+          existing.name,
+          supplier.name,
+          actorId,
+        ),
+      );
+    }
+    if (previousProfile && previousProfile.region !== profile.region) {
+      changes.push(
+        catalogChange(
+          "supplier",
+          id,
+          supplier.name,
+          "регион",
+          previousProfile.region,
+          profile.region,
+          actorId,
+        ),
+      );
+    }
+    if (
+      previousProfile &&
+      previousProfile.categories.join(", ") !== profile.categories.join(", ")
+    ) {
+      const names = (ids: string[]) =>
+        ids.map((cid) => s.categories.find((item) => item.id === cid)?.name ?? cid).join(", ");
+      changes.push(
+        catalogChange(
+          "supplier",
+          id,
+          supplier.name,
+          "категории",
+          names(previousProfile.categories),
+          names(profile.categories),
+          actorId,
+        ),
+      );
+    }
+  }
+  update((prev) => ({
+    ...prev,
+    counterparties: existing
+      ? prev.counterparties.map((item) => (item.id === id ? supplier : item))
+      : [...prev.counterparties, supplier],
+    profiles: previousProfile
+      ? prev.profiles.map((item) => (item.supplierId === id ? profile : item))
+      : [...prev.profiles, profile],
+    catalogChanges: [...prev.catalogChanges, ...changes],
+  }));
+  return { id };
+}
+
+/**
+ * Загрузка номенклатуры пачкой (ADR-023, п. 3 и 5). Обновляет по «наименование + единица»,
+ * добавляет новое и **не удаляет ничего**: файл заказчика не должен уметь стереть справочник.
+ * Непринятая строка называется номером и причиной — молчаливого «частично прошло» не бывает.
+ */
+export function importMaterials(input: ImportMaterialsInput, actorId: string): ImportReport {
+  const refused: { row: number; reason: string }[] = [];
+  let added = 0;
+  let updated = 0;
+  input.rows.forEach((row, index) => {
+    // Номер строки в файле: первая — заголовок, поэтому смещение на две
+    const at = index + 2;
+    const name = row.name.trim();
+    const unit = row.unit.trim();
+    if (!name) {
+      refused.push({ row: at, reason: "пустое наименование" });
+      return;
+    }
+    // Та же нижняя граница, что у формы материала: иначе загрузка заводила бы запись,
+    // которую потом нельзя сохранить с экрана — правка отклонялась бы проверкой
+    if (name.length < 3) {
+      refused.push({ row: at, reason: "наименование короче трёх знаков" });
+      return;
+    }
+    if (!unit) {
+      refused.push({ row: at, reason: "пустая единица измерения" });
+      return;
+    }
+    if (unit.length > 20) {
+      refused.push({ row: at, reason: "единица длиннее 20 знаков" });
+      return;
+    }
+    const s = getState();
+    const category = s.categories.find(
+      (item) => item.name.toLowerCase() === row.category.trim().toLowerCase(),
+    );
+    if (!category) {
+      refused.push({ row: at, reason: `нет категории «${row.category.trim() || "—"}»` });
+      return;
+    }
+    const existing = s.materials.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase() && item.unit === unit,
+    );
+    const characteristics = (row.characteristics ?? "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const [label, value] = part.split(":").map((piece) => piece.trim());
+        return { label: label ?? part, value: value ?? "" };
+      })
+      .slice(0, 20);
+    try {
+      saveMaterial(
+        {
+          id: existing?.id ?? null,
+          name,
+          unit,
+          categoryId: category.id,
+          characteristics: characteristics.length
+            ? characteristics
+            : (existing?.characteristics ?? []),
+          synonyms: existing?.synonyms ?? [],
+          spellings: existing?.spellings ?? [],
+        },
+        actorId,
+      );
+      if (existing) updated += 1;
+      else added += 1;
+    } catch (error) {
+      refused.push({ row: at, reason: error instanceof Error ? error.message : "не сохранилось" });
+    }
+  });
+  return { added, updated, refused };
+}
+
 export function saveMaterial(input: SaveMaterialInput, actorId: string): Material {
   const s = getState();
   if (!s.categories.some((c) => c.id === input.categoryId)) {
@@ -1460,6 +2083,109 @@ export function setProjectStatus(input: SetProjectStatusInput, actorId: string) 
 }
 
 /** Отметить контрольную точку выполненной; точка другого объекта — как будто её нет */
+/**
+ * Завести или изменить захватку объекта (ADR-024). Удаления нет: на захватку ссылаются
+ * принятые отчёты, и убрать её значило бы отвязать факт от места, где он получен.
+ */
+export function saveZone(input: SaveZoneInput, actorId: string): WorkZone {
+  const s = getState();
+  const project = s.projects.find((item) => item.id === input.projectId);
+  if (!project) throw new NotFoundError("Объект", input.projectId);
+  const existing = input.id ? s.zones.find((item) => item.id === input.id) : null;
+  if (input.id && !existing) throw new NotFoundError("Захватка", input.id);
+  if (existing && existing.projectId !== input.projectId) {
+    throw new ConflictError("Захватка принадлежит другому объекту");
+  }
+  const name = input.name.trim();
+  const sameName = s.zones.find(
+    (item) =>
+      item.id !== input.id &&
+      item.projectId === input.projectId &&
+      item.parentId === input.parentId &&
+      item.name.toLowerCase() === name.toLowerCase(),
+  );
+  if (sameName) throw new ConflictError(`На этом уровне уже есть «${name}»`);
+
+  if (input.parentId) {
+    const parent = s.zones.find((item) => item.id === input.parentId);
+    if (!parent || parent.projectId !== input.projectId) {
+      throw new NotFoundError("Участок", input.parentId);
+    }
+    // Спуск от переносимой вниз: встретили нового родителя — это её же поддерево
+    if (existing) {
+      const inside = new Set([existing.id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const item of s.zones) {
+          if (item.parentId && inside.has(item.parentId) && !inside.has(item.id)) {
+            inside.add(item.id);
+            grew = true;
+          }
+        }
+      }
+      if (inside.has(input.parentId)) {
+        throw new ConflictError("Участок нельзя перенести внутрь самого себя");
+      }
+    }
+  }
+
+  /*
+   * «Выполнено до начала учёта» лежит в том же числе, что принятые объёмы (ADR-024, границы).
+   * Пока приёмок не было — правится; после первой правка переписывала бы факт с площадки.
+   */
+  const acceptedFact = s.reports.some(
+    (report) => report.zoneId === existing?.id && report.status === "accepted",
+  );
+  if (existing && acceptedFact && input.baselineFactQty !== existing.factQty) {
+    throw new ConflictError(
+      "По захватке уже приняты объёмы: выполненное до начала учёта больше не правится",
+    );
+  }
+  const zone: WorkZone = {
+    id: existing?.id ?? liveId("wz"),
+    projectId: input.projectId,
+    parentId: input.parentId,
+    level: input.level,
+    name,
+    axes: input.axes,
+    floors: input.floors,
+    planQty: input.planQty,
+    factQty: existing && acceptedFact ? existing.factQty : input.baselineFactQty,
+    unit: input.unit.trim(),
+  };
+  const what = !existing ? `Заведена захватка «${zone.name}»` : `Изменена захватка «${zone.name}»`;
+  const details = !existing
+    ? `${zoneLevelLabel[zone.level]}, план ${zone.planQty} ${zone.unit}`
+    : [
+        existing.name !== zone.name ? `название: ${existing.name} → ${zone.name}` : null,
+        existing.planQty !== zone.planQty
+          ? `план: ${existing.planQty} → ${zone.planQty} ${zone.unit}`
+          : null,
+        existing.parentId !== zone.parentId ? "перенесена на другой уровень" : null,
+        existing.axes !== zone.axes ? `оси: ${existing.axes ?? "—"} → ${zone.axes ?? "—"}` : null,
+        existing.floors !== zone.floors
+          ? `этажи: ${existing.floors ?? "—"} → ${zone.floors ?? "—"}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(", ") || "без изменений полей";
+  update((prev) => ({
+    ...prev,
+    zones: existing
+      ? prev.zones.map((item) => (item.id === zone.id ? zone : item))
+      : [...prev.zones, zone],
+    events: [
+      ...prev.events,
+      projectEvent(
+        { projectId: zone.projectId, type: "zone_changed", title: what, details },
+        actorId,
+      ),
+    ],
+  }));
+  return zone;
+}
+
 export function completeMilestone(input: CompleteMilestoneInput, actorId: string) {
   const milestone = getState().milestones.find(
     (item) => item.id === input.milestoneId && item.projectId === input.projectId,

@@ -23,7 +23,8 @@ import type { ComparisonCell as CellCalc, ComparisonColumn as ColumnCalc } from 
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDateTime, fmtMoney, fmtNum, fmtReplyDue } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_MAIL_NOTE, DEMO_REMIND_NOTE, DEMO_REMIND_TITLE } from "@/lib/demo-copy";
+import { demoOnly } from "@/lib/contour-copy";
+import { note } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import { type SupplyRequest } from "@/contracts";
 import { useDirectory } from "@/api/directory";
@@ -196,8 +197,8 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                 onClick={async () => {
                   const queued = (await remind.mutateAsync(request.id)).reminded.length;
                   toast.success(
-                    `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
-                    { description: DEMO_REMIND_NOTE },
+                    `${demoOnly("remindTitle")}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                    { description: demoOnly("remind") },
                   );
                 }}
               >
@@ -220,7 +221,7 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           }
         >
           Цены, сроки и доступный объём появятся в колонках поставщиков автоматически.{" "}
-          {DEMO_MAIL_NOTE}
+          {note("mail")}
         </StateBanner>
       )}
 
@@ -236,14 +237,14 @@ function ComparisonPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             empty: {
               icon: Scale,
               title: "Предложений пока нет",
-              description: `Запрос зарегистрирован ${meta ? fmtDateTime(meta.sentAt) : ""} на ${request.sentTo.length} поставщиков. ${DEMO_MAIL_NOTE}`,
+              description: `Запрос зарегистрирован ${meta ? fmtDateTime(meta.sentAt) : ""} на ${request.sentTo.length} поставщиков. ${note("mail")}`,
               ...(canWrite && {
                 actionLabel: "Напомнить поставщикам",
                 onAction: async () => {
                   const queued = (await remind.mutateAsync(request.id)).reminded.length;
                   toast.success(
-                    `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
-                    { description: DEMO_REMIND_NOTE },
+                    `${demoOnly("remindTitle")}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                    { description: demoOnly("remind") },
                   );
                 },
               }),

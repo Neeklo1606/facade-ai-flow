@@ -65,13 +65,23 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
 
-      - name: Сборка
+      # Рабочий контур — то, что скачивает заказчик (ADR-013, поправка от 26.09.2026).
+      # Собирается первым; в .output остаётся демонстрация, на ней идут сквозные тесты
+      - name: Сборка рабочего контура
+        run: bun run build:server
+        env:
+          NITRO_PRESET: node-server
+
+      - name: Размер бандла — рабочий контур
+        run: bun run check:bundle server
+
+      - name: Сборка демонстрации
         run: bun run build
         env:
           NITRO_PRESET: node-server
 
-      - name: Размер бандла
-        run: bun run check:bundle
+      - name: Размер бандла — демонстрация
+        run: bun run check:bundle demo
 
       - name: Сквозные тесты — роли, EMBER, axe, консоль
         run: bun run test:e2e

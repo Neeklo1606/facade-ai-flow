@@ -15,7 +15,7 @@ import {
 import { queries } from "@/api/queries";
 import { useUploadDocument } from "@/api/mutations";
 import { dataSource } from "@/api/config";
-import { DEMO_UPLOAD_NOTE } from "@/lib/demo-copy";
+import { extractsDocuments, note, uploadActionLabel } from "@/lib/contour-copy";
 import { processingStages } from "@/contracts";
 import { fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -154,7 +154,9 @@ export function UploadDialog({
               </div>
             ) : (
               <p className="text-[13px] leading-[1.45] text-text-3">
-                Предпросмотр доступен для PDF. Таблицы из DOCX и XLSX система читает при разборе.
+                {extractsDocuments()
+                  ? "Предпросмотр доступен для PDF. Таблицы из DOCX и XLSX система читает при разборе."
+                  : "Предпросмотр доступен для PDF."}
               </p>
             )}
 
@@ -180,10 +182,12 @@ export function UploadDialog({
               </label>
             </div>
 
+            {/* Обещание разбора — только там, где он есть: иначе абзац спорил сам с собой */}
             <p className="text-[13px] leading-[1.45] text-text-3">
-              Система распознает текст, найдёт таблицы и извлечёт позиции. Проверять их будете вы:
-              каждая позиция показана рядом со строкой оригинала.
-              {dataSource === "demo" && ` ${DEMO_UPLOAD_NOTE}`}
+              {extractsDocuments()
+                ? "Система распознает текст, найдёт таблицы и извлечёт позиции. Проверять их будете вы: каждая позиция показана рядом со строкой оригинала."
+                : "Файл ложится в реестр ревизий: его видно в истории объекта, и на него ссылаются позиции."}
+              {` ${note("upload")}`}
             </p>
 
             {failure && (
@@ -197,13 +201,47 @@ export function UploadDialog({
                 Отмена
               </Button>
               <Button onClick={submit} loading={upload.isPending} disabled={!title.trim()}>
-                Загрузить и разобрать
+                {uploadActionLabel()}
               </Button>
             </div>
           </div>
         )}
 
-        {revisionId && (
+        {/*
+          Без разбора стадий нет: список с вечным крутящимся «загружен» обещал обработку,
+          которой никто не делает. Говорим, что файл в реестре, и ведём туда, где заводят
+          позиции (ADR-025, п. 6).
+        */}
+        {revisionId && !extractsDocuments() && (
+          <div className="space-y-4">
+            <div className="rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
+              <p className="text-[14px]">Файл в реестре ревизий</p>
+              <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{note("upload")}</p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              {queue > 0 && (
+                <Button variant="secondary" onClick={onNext}>
+                  Следующий файл ({queue})
+                </Button>
+              )}
+              <Button variant="secondary" onClick={onClose}>
+                Закрыть
+              </Button>
+              <Button asChild>
+                <Link
+                  to="/projects/$id/documents/$docId"
+                  params={{ id: projectId, docId: revisionId }}
+                  search={{}}
+                  onClick={onClose}
+                >
+                  Открыть документ <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {revisionId && extractsDocuments() && (
           <div className="space-y-4">
             <ol className="space-y-2">
               {processingStages.map((name, index) => {
@@ -256,9 +294,7 @@ export function UploadDialog({
                     </>
                   )}
                 </p>
-                {dataSource === "demo" && (
-                  <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{DEMO_UPLOAD_NOTE}</p>
-                )}
+                <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{note("upload")}</p>
               </div>
             )}
 

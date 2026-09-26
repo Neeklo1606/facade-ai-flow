@@ -1,7 +1,16 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAccess } from "@/api/access";
-import { ArrowRight, CalendarRange, Check, Flag, Layers, TrendingUp, Upload } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarRange,
+  Check,
+  Flag,
+  Layers,
+  Pencil,
+  Plus,
+  TrendingUp,
+} from "lucide-react";
 import {
   EmptyState,
   EntityDrawer,
@@ -19,6 +28,7 @@ import { SkeletonLine } from "@/components/common/Skeletons";
 import { Button } from "@/components/ui/button";
 import { useWorkProgress } from "@/api/work-progress";
 import type { MilestonePoint, ZoneRow } from "@/api/types";
+import { ZoneDialog } from "./ZoneDialog";
 import { fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { reportsGapLine, type ReportsGap } from "@/lib/reports-gap";
@@ -56,9 +66,17 @@ export function ProgressTab({
   const complete = useCompleteMilestone();
   const [zoneId, setZoneId] = useState<string | null>(null);
   const [milestoneId, setMilestoneId] = useState<string | null>(null);
+  // undefined — окно закрыто, null — новая захватка, строка — правка (ADR-024)
+  const [editZone, setEditZone] = useState<string | null | undefined>(undefined);
   const [filter, setFilter] = useState<"all" | "behind">("all");
 
+  const canZones = canProject("projects", project.id, "write");
   const zone = progress.zones.find((row) => row.id === zoneId) ?? null;
+  const rawZone = editZone ? (progress.raw.find((item) => item.id === editZone) ?? null) : null;
+  // Приняты ли объёмы: от этого зависит, правится ли «выполнено до начала учёта»
+  const acceptedFact = editZone
+    ? (progress.zones.find((row) => row.id === editZone)?.lastFact ?? null) !== null
+    : false;
   const milestone = progress.timeline.points.find((point) => point.id === milestoneId) ?? null;
   const zones =
     filter === "behind"
@@ -83,20 +101,35 @@ export function ProgressTab({
   if (!progress.zones.length)
     return (
       <WidgetCard>
+        {/*
+         * Раньше здесь стояло «объёмы извлекаются из проектной документации — загрузите её,
+         * и ход работ появится здесь». Разбора документации нет, и сам он не появится:
+         * захватку заводят руками (ADR-024).
+         */}
         <EmptyState
           icon={Layers}
           title="Захватки не заведены"
-          description="Объёмы работ берутся из захваток объекта: оси, этажи, план в м². Они извлекаются из проектной документации — загрузите её, и ход работ появится здесь."
+          description="Объёмы работ считаются по захваткам: корпус, секция, этаж, участок фасада. Заведите первую — к ней привяжутся отчёты с площадки и принятые объёмы."
         />
-        {can("documents", "write") && (
+        {canZones ? (
           <div className="flex justify-center">
-            <Button variant="secondary" asChild>
-              <Link to="/projects/$id/documents" params={{ id: project.id }}>
-                <Upload className="size-4" /> Загрузить документацию
-              </Link>
+            <Button variant="accent" onClick={() => setEditZone(null)}>
+              <Plus className="size-4" /> Завести захватку
             </Button>
           </div>
+        ) : (
+          <p className="text-center text-[13px] text-text-3">
+            Заводит захватки тот, кто ведёт объект: руководитель проекта.
+          </p>
         )}
+        <ZoneDialog
+          open={editZone !== undefined}
+          onOpenChange={(next) => !next && setEditZone(undefined)}
+          projectId={project.id}
+          zone={null}
+          zones={progress.raw}
+          hasAcceptedFact={false}
+        />
       </WidgetCard>
     );
 
@@ -144,6 +177,11 @@ export function ProgressTab({
               {filter === "behind" && (
                 <Button variant="ghost" size="sm" onClick={() => setFilter("all")}>
                   Показать все
+                </Button>
+              )}
+              {canZones && (
+                <Button variant="secondary" size="sm" onClick={() => setEditZone(null)}>
+                  <Plus className="size-4" /> Захватка
                 </Button>
               )}
             </>
@@ -269,9 +307,31 @@ export function ProgressTab({
                 </Link>
               </Button>
             )}
+            {canZones && (
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  const id = zone.id;
+                  setZoneId(null);
+                  setEditZone(id);
+                }}
+              >
+                <Pencil className="size-4" /> Изменить захватку
+              </Button>
+            )}
           </div>
         </EntityDrawer>
       )}
+
+      <ZoneDialog
+        open={editZone !== undefined}
+        onOpenChange={(next) => !next && setEditZone(undefined)}
+        projectId={project.id}
+        zone={rawZone}
+        zones={progress.raw}
+        hasAcceptedFact={acceptedFact}
+      />
 
       {milestone && (
         <EntityDrawer

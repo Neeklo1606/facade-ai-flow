@@ -146,6 +146,29 @@ test.describe("снабжение: карточка объекта без дан
   });
 });
 
+test.describe("корень адреса", () => {
+  /*
+   * Трём ролям из пяти дашборд закрыт, и «/» встречал их стеной «Нет доступа» — при заголовке
+   * вкладки «Дашборд» (находка аудита соответствия). Корень обязан вести на рабочий экран роли.
+   */
+  for (const [persona, expected] of [
+    ["e-volkova", /\/documents$/],
+    ["e-dorohov", /\/procurement$/],
+    ["e-gareev", /\/field-reports$/],
+  ] as const) {
+    test(`${persona}: корень ведёт на рабочий экран, а не в отказ`, async ({ page }) => {
+      await page.context().addInitScript((id) => {
+        sessionStorage.setItem("neeklo-fieldops-persona", id);
+        sessionStorage.setItem("neeklo-fieldops-role-chosen", "1");
+        sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
+      }, persona);
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(expected);
+      await expect(page.locator("[data-screen=no-access]")).toHaveCount(0);
+    });
+  }
+});
+
 test.describe("доступ без прав", () => {
   const cases = [
     { persona: "e-dorohov", path: "/projects/p-korona/timeline", section: "История и решения" },

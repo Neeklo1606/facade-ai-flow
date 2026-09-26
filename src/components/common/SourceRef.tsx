@@ -8,7 +8,7 @@ import { ConfidenceIndicator } from "./ConfidenceIndicator";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { fmtDateTime } from "@/lib/format";
-import { DEMO_SOURCE_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { sourceKindLabel, type SourceKind } from "@/contracts";
@@ -161,7 +161,7 @@ export function SourceCardBody({
     <div className="space-y-5">
       <section className="rounded-[var(--r-md)] border border-border bg-subtle p-4">
         <p className="text-[12px] text-text-muted">
-          Распознанный фрагмент, {source.location} · {DEMO_SOURCE_NOTE}
+          Распознанный фрагмент, {source.location} · {note("source")}
         </p>
         <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
           {highlight(source.excerpt, fragment)}

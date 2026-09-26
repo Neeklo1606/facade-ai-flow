@@ -12,6 +12,7 @@ import {
 } from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
 import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
+import { SupplierForm } from "@/components/catalog/SupplierForm";
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
 import { FilterChip } from "@/components/common/FilterBar";
 import { FilterSelect } from "@/components/common/FilterSelect";
@@ -29,7 +30,7 @@ import { rfqStatusMeta, type RfqStatus } from "@/lib/procurement";
 import { useScreenState } from "@/lib/screen-state";
 import { fmtDate, fmtDateTime, fmtMoney, fmtReplyDue, fmtNum, plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
-import { DEMO_REMIND_NOTE, DEMO_REMIND_TITLE } from "@/lib/demo-copy";
+import { demoOnly } from "@/lib/contour-copy";
 import { cn } from "@/lib/utils";
 import {
   contactStatusLabel as contactFreshnessLabel,
@@ -121,6 +122,10 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
   const { can } = useAccess();
   const canWrite = can("procurement", "write");
   const canSuppliers = can("suppliers");
+  // Заводить поставщиков — право раздела поставщиков, а не закупок (ADR-023, п. 1)
+  const canEditSuppliers = can("suppliers", "write");
+  // undefined — форма закрыта, null — новый поставщик, строка — правка
+  const [supplierEdit, setSupplierEdit] = useState<string | null | undefined>(undefined);
 
   const requestsQuery = useQuery(queries.requests(project.id));
   const remind = useRemindSuppliers();
@@ -219,11 +224,23 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         title="Поставщики и запросы"
         description={`Кому отправлены запросы, кто ответил и по какой цене. Регион объекта — ${overview?.region ?? "—"}.`}
         actions={
-          canWrite && (
-            <Button variant="accent" disabled={blocked} onClick={() => setCreateOpen(true)}>
-              <Plus className="size-4" /> Создать запрос
-            </Button>
-          )
+          <>
+            {canWrite && (
+              <Button
+                variant={isRequests ? "accent" : "secondary"}
+                disabled={blocked}
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus className="size-4" /> Создать запрос
+              </Button>
+            )}
+            {/* На вкладке поставщиков главное действие — завести поставщика: одна оранжевая */}
+            {!isRequests && canEditSuppliers && (
+              <Button variant="accent" onClick={() => setSupplierEdit(null)}>
+                <Plus className="size-4" /> Завести поставщика
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -264,8 +281,8 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
                     );
                     const queued = results.reduce((acc, result) => acc + result.reminded.length, 0);
                     toast.success(
-                      `${DEMO_REMIND_TITLE}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
-                      { description: DEMO_REMIND_NOTE },
+                      `${demoOnly("remindTitle")}: ${queued} ${queued === 1 ? "поставщик" : "поставщика"}`,
+                      { description: demoOnly("remind") },
                     );
                   }}
                 >
@@ -370,19 +387,37 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
             {isRequests ? (
               <RequestsView rows={visibleRequests} projectId={project.id} />
             ) : (
-              <SuppliersView rows={visibleSuppliers} region={overview?.region ?? ""} />
+              <SuppliersView
+                rows={visibleSuppliers}
+                region={overview?.region ?? ""}
+                onEdit={canEditSuppliers ? (id) => setSupplierEdit(id) : undefined}
+              />
             )}
           </ScreenGate>
         </section>
       </div>
 
-      {!blocked && canWrite && (
+      {!blocked && !isRequests && canEditSuppliers && (
+        <MobileActionBar>
+          <Button variant="accent" onClick={() => setSupplierEdit(null)}>
+            <Plus className="size-4" /> Завести поставщика
+          </Button>
+        </MobileActionBar>
+      )}
+      {!blocked && isRequests && canWrite && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setCreateOpen(true)}>
             <Send className="size-4" /> Создать запрос
           </Button>
         </MobileActionBar>
       )}
+
+      <SupplierForm
+        open={supplierEdit !== undefined}
+        onOpenChange={(open) => !open && setSupplierEdit(undefined)}
+        supplierId={supplierEdit ?? null}
+        region={overview?.region ?? ""}
+      />
 
       <CreateRfqDialog
         open={createOpen}
@@ -629,7 +664,9 @@ function RequestDetails({ row, projectId }: { row: RequestRow; projectId: string
 function SuppliersView({
   rows,
   region,
+  onEdit,
 }: {
+  onEdit?: ((supplierId: string) => void) | undefined;
   rows: {
     profile: SupplierProfile;
     supplier: CounterpartyRef | null;
@@ -837,7 +874,21 @@ function SuppliersView({
       <p className="border-t border-border px-4 py-2 text-caption text-text-muted">
         {fmtNum(rows.length)} поставщиков · сначала регион объекта
       </p>
-      {openId && <SupplierDrawer supplierId={openId} onOpenChange={() => setOpenId(null)} />}
+      {openId && (
+        <SupplierDrawer
+          supplierId={openId}
+          onOpenChange={() => setOpenId(null)}
+          {...(onEdit
+            ? {
+                onEdit: () => {
+                  const id = openId;
+                  setOpenId(null);
+                  onEdit(id);
+                },
+              }
+            : {})}
+        />
+      )}
     </>
   );
 }

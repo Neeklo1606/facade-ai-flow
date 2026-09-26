@@ -11,6 +11,8 @@ import type {
   AskAgentInput,
   ChooseSupplierInput,
   CorrectPositionInput,
+  CreatePositionInput,
+  ImportSpecInput,
   ConfirmMatchInput,
   SaveMaterialInput,
   MoveDeliveryInput,
@@ -18,10 +20,16 @@ import type {
   CreateProjectInput,
   CreateRequestInput,
   CompleteMilestoneInput,
+  SaveZoneInput,
   ResolveChangeInput,
   SetProjectStatusInput,
   MergePositionsInput,
   Page,
+  CreateReportInput,
+  ImportMaterialsInput,
+  SaveCategoryInput,
+  SaveEmployeeInput,
+  SaveSupplierInput,
   ReviewReportInput,
   SplitPositionInput,
   UndoReviewInput,
@@ -391,6 +399,61 @@ export function useVerifyContact() {
   });
 }
 
+/** Категория дерева: создать, переименовать, перенести (ADR-023, п. 2) */
+export function useSaveCategory(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveCategory" },
+    mutationFn: (input: SaveCategoryInput) => api.catalog.saveCategory(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents"]),
+  });
+}
+
+/** Поставщик вместе с профилем подбора (ADR-023, п. 1) */
+export function useSaveSupplier(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveSupplier" },
+    mutationFn: (input: SaveSupplierInput) => api.catalog.saveSupplier(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["procurement", "directory"]),
+  });
+}
+
+/** Загрузка номенклатуры из файла (ADR-023, п. 3) */
+export function useImportMaterials(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "importMaterials" },
+    mutationFn: (input: ImportMaterialsInput) => api.catalog.importMaterials(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents"]),
+  });
+}
+
+/** Завести сотрудника или изменить его роль и объекты (ADR-021, п. 8) */
+export function useSaveEmployee(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveEmployee" },
+    mutationFn: (input: SaveEmployeeInput) => api.directory.saveEmployee(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["directory", "projects"]),
+  });
+}
+
+/** Завести отчёт руками, пока нет бота (ADR-022) */
+export function useCreateReport(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "createReport" },
+    mutationFn: (input: CreateReportInput) => api.reports.create(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["reports", "timeline", "projects"]),
+  });
+}
+
 export function useReviewReport(notices: Pick<MutationNotices, "onFailed"> = {}) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -452,6 +515,39 @@ export function useCompleteMilestone() {
     meta: { action: "completeMilestone" },
     mutationFn: (input: CompleteMilestoneInput) => api.projects.completeMilestone(input),
     onSettled: () => invalidate(queryClient, ["projects", "timeline"]),
+  });
+}
+
+/** Позиция заведена руками (ADR-025): список проверки, счётчики, история */
+export function useCreatePosition(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "createPosition" },
+    mutationFn: (input: CreatePositionInput) => api.positions.create(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents", "projects"]),
+  });
+}
+
+/** Спецификация загружена пачкой из файла (ADR-025, п. 2) */
+export function useImportSpec(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "importSpec" },
+    mutationFn: (input: ImportSpecInput) => api.positions.importSpec(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["positions", "documents", "projects"]),
+  });
+}
+
+/** Захватка заведена или изменена (ADR-024): ход работ, карточка объекта, история */
+export function useSaveZone(notices: Pick<MutationNotices, "onFailed"> = {}) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { action: "saveZone" },
+    mutationFn: (input: SaveZoneInput) => api.projects.saveZone(input),
+    onError: (error: Error) => notices.onFailed?.(error),
+    onSettled: () => invalidate(queryClient, ["projects", "timeline", "reports"]),
   });
 }
 

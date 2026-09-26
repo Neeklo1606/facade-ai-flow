@@ -1,7 +1,7 @@
 import type { ExtractionJob, ProjectDocument, RequestLine } from "@/contracts";
 import { deliveryStatusLabel } from "@/contracts";
 import { canMove } from "@/domain/deliveries";
-import { DEMO_SHIPMENT_NOTE } from "@/lib/demo-copy";
+import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
 import { simulatedPositions } from "@/adapters/fixtures";
 import { tick } from "./clock";
 import { liveId, projectEvent } from "./records";
@@ -43,6 +43,11 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>();
 let running = false;
 /** Без симулятора события не заводятся вовсе: режим базы и паритетный тест (ADR-005, п. 12) */
 let enabled = true;
+
+/** Идут ли имитации: без них не выдумываются ни листы документа, ни очередь разбора (ADR-025) */
+export function simulatorRuns() {
+  return enabled;
+}
 
 export function disableSimulator() {
   enabled = false;
@@ -249,7 +254,7 @@ function ship(deliveryId: string, status: "shipped" | "in_transit") {
         at,
         actorKind: "system",
         actorId: null,
-        note: DEMO_SHIPMENT_NOTE,
+        note: DEMO_ONLY_NOTES.shipment.text,
       },
     ],
     events: [
@@ -259,7 +264,7 @@ function ship(deliveryId: string, status: "shipped" | "in_transit") {
           projectId: delivery.projectId,
           type: "delivery_moved",
           title: `Поставка по запросу ${request?.number ?? "—"}: ${deliveryStatusLabel[status].toLowerCase()}`,
-          details: DEMO_SHIPMENT_NOTE,
+          details: DEMO_ONLY_NOTES.shipment.text,
           requestId: delivery.requestId,
           deliveryId,
         },
@@ -272,7 +277,7 @@ function ship(deliveryId: string, status: "shipped" | "in_transit") {
     areas: ["procurement", "projects", "timeline"],
     notice: {
       title: `Поставка «${supplierName}» отмечена «${deliveryStatusLabel[status].toLowerCase()}»`,
-      description: `${DEMO_SHIPMENT_NOTE} ${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}.`,
+      description: `${DEMO_ONLY_NOTES.shipment.text} ${delivery.items.length} поз., ожидается ${delivery.expectedAt.split("-").reverse().join(".")}.`,
     },
   });
 }

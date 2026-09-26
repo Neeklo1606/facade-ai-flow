@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, MessageSquare, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { ConfidenceLabel } from "@/components/common/ConfidenceIndicator";
-import { DEMO_AUDIO_NOTE } from "@/lib/demo-copy";
+import { note } from "@/lib/contour-copy";
 import { type Evidence, type Extraction } from "@/contracts";
 
 function hash(text: string) {
@@ -181,7 +181,7 @@ export function VoiceReport({
           <MessageSquare className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
           Голосовое сообщение прораба · {fmt(duration)}
         </p>
-        <p className="mt-1 text-caption text-text-muted">{DEMO_AUDIO_NOTE}</p>
+        <p className="mt-1 text-caption text-text-muted">{note("audio")}</p>
         <p className="mt-3 text-[13px] leading-relaxed text-text-secondary">
           «{highlight(transcript, activeField?.quote ?? null)}»
         </p>

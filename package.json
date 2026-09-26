@@ -15,6 +15,7 @@
     "db:fixtures-sql": "bun scripts/fixtures-sql.ts",
     "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
     "db:seed": "bun scripts/db-seed.ts",
+    "db:owner": "bun scripts/db-owner.ts",
     "check:db": "bun scripts/check-db.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test": "bun test tests",
@@ -22,7 +23,9 @@
     "walkthrough": "playwright test -c playwright.walkthrough.config.ts",
     "walkthrough:report": "bun scripts/walkthrough-report.ts && prettier --write docs/state/walkthrough.md",
     "check:bundle": "bun scripts/check-bundle.ts",
+    "build:server": "vite build --mode server",
     "check:sources": "bun scripts/check-sources.ts",
+    "check:links": "bun scripts/check-links.ts",
     "lighthouse": "bun scripts/lighthouse.ts",
     "ci": "bun scripts/ci.ts"
   },

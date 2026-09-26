@@ -13,7 +13,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { screenFor } from "@/lib/guide/screens";
 import { useCurrentUser } from "@/lib/project-scope";
 import { dataSource } from "@/api/config";
-import { DEMO_MARK_NOTE } from "@/lib/demo-copy";
+import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
 
 export function Topbar() {
   const { setMobileNavOpen, setCommandOpen, setProjectId } = useApp();
@@ -108,11 +108,11 @@ export function Topbar() {
           {dataSource === "demo" && (
             <span
               className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[11px] leading-none font-medium text-text-2"
-              title={DEMO_MARK_NOTE}
+              title={DEMO_ONLY_NOTES.mark.text}
             >
               {/* Видимая метка — отдельным элементом: её ищет проверка честности */}
               <span>Демо</span>
-              <span className="sr-only">. {DEMO_MARK_NOTE}</span>
+              <span className="sr-only">. {DEMO_ONLY_NOTES.mark.text}</span>
             </span>
           )}
         </div>

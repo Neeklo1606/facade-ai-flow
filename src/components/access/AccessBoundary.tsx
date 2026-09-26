@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouterState } from "@tanstack/react-router";
+import { Navigate, useRouterState } from "@tanstack/react-router";
 import { projectOfPath, sectionOfPath, useAccess } from "@/api/access";
 import { queries } from "@/api/queries";
 import { ScreenSkeleton } from "@/components/common/ScreenStates";
@@ -40,6 +40,17 @@ export function AccessBoundary({ children }: { children: ReactNode }) {
 
   const projectId = projectOfPath(pathname);
   const roleDenied = !access.can(section);
+
+  /*
+   * Корень адреса — рабочий экран роли, а не стена. ПТО, снабжение и прораб, открыв «/»,
+   * упирались в «Нет доступа» с заголовком вкладки «Дашборд»: для трёх ролей из пяти продукт
+   * начинался с отказа (находка аудита соответствия). Отказ остаётся для прямого перехода
+   * в закрытый раздел — там он объясняет, у кого доступ.
+   */
+  if (roleDenied && pathname === "/") {
+    const home = startRouteFor(access.role, projects?.[0]?.project.id ?? null);
+    if (home !== "/") return <Navigate to={home} replace />;
+  }
   if (!roleDenied && projectId && !access.session) return <ScreenSkeleton kind="summary" />;
   const projectDenied = !roleDenied && !!projectId && !access.canProject(section, projectId);
   if (!roleDenied && !projectDenied) return children;

@@ -97,3 +97,34 @@ test.describe("загрузка документа", () => {
     await expect(page.locator("[data-demo-extraction]")).toBeVisible();
   });
 });
+
+test.describe("счётчики — это фильтры", () => {
+  test.use({ persona: "e-dorohov" });
+
+  test("«готовы к запросу» в шапке материалов применяет фильтр", async ({ page }) => {
+    await open(page, "/projects/p-korona/materials");
+    const counter = page.getByRole("button", { name: /готовы к запросу/ });
+    await expect(counter).toHaveAttribute("aria-pressed", "false");
+    await counter.click();
+    await expect(page).toHaveURL(/ready=true/);
+    await expect(counter).toHaveAttribute("aria-pressed", "true");
+    // Повторное нажатие снимает фильтр: цифра и список остаются об одном
+    await counter.click();
+    await expect(page).not.toHaveURL(/ready=true/);
+  });
+});
+
+test.describe("счётчик документации ведёт к проверке", () => {
+  test.use({ persona: "e-volkova" });
+
+  test("«Извлечено позиций» открывает документ с позициями", async ({ page }) => {
+    await open(page, "/projects/p-korona/documents");
+    await page.getByRole("button", { name: /Извлечено позиций/ }).click();
+    await expect(page).toHaveURL(/\/documents\/pd-korona-spec/);
+  });
+
+  test("ПТО не остаётся без действия, когда передавать нечего", async ({ page }) => {
+    await open(page, "/projects/p-korona/documents/pd-korona-spec");
+    await expect(page.getByRole("link", { name: /к документации/i })).toBeVisible();
+  });
+});

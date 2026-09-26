@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -80,7 +81,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // Часы и справочники нужны почти каждому экрану: без них SSR отдал бы «—» вместо имён и сроков
   // Рабочий контур: персона — из сессии запроса (ADR-012). Сервер и первый рендер клиента
   // начинают с неё, иначе разметка роли по умолчанию и роли вкладки расходились при гидратации
-  loader: async ({ context }) => {
+  loader: async ({ context, location }) => {
+    // Экран входа ничего не загружает: сессии нет, и каждый запрос вернул бы 403 в журнал
+    if (location.pathname === "/login") return { sessionActorId: null };
     const [session] = await Promise.all([
       dataSource === "server" ? api.session() : null,
       prefetch(context.queryClient, queries.now()),
@@ -167,6 +170,18 @@ function RootComponent() {
   useEffect(markStartScreenApplied, []);
   // Телеметрия сессии: открытие экранов и точка выхода (ADR-010)
   useScreenTelemetry();
+  /*
+   * Экран входа рисуется без оболочки: сессии ещё нет, а меню, выбор объекта и проводка
+   * запросили бы данные и получили отказ. Тот же случай, что и у экрана-шлюза (ADR-021).
+   */
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  if (pathname === "/login") {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

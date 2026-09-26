@@ -3,6 +3,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Check,
+  LogOut,
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
@@ -15,6 +16,7 @@ import { ALL_PROJECTS, useApp } from "@/lib/app-context";
 import { activeNavKey, navGroupsFor, sectionHref, type BadgeKey } from "@/lib/navigation";
 import { useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { useEnterAs } from "@/lib/persona";
+import { signOutFn } from "@/api/auth-functions";
 import { useResetDemo } from "@/api/mutations";
 import { dataSource, DEMO_PERSONAS } from "@/api/config";
 import {
@@ -158,6 +160,12 @@ function SidebarInner({
   const switchPersona = (id: string, role: EmployeeRole) => {
     onClose();
     void enterAs(id, role).then((to) => navigate({ to }));
+  };
+  /** Выход: сессия гаснет на сервере, дальше сервер сам уводит на экран входа (ADR-021) */
+  const signOut = async () => {
+    onClose();
+    await signOutFn();
+    window.location.assign("/login");
   };
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const activeKey = activeNavKey(pathname, view, pickSection);
@@ -422,32 +430,50 @@ function SidebarInner({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="top" className="w-[248px]">
-            <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
-              Роль в демонстрации
-            </DropdownMenuLabel>
-            {personas.map((person) => (
-              <DropdownMenuItem
-                key={person.id}
-                onSelect={() => switchPersona(person.id, person.role)}
-                className="gap-2"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium">{person.name}</span>
-                  <span className="block truncate text-[12px] text-text-3">
-                    {employeeRoleLabel[person.role]}
+            {/* Персону выбирают только в демонстрации: в рабочем контуре роль даёт учётная
+                запись, за которую вошли (ADR-021, п. 7) */}
+            {dataSource === "demo" && (
+              <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
+                Роль в демонстрации
+              </DropdownMenuLabel>
+            )}
+            {dataSource === "demo" &&
+              personas.map((person) => (
+                <DropdownMenuItem
+                  key={person.id}
+                  onSelect={() => switchPersona(person.id, person.role)}
+                  className="gap-2"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-medium">{person.name}</span>
+                    <span className="block truncate text-[12px] text-text-3">
+                      {employeeRoleLabel[person.role]}
+                    </span>
                   </span>
-                </span>
-                {person.id === personaId && (
-                  <Check className="size-4 shrink-0 text-orange-hot" strokeWidth={2} aria-hidden />
-                )}
-              </DropdownMenuItem>
-            ))}
+                  {person.id === personaId && (
+                    <Check
+                      className="size-4 shrink-0 text-orange-hot"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
             <DropdownMenuSeparator />
             <p className="px-2 py-1.5 text-[12px] leading-[1.4] text-text-3">
               У каждой роли свои права: закрытые разделы не показываются, сервер отклоняет действия
               без права. Матрица — в разделе «Права доступа».
             </p>
             <DropdownMenuSeparator />
+            {dataSource === "server" && (
+              <>
+                <DropdownMenuItem onSelect={() => void signOut()} className="gap-2">
+                  <LogOut className="size-4 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
+                  <span className="text-[13px]">Выйти</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             {/* Тема здесь же: на телефоне переключателя в шапке нет (ADR-017, п. 5) */}
             <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
               Тема оформления

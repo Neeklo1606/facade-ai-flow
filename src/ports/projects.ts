@@ -15,6 +15,7 @@ import {
   type Project,
   type ProjectOverview,
   type WorkZone,
+  zoneLevel,
 } from "@/contracts";
 import type { Actor } from "./common";
 
@@ -64,6 +65,23 @@ export const setProjectStatusInput = z.object({
 });
 
 /** Отметить контрольную точку выполненной; объект — для проверки прав и принадлежности */
+/** Захватка объекта: создать или изменить (ADR-024) */
+export const saveZoneInput = z.object({
+  /** null — новая захватка */
+  id: z.string().min(1).nullable(),
+  projectId: z.string().min(1),
+  /** null — верхний уровень объекта */
+  parentId: z.string().min(1).nullable(),
+  level: zoneLevel.schema,
+  name: z.string().trim().min(2).max(120),
+  axes: z.string().trim().max(60).nullable(),
+  floors: z.string().trim().max(60).nullable(),
+  planQty: z.number().nonnegative(),
+  /** Выполнено до начала учёта отчётами: факт = это значение плюс принятые объёмы */
+  baselineFactQty: z.number().nonnegative(),
+  unit: z.string().trim().min(1).max(20),
+});
+
 export const completeMilestoneInput = z.object({
   projectId: z.string().min(1),
   milestoneId: z.string().min(1),
@@ -74,6 +92,7 @@ export type ListProjectsInput = z.infer<typeof listProjectsInput>;
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
 export type SetProjectStatusInput = z.infer<typeof setProjectStatusInput>;
 export type CompleteMilestoneInput = z.infer<typeof completeMilestoneInput>;
+export type SaveZoneInput = z.infer<typeof saveZoneInput>;
 
 export interface ProjectCard {
   project: Project;
@@ -99,4 +118,6 @@ export interface ProjectsPort {
   setStatus(input: SetProjectStatusInput, actor: Actor): Promise<Project>;
   /** Выполненную повторно — ConflictError; точка чужого объекта — NotFoundError */
   completeMilestone(input: CompleteMilestoneInput, actor: Actor): Promise<Milestone>;
+  /** Завести или изменить захватку; удаления нет — на неё ссылаются принятые отчёты (ADR-024) */
+  saveZone(input: SaveZoneInput, actor: Actor): Promise<WorkZone>;
 }

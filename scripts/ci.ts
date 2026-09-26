@@ -34,13 +34,31 @@ const steps: Step[] = [
   { name: "Линтер", cmd: ["bun", "run", "lint"] },
   { name: "Тесты: домен, согласованность, негативные", cmd: ["bun", "run", "test"] },
   { name: "Фикстуры против схемы", cmd: ["bun", "run", "check:fixtures"] },
+  // Ссылки в документах: README уже вёл на ADR, которого в main не было (аудит соответствия)
+  { name: "Ссылки в документах", cmd: ["bun", "run", "check:links"] },
   {
     name: "PostgreSQL: миграции, паритет с демо, версия данных",
     cmd: ["bun", "run", "check:db"],
     env: { DATABASE_URL: databaseUrl },
   },
-  { name: "Сборка", cmd: ["bun", "run", "build"], env: { NITRO_PRESET: "node-server" } },
-  { name: "Размер бандла", cmd: ["bun", "run", "check:bundle"] },
+  /*
+   * Рабочий контур собирается первым и мерится своим порогом: он и есть то, что скачивает
+   * заказчик (ADR-013, поправка от 26.09.2026). Раньше конвейер его не собирал вовсе — ошибка,
+   * которая ломает только его, вышла бы наружу при развёртывании.
+   */
+  {
+    name: "Сборка рабочего контура",
+    cmd: ["bun", "run", "build:server"],
+    env: { NITRO_PRESET: "node-server" },
+  },
+  { name: "Размер бандла: рабочий контур", cmd: ["bun", "run", "check:bundle", "server"] },
+  // Демонстрационная сборка остаётся в .output: на ней работают сквозные тесты и Lighthouse
+  {
+    name: "Сборка демонстрации",
+    cmd: ["bun", "run", "build"],
+    env: { NITRO_PRESET: "node-server" },
+  },
+  { name: "Размер бандла: демонстрация", cmd: ["bun", "run", "check:bundle", "demo"] },
   { name: "Сквозные тесты: роли, EMBER, axe, консоль", cmd: ["bun", "run", "test:e2e"] },
   { name: "Lighthouse", cmd: ["bun", "run", "lighthouse"], server: true },
 ];

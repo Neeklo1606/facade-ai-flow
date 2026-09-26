@@ -1,8 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
+  employeeView,
   extractedPosition,
+  materialCategories,
+  fieldReport,
   milestoneView,
+  workZoneView,
   materials as materialRow,
   projectDecision,
   projectDocument,
@@ -10,6 +14,7 @@ import {
 } from "@/contracts";
 import {
   agentReply,
+  catalogJournal,
   categoryList,
   confirmMatchInput,
   materialCard,
@@ -17,10 +22,13 @@ import {
   supplierCard,
   askAgentInput,
   correctPositionInput,
+  createPositionInput,
+  importSpecInput,
   counterpartyList,
   createProjectInput,
   setProjectStatusInput,
   completeMilestoneInput,
+  saveZoneInput,
   resolveChangeInput,
   createRequestInput,
   createRequestResult,
@@ -57,6 +65,12 @@ import {
   reportCard,
   requestCard,
   requestSummary,
+  createReportInput,
+  importMaterialsInput,
+  importReport,
+  saveCategoryInput,
+  saveEmployeeInput,
+  saveSupplierInput,
   reviewReportInput,
   revisionChangeView,
   sourceCard,
@@ -156,6 +170,13 @@ export const completeMilestoneFn = createServerFn({ method: "POST" })
     respond(milestoneView, await repos().projects.completeMilestone(data, actor())),
   );
 
+/** Захватка объекта: завести или изменить (ADR-024) */
+export const saveZoneFn = createServerFn({ method: "POST" })
+  .validator(input(saveZoneInput))
+  .handler(async ({ data }) =>
+    respond(workZoneView, await repos().projects.saveZone(data, actor())),
+  );
+
 /* ---------- Документы ---------- */
 
 export const documentsFn = createServerFn({ method: "GET" })
@@ -228,6 +249,19 @@ export const confirmFn = createServerFn({ method: "POST" })
   .validator(input(idsInput))
   .handler(async ({ data }) =>
     respond(z.array(z.string()), await repos().positions.confirm(data, actor())),
+  );
+
+/** Позиция заведена руками или загружена пачкой из файла (ADR-025) */
+export const createPositionFn = createServerFn({ method: "POST" })
+  .validator(input(createPositionInput))
+  .handler(async ({ data }) =>
+    respond(extractedPosition, await repos().positions.create(data, actor())),
+  );
+
+export const importSpecFn = createServerFn({ method: "POST" })
+  .validator(input(importSpecInput))
+  .handler(async ({ data }) =>
+    respond(importReport, await repos().positions.importSpec(data, actor())),
   );
 
 export const correctFn = createServerFn({ method: "POST" })
@@ -311,6 +345,10 @@ export const supplierFn = createServerFn({ method: "GET" })
 
 export const categoriesFn = createServerFn({ method: "GET" }).handler(async () =>
   respond(categoryList, await repos().catalog.categories()),
+);
+
+export const catalogChangesFn = createServerFn({ method: "GET" }).handler(async () =>
+  respond(catalogJournal, await repos().catalog.catalogChanges()),
 );
 
 export const materialCardFn = createServerFn({ method: "GET" })
@@ -403,6 +441,32 @@ export const reportsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) =>
     respond(z.array(reportCard), await repos().reports.list(data.projectId)),
   );
+
+export const saveCategoryFn = createServerFn({ method: "POST" })
+  .validator(input(saveCategoryInput))
+  .handler(async ({ data }) =>
+    respond(materialCategories, await repos().catalog.saveCategory(data, actor())),
+  );
+
+export const saveSupplierFn = createServerFn({ method: "POST" })
+  .validator(input(saveSupplierInput))
+  .handler(async ({ data }) => repos().catalog.saveSupplier(data, actor()));
+
+export const importMaterialsFn = createServerFn({ method: "POST" })
+  .validator(input(importMaterialsInput))
+  .handler(async ({ data }) =>
+    respond(importReport, await repos().catalog.importMaterials(data, actor())),
+  );
+
+export const saveEmployeeFn = createServerFn({ method: "POST" })
+  .validator(input(saveEmployeeInput))
+  .handler(async ({ data }) =>
+    respond(employeeView, await repos().directory.saveEmployee(data, actor())),
+  );
+
+export const createReportFn = createServerFn({ method: "POST" })
+  .validator(input(createReportInput))
+  .handler(async ({ data }) => respond(fieldReport, await repos().reports.create(data, actor())));
 
 export const reviewReportFn = createServerFn({ method: "POST" })
   .validator(input(reviewReportInput))

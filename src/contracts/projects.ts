@@ -126,6 +126,13 @@ export const milestones = table(
 
 /* ---------- Захватки ---------- */
 
+export const zoneLevelLabel: Record<"building" | "section" | "floor" | "zone", string> = {
+  building: "Корпус",
+  section: "Секция",
+  floor: "Этаж",
+  zone: "Захватка",
+};
+
 export const zoneLevel = pgEnum(
   "zone_level",
   ["building", "section", "floor", "zone"],
@@ -154,7 +161,8 @@ export const workZones = table(
     floors: col.text({ nullable: true }),
     planQty: col.qty(),
     baselineFactQty: col.qty({
-      comment: "выполнено до начала учёта отчётами; факт = это значение + принятые объёмы (R15)",
+      comment:
+        "текущий факт захватки: заведённое при создании плюс принятые объёмы отчётов (ADR-024)",
     }),
     unit: col.name(),
   },

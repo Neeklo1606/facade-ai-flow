@@ -29,6 +29,7 @@ const areas: { title: string; tables: string[] }[] = [
       "material_categories",
       "materials",
       "material_changes",
+      "catalog_changes",
       "positions",
       "position_changes",
       "replacement_suggestions",

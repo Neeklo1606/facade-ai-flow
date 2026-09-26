@@ -43,7 +43,12 @@ const CATALOGS: Section[] = ["catalogs", "documents", "materials", "procurement"
 
 export const ACCESS_RULES: AccessRules = {
   clock: { now: SESSION },
-  directory: { employees: SESSION, counterparties: SESSION },
+  directory: {
+    employees: SESSION,
+    counterparties: SESSION,
+    // Кто заводит сотрудников и раздаёт роли — тот же, кто видит матрицу прав (ADR-021, п. 8)
+    saveEmployee: { sections: ["access"], need: WRITE, global: true },
+  },
   projects: {
     list: {
       sections: ["projects"],
@@ -59,6 +64,12 @@ export const ACCESS_RULES: AccessRules = {
       project: (input) => project(input.projectId),
     },
     completeMilestone: {
+      sections: ["projects"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
+    // Захватка — структура объекта, а не справочник: право то же, что у смены статуса (ADR-024)
+    saveZone: {
       sections: ["projects"],
       need: WRITE,
       project: (input) => project(input.projectId),
@@ -101,6 +112,17 @@ export const ACCESS_RULES: AccessRules = {
       sections: ["documents"],
       need: WRITE,
       project: (input) => ref("position", input.id),
+    },
+    // Заведение и загрузка спецификации — та же работа с документом, что проверка (ADR-025)
+    create: {
+      sections: ["documents"],
+      need: WRITE,
+      project: (input) => ref("revision", input.revisionId),
+    },
+    importSpec: {
+      sections: ["documents"],
+      need: WRITE,
+      project: (input) => ref("revision", input.revisionId),
     },
     exclude: {
       sections: ["documents"],
@@ -187,6 +209,12 @@ export const ACCESS_RULES: AccessRules = {
   },
   reports: {
     list: { sections: ["field-reports"], need: READ, project: (id) => project(id) },
+    // Завести отчёт может и прораб: до бота это его единственный способ отчитаться (ADR-022)
+    create: {
+      sections: ["field-reports"],
+      need: WRITE,
+      project: (input: { projectId: string }) => project(input.projectId),
+    },
     review: {
       sections: ["field-reports"],
       need: WRITE,
@@ -207,7 +235,13 @@ export const ACCESS_RULES: AccessRules = {
   catalog: {
     categories: { sections: CATALOGS, need: READ, global: true },
     material: { sections: CATALOGS, need: READ, global: true },
+    // Журнал справочников видит тот, кто их правит: это проверка его же работы
+    catalogChanges: { sections: ["catalogs"], need: READ, global: true },
     saveMaterial: { sections: ["catalogs"], need: WRITE, global: true },
+    saveCategory: { sections: ["catalogs"], need: WRITE, global: true },
+    // Поставщик — часть подбора в запрос, поэтому право то же, что у раздела поставщиков
+    saveSupplier: { sections: ["suppliers"], need: WRITE, global: true },
+    importMaterials: { sections: ["catalogs"], need: WRITE, global: true },
   },
   scope: {
     projectsOf: SESSION,
