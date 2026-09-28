@@ -28,7 +28,12 @@ export function ProjectChip() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Объект: ${current ?? "все объекты"}. Сменить`}
-        className="focus-ring flex h-8 max-w-[44vw] shrink-0 items-center gap-1 rounded-[var(--r-pill)] border border-line bg-surface-2 px-2.5 text-[12px] leading-none text-text-2 transition-fast lg:hidden"
+        /*
+          Цель нажатия 48 px: чип в 32 px выглядел аккуратнее, но в перчатке в него не попасть,
+          и проверка ширин экрана его поймала. Рамка рисуется во всю высоту — так видно, что
+          это кнопка, а не подпись.
+        */
+        className="focus-ring flex h-12 max-w-[44vw] shrink-0 items-center gap-1 rounded-[var(--r-md)] border border-line bg-surface-2 px-2.5 text-[12px] leading-none text-text-2 transition-fast lg:hidden"
       >
         <span className="truncate">{current ?? "Все объекты"}</span>
         <ChevronDown className="size-3.5 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />

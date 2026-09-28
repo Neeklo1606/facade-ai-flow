@@ -62,6 +62,9 @@ async function panel(page: import("@playwright/test").Page) {
 }
 
 test.describe("нижняя панель @mobile", () => {
+  // Панель живёт до 1024 px (ADR-026, п. 1): на десктопе её место занимает боковая
+  test.skip(({ viewport }) => (viewport?.width ?? 1440) >= 1024, "от 1024 px панели нет");
+
   test.describe("снабжение", () => {
     test.use({ persona: "e-dorohov" });
 
