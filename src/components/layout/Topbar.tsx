@@ -10,6 +10,7 @@ import { screenStatesEnabled } from "@/lib/screen-state";
 import { StatePicker } from "./StatePicker";
 import { ScreenHelp } from "@/components/guide/ScreenHelp";
 import { ThemeToggle } from "./ThemeToggle";
+import { ProjectChip } from "./ProjectChip";
 import { screenFor } from "@/lib/guide/screens";
 import { useCurrentUser } from "@/lib/project-scope";
 import { dataSource } from "@/api/config";
@@ -93,6 +94,9 @@ export function Topbar() {
       >
         <Menu strokeWidth={1.5} />
       </button>
+
+      {/* Чип объекта слева: на телефоне это единственный способ сменить объект (ADR-026, п. 8) */}
+      <ProjectChip />
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">

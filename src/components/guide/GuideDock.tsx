@@ -109,7 +109,7 @@ export function GuideDock() {
         side === "right"
           ? "right-4 items-end"
           : "left-4 items-start lg:left-[calc(var(--sidebar-w)+32px)]",
-        "bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+76px)] md:bottom-6",
+        "bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+76px)] lg:bottom-6",
       )}
     >
       {scenario && !guide.closed && !guide.collapsed && (

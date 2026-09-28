@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -47,7 +47,15 @@ import { useCanWrite } from "@/api/access";
 import { useExtractionJobsWatch } from "@/api/extraction";
 import { prefetch } from "@/api/prefetch";
 
+interface DocumentsSearch {
+  /** Форма, которую открыла шторка «+» (ADR-026, п. 4) */
+  new?: "document" | undefined;
+}
+
 export const Route = createFileRoute("/projects/$id/documents/")({
+  validateSearch: (search: Record<string, unknown>): DocumentsSearch => ({
+    new: search["new"] === "document" ? "document" : undefined,
+  }),
   loader: async ({ params, context }) => {
     const [result] = await Promise.all([
       loadProject(context.queryClient, params.id),
@@ -87,6 +95,13 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
   // Загрузка — запись в документах (ADR-012): у роли с чтением кнопок загрузки нет
   const canUpload = useCanWrite("documents");
   const zone = useRef<UploadZoneHandle>(null);
+  const search = Route.useSearch();
+  // Шторка «+» доводит до зоны загрузки (ADR-026, п. 4): выбор файла — живым касанием
+  useEffect(() => {
+    if (search.new !== "document") return;
+    zone.current?.reveal();
+    void navigate({ to: ".", search: (prev) => ({ ...prev, new: undefined }), replace: true });
+  }, [search.new, navigate]);
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
   // Очередь выбранных файлов: окно загрузки ведёт их по одному (ADR-018, п. 5)
   const [pending, setPending] = useState<File[]>([]);

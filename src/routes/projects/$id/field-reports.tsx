@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   AlertOctagon,
@@ -51,6 +51,8 @@ type StatusFilter = FieldReport["status"] | "all";
 interface ReportsSearch {
   status?: FieldReport["status"] | undefined;
   zone?: string | undefined;
+  /** Форма, которую открыла шторка «+» (ADR-026, п. 4) */
+  new?: "report" | undefined;
 }
 
 export const Route = createFileRoute("/projects/$id/field-reports")({
@@ -62,6 +64,7 @@ export const Route = createFileRoute("/projects/$id/field-reports")({
         ? search["status"]
         : undefined,
     zone: typeof search["zone"] === "string" && search["zone"] ? search["zone"] : undefined,
+    new: search["new"] === "report" ? "report" : undefined,
   }),
   loader: async ({ params, context }) => {
     const [result] = await Promise.all([
@@ -112,6 +115,12 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
   const reportsQuery = useQuery(queries.reports(project.id));
   const [source, setSource] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  // Шторка «+» открывает форму адресом (ADR-026, п. 4): параметр гасится сразу после открытия
+  useEffect(() => {
+    if (search.new !== "report") return;
+    setCreateOpen(true);
+    void navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true });
+  }, [search.new, navigate]);
   const feed = useRef<HTMLOListElement>(null);
 
   const reports = useMemo(

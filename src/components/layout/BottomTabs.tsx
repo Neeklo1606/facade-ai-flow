@@ -1,31 +1,27 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Building2,
-  FileCheck2,
-  HardHat,
-  LayoutDashboard,
-  Menu,
-  type LucideIcon,
-} from "lucide-react";
+import { Suspense, lazy, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Menu, Plus } from "lucide-react";
+import { DEMO_PERSONAS, dataSource } from "@/api/config";
+import { signOutFn } from "@/api/auth-functions";
+import { queries } from "@/api/queries";
+import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { useApp } from "@/lib/app-context";
-import { useCurrentRole, useProjectId } from "@/lib/project-scope";
-import { visibleFor, allNavItems } from "@/lib/navigation";
+import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scope";
+import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
+import { useKeyboardOpen } from "@/lib/keyboard-open";
+import { bottomNavFor, plusActionsFor, type BottomNavItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-interface Tab {
-  /** Совпадает с ключом пункта меню: по нему панель узнаёт, видит ли роль раздел */
-  key: string;
-  label: string;
-  icon: LucideIcon;
-  to: string;
-  search?: Record<string, string>;
-  active: (pathname: string, view: unknown) => boolean;
-}
+const PlusSheet = lazy(() => import("./sheets").then((module) => ({ default: module.PlusSheet })));
+const MoreSheet = lazy(() => import("./sheets").then((module) => ({ default: module.MoreSheet })));
 
 /**
- * Нижняя навигация телефона: дашборд как точка входа (ADR-007), затем приоритет площадки —
- * статус объекта, отчёты, проверка извлечённых позиций. Контакты поставщиков — в «Ещё»:
- * шесть подписей в панели на 375px не читаются.
+ * Нижняя панель телефона (ADR-026): пять позиций — две слева, «+» в центре, одна справа,
+ * «Ещё» последней. Набор определяется ролью таблицей в `lib/navigation.ts`.
+ *
+ * Активная позиция без оранжевого: тёмная иконка, подпись и индикатор над иконкой. Оранжевый
+ * в панели один — у «+», потому что он означает действие, а не «ты здесь» (ADR-017).
  */
 export function BottomTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -35,123 +31,131 @@ export function BottomTabs() {
   const pickSection = useRouterState({
     select: (s) => String((s.location.search as Record<string, unknown>)["section"] ?? ""),
   });
-  const { setMobileNavOpen } = useApp();
   const projectId = useProjectId();
   const role = useCurrentRole();
-  const section = (name: string) => (p: string) => new RegExp(`^/projects/[^/]+/${name}`).test(p);
+  const keyboardOpen = useKeyboardOpen();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [plusOpen, setPlusOpen] = useState(false);
 
-  const dashboard: Tab = {
-    key: "dashboard",
-    label: "Дашборд",
-    icon: LayoutDashboard,
-    to: "/",
-    active: (p) => p === "/",
-  };
+  const items = bottomNavFor(role, projectId);
+  const actions = plusActionsFor(role, projectId);
+  const overviews = (useQuery(queries.projects()).data ?? []).map((item) => item.overview);
+  const counts = badgeCounts(projectId, overviews);
 
-  const tabs: Tab[] = projectId
-    ? [
-        dashboard,
-        {
-          key: "project",
-          label: "Объект",
-          icon: Building2,
-          to: `/projects/${projectId}`,
-          active: (p) => /^\/projects\/[^/]+\/?$/.test(p),
-        },
-        {
-          key: "reports",
-          label: "Отчёты",
-          icon: HardHat,
-          to: `/projects/${projectId}/field-reports`,
-          active: section("field-reports"),
-        },
-        {
-          key: "review",
-          label: "Проверка",
-          icon: FileCheck2,
-          to: `/projects/${projectId}/documents`,
-          active: section("documents"),
-        },
-      ]
-    : [
-        dashboard,
-        {
-          key: "projects",
-          label: "Объекты",
-          icon: Building2,
-          to: "/projects",
-          active: (p) => p === "/projects" && !pickSection,
-        },
-        {
-          key: "reports",
-          label: "Отчёты",
-          icon: HardHat,
-          to: "/projects",
-          search: { section: "field-reports" },
-          active: () => pickSection === "field-reports",
-        },
-        {
-          key: "docs",
-          label: "Проверка",
-          icon: FileCheck2,
-          to: "/projects",
-          search: { section: "documents" },
-          active: () => pickSection === "documents",
-        },
-      ];
-
-  // Панель показывает те же разделы, что и сайдбар для этой роли (ADR-008)
-  const navKey = (key: string) =>
-    key === "project"
-      ? "projects"
-      : key === "docs"
-        ? "documents"
-        : key === "review"
-          ? "documents"
-          : key === "reports"
-            ? "field-reports"
-            : key;
-  const visible = tabs.filter((tab) => {
-    const item = allNavItems.find((navItem) => navItem.key === navKey(tab.key));
-    return !item || visibleFor(item, role);
-  });
+  // Две слева, одна справа: «+» стоит по центру панели, «Ещё» замыкает
+  const left = items.slice(0, 2);
+  const right = items.slice(2, 3);
+  const columns = actions.length ? left.length + right.length + 2 : left.length + right.length + 1;
 
   return (
-    <nav
-      aria-label="Основная навигация"
+    <>
+      <nav
+        aria-label="Основная навигация"
+        data-keyboard={keyboardOpen ? "open" : undefined}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 grid h-[calc(64px+env(safe-area-inset-bottom))] items-center border-t border-line bg-base pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
+          // Пока фокус в поле ввода, панель уходит: место под неё остаётся, чтобы не прыгало
+          keyboardOpen && "pointer-events-none translate-y-full opacity-0",
+          // Колонок ровно по числу позиций: классы записаны целиком, иначе сборщик их не соберёт
+          columns === 5 ? "grid-cols-5" : columns === 4 ? "grid-cols-4" : "grid-cols-3",
+        )}
+      >
+        {left.map((item) => (
+          <Tab
+            key={item.key}
+            item={item}
+            active={item.active(pathname, view, pickSection)}
+            count={item.badge ? counts[item.badge] : 0}
+          />
+        ))}
+
+        {actions.length > 0 && (
+          <div className="grid place-items-center">
+            {/* Единственное оранжевое пятно панели: круг 56 px, слегка выступает над ней */}
+            <button
+              type="button"
+              onClick={() => setPlusOpen(true)}
+              aria-label="Создать"
+              data-tour="nav-plus"
+              className="focus-ring -mt-5 grid size-14 place-items-center rounded-full bg-orange-strong text-on-orange shadow-[var(--glow-orange)] transition-fast active:translate-y-px"
+            >
+              <Plus className="size-6" strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+        )}
+
+        {right.map((item) => (
+          <Tab
+            key={item.key}
+            item={item}
+            active={item.active(pathname, view, pickSection)}
+            count={item.badge ? counts[item.badge] : 0}
+          />
+        ))}
+
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-label="Ещё: разделы, тема, справка"
+          className="focus-ring flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[11px] leading-none text-text-3 transition-fast"
+        >
+          <Menu className="size-6" strokeWidth={1.75} aria-hidden />
+          Ещё
+        </button>
+      </nav>
+
+      {/* Шторки грузятся по требованию: их разметка и перетаскивание не нужны до нажатия */}
+      {plusOpen && (
+        <Suspense fallback={null}>
+          <PlusSheet open onOpenChange={setPlusOpen} role={role} projectId={projectId} />
+        </Suspense>
+      )}
+      {moreOpen && (
+        <Suspense fallback={null}>
+          <MoreSheet open onOpenChange={setMoreOpen} role={role} projectId={projectId} />
+        </Suspense>
+      )}
+    </>
+  );
+}
+
+/** Позиция панели: иконка 24 px, подпись 11 px, цель нажатия во всю высоту панели */
+function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; count: number }) {
+  return (
+    <Link
+      to={item.to}
+      search={item.search as never}
+      data-tour={`nav-${item.key}`}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 grid h-[calc(64px+env(safe-area-inset-bottom))] items-center border-t border-line bg-base pb-[env(safe-area-inset-bottom)] md:hidden",
-        // Колонок ровно по числу вкладок роли плюс «Ещё»: классы записаны целиком для сборщика
-        visible.length >= 4 ? "grid-cols-5" : visible.length === 3 ? "grid-cols-4" : "grid-cols-3",
+        "focus-ring relative flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[11px] leading-none transition-fast",
+        active ? "font-medium text-text" : "text-text-3",
       )}
     >
-      {visible.map((tab) => {
-        const active = tab.active(pathname, view);
-        return (
-          <Link
-            key={tab.key}
-            data-tour={`nav-${tab.key}`}
-            to={tab.to}
-            search={tab.search as never}
-            aria-current={active ? "page" : undefined}
+      {/* Индикатор 3 px над иконкой: «где я» читается без акцентного цвета */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute top-0 h-[3px] w-8 rounded-b-[2px]",
+          active ? "bg-text" : "bg-transparent",
+        )}
+      />
+      <span className="relative">
+        <item.icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
+        {count > 0 && (
+          <span
             className={cn(
-              "focus-ring flex h-16 flex-col items-center justify-center gap-1 text-[11px] transition-fast",
-              active ? "font-medium text-orange-hot" : "text-text-3",
+              "absolute -top-1.5 -right-2.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] leading-none font-medium",
+              item.badge && CRITICAL_BADGES.includes(item.badge)
+                ? "bg-danger text-on-orange"
+                : "bg-surface-3 text-text-2",
             )}
           >
-            <tab.icon className="size-5" strokeWidth={1.75} />
-            {tab.label}
-          </Link>
-        );
-      })}
-      <button
-        type="button"
-        onClick={() => setMobileNavOpen(true)}
-        className="focus-ring flex h-16 flex-col items-center justify-center gap-1 text-[11px] text-text-3 transition-fast"
-      >
-        <Menu className="size-5" strokeWidth={1.75} />
-        Ещё
-      </button>
-    </nav>
+            {badgeText(count)}
+          </span>
+        )}
+      </span>
+      {item.label}
+    </Link>
   );
 }

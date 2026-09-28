@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { recordAction } from "@/lib/guide/telemetry";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
@@ -70,6 +70,8 @@ interface ProjectsSearch {
   section?: ProjectSection | undefined;
   /** Фильтр, с которым откроется раздел выбранного объекта (переход с дашборда) */
   sectionStatus?: string | undefined;
+  /** Форма, которую открыла шторка «+» (ADR-026, п. 4) */
+  new?: "project" | undefined;
 }
 
 const sections: ProjectSection[] = [
@@ -85,6 +87,7 @@ const str = (value: unknown) => (typeof value === "string" && value ? value : un
 
 export const Route = createFileRoute("/projects/")({
   validateSearch: (search: Record<string, unknown>): ProjectsSearch => ({
+    new: search["new"] === "project" ? "project" : undefined,
     region: str(search["region"]),
     manager: str(search["manager"]),
     status: str(search["status"]) as ProjectStatus | undefined,
@@ -148,6 +151,12 @@ function ProjectsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [createOpen, setCreateOpen] = useState(false);
+  // Шторка «+» открывает форму адресом (ADR-026, п. 4): параметр гасится сразу после открытия
+  useEffect(() => {
+    if (search.new !== "project") return;
+    setCreateOpen(true);
+    void navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true });
+  }, [search.new, navigate]);
   const [exporting, setExporting] = useState(false);
   // Создание объекта — запись в объектах, выгрузка — право выгрузок (ADR-012)
   const { can } = useAccess();

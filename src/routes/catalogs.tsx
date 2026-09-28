@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, History, Pencil, Plus, Search, Upload } from "lucide-react";
 import type { Material, MaterialCategory } from "@/contracts";
@@ -18,7 +18,18 @@ import { Button } from "@/components/ui/button";
 import { fmtDateTime, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+interface CatalogsSearch {
+  /** Форма, которую открыла шторка «+» (ADR-026, п. 4) */
+  new?: "material" | "import" | undefined;
+}
+
 export const Route = createFileRoute("/catalogs")({
+  validateSearch: (search: Record<string, unknown>): CatalogsSearch => ({
+    new:
+      search["new"] === "material" || search["new"] === "import"
+        ? (search["new"] as "material" | "import")
+        : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Справочники — neeklo FieldOps" },
@@ -50,6 +61,15 @@ function CatalogsPage() {
   >(undefined);
   const [importOpen, setImportOpen] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  // Шторка «+» открывает форму адресом (ADR-026, п. 4): параметр гасится сразу после открытия
+  useEffect(() => {
+    if (!search.new) return;
+    if (search.new === "material") setEditing(null);
+    if (search.new === "import") setImportOpen(true);
+    void navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true });
+  }, [search.new, navigate]);
 
   const tops = categories.filter((item) => item.parentId === null);
   const childrenOf = (id: string) => categories.filter((item) => item.parentId === id);

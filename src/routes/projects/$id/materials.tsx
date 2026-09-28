@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { demoOnly } from "@/lib/contour-copy";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -73,6 +73,8 @@ interface MaterialsSearch {
   position?: string | undefined;
   /** Только готовые к запросу: за этим счётчиком в шапке приходят чаще всего */
   ready?: true | undefined;
+  /** Форма, которую открыла шторка «+» (ADR-026, п. 4) */
+  new?: "request" | undefined;
 }
 
 const str = (value: unknown) => (typeof value === "string" && value ? value : undefined);
@@ -96,6 +98,7 @@ export const Route = createFileRoute("/projects/$id/materials")({
       chars: chars === "with" || chars === "without" ? chars : undefined,
       position: str(search["position"]),
       ...(search["ready"] === true || search["ready"] === "1" ? { ready: true as const } : {}),
+      new: search["new"] === "request" ? "request" : undefined,
     };
   },
   loader: async ({ params, context }) => {
@@ -215,6 +218,12 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
   const [selected, setSelected] = useState<Selection>(new Map());
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [requestOpen, setRequestOpen] = useState(false);
+  // Шторка «+» открывает форму адресом (ADR-026, п. 4): параметр гасится сразу после открытия
+  useEffect(() => {
+    if (search.new !== "request") return;
+    setRequestOpen(true);
+    void navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true });
+  }, [search.new, navigate]);
 
   const setSearch = (patch: Partial<MaterialsSearch>) =>
     navigate({

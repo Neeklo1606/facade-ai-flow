@@ -262,3 +262,213 @@ export function activeNavKey(pathname: string, view: string, pickSection: string
   if (section === "procurement") return view === "suppliers" ? "suppliers" : "procurement";
   return section;
 }
+
+/* ---------- Нижняя панель телефона (ADR-026) ---------- */
+
+/** Позиция панели: ключ пункта меню, подпись и куда ведёт */
+export interface BottomNavItem {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  to: string;
+  search?: Record<string, string>;
+  badge?: BadgeKey;
+  /** Активна ли позиция на этом адресе */
+  active: (pathname: string, view: string, pickSection: string) => boolean;
+}
+
+/** Действие шторки «+»: ведёт на экран, где живёт форма, и открывает её адресом */
+export interface PlusAction {
+  key: string;
+  label: string;
+  /** Что произойдёт — одной строкой: человек должен знать до нажатия */
+  hint: string;
+  icon: LucideIcon;
+  to: string;
+  search?: Record<string, string>;
+}
+
+const inSection = (name: string) => (pathname: string) =>
+  new RegExp(`^/projects/[^/]+/${name}`).test(pathname);
+
+/**
+ * Набор позиций панели по роли (ADR-026, п. 2). Две слева, «+» в центре, одна справа,
+ * «Ещё» последней — «Ещё» и «+» рисует сама панель. Состав определяется матрицей ADR-012
+ * и стартовым экраном роли (ADR-008): у снабжения нет дашборда, у ПТО нет материалов,
+ * прораб видит только свои объекты.
+ *
+ * Без выбранного объекта разделы объекта ведут в реестр с просьбой выбрать — тем же
+ * механизмом, что сайдбар (`sectionHref`).
+ */
+export function bottomNavFor(role: EmployeeRole, projectId: string | null): BottomNavItem[] {
+  const section = (
+    key: string,
+    label: string,
+    icon: LucideIcon,
+    name: ProjectSection,
+    badge?: BadgeKey,
+  ): BottomNavItem => {
+    const href = sectionHref(projectId, name);
+    return {
+      key,
+      label,
+      icon,
+      to: href.to,
+      ...(Object.keys(href.search).length ? { search: href.search as Record<string, string> } : {}),
+      ...(badge ? { badge } : {}),
+      active: (pathname, view, pickSection) =>
+        projectId
+          ? name === "suppliers"
+            ? inSection("procurement")(pathname) && view === "suppliers"
+            : name === "procurement"
+              ? inSection("procurement")(pathname) && view !== "suppliers"
+              : inSection(name)(pathname)
+          : pickSection === name,
+    };
+  };
+
+  const dashboard: BottomNavItem = {
+    key: "dashboard",
+    label: "Дашборд",
+    icon: LayoutDashboard,
+    to: "/",
+    active: (pathname) => pathname === "/",
+  };
+  const projects: BottomNavItem = {
+    key: "projects",
+    label: projectId ? "Объект" : "Объекты",
+    icon: Building2,
+    to: projectId ? `/projects/${projectId}` : "/projects",
+    active: (pathname, _view, pickSection) =>
+      projectId
+        ? /^\/projects\/[^/]+\/?$/.test(pathname)
+        : pathname === "/projects" && !pickSection,
+  };
+  const documents = section("documents", "Документация", FileText, "documents");
+  const materials = section("materials", "Материалы", Boxes, "materials", "unverifiedSpec");
+  const procurement = section(
+    "procurement",
+    "Закупки",
+    PackageSearch,
+    "procurement",
+    "overdueRequests",
+  );
+  const deliveries = section(
+    "deliveries",
+    "Поставки",
+    PackageCheck,
+    "deliveries",
+    "deliveriesToAccept",
+  );
+  const reports = section("field-reports", "Отчёты", HardHat, "field-reports");
+  const catalogs: BottomNavItem = {
+    key: "catalogs",
+    label: "Справочники",
+    icon: BookOpen,
+    to: "/catalogs",
+    active: (pathname) => pathname === "/catalogs",
+  };
+
+  const byRole: Partial<Record<EmployeeRole, BottomNavItem[]>> = {
+    manager: [dashboard, projects, procurement],
+    supply: [procurement, materials, deliveries],
+    pto: [documents, reports, catalogs],
+    foreman: [reports, deliveries, projects],
+    director: [dashboard, projects, procurement],
+  };
+  // Роль вне матрицы (finance, worker) видит только реестр: панель не выдумывает ей разделы
+  const items = byRole[role] ?? [projects];
+  return items.filter((item) => {
+    const nav = allNavItems.find((navItem) => navItem.key === item.key);
+    return !nav || visibleFor(nav, role);
+  });
+}
+
+/**
+ * Действия шторки «+» (ADR-026, п. 4): только то, что продукт умеет сегодня. Каждое ведёт
+ * на экран, где живёт форма, и открывает её адресом `?new=…` — глобального окна нет, потому
+ * что форме нужен контекст экрана. Голоса и бота здесь нет: их нет в продукте.
+ */
+export function plusActionsFor(role: EmployeeRole, projectId: string | null): PlusAction[] {
+  const project = (path: string) => (projectId ? `/projects/${projectId}${path}` : "/projects");
+  const report: PlusAction = {
+    key: "report",
+    label: "Отчёт с площадки",
+    hint: "Смена, объём по захватке, что мешало",
+    icon: HardHat,
+    to: project("/field-reports"),
+    ...(projectId ? { search: { new: "report" } } : {}),
+  };
+  const document: PlusAction = {
+    key: "document",
+    label: "Документ в реестр",
+    hint: "Откроется зона загрузки: PDF, DOCX или XLSX",
+    icon: FileText,
+    to: project("/documents"),
+    ...(projectId ? { search: { new: "document" } } : {}),
+  };
+  const request: PlusAction = {
+    key: "request",
+    label: "Запрос поставщикам",
+    hint: "Из позиций, готовых к запросу",
+    icon: PackageSearch,
+    to: project("/materials"),
+    ...(projectId ? { search: { new: "request" } } : {}),
+  };
+  const supplier: PlusAction = {
+    key: "supplier",
+    label: "Поставщик",
+    hint: "Регион и категории решают, кому уйдёт запрос",
+    icon: Truck,
+    to: project("/procurement"),
+    ...(projectId ? { search: { view: "suppliers", new: "supplier" } } : {}),
+  };
+  const acceptance: PlusAction = {
+    key: "acceptance",
+    label: "Приёмка поставки",
+    hint: "Открывает список поставок: приёмка начинается с выбора",
+    icon: PackageCheck,
+    to: project("/deliveries"),
+  };
+  const material: PlusAction = {
+    key: "material",
+    label: "Материал в справочник",
+    hint: "Наименование, единица, категория",
+    icon: Boxes,
+    to: "/catalogs",
+    search: { new: "material" },
+  };
+  const nomenclature: PlusAction = {
+    key: "import",
+    label: "Номенклатура из Excel",
+    hint: "Выгрузка из 1С: сопоставление колонок и предпросмотр",
+    icon: BookOpen,
+    to: "/catalogs",
+    search: { new: "import" },
+  };
+  const newProject: PlusAction = {
+    key: "project",
+    label: "Объект",
+    hint: "Название, код, регион, заказчик, сроки",
+    icon: Building2,
+    to: "/projects",
+    search: { new: "project" },
+  };
+  const employee: PlusAction = {
+    key: "employee",
+    label: "Сотрудник",
+    hint: "Роль, объекты и приглашение по ссылке",
+    icon: Users,
+    to: "/users",
+    search: { new: "employee" },
+  };
+
+  const byRole: Partial<Record<EmployeeRole, PlusAction[]>> = {
+    manager: [report, newProject, employee],
+    supply: [request, supplier, nomenclature],
+    pto: [document, report, material],
+    foreman: [report, acceptance],
+  };
+  // Директор видит всё и не меняет ничего: кнопки без действия у него быть не должно
+  return byRole[role] ?? [];
+}

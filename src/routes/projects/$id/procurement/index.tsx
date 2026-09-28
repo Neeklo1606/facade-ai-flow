@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Mail, PackageSearch, Phone, Plus, Send, Truck } from "lucide-react";
 import { DetailsLayout } from "@/components/common/DetailsPanel";
@@ -53,6 +53,8 @@ interface ProcurementSearch {
   region?: string | undefined;
   category?: string | undefined;
   freshness?: ContactFreshness | undefined;
+  /** Форма, которую открыла шторка «+» (ADR-026, п. 4) */
+  new?: "supplier" | undefined;
 }
 
 const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
@@ -64,6 +66,7 @@ export const Route = createFileRoute("/projects/$id/procurement/")({
     region: str(search["region"]),
     category: str(search["category"]),
     freshness: str(search["freshness"]) as ContactFreshness | undefined,
+    new: search["new"] === "supplier" ? "supplier" : undefined,
   }),
   loader: async ({ params, context }) => {
     const [result] = await Promise.all([
@@ -126,6 +129,12 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
   const canEditSuppliers = can("suppliers", "write");
   // undefined — форма закрыта, null — новый поставщик, строка — правка
   const [supplierEdit, setSupplierEdit] = useState<string | null | undefined>(undefined);
+  // Шторка «+» открывает форму адресом (ADR-026, п. 4): параметр гасится сразу после открытия
+  useEffect(() => {
+    if (search.new !== "supplier") return;
+    setSupplierEdit(null);
+    void navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true });
+  }, [search.new, navigate]);
 
   const requestsQuery = useQuery(queries.requests(project.id));
   const remind = useRemindSuppliers();

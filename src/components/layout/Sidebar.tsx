@@ -46,23 +46,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { employeeRoleLabel, type EmployeeRole, type ProjectOverview } from "@/contracts";
 import { cn } from "@/lib/utils";
-
-const CRITICAL_BADGES: BadgeKey[] = ["overdueRequests"];
-
-function badgeCounts(
-  projectId: string | null,
-  overviews: ProjectOverview[],
-): Record<BadgeKey, number> {
-  const scoped = overviews.filter((item) => (projectId ? item.projectId === projectId : true));
-  const total = (pick: (item: (typeof scoped)[number]) => number) =>
-    scoped.reduce((acc, item) => acc + pick(item), 0);
-  return {
-    unverifiedSpec: total((item) => item.specUnverified),
-    overdueRequests: total((item) => item.overdueRequests),
-    openChanges: total((item) => item.openChanges),
-    deliveriesToAccept: total((item) => item.deliveriesToAccept),
-  };
-}
+import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useApp();
@@ -343,7 +327,7 @@ function SidebarInner({
                                 collapsed && "lg:hidden",
                               )}
                             >
-                              {count}
+                              {badgeText(count)}
                             </span>
                           )}
                         </Link>

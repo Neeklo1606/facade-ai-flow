@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Link2, Send, ShieldOff, UserPlus } from "lucide-react";
 import { employeeRoleLabel, type Employee, type EmployeeRole } from "@/contracts";
@@ -38,7 +38,15 @@ import {
  * в базу: порт справочника умел читать, и «пригласить сотрудника» из плана внедрения
  * не существовало (находка аудита соответствия).
  */
+interface UsersSearch {
+  /** Форма, которую открыла шторка «+» (ADR-026, п. 4) */
+  new?: "employee" | undefined;
+}
+
 export const Route = createFileRoute("/users")({
+  validateSearch: (search: Record<string, unknown>): UsersSearch => ({
+    new: search["new"] === "employee" ? "employee" : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Сотрудники и доступ — neeklo FieldOps" },
@@ -61,6 +69,14 @@ function UsersPage() {
     enabled: dataSource === "server",
   }).data;
   const [editing, setEditing] = useState<Employee | "new" | null>(null);
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  // Шторка «+» открывает форму адресом (ADR-026, п. 4): параметр гасится сразу после открытия
+  useEffect(() => {
+    if (search.new !== "employee") return;
+    setEditing("new");
+    void navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true });
+  }, [search.new, navigate]);
 
   const invite = async (employee: Employee) => {
     const result = await inviteEmployeeFn({ data: { employeeId: employee.id } });

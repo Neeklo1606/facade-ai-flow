@@ -70,6 +70,10 @@ describe("пометки контуров", () => {
     const allowed = new Map([
       ["src/components/layout/Topbar.tsx", "метка «Демо» — в рабочем контуре данные настоящие"],
       ["src/components/layout/Sidebar.tsx", "«Сбросить демо-данные» — сбрасывать нечего"],
+      [
+        "src/components/layout/sheets.tsx",
+        "шторка «Ещё»: смена роли бывает только в демонстрации, выход — только там, где есть сессия",
+      ],
     ]);
     const offenders = ui
       .filter((file) => /dataSource\s*===\s*"demo"|dataSource\s*!==\s*"demo"/.test(file.text))

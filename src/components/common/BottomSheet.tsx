@@ -1,0 +1,163 @@
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { cn } from "@/lib/utils";
+
+/**
+ * Шторка снизу (ADR-026, п. 9): подложка, перетаскивание вниз закрывает, Esc закрывает,
+ * фокус возвращается на вызвавший элемент, высота по содержимому до 88 % экрана.
+ *
+ * Собрана на том же Radix Dialog, что остальные окна продукта, а не на отдельной библиотеке
+ * шторок: она добавляла 11 КБ в бандл ради перетаскивания, которое здесь — тридцать строк.
+ * Заодно у шторки и окна одинаковые правила закрытия, подложки и возврата фокуса.
+ */
+
+/** Сколько надо протащить вниз, чтобы шторка закрылась */
+const CLOSE_AT = 96;
+
+export function BottomSheet({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  /** Зачем шторка открыта; пусто — подпись не показывается, но заголовок читается с экрана */
+  description?: string;
+  children: ReactNode;
+}) {
+  const opener = useRef<HTMLElement | null>(null);
+  const content = useRef<HTMLDivElement>(null);
+  /** Адрес на момент открытия: если действие увело на другой экран, фокус нужен там */
+  const openedAt = useRef("");
+  const drag = useRef<{ id: number; from: number } | null>(null);
+  const [shift, setShift] = useState(0);
+
+  useEffect(() => {
+    if (!open) {
+      setShift(0);
+      return;
+    }
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    openedAt.current = window.location.href;
+  }, [open]);
+
+  /* Перетаскивание за ручку: тянем вниз — шторка идёт за пальцем, отпустили далеко — закрылась */
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    drag.current = { id: event.pointerId, from: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (drag.current?.id !== event.pointerId) return;
+    setShift(Math.max(0, event.clientY - drag.current.from));
+  };
+  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (drag.current?.id !== event.pointerId) return;
+    const moved = Math.max(0, event.clientY - drag.current.from);
+    drag.current = null;
+    setShift(0);
+    if (moved > CLOSE_AT) onOpenChange(false);
+  };
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/70 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content
+          ref={content}
+          tabIndex={-1}
+          style={shift ? { transform: `translateY(${shift}px)` } : undefined}
+          onOpenAutoFocus={(event) => {
+            /*
+             * Фокус переводим на саму шторку, а не на первую кнопку: на телефоне фокус внутри
+             * поля поднимал бы клавиатуру. Без этого Tab обходил страницу под шторкой, и
+             * с клавиатуры до её действий было не добраться (найдено проверкой ADR-026).
+             */
+            event.preventDefault();
+            content.current?.focus({ preventScroll: true });
+          }}
+          onCloseAutoFocus={(event) => {
+            const target = opener.current;
+            if (!target?.isConnected) return;
+            // Ушли на другой экран — там свой фокус: возвращать его в панель значит его отнять
+            if (window.location.href !== openedAt.current) return;
+            event.preventDefault();
+            target.focus({ preventScroll: true });
+          }}
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-[var(--r-lg)] border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] outline-none",
+            "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom",
+            !shift && "transition-transform duration-150",
+          )}
+        >
+          {/* Ручка: за неё тянут вниз. Область нажатия во всю ширину — палец не ищет полоску */}
+          <div
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            className="shrink-0 cursor-grab touch-none px-4 pt-3 pb-1 active:cursor-grabbing"
+          >
+            <span aria-hidden className="mx-auto block h-1 w-10 rounded-full bg-line-2" />
+          </div>
+          <div className="shrink-0 px-4 pb-2">
+            <DialogPrimitive.Title className="text-[16px] leading-[1.3] font-medium text-text">
+              {title}
+            </DialogPrimitive.Title>
+            {description ? (
+              <DialogPrimitive.Description className="mt-0.5 text-[13px] leading-[1.45] text-text-2">
+                {description}
+              </DialogPrimitive.Description>
+            ) : (
+              <DialogPrimitive.Description className="sr-only">{title}</DialogPrimitive.Description>
+            )}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
+/**
+ * Строка шторки: цель нажатия 48 px, подпись и пояснение в две строки. Действие без пояснения
+ * заставляет человека нажимать, чтобы узнать, что будет.
+ */
+export function SheetRow({
+  icon,
+  label,
+  hint,
+  onSelect,
+  tone = "normal",
+}: {
+  icon?: ReactNode;
+  label: string;
+  hint?: string;
+  onSelect: () => void;
+  /** «danger» — выход и всё, что обрывает работу */
+  tone?: "normal" | "danger";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="focus-ring flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] px-3 py-2 text-left transition-fast is-hover:bg-surface-2"
+    >
+      {icon && <span className="grid size-6 shrink-0 place-items-center text-text-3">{icon}</span>}
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block text-[14px] leading-[1.35]",
+            tone === "danger" ? "text-danger" : "text-text",
+          )}
+        >
+          {label}
+        </span>
+        {hint && <span className="block text-[12px] leading-[1.4] text-text-3">{hint}</span>}
+      </span>
+    </button>
+  );
+}

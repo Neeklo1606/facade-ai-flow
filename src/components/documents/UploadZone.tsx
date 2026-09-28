@@ -8,6 +8,13 @@ const ACCEPT = [".pdf", ".docx", ".xlsx"];
 
 export interface UploadZoneHandle {
   open: () => void;
+  /**
+   * Подвести человека к зоне загрузки: прокрутить её в вид. Открыть выбор файла программно
+   * после перехода нельзя — браузер разрешает это только по живому нажатию, поэтому шторка
+   * «+» доводит до зоны, а файл выбирают касанием (ADR-026, п. 4). Фокус на скрытое поле
+   * не ставим: глазу это ничего не даёт, а с клавиатуры уводит с видимого элемента.
+   */
+  reveal: () => void;
 }
 
 /** Зона загрузки перетаскиванием. Принимает PDF, DOCX и XLSX, остальное отклоняет с объяснением. */
@@ -18,7 +25,12 @@ export const UploadZone = forwardRef<
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  useImperativeHandle(ref, () => ({ open: () => input.current?.click() }));
+  useImperativeHandle(ref, () => ({
+    open: () => input.current?.click(),
+    reveal: () => {
+      input.current?.closest("label")?.scrollIntoView({ block: "center", behavior: "smooth" });
+    },
+  }));
 
   function accept(list: FileList | null) {
     const files = Array.from(list ?? []);
