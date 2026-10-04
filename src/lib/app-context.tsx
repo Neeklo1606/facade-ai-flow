@@ -81,6 +81,13 @@ interface AppContextValue {
    * экран прежней роли запросил бы данные уже с новой сессией и получил 403
    */
   personaSwitching: boolean;
+  /**
+   * Чем человек записывал в прошлый раз и на какой захватке (ADR-029, п. 1 и 4). Живёт во
+   * вкладке рядом с выбранным объектом: новых хранилищ не вводится, за пределы вкладки
+   * это не уходит.
+   */
+  lastInput: { channel: string | null; zoneId: string | null };
+  rememberInput: (next: { channel?: string; zoneId?: string }) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -117,6 +124,10 @@ export function AppProvider({
   const [personaId, setPersona] = useState<string>(() => initialPersona ?? currentUserId());
   const queryClient = useQueryClient();
   const [personaSwitching, setPersonaSwitching] = useState(false);
+  const [lastInput, setLastInput] = useState<{ channel: string | null; zoneId: string | null }>({
+    channel: null,
+    zoneId: null,
+  });
 
   const setPersonaId = useCallback(async (id: string) => {
     if (!isPersona(id)) return;
@@ -203,6 +214,8 @@ export function AppProvider({
       personaId,
       setPersonaId,
       personaSwitching,
+      lastInput,
+      rememberInput: (next) => setLastInput((prev) => ({ ...prev, ...next })),
     }),
     [
       themeChoice,
@@ -215,6 +228,7 @@ export function AppProvider({
       personaId,
       setPersonaId,
       personaSwitching,
+      lastInput,
     ],
   );
 

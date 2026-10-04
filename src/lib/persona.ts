@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { EmployeeRole } from "@/contracts";
 import { queries } from "@/api/queries";
-import { ALL_PROJECTS, useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/app-context";
 import { homeRouteFor } from "@/lib/navigation";
 
 /**
@@ -10,7 +10,7 @@ import { homeRouteFor } from "@/lib/navigation";
  * экран роли показывает данные выбранного объекта, а у прораба реестр — только его объекты.
  */
 export function useEnterAs() {
-  const { setPersonaId, projectId } = useApp();
+  const { setPersonaId } = useApp();
   const queryClient = useQueryClient();
   return useCallback(
     async (personaId: string, role: EmployeeRole) => {
@@ -18,6 +18,6 @@ export function useEnterAs() {
       await queryClient.fetchQuery(queries.projects());
       return homeRouteFor(role);
     },
-    [setPersonaId, projectId, queryClient],
+    [setPersonaId, queryClient],
   );
 }
