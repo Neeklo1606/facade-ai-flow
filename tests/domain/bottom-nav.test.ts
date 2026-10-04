@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { can, MATRIX_ROLES } from "@/domain/access";
-import { bottomNavFor, plusActionsFor, allNavItems } from "@/lib/navigation";
+import { allNavItems, bottomNavFor, homeRouteFor, plusActionsFor } from "@/lib/navigation";
 
 /**
  * Нижняя панель (ADR-026). Проверяется то, из-за чего панель была бесполезной: набор позиций
@@ -29,27 +29,28 @@ describe("набор позиций по роли", () => {
     }
   });
 
-  test("состав отвечает работе роли, а не общему списку", () => {
+  test("состав — таблица целевой карты (ADR-026, поправка)", () => {
     const keys = (role: Parameters<typeof bottomNavFor>[0]) =>
       bottomNavFor(role, PROJECT).map((item) => item.key);
-    expect(keys("manager")).toEqual(["dashboard", "projects", "procurement"]);
-    expect(keys("supply")).toEqual(["procurement", "materials", "deliveries"]);
-    expect(keys("pto")).toEqual(["documents", "field-reports", "catalogs"]);
-    expect(keys("foreman")).toEqual(["field-reports", "deliveries", "projects"]);
+    expect(keys("foreman")).toEqual(["today", "deliveries", "field-reports"]);
+    expect(keys("pto")).toEqual(["check", "documents", "projects"]);
+    expect(keys("supply")).toEqual(["attention", "procurement", "projects"]);
+    expect(keys("manager")).toEqual(["attention", "projects", "procurement"]);
+    expect(keys("director")).toEqual(["attention", "projects", "procurement"]);
     // Прорабу не предлагается проверка документов: раздел ему закрыт
     expect(keys("foreman")).not.toContain("documents");
-    // У снабжения нет дашборда: раздел закрыт матрицей
-    expect(keys("supply")).not.toContain("dashboard");
-    // У ПТО нет материалов: раздел закрыт матрицей
-    expect(keys("pto")).not.toContain("materials");
+    // Первой стоит рабочий экран роли: панель начинается там же, где начинается день
+    for (const role of MATRIX_ROLES) {
+      const first = bottomNavFor(role, PROJECT)[0]!;
+      expect(first.to, role).toBe(homeRouteFor(role));
+    }
   });
 
   test("без выбранного объекта разделы объекта ведут в реестр за выбором", () => {
     for (const role of MATRIX_ROLES) {
       for (const item of bottomNavFor(role, null)) {
-        expect(item.to.startsWith("/projects") || item.to === "/" || item.to === "/catalogs").toBe(
-          true,
-        );
+        const home = ["/attention", "/today", "/check", "/catalogs"].includes(item.to);
+        expect(item.to.startsWith("/projects") || home, `${role} → ${item.to}`).toBe(true);
       }
     }
   });

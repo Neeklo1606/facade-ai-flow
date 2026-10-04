@@ -302,10 +302,12 @@ const inSection = (name: string) => (pathname: string) =>
   new RegExp(`^/projects/[^/]+/${name}`).test(pathname);
 
 /**
- * Набор позиций панели по роли (ADR-026, п. 2). Две слева, «+» в центре, одна справа,
- * «Ещё» последней — «Ещё» и «+» рисует сама панель. Состав определяется матрицей ADR-012
- * и стартовым экраном роли (ADR-008): у снабжения нет дашборда, у ПТО нет материалов,
- * прораб видит только свои объекты.
+ * Набор позиций панели по роли (ADR-026 и поправка от 05.10.2026): таблица целевой карты.
+ * Две слева, «+» в центре, одна справа, «Ещё» последней — «Ещё» и «+» рисует сама панель.
+ *
+ * Первой стоит рабочий экран роли: панель начинается там же, где начинается день.
+ * У ПТО вместо «Комплектности» — «Документы» (в модели нет сертификатов и связи работы
+ * с документом), вместо «Найти» — «Объекты» до появления единого поиска в N6.
  *
  * Без выбранного объекта разделы объекта ведут в реестр с просьбой выбрать — тем же
  * механизмом, что сайдбар (`sectionHref`).
@@ -337,12 +339,26 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
     };
   };
 
-  const dashboard: BottomNavItem = {
-    key: "dashboard",
-    label: "Дашборд",
+  const attention: BottomNavItem = {
+    key: "attention",
+    label: "Внимание",
+    icon: AlertTriangle,
+    to: "/attention",
+    active: (pathname) => pathname === "/attention",
+  };
+  const today: BottomNavItem = {
+    key: "today",
+    label: "Сегодня",
     icon: LayoutDashboard,
-    to: "/",
-    active: (pathname) => pathname === "/",
+    to: "/today",
+    active: (pathname) => pathname === "/today",
+  };
+  const check: BottomNavItem = {
+    key: "check",
+    label: "Проверка",
+    icon: ClipboardCheck,
+    to: "/check",
+    active: (pathname) => pathname === "/check",
   };
   const projects: BottomNavItem = {
     key: "projects",
@@ -354,7 +370,8 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
         ? /^\/projects\/[^/]+\/?$/.test(pathname)
         : pathname === "/projects" && !pickSection,
   };
-  const documents = section("documents", "Документация", FileText, "documents");
+  // В панели подпись короче, чем в меню: «Документация» не помещается в позицию 11–12 px
+  const documents = section("documents", "Документы", FileText, "documents");
   const materials = section("materials", "Материалы", Boxes, "materials", "unverifiedSpec");
   const procurement = section(
     "procurement",
@@ -380,11 +397,11 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
   };
 
   const byRole: Partial<Record<EmployeeRole, BottomNavItem[]>> = {
-    manager: [dashboard, projects, procurement],
-    supply: [procurement, materials, deliveries],
-    pto: [documents, reports, catalogs],
-    foreman: [reports, deliveries, projects],
-    director: [dashboard, projects, procurement],
+    foreman: [today, deliveries, reports],
+    pto: [check, documents, projects],
+    supply: [attention, procurement, projects],
+    manager: [attention, projects, procurement],
+    director: [attention, projects, procurement],
   };
   // Роль вне матрицы (finance, worker) видит только реестр: панель не выдумывает ей разделы
   const items = byRole[role] ?? [projects];

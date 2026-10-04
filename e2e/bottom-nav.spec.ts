@@ -73,11 +73,11 @@ test.describe("нижняя панель @mobile", () => {
       const state = await panel(page);
       expect(state, "панель не найдена").not.toBeNull();
       expect(state!.height).toBeGreaterThanOrEqual(64);
-      // Закупки, Материалы, «+», Поставки, Ещё
+      // Внимание, Закупки, «+», Объект, Ещё — таблица целевой карты (ADR-026, поправка)
       expect(state!.labels).toHaveLength(5);
+      expect(state!.labels.join(" ")).toContain("Внимание");
       expect(state!.labels.join(" ")).toContain("Закупки");
-      expect(state!.labels.join(" ")).toContain("Поставки");
-      expect(state!.labels.join(" ")).not.toContain("Документация");
+      expect(state!.labels.join(" ")).not.toContain("Документ");
       // Пятно ровно одно, и это «+»
       expect(state!.orange).toEqual(["Создать"]);
       expect(state!.activeOrange).toBe(false);
@@ -110,9 +110,13 @@ test.describe("нижняя панель @mobile", () => {
     test("прорабу не предлагается закрытый раздел @mobile", async ({ page }) => {
       await open(page, "/projects/p-korona/field-reports");
       const state = await panel(page);
+      // Сегодня, Поставки, «+», Отчёты, Ещё
+      expect(state!.labels.join(" ")).toContain("Сегодня");
       expect(state!.labels.join(" ")).toContain("Отчёты");
-      expect(state!.labels.join(" ")).not.toContain("Документация");
+      expect(state!.labels.join(" ")).not.toContain("Документ");
       expect(state!.labels.join(" ")).not.toContain("Закупки");
+      // Первая позиция — рабочий экран роли: панель начинается там же, где начинается день
+      expect(state!.labels[0]).toBe("Сегодня");
       expect(state!.orange).toEqual(["Создать"]);
     });
   });
