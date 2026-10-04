@@ -7,15 +7,14 @@ import { ScreenSkeleton } from "@/components/common/ScreenStates";
 import { NoAccess } from "@/components/access/NoAccess";
 import { useApp } from "@/lib/app-context";
 import { useCurrentUser } from "@/lib/project-scope";
-import { startRouteFor } from "@/lib/navigation";
+import { homeRouteFor } from "@/lib/navigation";
 
-/** Подпись стартового экрана роли для кнопки «Нет доступа» */
+/** Подпись рабочего экрана роли для кнопки «Нет доступа» (ADR-028) */
 function homeLabel(to: string) {
-  if (to === "/") return "На дашборд";
+  if (to === "/attention") return "К тому, что требует решения";
+  if (to === "/today") return "К сегодняшней смене";
+  if (to === "/check") return "К очереди проверки";
   if (to === "/projects") return "К реестру объектов";
-  if (to.endsWith("/procurement")) return "В закупки";
-  if (to.endsWith("/field-reports")) return "К отчётам с площадки";
-  if (to.endsWith("/documents")) return "В документацию";
   return "К объекту";
 }
 
@@ -42,20 +41,15 @@ export function AccessBoundary({ children }: { children: ReactNode }) {
   const roleDenied = !access.can(section);
 
   /*
-   * Корень адреса — рабочий экран роли, а не стена. ПТО, снабжение и прораб, открыв «/»,
-   * упирались в «Нет доступа» с заголовком вкладки «Дашборд»: для трёх ролей из пяти продукт
-   * начинался с отказа (находка аудита соответствия). Отказ остаётся для прямого перехода
-   * в закрытый раздел — там он объясняет, у кого доступ.
+   * Отказ остаётся для прямого перехода в закрытый раздел — там он объясняет, у кого доступ.
+   * Корень сюда больше не попадает: раздела прав у него нет, он ведёт на рабочий экран роли
+   * (ADR-028), а до этого встречал три роли из пяти стеной «Нет доступа».
    */
-  if (roleDenied && pathname === "/") {
-    const home = startRouteFor(access.role, projects?.[0]?.project.id ?? null);
-    if (home !== "/") return <Navigate to={home} replace />;
-  }
   if (!roleDenied && projectId && !access.session) return <ScreenSkeleton kind="summary" />;
   const projectDenied = !roleDenied && !!projectId && !access.canProject(section, projectId);
   if (!roleDenied && !projectDenied) return children;
 
-  const to = startRouteFor(access.role, projects?.[0]?.project.id ?? null);
+  const to = homeRouteFor(access.role);
   return (
     <NoAccess
       section={section}

@@ -27,10 +27,13 @@ test.describe("сценарий показа", () => {
   test("от спецификации до поставки, истории и нового объекта", async ({ page }) => {
     test.setTimeout(240_000);
 
-    // 1. Дашборд: плитка ведёт в реестр, отфильтрованный по непроверенным
-    await open(page, "/");
+    // 1. «Внимание»: число ведёт в реестр, отфильтрованный по непроверенным
+    await open(page, "/attention");
     await expect(page.getByRole("heading", { name: "Требует решения" })).toBeVisible();
-    await page.getByRole("link", { name: /Позиций ждёт проверки/ }).click();
+    await page
+      .getByRole("link", { name: /На проверке/ })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/projects\?.*unverified=true/);
 
     // 2. Реестр → карточка объекта
@@ -130,7 +133,7 @@ test.describe("сценарий показа", () => {
     await expect(toast(page, /[Пп]оставка принята|[Пп]ринята с замечаниями/)).toBeVisible();
 
     // 9. Замечание — в очереди «Требует решения», закрытие видно в поставке
-    await open(page, "/");
+    await open(page, "/attention");
     await expect(page.getByText(/Замечание по поставке/).first()).toBeVisible();
     await open(page, "/projects/p-korona/deliveries");
     await page.locator("main li button", { hasText: "Керамогранит" }).first().click();

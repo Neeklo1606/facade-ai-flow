@@ -90,26 +90,26 @@ const manager: Scenario = {
   title: "Руководитель: что требует решения",
   steps: [
     {
-      id: "dashboard",
-      text: "Откройте дашборд: шесть метрик и очередь того, что ждёт решения.",
-      target: "nav-dashboard",
-      to: () => "/",
-      doneOn: { screen: ["dashboard"] },
+      id: "attention-open",
+      text: "Откройте «Внимание»: три числа по всем объектам и очередь того, что ждёт решения.",
+      target: "nav-attention",
+      to: () => "/attention",
+      doneOn: { screen: ["attention"] },
     },
     {
       id: "attention",
       text: "Откройте пункт в блоке «Требует решения».",
       target: "attention-list",
-      on: ["dashboard"],
-      to: () => "/",
+      on: ["attention"],
+      to: () => "/attention",
       doneOn: { action: ["openAttention"] },
     },
     {
       id: "source",
       text: "Нажмите на значок источника рядом со значением — откроется письмо или сообщение, из которого оно взято.",
       target: "source",
-      on: ["dashboard", "rfq", "field-reports", "timeline", "project"],
-      to: () => "/",
+      on: ["attention", "rfq", "field-reports", "timeline", "project"],
+      to: () => "/attention",
       doneOn: { action: ["openSource"] },
     },
     {
@@ -220,11 +220,11 @@ const director: Scenario = {
   title: "Директор: состояние компании",
   steps: [
     {
-      id: "dashboard",
-      text: "Откройте дашборд: сводка по всем объектам.",
-      target: "nav-dashboard",
-      to: () => "/",
-      doneOn: { screen: ["dashboard"] },
+      id: "attention-open",
+      text: "Откройте «Внимание»: что требует решения по всем объектам.",
+      target: "nav-attention",
+      to: () => "/attention",
+      doneOn: { screen: ["attention"] },
     },
     {
       id: "registry",

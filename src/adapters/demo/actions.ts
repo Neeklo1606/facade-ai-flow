@@ -1508,8 +1508,16 @@ export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
    * Раньше приёмка меняла только статус отчёта, и «Ход работ» после неё не двигался:
    * критерий внедрения «принятый объём виден в Ходе работ» был невыполним.
    * Возврат на уточнение факт не меняет: возвращённый отчёт — вопрос, а не факт.
+   *
+   * Отмена приёмки (ADR-028, п. 3) обязана снять объём обратно: иначе отменённый отчёт
+   * оставлял бы свой объём в «Ходе работ», и факт рос бы от каждой отмены.
    */
-  const added = status === "accepted" ? (acceptedQty ?? 0) : 0;
+  const added =
+    status === "accepted"
+      ? (acceptedQty ?? 0)
+      : report.status === "accepted"
+        ? -(report.acceptedQty ?? 0)
+        : 0;
   update((prev) => ({
     ...prev,
     reports: prev.reports.map((r) => (r.id === id ? { ...r, status, acceptedQty } : r)),

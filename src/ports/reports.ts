@@ -13,10 +13,15 @@ import {
 } from "@/contracts";
 import type { Actor } from "./common";
 
+/**
+ * Решение по отчёту. `review` — это отмена: решение снимается и отчёт возвращается в очередь
+ * (ADR-028, п. 3). Таблица переходов `reportTransitions` такой возврат допускала и раньше,
+ * ограничение стояло здесь.
+ */
 export const reviewReportInput = z
   .object({
     id: z.string().min(1),
-    status: z.enum(["accepted", "returned"]),
+    status: z.enum(["accepted", "returned", "review"]),
     acceptedQty: z.number().nonnegative().nullable(),
   })
   .refine((input) => (input.status === "accepted") === (input.acceptedQty !== null), {

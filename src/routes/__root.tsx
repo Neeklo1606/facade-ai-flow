@@ -17,7 +17,6 @@ import { RolePicker } from "@/components/guide/RolePicker";
 import { GuideDock } from "@/components/guide/GuideDock";
 import { AccessBoundary } from "@/components/access/AccessBoundary";
 import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
-import { markStartScreenApplied } from "@/lib/navigation";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -114,7 +113,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: previewMeta.url.replace(/\/$/, "") + previewMeta.image },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "Дашборд neeklo FieldOps" },
+      { property: "og:image:alt", content: "Экран «Внимание» neeklo FieldOps" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: previewMeta.title },
       { name: "twitter:description", content: previewMeta.description },
@@ -165,9 +164,6 @@ function RootComponent() {
   );
   // Ловушки необработанных ошибок ставятся один раз на всё приложение (TASK-A5, п. 5)
   useEffect(startErrorReporting, []);
-  // Вход в демонстрацию — первый отрисованный экран вкладки, какой угодно. Пока отметка ставилась
-  // только на «/», вошедший по прямой ссылке терял первый клик по «Дашборд» (находка ревью)
-  useEffect(markStartScreenApplied, []);
   // Телеметрия сессии: открытие экранов и точка выхода (ADR-010)
   useScreenTelemetry();
   /*

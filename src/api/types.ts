@@ -47,3 +47,6 @@ export type {
   TeamPerson,
   ZoneRow,
 } from "@/domain/work-progress";
+
+/** Строки экрана «Сегодня» (ADR-028): объёмы и сроки посчитаны слоем данных */
+export type { TodayDelivery, TodayReturn, TodayWork } from "@/domain/today";

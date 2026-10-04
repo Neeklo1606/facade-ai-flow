@@ -7,7 +7,8 @@ import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { queries } from "@/api/queries";
 import { DEMO_PERSONAS, dataSource } from "@/api/config";
 import { useEnterAs } from "@/lib/persona";
-import { markStartScreenApplied } from "@/lib/navigation";
+import { homeRouteFor } from "@/lib/navigation";
+import { useCurrentRole } from "@/lib/project-scope";
 import { markRoleChosen, startScenario, useRoleChosen } from "@/lib/guide/store";
 import { scenarioFor } from "@/lib/guide/scenarios";
 import { record } from "@/lib/guide/telemetry";
@@ -30,6 +31,8 @@ export function RolePicker() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const enterAs = useEnterAs();
+  // Роль до выбора: по умолчанию демонстрация открывается за руководителя
+  const roleBefore = useCurrentRole();
   const employees = useQuery(queries.employees()).data ?? [];
 
   // Пока выбирается роль, приложение под экраном выбора недоступно ни мышью, ни клавиатурой
@@ -58,10 +61,15 @@ export function RolePicker() {
     record({ t: "role", role, personaId });
     startScenario(scenarioFor(role).id);
     markRoleChosen();
-    markStartScreenApplied();
-    // Пришли по ссылке на конкретный экран — остаёмся на нём (закрытый роли покажет «Нет доступа»);
-    // с главной — на стартовый экран роли
-    const fromHome = pathname === "/";
+    /*
+     * Пришли по ссылке на конкретный экран — остаёмся на нём (закрытый роли покажет
+     * «Нет доступа»); с главной — на рабочий экран выбранной роли.
+     *
+     * «Главная» — это не только «/»: корень успевает перенаправить на рабочий экран роли
+     * по умолчанию ещё до выбора (ADR-028), и сравнение только с «/» оставляло ПТО и прораба
+     * на чужом «Внимании».
+     */
+    const fromHome = pathname === "/" || pathname === homeRouteFor(roleBefore);
     void enterAs(personaId, role).then((to) => {
       if (fromHome) void navigate({ to });
     });

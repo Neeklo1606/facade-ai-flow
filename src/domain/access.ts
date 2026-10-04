@@ -206,7 +206,13 @@ export function canOpenProject(
  */
 export function sectionOfPath(pathname: string, view?: string): Section | null {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/") return "dashboard";
+  /*
+   * Корень — дверь на рабочий экран роли, а не экран; «Внимание» — сборка из блоков, и право
+   * требует каждый блок, а не экран целиком (ADR-028). Обоим раздел прав не сопоставляется.
+   */
+  if (path === "/" || path === "/attention") return null;
+  // «Сегодня» и «Проверка» показывают отчёты с площадки: право то же, что у их раздела
+  if (path === "/today" || path === "/check") return "field-reports";
   if (path === "/agent") return "agent";
   if (path === "/analytics") return "analytics";
   if (path === "/access") return "access";

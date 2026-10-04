@@ -63,10 +63,11 @@ interface Numbers {
 }
 
 async function read(page: Page): Promise<Numbers> {
-  await open(page, "/");
+  // «Внимание» вместо дашборда (ADR-028): подписи трёх чисел там короткие — ячейка 95 px
+  await open(page, "/attention");
   const dashboard = {
-    unverified: await tile(page, "Позиций ждёт проверки"),
-    overdue: await tile(page, "Просроченных ответов"),
+    unverified: await tile(page, "На проверке"),
+    overdue: await tile(page, "Просрочено"),
   };
   await open(page, "/projects");
   const registry = {

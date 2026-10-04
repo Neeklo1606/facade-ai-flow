@@ -5,7 +5,10 @@ import { expectA11y, expectEmber, expectEmberGradient, expectMobile, open, test 
  * Роль руководителя: ему открыты все разделы.
  */
 const screens: [string, string][] = [
-  ["дашборд", "/"],
+  ["внимание", "/attention"],
+  ["сегодня", "/today"],
+  ["проверка фактов", "/check"],
+  ["проверка позиций в очереди", "/check?tab=positions"],
   ["реестр объектов", "/projects"],
   ["карточка объекта", "/projects/p-korona"],
   ["ход работ", "/projects/p-korona?tab=progress"],

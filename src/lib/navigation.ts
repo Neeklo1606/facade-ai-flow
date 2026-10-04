@@ -8,6 +8,8 @@ import {
   FileText,
   HardHat,
   History,
+  AlertTriangle,
+  ClipboardCheck,
   LayoutDashboard,
   LifeBuoy,
   PackageCheck,
@@ -45,6 +47,18 @@ export interface NavItem {
   section?: ProjectSection;
   /** Экран вне объекта: ведёт по этому адресу, а не в раздел объекта */
   to?: string;
+  /**
+   * Пункт виден роли, которой открыт хотя бы один из разделов. Так устроено «Внимание»:
+   * это не раздел прав, а сборка из блоков, у каждого своё право (ADR-028)
+   */
+  anyOf?: Section[];
+  /**
+   * Роли, которым пункт показывается, когда матрица их не различает. «Проверку» ведут ПТО,
+   * руководитель и директор; у прораба право на отчёты такое же, но очередь не его работа —
+   * отдельного права «только проверять» в матрице нет (ADR-012). Это удобство, а не защита:
+   * адрес открыт всем, у кого есть право на данные.
+   */
+  roles?: EmployeeRole[];
 }
 
 export interface NavGroup {
@@ -57,11 +71,27 @@ export const navGroups: NavGroup[] = [
     title: "Обзор",
     items: [
       {
-        key: "dashboard",
-        label: "Дашборд",
+        key: "attention",
+        label: "Внимание",
+        icon: AlertTriangle,
+        to: "/attention",
+        // Прораба здесь нет: закупки и документы ему закрыты, его экран — «Сегодня»
+        anyOf: ["procurement", "documents"],
+      },
+      {
+        key: "today",
+        label: "Сегодня",
         icon: LayoutDashboard,
-        to: "/",
-        access: "dashboard",
+        to: "/today",
+        access: "field-reports",
+      },
+      {
+        key: "check",
+        label: "Проверка",
+        icon: ClipboardCheck,
+        to: "/check",
+        access: "field-reports",
+        roles: ["manager", "pto", "director"],
       },
       { key: "projects", label: "Объекты", icon: Building2, access: "projects" },
       { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent", access: "agent" },
@@ -163,6 +193,8 @@ export const allNavItems = navGroups.flatMap((g) => g.items);
 
 /** Видит ли роль этот пункт меню: по матрице прав (ADR-012) */
 export function visibleFor(item: NavItem, role: EmployeeRole) {
+  if (item.roles && !item.roles.includes(role)) return false;
+  if (item.anyOf) return item.anyOf.some((section) => can(role, section));
   return item.access ? can(role, item.access) : true;
 }
 
@@ -179,42 +211,18 @@ export function navItemsFor(role: EmployeeRole) {
 }
 
 /**
- * Стартовый экран роли (ADR-008, ADR-010): руководителю и директору — сводка по всем объектам,
- * снабжению — закупки, ПТО — документация, прорабу — отчёты с площадки. Без объектов в системе всем открывается реестр.
+ * Рабочий экран роли (ADR-028): прорабу — «Сегодня», ПТО — «Проверка», остальным — «Внимание».
+ * Корень адреса ведёт сюда же, поэтому отметки «стартовый экран уже показан» больше нет:
+ * раньше она была нужна, потому что «/» был одновременно дашбордом и перенаправлением,
+ * и пункт меню «Дашборд» у снабжения оказывался кнопкой без результата (находка ревью HIGH).
  *
- * Применяется один раз за вкладку, при входе в демонстрацию (см. `startScreenPending`):
- * иначе пункт меню «Дашборд» у снабжения был бы кнопкой без результата — переход тут же
- * возвращал на закупки (находка ревью HIGH). Вход — первый отрисованный экран вкладки,
- * поэтому отметку ставит корневой маршрут, а не «/» (находка повторного ревью).
+ * Роли без прав на разделы «Внимания» открывают реестр объектов: это их единственный раздел.
  */
-const START_KEY = "neeklo-fieldops-start-applied";
-
-/** Нужно ли ещё открывать стартовый экран роли: до первого применения в этой вкладке */
-export function startScreenPending() {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.sessionStorage.getItem(START_KEY) !== "1";
-  } catch {
-    return false;
-  }
-}
-
-/** Отметить, что вход в демонстрацию состоялся: стартовый экран роли больше не применяется */
-export function markStartScreenApplied() {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(START_KEY, "1");
-  } catch {
-    // Приватный режим: стартовый экран применится ещё раз, это не мешает работе
-  }
-}
-
-export function startRouteFor(role: EmployeeRole, projectId: string | null) {
-  if (!projectId) return "/projects";
-  if (role === "supply") return `/projects/${projectId}/procurement`;
-  if (role === "foreman") return `/projects/${projectId}/field-reports`;
-  if (role === "pto") return `/projects/${projectId}/documents`;
-  return can(role, "dashboard") ? "/" : `/projects/${projectId}`;
+export function homeRouteFor(role: EmployeeRole) {
+  if (role === "foreman") return "/today";
+  if (role === "pto") return "/check";
+  if (can(role, "procurement") || can(role, "documents")) return "/attention";
+  return "/projects";
 }
 
 export const sectionLabels: Record<ProjectSection, string> = {
@@ -250,7 +258,9 @@ export function sectionHref(
 
 /** Какой пункт меню подсвечивать на текущем адресе. */
 export function activeNavKey(pathname: string, view: string, pickSection: string | null) {
-  if (pathname === "/") return "dashboard";
+  if (pathname === "/attention") return "attention";
+  if (pathname === "/today") return "today";
+  if (pathname === "/check") return "check";
   if (pathname === "/agent") return "agent";
   if (pathname === "/access") return "access";
   if (pathname === "/catalogs") return "catalogs";

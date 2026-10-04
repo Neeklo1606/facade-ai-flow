@@ -13,7 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AttentionRouteImport } from './routes/attention'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
+import { Route as CheckRouteImport } from './routes/check'
 import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
@@ -27,6 +29,7 @@ import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as TodayRouteImport } from './routes/today'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
@@ -63,9 +66,19 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AttentionRoute = AttentionRouteImport.update({
+  id: '/attention',
+  path: '/attention',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CatalogsRoute = CatalogsRouteImport.update({
   id: '/catalogs',
   path: '/catalogs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckRoute = CheckRouteImport.update({
+  id: '/check',
+  path: '/check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContractsRoute = ContractsRouteImport.update({
@@ -131,6 +144,11 @@ const TasksRoute = TasksRouteImport.update({
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TodayRoute = TodayRouteImport.update({
+  id: '/today',
+  path: '/today',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersRoute = UsersRouteImport.update({
@@ -218,7 +236,9 @@ export interface FileRoutesByFullPath {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/attention': typeof AttentionRoute
   '/catalogs': typeof CatalogsRoute
+  '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
@@ -232,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
+  '/today': typeof TodayRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -253,7 +274,9 @@ export interface FileRoutesByTo {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/attention': typeof AttentionRoute
   '/catalogs': typeof CatalogsRoute
+  '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
@@ -267,6 +290,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
+  '/today': typeof TodayRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -289,7 +313,9 @@ export interface FileRoutesById {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/attention': typeof AttentionRoute
   '/catalogs': typeof CatalogsRoute
+  '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
@@ -303,6 +329,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
+  '/today': typeof TodayRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -326,7 +353,9 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/attention'
     | '/catalogs'
+    | '/check'
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
@@ -340,6 +369,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/templates'
+    | '/today'
     | '/users'
     | '/zones'
     | '/api/client-error'
@@ -361,7 +391,9 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/attention'
     | '/catalogs'
+    | '/check'
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
@@ -375,6 +407,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/templates'
+    | '/today'
     | '/users'
     | '/zones'
     | '/api/client-error'
@@ -396,7 +429,9 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/attention'
     | '/catalogs'
+    | '/check'
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
@@ -410,6 +445,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/templates'
+    | '/today'
     | '/users'
     | '/zones'
     | '/api/client-error'
@@ -432,7 +468,9 @@ export interface RootRouteChildren {
   AccessRoute: typeof AccessRoute
   AgentRoute: typeof AgentRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  AttentionRoute: typeof AttentionRoute
   CatalogsRoute: typeof CatalogsRoute
+  CheckRoute: typeof CheckRoute
   ContractsRoute: typeof ContractsRoute
   DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
@@ -446,6 +484,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TasksRoute: typeof TasksRoute
   TemplatesRoute: typeof TemplatesRoute
+  TodayRoute: typeof TodayRoute
   UsersRoute: typeof UsersRoute
   ZonesRoute: typeof ZonesRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
@@ -493,11 +532,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/attention': {
+      id: '/attention'
+      path: '/attention'
+      fullPath: '/attention'
+      preLoaderRoute: typeof AttentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/catalogs': {
       id: '/catalogs'
       path: '/catalogs'
       fullPath: '/catalogs'
       preLoaderRoute: typeof CatalogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check': {
+      id: '/check'
+      path: '/check'
+      fullPath: '/check'
+      preLoaderRoute: typeof CheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contracts': {
@@ -589,6 +642,13 @@ declare module '@tanstack/react-router' {
       path: '/templates'
       fullPath: '/templates'
       preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/today': {
+      id: '/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof TodayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/users': {
@@ -704,7 +764,9 @@ const rootRouteChildren: RootRouteChildren = {
   AccessRoute: AccessRoute,
   AgentRoute: AgentRoute,
   AnalyticsRoute: AnalyticsRoute,
+  AttentionRoute: AttentionRoute,
   CatalogsRoute: CatalogsRoute,
+  CheckRoute: CheckRoute,
   ContractsRoute: ContractsRoute,
   DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
@@ -718,6 +780,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TasksRoute: TasksRoute,
   TemplatesRoute: TemplatesRoute,
+  TodayRoute: TodayRoute,
   UsersRoute: UsersRoute,
   ZonesRoute: ZonesRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,

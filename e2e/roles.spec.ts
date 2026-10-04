@@ -20,9 +20,10 @@ async function checkScreen(page: Page, name: string) {
 
 test("руководитель: что требует решения → объект → история", async ({ page }) => {
   await chooseRole(page, /Руководитель/);
-  await expect(page).toHaveURL(/\/$/);
+  // Рабочий экран роли (ADR-028): раньше здесь был общий дашборд на «/»
+  await expect(page).toHaveURL(/\/attention$/);
   await expect(page.getByRole("heading", { name: "Требует решения" })).toBeVisible();
-  await checkScreen(page, "дашборд");
+  await checkScreen(page, "внимание");
 
   await open(page, "/projects");
   await checkScreen(page, "реестр объектов");
@@ -38,7 +39,9 @@ test("руководитель: что требует решения → объ�
 
 test("снабжение: запрос поставщикам → сравнение → решение → поставка", async ({ page }) => {
   await chooseRole(page, /Снабжение/);
-  await expect(page).toHaveURL(/\/projects\/p-korona\/procurement/);
+  await expect(page).toHaveURL(/\/attention$/);
+  await checkScreen(page, "внимание снабжения");
+  await open(page, "/projects/p-korona/procurement");
   await checkScreen(page, "закупки");
 
   await open(page, "/projects/p-korona/materials?purchase=none");
@@ -73,7 +76,9 @@ test("снабжение: запрос поставщикам → сравнен
 
 test("ПТО: спецификация → подтвердить → исправить → в истории", async ({ page }) => {
   await chooseRole(page, /ПТО/);
-  await expect(page).toHaveURL(/\/projects\/p-korona\/documents/);
+  await expect(page).toHaveURL(/\/check$/);
+  await checkScreen(page, "проверка");
+  await open(page, "/projects/p-korona/documents");
   await checkScreen(page, "документация");
 
   await open(page, "/projects/p-korona/documents/pd-korona-spec");
@@ -100,7 +105,8 @@ test("ПТО: спецификация → подтвердить → испра
 
 test("прораб: свой объект → отчёт с площадки → принять объём", async ({ page }) => {
   await chooseRole(page, /Прораб/);
-  await expect(page).toHaveURL(/\/projects\/p-korona\/field-reports/);
+  await expect(page).toHaveURL(/\/today$/);
+  await checkScreen(page, "сегодня");
   await open(page, "/projects/p-korona/field-reports");
   await checkScreen(page, "отчёты с площадки");
   await page.getByRole("button", { name: "Принять", exact: true }).first().click();
@@ -121,10 +127,10 @@ test("прораб: свой объект → отчёт с площадки →
   await expect(registry.getByText("Меридиан")).toHaveCount(0);
 });
 
-test("директор: дашборд → реестр → выгрузка, без кнопок записи", async ({ page }) => {
+test("директор: внимание → реестр → выгрузка, без кнопок записи", async ({ page }) => {
   await chooseRole(page, /Директор/);
-  await expect(page).toHaveURL(/\/$/);
-  await checkScreen(page, "дашборд директора");
+  await expect(page).toHaveURL(/\/attention$/);
+  await checkScreen(page, "внимание директора");
 
   await open(page, "/projects");
   const download = page.waitForEvent("download");

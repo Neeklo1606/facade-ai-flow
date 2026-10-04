@@ -12,6 +12,7 @@ import {
   type DashboardSource,
 } from "@/domain/dashboard";
 import { queries } from "./queries";
+import { useAccess } from "./access";
 import { useNow } from "./clock";
 
 /**
@@ -23,27 +24,43 @@ import { useNow } from "./clock";
  */
 export function useDashboard(period: DashboardPeriod) {
   const now = useNow();
+  /*
+   * «Внимание» — не раздел прав, а сборка блоков, и каждый требует права своего источника
+   * (ADR-028). История открыта не всем: снабжению запрос ожиданий решений и ленты вернул бы
+   * отказ, поэтому они не отправляются вовсе, а блоки без источника экран не показывает.
+   */
+  const { can } = useAccess();
+  const seesHistory = can("timeline") || can("dashboard");
+  const seesDocuments = can("documents");
   const registry = useQuery(queries.projects());
-  const documents = useQuery(queries.documents());
+  const documents = useQuery({ ...queries.documents(), enabled: seesDocuments });
 
   const projects = useMemo(() => registry.data ?? [], [registry.data]);
   const ids = useMemo(() => projects.map((row) => row.project.id), [projects]);
 
   const cards = useQueries({ queries: ids.map((id) => queries.project(id)) });
   const requests = useQueries({ queries: ids.map((id) => queries.requests(id)) });
-  const pending = useQueries({ queries: ids.map((id) => queries.pendingDecisions(id)) });
-  const timeline = useQueries({ queries: ids.map((id) => queries.timeline(id)) });
+  const pending = useQueries({
+    queries: ids.map((id) => ({ ...queries.pendingDecisions(id), enabled: seesHistory })),
+  });
+  const timeline = useQueries({
+    queries: ids.map((id) => ({ ...queries.timeline(id), enabled: seesHistory })),
+  });
 
   const cardsData = cards.map((query) => query.data);
   const requestsData = requests.map((query) => query.data);
   const pendingData = pending.map((query) => query.data);
   const timelineData = timeline.map((query) => query.data);
 
-  // Ключи сохраняют состав данных между рендерами: массивы из useQueries каждый раз новые
-  const cardsKey = cardsData.map((card) => card?.project.id ?? "-").join("|");
-  const requestsKey = requestsData.map((rows) => rows?.length ?? -1).join("|");
-  const pendingKey = pendingData.map((rows) => rows?.length ?? -1).join("|");
-  const timelineKey = timelineData.map((rows) => rows?.length ?? -1).join("|");
+  /*
+   * Ключи сохраняют состав данных между рендерами (массивы из useQueries каждый раз новые)
+   * и берутся из отметок обновления кеша: по длине списка не видно, что позиция проверена
+   * или запрос получил ответ, — числа замирали до перезагрузки
+   */
+  const cardsKey = cards.map((query) => query.dataUpdatedAt).join("|");
+  const requestsKey = requests.map((query) => query.dataUpdatedAt).join("|");
+  const pendingKey = pending.map((query) => query.dataUpdatedAt).join("|");
+  const timelineKey = timeline.map((query) => query.dataUpdatedAt).join("|");
 
   const source: DashboardSource = useMemo(
     () => ({
@@ -81,16 +98,20 @@ export function useDashboard(period: DashboardPeriod) {
   return {
     ...view,
     now,
+    /** Какие источники открыты роли: экран прячет блоки, которых не будет (ADR-028) */
+    sources: { history: seesHistory, documents: seesDocuments },
     /** Шапка и полоса метрик: ждём реестр, документы и карточки объектов */
     headPending:
-      registry.isPending || documents.isPending || cards.some((query) => query.isPending),
+      registry.isPending ||
+      (seesDocuments && documents.isPending) ||
+      cards.some((query) => query.isPending),
     headError: registry.isError || documents.isError,
     /** Колонки: запросы, ожидания решений и лента */
     listsPending:
       !ids.length ||
       requests.some((query) => query.isPending) ||
-      pending.some((query) => query.isPending) ||
-      timeline.some((query) => query.isPending),
+      (seesHistory &&
+        (pending.some((query) => query.isPending) || timeline.some((query) => query.isPending))),
     listsError: [...requests, ...pending, ...timeline].some((query) => query.isError),
     refetch: () => {
       void registry.refetch();

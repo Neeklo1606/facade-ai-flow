@@ -77,12 +77,11 @@ export function Topbar() {
     ? (childTitle ?? section ?? detailProject.name)
     : pathname.startsWith("/projects")
       ? "Объекты"
-      : pathname === "/"
-        ? "Дашборд"
-        : pathname === "/agent"
-          ? "Ассистент"
-          : // Остальные экраны — из общего словаря: статистика сессии, заглушки разделов, «не найдено»
-            screenFor(pathname).name;
+      : pathname === "/agent"
+        ? "Ассистент"
+        : // Остальные экраны — из общего словаря: рабочие экраны ролей, статистика сессии,
+          // заглушки разделов, «не найдено»
+          screenFor(pathname).name;
 
   return (
     <header className="content-header">

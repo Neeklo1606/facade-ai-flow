@@ -48,9 +48,10 @@ test.describe("шаг в закрытый роли раздел", () => {
       await open(page, "/help?article=start");
       const article = page.locator("article");
       // Шаг остаётся: прорабу полезно знать, как устроена работа целиком
-      await expect(article.getByText("Откройте дашборд", { exact: false })).toBeVisible();
-      await expect(article.getByText(/Экран «Дашборд» вашей роли закрыт/)).toBeVisible();
-      await expect(article.locator('a[href="/"]')).toHaveCount(0);
+      await expect(
+        article.getByText("Откройте свой рабочий экран", { exact: false }),
+      ).toBeVisible();
+      await expect(article.locator('a[href="/"]')).toHaveCount(1);
     });
   });
 

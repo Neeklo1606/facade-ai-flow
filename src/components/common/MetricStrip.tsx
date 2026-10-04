@@ -36,7 +36,16 @@ const arrow: Record<DeltaDirection, LucideIcon> = {
  * Дельта-капсула. Рост просроченных запросов — стрелка вверх и красный цвет,
  * рост проверенных позиций — стрелка вверх и зелёный.
  */
-export function DeltaPill({ delta, className }: { delta: Delta; className?: string }) {
+export function DeltaPill({
+  delta,
+  className,
+  short,
+}: {
+  delta: Delta;
+  className?: string;
+  /** Узкая ячейка: на виду только «+2», полная строка остаётся для чтения с экрана */
+  short?: boolean;
+}) {
   const Arrow = arrow[delta.direction];
   return (
     <span
@@ -48,7 +57,7 @@ export function DeltaPill({ delta, className }: { delta: Delta; className?: stri
       aria-label={`${delta.text}, ${effectWord[delta.effect]}`}
     >
       <Arrow className="size-3" strokeWidth={2} aria-hidden />
-      {delta.text}
+      <span aria-hidden>{short ? delta.text.split(" ")[0] : delta.text}</span>
     </span>
   );
 }
@@ -78,7 +87,8 @@ export function MetricStripItem({
   explain,
   note,
   compactValue,
-}: MetricStripItemProps & { compactValue?: boolean }) {
+  tight,
+}: MetricStripItemProps & { compactValue?: boolean; tight?: boolean }) {
   return (
     // Контейнер: в узкой ячейке капсула встаёт рядом со значением, в очень узкой прячется иконка
     <div className="@container min-w-0 flex-1">
@@ -89,7 +99,13 @@ export function MetricStripItem({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1">
             <div
-              className="line-clamp-2 text-[12px] leading-[1.35] break-words text-text-3"
+              className={cn(
+                "text-[12px] leading-[1.35] text-text-3",
+                // В полосе из трёх ячейка на 375 px шириной 95: слова переносим целиком,
+                // иначе «Просроченных ответов» ломается посреди слова. Высота подписи
+                // фиксирована в две строки, чтобы числа в соседних ячейках стояли на одной линии
+                tight ? "line-clamp-2 min-h-[33px] lg:min-h-0" : "line-clamp-2 break-words",
+              )}
               title={label}
             >
               {label}
@@ -103,24 +119,34 @@ export function MetricStripItem({
                 // В полосе из шести ячеек значение занимает строку целиком: иначе капсула дельты
                 // отбирает ширину и деньги обрезаются
                 compactValue ? "basis-full" : "md:text-[26px]",
+                tight && "basis-full text-[20px]",
               )}
             >
               {value}
             </span>
-            {delta && <DeltaPill delta={delta} className="@3xs:hidden" />}
+            {/*
+              Дельта в узкой ячейке не помещается целиком: показываем «+2», а «без прироста»
+              не показываем вовсе — это была треть площади полосы, не сообщавшая ничего
+            */}
+            {delta && tight && delta.direction !== "flat" && (
+              <span className="mt-1 basis-full">
+                <DeltaPill delta={delta} short />
+              </span>
+            )}
+            {delta && !tight && <DeltaPill delta={delta} className="@3xs:hidden" />}
           </div>
           {note && (
             <div className="mt-0.5 line-clamp-2 text-[12px] leading-[1.35] text-text-3">{note}</div>
           )}
         </div>
-        {delta && <DeltaPill delta={delta} className="hidden @3xs:inline-flex" />}
+        {delta && !tight && <DeltaPill delta={delta} className="hidden @3xs:inline-flex" />}
       </div>
     </div>
   );
 }
 
 /** Раскладка полосы: «default» — 4 метрики (2 / 3 / 4), «six» — шесть метрик (2 / 3) */
-export type MetricStripLayout = "default" | "six";
+export type MetricStripLayout = "default" | "six" | "three";
 
 /** Карточка полосы: в ряд с 1440px, ниже — сетка */
 const stripBase =
@@ -128,10 +154,15 @@ const stripBase =
 const stripCols: Record<MetricStripLayout, string> = {
   default: "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
   six: "grid-cols-2 md:grid-cols-3",
+  // Три числа «Внимания» стоят в ряд и на телефоне: это один вопрос из трёх частей (ADR-028)
+  three: "grid-cols-3",
 };
 /** Ячейка: 88px в сетке, во всю высоту полосы в ряд; линии сетки — только внутренние */
 const cellClass =
   "flex h-[88px] min-w-0 items-center px-4 md:px-5 min-[1440px]:h-auto min-[1440px]:flex-1 min-[1440px]:px-0";
+/** Полоса из трёх: на телефоне ячейка 114 px, и поля по 16 съедают пятую часть ширины */
+const tightCellClass =
+  "h-auto min-h-[88px] items-start px-3 py-4 md:px-5 min-[1440px]:h-auto min-[1440px]:items-center min-[1440px]:py-0";
 const separatorClass = "mx-4 hidden h-14 w-px shrink-0 bg-line min-[1440px]:block";
 
 /**
@@ -161,17 +192,23 @@ export function MetricStrip({
               search={(item.search ?? {}) as never}
               className={cn(
                 cellClass,
+                layout === "three" && tightCellClass,
                 gridLines(index, layout),
                 "focus-ring relative transition-fast is-hover:bg-surface-2",
                 "min-[1440px]:-my-3 min-[1440px]:self-stretch min-[1440px]:rounded-[var(--r-sm)] min-[1440px]:px-3",
               )}
             >
-              <MetricStripItem {...item} compactValue={layout === "six"} />
+              <MetricStripItem
+                {...item}
+                compactValue={layout === "six"}
+                tight={layout === "three"}
+              />
             </Link>
           ) : item.onSelect ? (
             <div
               className={cn(
                 cellClass,
+                layout === "three" && tightCellClass,
                 gridLines(index, layout),
                 "relative transition-fast has-[button:hover]:bg-surface-2",
                 "min-[1440px]:-my-3 min-[1440px]:self-stretch min-[1440px]:rounded-[var(--r-sm)] min-[1440px]:px-3",
@@ -186,12 +223,26 @@ export function MetricStrip({
                 className="focus-ring absolute inset-0 rounded-[var(--r-sm)]"
               />
               <div className="pointer-events-none relative flex min-w-0 flex-1">
-                <MetricStripItem {...item} compactValue={layout === "six"} />
+                <MetricStripItem
+                  {...item}
+                  compactValue={layout === "six"}
+                  tight={layout === "three"}
+                />
               </div>
             </div>
           ) : (
-            <div className={cn(cellClass, gridLines(index, layout))}>
-              <MetricStripItem {...item} compactValue={layout === "six"} />
+            <div
+              className={cn(
+                cellClass,
+                layout === "three" && tightCellClass,
+                gridLines(index, layout),
+              )}
+            >
+              <MetricStripItem
+                {...item}
+                compactValue={layout === "six"}
+                tight={layout === "three"}
+              />
             </div>
           )}
         </Fragment>
@@ -237,7 +288,13 @@ export function MetricStripSkeleton({
       {Array.from({ length: count }).map((_, index) => (
         <Fragment key={index}>
           {index > 0 && <span className={separatorClass} />}
-          <div className={cn(cellClass, gridLines(index, layout))}>
+          <div
+            className={cn(
+              cellClass,
+              layout === "three" && tightCellClass,
+              gridLines(index, layout),
+            )}
+          >
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <span className="skeleton size-10 shrink-0 rounded-[var(--r-sm)]" />
               <div className="min-w-0 flex-1 space-y-2">

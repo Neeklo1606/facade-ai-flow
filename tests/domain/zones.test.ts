@@ -215,3 +215,63 @@ describe("захватка", () => {
     expect(renamed.factQty).toBe(after.factQty);
   });
 });
+
+describe("отмена решения по отчёту (ADR-028)", () => {
+  test("возврат в очередь снимает принятый объём из факта захватки", async () => {
+    const zone = await repos.projects.saveZone(
+      {
+        id: null,
+        projectId: project,
+        parentId: null,
+        level: "zone",
+        name: "Фасад И, оси 1–4",
+        axes: "1–4",
+        floors: null,
+        planQty: 400,
+        baselineFactQty: 10,
+        unit: "м²",
+      },
+      actor,
+    );
+    const report = await repos.reports.create(
+      {
+        projectId: project,
+        zoneId: zone.id,
+        workType: "Монтаж кронштейнов",
+        declaredQty: 60,
+        unit: "м²",
+        reportDate: "2026-09-04",
+        headcount: 4,
+        summary: "Ось 2, кронштейны смонтированы",
+      },
+      actor,
+    );
+    const factOf = async () =>
+      (await repos.projects.card(project))!.zones.find((item) => item.id === zone.id)!.factQty;
+
+    expect(await factOf()).toBe(10);
+    await repos.reports.review({ id: report.id, status: "accepted", acceptedQty: 60 }, actor);
+    expect(await factOf()).toBe(70);
+
+    // Отмена обязана снять объём обратно: иначе факт рос бы от каждой отмены
+    await repos.reports.review({ id: report.id, status: "review", acceptedQty: null }, actor);
+    expect(await factOf()).toBe(10);
+    const card = (await repos.reports.list(project)).find((r) => r.report.id === report.id)!;
+    expect(card.report.status).toBe("review");
+    expect(card.report.acceptedQty).toBeNull();
+  });
+
+  test("отмена возврата на уточнение факт не трогает", async () => {
+    const report = (await repos.reports.list(project)).find(
+      (r) => r.report.status === "review",
+    )!.report;
+    const zoneFact = async () =>
+      (await repos.projects.card(project))!.zones.find((item) => item.id === report.zoneId)!
+        .factQty;
+    const before = await zoneFact();
+
+    await repos.reports.review({ id: report.id, status: "returned", acceptedQty: null }, actor);
+    await repos.reports.review({ id: report.id, status: "review", acceptedQty: null }, actor);
+    expect(await zoneFact()).toBe(before);
+  });
+});
