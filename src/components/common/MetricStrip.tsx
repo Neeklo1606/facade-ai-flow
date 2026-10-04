@@ -54,10 +54,17 @@ export function DeltaPill({
         effectClass[delta.effect],
         className,
       )}
-      aria-label={`${delta.text}, ${effectWord[delta.effect]}`}
     >
       <Arrow className="size-3" strokeWidth={2} aria-hidden />
+      {/*
+        Короткая форма — только для глаза; полная остаётся в потоке чтения с экрана.
+        `aria-label` на элементе без роли вспомогательные технологии игнорируют, и дельта
+        переставала читаться вовсе (находка независимой проверки)
+      */}
       <span aria-hidden>{short ? delta.text.split(" ")[0] : delta.text}</span>
+      <span className="sr-only">
+        {delta.text}, {effectWord[delta.effect]}
+      </span>
     </span>
   );
 }

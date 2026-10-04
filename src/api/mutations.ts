@@ -454,11 +454,24 @@ export function useCreateReport(notices: Pick<MutationNotices, "onFailed"> = {})
   });
 }
 
-export function useReviewReport(notices: Pick<MutationNotices, "onFailed"> = {}) {
+/**
+ * Решение по отчёту: принять, вернуть или снять решение (ADR-028, п. 3).
+ *
+ * `onDone` объявлен на уровне мутации, а не передаётся в `mutate`: обратные вызовы уровня
+ * вызова выполняются, только пока у наблюдателя есть слушатели, а карточка уходит из очереди
+ * оптимистично и размонтируется раньше ответа сервера. В демо ответ приходит микрозадачей и
+ * это незаметно, в рабочем контуре тост «Отменить» не появлялся бы вовсе.
+ */
+export function useReviewReport(
+  notices: Pick<MutationNotices, "onFailed"> & {
+    onDone?: (input: ReviewReportInput) => void;
+  } = {},
+) {
   const queryClient = useQueryClient();
   return useMutation({
     meta: { action: "reviewReport" },
     mutationFn: (input: ReviewReportInput) => api.reports.review(input),
+    onSuccess: (_data, input) => notices.onDone?.(input),
     onMutate: (input) =>
       patchLists<ReportCard[]>(queryClient, ["reports", "list"], (cards) =>
         cards.map((card) =>

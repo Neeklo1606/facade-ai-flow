@@ -15,6 +15,7 @@ export type {
   ProjectListItem,
   ReportCard,
   RequestCard,
+  ReviewReportInput,
   RequestSummary,
   SourceCard,
   SupplierListItem,

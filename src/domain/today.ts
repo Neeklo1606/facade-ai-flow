@@ -94,6 +94,11 @@ export function todayWorks(source: TodaySource): TodayWork[] {
 /** Статусы поставки, которая ещё едет: принятая и отклонённая сегодня уже не ждут */
 const COMING: Delivery["status"][] = ["expected", "shipped", "in_transit"];
 
+/** Сколько поставок в пути всего: счётчик блока показывает это, а не длину срезки */
+export function comingCount(source: TodaySource) {
+  return source.deliveries.filter((delivery) => COMING.includes(delivery.status)).length;
+}
+
 /** Чего ждать на площадке: ближайшие поставки по дате прибытия, просроченные первыми */
 export function comingDeliveries(source: TodaySource, limit = 6): TodayDelivery[] {
   const today = todayOf(source);

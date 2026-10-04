@@ -51,7 +51,11 @@ export function PlusSheet({
   const { lastInput, rememberInput } = useApp();
   const { can } = useAccess();
   const [channel, setChannel] = useState<string | null>(null);
-  const [created, setCreated] = useState<ReportFormValue | null>(null);
+  const [created, setCreated] = useState<{
+    value: ReportFormValue;
+    zone: string;
+    date: string;
+  } | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   /*
    * Объект для записи: выбранный в шапке, а если чип молчит — единственный объект человека
@@ -95,10 +99,11 @@ export function PlusSheet({
         description="Проверьте, всё ли верно: исправить можно на экране отчёта"
       >
         <ConfirmationCard
-          value={created}
+          value={created.value}
           projectId={target}
           projectSource={projectSource}
-          zoneSource={created.zoneId === lastInput.zoneId ? "последний выбор" : "выбрана в форме"}
+          zoneSource={created.zone}
+          dateSource={created.date}
           onFix={() => {
             const id = target;
             close();
@@ -142,9 +147,11 @@ export function PlusSheet({
         <ReportChannel
           projectId={target}
           lastZoneId={lastInput.zoneId}
-          onCreated={(value) => {
-            rememberInput({ channel: "report", zoneId: value.zoneId });
-            setCreated(value);
+          onCreated={(created) => {
+            // Источники посчитаны до записи в память вкладки: иначе «последний выбор»
+            // оказывался бы истиной всегда (находка независимой проверки)
+            rememberInput({ channel: "report", zoneId: created.value.zoneId });
+            setCreated(created);
           }}
         />
       ) : null}
@@ -191,16 +198,26 @@ function ReportChannel({
 }: {
   projectId: string;
   lastZoneId: string | null;
-  onCreated: (value: ReportFormValue) => void;
+  onCreated: (created: { value: ReportFormValue; zone: string; date: string }) => void;
 }) {
-  const card = useQuery(queries.project(projectId)).data;
+  const project = useQuery(queries.project(projectId));
   const now = useNow();
   const today = now.slice(0, 10);
-  const zones = card?.zones ?? [];
-  const suggested = zones.find((zone) => zone.id === lastZoneId)?.id ?? zones[0]?.id ?? "";
+  const zones = project.data?.zones ?? [];
+  // Захватка из прошлой записи, иначе первая у объекта — и подпись говорит, что именно
+  const fromLast = zones.some((zone) => zone.id === lastZoneId);
+  const suggested = fromLast ? lastZoneId! : (zones[0]?.id ?? "");
+  const suggestedSource = fromLast ? "последний выбор" : "первая захватка объекта";
   const [value, setValue] = useState<ReportFormValue | null>(null);
   const { submit, pending } = useReportSubmit(projectId);
   const draft = value ?? emptyReport(suggested, today);
+  const zoneSource = draft.zoneId === suggested ? suggestedSource : "выбрана вами";
+  const dateSource = draft.date === today ? "сегодня" : "введено вами";
+
+  // Пока карточка объекта грузится, захваток «нет» только на вид: молчим, а не утверждаем
+  if (project.isPending) {
+    return <div className="h-40 animate-pulse rounded-[var(--r-md)] bg-surface-2" aria-hidden />;
+  }
 
   if (!zones.length) {
     return (
@@ -219,19 +236,16 @@ function ReportChannel({
         onChange={setValue}
         zones={zones}
         today={today}
-        sources={{
-          ...(draft.zoneId === suggested && lastZoneId === suggested
-            ? { zoneId: "последний выбор" }
-            : {}),
-          ...(draft.date === today ? { date: "сегодня" } : {}),
-        }}
+        sources={{ zoneId: zoneSource, date: dateSource }}
       />
       <Button
         variant="accent"
         className="mt-4 w-full"
         loading={pending}
         disabled={!reportReady(draft)}
-        onClick={() => submit(draft, () => onCreated(draft))}
+        onClick={() =>
+          submit(draft, () => onCreated({ value: draft, zone: zoneSource, date: dateSource }))
+        }
       >
         <HardHat className="size-4" /> Записать работу
       </Button>
@@ -245,6 +259,7 @@ function ConfirmationCard({
   projectId,
   projectSource,
   zoneSource,
+  dateSource,
   onOk,
   onFix,
 }: {
@@ -252,6 +267,7 @@ function ConfirmationCard({
   projectId: string;
   projectSource: string;
   zoneSource: string;
+  dateSource: string;
   onOk: () => void;
   onFix: () => void;
 }) {
@@ -261,7 +277,7 @@ function ConfirmationCard({
     ["Вид работ", value.workType, "введено вами"],
     ["Объём", `${value.qty} ${value.unit}`, "введено вами"],
     ["Захватка", zone?.name ?? "—", zoneSource],
-    ["Дата смены", value.date, "часы объекта"],
+    ["Дата смены", value.date, dateSource],
     ["Объект", card?.project.name ?? "—", projectSource],
   ];
   return (

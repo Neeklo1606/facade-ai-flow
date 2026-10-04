@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
+  comingCount,
   comingDeliveries,
   returnedReports,
   todayOf,
@@ -8,6 +9,7 @@ import {
   type TodaySource,
 } from "@/domain/today";
 import { queries } from "./queries";
+import { useAccess } from "./access";
 import { useNow } from "./clock";
 
 /**
@@ -18,6 +20,13 @@ import { useNow } from "./clock";
  */
 export function useToday(projectId: string | null) {
   const now = useNow();
+  /*
+   * Поставки открыты не всем, кому открыты отчёты: у ПТО права на них нет. Запрос, который
+   * вернёт отказ, не отправляется вовсе, а блок без источника экран не показывает — иначе
+   * пункт меню вёл бы в постоянную ошибку (находка независимой проверки).
+   */
+  const { can } = useAccess();
+  const seesDeliveries = can("deliveries");
   const registry = useQuery(queries.projects());
 
   const rows = useMemo(() => registry.data ?? [], [registry.data]);
@@ -28,7 +37,9 @@ export function useToday(projectId: string | null) {
 
   const cards = useQueries({ queries: ids.map((id) => queries.project(id)) });
   const reports = useQueries({ queries: ids.map((id) => queries.reports(id)) });
-  const deliveries = useQueries({ queries: ids.map((id) => queries.deliveries(id)) });
+  const deliveries = useQueries({
+    queries: ids.map((id) => ({ ...queries.deliveries(id), enabled: seesDeliveries })),
+  });
 
   const cardsData = cards.map((query) => query.data);
   const reportsData = reports.map((query) => query.data);
@@ -60,6 +71,7 @@ export function useToday(projectId: string | null) {
       date: todayOf(source),
       works: todayWorks(source),
       deliveries: comingDeliveries(source),
+      deliveriesTotal: comingCount(source),
       returned: returnedReports(source),
     }),
     [source],
@@ -69,11 +81,13 @@ export function useToday(projectId: string | null) {
     ...view,
     now,
     projects: rows,
+    /** Какие блоки роль увидит: экран не рисует карточку без источника */
+    sources: { deliveries: seesDeliveries },
     pending:
       registry.isPending ||
       cards.some((query) => query.isPending) ||
       reports.some((query) => query.isPending) ||
-      deliveries.some((query) => query.isPending),
+      (seesDeliveries && deliveries.some((query) => query.isPending)),
     error: registry.isError || [...cards, ...reports, ...deliveries].some((query) => query.isError),
     refetch: () => {
       void registry.refetch();

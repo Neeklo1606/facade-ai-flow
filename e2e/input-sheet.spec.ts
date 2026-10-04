@@ -35,7 +35,8 @@ test.describe("шторка ввода", () => {
       const card = sheet.locator("dl");
       await expect(card).toContainText("Монтаж нащельников");
       await expect(card).toContainText("введено вами");
-      await expect(card).toContainText("часы объекта");
+      // Дата не тронута — источник «сегодня»; будь она изменена, подпись сказала бы иначе
+      await expect(card).toContainText("сегодня");
       // У прораба один объект, и шторка не выдаёт его за выбор в шапке
       await expect(card).toContainText("единственный ваш объект");
 
@@ -43,6 +44,27 @@ test.describe("шторка ввода", () => {
       await expect(sheet).toBeHidden();
       // Запись видна на экране смены
       await expect(page.locator("main")).toContainText("Монтаж нащельников");
+    });
+  });
+
+  test.describe("прораб меняет подставленное", () => {
+    test.use({ persona: "e-gareev" });
+
+    test("исправленная дата не выдаётся за часы объекта @mobile", async ({ page }) => {
+      await open(page, "/today");
+      await page.locator('[data-tour="nav-plus"]').click();
+      const sheet = page.getByRole("dialog");
+      await sheet.getByLabel("Вид работ").fill("Монтаж отливов");
+      await sheet.getByLabel("Объём за смену").fill("18");
+      await sheet.getByLabel("Что сделали").fill("Захватка 1, отливы по периметру");
+      await sheet.getByLabel("Дата смены").fill("2026-09-04");
+      await sheet.getByRole("button", { name: /Записать работу/ }).click();
+
+      const card = sheet.locator("dl");
+      await expect(card).toContainText("2026-09-04");
+      // Значение ввёл человек — подпись обязана сказать именно это
+      await expect(card).toContainText("введено вами");
+      await expect(card).not.toContainText("часы объекта");
     });
   });
 

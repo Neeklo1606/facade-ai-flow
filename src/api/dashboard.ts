@@ -32,6 +32,7 @@ export function useDashboard(period: DashboardPeriod) {
   const { can } = useAccess();
   const seesHistory = can("timeline") || can("dashboard");
   const seesDocuments = can("documents");
+  const seesProcurement = can("procurement");
   const registry = useQuery(queries.projects());
   const documents = useQuery({ ...queries.documents(), enabled: seesDocuments });
 
@@ -39,7 +40,9 @@ export function useDashboard(period: DashboardPeriod) {
   const ids = useMemo(() => projects.map((row) => row.project.id), [projects]);
 
   const cards = useQueries({ queries: ids.map((id) => queries.project(id)) });
-  const requests = useQueries({ queries: ids.map((id) => queries.requests(id)) });
+  const requests = useQueries({
+    queries: ids.map((id) => ({ ...queries.requests(id), enabled: seesProcurement })),
+  });
   const pending = useQueries({
     queries: ids.map((id) => ({ ...queries.pendingDecisions(id), enabled: seesHistory })),
   });
@@ -99,7 +102,7 @@ export function useDashboard(period: DashboardPeriod) {
     ...view,
     now,
     /** Какие источники открыты роли: экран прячет блоки, которых не будет (ADR-028) */
-    sources: { history: seesHistory, documents: seesDocuments },
+    sources: { history: seesHistory, documents: seesDocuments, procurement: seesProcurement },
     /** Шапка и полоса метрик: ждём реестр, документы и карточки объектов */
     headPending:
       registry.isPending ||
@@ -109,7 +112,7 @@ export function useDashboard(period: DashboardPeriod) {
     /** Колонки: запросы, ожидания решений и лента */
     listsPending:
       !ids.length ||
-      requests.some((query) => query.isPending) ||
+      (seesProcurement && requests.some((query) => query.isPending)) ||
       (seesHistory &&
         (pending.some((query) => query.isPending) || timeline.some((query) => query.isPending))),
     listsError: [...requests, ...pending, ...timeline].some((query) => query.isError),

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  comingCount,
   comingDeliveries,
   returnedReports,
   todayOf,
@@ -140,5 +141,22 @@ describe("вернулось на доработку", () => {
     const rows = returnedReports(base);
     expect(rows.map((row) => row.id)).toEqual(["r-3"]);
     expect(rows[0]?.projectName).toBe("БЦ «Меридиан»");
+  });
+});
+
+describe("счётчик поставок (находка независимой проверки)", () => {
+  test("показывает все поставки в пути, а не длину срезки", () => {
+    const many: TodaySource = {
+      ...base,
+      deliveries: Array.from({ length: 9 }, (_, index) =>
+        delivery(`d-${index}`, "p-1", `2026-09-0${(index % 8) + 1}`, "in_transit"),
+      ),
+    };
+    expect(comingDeliveries(many)).toHaveLength(6);
+    expect(comingCount(many)).toBe(9);
+  });
+
+  test("принятые в счёт не идут", () => {
+    expect(comingCount(base)).toBe(2);
   });
 });

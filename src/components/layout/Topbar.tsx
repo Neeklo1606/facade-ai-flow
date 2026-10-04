@@ -177,9 +177,13 @@ export function Topbar() {
             <StatePicker />
           </span>
         )}
-        {/* Действия экрана: страница отдаёт их сюда через PageActions. На телефоне главное действие
-            закреплено снизу над панелью навигации */}
-        <div id="page-actions" className="hidden items-center gap-2.5 md:flex" />
+        {/* Действия экрана: страница отдаёт их сюда через PageActions. До 1024 px главное
+            действие закреплено снизу над панелью навигации */}
+        {/*
+          Действия экрана показываются с 1024 px — ровно там, где исчезает закреплённая полоса
+          над панелью. На 768–1023 px они рисовались оба сразу (находка независимой проверки)
+        */}
+        <div id="page-actions" className="hidden items-center gap-2.5 lg:flex" />
         {user && (
           <span className="avatar hidden sm:grid" title={`${user.name}, ${user.roleLabel}`}>
             {initials}

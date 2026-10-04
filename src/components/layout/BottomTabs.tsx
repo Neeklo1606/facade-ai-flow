@@ -145,7 +145,7 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
         {count > 0 && (
           <span
             className={cn(
-              "absolute -top-1.5 -right-2.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] leading-none font-medium",
+              "absolute -top-2 -right-3 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[12px] leading-none font-medium",
               item.badge && CRITICAL_BADGES.includes(item.badge)
                 ? "bg-danger text-on-orange"
                 : "bg-surface-3 text-text-2",
