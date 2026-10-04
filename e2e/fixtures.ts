@@ -73,8 +73,12 @@ async function settle(page: Page) {
 }
 
 /**
- * Правила EMBER на экране: одно оранжевое пятно в содержимом (боковое меню, нижняя панель
- * и уведомления не считаются — у них своё активное состояние) и ни одного капса.
+ * Правила EMBER на экране: одно оранжевое пятно в кадре и ни одного капса.
+ *
+ * Нижняя панель считается наравне с содержимым (ADR-027, п. 3): её «+» — то самое пятно,
+ * поэтому закреплённое действие экрана на телефоне нейтральное. Вне счёта остаются боковое
+ * меню (живёт на десктопе, где панели нет), тосты и карточка подсказок — они перекрывают
+ * экран временно.
  * Критерии те же, что у проверки 12 пунктов EMBER.
  */
 export async function expectEmber(page: Page, screen: string) {
@@ -93,7 +97,6 @@ export async function expectEmber(page: Page, screen: string) {
     const inContent = (el: Element) =>
       !el.closest("[data-sidebar='app']") &&
       !el.closest("[data-sonner-toaster]") &&
-      !el.closest("nav[aria-label='Основная навигация']") &&
       !el.closest("section[aria-label='Подсказки по сценарию']");
     const hsl = (c: string) => {
       const x = c.match(/rgba?\(([^)]+)\)/);

@@ -76,7 +76,7 @@ export function AgentComposer({
               type="submit"
               disabled={!ready}
               aria-label="Отправить вопрос"
-              className="focus-ring grid size-11 place-items-center rounded-full bg-orange-strong text-white shadow-[var(--glow-orange)] transition-fast is-hover:bg-orange-strong-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none lg:size-9"
+              className="accent-fill focus-ring grid size-11 place-items-center rounded-full transition-fast disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none lg:size-9"
             >
               <ArrowUp className="size-[18px]" strokeWidth={2} />
             </button>

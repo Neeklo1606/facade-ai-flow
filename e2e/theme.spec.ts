@@ -11,6 +11,21 @@ const theme = (page: import("@playwright/test").Page) =>
 const pageBackground = (page: import("@playwright/test").Page) =>
   page.evaluate(() => getComputedStyle(document.querySelector(".app-window")!).backgroundColor);
 
+/**
+ * Светлота цвета по WCAG: 0 — чёрный, 1 — белый. Проверка держится за смысл «фон стал светлым»,
+ * а не за конкретное значение палитры: палитра меняется решениями вроде ADR-027, и прибитое
+ * `rgb(244, 242, 238)` ловило бы не ошибку, а перекраску.
+ */
+const luminance = (page: import("@playwright/test").Page, color: string) =>
+  page.evaluate((value) => {
+    const [r = 0, g = 0, b = 0] = (value.match(/\d+/gu) ?? []).map(Number);
+    const lin = (channel: number) => {
+      const c = channel / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }, color);
+
 test.describe("тема оформления", () => {
   test.use({ persona: "e-sokolov" });
 
@@ -24,8 +39,19 @@ test.describe("тема оформления", () => {
     await page.getByRole("button", { name: /Тема оформления/ }).click();
     await page.getByRole("menuitemradio", { name: "Светлая" }).click();
     await expect.poll(() => theme(page)).toBe("light");
-    // Светлая тема — это не только атрибут: фон окна становится светлым
-    expect(await pageBackground(page)).toBe("rgb(244, 242, 238)");
+    // Светлая тема — это не только атрибут: фон окна становится светлым и равен токену --void
+    const background = await pageBackground(page);
+    expect(await luminance(page, background)).toBeGreaterThan(0.8);
+    // Токен читаем как цвет, а не как строку: браузер сам приведёт #rrggbb к rgb()
+    const token = await page.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "var(--void)";
+      document.body.append(probe);
+      const value = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return value;
+    });
+    expect(background).toBe(token);
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("main").waitFor();

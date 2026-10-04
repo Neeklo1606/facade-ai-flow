@@ -95,9 +95,6 @@ export function Topbar() {
         <Menu strokeWidth={1.5} />
       </button>
 
-      {/* Чип объекта слева: на телефоне это единственный способ сменить объект (ADR-026, п. 8) */}
-      <ProjectChip />
-
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">
           <div
@@ -107,7 +104,6 @@ export function Topbar() {
           >
             {title}
           </div>
-          <ScreenHelp />
           {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
           {dataSource === "demo" && (
             <span
@@ -120,6 +116,9 @@ export function Topbar() {
             </span>
           )}
         </div>
+        {/* Чип объекта: на телефоне своя строка под заголовком — в одну строку пять элементов
+            не помещаются (ADR-027, поправка). Это единственный способ сменить объект с телефона */}
+        <ProjectChip />
         {/* Подпись экрана: страница может заменить путь своей строкой (код, статус объекта) */}
         <div
           id="page-caption"
@@ -170,8 +169,15 @@ export function Topbar() {
         >
           <Search strokeWidth={1.5} />
         </button>
+        <ScreenHelp />
         <ThemeToggle className="hidden sm:grid" />
-        {screenStatesEnabled && <StatePicker />}
+        {/* Переключатель состояний экрана — инструмент показа с ноутбука: на телефоне он
+            отнимал место у заголовка (ADR-027, п. 5) */}
+        {screenStatesEnabled && (
+          <span className="hidden md:contents">
+            <StatePicker />
+          </span>
+        )}
         {/* Действия экрана: страница отдаёт их сюда через PageActions. На телефоне главное действие
             закреплено снизу над панелью навигации */}
         <div id="page-actions" className="hidden items-center gap-2.5 md:flex" />

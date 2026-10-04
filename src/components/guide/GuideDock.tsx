@@ -225,11 +225,9 @@ export function GuideDock() {
             className="focus-ring flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-[var(--r-pill)] border border-line bg-surface px-3 text-[13px] text-text-2 shadow-[var(--shadow-md)] transition-fast hover:text-text md:px-4"
           >
             <MessageCircleQuestion className="size-4" strokeWidth={1.5} aria-hidden />
-            <span
-              className={cn(scenario && !guide.closed && guide.collapsed && "hidden md:inline")}
-            >
-              Непонятно на этом экране
-            </span>
+            {/* На телефоне — круг без подписи: над содержимым висит один слой (ADR-027, п. 4).
+                Название остаётся в aria-label и title */}
+            <span className="hidden md:inline">Непонятно на этом экране</span>
           </button>
         </div>
       )}

@@ -9,8 +9,9 @@ const ProjectSheet = lazy(() =>
 );
 
 /**
- * Чип объекта в шапке телефона (ADR-026, п. 8). На широком экране объект выбирают селектором
- * в сайдбаре; на телефоне сайдбара нет, и без чипа сменить объект было нельзя.
+ * Чип объекта в шапке телефона (ADR-026, п. 8; строка под заголовком — ADR-027, поправка).
+ * На широком экране объект выбирают селектором в сайдбаре; на телефоне сайдбара нет,
+ * и без чипа сменить объект было нельзя.
  *
  * Скрыт, когда объект у человека один: выбор из одного — кнопка без смысла. Выбор хранится
  * там же, где раньше, — в состоянии сессии (`app-context`), новых хранилищ не вводится.
@@ -29,14 +30,15 @@ export function ProjectChip() {
         onClick={() => setOpen(true)}
         aria-label={`Объект: ${current ?? "все объекты"}. Сменить`}
         /*
-          Цель нажатия 48 px: чип в 32 px выглядел аккуратнее, но в перчатке в него не попасть,
-          и проверка ширин экрана его поймала. Рамка рисуется во всю высоту — так видно, что
-          это кнопка, а не подпись.
+          Строка под заголовком: высота самой плашки 28 px, но вертикальные поля доводят цель
+          нажатия до 48 px — в перчатке в 28 px не попасть, и проверка ширин это ловит.
         */
-        className="focus-ring flex h-12 max-w-[44vw] shrink-0 items-center gap-1 rounded-[var(--r-md)] border border-line bg-surface-2 px-2.5 text-[12px] leading-none text-text-2 transition-fast lg:hidden"
+        className="focus-ring -my-2.5 flex h-12 w-full items-center gap-1 text-[12px] leading-none text-text-2 transition-fast lg:hidden"
       >
-        <span className="truncate">{current ?? "Все объекты"}</span>
-        <ChevronDown className="size-3.5 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
+        <span className="flex h-7 min-w-0 items-center gap-1 rounded-[var(--r-sm)] border border-line bg-surface-2 px-2.5">
+          <span className="truncate">{current ?? "Все объекты"}</span>
+          <ChevronDown className="size-3.5 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
+        </span>
       </button>
       {/* Список объектов грузится по требованию: до нажатия чипа он не нужен */}
       {open && (
