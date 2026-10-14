@@ -253,15 +253,15 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         )}
       </PageCaption>
       {/* На телефоне и планшете подписи в шапке нет — код и статус над метриками */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 lg:hidden">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link
           to="/projects"
           className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-[var(--r-xs)] text-caption text-text-3 transition-fast hover:text-text"
         >
           <ArrowLeft className="size-3.5" /> Все объекты
         </Link>
-        <span className="mono text-caption text-text-2">{project.code}</span>
-        <ProjectStatusControl project={project} variant="badge" />
+        <span className="mono text-caption text-text-2 lg:hidden">{project.code}</span>
+        <span className="lg:hidden"><ProjectStatusControl project={project} variant="badge" /></span>
       </div>
 
       <MetricStrip

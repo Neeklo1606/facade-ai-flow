@@ -225,15 +225,14 @@ function ProjectsPage() {
         >
           <ArrowRight className="size-4 shrink-0 text-info" />
           <p className="min-w-0 flex-1 text-[13px]">
-            <b className="font-semibold">{sectionLabels[search.section]}</b> ведётся по объекту.
-            Выберите объект — раздел откроется сразу.
+            Выберите объект, чтобы открыть раздел «{sectionLabels[search.section]}».
           </p>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => setSearch({ section: undefined, sectionStatus: undefined })}
           >
-            <X className="size-3.5" /> Просто открыть реестр
+            <X className="size-3.5" /> Все объекты
           </Button>
         </div>
       )}
@@ -377,7 +376,7 @@ function ProjectsPage() {
                   loading={exporting}
                   disabled={!rows.length}
                 >
-                  {!exporting && <FileSpreadsheet className="size-4" />} Excel
+                  <FileSpreadsheet className="size-4" /> Выгрузить
                 </Button>
               )}
             </div>
@@ -495,7 +494,7 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
               tabIndex={0}
               onClick={() => onOpen(row)}
               onKeyDown={(e) => e.key === "Enter" && onOpen(row)}
-              className="group h-[60px] cursor-pointer border-b border-border transition-fast last:border-0 hover:bg-hover focus-visible:bg-hover focus-visible:outline-none"
+              className="group h-[60px] cursor-pointer border-b border-border transition-fast last:border-0 hover:bg-hover focus-ring"
             >
               <td className="relative w-[3px] p-0">
                 {attention && (
