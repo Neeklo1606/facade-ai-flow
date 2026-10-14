@@ -1,5 +1,6 @@
 import { useRef, type KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface PillTab<T extends string> {
   value: T;
@@ -48,14 +49,15 @@ export function PillTabs<T extends string>({
       role="tablist"
       aria-label={label}
       className={cn(
-        "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full bg-surface p-1",
+        "inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-[var(--r-sm)] border border-line bg-surface-2 p-1",
         className,
       )}
     >
       {tabs.map((tab, index) => {
         const active = tab.value === value;
         return (
-          <button
+          <Button
+            variant="ghost"
             key={tab.value}
             ref={(node) => {
               refs.current[index] = node;
@@ -69,12 +71,10 @@ export function PillTabs<T extends string>({
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
-              "focus-ring inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-[18px] lg:h-9 text-[13px] leading-none font-medium whitespace-nowrap transition-fast",
+              "h-11 shrink-0 gap-2 px-3 lg:h-9 text-[13px] leading-none font-medium whitespace-nowrap",
               !active && "bg-transparent text-text-2 is-hover:bg-surface-2",
               active &&
-                (variant === "primary"
-                  ? "bg-orange-strong text-on-orange"
-                  : "bg-surface-3 text-text shadow-[var(--lift-1)]"),
+                "border-line-2 bg-surface text-text",
             )}
           >
             {tab.label}
@@ -82,13 +82,13 @@ export function PillTabs<T extends string>({
               <span
                 className={cn(
                   "text-[12px] font-normal",
-                  active && variant === "primary" ? "text-on-orange/75" : "text-text-3",
+                  "text-text-3",
                 )}
               >
                 {tab.count}
               </span>
             )}
-          </button>
+          </Button>
         );
       })}
     </div>

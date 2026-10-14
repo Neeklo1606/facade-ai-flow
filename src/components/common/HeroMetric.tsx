@@ -27,32 +27,27 @@ export function HeroMetric({
   return (
     <section
       className={cn(
-        "relative flex min-h-60 flex-col justify-between gap-4 overflow-hidden rounded-[var(--r-lg)] p-6 shadow-[var(--lift-2),var(--glow-soft)]",
+        "flex flex-col gap-2 border-y border-line bg-surface px-5 py-4",
         className,
       )}
     >
-      {/* .grain задаёт position: relative, поэтому слой градиента — внутри абсолютной обёртки */}
-      <div aria-hidden className="absolute inset-0">
-        <div className="bg-ember grain size-full" />
-      </div>
-      <div aria-hidden className="absolute inset-0 bg-black/45" />
-      <div className="relative text-[12px] leading-[1.4] text-on-ember/85">{label}</div>
-      <div className="relative">
-        <div className="text-[44px] leading-none font-semibold tracking-[-0.025em] text-on-ember sm:text-[56px]">
+      <div className="text-[13px] leading-[1.4] text-text-2">{label}</div>
+      <div>
+        <div className="text-[32px] leading-tight font-semibold text-text">
           {value}
           {unit && (
-            <span className="ml-2 text-[25px] font-semibold tracking-[-0.025em] text-on-ember/75 sm:text-[31px]">
+            <span className="ml-2 text-[20px] font-medium text-text-2">
               {unit}
             </span>
           )}
         </div>
         {secondary && (
-          <div className="mt-2 text-[20px] leading-[1.2] font-medium text-on-ember/85">
+          <div className="mt-1 text-[14px] leading-[1.4] text-text-2">
             {secondary}
           </div>
         )}
         {note && (
-          <div className="mt-3 max-w-[68ch] text-[13px] leading-[1.45] text-on-ember-2">{note}</div>
+          <div className="mt-2 max-w-[90ch] text-[12px] leading-[1.5] text-text-3">{note}</div>
         )}
       </div>
     </section>

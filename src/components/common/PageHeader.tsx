@@ -26,7 +26,7 @@ export function PageHeader({
     <div
       className={
         parts || meta
-          ? "mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+          ? "mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2"
           : "contents"
       }
     >
@@ -34,8 +34,8 @@ export function PageHeader({
         {/* Заголовок страницы показывает шапка контента; здесь он остаётся для чтения с экрана */}
         <h1 className="sr-only">{title}</h1>
         {parts && (
-          <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[13px] text-text-secondary">
-            <span className="truncate">{parts.lead}</span>
+          <p className="mt-1 flex min-w-0 items-start gap-1.5 text-[13px] text-text-secondary">
+            <span>{parts.lead}</span>
             {parts.rest && <InfoTip label="Подробнее">{parts.rest}</InfoTip>}
           </p>
         )}
