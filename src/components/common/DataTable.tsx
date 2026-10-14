@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface Column<T> {
   key: string;
@@ -47,8 +48,10 @@ export function DataTable<T extends { id: string }>({
               <tr
                 key={row.id}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={onRowClick ? (event) => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onRowClick(row); } } : undefined}
                 className={cn(
-                  "h-14 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2",
+                  "h-12 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-ring",
                   onRowClick && "cursor-pointer",
                 )}
               >
@@ -76,22 +79,21 @@ export function DataTable<T extends { id: string }>({
           if (!primary) return null;
           const rest = columns.filter((c) => c !== primary && !c.hideOnCard);
           return (
-            <button
+            <section
               key={row.id}
-              type="button"
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className="widget-card widget-card-interactive min-h-11 w-full p-4"
+              className="min-h-11 w-full rounded-[var(--r-sm)] border border-line bg-surface p-4"
             >
               <div className="text-[14px] font-medium">{primary.cell(row)}</div>
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+              <dl className="mt-3 grid gap-2">
                 {rest.map((c) => (
-                  <div key={c.key} className="min-w-0">
-                    <dt className="text-[11px] text-text-muted">{c.header}</dt>
-                    <dd className="text-caption">{c.cell(row)}</dd>
+                  <div key={c.key} className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-3">
+                    <dt className="text-[12px] text-text-muted">{c.header}</dt>
+                    <dd className="min-w-0 break-words text-caption">{c.cell(row)}</dd>
                   </div>
                 ))}
               </dl>
-            </button>
+              {onRowClick && <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => onRowClick(row)}>Открыть</Button>}
+            </section>
           );
         })}
       </div>

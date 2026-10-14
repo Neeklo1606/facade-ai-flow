@@ -72,13 +72,13 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Дашборд — neeklo FieldOps" },
+      { title: "Обзор объектов — neeklo FieldOps" },
       {
         name: "description",
         content:
           "Сводка по всем объектам: что требует решения, живой поток событий и незакрытый объём работ.",
       },
-      { property: "og:title", content: "Дашборд — neeklo FieldOps" },
+      { property: "og:title", content: "Обзор объектов — neeklo FieldOps" },
       {
         property: "og:description",
         content: "Что требует внимания сегодня по всем объектам.",
@@ -131,7 +131,7 @@ function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Дашборд"
+        title="Обзор"
         actions={
           <Button variant="accent" asChild>
             <Link to="/projects" search={{ unverified: true }}>
@@ -187,7 +187,7 @@ function DashboardPage() {
       )}
 
       <HeroMetric
-        className="mt-4 shadow-[var(--lift-2)]"
+        className="mt-4"
         label="Незакрытый объём работ по договорам"
         value={dash.headPending ? "—" : heroValue(dash.volume.rub)}
         {...(dash.headPending ? {} : { unit: "млн ₽" })}
@@ -244,8 +244,8 @@ function DashboardPage() {
                 <WidgetCardHeader
                   level={2}
                   icon={Radio}
-                  title="Живой поток"
-                  hint="почта, Telegram, загрузки"
+                  title="Последние события"
+                  hint="письма, отчёты, документация"
                 />
                 <LiveFeed items={dash.feed} pending={dash.listsPending} onSource={setSource} />
               </WidgetCard>

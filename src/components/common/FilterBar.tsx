@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 /**
  * Панель фильтров реестра: высота 56px, прилипает при скролле.
@@ -17,11 +18,11 @@ export function FilterBar({
   return (
     <div
       className={cn(
-        "sticky top-0 z-20 flex h-14 min-h-14 items-center gap-2 overflow-x-auto border-b border-border bg-surface px-4",
+        "sticky top-0 z-20 flex min-h-14 flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2",
         className,
       )}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{children}</div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
     </div>
   );
@@ -42,20 +43,21 @@ export function FilterChip({
   className?: string;
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "focus-ring inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition-fast lg:h-9",
+        "h-11 shrink-0 gap-2 border px-3 text-[13px] lg:h-9",
         active
-          ? "bg-surface-3 text-text shadow-[var(--lift-1)]"
-          : "bg-transparent text-text-2 is-hover:bg-surface-2 is-hover:text-text",
+          ? "border-line-2 bg-surface-3 text-text"
+          : "border-transparent text-text-2",
         className,
       )}
     >
       {children}
       {count != null && <span className="text-[12px] font-normal text-text-3">{count}</span>}
-    </button>
+    </Button>
   );
 }

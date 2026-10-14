@@ -159,6 +159,7 @@ export function MetricStrip({
             <Link
               to={item.to as string}
               search={(item.search ?? {}) as never}
+              title={`Открыть: ${item.label.toLowerCase()}`}
               className={cn(
                 cellClass,
                 gridLines(index, layout),
@@ -167,6 +168,7 @@ export function MetricStrip({
               )}
             >
               <MetricStripItem {...item} compactValue={layout === "six"} />
+              <ArrowRight className="ml-2 size-3.5 shrink-0 text-text-3" aria-hidden />
             </Link>
           ) : item.onSelect ? (
             <div
@@ -182,11 +184,13 @@ export function MetricStrip({
                 type="button"
                 aria-pressed={item.selected}
                 aria-label={item.label}
+                title={`Открыть: ${item.label.toLowerCase()}`}
                 onClick={item.onSelect}
                 className="focus-ring absolute inset-0 rounded-[var(--r-sm)]"
               />
               <div className="pointer-events-none relative flex min-w-0 flex-1">
                 <MetricStripItem {...item} compactValue={layout === "six"} />
+                <ArrowRight className="ml-2 size-3.5 shrink-0 self-center text-text-3" aria-hidden />
               </div>
             </div>
           ) : (
