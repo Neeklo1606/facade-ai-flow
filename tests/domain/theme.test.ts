@@ -28,6 +28,10 @@ function runBoot({ saved, systemLight }: { saved?: string | null; systemLight: b
 }
 
 describe("тема до первой отрисовки", () => {
+  test("демонстрация открывается в светлой теме по умолчанию", () => {
+    expect(defaultChoice).toBe("light");
+    expect(runBoot({ systemLight: false }).dataset["theme"]).toBe("light");
+  });
   test("без выбора берётся умолчание контура", () => {
     const root = runBoot({ systemLight: false });
     expect(root.dataset["theme"]).toBe(resolveTheme(defaultChoice));
