@@ -77,12 +77,12 @@ export function RolePicker() {
       <div className="mx-auto flex min-h-full w-full max-w-[560px] flex-col justify-center">
         <span
           aria-hidden
-          className="grid size-9 place-items-center rounded-[10px] bg-orange-strong text-[15px] font-semibold text-on-orange"
+          className="grid size-9 place-items-center rounded-[10px] bg-surface-3 text-[15px] font-semibold text-text"
         >
           F
         </span>
         <h1 id="role-picker-title" className="mt-5 text-page-title">
-          С какой роли начать?
+          Выберите вашу роль
         </h1>
         <p className="mt-2 text-[14px] leading-[1.5] text-text-2">
           neeklo FieldOps, пакет Фасады. Связывает проектную документацию, снабжение и площадку: от

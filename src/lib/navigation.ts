@@ -58,7 +58,7 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         key: "dashboard",
-        label: "Дашборд",
+        label: "Обзор",
         icon: LayoutDashboard,
         to: "/",
         access: "dashboard",
