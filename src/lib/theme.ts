@@ -23,7 +23,7 @@ export const themeLabels: Record<ThemeChoice, string> = {
 };
 
 /** Умолчание контура: демонстрация — тёмная, рабочий режим — как в системе (ADR-017, п. 6) */
-export const defaultChoice: ThemeChoice = dataSource === "server" ? "system" : "dark";
+export const defaultChoice: ThemeChoice = dataSource === "server" ? "system" : "light";
 
 const isChoice = (value: string | null): value is ThemeChoice =>
   value === "light" || value === "dark" || value === "system";
@@ -49,7 +49,7 @@ export function writeChoice(choice: ThemeChoice) {
 
 export function systemTheme(): Theme {
   if (typeof window === "undefined" || !window.matchMedia) return "dark";
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "light";
 }
 
 export const resolveTheme = (choice: ThemeChoice): Theme =>
@@ -75,6 +75,6 @@ export function themeBootScript(): string {
     `if(c!=="light"&&c!=="dark"&&c!=="system")c=${JSON.stringify(defaultChoice)};` +
     `var t=c==="system"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):c;` +
     `document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}` +
-    `catch(e){document.documentElement.dataset.theme=${JSON.stringify(defaultChoice === "system" ? "dark" : defaultChoice)};}})()`
+    `catch(e){document.documentElement.dataset.theme=${JSON.stringify(defaultChoice === "system" ? "light" : defaultChoice)};}})()`
   );
 }
