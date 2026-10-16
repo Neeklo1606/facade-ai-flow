@@ -7,6 +7,7 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -48,7 +49,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -159,7 +160,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const { sessionActorId } = Route.useLoaderData();
+  const sessionActorId = Route.useLoaderData()?.sessionActorId ?? null;
   useDemoEvents(queryClient, (notice) =>
     toast.success(notice.title, { description: notice.description }),
   );
