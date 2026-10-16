@@ -144,7 +144,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <head>
         {/* Тема ставится до первой отрисовки, иначе светлая мигает тёмной (ADR-017, п. 7) */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
