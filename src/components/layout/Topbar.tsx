@@ -96,8 +96,12 @@ export function Topbar() {
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">
+          {/*
+            min-w-0 обязателен: без него заголовок не ужимается рядом с пометкой «Демо»
+            и обрезается на 375 px посреди слова («Сегод»). Нашлось на снимке панели в G2.
+          */}
           <div
-            className="line-clamp-2 text-[18px] leading-tight font-semibold sm:text-section-title lg:truncate lg:text-page-title"
+            className="line-clamp-2 min-w-0 text-[18px] leading-tight font-semibold sm:text-section-title lg:truncate lg:text-page-title"
             title={title}
             aria-hidden="true"
           >
@@ -169,8 +173,17 @@ export function Topbar() {
         >
           <Search strokeWidth={1.5} />
         </button>
-        <ScreenHelp />
-        <ThemeToggle />
+        {/*
+          На телефоне в шапке остаётся один значок — поиск. Подсказка по экрану живёт
+          в плавающей кнопке проводки, тема — в шторке «Ещё» (раздел 6 продукта): четыре
+          значка по 48 px съедали строку заголовка, и «Входящие» обрезались на 375 px.
+        */}
+        <div className="hidden lg:block">
+          <ScreenHelp />
+        </div>
+        <div className="hidden lg:block">
+          <ThemeToggle />
+        </div>
         {/* Переключатель состояний экрана — инструмент показа с ноутбука (ADR-030, п. 1) */}
         {screenStatesEnabled && (
           <div className="hidden lg:block">
