@@ -52,7 +52,7 @@ export function EmptyState({
       className="flex flex-col items-center justify-center px-6 py-14 text-center"
     >
       {/* Иконка в круге 44px --surface-2 */}
-      <span className="grid size-11 place-items-center rounded-full bg-surface-2">
+      <span className="grid size-12 place-items-center rounded-full bg-surface-2">
         <Icon
           className={variant === "error" ? "size-5 text-danger" : "size-5 text-text-2"}
           strokeWidth={1.5}

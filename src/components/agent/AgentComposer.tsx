@@ -67,7 +67,7 @@ export function AgentComposer({
             placeholder="Спросите систему"
             rows={1}
             maxLength={2000}
-            className="min-h-11 flex-1 resize-none bg-transparent text-[15px] leading-[1.45] text-text outline-none placeholder:text-text-3"
+            className="min-h-12 flex-1 resize-none bg-transparent text-[15px] leading-[1.45] text-text outline-none placeholder:text-text-3"
           />
           {/* Вложений нет — и кнопки для них нет: отключённая кнопка «появится позже» была
               кнопкой без действия (ADR-015) */}
@@ -76,7 +76,7 @@ export function AgentComposer({
               type="submit"
               disabled={!ready}
               aria-label="Отправить вопрос"
-              className="accent-fill focus-ring grid size-11 place-items-center rounded-full transition-fast disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none lg:size-9"
+              className="accent-fill focus-ring grid size-12 place-items-center rounded-full transition-fast disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none lg:size-9"
             >
               <ArrowUp className="size-[18px]" strokeWidth={2} />
             </button>

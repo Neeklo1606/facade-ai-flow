@@ -66,12 +66,12 @@ export function PagePlaceholder({
                 <Link
                   to={route.to as string}
                   search={(route.search ?? {}) as never}
-                  className="focus-ring group flex min-h-11 items-center gap-3 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 transition-fast is-hover:border-line-2"
+                  className="focus-ring group flex min-h-12 items-center gap-3 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 transition-fast is-hover:border-line-2"
                 >
                   <Compass className="size-4 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13px] font-medium text-text">{route.label}</span>
-                    <span className="block text-[12px] leading-[1.4] text-text-3">
+                    <span className="block text-[13px] leading-[1.4] text-text-3">
                       {route.note}
                     </span>
                   </span>

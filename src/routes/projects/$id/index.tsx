@@ -23,6 +23,7 @@ import {
 import { MetricStrip } from "@/components/common/MetricStrip";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PillTabs } from "@/components/common/PillTabs";
+import { isLegacySection, legacyModulesEnabled } from "@/lib/legacy-modules";
 import { PageCaption } from "@/components/layout/PageActions";
 import { SourceDrawer } from "@/components/common/SourceRef";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,13 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
   );
   const hasDocuments = liveDocuments.length > 0;
   const { tab: requested = "summary" } = Route.useSearch();
-  const visibleTabs = tabs.filter((item) => can(item.section));
+  /*
+   * Вкладки модулей за флагом `legacy_modules` уходят вместе с модулями (ADR-034, п. 4):
+   * вкладка, которая ведёт на перенаправляемый раздел, — тупик.
+   */
+  const visibleTabs = tabs.filter(
+    (item) => can(item.section) && (legacyModulesEnabled() || !isLegacySection(item.section)),
+  );
   // Вкладка раздела, закрытого роли, по ссылке не открывается — показываем сводку
   const tab: TabId = visibleTabs.some((item) => item.id === requested) ? requested : "summary";
   const screen = useScreenState({
@@ -256,7 +263,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link
           to="/projects"
-          className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-[var(--r-xs)] text-caption text-text-3 transition-fast hover:text-text"
+          className="focus-ring inline-flex min-h-12 items-center gap-1.5 rounded-[var(--r-xs)] text-caption text-text-3 transition-fast hover:text-text"
         >
           <ArrowLeft className="size-3.5" /> Все объекты
         </Link>
@@ -484,7 +491,7 @@ function UploadDialog({
                   if (value === "revision") setFiles((list) => list.slice(0, 1));
                 }}
                 className={cn(
-                  "focus-ring min-h-11 rounded-[var(--r-md)] border px-3 py-2 text-left transition-fast",
+                  "focus-ring min-h-12 rounded-[var(--r-md)] border px-3 py-2 text-left transition-fast",
                   target === value
                     ? "border-line-2 bg-surface-3"
                     : "border-line bg-surface-2 hover:border-line-2",

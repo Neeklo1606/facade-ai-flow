@@ -284,7 +284,7 @@ export function CreateRfqDialog({
                   <ul className="divide-y divide-border rounded-[var(--r-md)] border border-border">
                     {eligible.map((item) => (
                       <li key={item.id}>
-                        <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 hover:bg-hover">
+                        <label className="flex min-h-12 cursor-pointer items-center gap-3 px-3 py-2 hover:bg-hover">
                           <Checkbox
                             checked={selected.has(item.id)}
                             onCheckedChange={(v) =>
@@ -359,7 +359,7 @@ export function CreateRfqDialog({
                     aria-pressed={templateId === template.id}
                     onClick={() => pickTemplate(template.id)}
                     className={cn(
-                      "min-h-11 rounded-[var(--r-md)] border px-3 py-2 text-left text-[13px] transition-fast",
+                      "min-h-12 rounded-[var(--r-md)] border px-3 py-2 text-left text-[13px] transition-fast",
                       templateId === template.id
                         ? "border-line-2 bg-surface-3 font-medium"
                         : "border-border hover:bg-hover",
@@ -410,7 +410,7 @@ export function CreateRfqDialog({
                     aria-pressed={id === currentPreview}
                     onClick={() => setPreviewFor(id)}
                     className={cn(
-                      "min-h-11 shrink-0 rounded-full border px-3 text-[13px] lg:min-h-8",
+                      "min-h-12 shrink-0 rounded-full border px-3 text-[13px] lg:min-h-8",
                       id === currentPreview
                         ? "border-ink bg-ink text-primary-foreground"
                         : "border-border text-text-secondary hover:bg-hover",

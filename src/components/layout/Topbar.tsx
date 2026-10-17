@@ -106,7 +106,7 @@ export function Topbar() {
           {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
           {dataSource === "demo" && (
             <span
-              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[11px] leading-none font-medium text-text-2"
+              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[13px] leading-none font-medium text-text-2"
               title={DEMO_ONLY_NOTES.mark.text}
             >
               {/* Видимая метка — отдельным элементом: её ищет проверка честности */}
@@ -157,7 +157,8 @@ export function Topbar() {
           className="header-search focus-ring hidden xl:flex"
         >
           <Search strokeWidth={1.5} />
-          <span className="min-w-0 flex-1 truncate text-left">Поиск по системе</span>
+          {/* Поле ГАЙКИ в шапке — пока только поиск: микрофон приходит в G4 (ADR-034, п. 2) */}
+          <span className="min-w-0 flex-1 truncate text-left">Найти в системе</span>
           <kbd className="kbd">Ctrl K</kbd>
         </button>
         <button

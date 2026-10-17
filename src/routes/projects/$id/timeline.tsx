@@ -312,7 +312,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
                             {event.link && canOpen(event.link.to) && (
                               <Link
                                 to={event.link.to}
-                                className="mt-1.5 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-info hover:underline lg:min-h-0"
+                                className="mt-1.5 inline-flex min-h-12 items-center gap-1 text-[13px] font-medium text-info hover:underline lg:min-h-0"
                               >
                                 {event.link.label} <ArrowRight className="size-3.5" />
                               </Link>
@@ -464,7 +464,7 @@ function DecisionCard({
         {decision.link && canOpenLink(decision.link.to) && (
           <Link
             to={decision.link.to}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1 text-caption font-medium text-info hover:underline lg:min-h-0"
+            className="inline-flex min-h-12 shrink-0 items-center gap-1 text-caption font-medium text-info hover:underline lg:min-h-0"
           >
             {decision.link.label} <ArrowRight className="size-3" />
           </Link>

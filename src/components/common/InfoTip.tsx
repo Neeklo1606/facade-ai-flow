@@ -26,7 +26,7 @@ export function InfoTip({
           type="button"
           aria-label={label}
           className={cn(
-            "focus-ring inline-grid size-11 shrink-0 place-items-center rounded-[var(--r-xs)] text-text-muted hover:text-text-primary lg:size-6",
+            "focus-ring inline-grid size-12 shrink-0 place-items-center rounded-[var(--r-xs)] text-text-muted hover:text-text-primary lg:size-6",
             className,
           )}
         >

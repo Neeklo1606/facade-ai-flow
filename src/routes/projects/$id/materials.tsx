@@ -156,7 +156,7 @@ function CounterLink({
         на телефоне цель 44 px, иначе в перчатке попадёшь в соседний счётчик. На широком экране
         строка остаётся строкой подписи.
       */
-      className="focus-ring inline-flex min-h-11 items-center rounded-[var(--r-xs)] px-1 transition-fast is-hover:text-text md:min-h-0 md:px-0.5"
+      className="focus-ring inline-flex min-h-12 items-center rounded-[var(--r-xs)] px-1 transition-fast is-hover:text-text md:min-h-0 md:px-0.5"
     >
       {label} <b className="tnum font-semibold text-text-primary">{fmtNum(value)}</b>
     </button>
@@ -733,7 +733,7 @@ function MobileGroup({
               className={cn("flex gap-1 pr-4", selected.has(item.id) && "bg-surface-2")}
             >
               {selectable ? (
-                <label className="grid min-h-11 w-12 shrink-0 cursor-pointer place-items-center self-stretch">
+                <label className="grid min-h-12 w-12 shrink-0 cursor-pointer place-items-center self-stretch">
                   <Checkbox
                     checked={selected.has(item.id)}
                     onCheckedChange={(v) => onToggle(item, v === true)}
@@ -779,7 +779,7 @@ function MobileGroup({
                   to="/projects/$id/documents/$docId"
                   params={{ id: projectId, docId: item.documentId }}
                   search={{ position: item.id }}
-                  className="grid size-11 shrink-0 place-items-center self-center rounded-[var(--r-sm)] text-info"
+                  className="grid size-12 shrink-0 place-items-center self-center rounded-[var(--r-sm)] text-info"
                   aria-label={`Лист ${item.sheetNumber}`}
                 >
                   <FileText className="size-4" />
@@ -836,7 +836,7 @@ function MaterialRow({
     >
       <td className="pl-4" onClick={(e) => e.stopPropagation()}>
         {selectable && (
-          <label className="grid min-h-11 cursor-pointer place-items-center lg:min-h-0">
+          <label className="grid min-h-12 cursor-pointer place-items-center lg:min-h-0">
             <Checkbox
               checked={selected}
               onCheckedChange={(value) => onToggle(item, value === true)}
@@ -902,7 +902,7 @@ function MaterialRow({
             params={{ id: projectId, docId: item.documentId }}
             search={{ position: item.id }}
             title="Открыть позицию в документе"
-            className="focus-ring inline-flex h-11 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[12px] whitespace-nowrap text-info transition-fast hover:bg-info-bg lg:h-6"
+            className="focus-ring inline-flex h-12 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[12px] whitespace-nowrap text-info transition-fast hover:bg-info-bg lg:h-6"
           >
             <FileText className="size-3" /> л. {item.sheetNumber}
           </Link>

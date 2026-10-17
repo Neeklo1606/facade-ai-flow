@@ -1,9 +1,10 @@
 import { expect, expectA11y, open, test } from "./fixtures";
 
 /**
- * Нижняя панель (ADR-026). Проверяется то, что правило одного оранжевого по содержимому
- * не проверяет: панель — хром, и внутри неё пятно должно быть ровно одно — кнопка «+».
- * Плюс набор позиций по роли и активная позиция без акцентного цвета.
+ * Нижняя панель (ADR-026, карта ГАЙКИ — ADR-034, п. 1). Проверяется то, что правило одного
+ * оранжевого по содержимому не проверяет: панель — хром, и внутри неё пятно должно быть ровно
+ * одно — кнопка записи. Плюс набор позиций: он одинаков для всех ролей, меняется только
+ * первая, и активная позиция обходится без акцентного цвета.
  */
 
 /** Сколько оранжевых пятен внутри панели и какого цвета активная позиция */
@@ -73,13 +74,15 @@ test.describe("нижняя панель @mobile", () => {
       const state = await panel(page);
       expect(state, "панель не найдена").not.toBeNull();
       expect(state!.height).toBeGreaterThanOrEqual(64);
-      // Обзор, Закупки, «+», Объект, Ещё — таблица целевой карты (ADR-026, поправка)
+      // Обзор, Объект, кнопка записи, Входящие, Ещё — карта ГАЙКИ (ADR-034, п. 1)
       expect(state!.labels).toHaveLength(5);
       expect(state!.labels.join(" ")).toContain("Обзор");
-      expect(state!.labels.join(" ")).toContain("Закупки");
+      expect(state!.labels.join(" ")).toContain("Входящие");
+      // Модулей прежнего контура в панели нет: они за флагом (ADR-034, п. 4)
+      expect(state!.labels.join(" ")).not.toContain("Закупки");
       expect(state!.labels.join(" ")).not.toContain("Документ");
-      // Пятно ровно одно, и это «+»
-      expect(state!.orange).toEqual(["Создать"]);
+      // Пятно ровно одно, и это кнопка записи
+      expect(state!.orange).toEqual(["Записать факт"]);
       expect(state!.activeOrange).toBe(false);
       expect(state!.small).toEqual([]);
       await expectA11y(page, "нижняя панель");
@@ -91,6 +94,8 @@ test.describe("нижняя панель @mobile", () => {
       const sheet = page.getByRole("dialog");
       await expect(sheet).toBeVisible();
       const text = await sheet.innerText();
+      // Прогон идёт с включённым флагом legacy_modules: действия модулей на месте.
+      // Что видно без флага, проверяет legacy.spec.ts
       expect(text).toContain("Запрос поставщикам");
       expect(text).toContain("Поставщик");
       // Голоса и бота в продукте нет — в шторке их тоже быть не должно
@@ -110,14 +115,14 @@ test.describe("нижняя панель @mobile", () => {
     test("прорабу не предлагается закрытый раздел @mobile", async ({ page }) => {
       await open(page, "/projects/p-korona/field-reports");
       const state = await panel(page);
-      // Сегодня, Поставки, «+», Отчёты, Ещё
+      // Сегодня, Объект, кнопка записи, Входящие, Ещё
       expect(state!.labels.join(" ")).toContain("Сегодня");
-      expect(state!.labels.join(" ")).toContain("Отчёты");
+      expect(state!.labels.join(" ")).toContain("Входящие");
       expect(state!.labels.join(" ")).not.toContain("Документ");
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       // Первая позиция — рабочий экран роли: панель начинается там же, где начинается день
       expect(state!.labels[0]).toBe("Сегодня");
-      expect(state!.orange).toEqual(["Создать"]);
+      expect(state!.orange).toEqual(["Записать факт"]);
     });
   });
 

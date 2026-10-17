@@ -128,7 +128,7 @@ export function RolePicker() {
             );
           })}
         </ul>
-        <p className="mt-4 text-[12px] leading-[1.45] text-text-3">
+        <p className="mt-4 text-[13px] leading-[1.45] text-text-3">
           Роль задаёт стартовый экран и сценарий подсказок. Сменить её можно в карточке пользователя
           внизу меню.
         </p>

@@ -852,34 +852,6 @@
     padding: var(--shell-gap);
   }
 }
-/* Одно размытое пятно поверх фона окна, левый нижний угол */
-/* Обёртка свечения: зерно рисуется поверх пятна, поэтому blur его не размывает */
-@utility app-glow {
-  /* На телефоне фонового свечения нет: blur дорогой, а оболочка во весь экран */
-  display: none;
-  @media (min-width: 768px) {
-    display: block;
-  }
-  position: fixed;
-  left: -12vw;
-  bottom: -12vw;
-  z-index: 0;
-  width: 50vw;
-  height: 50vw;
-  border-radius: 50%;
-  pointer-events: none;
-}
-@utility app-glow-shape {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: var(--ember-field);
-  opacity: 0.5;
-  /* blur только с планшета: на телефоне свечения нет вообще */
-  @media (min-width: 768px) {
-    filter: blur(180px);
-  }
-}
 @utility app-shell {
   position: relative;
   z-index: 1;
@@ -944,7 +916,7 @@
   align-items: center;
   gap: 6px;
   padding: 22px 12px 8px;
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   line-height: 1.4;
   font-weight: 400;
   color: var(--text-3);
@@ -1001,7 +973,7 @@
   padding-inline: 7px;
   border-radius: var(--r-pill);
   background: var(--surface-3);
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   line-height: 1;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -1029,7 +1001,7 @@
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   font-weight: 500;
   & svg {
     width: 12px;
@@ -1099,9 +1071,9 @@
 }
 @utility icon-button {
   display: grid;
-  /* 44px до 1024px: палец должен попадать в «Меню» и «Поиск» (находка ревью LOW) */
-  width: 44px;
-  height: 44px;
+  /* 48px до 1024px: минимальная область нажатия ГАЙКИ (правило 6, ADR-034, п. 6) */
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   place-items: center;
   border-radius: var(--r-sm);
@@ -1199,11 +1171,15 @@
   box-shadow: none;
 }
 @utility segment {
-  min-height: 36px;
+  /* Сегмент на телефоне — область нажатия 48 px, на десктопе ряд плотнее (ADR-034, п. 6) */
+  min-height: 48px;
   padding: 0 12px;
+  @media (min-width: 1024px) {
+    min-height: 36px;
+  }
   border-radius: var(--r-sm);
   color: var(--text-3);
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   &:hover {
     color: var(--text);
   }
@@ -1376,7 +1352,6 @@
   }
 
   /* Оболочка на листе не нужна */
-  .app-glow,
   [data-sidebar="app"],
   .content-header,
   [data-print="hide"],

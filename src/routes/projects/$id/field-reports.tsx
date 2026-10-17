@@ -274,7 +274,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
           <ol ref={feed} className="space-y-5">
             {days.map(([day, list]) => (
               <li key={day}>
-                <h2 className="mb-2 text-[12px] font-semibold text-text-secondary">
+                <h2 className="mb-2 text-[13px] font-semibold text-text-secondary">
                   {fmtDayTitle(day, now)}
                 </h2>
                 <ol className="space-y-3">
@@ -403,7 +403,7 @@ function ReportCard({
                   to="/projects/$id"
                   params={{ id: report.projectId }}
                   search={{ tab: "progress" }}
-                  className="focus-ring inline-flex min-h-11 items-center rounded-[var(--r-xs)] text-caption text-text-muted underline-offset-2 transition-fast is-hover:text-text-2 is-hover:underline lg:min-h-0"
+                  className="focus-ring inline-flex min-h-12 items-center rounded-[var(--r-xs)] text-caption text-text-muted underline-offset-2 transition-fast is-hover:text-text-2 is-hover:underline lg:min-h-0"
                 >
                   {zone.name}
                 </Link>
@@ -483,7 +483,7 @@ function ReportCard({
                 inputMode="decimal"
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
-                className="tnum h-11 w-28 lg:h-9"
+                className="tnum h-12 w-28 lg:h-9"
                 aria-label={`Принятый объём, ${report.unit}`}
               />
               <span className="text-caption text-text-muted">{report.unit}</span>

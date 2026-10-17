@@ -14,7 +14,7 @@ export function MobileActionBar({ children }: { children: ReactNode }) {
   return (
     <>
       <div className="h-[84px] lg:hidden" aria-hidden />
-      <div className="fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+20px)] z-30 flex gap-2 border-t border-line bg-base px-4 py-2 lg:hidden [&>*]:min-h-11 [&>*]:flex-1">
+      <div className="fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+20px)] z-30 flex gap-2 border-t border-line bg-base px-4 py-2 lg:hidden [&>*]:min-h-12 [&>*]:flex-1">
         {children}
       </div>
     </>

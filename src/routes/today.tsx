@@ -20,6 +20,8 @@ import { prefetch } from "@/api/prefetch";
 import { deliveryStatusLabel, reportStatusLabel } from "@/contracts";
 import { fmtDate, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
+import { AmbientField } from "@/components/gaika";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { useProjectId } from "@/lib/project-scope";
 import type { TodayDelivery, TodayReturn, TodayWork } from "@/api/types";
 
@@ -71,6 +73,11 @@ function TodayPage() {
 
   return (
     <>
+      {/*
+        Цветовое поле ГАЙКИ (дизайн-система, раздел 8): единственный большой градиент кадра.
+        Оно же показывает состояние разбора, когда разбор появится в G3.
+      */}
+      <AmbientField className="-mx-[var(--content-pad)] -mt-4" />
       <PageHeader
         title="Сегодня"
         actions={
@@ -135,27 +142,30 @@ function TodayPage() {
             )}
           </WidgetCard>
 
-          <WidgetCard>
-            <WidgetCardHeader
-              level={2}
-              icon={PackageCheck}
-              title="Ожидаются поставки"
-              hint="по дате прибытия"
-              aside={<CountPill>{fmtNum(today.deliveries.length)}</CountPill>}
-            />
-            {today.deliveries.length ? (
-              <ul className="mt-2 divide-y divide-line">
-                {today.deliveries.map((delivery) => (
-                  <DeliveryRow key={delivery.id} delivery={delivery} />
-                ))}
-              </ul>
-            ) : (
-              <EmptyState
-                title="Поставок в пути нет"
-                description="Здесь появятся поставки, по которым выбран поставщик и назначена дата."
+          {/* Поставки — модуль за флагом legacy_modules (ADR-034, п. 4) */}
+          {legacyModulesEnabled() && (
+            <WidgetCard>
+              <WidgetCardHeader
+                level={2}
+                icon={PackageCheck}
+                title="Ожидаются поставки"
+                hint="по дате прибытия"
+                aside={<CountPill>{fmtNum(today.deliveries.length)}</CountPill>}
               />
-            )}
-          </WidgetCard>
+              {today.deliveries.length ? (
+                <ul className="mt-2 divide-y divide-line">
+                  {today.deliveries.map((delivery) => (
+                    <DeliveryRow key={delivery.id} delivery={delivery} />
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  title="Поставок в пути нет"
+                  description="Здесь появятся поставки, по которым выбран поставщик и назначена дата."
+                />
+              )}
+            </WidgetCard>
+          )}
 
           {today.returned.length > 0 && (
             <WidgetCard>
@@ -213,7 +223,7 @@ function WorkRow({ work }: { work: TodayWork }) {
           </div>
           <div className="shrink-0 text-right">
             <div className="tnum text-[20px] leading-none font-semibold">{fmtNum(work.qty)}</div>
-            <div className="mt-1 text-[12px] text-text-3">{work.unit}</div>
+            <div className="mt-1 text-[13px] text-text-3">{work.unit}</div>
           </div>
         </div>
         <div className="mt-2">
@@ -287,7 +297,7 @@ function ReturnRow({ row }: { row: TodayReturn }) {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[12px] leading-none text-text-2">
+    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
       {children}
     </span>
   );

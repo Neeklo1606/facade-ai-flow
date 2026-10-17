@@ -231,11 +231,11 @@ export function TeamTab({ project }: { project: Project }) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[12px] text-text-3">Объектов в работе</p>
+                <p className="text-[13px] text-text-3">Объектов в работе</p>
                 <p className="tnum mt-0.5 text-[14px] text-text">{fmtNum(person.projectCount)}</p>
               </div>
               <div>
-                <p className="text-[12px] text-text-3">Последний отчёт</p>
+                <p className="text-[13px] text-text-3">Последний отчёт</p>
                 <p className="mt-0.5 text-[14px] text-text">
                   {person.lastReport
                     ? `${fmtAgoFrom(person.lastReport.at, now)} · ${person.lastReport.zoneName}`
@@ -281,7 +281,7 @@ function PersonRow({
         type="button"
         onClick={onOpen}
         aria-label={`Открыть карточку: ${row.name}`}
-        className="focus-ring flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left after:absolute after:inset-0 after:content-['']"
+        className="focus-ring flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left after:absolute after:inset-0 after:content-['']"
       >
         <InitialsAvatar name={row.name} />
         <span className="min-w-0 flex-1">
@@ -293,7 +293,7 @@ function PersonRow({
             {row.crewName ? ` · ${row.crewName}` : ""}
           </span>
         </span>
-        <span className="hidden shrink-0 text-right text-[12px] text-text-3 lg:block">
+        <span className="hidden shrink-0 text-right text-[13px] text-text-3 lg:block">
           {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : gap ? "—" : "без отчётов"}
         </span>
       </button>
@@ -400,7 +400,7 @@ function CrewCard({
             to="/projects/$id/field-reports"
             params={{ id: projectId }}
             search={{ zone: crew.lastZone.id }}
-            className="focus-ring inline-flex min-h-11 min-w-0 items-center gap-1.5 text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+            className="focus-ring inline-flex min-h-12 min-w-0 items-center gap-1.5 text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
           >
             <span className="truncate">{crew.lastZone.name}</span>
             <ArrowRight className="size-3.5 shrink-0" aria-hidden />

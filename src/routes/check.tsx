@@ -24,6 +24,7 @@ import type { ReportCard } from "@/api/types";
 import { sourceKindLabel } from "@/contracts";
 import { fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { useProjectId } from "@/lib/project-scope";
 import { useSwipe } from "@/hooks/use-swipe";
 import { toast, toastRetry, toastUndo } from "@/lib/toast";
@@ -66,7 +67,10 @@ function CheckPage() {
   const screen = useScreenState({
     pending: data.pending,
     error: data.error,
-    empty: !data.pending && data.queue.length === 0 && data.positions.length === 0,
+    empty:
+      !data.pending &&
+      data.queue.length === 0 &&
+      (!legacyModulesEnabled() || data.positions.length === 0),
   });
 
   return (
@@ -80,7 +84,8 @@ function CheckPage() {
         </span>
       </PageCaption>
 
-      {can("documents") && (
+      {/* Позиции спецификации живут в документации — модуле за флагом (ADR-034, п. 4) */}
+      {can("documents") && legacyModulesEnabled() && (
         <div className="mb-4">
           <PillTabs
             label="Что проверяем"
@@ -116,7 +121,7 @@ function CheckPage() {
           },
         }}
       >
-        {tab === "positions" ? (
+        {tab === "positions" && legacyModulesEnabled() ? (
           <PositionsTab rows={data.positions} />
         ) : (
           <FactsTab rows={data.queue} />
@@ -239,7 +244,7 @@ function FactCard({
             <div className="tnum text-[24px] leading-none font-semibold">
               {fmtNum(report.declaredQty ?? 0)}
             </div>
-            <div className="mt-1 text-[12px] text-text-3">{report.unit}</div>
+            <div className="mt-1 text-[13px] text-text-3">{report.unit}</div>
           </div>
         </div>
 
@@ -282,7 +287,7 @@ function FactCard({
         >
           <div className="space-y-4 p-4 pt-0">
             <label className="block">
-              <span className="text-[12px] text-text-3">Объём, {report.unit}</span>
+              <span className="text-[13px] text-text-3">Объём, {report.unit}</span>
               <Input
                 autoFocus
                 inputMode="decimal"
@@ -349,7 +354,7 @@ function PositionsTab({
             >
               <span className="min-w-0">
                 <span className="block truncate text-card-title">{row.projectName}</span>
-                <span className="mt-1 block text-[12px] text-text-3">
+                <span className="mt-1 block text-[13px] text-text-3">
                   из {fmtNum(row.total)} {plural(row.total, "позиции", "позиций", "позиций")}
                 </span>
               </span>
@@ -366,7 +371,7 @@ function PositionsTab({
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[12px] leading-none text-text-2">
+    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
       {children}
     </span>
   );

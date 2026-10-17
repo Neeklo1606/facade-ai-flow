@@ -607,7 +607,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           to="/projects/$id/documents"
           params={{ id: project.id }}
           aria-label="К документации"
-          className="focus-ring grid size-11 shrink-0 place-items-center rounded-full text-text-secondary transition-fast hover:bg-hover hover:text-text-primary lg:size-8"
+          className="focus-ring grid size-12 shrink-0 place-items-center rounded-full text-text-secondary transition-fast hover:bg-hover hover:text-text-primary lg:size-8"
         >
           <ArrowLeft className="size-4" />
         </Link>
@@ -642,7 +642,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               aria-selected={mobilePanel === tab.id}
               onClick={() => setMobilePanel(tab.id)}
               className={cn(
-                "segment min-h-11 flex-1 items-center justify-center gap-1.5 text-[12px] lg:min-h-8",
+                "segment min-h-12 flex-1 items-center justify-center gap-1.5 text-[12px] lg:min-h-8",
                 mobilePanel === tab.id && "segment-active",
               )}
             >
@@ -821,7 +821,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="mt-3 h-11 w-full lg:h-8"
+                      className="mt-3 h-12 w-full lg:h-8"
                       disabled={autoVerified === 0}
                       onClick={confirmAllVerified}
                     >
@@ -837,7 +837,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-11 flex-1 lg:h-8"
+                        className="h-12 flex-1 lg:h-8"
                         onClick={() => setCreateOpen(true)}
                       >
                         <Plus className="size-4" /> Позиция
@@ -845,7 +845,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-11 flex-1 lg:h-8"
+                        className="h-12 flex-1 lg:h-8"
                         onClick={() => setImportOpen(true)}
                       >
                         <Upload className="size-4" /> Из Excel
@@ -869,7 +869,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                         aria-pressed={filter === key}
                         onClick={() => setFilter(key)}
                         className={cn(
-                          "focus-ring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] transition-fast lg:h-7",
+                          "focus-ring inline-flex h-12 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] transition-fast lg:h-7",
                           filter === key
                             ? "bg-ink text-primary-foreground"
                             : "text-text-secondary hover:bg-hover",
@@ -905,7 +905,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-11 px-2 lg:h-7"
+                      className="h-12 px-2 lg:h-7"
                       onClick={() => setMergeSourceId(null)}
                     >
                       <X className="size-3.5" /> Отмена
@@ -975,7 +975,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                         <Link
                           to="/projects/$id/materials"
                           params={{ id: project.id }}
-                          className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline lg:min-h-0"
+                          className="inline-flex min-h-12 items-center font-medium underline-offset-2 hover:underline lg:min-h-0"
                         >
                           Открыть материалы
                         </Link>

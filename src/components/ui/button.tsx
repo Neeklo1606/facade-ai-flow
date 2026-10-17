@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * size="icon" — иконочная 38px. Градиентных кнопок нет.
  */
 const buttonVariants = cva(
-  "inline-flex max-w-full items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-sm)] text-[14px] leading-none font-medium cursor-pointer border border-transparent transition-fast focus-ring disabled:pointer-events-none disabled:shadow-none disabled:opacity-45 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex max-w-full items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-sm)] text-[15px] leading-none font-medium lg:text-[14px] cursor-pointer border border-transparent transition-fast focus-ring disabled:pointer-events-none disabled:shadow-none disabled:opacity-45 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -27,11 +27,15 @@ const buttonVariants = cva(
         destructive: "bg-transparent text-danger is-hover:bg-danger-bg",
         link: "text-text underline-offset-4 is-hover:underline",
       },
+      /*
+       * Высоты телефона: 48 px — минимальная область нажатия ГАЙКИ (правило 6, ADR-034, п. 6).
+       * На десктопе мышь точнее, там ряд плотнее: 40, 36 и 38 px.
+       */
       size: {
-        default: "h-11 px-5 lg:h-10",
-        sm: "h-11 px-4 text-[13px] lg:h-9",
-        lg: "h-11 px-6",
-        icon: "size-11 rounded-[var(--r-sm)] lg:size-[38px]",
+        default: "h-12 px-5 lg:h-10",
+        sm: "h-12 px-4 text-[13px] lg:h-9",
+        lg: "h-12 px-6",
+        icon: "size-12 rounded-[var(--r-sm)] lg:size-[38px]",
       },
     },
     defaultVariants: {

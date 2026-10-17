@@ -1,4 +1,5 @@
 import type { EmployeeRole } from "@/contracts";
+import { isLegacyPath, isLegacySection, legacyModulesEnabled } from "@/lib/legacy-modules";
 import { extractsDocuments, uploadActionLabel } from "@/lib/contour-copy";
 
 /**
@@ -336,16 +337,31 @@ export const helpArticles: HelpArticle[] = [
   },
 ];
 
+/**
+ * Статьи, которые видно в этом контуре (ADR-034, п. 4). Справка о модуле за флагом учит
+ * экрану, которого в продукте сейчас нет, и ведёт по адресу, который перенаправляет:
+ * это то самое обещание, которое запрещает правило 4.
+ */
+export function visibleHelpArticles(): HelpArticle[] {
+  if (legacyModulesEnabled()) return helpArticles;
+  return helpArticles.filter(
+    (article) =>
+      !isLegacySection(article.screen) &&
+      !article.steps.some((step) => step.to && isLegacyPath(step.to)),
+  );
+}
+
 /** Статья, которая учит работать с этим экраном; null — общей статьи для экрана нет */
 export function articleForScreen(screenKey: string): HelpArticle | null {
-  return helpArticles.find((article) => article.screen === screenKey) ?? null;
+  return visibleHelpArticles().find((article) => article.screen === screenKey) ?? null;
 }
 
 /** Поиск по заголовку, цели, шагам и ключевым словам */
 export function searchHelp(query: string): HelpArticle[] {
   const text = query.trim().toLowerCase();
-  if (!text) return helpArticles;
-  return helpArticles.filter((article) =>
+  const articles = visibleHelpArticles();
+  if (!text) return articles;
+  return articles.filter((article) =>
     [
       article.title,
       article.goal,

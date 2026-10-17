@@ -477,20 +477,20 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
       <thead>
         <tr className="h-10 bg-subtle text-left">
           <th className="w-[3px] p-0" aria-hidden />
-          <th className="px-3 text-[11px] font-medium text-text-muted">Объект</th>
-          <th className="px-2.5 text-[11px] font-medium text-text-muted">Регион</th>
-          <th className="px-2.5 text-[11px] font-medium text-text-muted">Заказчик</th>
-          <th className="px-2.5 text-[11px] font-medium text-text-muted">Ответственный</th>
+          <th className="px-3 text-[13px] font-medium text-text-muted">Объект</th>
+          <th className="px-2.5 text-[13px] font-medium text-text-muted">Регион</th>
+          <th className="px-2.5 text-[13px] font-medium text-text-muted">Заказчик</th>
+          <th className="px-2.5 text-[13px] font-medium text-text-muted">Ответственный</th>
           {numericHeaders.map((header) => (
             <th
               key={header.label}
               title={header.title}
-              className="px-2 text-right text-[11px] font-medium whitespace-nowrap text-text-muted"
+              className="px-2 text-right text-[13px] font-medium whitespace-nowrap text-text-muted"
             >
               {header.label}
             </th>
           ))}
-          <th className="px-3 text-[11px] font-medium text-text-muted">Статус</th>
+          <th className="px-3 text-[13px] font-medium text-text-muted">Статус</th>
         </tr>
       </thead>
       <tbody>

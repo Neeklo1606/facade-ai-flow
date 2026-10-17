@@ -113,7 +113,7 @@ function CatalogsPage() {
             onClick={() => setCategoryId(null)}
             aria-current={categoryId === null ? "true" : undefined}
             className={cn(
-              "focus-ring flex min-h-11 w-full items-center justify-between rounded-[var(--r-sm)] px-3 text-left text-[13px] lg:min-h-9",
+              "focus-ring flex min-h-12 w-full items-center justify-between rounded-[var(--r-sm)] px-3 text-left text-[13px] lg:min-h-9",
               categoryId === null ? "bg-surface-2 text-text" : "text-text-2 hover:bg-surface-2",
             )}
           >
@@ -151,7 +151,7 @@ function CatalogsPage() {
                       <button
                         type="button"
                         onClick={() => setCategory({ item: null, parentId: top.id })}
-                        className="focus-ring flex min-h-11 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-[13px] text-text-3 hover:bg-surface-2 lg:min-h-9"
+                        className="focus-ring flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-[13px] text-text-3 hover:bg-surface-2 lg:min-h-9"
                       >
                         <Plus className="size-3.5" aria-hidden /> Подкатегория
                       </button>
@@ -165,7 +165,7 @@ function CatalogsPage() {
             <button
               type="button"
               onClick={() => setCategory({ item: null, parentId: null })}
-              className="focus-ring mt-1 flex min-h-11 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-[13px] text-text-2 hover:bg-surface-2 lg:min-h-9"
+              className="focus-ring mt-1 flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-[13px] text-text-2 hover:bg-surface-2 lg:min-h-9"
             >
               <Plus className="size-4" aria-hidden /> Категория верхнего уровня
             </button>
@@ -184,7 +184,7 @@ function CatalogsPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Название, синоним или написание в проекте"
-                className="focus-ring h-11 w-full rounded-[var(--r-md)] border border-line bg-surface-2 pr-3 pl-9 text-[14px] text-text placeholder:text-text-3"
+                className="focus-ring h-12 w-full rounded-[var(--r-md)] border border-line bg-surface-2 pr-3 pl-9 text-[14px] text-text placeholder:text-text-3"
               />
             </label>
             {/* Журнал доступен на любой ширине: в шапке экрана его на телефоне не видно */}
@@ -213,7 +213,7 @@ function CatalogsPage() {
                 <table className="w-full text-table">
                   <caption className="sr-only">Номенклатура материалов</caption>
                   <thead>
-                    <tr className="h-10 border-b border-line text-left text-[12px] text-text-3">
+                    <tr className="h-10 border-b border-line text-left text-[13px] text-text-3">
                       <th scope="col" className="px-4 font-normal">
                         Наименование
                       </th>
@@ -340,20 +340,20 @@ function CategoryButton({
         onClick={onClick}
         aria-current={active ? "true" : undefined}
         className={cn(
-          "focus-ring grid min-h-11 flex-1 grid-cols-[1fr_auto] items-center gap-x-2 rounded-[var(--r-sm)] px-3 py-1 text-left text-[13px] lg:min-h-9",
+          "focus-ring grid min-h-12 flex-1 grid-cols-[1fr_auto] items-center gap-x-2 rounded-[var(--r-sm)] px-3 py-1 text-left text-[13px] lg:min-h-9",
           active ? "bg-surface-2 text-text" : "text-text-2 hover:bg-surface-2",
         )}
       >
         <span>{label}</span>
         <span className="tnum text-text-3">{fmtNum(count)}</span>
-        {hint && <span className="col-span-2 text-[11px] text-text-3">{hint}</span>}
+        {hint && <span className="col-span-2 text-[13px] text-text-3">{hint}</span>}
       </button>
       {onEdit && (
         <button
           type="button"
           onClick={onEdit}
           aria-label={`Изменить категорию «${label}»`}
-          className="focus-ring grid size-11 shrink-0 place-items-center rounded-[var(--r-sm)] text-text-3 hover:bg-surface-2 hover:text-text-2 lg:size-8"
+          className="focus-ring grid size-12 shrink-0 place-items-center rounded-[var(--r-sm)] text-text-3 hover:bg-surface-2 hover:text-text-2 lg:size-8"
         >
           <Pencil className="size-3.5" aria-hidden />
         </button>

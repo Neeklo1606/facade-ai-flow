@@ -288,12 +288,12 @@ function ConfirmationCard({
             <dt className="shrink-0 text-[13px] text-text-3">{label}</dt>
             <dd className="min-w-0 text-right">
               <span className="block text-[14px] text-text">{text}</span>
-              <span className="block text-[11px] text-text-3">{source}</span>
+              <span className="block text-[13px] text-text-3">{source}</span>
             </dd>
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-[12px] leading-[1.45] text-text-3">
+      <p className="mt-3 text-[13px] leading-[1.45] text-text-3">
         Отчёт в ленте со статусом «На проверке»: объём принимает руководитель или ПТО.
       </p>
       <div className="mt-4 flex gap-2">
@@ -356,7 +356,7 @@ export function MoreSheet({
         })}
 
         <div className="mt-2 border-t border-line pt-2">
-          <p className="px-3 pb-1 text-[12px] leading-[1.4] text-text-3">Тема оформления</p>
+          <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Тема оформления</p>
           <div className="grid grid-cols-3 gap-1 px-1">
             {themeChoices.map((choice) => (
               <button
@@ -380,7 +380,7 @@ export function MoreSheet({
         {/* Роль в демонстрации меняют здесь же: в рабочем контуре её даёт учётная запись */}
         {dataSource === "demo" && personas.length > 0 && (
           <div className="mt-2 border-t border-line pt-2">
-            <p className="px-3 pb-1 text-[12px] leading-[1.4] text-text-3">Роль в демонстрации</p>
+            <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Роль в демонстрации</p>
             {personas.map((person) => (
               <SheetRow
                 key={person.id}

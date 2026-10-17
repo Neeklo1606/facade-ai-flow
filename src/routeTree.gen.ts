@@ -20,6 +20,7 @@ import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LoginRouteImport } from './routes/login'
@@ -99,6 +100,11 @@ const DesignSystemRoute = DesignSystemRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegrationsRoute = IntegrationsRouteImport.update({
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/help': typeof HelpRoute
+  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -281,6 +288,7 @@ export interface FileRoutesByTo {
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/help': typeof HelpRoute
+  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -320,6 +328,7 @@ export interface FileRoutesById {
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/help': typeof HelpRoute
+  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/demo-stats'
     | '/design-system'
     | '/help'
+    | '/inbox'
     | '/integrations'
     | '/knowledge'
     | '/login'
@@ -398,6 +408,7 @@ export interface FileRouteTypes {
     | '/demo-stats'
     | '/design-system'
     | '/help'
+    | '/inbox'
     | '/integrations'
     | '/knowledge'
     | '/login'
@@ -436,6 +447,7 @@ export interface FileRouteTypes {
     | '/demo-stats'
     | '/design-system'
     | '/help'
+    | '/inbox'
     | '/integrations'
     | '/knowledge'
     | '/login'
@@ -475,6 +487,7 @@ export interface RootRouteChildren {
   DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
   HelpRoute: typeof HelpRoute
+  InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LoginRoute: typeof LoginRoute
@@ -579,6 +592,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/integrations': {
@@ -771,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
   HelpRoute: HelpRoute,
+  InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,
   KnowledgeRoute: KnowledgeRoute,
   LoginRoute: LoginRoute,

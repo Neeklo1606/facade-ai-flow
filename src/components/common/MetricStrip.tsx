@@ -50,7 +50,7 @@ export function DeltaPill({
   return (
     <span
       className={cn(
-        "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] leading-none font-medium whitespace-nowrap",
+        "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-[13px] leading-none font-medium whitespace-nowrap",
         effectClass[delta.effect],
         className,
       )}
@@ -107,7 +107,7 @@ export function MetricStripItem({
           <div className="flex min-w-0 items-center gap-1">
             <div
               className={cn(
-                "text-[12px] leading-[1.35] text-text-3",
+                "text-[13px] leading-[1.35] text-text-3",
                 // В полосе из трёх ячейка на 375 px шириной 95: слова переносим целиком,
                 // иначе «Просроченных ответов» ломается посреди слова. Высота подписи
                 // фиксирована в две строки, чтобы числа в соседних ячейках стояли на одной линии
@@ -143,7 +143,7 @@ export function MetricStripItem({
             {delta && !tight && <DeltaPill delta={delta} className="@3xs:hidden" />}
           </div>
           {note && (
-            <div className="mt-0.5 line-clamp-2 text-[12px] leading-[1.35] text-text-3">{note}</div>
+            <div className="mt-0.5 line-clamp-2 text-[13px] leading-[1.35] text-text-3">{note}</div>
           )}
         </div>
         {delta && !tight && <DeltaPill delta={delta} className="hidden @3xs:inline-flex" />}

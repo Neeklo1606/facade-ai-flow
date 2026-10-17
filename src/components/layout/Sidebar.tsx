@@ -227,7 +227,7 @@ function SidebarInner({
           type="button"
           onClick={onClose}
           aria-label="Закрыть меню"
-          className="focus-ring grid size-11 shrink-0 place-items-center rounded-full text-text-3 hover:bg-surface-2 hover:text-text lg:hidden"
+          className="focus-ring grid size-12 shrink-0 place-items-center rounded-full text-text-3 hover:bg-surface-2 hover:text-text lg:hidden"
         >
           <X className="size-5" strokeWidth={1.5} />
         </button>
@@ -236,7 +236,7 @@ function SidebarInner({
       {/* Селектор объекта */}
       {!collapsed && (
         <label className="scope-card mt-1 mb-4 shrink-0" title={siteLabel}>
-          <span className="block text-[12px] leading-tight text-text-2">Текущий объект</span>
+          <span className="block text-[13px] leading-tight text-text-2">Текущий объект</span>
           <select
             value={projectId ?? ALL_PROJECTS}
             onChange={(e) => changeProject(e.target.value)}
@@ -262,12 +262,12 @@ function SidebarInner({
           onClose();
           setCommandOpen(true);
         }}
-        aria-label="Поиск по системе"
-        title="Поиск по системе"
+        aria-label="Найти в системе"
+        title="Найти в системе"
         className={cn("mb-3 w-full justify-start px-3", collapsed && "lg:justify-center lg:px-0")}
       >
         <Search aria-hidden />
-        <span className={cn("text-[13px]", collapsed && "lg:hidden")}>Поиск по системе</span>
+        <span className={cn("text-[13px]", collapsed && "lg:hidden")}>Найти в системе</span>
       </Button>
 
       <nav ref={navRef} className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
@@ -420,7 +420,7 @@ function SidebarInner({
               <span className="nav-icon-circle">{initials}</span>
               <span className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
                 <span className="block truncate">{user?.name}</span>
-                <span className="block truncate text-[12px] leading-[1.35] text-text-3">
+                <span className="block truncate text-[13px] leading-[1.35] text-text-3">
                   {user?.roleLabel}
                 </span>
               </span>
@@ -435,7 +435,7 @@ function SidebarInner({
             {/* Персону выбирают только в демонстрации: в рабочем контуре роль даёт учётная
                 запись, за которую вошли (ADR-021, п. 7) */}
             {dataSource === "demo" && (
-              <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
+              <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
                 Роль в демонстрации
               </DropdownMenuLabel>
             )}
@@ -448,7 +448,7 @@ function SidebarInner({
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-medium">{person.name}</span>
-                    <span className="block truncate text-[12px] text-text-3">
+                    <span className="block truncate text-[13px] text-text-3">
                       {employeeRoleLabel[person.role]}
                     </span>
                   </span>
@@ -462,7 +462,7 @@ function SidebarInner({
                 </DropdownMenuItem>
               ))}
             <DropdownMenuSeparator />
-            <p className="px-2 py-1.5 text-[12px] leading-[1.4] text-text-3">
+            <p className="px-2 py-1.5 text-[13px] leading-[1.4] text-text-3">
               У каждой роли свои права: закрытые разделы не показываются, сервер отклоняет действия
               без права. Матрица — в разделе «Права доступа».
             </p>
@@ -477,7 +477,7 @@ function SidebarInner({
               </>
             )}
             {/* Тема здесь же: на телефоне переключателя в шапке нет (ADR-017, п. 5) */}
-            <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
+            <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
               Тема оформления
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup

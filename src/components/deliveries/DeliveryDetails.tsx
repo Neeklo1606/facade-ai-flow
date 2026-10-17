@@ -46,7 +46,7 @@ export function DeliveryDetails({
           <Link
             to="/projects/$id/procurement/$rfqId"
             params={{ id: projectId, rfqId: delivery.requestId }}
-            className="focus-ring inline-flex min-h-11 items-center rounded-[var(--r-xs)] underline-offset-2 hover:underline lg:min-h-0"
+            className="focus-ring inline-flex min-h-12 items-center rounded-[var(--r-xs)] underline-offset-2 hover:underline lg:min-h-0"
           >
             {card.requestNumber}
             {delivery.decisionId ? " · решение по сравнению" : ""}
@@ -332,7 +332,7 @@ function RemarkItem({
               placeholder="Чем решено: допоставка, скидка, возврат"
               maxLength={500}
               aria-label="Чем решено замечание"
-              className="focus-ring h-11 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
+              className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
             />
             <div className="flex gap-2">
               <Button

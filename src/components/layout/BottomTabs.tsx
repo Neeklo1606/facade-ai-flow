@@ -17,11 +17,16 @@ const PlusSheet = lazy(() => import("./sheets").then((module) => ({ default: mod
 const MoreSheet = lazy(() => import("./sheets").then((module) => ({ default: module.MoreSheet })));
 
 /**
- * Нижняя панель телефона (ADR-026): пять позиций — две слева, «+» в центре, одна справа,
- * «Ещё» последней. Набор определяется ролью таблицей в `lib/navigation.ts`.
+ * Нижняя панель телефона (ADR-026, карта ГАЙКИ — ADR-034, п. 1): пять позиций — рабочий экран
+ * роли и объект слева, кнопка записи в центре, «Входящие» справа, «Ещё» последней.
+ * Набор одинаков для всех ролей, меняется только первая позиция.
+ *
+ * Центральная кнопка называется «Записать», а не «Говорить»: записи голоса нет ни в одном
+ * контуре, и обещать её кнопкой нельзя (правило 4, ADR-034, п. 2). Имя «Говорить»
+ * и удержание для записи приходят вместе с микрофоном в G4.
  *
  * Активная позиция без оранжевого: тёмная иконка, подпись и индикатор над иконкой. Оранжевый
- * в панели один — у «+», потому что он означает действие, а не «ты здесь» (ADR-017).
+ * в панели один — у центральной кнопки, потому что он означает действие, а не «ты здесь».
  */
 export function BottomTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -75,9 +80,9 @@ export function BottomTabs() {
             <button
               type="button"
               onClick={() => setPlusOpen(true)}
-              aria-label="Создать"
+              aria-label="Записать факт"
               data-tour="nav-plus"
-              className="focus-ring -mt-5 grid size-14 place-items-center rounded-full bg-orange-strong text-on-orange shadow-[var(--glow-orange)] transition-fast active:translate-y-px"
+              className="focus-ring press bg-orange-strong text-on-orange transition-fast -mt-5 grid size-14 place-items-center rounded-full shadow-[var(--glow-ember)]"
             >
               <Plus className="size-6" strokeWidth={2} aria-hidden />
             </button>
@@ -97,7 +102,7 @@ export function BottomTabs() {
           type="button"
           onClick={() => setMoreOpen(true)}
           aria-label="Ещё: разделы, тема, справка"
-          className="focus-ring flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[11px] leading-none text-text-3 transition-fast"
+          className="focus-ring text-text-3 transition-fast flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[13px] leading-none"
         >
           <Menu className="size-6" strokeWidth={1.75} aria-hidden />
           Ещё
@@ -119,7 +124,7 @@ export function BottomTabs() {
   );
 }
 
-/** Позиция панели: иконка 24 px, подпись 11 px, цель нажатия во всю высоту панели */
+/** Позиция панели: иконка 24 px, подпись 13 px, цель нажатия во всю высоту панели */
 function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; count: number }) {
   return (
     <Link
@@ -128,7 +133,7 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
       data-tour={`nav-${item.key}`}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "focus-ring relative flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[11px] leading-none transition-fast",
+        "focus-ring transition-fast relative flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[13px] leading-none",
         active ? "font-medium text-text" : "text-text-3",
       )}
     >
@@ -145,7 +150,7 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
         {count > 0 && (
           <span
             className={cn(
-              "absolute -top-2 -right-3 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[12px] leading-none font-medium",
+              "absolute -top-2 -right-3 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[13px] leading-none font-medium",
               item.badge && CRITICAL_BADGES.includes(item.badge)
                 ? "bg-danger text-on-orange"
                 : "bg-surface-3 text-text-2",

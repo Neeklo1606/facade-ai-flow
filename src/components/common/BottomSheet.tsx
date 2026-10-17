@@ -156,7 +156,7 @@ export function SheetRow({
         >
           {label}
         </span>
-        {hint && <span className="block text-[12px] leading-[1.4] text-text-3">{hint}</span>}
+        {hint && <span className="block text-[13px] leading-[1.4] text-text-3">{hint}</span>}
       </span>
     </button>
   );

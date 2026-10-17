@@ -78,7 +78,7 @@ export function CountPill({ children, className }: { children: ReactNode; classN
   return (
     <span
       className={cn(
-        "inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-surface-3 px-2.5 text-[12px] leading-none font-medium text-text-2",
+        "inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-surface-3 px-2.5 text-[13px] leading-none font-medium text-text-2",
         className,
       )}
     >

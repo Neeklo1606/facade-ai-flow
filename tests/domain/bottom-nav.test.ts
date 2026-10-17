@@ -3,16 +3,16 @@ import { can, MATRIX_ROLES } from "@/domain/access";
 import { allNavItems, bottomNavFor, homeRouteFor, plusActionsFor } from "@/lib/navigation";
 
 /**
- * Нижняя панель (ADR-026). Проверяется то, из-за чего панель была бесполезной: набор позиций
- * не зависел от роли, и прорабу предлагалась «Проверка» — экран, которого он по матрице
- * ADR-012 не видит. Плюс граница директора: у роли нет ни одного права на запись, и кнопки
- * создания у неё быть не должно.
+ * Нижняя панель (ADR-026, карта ГАЙКИ — ADR-034, п. 1). Проверяется то, ради чего карта
+ * менялась: набор позиций один для всех ролей, меняется только первая — рабочий экран роли,
+ * и подпись этой позиции равна названию экрана. Плюс две прежние границы: в панели нет
+ * раздела, закрытого роли, и у директора нет кнопок создания — прав на запись у роли нет.
  */
 
 const PROJECT = "p-korona";
 
 describe("набор позиций по роли", () => {
-  test("у каждой роли матрицы три позиции слева и справа плюс «+» и «Ещё»", () => {
+  test("у каждой роли матрицы три позиции плюс кнопка записи и «Ещё»", () => {
     for (const role of MATRIX_ROLES) {
       const items = bottomNavFor(role, PROJECT);
       expect(items.length, role).toBe(3);
@@ -29,16 +29,18 @@ describe("набор позиций по роли", () => {
     }
   });
 
-  test("состав — таблица целевой карты (ADR-026, поправка)", () => {
+  test("набор один для всех ролей, меняется только первая позиция (ADR-034, п. 1)", () => {
     const keys = (role: Parameters<typeof bottomNavFor>[0]) =>
       bottomNavFor(role, PROJECT).map((item) => item.key);
-    expect(keys("foreman")).toEqual(["today", "deliveries", "field-reports"]);
-    expect(keys("pto")).toEqual(["check", "documents", "projects"]);
-    expect(keys("supply")).toEqual(["attention", "procurement", "projects"]);
-    expect(keys("manager")).toEqual(["attention", "projects", "procurement"]);
-    expect(keys("director")).toEqual(["attention", "projects", "procurement"]);
-    // Прорабу не предлагается проверка документов: раздел ему закрыт
-    expect(keys("foreman")).not.toContain("documents");
+    expect(keys("foreman")).toEqual(["today", "projects", "inbox"]);
+    expect(keys("pto")).toEqual(["check", "projects", "inbox"]);
+    expect(keys("supply")).toEqual(["attention", "projects", "inbox"]);
+    expect(keys("manager")).toEqual(["attention", "projects", "inbox"]);
+    expect(keys("director")).toEqual(["attention", "projects", "inbox"]);
+    // Вторая и третья позиции у всех одни и те же: это и есть «набор панели один»
+    for (const role of MATRIX_ROLES) {
+      expect(keys(role).slice(1), role).toEqual(["projects", "inbox"]);
+    }
     // Первой стоит рабочий экран роли: панель начинается там же, где начинается день
     for (const role of MATRIX_ROLES) {
       const first = bottomNavFor(role, PROJECT)[0]!;
@@ -46,10 +48,20 @@ describe("набор позиций по роли", () => {
     }
   });
 
-  test("без выбранного объекта разделы объекта ведут в реестр за выбором", () => {
+  test("модулей прежнего контура в панели нет: они за флагом (ADR-034, п. 4)", () => {
+    for (const role of MATRIX_ROLES) {
+      for (const item of bottomNavFor(role, PROJECT)) {
+        expect(item.to, `${role} → ${item.key}`).not.toMatch(
+          /\/(materials|procurement|deliveries|documents)/u,
+        );
+      }
+    }
+  });
+
+  test("без выбранного объекта позиции ведут в реестр или на экран роли", () => {
     for (const role of MATRIX_ROLES) {
       for (const item of bottomNavFor(role, null)) {
-        const home = ["/attention", "/today", "/check", "/catalogs"].includes(item.to);
+        const home = ["/attention", "/today", "/check", "/inbox"].includes(item.to);
         expect(item.to.startsWith("/projects") || home, `${role} → ${item.to}`).toBe(true);
       }
     }
@@ -57,6 +69,7 @@ describe("набор позиций по роли", () => {
 
   test("роль вне матрицы прав не получает выдуманных разделов", () => {
     const items = bottomNavFor("worker", PROJECT);
+    // Рабочий экран роли и есть реестр: вторая такая же позиция не рисуется
     expect(items.map((item) => item.key)).toEqual(["projects"]);
   });
 });
@@ -66,6 +79,19 @@ describe("действия шторки «+»", () => {
     expect(plusActionsFor("director", PROJECT)).toEqual([]);
     for (const section of ["documents", "materials", "procurement", "field-reports"] as const) {
       expect(can("director", section, "write")).toBe(false);
+    }
+  });
+
+  test("номенклатура справочника остаётся: справочники — контур ГАЙКИ", () => {
+    expect(plusActionsFor("supply", PROJECT).map((action) => action.key)).toContain("import");
+  });
+
+  test("действий модулей за флагом в шторке нет (ADR-034, п. 4)", () => {
+    for (const role of MATRIX_ROLES) {
+      const keys = plusActionsFor(role, PROJECT).map((action) => action.key);
+      for (const key of ["document", "request", "supplier", "acceptance"]) {
+        expect(keys, `${role} → ${key}`).not.toContain(key);
+      }
     }
   });
 

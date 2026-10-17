@@ -119,7 +119,7 @@ export function GuideDock() {
         >
           <header className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] leading-[1.4] text-text-3">
+              <p className="text-[13px] leading-[1.4] text-text-3">
                 {finished
                   ? scenario.title
                   : `Шаг ${guide.stepIndex + 1} из ${scenario.steps.length} · ${scenario.title}`}
@@ -129,7 +129,7 @@ export function GuideDock() {
               type="button"
               onClick={() => setCollapsed(true)}
               aria-label="Свернуть подсказки"
-              className="focus-ring -m-2 grid size-11 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
+              className="focus-ring -m-2 grid size-12 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
             >
               <ChevronDown className="size-4" strokeWidth={1.5} />
             </button>
@@ -137,7 +137,7 @@ export function GuideDock() {
               type="button"
               onClick={closeGuide}
               aria-label="Закрыть подсказки"
-              className="focus-ring -m-2 grid size-11 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
+              className="focus-ring -m-2 grid size-12 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
             >
               <X className="size-4" strokeWidth={1.5} />
             </button>
@@ -167,7 +167,7 @@ export function GuideDock() {
               <button
                 type="button"
                 onClick={() => setCollapsed(false)}
-                className="focus-ring flex min-h-11 min-w-0 items-center gap-2 rounded-[var(--r-pill)] border border-line bg-surface px-4 text-[13px] text-text shadow-[var(--shadow-md)] transition-fast hover:border-line-2"
+                className="focus-ring flex min-h-12 min-w-0 items-center gap-2 rounded-[var(--r-pill)] border border-line bg-surface px-4 text-[13px] text-text shadow-[var(--shadow-md)] transition-fast hover:border-line-2"
                 aria-label="Развернуть подсказки по сценарию"
               >
                 <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-text-3">
@@ -201,7 +201,7 @@ export function GuideDock() {
                 <button
                   type="button"
                   onClick={nextStep}
-                  className="focus-ring min-h-11 shrink-0 rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] font-medium text-text shadow-[var(--shadow-md)] transition-fast hover:border-line-2"
+                  className="focus-ring min-h-12 shrink-0 rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] font-medium text-text shadow-[var(--shadow-md)] transition-fast hover:border-line-2"
                 >
                   Дальше
                 </button>
@@ -212,7 +212,7 @@ export function GuideDock() {
             <button
               type="button"
               onClick={reopenGuide}
-              className="focus-ring min-h-11 shrink-0 rounded-[var(--r-pill)] border border-line bg-surface px-4 text-[13px] text-text-2 shadow-[var(--shadow-md)] transition-fast hover:text-text"
+              className="focus-ring min-h-12 shrink-0 rounded-[var(--r-pill)] border border-line bg-surface px-4 text-[13px] text-text-2 shadow-[var(--shadow-md)] transition-fast hover:text-text"
             >
               Подсказки
             </button>
@@ -222,7 +222,7 @@ export function GuideDock() {
             onClick={() => setFeedbackOpen(true)}
             aria-label="Непонятно на этом экране"
             title="Непонятно на этом экране"
-            className="focus-ring flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-[var(--r-pill)] border border-line bg-surface px-3 text-[13px] text-text-2 shadow-[var(--shadow-md)] transition-fast hover:text-text md:px-4"
+            className="focus-ring flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-2 rounded-[var(--r-pill)] border border-line bg-surface px-3 text-[13px] text-text-2 shadow-[var(--shadow-md)] transition-fast hover:text-text md:px-4"
           >
             <MessageCircleQuestion className="size-4" strokeWidth={1.5} aria-hidden />
             {/* На телефоне — круг без подписи: над содержимым висит один слой (ADR-027, п. 4).
@@ -248,7 +248,7 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
   return (
     <div className="mt-2">
       <p className="text-[14px] leading-[1.45] text-text">{step.text}</p>
-      {step.note && <p className="mt-1 text-[12px] leading-[1.45] text-text-3">{step.note}</p>}
+      {step.note && <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{step.note}</p>}
       {done ? (
         <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-text-2">
           <Check className="size-4 text-ok" strokeWidth={2} aria-hidden />
@@ -259,7 +259,7 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
         href && (
           <Link
             to={href}
-            className="focus-ring mt-3 inline-flex min-h-11 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] text-text transition-fast hover:border-line-2 lg:min-h-9"
+            className="focus-ring mt-3 inline-flex min-h-12 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] text-text transition-fast hover:border-line-2 lg:min-h-9"
           >
             Перейти: {screenFor(href.split("?")[0] ?? href, href.split("?")[1] ?? "").name}
           </Link>
@@ -269,7 +269,7 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
         <button
           type="button"
           onClick={skipStep}
-          className="focus-ring min-h-11 rounded-[var(--r-pill)] px-3 text-[13px] text-text-2 transition-fast hover:text-text lg:min-h-9"
+          className="focus-ring min-h-12 rounded-[var(--r-pill)] px-3 text-[13px] text-text-2 transition-fast hover:text-text lg:min-h-9"
         >
           Пропустить
         </button>
@@ -278,7 +278,7 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
           onClick={nextStep}
           disabled={!done}
           title={done ? undefined : "Шаг засчитается, когда вы выполните действие"}
-          className="focus-ring min-h-11 rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] font-medium text-text transition-fast hover:border-line-2 disabled:cursor-not-allowed disabled:opacity-45 lg:min-h-9"
+          className="focus-ring min-h-12 rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] font-medium text-text transition-fast hover:border-line-2 disabled:cursor-not-allowed disabled:opacity-45 lg:min-h-9"
         >
           Дальше
         </button>
@@ -297,7 +297,7 @@ function Finished({ skipped }: { skipped: number }) {
       </p>
       <Link
         to="/demo-stats"
-        className="focus-ring mt-3 inline-flex min-h-11 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] text-text transition-fast hover:border-line-2 lg:min-h-9"
+        className="focus-ring mt-3 inline-flex min-h-12 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] text-text transition-fast hover:border-line-2 lg:min-h-9"
       >
         Статистика сессии
       </Link>
@@ -392,13 +392,13 @@ function FeedbackForm({ stepId, onClose }: { stepId: string | null; onClose: () 
         maxLength={300}
         placeholder="Что непонятно на этом экране?"
         aria-label="Что непонятно на этом экране"
-        className="focus-ring min-h-11 min-w-0 flex-1 rounded-[var(--r-sm)] bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3 lg:min-h-9"
+        className="focus-ring min-h-12 min-w-0 flex-1 rounded-[var(--r-sm)] bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3 lg:min-h-9"
       />
       <button
         type="submit"
         disabled={!text.trim() || sending}
         aria-label="Отправить"
-        className="focus-ring grid size-11 shrink-0 place-items-center rounded-[var(--r-sm)] border border-line bg-surface-2 text-text transition-fast hover:border-line-2 disabled:opacity-45 lg:size-9"
+        className="focus-ring grid size-12 shrink-0 place-items-center rounded-[var(--r-sm)] border border-line bg-surface-2 text-text transition-fast hover:border-line-2 disabled:opacity-45 lg:size-9"
       >
         <Send className="size-4" strokeWidth={1.5} />
       </button>
@@ -406,7 +406,7 @@ function FeedbackForm({ stepId, onClose }: { stepId: string | null; onClose: () 
         type="button"
         onClick={onClose}
         aria-label="Отменить"
-        className="focus-ring grid size-11 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
+        className="focus-ring grid size-12 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
       >
         <X className="size-4" strokeWidth={1.5} />
       </button>

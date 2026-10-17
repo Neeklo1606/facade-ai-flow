@@ -28,6 +28,7 @@ import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton } from "@/components/common/ScreenStates";
 import { PageCaption } from "@/components/layout/PageActions";
 import { AttentionList } from "@/components/dashboard/AttentionList";
+import { isLegacyPath, legacyModulesEnabled } from "@/lib/legacy-modules";
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { ProjectsMini } from "@/components/dashboard/ProjectsMini";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,15 @@ function AttentionPage() {
 
   const unverified = dash.metrics.find((metric) => metric.key === "unverified");
   /*
+   * Строки и ссылки, которые ведут в модули за флагом `legacy_modules`, из «Обзора» уходят
+   * вместе с модулями (ADR-034, п. 4): ссылка, которая перенаправляет на рабочий экран,
+   * человеку не помогает. Число остаётся, дверь исчезает.
+   */
+  const legacy = legacyModulesEnabled();
+  const attentionRows = legacy
+    ? dash.attention
+    : dash.attention.filter((row) => !isLegacyPath(row.to));
+  /*
    * Три числа вместо шести (ADR-028, п. 4): незакрытый объём, очередь проверки, просрочено.
    * Каждое показывается, только если роли открыт его источник — «Обзор» не раздел прав,
    * а сборка. Остальные три метрики доступны в своих разделах и в полосе не нужны: две из них
@@ -185,8 +195,9 @@ function AttentionPage() {
             label: metric.label,
             value: metric.value,
             delta: metric.delta,
-            to: metric.to,
-            search: metric.search,
+            ...(legacy || !isLegacyPath(String(metric.to ?? ""))
+              ? { to: metric.to, search: metric.search }
+              : {}),
           }))}
         />
       )}
@@ -228,10 +239,10 @@ function AttentionPage() {
                 icon={AlertTriangle}
                 title="Требует решения"
                 hint="сначала просроченные ответы"
-                aside={<CountPill>{fmtNum(dash.attention.length)}</CountPill>}
+                aside={<CountPill>{fmtNum(attentionRows.length)}</CountPill>}
               />
               <AttentionList
-                rows={dash.attention}
+                rows={attentionRows}
                 pending={dash.listsPending}
                 onSource={setSource}
               />
@@ -239,7 +250,7 @@ function AttentionPage() {
                 <Link
                   to="/projects"
                   search={{ section: "timeline" }}
-                  className="focus-ring mt-4 inline-flex min-h-11 items-center text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+                  className="focus-ring mt-4 inline-flex min-h-12 items-center text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
                 >
                   Все решения
                 </Link>

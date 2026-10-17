@@ -59,11 +59,11 @@ function AccessPage() {
           <caption className="sr-only">Права ролей по разделам</caption>
           <thead>
             <tr className="h-10 border-b border-line text-left">
-              <th scope="col" className="px-4 text-[12px] font-normal text-text-3">
+              <th scope="col" className="px-4 text-[13px] font-normal text-text-3">
                 Раздел
               </th>
               {MATRIX_ROLES.map((role) => (
-                <th key={role} scope="col" className="px-4 text-[12px] font-normal text-text-3">
+                <th key={role} scope="col" className="px-4 text-[13px] font-normal text-text-3">
                   {employeeRoleLabel[role]}
                 </th>
               ))}

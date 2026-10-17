@@ -17,6 +17,7 @@ import { reportClientError, startErrorReporting } from "@/lib/error-report";
 import { RolePicker } from "@/components/guide/RolePicker";
 import { GuideDock } from "@/components/guide/GuideDock";
 import { AccessBoundary } from "@/components/access/AccessBoundary";
+import { LegacyBoundary } from "@/components/access/LegacyBoundary";
 import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -188,9 +189,12 @@ function RootComponent() {
           <AppLayout>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             {/* Раздел, закрытый роли, открывается экраном «Нет доступа» (ADR-012) */}
-            <AccessBoundary>
-              <Outlet />
-            </AccessBoundary>
+            {/* Модули прежнего контура за флагом legacy_modules (ADR-034) */}
+            <LegacyBoundary>
+              <AccessBoundary>
+                <Outlet />
+              </AccessBoundary>
+            </LegacyBoundary>
           </AppLayout>
           {/* Выбор роли при первом входе, проводка и обратная связь (ADR-010) */}
           <GuideDock />

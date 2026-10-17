@@ -95,7 +95,7 @@ export function ReportFields({
           value={value.zoneId}
           onChange={(event) => set("zoneId", event.target.value)}
           aria-label="Захватка"
-          className="focus-ring h-11 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text lg:h-10"
+          className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text lg:h-10"
         >
           {zones.map((zone) => (
             <option key={zone.id} value={zone.id}>
@@ -192,7 +192,7 @@ function Labelled({
         {label}
         {/* Подставленное значение не молчит: видно, откуда взялось (ADR-029, п. 4) */}
         {source && (
-          <span className="rounded-[var(--r-xs)] bg-surface-2 px-1.5 py-0.5 text-[11px] text-text-3">
+          <span className="rounded-[var(--r-xs)] bg-surface-2 px-1.5 py-0.5 text-[13px] text-text-3">
             {source}
           </span>
         )}

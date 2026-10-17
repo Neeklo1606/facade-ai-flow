@@ -26,6 +26,12 @@ export const test = base.extend<Options & { consoleGuard: void }>({
             sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
             sessionStorage.setItem("neeklo-fieldops-persona", id);
           }
+          /*
+           * Модули прежнего контура за флагом `legacy_modules` (ADR-034, п. 4). Прогон идёт
+           * с включённым флагом: код модулей остаётся в продукте, и удалять его проверки
+           * нельзя. Что видно с выключенным флагом, проверяет legacy.spec.ts.
+           */
+          sessionStorage.setItem("neeklo-fieldops-legacy", "1");
           if (mode) localStorage.setItem("neeklo-fieldops-theme", mode);
         } catch {
           // Приватный режим: тест увидит экран выбора роли
@@ -161,13 +167,32 @@ export async function expectEmber(page: Page, screen: string) {
       if (ownText && s.textTransform === "uppercase") caps.push(describe(el));
     }
     const roots = orange.filter((el) => !orange.some((o) => o !== el && o.contains(el)));
-    return { orange: roots.map(describe), caps };
+    /*
+     * Большой градиент в кадре один (дизайн-система, раздел 10). Большим считается заливка
+     * градиентом размером от четверти экрана: мелкие подложки чипов и свечение кнопки
+     * сюда не попадают.
+     */
+    const area = innerWidth * innerHeight;
+    const gradients = all
+      .filter((el) => {
+        const style = getComputedStyle(el);
+        if (!/gradient\(/u.test(style.backgroundImage)) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width * rect.height > area * 0.25;
+      })
+      .map(describe);
+
+    return { orange: roots.map(describe), caps, gradients };
   });
   expect(
     result.orange.length,
     `${screen}: оранжевых пятен ${result.orange.join(", ")}`,
   ).toBeLessThanOrEqual(1);
   expect(result.caps, `${screen}: текст капсом`).toEqual([]);
+  expect(
+    result.gradients.length,
+    `${screen}: больших градиентов ${result.gradients.join(", ")}`,
+  ).toBeLessThanOrEqual(1);
 }
 
 /** axe-core: нарушения уровня serious и critical роняют тест */
@@ -182,7 +207,7 @@ export async function expectA11y(page: Page, screen: string) {
 
 /**
  * Мобильная версия и честность экрана (ADR-015): пометка демонстрации видна в первом экране
- * на любой ширине; на телефоне — без переполнения, с областями нажатия от 44 px, без действий
+ * на любой ширине; на телефоне — без переполнения, с областями нажатия от 48 px, без действий
  * только по наведению и без фокуса за краем экрана
  */
 export async function expectMobile(page: Page, screen: string) {
@@ -191,7 +216,7 @@ export async function expectMobile(page: Page, screen: string) {
   expect(check.demoMarked, `${screen}: пометка демонстрации не видна`).toBe(true);
   if ((page.viewportSize()?.width ?? 1440) >= 768) return;
   expect(check.overflow.offenders, `${screen}: страница шире экрана`).toEqual([]);
-  expect(check.small, `${screen}: области нажатия меньше 44 px`).toEqual([]);
+  expect(check.small, `${screen}: области нажатия меньше 48 px`).toEqual([]);
   expect(check.hoverOnly, `${screen}: действия только по наведению`).toEqual([]);
   expect(check.offscreenFocusable, `${screen}: фокус уходит за край экрана`).toEqual([]);
 }
