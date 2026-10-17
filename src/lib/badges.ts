@@ -30,6 +30,17 @@ export function badgeTotal(keys: BadgeKey[] | undefined, counts: Record<BadgeKey
   return (keys ?? []).reduce((acc, key) => acc + counts[key], 0);
 }
 
+/**
+ * Только критические счётчики пункта: число на свёрнутой группе сайдбара означает «здесь
+ * просрочено», и непроверенная спецификация в него не входит
+ */
+export function badgeCriticalTotal(keys: BadgeKey[] | undefined, counts: Record<BadgeKey, number>) {
+  return (keys ?? []).reduce(
+    (acc, key) => acc + (CRITICAL_BADGES.includes(key) ? counts[key] : 0),
+    0,
+  );
+}
+
 /** Красным — если среди счётчиков пункта есть критический */
 export function badgeIsCritical(keys: BadgeKey[] | undefined) {
   return (keys ?? []).some((key) => CRITICAL_BADGES.includes(key));

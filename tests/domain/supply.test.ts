@@ -7,6 +7,7 @@ import {
   navItemsFor,
   sectionHref,
 } from "@/lib/navigation";
+import { badgeCriticalTotal, badgeTotal } from "@/lib/badges";
 import {
   isSupplyPath,
   supplyBadgesFor,
@@ -93,6 +94,29 @@ describe("вкладки раздела", () => {
     expect(supplyBadgesFor("pto")).toEqual(["overdueRequests"]);
     expect(supplyBadgesFor("foreman")).toEqual(["unverifiedSpec", "deliveriesToAccept"]);
     expect(supplyBadgesFor("worker")).toEqual([]);
+  });
+});
+
+describe("счётчик раздела", () => {
+  const counts = {
+    unverifiedSpec: 3,
+    overdueRequests: 2,
+    openChanges: 9,
+    deliveriesToAccept: 4,
+  } as const;
+
+  test("на пункте — сумма счётчиков доступных вкладок", () => {
+    expect(badgeTotal(supplyBadgesFor("supply"), counts)).toBe(9);
+    // У ПТО открыты только запросы
+    expect(badgeTotal(supplyBadgesFor("pto"), counts)).toBe(2);
+    // У прораба спецификация и поставки, запросов нет
+    expect(badgeTotal(supplyBadgesFor("foreman"), counts)).toBe(7);
+  });
+
+  test("красное число свёрнутой группы считает только просроченное", () => {
+    expect(badgeCriticalTotal(supplyBadgesFor("supply"), counts)).toBe(2);
+    // Непроверенная спецификация и приёмки критическими не считаются
+    expect(badgeCriticalTotal(supplyBadgesFor("foreman"), counts)).toBe(0);
   });
 });
 

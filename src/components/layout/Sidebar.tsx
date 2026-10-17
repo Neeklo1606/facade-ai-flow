@@ -48,7 +48,13 @@ import { queries } from "@/api/queries";
 import { employeeRoleLabel, type EmployeeRole, type ProjectOverview } from "@/contracts";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { badgeCounts, badgeIsCritical, badgeText, badgeTotal } from "@/lib/badges";
+import {
+  badgeCounts,
+  badgeCriticalTotal,
+  badgeIsCritical,
+  badgeText,
+  badgeTotal,
+} from "@/lib/badges";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useApp();
@@ -270,7 +276,7 @@ function SidebarInner({
         {groups.map((group, index) => {
           const open = collapsed || !closedGroups.includes(group.title);
           const hiddenCritical = group.items.reduce(
-            (sum, i) => sum + (badgeIsCritical(i.badges) ? badgeTotal(i.badges, counts) : 0),
+            (sum, i) => sum + badgeCriticalTotal(i.badges, counts),
             0,
           );
           return (
