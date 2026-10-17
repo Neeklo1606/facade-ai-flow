@@ -238,7 +238,10 @@ export function MetricStrip({
                   compactValue={layout === "six"}
                   tight={layout === "three"}
                 />
-                <ArrowRight className="ml-2 size-3.5 shrink-0 self-center text-text-3" aria-hidden />
+                <ArrowRight
+                  className="ml-2 size-3.5 shrink-0 self-center text-text-3"
+                  aria-hidden
+                />
               </div>
             </div>
           ) : (

@@ -254,7 +254,10 @@ function SidebarInner({
 
       <Button
         variant="outline"
-        onClick={() => { onClose(); setCommandOpen(true); }}
+        onClick={() => {
+          onClose();
+          setCommandOpen(true);
+        }}
         aria-label="Поиск по системе"
         title="Поиск по системе"
         className={cn("mb-3 w-full justify-start px-3", collapsed && "lg:justify-center lg:px-0")}

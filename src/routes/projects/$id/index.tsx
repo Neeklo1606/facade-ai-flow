@@ -261,7 +261,9 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
           <ArrowLeft className="size-3.5" /> Все объекты
         </Link>
         <span className="mono text-caption text-text-2 lg:hidden">{project.code}</span>
-        <span className="lg:hidden"><ProjectStatusControl project={project} variant="badge" /></span>
+        <span className="lg:hidden">
+          <ProjectStatusControl project={project} variant="badge" />
+        </span>
       </div>
 
       <MetricStrip

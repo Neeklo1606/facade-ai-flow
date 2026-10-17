@@ -26,26 +26,15 @@ export function HeroMetric({
 }) {
   return (
     <section
-      className={cn(
-        "flex flex-col gap-2 border-y border-line bg-surface px-5 py-4",
-        className,
-      )}
+      className={cn("flex flex-col gap-2 border-y border-line bg-surface px-5 py-4", className)}
     >
       <div className="text-[13px] leading-[1.4] text-text-2">{label}</div>
       <div>
         <div className="text-[32px] leading-tight font-semibold text-text">
           {value}
-          {unit && (
-            <span className="ml-2 text-[20px] font-medium text-text-2">
-              {unit}
-            </span>
-          )}
+          {unit && <span className="ml-2 text-[20px] font-medium text-text-2">{unit}</span>}
         </div>
-        {secondary && (
-          <div className="mt-1 text-[14px] leading-[1.4] text-text-2">
-            {secondary}
-          </div>
-        )}
+        {secondary && <div className="mt-1 text-[14px] leading-[1.4] text-text-2">{secondary}</div>}
         {note && (
           <div className="mt-2 max-w-[90ch] text-[12px] leading-[1.5] text-text-3">{note}</div>
         )}

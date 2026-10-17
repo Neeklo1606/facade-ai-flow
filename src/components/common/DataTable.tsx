@@ -49,7 +49,17 @@ export function DataTable<T extends { id: string }>({
                 key={row.id}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
-                onKeyDown={onRowClick ? (event) => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onRowClick(row); } } : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (event) => {
+                        if (event.target !== event.currentTarget) return;
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
                 className={cn(
                   "h-12 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-ring",
                   onRowClick && "cursor-pointer",
@@ -86,13 +96,25 @@ export function DataTable<T extends { id: string }>({
               <div className="text-[14px] font-medium">{primary.cell(row)}</div>
               <dl className="mt-3 grid gap-2">
                 {rest.map((c) => (
-                  <div key={c.key} className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-3">
+                  <div
+                    key={c.key}
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-3"
+                  >
                     <dt className="text-[12px] text-text-muted">{c.header}</dt>
                     <dd className="min-w-0 break-words text-caption">{c.cell(row)}</dd>
                   </div>
                 ))}
               </dl>
-              {onRowClick && <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => onRowClick(row)}>Открыть</Button>}
+              {onRowClick && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 w-full"
+                  onClick={() => onRowClick(row)}
+                >
+                  Открыть
+                </Button>
+              )}
             </section>
           );
         })}

@@ -89,7 +89,7 @@ export function Topbar() {
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label="Открыть меню"
-           className="icon-button focus-ring -ml-2 lg:hidden"
+        className="icon-button focus-ring -ml-2 lg:hidden"
       >
         <Menu strokeWidth={1.5} />
       </button>
@@ -157,7 +157,7 @@ export function Topbar() {
           className="header-search focus-ring hidden xl:flex"
         >
           <Search strokeWidth={1.5} />
-            <span className="min-w-0 flex-1 truncate text-left">Поиск по системе</span>
+          <span className="min-w-0 flex-1 truncate text-left">Поиск по системе</span>
           <kbd className="kbd">Ctrl K</kbd>
         </button>
         <button

@@ -16,7 +16,10 @@ export const Route = createFileRoute("/login")({
       { title: "Вход — neeklo FieldOps" },
       { name: "description", content: "Вход сотрудника в рабочее пространство фасадных объектов." },
       { property: "og:title", content: "Вход — neeklo FieldOps" },
-      { property: "og:description", content: "Вход сотрудника в рабочее пространство фасадных объектов." },
+      {
+        property: "og:description",
+        content: "Вход сотрудника в рабочее пространство фасадных объектов.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
