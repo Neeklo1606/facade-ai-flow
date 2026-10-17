@@ -18,7 +18,7 @@ export const Route = createFileRoute("/help")({
   },
   head: () => ({
     meta: [
-      { title: "Справка — neeklo FieldOps" },
+      { title: "Справка — гайка" },
       {
         name: "description",
         content:

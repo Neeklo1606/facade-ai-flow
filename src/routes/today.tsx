@@ -36,7 +36,7 @@ export const Route = createFileRoute("/today")({
   },
   head: () => ({
     meta: [
-      { title: "Сегодня — neeklo FieldOps" },
+      { title: "Сегодня — гайка" },
       {
         name: "description",
         content: "Смена на площадке: что зафиксировано, какие поставки ждут и что вернули.",

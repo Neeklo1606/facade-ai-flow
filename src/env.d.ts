@@ -7,4 +7,6 @@ interface ImportMetaEnv {
   readonly VITE_DEMO_ACCESS_KEY?: string;
   /** Публичный адрес для og-тегов, если демонстрация переедет с адреса Lovable */
   readonly VITE_PUBLIC_URL?: string;
+  /** Переключатель состояний экрана для проверки макетов */
+  readonly VITE_SCREEN_STATES?: string;
 }

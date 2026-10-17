@@ -133,7 +133,7 @@ const publicUrl = (
 ).replace(/\/?$/, "/");
 
 export const previewMeta: PreviewMeta = {
-  title: "neeklo FieldOps, пакет Фасады — демонстрация",
+  title: "ГАЙКА AI — демонстрация",
   description:
     "Система для фасадных подрядчиков: спецификации из документации, закупка у поставщиков и отчёты с площадки в одном месте.",
   image: "/og-preview.jpg",
@@ -185,7 +185,7 @@ export function renderAccessPage(origin: string): string {
     <main class="card">
       <span class="mark" aria-hidden="true">F</span>
       <h1>Демонстрация открывается по ссылке с ключом</h1>
-      <p>Это рабочая демонстрация neeklo FieldOps, пакет Фасады: система для подрядчиков
+      <p>Это рабочая демонстрация ГАЙКИ AI: система для подрядчиков
         по навесным фасадам.
         Адрес закрыт от поисковиков и случайных переходов, поэтому без ключа экран пустой.</p>
       <ul>

@@ -197,8 +197,9 @@ export async function expectMobile(page: Page, screen: string) {
 }
 
 /**
- * Читаемость текста на фирменном градиенте (ADR-017, п. 9). Пикселей взять неоткуда, поэтому
- * цвет под текстом считается честно: берём стопы `--ember`, проектируем центр строки на ось
+ * Читаемость текста на фирменном градиенте (ADR-017, п. 9; имя токена — ADR-033). Пикселей взять
+ * неоткуда, поэтому цвет под текстом считается честно: берём стопы `--ember-gradient`,
+ * проектируем центр строки на ось
  * градиента (135°), смешиваем соседние стопы и накладываем затемнение слоя поверх. Контраст —
  * по WCAG: 3:1 для крупного текста (≥ 24px или ≥ 18,66px полужирный), 4,5:1 для остального.
  */
@@ -249,7 +250,7 @@ export async function expectEmberGradient(page: Page, screen: string) {
     };
 
     // Стопы градиента из токена: «#hex доля%»
-    const ember = getComputedStyle(document.documentElement).getPropertyValue("--ember");
+    const ember = getComputedStyle(document.documentElement).getPropertyValue("--ember-gradient");
     const stops = [...ember.matchAll(/(#[0-9a-f]{3,8})\s+([\d.]+)%/gi)].map((m) => ({
       color: hex(m[1] as string),
       at: Number(m[2]) / 100,

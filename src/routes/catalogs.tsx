@@ -32,7 +32,7 @@ export const Route = createFileRoute("/catalogs")({
   }),
   head: () => ({
     meta: [
-      { title: "Справочники — neeklo FieldOps" },
+      { title: "Справочники — гайка" },
       {
         name: "description",
         content:

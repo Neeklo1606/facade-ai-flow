@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 export const Route = createFileRoute("/access")({
   head: () => ({
     meta: [
-      { title: "Права доступа — neeklo FieldOps" },
+      { title: "Права доступа — гайка" },
       {
         name: "description",
         content:

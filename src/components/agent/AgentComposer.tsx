@@ -45,7 +45,7 @@ export function AgentComposer({
           )}
         >
           {/* На телефоне blur отключён: то же пятно рисуется радиальным градиентом */}
-          <div className="size-full rounded-[50%] bg-[radial-gradient(closest-side,rgba(241,96,1,0.2),rgba(193,8,1,0.1),transparent)] sm:bg-[image:var(--ember-soft)] sm:blur-[120px]" />
+          <div className="size-full rounded-[50%] bg-[radial-gradient(closest-side,rgba(241,96,1,0.2),rgba(143,29,11,0.1),transparent)] sm:bg-[image:var(--ember-field)] sm:blur-[120px]" />
         </div>
 
         <form

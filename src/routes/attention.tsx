@@ -80,13 +80,13 @@ export const Route = createFileRoute("/attention")({
   },
   head: () => ({
     meta: [
-      { title: "Обзор объектов — neeklo FieldOps" },
+      { title: "Обзор объектов — гайка" },
       {
         name: "description",
         content:
           "Что требует решения по всем объектам: незакрытый объём, очередь проверки и просроченные ответы.",
       },
-      { property: "og:title", content: "Обзор объектов — neeklo FieldOps" },
+      { property: "og:title", content: "Обзор объектов — гайка" },
       {
         property: "og:description",
         content: "Что требует решения сегодня по всем объектам.",

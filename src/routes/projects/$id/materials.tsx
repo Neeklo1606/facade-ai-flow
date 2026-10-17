@@ -111,7 +111,7 @@ export const Route = createFileRoute("/projects/$id/materials")({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Материалы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
+      ? [{ title: `Материалы — ${loaderData.project?.name ?? "Объект"} — гайка` }]
       : [],
   }),
   notFoundComponent: ProjectNotFound,

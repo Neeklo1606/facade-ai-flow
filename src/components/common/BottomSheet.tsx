@@ -88,7 +88,7 @@ export function BottomSheet({
             target.focus({ preventScroll: true });
           }}
           className={cn(
-            "fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-[var(--r-lg)] border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] outline-none",
+            "fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-[var(--r-sheet)] bg-surface pb-[env(safe-area-inset-bottom)] outline-none",
             "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom",
             !shift && "transition-transform duration-150",
           )}

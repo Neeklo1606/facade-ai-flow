@@ -101,13 +101,13 @@ export const Route = createFileRoute("/projects/")({
   loader: ({ context }) => prefetch(context.queryClient, queries.projects()),
   head: () => ({
     meta: [
-      { title: "Объекты — neeklo FieldOps" },
+      { title: "Объекты — гайка" },
       {
         name: "description",
         content:
           "Реестр объектов: где непроверенная спецификация, просроченные ответы и неразобранные изменения.",
       },
-      { property: "og:title", content: "Объекты — neeklo FieldOps" },
+      { property: "og:title", content: "Объекты — гайка" },
       {
         property: "og:description",
         content: "Реестр объектов: где требуется внимание руководителя.",

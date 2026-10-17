@@ -74,7 +74,7 @@ export const Route = createFileRoute("/projects/$id/timeline")({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `История и решения — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
+      ? [{ title: `История и решения — ${loaderData.project?.name ?? "Объект"} — гайка` }]
       : [],
   }),
   notFoundComponent: ProjectNotFound,

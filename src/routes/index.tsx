@@ -12,7 +12,7 @@ import { homeRouteFor } from "@/lib/navigation";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "neeklo FieldOps" },
+      { title: "гайка" },
       {
         name: "description",
         content: "Рабочий экран роли: что требует вас сейчас на объектах.",

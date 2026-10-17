@@ -4,9 +4,9 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/integrations")({
   head: () => ({
     meta: [
-      { title: "Интеграции — neeklo FieldOps" },
+      { title: "Интеграции — гайка" },
       { name: "description", content: "Каналы приёма данных и обмен с учётными системами." },
-      { property: "og:title", content: "Интеграции — neeklo FieldOps" },
+      { property: "og:title", content: "Интеграции — гайка" },
       { property: "og:description", content: "Каналы приёма данных и обмен с учётными системами." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -8,7 +8,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronsUpDown,
-  PanelsTopLeft,
+  Hexagon,
   RotateCcw,
   X,
   Search,
@@ -195,16 +195,20 @@ function SidebarInner({
             collapsed && canToggle && "lg:hidden",
           )}
         >
-          <PanelsTopLeft className="size-[15px]" strokeWidth={1.5} />
+          <Hexagon className="size-[15px]" strokeWidth={1.5} />
         </span>
         <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", collapsed && "lg:hidden")}>
-          {/* Марка в две строки: продукт и отраслевой пакет — имя одно везде (ADR-020) */}
+          {/*
+            Марка ГАЙКИ: имя строчными, знак — заглушка шестигранником. Фирменный знак и цвета
+            официально не утверждены (дизайн-система, преамбула), поэтому в коде заглушка,
+            а не нарисованный логотип. Вторая строка — категория из позиционирования.
+          */}
           <span className="min-w-0">
-            <span className="block truncate text-[15px] leading-tight font-semibold text-text">
-              neeklo FieldOps
+            <span className="block truncate text-[17px] leading-tight font-semibold text-text">
+              гайка
             </span>
-            <span className="block truncate text-[11px] leading-tight text-text-3">
-              пакет Фасады
+            <span className="block truncate text-[13px] leading-tight text-text-3">
+              помощник стройплощадки
             </span>
           </span>
         </div>

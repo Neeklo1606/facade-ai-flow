@@ -70,7 +70,7 @@ export const Route = createFileRoute("/projects/$id/documents/$docId")({
     meta: loaderData
       ? [
           {
-            title: `Извлечение позиций — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+            title: `Извлечение позиций — ${loaderData.project?.name ?? "Объект"} — гайка`,
           },
         ]
       : [],

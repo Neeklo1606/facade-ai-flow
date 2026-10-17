@@ -4,12 +4,12 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/zones")({
   head: () => ({
     meta: [
-      { title: "Захватки и объёмы — neeklo FieldOps" },
+      { title: "Захватки и объёмы — гайка" },
       {
         name: "description",
         content: "Иерархия объект → корпус → секция → этаж → захватка и объёмы по видам работ.",
       },
-      { property: "og:title", content: "Захватки и объёмы — neeklo FieldOps" },
+      { property: "og:title", content: "Захватки и объёмы — гайка" },
       {
         property: "og:description",
         content: "Иерархия объект → корпус → секция → этаж → захватка и объёмы по видам работ.",

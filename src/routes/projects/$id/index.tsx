@@ -90,14 +90,14 @@ export const Route = createFileRoute("/projects/$id/")({
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` },
+          { title: `${loaderData.project?.name ?? "Объект"} — гайка` },
           {
             name: "description",
             content: `Карточка объекта ${loaderData.project?.code ?? ""}: что требует внимания, документация, материалы и закупки.`,
           },
           {
             property: "og:title",
-            content: `${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+            content: `${loaderData.project?.name ?? "Объект"} — гайка`,
           },
           { property: "og:type", content: "website" },
         ]
