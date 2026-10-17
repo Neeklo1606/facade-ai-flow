@@ -80,13 +80,13 @@ export const Route = createFileRoute("/attention")({
   },
   head: () => ({
     meta: [
-      { title: "Внимание — neeklo FieldOps" },
+      { title: "Обзор объектов — neeklo FieldOps" },
       {
         name: "description",
         content:
           "Что требует решения по всем объектам: незакрытый объём, очередь проверки и просроченные ответы.",
       },
-      { property: "og:title", content: "Внимание — neeklo FieldOps" },
+      { property: "og:title", content: "Обзор объектов — neeklo FieldOps" },
       {
         property: "og:description",
         content: "Что требует решения сегодня по всем объектам.",
@@ -109,7 +109,7 @@ function AttentionPage() {
   const unverified = dash.metrics.find((metric) => metric.key === "unverified");
   /*
    * Три числа вместо шести (ADR-028, п. 4): незакрытый объём, очередь проверки, просрочено.
-   * Каждое показывается, только если роли открыт его источник — «Внимание» не раздел прав,
+   * Каждое показывается, только если роли открыт его источник — «Обзор» не раздел прав,
    * а сборка. Остальные три метрики доступны в своих разделах и в полосе не нужны: две из них
    * в демонстрации говорят «без прироста», то есть занимают место, ничего не сообщая.
    */
@@ -132,7 +132,7 @@ function AttentionPage() {
   return (
     <>
       <PageHeader
-        title="Внимание"
+        title="Обзор"
         actions={
           // Главное действие ведёт в проверку позиций: без права на документы его нет
           can("documents") ? (
@@ -192,7 +192,7 @@ function AttentionPage() {
       )}
 
       <HeroMetric
-        className="mt-4 shadow-[var(--lift-2)]"
+        className="mt-4"
         label="Незакрытый объём работ по договорам"
         value={dash.headPending ? "—" : heroValue(dash.volume.rub)}
         {...(dash.headPending ? {} : { unit: "млн ₽" })}
@@ -200,7 +200,6 @@ function AttentionPage() {
           ? {}
           : { secondary: `${fmtNum(dash.volume.qty)} ${dash.volume.unit} осталось выполнить` })}
         note={heroNote(dash)}
-        noteSummary="Как это считано"
       />
 
       <div data-main-zone className="mt-4">
@@ -209,7 +208,7 @@ function AttentionPage() {
           onRetry={dash.refetch}
           skeleton={<ScreenSkeleton kind="split" />}
           copy={{
-            section: "Внимание",
+            section: "Обзор",
             roles: "тем, кому открыты закупки или документация",
             errorTitle: "Не удалось загрузить сводку",
             empty: {
@@ -255,8 +254,8 @@ function AttentionPage() {
                   <WidgetCardHeader
                     level={2}
                     icon={Radio}
-                    title="Живой поток"
-                    hint="почта, Telegram, загрузки"
+                    title="Последние события"
+                    hint="письма, отчёты, документация"
                   />
                   <LiveFeed items={dash.feed} pending={dash.listsPending} onSource={setSource} />
                 </WidgetCard>

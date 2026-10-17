@@ -63,7 +63,7 @@ export function WidgetTable<T extends { id: string }>({
               data-force={forceHoverRowId === row.id ? "hover" : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               className={cn(
-                "group h-14 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-within:bg-surface-2",
+                "group h-12 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-within:bg-surface-2",
                 onRowClick && "cursor-pointer",
               )}
             >
@@ -83,7 +83,7 @@ export function WidgetTable<T extends { id: string }>({
                 <td className="pr-6 pl-2 text-right align-middle">
                   <div
                     className={cn(
-                      "flex items-center justify-end gap-1 opacity-0 transition-fast group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100",
+                      "flex items-center justify-end gap-1 transition-fast",
                       forceHoverRowId === row.id && "opacity-100",
                       "[@media(hover:none)]:opacity-100",
                     )}
@@ -134,7 +134,7 @@ export function NumberValue({
   return (
     <span className={cn("whitespace-nowrap tabular-nums", className)}>
       {value}
-      {unit && <span className="ml-1 text-[11px] text-text-3">{unit}</span>}
+      {unit && <span className="ml-1 text-[12px] text-text-3">{unit}</span>}
     </span>
   );
 }

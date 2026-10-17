@@ -91,7 +91,7 @@ const manager: Scenario = {
   steps: [
     {
       id: "attention-open",
-      text: "Откройте «Внимание»: три числа по всем объектам и очередь того, что ждёт решения.",
+      text: "Откройте «Обзор»: три числа по всем объектам и очередь того, что ждёт решения.",
       target: "nav-attention",
       to: () => "/attention",
       doneOn: { screen: ["attention"] },
@@ -221,7 +221,7 @@ const director: Scenario = {
   steps: [
     {
       id: "attention-open",
-      text: "Откройте «Внимание»: что требует решения по всем объектам.",
+      text: "Откройте «Обзор»: что требует решения по всем объектам.",
       target: "nav-attention",
       to: () => "/attention",
       doneOn: { screen: ["attention"] },

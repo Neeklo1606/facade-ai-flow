@@ -63,7 +63,7 @@ interface Numbers {
 }
 
 async function read(page: Page): Promise<Numbers> {
-  // «Внимание» вместо дашборда (ADR-028): подписи трёх чисел там короткие — ячейка 95 px
+  // «Обзор» вместо дашборда (ADR-028): подписи трёх чисел там короткие — ячейка 95 px
   await open(page, "/attention");
   const dashboard = {
     unverified: await tile(page, "На проверке"),

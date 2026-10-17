@@ -89,7 +89,7 @@ export function Topbar() {
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label="Открыть меню"
-        className="icon-button focus-ring -ml-2 hidden md:grid lg:hidden"
+           className="icon-button focus-ring -ml-2 lg:hidden"
       >
         <Menu strokeWidth={1.5} />
       </button>
@@ -97,7 +97,7 @@ export function Topbar() {
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">
           <div
-            className="truncate text-section-title lg:text-page-title"
+            className="line-clamp-2 text-[18px] leading-tight font-semibold sm:text-section-title lg:truncate lg:text-page-title"
             title={title}
             aria-hidden="true"
           >
@@ -157,7 +157,7 @@ export function Topbar() {
           className="header-search focus-ring hidden xl:flex"
         >
           <Search strokeWidth={1.5} />
-          <span className="min-w-0 flex-1 truncate text-left">Поиск по объектам</span>
+            <span className="min-w-0 flex-1 truncate text-left">Поиск по системе</span>
           <kbd className="kbd">Ctrl K</kbd>
         </button>
         <button
@@ -169,16 +169,13 @@ export function Topbar() {
           <Search strokeWidth={1.5} />
         </button>
         <ScreenHelp />
-        <ThemeToggle className="hidden sm:grid" />
-        {/* Переключатель состояний экрана — инструмент показа с ноутбука: на телефоне он
-            отнимал место у заголовка (ADR-027, п. 5) */}
+        <ThemeToggle />
+        {/* Переключатель состояний экрана — инструмент показа с ноутбука (ADR-030, п. 1) */}
         {screenStatesEnabled && (
-          <span className="hidden md:contents">
+          <div className="hidden lg:block">
             <StatePicker />
-          </span>
+          </div>
         )}
-        {/* Действия экрана: страница отдаёт их сюда через PageActions. До 1024 px главное
-            действие закреплено снизу над панелью навигации */}
         {/*
           Действия экрана показываются с 1024 px — ровно там, где исчезает закреплённая полоса
           над панелью. На 768–1023 px они рисовались оба сразу (находка независимой проверки)

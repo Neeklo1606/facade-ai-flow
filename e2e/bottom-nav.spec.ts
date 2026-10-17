@@ -73,9 +73,9 @@ test.describe("нижняя панель @mobile", () => {
       const state = await panel(page);
       expect(state, "панель не найдена").not.toBeNull();
       expect(state!.height).toBeGreaterThanOrEqual(64);
-      // Внимание, Закупки, «+», Объект, Ещё — таблица целевой карты (ADR-026, поправка)
+      // Обзор, Закупки, «+», Объект, Ещё — таблица целевой карты (ADR-026, поправка)
       expect(state!.labels).toHaveLength(5);
-      expect(state!.labels.join(" ")).toContain("Внимание");
+      expect(state!.labels.join(" ")).toContain("Обзор");
       expect(state!.labels.join(" ")).toContain("Закупки");
       expect(state!.labels.join(" ")).not.toContain("Документ");
       // Пятно ровно одно, и это «+»

@@ -180,7 +180,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
                 </span>
                 <span
                   className={cn(
-                    "tnum shrink-0 text-[22px] leading-none font-semibold tracking-[-0.02em]",
+                    "tnum shrink-0 text-[16px] leading-none font-semibold",
                     !active && "text-text-muted",
                     active && row.tone === "danger" && "text-danger",
                     active && row.tone === "warn" && "text-text-primary",

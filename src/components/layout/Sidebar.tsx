@@ -11,6 +11,7 @@ import {
   PanelsTopLeft,
   RotateCcw,
   X,
+  Search,
 } from "lucide-react";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
 import { activeNavKey, navGroupsFor, sectionHref, type BadgeKey } from "@/lib/navigation";
@@ -46,15 +47,15 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { employeeRoleLabel, type EmployeeRole, type ProjectOverview } from "@/contracts";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useApp();
   // 1440 и шире — полный сайдбар (или свёрнутый по выбору), 1024–1439 — всегда 72px,
   // ниже 1024 — выдвижное меню, в нём сайдбар всегда полный
-  const wide = useMediaQuery("(min-width: 1440px)");
   const desktop = useMediaQuery("(min-width: 1024px)");
-  const collapsed = desktop && (sidebarCollapsed || !wide);
+  const collapsed = desktop && sidebarCollapsed;
 
   return (
     <>
@@ -62,7 +63,7 @@ export function Sidebar() {
         <button
           type="button"
           aria-label="Закрыть меню"
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[4px] lg:hidden"
+          className="fixed inset-0 z-40 bg-text/40 lg:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
@@ -79,7 +80,7 @@ export function Sidebar() {
       >
         <SidebarInner
           collapsed={collapsed}
-          canToggle={wide}
+          canToggle={desktop}
           onToggle={toggleSidebar}
           onClose={() => setMobileNavOpen(false)}
         />
@@ -100,7 +101,7 @@ function SidebarInner({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { setProjectId, personaId, themeChoice, setThemeChoice } = useApp();
+  const { setProjectId, personaId, themeChoice, setThemeChoice, setCommandOpen } = useApp();
   const enterAs = useEnterAs();
   const user = useCurrentUser();
   // Меню зависит от роли выбранной персоны (ADR-008): снабжение не ведёт площадку,
@@ -190,7 +191,7 @@ function SidebarInner({
         ) : null}
         <span
           className={cn(
-            "grid size-[26px] shrink-0 place-items-center rounded-[var(--r-xs)] bg-orange text-on-orange shadow-[var(--glow-orange)]",
+            "grid size-[26px] shrink-0 place-items-center rounded-[var(--r-xs)] bg-surface-3 text-text",
             collapsed && canToggle && "lg:hidden",
           )}
         >
@@ -206,7 +207,6 @@ function SidebarInner({
               пакет Фасады
             </span>
           </span>
-          <ChevronDown className="size-4 shrink-0 text-text-3" strokeWidth={1.5} />
         </div>
         {!collapsed && canToggle && (
           <button
@@ -232,7 +232,7 @@ function SidebarInner({
       {/* Селектор объекта */}
       {!collapsed && (
         <label className="scope-card mt-1 mb-4 shrink-0" title={siteLabel}>
-          <span className="block text-[11px] leading-tight text-text-3">Объект</span>
+          <span className="block text-[12px] leading-tight text-text-2">Текущий объект</span>
           <select
             value={projectId ?? ALL_PROJECTS}
             onChange={(e) => changeProject(e.target.value)}
@@ -251,6 +251,17 @@ function SidebarInner({
           />
         </label>
       )}
+
+      <Button
+        variant="outline"
+        onClick={() => { onClose(); setCommandOpen(true); }}
+        aria-label="Поиск по системе"
+        title="Поиск по системе"
+        className={cn("mb-3 w-full justify-start px-3", collapsed && "lg:justify-center lg:px-0")}
+      >
+        <Search aria-hidden />
+        <span className={cn("text-[13px]", collapsed && "lg:hidden")}>Поиск по системе</span>
+      </Button>
 
       <nav ref={navRef} className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
         {groups.map((group, index) => {

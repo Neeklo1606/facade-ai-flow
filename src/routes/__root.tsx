@@ -7,6 +7,7 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -47,7 +48,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -113,7 +114,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: previewMeta.url.replace(/\/$/, "") + previewMeta.image },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "Экран «Внимание» neeklo FieldOps" },
+      { property: "og:image:alt", content: "Экран «Обзор» neeklo FieldOps" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: previewMeta.title },
       { name: "twitter:description", content: previewMeta.description },
@@ -124,7 +125,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap",
       },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
@@ -142,7 +143,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <head>
         {/* Тема ставится до первой отрисовки, иначе светлая мигает тёмной (ADR-017, п. 7) */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
@@ -158,7 +159,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const { sessionActorId } = Route.useLoaderData();
+  const sessionActorId = Route.useLoaderData()?.sessionActorId ?? null;
   useDemoEvents(queryClient, (notice) =>
     toast.success(notice.title, { description: notice.description }),
   );

@@ -39,12 +39,12 @@
 :root {
   color-scheme: dark;
 
-  /* Глубина. Пять уровней тёплого угля, разница минимальна (ADR-027, п. 1) */
-  --void: #0a0908; /* фон окна */
-  --base: #100f0e; /* оболочка приложения */
-  --surface: #171514; /* карточки */
-  --surface-2: #1f1d1b; /* вложенные блоки, строки при наведении */
-  --surface-3: #292624; /* поповеры, выпадающие, активные состояния */
+  /* Глубина. Пять уровней, разница минимальна */
+  --void: #0a0d10; /* фон окна */
+  --base: #11151a; /* оболочка приложения */
+  --surface: #171c22; /* карточки */
+  --surface-2: #20272e; /* вложенные блоки, строки при наведении */
+  --surface-3: #29323b; /* поповеры, выпадающие, активные состояния */
 
   /* Линии почти не видны и слегка тёплые */
   --line: rgba(255, 250, 242, 0.08);
@@ -52,14 +52,11 @@
   --line-warm: rgba(217, 195, 171, 0.14);
 
   /* Текст */
-  --text: #f7f5f2;
-  --text-2: #aaa49c;
-  /*
-   * Подписи. #646464 из исходной палитры не проходил WCAG AA (3,2:1 на --surface). На тёплых
-   * поверхностях ADR-027 держим 4,64:1 на поповере и 5,71:1 на карточке
-   */
-  --text-3: #958e85;
-  --text-4: #38342f;
+  --text: #f0f3f5;
+  --text-2: #9ca7b0;
+  /* Подписи. #646464 из исходной палитры не проходил WCAG AA (3,2:1 на --surface): поднято до 4,7:1 */
+  --text-3: #8e8e8e;
+  --text-4: #333333;
   --on-orange: #ffffff;
   /*
    * Текст поверх фирменного градиента. Градиент тёмный в обеих темах, поэтому эти два цвета
@@ -70,8 +67,8 @@
   --on-ember-2: #f0e4d8;
 
   /* Бренд */
-  --orange: #e85002;
-  --orange-hot: #f16001;
+  --orange: #ff7a45;
+  --orange-hot: #ff8b5c;
   /* Заливка под белым текстом: на --orange белый 14px даёт 3,8:1, на --orange-strong — 5:1 (WCAG AA) */
   --orange-strong: #c74300;
   --orange-strong-hover: #b33c00;
@@ -115,24 +112,17 @@
   --dur: 160ms;
 
   /* Радиусы */
-  /* Строже и собраннее прежних 8/12/18/24/32 (ADR-027, п. 2) */
-  --r-xs: 6px; /* плашки клавиш, мелкие метки */
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 20px;
-  --r-xl: 26px;
+  --r-xs: 4px; /* плашки клавиш, мелкие метки */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 8px;
+  --r-xl: 8px;
   --r-pill: 999px;
 
   /* Размеры оболочки */
-  --shell-gap: 16px;
-  --sidebar-w: 248px;
-  /*
-   * Высота шапки — нижняя граница, а не точный размер: на телефоне в ней две строки
-   * (заголовок и чип объекта), а у человека с одним объектом чипа нет и шапка остаётся
-   * в одну строку (ADR-027, поправка). Значение одно для обоих случаев, чтобы высота шапки
-   * не прыгала между экранами и совпадала с расчётом `main-bleed`
-   */
-  --topbar-h: 72px;
+  --shell-gap: 0px;
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
   /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
   --bottom-nav-h: 64px;
   /* Отступ контента от краёв оболочки */
@@ -201,28 +191,27 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  /* Фон страницы глубже прежнего #f4f2ee: белая карточка на нём читается карточкой (ADR-027) */
-  --void: #f1eee8;
-  --base: #faf9f6;
+  --void: #f1f3f4;
+  --base: #f1f3f4;
   --surface: #ffffff;
-  --surface-2: #f4f2ee;
-  --surface-3: #eae7e1;
+  --surface-2: #f1f3f4;
+  --surface-3: #e6eaed;
 
-  --line: rgba(28, 24, 20, 0.08);
-  --line-2: rgba(28, 24, 20, 0.14);
+  --line: rgba(20, 26, 30, 0.08);
+  --line-2: rgba(20, 26, 30, 0.16);
   --line-warm: rgba(158, 132, 104, 0.22);
 
-  --text: #1c1814;
-  --text-2: #5a544c;
+  --text: #14191d;
+  --text-2: #5d6870;
   /*
    * Подписи. #8A837A из палитры давал 3,7:1 на белом и 3,0:1 на --surface-3 — ниже WCAG AA.
    * Поднято до 5,6:1 / 4,5:1 с сохранением тёплого оттенка (см. дополнение к ADR-017)
    */
-  --text-3: #6e675e;
-  --text-4: #d5d0c8;
+  --text-3: #68757e;
+  --text-4: #c8d0d5;
 
   /* Текстом оранжевый должен читаться: #D94A04 давал 4,3:1 на белом, здесь 5,2:1 */
-  --orange: #c24103;
+  --orange: #d75a2a;
   --orange-hot: #d94a04;
   /* Заливка под белым текстом: на --orange белый 14px даёт 4,1:1, на --orange-strong — 5,3:1 */
   --orange-strong: #bf4103;
@@ -278,13 +267,13 @@
 }
 @media (min-width: 1024px) {
   :root {
-    --topbar-h: 72px;
+    --topbar-h: 80px;
     --content-pad: 32px;
   }
 }
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   --radius-sm: var(--r-xs);
   --radius-md: var(--r-sm);
@@ -493,28 +482,28 @@
 
 @utility text-greeting {
   font-variant-numeric: proportional-nums;
-  font-size: 44px;
+  font-size: 28px;
   line-height: 1.05;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 @utility text-page-title {
   font-variant-numeric: proportional-nums;
-  font-size: 34px;
+  font-size: 28px;
   line-height: 1.15;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 @utility text-section-title {
   font-variant-numeric: proportional-nums;
   font-size: 20px;
   line-height: 1.25;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
 }
 @utility text-card-title {
   font-variant-numeric: proportional-nums;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.35;
   font-weight: 600;
   letter-spacing: 0;
@@ -540,7 +529,7 @@
   font-weight: 400;
 }
 @utility text-badge {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.3;
   font-weight: 500;
 }
@@ -553,7 +542,7 @@
   text-transform: none;
 }
 @utility text-micro {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.3;
   letter-spacing: 0;
 }
@@ -718,8 +707,9 @@
   justify-content: center;
   padding-inline: 14px 36px;
   border-radius: var(--r-sm);
+  border: 1px solid var(--line-2);
   background: var(--surface);
-  box-shadow: var(--lift-1);
+  box-shadow: none;
   &:hover {
     background: var(--surface-2);
   }
@@ -740,7 +730,7 @@
 }
 @utility nav-item {
   display: flex;
-  height: 40px;
+  height: 44px;
   align-items: center;
   gap: 12px;
   padding-inline: 12px;
@@ -770,13 +760,13 @@
   }
   /* Активный: оранжевая заливка на всю ширину, без полосы слева */
   &[data-active="true"] {
-    background: var(--orange-strong);
-    color: var(--on-orange);
-    font-weight: 500;
-    box-shadow: var(--glow-orange);
+    background: var(--surface-3);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: none;
   }
   &[data-active="true"] svg {
-    color: var(--on-orange);
+    color: var(--text);
   }
 }
 @utility nav-badge {
@@ -786,23 +776,23 @@
   place-items: center;
   padding-inline: 7px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 11px;
+  background: var(--surface-3);
+  font-size: 12px;
   line-height: 1;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
   [data-active="true"] > & {
-    background: rgba(255, 255, 255, 0.2);
-    color: var(--on-orange);
+    background: var(--surface-2);
+    color: var(--text);
   }
 }
 @utility nav-badge-critical {
   background: var(--danger-bg);
   color: var(--danger);
   [data-active="true"] > & {
-    background: rgba(0, 0, 0, 0.22);
-    color: var(--on-orange);
+    background: var(--danger-bg);
+    color: var(--danger);
   }
 }
 /* Иконка нижнего блока в круге 22px */
@@ -815,7 +805,7 @@
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   & svg {
     width: 12px;
@@ -836,7 +826,9 @@
   align-items: center;
   gap: 12px;
   padding-inline: var(--content-pad);
-  background: transparent;
+  background: var(--base);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
   @media (min-width: 768px) {
     padding-inline: var(--content-pad);
   }
@@ -849,7 +841,7 @@
   gap: 10px;
   padding-inline: 14px 6px;
   border: 1px solid transparent;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-sm);
   background: var(--surface);
   font-size: 13px;
   color: var(--text-3);
@@ -874,7 +866,7 @@
   padding-inline: 8px;
   border-radius: var(--r-xs);
   background: var(--surface-2);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   font-weight: 500;
   font-family: var(--font-sans);
@@ -913,13 +905,13 @@
   justify-content: center;
   gap: 8px;
   padding-inline: 20px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-sm);
   background: var(--orange-strong);
   font-size: 14px;
   line-height: 1;
   font-weight: 500;
   color: var(--on-orange);
-  box-shadow: var(--glow-orange);
+  box-shadow: none;
   white-space: nowrap;
   &:hover {
     background: var(--orange-strong-hover);
@@ -944,7 +936,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  box-shadow: var(--lift-1);
+  box-shadow: none;
 }
 @utility transition-fast {
   transition-property: background-color, border-color, box-shadow, color, opacity, transform;
@@ -978,14 +970,14 @@
   display: flex;
   align-items: center;
   padding: 3px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: var(--lift-1);
+  box-shadow: none;
 }
 @utility segment {
-  min-height: 30px;
+  min-height: 36px;
   padding: 0 12px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-sm);
   color: var(--text-3);
   font-size: 12px;
   &:hover {
@@ -995,7 +987,7 @@
 @utility segment-active {
   color: var(--text);
   background: var(--surface-3);
-  box-shadow: var(--lift-1);
+  box-shadow: none;
 }
 
 /* ---------------------------------------------------------------- Виджеты */
@@ -1005,7 +997,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  box-shadow: var(--lift-1);
+  box-shadow: none;
   padding: 24px;
 }
 @utility widget-card-interactive {
@@ -1184,3 +1176,6 @@
     break-inside: avoid;
   }
 }
+
+/* Readable metadata across legacy working screens. */
+[class~="text-[10px]"], [class~="text-[11px]"] { font-size: 12px; }

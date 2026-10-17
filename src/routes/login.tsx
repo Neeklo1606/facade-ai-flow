@@ -11,5 +11,14 @@ export const Route = createFileRoute("/login")({
       : {}),
     ...(typeof search["invite"] === "string" ? { invite: search["invite"] } : {}),
   }),
-  head: () => ({ meta: [{ title: "Вход — neeklo FieldOps" }] }),
+  head: () => ({
+    meta: [
+      { title: "Вход — neeklo FieldOps" },
+      { name: "description", content: "Вход сотрудника в рабочее пространство фасадных объектов." },
+      { property: "og:title", content: "Вход — neeklo FieldOps" },
+      { property: "og:description", content: "Вход сотрудника в рабочее пространство фасадных объектов." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });

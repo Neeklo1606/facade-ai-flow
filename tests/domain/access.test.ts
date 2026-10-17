@@ -124,7 +124,7 @@ describe("canOpenProject", () => {
 
 describe("sectionOfPath и projectOfPath", () => {
   const cases: [string, string | undefined, Section | null][] = [
-    // Корень — дверь на рабочий экран роли, «Внимание» — сборка блоков: раздела прав у них
+    // Корень — дверь на рабочий экран роли, «Обзор» — сборка блоков: раздела прав у них
     // нет, право требует каждый блок отдельно (ADR-028)
     ["/", undefined, null],
     ["/attention", undefined, null],

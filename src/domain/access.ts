@@ -207,7 +207,7 @@ export function canOpenProject(
 export function sectionOfPath(pathname: string, view?: string): Section | null {
   const path = pathname.replace(/\/+$/, "") || "/";
   /*
-   * Корень — дверь на рабочий экран роли, а не экран; «Внимание» — сборка из блоков, и право
+   * Корень — дверь на рабочий экран роли, а не экран; «Обзор» — сборка из блоков, и право
    * требует каждый блок, а не экран целиком (ADR-028). Обоим раздел прав не сопоставляется.
    */
   if (path === "/" || path === "/attention") return null;

@@ -27,7 +27,7 @@ test.describe("сценарий показа", () => {
   test("от спецификации до поставки, истории и нового объекта", async ({ page }) => {
     test.setTimeout(240_000);
 
-    // 1. «Внимание»: число ведёт в реестр, отфильтрованный по непроверенным
+    // 1. «Обзор»: число ведёт в реестр, отфильтрованный по непроверенным
     await open(page, "/attention");
     await expect(page.getByRole("heading", { name: "Требует решения" })).toBeVisible();
     await page
