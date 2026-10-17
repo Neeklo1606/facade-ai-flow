@@ -8,7 +8,7 @@ import { queries } from "@/api/queries";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { useApp } from "@/lib/app-context";
 import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scope";
-import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
+import { badgeCounts, badgeIsCritical, badgeText, badgeTotal } from "@/lib/badges";
 import { useKeyboardOpen } from "@/lib/keyboard-open";
 import { bottomNavFor, plusActionsFor, type BottomNavItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ export function BottomTabs() {
             key={item.key}
             item={item}
             active={item.active(pathname, view, pickSection)}
-            count={item.badge ? counts[item.badge] : 0}
+            count={badgeTotal(item.badges, counts)}
           />
         ))}
 
@@ -89,7 +89,7 @@ export function BottomTabs() {
             key={item.key}
             item={item}
             active={item.active(pathname, view, pickSection)}
-            count={item.badge ? counts[item.badge] : 0}
+            count={badgeTotal(item.badges, counts)}
           />
         ))}
 
@@ -146,7 +146,7 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
           <span
             className={cn(
               "absolute -top-2 -right-3 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[12px] leading-none font-medium",
-              item.badge && CRITICAL_BADGES.includes(item.badge)
+              badgeIsCritical(item.badges)
                 ? "bg-danger text-on-orange"
                 : "bg-surface-3 text-text-2",
             )}

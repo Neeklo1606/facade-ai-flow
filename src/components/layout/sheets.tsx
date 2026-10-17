@@ -324,7 +324,9 @@ export function MoreSheet({
   const enterAs = useEnterAs();
   const { personaId, themeChoice, setThemeChoice } = useApp();
   const employees = useQuery(queries.employees()).data ?? [];
-  const inPanel = new Set(bottomNavFor(role, projectId).map((item) => item.key));
+  // Позиция панели может называться иначе, чем пункт меню (ADR-031, п. 5): раздел,
+  // который уже стоит в панели, в шторке не повторяется
+  const inPanel = new Set(bottomNavFor(role, projectId).map((item) => item.navKey ?? item.key));
   const rest = navItemsFor(role).filter((item) => !inPanel.has(item.key));
   const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id)).filter(
     (item): item is (typeof employees)[number] => !!item,

@@ -13,6 +13,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
+import { SupplyTabs } from "@/components/supply/SupplyTabs";
 import { AcceptanceDialog } from "@/components/deliveries/AcceptanceDialog";
 import { DeliveryDetails, DeliveryMoves } from "@/components/deliveries/DeliveryDetails";
 import { deliveryTone } from "@/lib/procurement";
@@ -45,7 +46,11 @@ export const Route = createFileRoute("/projects/$id/deliveries")({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Поставки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
+      ? [
+          {
+            title: `Снабжение: поставки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
+        ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
@@ -145,7 +150,7 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     >
       <SubpageHeader
         project={project}
-        title="Поставки"
+        title="Снабжение: поставки"
         description="Что везут на объект, что уже приняли и с какими замечаниями. Поставка появляется после решения по запросу поставщикам."
         actions={
           toAccept[0] ? (
@@ -162,6 +167,8 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           ) : null
         }
       />
+
+      <SupplyTabs projectId={project.id} overview={overview ?? null} current="deliveries" />
 
       <ul className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Сводка поставок">
         {[

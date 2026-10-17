@@ -73,10 +73,10 @@ test.describe("нижняя панель @mobile", () => {
       const state = await panel(page);
       expect(state, "панель не найдена").not.toBeNull();
       expect(state!.height).toBeGreaterThanOrEqual(64);
-      // Обзор, Закупки, «+», Объект, Ещё — таблица целевой карты (ADR-026, поправка)
+      // Обзор, Снабжение, «+», Объект, Ещё (ADR-026, поправка; ADR-031, п. 5)
       expect(state!.labels).toHaveLength(5);
       expect(state!.labels.join(" ")).toContain("Обзор");
-      expect(state!.labels.join(" ")).toContain("Закупки");
+      expect(state!.labels.join(" ")).toContain("Снабжение");
       expect(state!.labels.join(" ")).not.toContain("Документ");
       // Пятно ровно одно, и это «+»
       expect(state!.orange).toEqual(["Создать"]);
@@ -114,7 +114,9 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.labels.join(" ")).toContain("Сегодня");
       expect(state!.labels.join(" ")).toContain("Отчёты");
       expect(state!.labels.join(" ")).not.toContain("Документ");
-      expect(state!.labels.join(" ")).not.toContain("Закупки");
+      // Раздел снабжения прорабу не предлагается целиком: в панели только его поставки
+      expect(state!.labels.join(" ")).not.toContain("Снабжение");
+      expect(state!.labels.join(" ")).toContain("Поставки");
       // Первая позиция — рабочий экран роли: панель начинается там же, где начинается день
       expect(state!.labels[0]).toBe("Сегодня");
       expect(state!.orange).toEqual(["Создать"]);

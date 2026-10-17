@@ -48,7 +48,13 @@ import { queries } from "@/api/queries";
 import { employeeRoleLabel, type EmployeeRole, type ProjectOverview } from "@/contracts";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
+import {
+  badgeCounts,
+  badgeCriticalTotal,
+  badgeIsCritical,
+  badgeText,
+  badgeTotal,
+} from "@/lib/badges";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useApp();
@@ -270,7 +276,7 @@ function SidebarInner({
         {groups.map((group, index) => {
           const open = collapsed || !closedGroups.includes(group.title);
           const hiddenCritical = group.items.reduce(
-            (sum, i) => sum + (i.badge && CRITICAL_BADGES.includes(i.badge) ? counts[i.badge] : 0),
+            (sum, i) => sum + badgeCriticalTotal(i.badges, counts),
             0,
           );
           return (
@@ -311,7 +317,7 @@ function SidebarInner({
                   {group.items.map((item) => {
                     const active = item.key === activeKey;
                     const href = sectionHref(projectId, item.section, item.to);
-                    const count = item.badge ? counts[item.badge] : 0;
+                    const count = badgeTotal(item.badges, counts);
                     return (
                       <li key={item.key}>
                         <Link
@@ -335,9 +341,7 @@ function SidebarInner({
                             <span
                               className={cn(
                                 "nav-badge",
-                                item.badge &&
-                                  CRITICAL_BADGES.includes(item.badge) &&
-                                  "nav-badge-critical",
+                                badgeIsCritical(item.badges) && "nav-badge-critical",
                                 collapsed && "lg:hidden",
                               )}
                             >

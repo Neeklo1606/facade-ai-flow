@@ -22,6 +22,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
+import { SupplyTabs } from "@/components/supply/SupplyTabs";
 import { MaterialDrawer } from "@/components/materials/MaterialDrawer";
 import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
@@ -111,7 +112,11 @@ export const Route = createFileRoute("/projects/$id/materials")({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Материалы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
+      ? [
+          {
+            title: `Снабжение: спецификация — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
+        ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
@@ -291,7 +296,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
     <>
       <SubpageHeader
         project={project}
-        title="Материалы"
+        title="Снабжение: спецификация"
         /*
           Счётчик — это фильтр. На дашборде цифра ведёт в список с тем же условием, а здесь
           «готовы к запросу 23» была просто текстом: чтобы их увидеть, снабженец открывал
@@ -357,6 +362,9 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
           )
         }
       />
+
+      {/* Раздел «Снабжение»: спецификация — его первая вкладка (ADR-031) */}
+      <SupplyTabs projectId={project.id} overview={overview ?? null} current="spec" />
 
       {/* Этапы закупки проверенных позиций: ячейка полосы — фильтр списка */}
       <MetricStrip
