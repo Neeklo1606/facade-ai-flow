@@ -46,7 +46,11 @@ export const Route = createFileRoute("/projects/$id/deliveries")({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Поставки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
+      ? [
+          {
+            title: `Снабжение: поставки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
+        ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
@@ -146,7 +150,7 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     >
       <SubpageHeader
         project={project}
-        title="Поставки"
+        title="Снабжение: поставки"
         description="Что везут на объект, что уже приняли и с какими замечаниями. Поставка появляется после решения по запросу поставщикам."
         actions={
           toAccept[0] ? (

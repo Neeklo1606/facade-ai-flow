@@ -80,7 +80,7 @@ export const Route = createFileRoute("/projects/$id/procurement/")({
     meta: loaderData
       ? [
           {
-            title: `Поставщики и запросы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+            title: `Снабжение: запросы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
           },
         ]
       : [],
@@ -230,7 +230,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
     <>
       <SubpageHeader
         project={project}
-        title="Поставщики и запросы"
+        title={isRequests ? "Снабжение: запросы" : "Снабжение: поставщики"}
         description={`Кому отправлены запросы, кто ответил и по какой цене. Регион объекта — ${overview?.region ?? "—"}.`}
         actions={
           <>

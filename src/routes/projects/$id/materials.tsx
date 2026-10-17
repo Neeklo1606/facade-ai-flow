@@ -112,7 +112,11 @@ export const Route = createFileRoute("/projects/$id/materials")({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [{ title: `Материалы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` }]
+      ? [
+          {
+            title: `Снабжение: спецификация — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+          },
+        ]
       : [],
   }),
   notFoundComponent: ProjectNotFound,
@@ -292,7 +296,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
     <>
       <SubpageHeader
         project={project}
-        title="Материалы"
+        title="Снабжение: спецификация"
         /*
           Счётчик — это фильтр. На дашборде цифра ведёт в список с тем же условием, а здесь
           «готовы к запросу 23» была просто текстом: чтобы их увидеть, снабженец открывал

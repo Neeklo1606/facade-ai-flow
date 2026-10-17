@@ -49,8 +49,8 @@ test.describe("снабжение", () => {
 
   test("в меню один пункт раздела вместо четырёх", async ({ page }) => {
     await open(page, "/projects/p-korona/procurement");
-    const nav = page.locator('[data-tour="nav-supply"]');
-    await expect(nav).toHaveCount(1);
+    // Сайдбар отрисован дважды: боковой на десктопе и шторка меню на телефоне
+    await expect(page.locator('[data-tour="nav-supply"]').first()).toBeVisible();
     for (const key of ["materials", "procurement", "deliveries", "suppliers"]) {
       await expect(page.locator(`[data-tour="nav-${key}"]`)).toHaveCount(0);
     }
@@ -64,7 +64,8 @@ test.describe("вкладки собираются из прав роли", () =
     await open(page, "/projects/p-korona/procurement");
     // Выбор из одной вкладки обещает выбор, которого нет (ADR-031, п. 2)
     await expect(page.getByRole("tablist", { name: "Разделы снабжения" })).toHaveCount(0);
-    await expect(page.getByRole("table")).toBeVisible();
+    // И экран запросов при этом цел: на телефоне список рисуется карточками, таблица скрыта
+    await expect(page.getByText("З-2026/323").filter({ visible: true }).first()).toBeVisible();
   });
 });
 
