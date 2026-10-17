@@ -13,6 +13,7 @@ import { ScreenGate, ScreenSkeleton } from "@/components/common/ScreenStates";
 import { PageCaption } from "@/components/layout/PageActions";
 import { Button } from "@/components/ui/button";
 import { useToday } from "@/api/today";
+import { useCanWrite } from "@/api/access";
 import { useDirectory } from "@/api/directory";
 import { queries } from "@/api/queries";
 import { prefetch } from "@/api/prefetch";
@@ -60,6 +61,13 @@ function TodayPage() {
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   // Куда ведёт «Зафиксировать работу»: объект из чипа, иначе первый доступный
   const target = projectId ?? today.projects[0]?.project.id ?? null;
+  /*
+   * Отчёт за смену заводят прораб, ПТО и руководитель; директору матрица даёт отчёты только
+   * на чтение (ADR-012). Экран ему открыт — смену видно, — а кнопка записи вела бы в форму,
+   * которую он не отправит: кнопка без действия хуже отсутствующей (ADR-015).
+   * Это удобство, а не защита: право всё равно проверяется на сервере.
+   */
+  const canRecord = useCanWrite("field-reports") && target !== null;
 
   return (
     <>
@@ -67,7 +75,7 @@ function TodayPage() {
         title="Сегодня"
         actions={
           // На десктопе полосы над панелью нет: главное действие живёт в шапке экрана
-          target ? (
+          canRecord ? (
             <Button variant="accent" asChild>
               <Link
                 to="/projects/$id/field-reports"
@@ -168,7 +176,7 @@ function TodayPage() {
         </div>
       </ScreenGate>
 
-      {!blocked && target && (
+      {!blocked && canRecord && (
         <MobileActionBar>
           <Button variant="accent" asChild>
             <Link

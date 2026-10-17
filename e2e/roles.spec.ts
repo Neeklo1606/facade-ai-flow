@@ -140,6 +140,12 @@ test("директор: внимание → реестр → выгрузка, 
 
   await open(page, "/projects/p-korona/procurement");
   await expect(page.getByRole("button", { name: /Создать запрос/ })).toHaveCount(0);
+
+  // «Сегодня» директору открыт на чтение, но отчёт за смену ему закрыт матрицей (ADR-012):
+  // кнопки записи там быть не должно ни в шапке, ни в полосе над панелью
+  await open(page, "/today");
+  await expect(page.getByRole("link", { name: /Зафиксировать работу/ })).toHaveCount(0);
+
   await open(page, "/access");
   await checkScreen(page, "права доступа");
 });
