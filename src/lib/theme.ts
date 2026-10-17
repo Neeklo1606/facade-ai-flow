@@ -49,7 +49,7 @@ export function writeChoice(choice: ThemeChoice) {
 
 export function systemTheme(): Theme {
   if (typeof window === "undefined" || !window.matchMedia) return "dark";
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "light";
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
 export const resolveTheme = (choice: ThemeChoice): Theme =>
@@ -61,7 +61,8 @@ export function applyTheme(theme: Theme) {
   root.dataset["theme"] = theme;
   root.style.colorScheme = theme;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", theme === "light" ? "#f4f2ee" : "#000000");
+  // Значения равны токену --void обеих тем: полоса браузера должна совпадать с фоном страницы
+  if (meta) meta.setAttribute("content", theme === "light" ? "#f1f3f4" : "#0a0d10");
 }
 
 /**

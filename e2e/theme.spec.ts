@@ -29,9 +29,11 @@ const luminance = (page: import("@playwright/test").Page, color: string) =>
 test.describe("тема оформления", () => {
   test.use({ persona: "e-sokolov" });
 
-  test("демонстрация открывается тёмной", async ({ page }) => {
+  // Умолчание демонстрации — светлая тема (решение владельца, ADR-030, п. 1).
+  // До 16.10 здесь ожидалась тёмная: поменялось решение, а не проверка под код
+  test("демонстрация открывается светлой", async ({ page }) => {
     await open(page, "/projects");
-    expect(await theme(page)).toBe("dark");
+    expect(await theme(page)).toBe("light");
   });
 
   test("выбор светлой темы переживает перезагрузку", async ({ page }) => {
@@ -75,7 +77,10 @@ test.describe("печать", () => {
 
   test("реестр печатается светлым даже из тёмной темы", async ({ page }) => {
     await open(page, "/projects");
-    expect(await theme(page)).toBe("dark");
+    // Тёмную тему выбираем руками: умолчание демонстрации теперь светлое (ADR-030, п. 1)
+    await page.getByRole("button", { name: /Тема оформления/ }).click();
+    await page.getByRole("menuitemradio", { name: "Тёмная" }).click();
+    await expect.poll(() => theme(page)).toBe("dark");
 
     await page.emulateMedia({ media: "print" });
     // Бумага белая независимо от выбранной темы (ADR-017, п. 8)

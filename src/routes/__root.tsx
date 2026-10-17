@@ -99,7 +99,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#000000" },
+      // Умолчание — светлая тема (ADR-030, п. 1); дальше значение ставит applyTheme
+      { name: "theme-color", content: "#f1f3f4" },
       // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
       // картинка превью и запрет индексации общие (TASK-A5, п. 2 и 3)
       { title: previewMeta.title },
