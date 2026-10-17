@@ -1,6 +1,15 @@
 import type { EmployeeRole } from "@/contracts";
 import { can, type Section } from "@/domain/access";
 import {
+  isSupplyPath,
+  isSupplySection,
+  supplyBadgesFor,
+  supplyDoorFor,
+  SUPPLY_LABEL,
+  SUPPLY_SECTIONS,
+  SUPPLY_TABS,
+} from "./supply";
+import {
   Users,
   BookOpen,
   Boxes,
@@ -36,7 +45,11 @@ export interface NavItem {
   key: string;
   label: string;
   icon: LucideIcon;
-  badge?: BadgeKey;
+  /**
+   * Счётчики пункта. Их может быть несколько: у раздела «Снабжение» одно место под число,
+   * а источников три, и на пункте стоит их сумма (ADR-031, п. 4)
+   */
+  badges?: BadgeKey[];
   /** Раздел прав (ADR-012): пункт виден роли, которой раздел доступен хотя бы на чтение */
   /**
    * Раздел прав, которым открывается пункт (ADR-012). Без него пункт видят все роли:
@@ -107,36 +120,16 @@ export const navGroups: NavGroup[] = [
         section: "documents",
         access: "documents",
       },
+      /*
+       * Один пункт на весь снабженческий контур (ADR-031): спецификация, запросы,
+       * поставщики и поставки — вкладки одного раздела. Дверь раздела и счётчик зависят
+       * от роли, поэтому их подставляет `navItemsFor` и `navGroupsFor`.
+       */
       {
-        key: "materials",
-        label: "Материалы",
-        icon: Boxes,
-        badge: "unverifiedSpec",
-        section: "materials",
-        access: "materials",
-      },
-      {
-        key: "procurement",
-        label: "Закупки",
+        key: "supply",
+        label: SUPPLY_LABEL,
         icon: PackageSearch,
-        badge: "overdueRequests",
-        section: "procurement",
-        access: "procurement",
-      },
-      {
-        key: "deliveries",
-        label: "Поставки",
-        icon: PackageCheck,
-        badge: "deliveriesToAccept",
-        section: "deliveries",
-        access: "deliveries",
-      },
-      {
-        key: "suppliers",
-        label: "Поставщики",
-        icon: Truck,
-        section: "suppliers",
-        access: "suppliers",
+        anyOf: SUPPLY_SECTIONS,
       },
     ],
   },
@@ -198,16 +191,36 @@ export function visibleFor(item: NavItem, role: EmployeeRole) {
   return item.access ? can(role, item.access) : true;
 }
 
+/**
+ * Пункт «Снабжение» зависит от роли: он ведёт на дверь раздела и показывает сумму счётчиков
+ * тех вкладок, которые роль видит (ADR-031, пп. 3–4). Остальные пункты одинаковы для всех.
+ */
+function forRole(item: NavItem, role: EmployeeRole): NavItem {
+  if (item.key !== "supply") return item;
+  const door = supplyDoorFor(role);
+  const badges = supplyBadgesFor(role);
+  return {
+    ...item,
+    ...(door ? { section: door.section } : {}),
+    ...(badges.length ? { badges } : {}),
+  };
+}
+
 /** Меню для роли: пустые группы не показываем (ADR-008) */
 export function navGroupsFor(role: EmployeeRole): NavGroup[] {
   return navGroups
-    .map((group) => ({ ...group, items: group.items.filter((item) => visibleFor(item, role)) }))
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .filter((item) => visibleFor(item, role))
+        .map((item) => forRole(item, role)),
+    }))
     .filter((group) => group.items.length > 0);
 }
 
 /** Пункты меню, доступные роли: сайдбар, нижняя панель и палитра команд берут один список */
 export function navItemsFor(role: EmployeeRole) {
-  return allNavItems.filter((item) => visibleFor(item, role));
+  return allNavItems.filter((item) => visibleFor(item, role)).map((item) => forRole(item, role));
 }
 
 /**
@@ -225,12 +238,14 @@ export function homeRouteFor(role: EmployeeRole) {
   return "/projects";
 }
 
+// Четыре раздела снабжения — вкладки одного раздела, и в просьбе выбрать объект они
+// называются так же, как на полосе вкладок (ADR-031)
 export const sectionLabels: Record<ProjectSection, string> = {
   documents: "Документация",
-  materials: "Материалы",
-  procurement: "Поставщики и запросы",
-  suppliers: "Поставщики",
-  deliveries: "Поставки",
+  materials: "Снабжение: спецификация",
+  procurement: "Снабжение: запросы",
+  suppliers: "Снабжение: поставщики",
+  deliveries: "Снабжение: поставки",
   "field-reports": "Отчёты с площадки",
   timeline: "История и решения",
 };
@@ -257,19 +272,21 @@ export function sectionHref(
 }
 
 /** Какой пункт меню подсвечивать на текущем адресе. */
-export function activeNavKey(pathname: string, view: string, pickSection: string | null) {
+export function activeNavKey(pathname: string, _view: string, pickSection: string | null) {
   if (pathname === "/attention") return "attention";
   if (pathname === "/today") return "today";
   if (pathname === "/check") return "check";
   if (pathname === "/agent") return "agent";
   if (pathname === "/access") return "access";
   if (pathname === "/catalogs") return "catalogs";
-  if (pathname === "/projects" && pickSection) return pickSection;
+  // Разделы снабжения — вкладки одного пункта: подсвечивается он, а не вкладка (ADR-031)
+  if (pathname === "/projects" && pickSection)
+    return isSupplySection(pickSection) ? "supply" : pickSection;
+  if (isSupplyPath(pathname)) return "supply";
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);
   if (!match) return pathname.startsWith("/projects") ? "projects" : null;
   const section = match[1];
   if (!section) return "projects";
-  if (section === "procurement") return view === "suppliers" ? "suppliers" : "procurement";
   return section;
 }
 
@@ -282,7 +299,13 @@ export interface BottomNavItem {
   icon: LucideIcon;
   to: string;
   search?: Record<string, string>;
-  badge?: BadgeKey;
+  badges?: BadgeKey[];
+  /**
+   * Пункт меню, которому соответствует позиция, если имя у них разное. У прораба в панели
+   * стоит «Поставки», а в меню — «Снабжение»: панель называет работу дня, меню — раздел
+   * (ADR-031, п. 5). Нужно, чтобы шторка «Ещё» не повторяла раздел, который уже в панели.
+   */
+  navKey?: string;
   /** Активна ли позиция на этом адресе */
   active: (pathname: string, view: string, pickSection: string) => boolean;
 }
@@ -319,6 +342,7 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
     icon: LucideIcon,
     name: ProjectSection,
     badge?: BadgeKey,
+    navKey?: string,
   ): BottomNavItem => {
     const href = sectionHref(projectId, name);
     return {
@@ -327,7 +351,8 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
       icon,
       to: href.to,
       ...(Object.keys(href.search).length ? { search: href.search as Record<string, string> } : {}),
-      ...(badge ? { badge } : {}),
+      ...(badge ? { badges: [badge] } : {}),
+      ...(navKey ? { navKey } : {}),
       active: (pathname, view, pickSection) =>
         projectId
           ? name === "suppliers"
@@ -372,21 +397,39 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
   };
   // В панели подпись короче, чем в меню: «Документация» не помещается в позицию 11–12 px
   const documents = section("documents", "Документы", FileText, "documents");
-  const materials = section("materials", "Материалы", Boxes, "materials", "unverifiedSpec");
-  const procurement = section(
-    "procurement",
-    "Закупки",
-    PackageSearch,
-    "procurement",
-    "overdueRequests",
-  );
+  // Позиции снабжения ведут в раздел (ADR-031): «Поставки» у прораба — вкладка раздела,
+  // поэтому у позиции тот же пункт меню, что у «Снабжения»
   const deliveries = section(
     "deliveries",
     "Поставки",
     PackageCheck,
     "deliveries",
     "deliveriesToAccept",
+    "supply",
   );
+  /**
+   * Позиция раздела «Снабжение»: ведёт на дверь роли, активна на любой его вкладке,
+   * счётчик — сумма счётчиков доступных вкладок (ADR-031, пп. 3–5).
+   */
+  const supplyDoor = supplyDoorFor(role);
+  const supplyBadges = supplyBadgesFor(role);
+  const supply: BottomNavItem | null = supplyDoor
+    ? (() => {
+        const href = sectionHref(projectId, supplyDoor.section);
+        return {
+          key: "supply",
+          label: SUPPLY_LABEL,
+          icon: PackageSearch,
+          to: href.to,
+          ...(Object.keys(href.search).length
+            ? { search: href.search as Record<string, string> }
+            : {}),
+          ...(supplyBadges.length ? { badges: supplyBadges } : {}),
+          active: (pathname: string, _view: string, pickSection: string) =>
+            projectId ? isSupplyPath(pathname) : isSupplySection(pickSection),
+        };
+      })()
+    : null;
   const reports = section("field-reports", "Отчёты", HardHat, "field-reports");
   const catalogs: BottomNavItem = {
     key: "catalogs",
@@ -396,17 +439,20 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
     active: (pathname) => pathname === "/catalogs",
   };
 
+  // «Закупки» заменены на «Снабжение» у снабжения, руководителя и директора (ADR-031, п. 5)
+  const withSupply = (items: (BottomNavItem | null)[]) =>
+    items.filter((item): item is BottomNavItem => item !== null);
   const byRole: Partial<Record<EmployeeRole, BottomNavItem[]>> = {
-    foreman: [today, deliveries, reports],
-    pto: [check, documents, projects],
-    supply: [attention, procurement, projects],
-    manager: [attention, projects, procurement],
-    director: [attention, projects, procurement],
+    foreman: withSupply([today, deliveries, reports]),
+    pto: withSupply([check, documents, projects]),
+    supply: withSupply([attention, supply, projects]),
+    manager: withSupply([attention, projects, supply]),
+    director: withSupply([attention, projects, supply]),
   };
   // Роль вне матрицы (finance, worker) видит только реестр: панель не выдумывает ей разделы
   const items = byRole[role] ?? [projects];
   return items.filter((item) => {
-    const nav = allNavItems.find((navItem) => navItem.key === item.key);
+    const nav = allNavItems.find((navItem) => navItem.key === (item.navKey ?? item.key));
     return !nav || visibleFor(nav, role);
   });
 }

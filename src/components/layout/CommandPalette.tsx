@@ -8,7 +8,9 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useApp } from "@/lib/app-context";
-import { navItemsFor, sectionHref } from "@/lib/navigation";
+import { navItemsFor, sectionHref, sectionLabels, type ProjectSection } from "@/lib/navigation";
+import { supplyTabsFor } from "@/lib/supply";
+import type { LucideIcon } from "lucide-react";
 import { useCurrentRole, useProjectId } from "@/lib/project-scope";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
@@ -41,8 +43,27 @@ export function CommandPalette() {
     useQuery({ ...queries.suppliers(), enabled: enabled && can("suppliers") }).data ?? []
   ).map((item) => item.profile);
   const nameOf = (id: string) => projects.find((p) => p.id === id)?.name ?? "";
-  // Палитра не предлагает разделы, которых у роли нет в меню (ADR-008)
-  const sections = navItemsFor(role);
+  /*
+   * Палитра не предлагает разделы, которых у роли нет в меню (ADR-008). Раздел снабжения
+   * она раскрывает во вкладки: палитра ищет по месту, куда ведёт, и «поставки» в ней должны
+   * находиться, а не прятаться за пунктом «Снабжение» (ADR-031)
+   */
+  const sections: {
+    key: string;
+    label: string;
+    icon: LucideIcon;
+    section?: ProjectSection;
+    to?: string;
+  }[] = navItemsFor(role).flatMap((item) =>
+    item.key === "supply"
+      ? supplyTabsFor(role).map((tab) => ({
+          key: `supply-${tab.id}`,
+          label: sectionLabels[tab.section],
+          icon: tab.icon,
+          section: tab.section,
+        }))
+      : [item],
+  );
 
   const go = (to: string, search?: Record<string, string>) => {
     setCommandOpen(false);

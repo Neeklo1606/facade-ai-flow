@@ -13,6 +13,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
+import { SupplyTabs } from "@/components/supply/SupplyTabs";
 import { AcceptanceDialog } from "@/components/deliveries/AcceptanceDialog";
 import { DeliveryDetails, DeliveryMoves } from "@/components/deliveries/DeliveryDetails";
 import { deliveryTone } from "@/lib/procurement";
@@ -162,6 +163,8 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           ) : null
         }
       />
+
+      <SupplyTabs projectId={project.id} overview={overview ?? null} current="deliveries" />
 
       <ul className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Сводка поставок">
         {[

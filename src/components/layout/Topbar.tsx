@@ -4,6 +4,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Search } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { sectionLabels, type ProjectSection } from "@/lib/navigation";
+import { isSupplySection, SUPPLY_LABEL } from "@/lib/supply";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { screenStatesEnabled } from "@/lib/screen-state";
@@ -37,7 +38,15 @@ export function Topbar() {
     enabled: !!projectId && canProject("projects", projectId),
   }).data?.project;
   const sectionKey = detail?.[2] as ProjectSection | undefined;
-  const section = sectionKey ? sectionLabels[sectionKey] : null;
+  /*
+   * Четыре раздела снабжения — вкладки одного раздела, и шапка называет раздел: вкладку
+   * называет полоса под ней, повторять её в заголовке незачем (ADR-031)
+   */
+  const section = sectionKey
+    ? isSupplySection(sectionKey)
+      ? SUPPLY_LABEL
+      : sectionLabels[sectionKey]
+    : null;
   const child = detail?.[3] ? decodeURIComponent(detail[3]) : null;
   const documentTitle = useQuery({
     ...queries.document(child ?? ""),

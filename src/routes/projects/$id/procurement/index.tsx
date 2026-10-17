@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Mail, PackageSearch, Phone, Plus, Send, Truck } from "lucide-react";
 import { DetailsLayout } from "@/components/common/DetailsPanel";
-import { PillTabs } from "@/components/common/PillTabs";
 import { StatList } from "@/components/common/StatList";
 import {
   loadProject,
@@ -11,6 +10,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
+import { SupplyTabs } from "@/components/supply/SupplyTabs";
 import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
 import { SupplierForm } from "@/components/catalog/SupplierForm";
 import { ContactFreshnessBadge } from "@/components/procurement/ContactFreshnessBadge";
@@ -253,20 +253,15 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
         }
       />
 
-      {canSuppliers && (
-        <PillTabs
-          className="mb-5"
-          label="Вид раздела"
-          value={view}
-          onChange={(next) =>
-            setSearch({ view: next === "requests" ? undefined : "suppliers", status: undefined })
-          }
-          tabs={[
-            { value: "requests", label: "Запросы", count: requestRows.length },
-            { value: "suppliers", label: "Поставщики", count: supplierRows.length },
-          ]}
-        />
-      )}
+      {/*
+        Своей полосы «Запросы / Поставщики» здесь больше нет: обе стали вкладками раздела
+        «Снабжение», и две полосы подряд были бы выбором из выбора (ADR-031, п. 7)
+      */}
+      <SupplyTabs
+        projectId={project.id}
+        overview={overview ?? null}
+        current={isRequests ? "requests" : "suppliers"}
+      />
 
       <div data-main-zone className="space-y-4">
         {screen === "partial" && (

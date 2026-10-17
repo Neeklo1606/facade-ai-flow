@@ -22,9 +22,15 @@ describe("набор позиций по роли", () => {
   test("в панели нет раздела, закрытого роли", () => {
     for (const role of MATRIX_ROLES) {
       for (const item of bottomNavFor(role, PROJECT)) {
-        const nav = allNavItems.find((navItem) => navItem.key === item.key);
-        if (!nav?.access) continue;
-        expect(can(role, nav.access), `${role} → ${item.key}`).toBe(true);
+        // Позиция может называться иначе, чем её пункт меню (ADR-031, п. 5)
+        const nav = allNavItems.find((navItem) => navItem.key === (item.navKey ?? item.key));
+        expect(nav, `${role} → ${item.key}: позиция без пункта меню`).toBeTruthy();
+        if (nav?.access) expect(can(role, nav.access), `${role} → ${item.key}`).toBe(true);
+        if (nav?.anyOf)
+          expect(
+            nav.anyOf.some((section) => can(role, section)),
+            `${role} → ${item.key}`,
+          ).toBe(true);
       }
     }
   });
@@ -34,9 +40,10 @@ describe("набор позиций по роли", () => {
       bottomNavFor(role, PROJECT).map((item) => item.key);
     expect(keys("foreman")).toEqual(["today", "deliveries", "field-reports"]);
     expect(keys("pto")).toEqual(["check", "documents", "projects"]);
-    expect(keys("supply")).toEqual(["attention", "procurement", "projects"]);
-    expect(keys("manager")).toEqual(["attention", "projects", "procurement"]);
-    expect(keys("director")).toEqual(["attention", "projects", "procurement"]);
+    // «Закупки» заменены на раздел «Снабжение» (ADR-031, п. 5)
+    expect(keys("supply")).toEqual(["attention", "supply", "projects"]);
+    expect(keys("manager")).toEqual(["attention", "projects", "supply"]);
+    expect(keys("director")).toEqual(["attention", "projects", "supply"]);
     // Прорабу не предлагается проверка документов: раздел ему закрыт
     expect(keys("foreman")).not.toContain("documents");
     // Первой стоит рабочий экран роли: панель начинается там же, где начинается день

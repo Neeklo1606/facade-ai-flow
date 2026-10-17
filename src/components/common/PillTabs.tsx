@@ -1,11 +1,17 @@
 import { useRef, type KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
+import { badgeText } from "@/lib/badges";
 import { Button } from "@/components/ui/button";
 
 export interface PillTab<T extends string> {
   value: T;
   label: string;
   count?: number;
+  /**
+   * Счётчик дел, а не длина списка: тот же вид, что у бейджа меню, — иначе число рядом
+   * с подписью читается как «столько строк внутри» (ADR-031, п. 4)
+   */
+  attention?: { count: number; critical?: boolean; label: string };
   /** Только для витрины: показать состояние наведения или фокуса без мыши */
   force?: "hover" | "focus";
 }
@@ -79,6 +85,12 @@ export function PillTabs<T extends string>({
             {tab.label}
             {tab.count != null && (
               <span className={cn("text-[12px] font-normal", "text-text-3")}>{tab.count}</span>
+            )}
+            {tab.attention && tab.attention.count > 0 && (
+              <span className={cn("nav-badge", tab.attention.critical && "nav-badge-critical")}>
+                {badgeText(tab.attention.count)}
+                <span className="sr-only"> {tab.attention.label}</span>
+              </span>
             )}
           </Button>
         );

@@ -22,6 +22,7 @@ import {
   type ProjectPageProps,
 } from "@/components/project/ProjectNotFound";
 import { SubpageHeader } from "@/components/project/SubpageHeader";
+import { SupplyTabs } from "@/components/supply/SupplyTabs";
 import { MaterialDrawer } from "@/components/materials/MaterialDrawer";
 import { CreateRfqDialog } from "@/components/procurement/CreateRfqDialog";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
@@ -357,6 +358,9 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
           )
         }
       />
+
+      {/* Раздел «Снабжение»: спецификация — его первая вкладка (ADR-031) */}
+      <SupplyTabs projectId={project.id} overview={overview ?? null} current="spec" />
 
       {/* Этапы закупки проверенных позиций: ячейка полосы — фильтр списка */}
       <MetricStrip

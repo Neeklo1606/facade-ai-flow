@@ -22,6 +22,19 @@ export function badgeCounts(
   };
 }
 
+/**
+ * Сумма счётчиков пункта: у раздела «Снабжение» одно место под число, а источников три,
+ * и на пункте стоит их сумма (ADR-031, п. 4). Разложена она на полосе вкладок раздела.
+ */
+export function badgeTotal(keys: BadgeKey[] | undefined, counts: Record<BadgeKey, number>) {
+  return (keys ?? []).reduce((acc, key) => acc + counts[key], 0);
+}
+
+/** Красным — если среди счётчиков пункта есть критический */
+export function badgeIsCritical(keys: BadgeKey[] | undefined) {
+  return (keys ?? []).some((key) => CRITICAL_BADGES.includes(key));
+}
+
 /** Число на бейдже: до 99 как есть, дальше «99+» — четыре цифры в панели не читаются */
 export function badgeText(count: number) {
   return count > 99 ? "99+" : String(count);
