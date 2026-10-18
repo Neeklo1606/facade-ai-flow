@@ -1,5 +1,3 @@
-import { dataSource } from "@/api/config";
-
 /**
  * Тема оформления (ADR-017). Выбор пользователя из трёх положений, применённая тема — из двух.
  *
@@ -26,7 +24,7 @@ export const themeLabels: Record<ThemeChoice, string> = {
  * Умолчание контура: демонстрация — тёмная, рабочий режим — как в системе (ADR-017, п. 6;
  * решение владельца 18.10.2026, ADR-041). Выбор человека важнее умолчания.
  */
-export const defaultChoice: ThemeChoice = dataSource === "server" ? "system" : "dark";
+export const defaultChoice: ThemeChoice = "light";
 
 const isChoice = (value: string | null): value is ThemeChoice =>
   value === "light" || value === "dark" || value === "system";
@@ -65,7 +63,7 @@ export function applyTheme(theme: Theme) {
   root.style.colorScheme = theme;
   const meta = document.querySelector('meta[name="theme-color"]');
   // Значения равны токену --void обеих тем: полоса браузера должна совпадать с фоном страницы
-  if (meta) meta.setAttribute("content", theme === "light" ? "#f1f3f4" : "#0a0d10");
+  if (meta) meta.setAttribute("content", getComputedStyle(root).getPropertyValue("--void").trim());
 }
 
 /**

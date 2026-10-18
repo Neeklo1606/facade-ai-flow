@@ -12,6 +12,7 @@ import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 import { useKeyboardOpen } from "@/lib/keyboard-open";
 import { bottomNavFor, plusActionsFor, type BottomNavItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const PlusSheet = lazy(() => import("./sheets").then((module) => ({ default: module.PlusSheet })));
 const MoreSheet = lazy(() => import("./sheets").then((module) => ({ default: module.MoreSheet })));
@@ -84,7 +85,7 @@ export function BottomTabs() {
         aria-label="Основная навигация"
         data-keyboard={keyboardOpen ? "open" : undefined}
         className={cn(
-          "glass-bar fixed inset-x-0 bottom-0 z-40 grid h-[calc(64px+env(safe-area-inset-bottom))] items-center pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
+          "glass-bar fixed inset-x-0 bottom-0 z-40 grid h-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] items-center pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
           // Пока фокус в поле ввода, панель уходит: место под неё остаётся, чтобы не прыгало
           keyboardOpen && "pointer-events-none translate-y-full opacity-0",
           // Колонок ровно по числу позиций: классы записаны целиком, иначе сборщик их не соберёт
@@ -106,7 +107,8 @@ export function BottomTabs() {
               Голосовая капсула 64 px (дизайн-система, раздел 8): тёплая белая с оранжевым
               свечением. Свет — единственный в панели; оранжевой заливки больше нет (ADR-041).
             */}
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onPointerDown={holdStart}
               onPointerUp={holdEnd}
@@ -124,13 +126,11 @@ export function BottomTabs() {
               aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
               data-tour="nav-plus"
               className={cn(
-                "focus-ring press bg-pill text-pill-text transition-fast -mt-6 grid size-16 place-items-center rounded-full",
-                // На экране записи светится его собственная капсула: свет в кадре один (правило 2)
-                pathname !== "/capture" && "glow-ember",
+                "focus-ring press border border-line-2 bg-pill text-pill-text transition-fast -mt-4 grid size-14 place-items-center rounded-full p-0 hover:bg-pill hover:text-pill-text [&_svg]:size-6",
               )}
             >
               <Mic className="size-6" strokeWidth={2} aria-hidden />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -143,15 +143,16 @@ export function BottomTabs() {
           />
         ))}
 
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => setMoreOpen(true)}
           aria-label="Ещё: разделы, тема, справка"
-          className="focus-ring text-text-3 transition-fast flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[13px] leading-none"
+          className="focus-ring text-text-3 transition-fast flex h-full min-h-12 flex-col items-center justify-center gap-1 rounded-none px-0 text-[13px] leading-none [&_svg]:size-6"
         >
           <Menu className="size-6" strokeWidth={1.75} aria-hidden />
           Ещё
-        </button>
+        </Button>
       </nav>
 
       {/* Шторки грузятся по требованию: их разметка и перетаскивание не нужны до нажатия */}
