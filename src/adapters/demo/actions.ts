@@ -32,7 +32,7 @@ import {
   type RequestPositionLink,
 } from "@/domain/deliveries";
 import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
-import { ConflictError, NotFoundError } from "@/ports";
+import { ConflictError, NotFoundError, type RecordJobInput } from "@/ports";
 import {
   milestoneStatusLabel,
   milestoneTransitions,
@@ -43,6 +43,7 @@ import {
   zoneLevelLabel,
 } from "@/contracts";
 import type {
+  ProcessingJobRow,
   CatalogChange,
   Employee,
   FieldReport,
@@ -2256,4 +2257,22 @@ export function resolveChange(input: ResolveChangeInput, actorId: string) {
     ],
   }));
   return next;
+}
+
+/**
+ * Записать обращение к модели (ADR-035, п. 3). Журнал только пополняется: ни правки, ни
+ * удаления у него нет, поэтому и действия такого нет. Объект проверяется, если указан:
+ * запись о чужом объекте в журнале хуже, чем её отсутствие.
+ */
+export function recordProcessingJob(input: RecordJobInput): ProcessingJobRow {
+  const s = getState();
+  if (input.projectId && !s.projects.some((item) => item.id === input.projectId)) {
+    throw new NotFoundError("Объект", input.projectId);
+  }
+  if (input.sourceId && !s.sources.some((item) => item.id === input.sourceId)) {
+    throw new NotFoundError("Источник", input.sourceId);
+  }
+  const row: ProcessingJobRow = { ...input, id: liveId("pj") };
+  update((prev) => ({ ...prev, processingJobs: [...prev.processingJobs, row] }));
+  return row;
 }

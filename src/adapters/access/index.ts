@@ -248,6 +248,19 @@ export const ACCESS_RULES: AccessRules = {
     projectOf: SESSION,
   },
   agent: { ask: { sections: ["agent"], need: READ, global: true } },
+  /*
+   * Журнал обработок — часть истории факта: его читает тот, кто видит факты площадки,
+   * а пишет шлюз от имени того, кто отправил сообщение (ADR-035, п. 3).
+   */
+  processing: {
+    record: { sections: ["field-reports"], need: WRITE, global: true },
+    list: {
+      sections: ["field-reports"],
+      need: READ,
+      global: true,
+      filter: (rows, ids) => rows.filter((row) => !row.projectId || ids.includes(row.projectId)),
+    },
+  },
 };
 
 function positionScope(input: { projectId?: string | undefined; revisionId?: string | undefined }) {

@@ -10,6 +10,7 @@ export interface TableRows {
   document_sheets: Rows<typeof c.documentSheets>;
   revision_changes: Rows<typeof c.revisionChanges>;
   sources: Rows<typeof c.sources>;
+  processing_jobs: Rows<typeof c.processingJobs>;
   extractions: Rows<typeof c.extractions>;
   field_reports: Rows<typeof c.fieldReports>;
   field_report_issues: Rows<typeof c.fieldReportIssues>;

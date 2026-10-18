@@ -11,6 +11,7 @@ import * as positions from "./positions";
 import * as procurement from "./procurement";
 import * as field from "./field";
 import * as timeline from "./timeline";
+import * as ai from "./ai";
 import {
   enums as registeredEnums,
   tables as registeredTables,
@@ -25,6 +26,7 @@ export * from "./positions";
 export * from "./procurement";
 export * from "./field";
 export * from "./timeline";
+export * from "./ai";
 export { idSchema, timestampSchema, sqlName } from "./db";
 export type { TableDef, ColumnMeta, IndexMeta, EnumMeta } from "./db";
 
@@ -35,7 +37,7 @@ export type { TableDef, ColumnMeta, IndexMeta, EnumMeta } from "./db";
  * состояние из нуля таблиц и падал на первом же чтении. В демо-контуре этого не было видно —
  * там те же модули держат фикстуры.
  */
-const modules = [org, projects, documents, positions, procurement, field, timeline];
+const modules = [org, projects, documents, positions, procurement, field, timeline, ai];
 
 /*
  * Описания таблиц складывает `table()` при выполнении модуля, а список здесь отбирается

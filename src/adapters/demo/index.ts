@@ -458,6 +458,22 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
       },
     },
 
+    /*
+     * Журнал обращений к модели (ADR-035, п. 3). Только добавление и чтение: это журнал,
+     * а не состояние, и редактировать его нечем.
+     */
+    processing: {
+      record: (input) => attempt(() => actions.recordProcessingJob(input)),
+      list: (projectId) => {
+        const s = state();
+        return done(
+          s.processingJobs
+            .filter((item) => !projectId || item.projectId === projectId)
+            .sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
+        );
+      },
+    },
+
     timeline: {
       list: (projectId) => done(timelineOf(state(), projectId)),
       decisions: (projectId) =>

@@ -1,4 +1,5 @@
 import type { AgentPort } from "./agent";
+import type { ProcessingPort } from "./ai";
 import type { CatalogPort } from "./catalog";
 import type { ClockPort } from "./clock";
 import type { DirectoryPort } from "./directory";
@@ -11,6 +12,7 @@ import type { ScopePort } from "./scope";
 import type { TimelinePort } from "./timeline";
 
 export * from "./agent";
+export * from "./ai";
 export * from "./catalog";
 export * from "./clock";
 export * from "./common";
@@ -39,4 +41,6 @@ export interface Repositories {
   scope: ScopePort;
   /** Ассистент поверх остальных портов (ADR-006) */
   agent: AgentPort;
+  /** Журнал обращений к модели (ADR-035) */
+  processing: ProcessingPort;
 }

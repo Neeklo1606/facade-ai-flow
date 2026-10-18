@@ -7,6 +7,7 @@ import * as procurement from "./data/procurement";
 import * as field from "./data/field";
 import * as timeline from "./data/timeline";
 import * as catalog from "./data/catalog";
+import * as ai from "./data/ai";
 import * as spec from "./spec";
 
 /**
@@ -22,6 +23,8 @@ const documentSheets: DocumentSheetRow[] = documentsData.documentRevisions.flatM
 });
 
 export const fixtureTables: TableRows = {
+  processing_jobs: ai.processingJobs,
+
   employees: org.employees,
   project_members: org.projectMembers,
   counterparties: org.counterparties,
