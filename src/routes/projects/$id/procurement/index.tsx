@@ -230,7 +230,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
     <>
       <SubpageHeader
         project={project}
-        title={isRequests ? "Снабжение: запросы" : "Снабжение: поставщики"}
+        title="Снабжение"
         description={`Кому отправлены запросы, кто ответил и по какой цене. Регион объекта — ${overview?.region ?? "—"}.`}
         actions={
           <>

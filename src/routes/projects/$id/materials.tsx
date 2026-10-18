@@ -296,7 +296,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
     <>
       <SubpageHeader
         project={project}
-        title="Снабжение: спецификация"
+        title="Снабжение"
         /*
           Счётчик — это фильтр. На дашборде цифра ведёт в список с тем же условием, а здесь
           «готовы к запросу 23» была просто текстом: чтобы их увидеть, снабженец открывал

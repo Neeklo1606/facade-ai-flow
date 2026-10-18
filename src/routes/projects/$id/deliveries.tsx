@@ -146,7 +146,7 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
     >
       <SubpageHeader
         project={project}
-        title="Снабжение: поставки"
+        title="Снабжение"
         description="Что везут на объект, что уже приняли и с какими замечаниями. Поставка появляется после решения по запросу поставщикам."
         actions={
           toAccept[0] ? (

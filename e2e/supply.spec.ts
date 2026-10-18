@@ -42,9 +42,17 @@ test.describe("снабжение", () => {
     await expectA11y(page, "вкладки снабжения");
   });
 
-  test("шапка называет раздел, вкладку называет полоса @mobile", async ({ page }) => {
+  test("заголовок называет раздел, вкладку называет полоса @mobile", async ({ page }) => {
     await open(page, "/projects/p-korona/materials");
-    await expect(page.locator("header").getByText("Снабжение", { exact: true })).toBeVisible();
+    /*
+     * Заголовок экрана — имя раздела. На телефоне он живёт в контенте, с 1024 px уходит
+     * в шапку (ADR-041, правило 5), поэтому проверяется роль, а не место.
+     */
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Снабжение");
+    // А вкладку называет полоса — в заголовке её нет
+    await expect(
+      page.getByRole("tablist", { name: "Разделы снабжения" }).getByRole("tab", { selected: true }),
+    ).toHaveText(/Спецификация/);
   });
 
   test("в меню один пункт раздела вместо четырёх", async ({ page }) => {
