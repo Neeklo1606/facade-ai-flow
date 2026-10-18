@@ -71,7 +71,8 @@ test.describe("шторка записи без модулей", () => {
   test("в шторке остаются только действия контура ГАЙКИ @mobile", async ({ page }) => {
     await withoutLegacy(page);
     await open(page, "/attention");
-    await page.locator('[data-tour="nav-plus"]').click();
+    // Создание живёт в «Ещё»: центральная кнопка панели ведёт на запись (ADR-036)
+    await page.getByRole("button", { name: /Ещё/ }).click();
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
     const text = await sheet.innerText();

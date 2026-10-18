@@ -11,6 +11,7 @@ export const sources = [
     receivedAt: "2026-09-05T08:42:00",
     projectId: "p-korona",
     location: "00:00–00:47",
+    captureKey: null,
     excerpt:
       "Захватка два, оси Г-К, девятый по одиннадцатый этаж, монтаж облицовки сто восемьдесят четыре квадрата за смену. Работали вчетвером. Не хватает нащельника углового, двенадцать штук.",
   },
@@ -22,6 +23,7 @@ export const sources = [
     receivedAt: "2026-09-05T07:15:00",
     projectId: "p-korona",
     location: "абзац 2",
+    captureKey: null,
     excerpt:
       "Кронштейн КР-150 оцинкованный — 268 руб./шт при партии от 3000 шт. Срок поставки 12 рабочих дней.",
   },
@@ -33,6 +35,7 @@ export const sources = [
     receivedAt: "2026-04-18T12:00:00",
     projectId: "p-korona",
     location: "стр. 4, п. 3.2",
+    captureKey: null,
     excerpt:
       "Этап 1 (захватки 1–2) сдаётся заказчику не позднее 10 сентября 2026 года в объёме 8800 м².",
   },
@@ -44,6 +47,7 @@ export const sources = [
     receivedAt: "2026-06-30T15:00:00",
     projectId: "p-korona",
     location: "стр. 1",
+    captureKey: null,
     excerpt: "Принято 3200 м² навесного фасада, захватка 1.",
   },
   {
@@ -54,6 +58,7 @@ export const sources = [
     receivedAt: "2026-07-31T15:00:00",
     projectId: "p-korona",
     location: "стр. 1",
+    captureKey: null,
     excerpt: "Принято 3200 м² навесного фасада, захватка 1.",
   },
   {
@@ -64,6 +69,7 @@ export const sources = [
     receivedAt: "2026-08-31T15:00:00",
     projectId: "p-korona",
     location: "стр. 1–2",
+    captureKey: null,
     excerpt: "Принято 2612 м²: захватка 2 — 1292 м², захватка 3 — 1320 м².",
   },
   {
@@ -74,6 +80,7 @@ export const sources = [
     receivedAt: "2026-09-03T18:20:00",
     projectId: "p-meridian",
     location: "сообщение 1",
+    captureKey: null,
     excerpt: "Южный фасад, закрыли 1120 квадратов, есть сколы на партии керамогранита.",
   },
   {
@@ -84,6 +91,7 @@ export const sources = [
     receivedAt: "2026-09-04T11:30:00",
     projectId: "p-korona",
     location: "04:12",
+    captureKey: null,
     excerpt: "Просим подтвердить готовность этапа 1 к 10 сентября.",
   },
   {
@@ -94,6 +102,7 @@ export const sources = [
     receivedAt: "2026-08-27T10:05:00",
     projectId: "p-korona",
     location: "стр. 14, таблица 4",
+    captureKey: null,
     excerpt:
       "Кронштейн КР-150 оцинкованный — 12 400 шт. Направляющая Т-образная 60×40 — 8 600 пог. м. Керамогранит 600×600, антрацит — 9 800 м².",
   },
@@ -105,6 +114,7 @@ export const sources = [
     receivedAt: "2026-08-27T10:05:00",
     projectId: "p-korona",
     location: "стр. 21, таблица 7",
+    captureKey: null,
     excerpt:
       "Минеральная вата 100 мм — 11 200 м². Анкер клиновой 10×100 — 24 000 шт. Нащельник угловой — 480 шт. Противопожарная отсечка — 1 800 пог. м.",
   },
@@ -116,6 +126,7 @@ export const sources = [
     receivedAt: "2026-08-27T10:05:00",
     projectId: "p-korona",
     location: "стр. 33, узел 6",
+    captureKey: null,
     excerpt:
       "Парапетная крышка по контуру кровли, заклёпка вытяжная 4×12 по узлу 6. Количество уточняется по месту.",
   },
@@ -127,6 +138,7 @@ export const sources = [
     receivedAt: "2026-07-22T11:00:00",
     projectId: "p-meridian",
     location: "стр. 18, таблица 5",
+    captureKey: null,
     excerpt:
       "Керамогранит 600×1200, серый — 7 900 м². Кронштейн КР-120 — 9 600 шт. Направляющая Г-образная 40×40 — 6 100 пог. м.",
   },
@@ -138,6 +150,7 @@ export const sources = [
     receivedAt: "2026-06-02T15:30:00",
     projectId: "p-primorsky",
     location: "стр. 26, таблица 9",
+    captureKey: null,
     excerpt:
       "Фиброцементная панель 1200×3000 — 10 400 м². Минеральная вата 150 мм — 11 000 м². Ветрозащитная мембрана — ориентировочно 11 500 м².",
   },
@@ -149,6 +162,7 @@ export const sources = [
     receivedAt: "2026-05-19T10:10:00",
     projectId: "p-school",
     location: "стр. 7",
+    captureKey: null,
     excerpt:
       "Штукатурная смесь фасадная — 38 т. Сетка стеклотканевая — 5 600 м². Грунт глубокого проникновения — 1 250 л.",
   },
@@ -160,6 +174,7 @@ export const sources = [
     receivedAt: "2026-06-24T14:45:00",
     projectId: "p-galaxy",
     location: "стр. 12, таблица 3",
+    captureKey: null,
     excerpt:
       "Стеклопакет 2-камерный 1500×3200 — 312 шт. Стойка алюминиевая 150 мм — 1 480 пог. м. Уплотнитель EPDM — по месту.",
   },
@@ -171,6 +186,7 @@ export const sources = [
     receivedAt: "2026-09-04T17:10:00",
     projectId: "p-korona",
     location: "сообщение 1",
+    captureKey: null,
     excerpt:
       "Захватка 3, К–Р, 12–14 эт. Подконструкция 160 кв, утеплитель два слоя, мембрана. Кронштейны лежат на улице, нужен навес.",
   },
@@ -182,6 +198,7 @@ export const sources = [
     receivedAt: "2026-09-03T16:45:00",
     projectId: "p-korona",
     location: "2 фото",
+    captureKey: null,
     excerpt:
       "Фотографии разметки анкеров на стилобате и партии керамогранита на приёмке. Текста нет.",
   },
@@ -193,6 +210,7 @@ export const sources = [
     receivedAt: "2026-09-02T18:12:00",
     projectId: "p-korona",
     location: "00:00–00:32",
+    captureKey: null,
     excerpt:
       "Вторая захватка, девятый этаж, облицовка сто семьдесят шесть квадратов, откосы четырнадцать. Было пятеро.",
   },
@@ -204,6 +222,7 @@ export const sources = [
     receivedAt: "2026-09-01T17:35:00",
     projectId: "p-korona",
     location: "сообщение 1",
+    captureKey: null,
     excerpt: "Захв. 3, 12-13 эт. Кронштейны 420 шт, подконструкция 140 кв. Шестеро.",
   },
   {
@@ -214,6 +233,7 @@ export const sources = [
     receivedAt: "2026-09-05T09:40:00",
     projectId: "p-korona",
     location: "таблица 1, строка 1",
+    captureKey: null,
     excerpt:
       "Керамогранит 600×600×10, антрацит матовый — 1 685 руб./м² без НДС. Доставка на объект 35 000 руб. Отгрузка через 16 рабочих дней.",
   },
@@ -225,6 +245,7 @@ export const sources = [
     receivedAt: "2026-09-04T12:10:00",
     projectId: "p-korona",
     location: "вложение КП.pdf, стр. 1",
+    captureKey: null,
     excerpt:
       "Керамогранит 600×600, толщина 9 мм, антрацит — 1 710 руб./м² без НДС. Доставка 42 000 руб. Срок 24 рабочих дня.",
   },
@@ -236,6 +257,7 @@ export const sources = [
     receivedAt: "2026-08-21T15:30:00",
     projectId: "p-korona",
     location: "счёт № 1184, строки 1–2",
+    captureKey: null,
     excerpt:
       "Плита из каменной ваты 100 мм — 412 руб./м², мембрана ветрозащитная — 96 руб./м², без НДС. Доставка 12 000 руб. Отгрузка 7 дней.",
   },
@@ -247,6 +269,7 @@ export const sources = [
     receivedAt: "2026-09-04T16:40:00",
     projectId: "p-korona",
     location: "абзац 1",
+    captureKey: null,
     excerpt:
       "Кронштейн КР-150 — 281 руб./шт, направляющая Т-образная — 399 руб./пог. м. Отгрузка через 18 рабочих дней.",
   },
@@ -258,6 +281,7 @@ export const sources = [
     receivedAt: "2026-09-04T10:22:00",
     projectId: "p-meridian",
     location: "абзац 2",
+    captureKey: null,
     excerpt:
       "Керамогранит 600×600, антрацит — 1 740 руб./м². Срок поставки 24 рабочих дня со дня оплаты.",
   },
@@ -608,6 +632,7 @@ export const evidence = [
   {
     id: "ev-1",
     reportId: "fr-korona-0905",
+    sourceId: null,
     kind: "audio",
     caption: "Голосовой отчёт, 47 с",
     takenAt: "2026-09-05T08:42:00",
@@ -616,6 +641,7 @@ export const evidence = [
   {
     id: "ev-2",
     reportId: "fr-korona-0905",
+    sourceId: null,
     kind: "photo",
     caption: "Оси Г–К, 10 этаж, облицовка",
     takenAt: "2026-09-05T08:39:00",
@@ -624,6 +650,7 @@ export const evidence = [
   {
     id: "ev-3",
     reportId: "fr-korona-0905",
+    sourceId: null,
     kind: "photo",
     caption: "Узел примыкания без нащельника",
     takenAt: "2026-09-05T08:40:00",
@@ -632,6 +659,7 @@ export const evidence = [
   {
     id: "ev-4",
     reportId: "fr-korona-0905",
+    sourceId: null,
     kind: "photo",
     caption: "Общий вид захватки 2",
     takenAt: "2026-09-05T08:41:00",
@@ -640,6 +668,7 @@ export const evidence = [
   {
     id: "ev-5",
     reportId: "fr-meridian-0903",
+    sourceId: null,
     kind: "photo",
     caption: "Сколы керамогранита, партия 420 м²",
     takenAt: "2026-09-03T18:15:00",
@@ -648,6 +677,7 @@ export const evidence = [
   {
     id: "ev-6",
     reportId: "fr-korona-0904",
+    sourceId: null,
     kind: "photo",
     caption: "Захватка 3, оси К–Р, подконструкция 12 этаж",
     takenAt: "2026-09-04T17:05:00",
@@ -656,6 +686,7 @@ export const evidence = [
   {
     id: "ev-7",
     reportId: "fr-korona-0904",
+    sourceId: null,
     kind: "photo",
     caption: "Утеплитель в два слоя, 13 этаж",
     takenAt: "2026-09-04T17:06:00",
@@ -664,6 +695,7 @@ export const evidence = [
   {
     id: "ev-8",
     reportId: "fr-korona-0904",
+    sourceId: null,
     kind: "photo",
     caption: "Мембрана, нахлёст 100 мм",
     takenAt: "2026-09-04T17:07:00",
@@ -672,6 +704,7 @@ export const evidence = [
   {
     id: "ev-9",
     reportId: "fr-korona-0904",
+    sourceId: null,
     kind: "photo",
     caption: "Складирование кронштейнов на отметке 0.000",
     takenAt: "2026-09-04T17:09:00",
@@ -680,6 +713,7 @@ export const evidence = [
   {
     id: "ev-10",
     reportId: "fr-korona-0903",
+    sourceId: null,
     kind: "photo",
     caption: "Стилобат, оси А–Г, разметка анкеров",
     takenAt: "2026-09-03T16:40:00",
@@ -688,6 +722,7 @@ export const evidence = [
   {
     id: "ev-11",
     reportId: "fr-korona-0903",
+    sourceId: null,
     kind: "photo",
     caption: "Партия керамогранита на приёмке",
     takenAt: "2026-09-03T16:42:00",
@@ -696,6 +731,7 @@ export const evidence = [
   {
     id: "ev-12",
     reportId: "fr-korona-0902",
+    sourceId: null,
     kind: "audio",
     caption: "Голосовой отчёт, 32 с",
     takenAt: "2026-09-02T18:12:00",
@@ -704,6 +740,7 @@ export const evidence = [
   {
     id: "ev-13",
     reportId: "fr-korona-0902",
+    sourceId: null,
     kind: "photo",
     caption: "Захватка 2, облицовка 9 этаж",
     takenAt: "2026-09-02T18:08:00",
@@ -712,6 +749,7 @@ export const evidence = [
   {
     id: "ev-14",
     reportId: "fr-korona-0902",
+    sourceId: null,
     kind: "photo",
     caption: "Откосы окон, подрезка плитки",
     takenAt: "2026-09-02T18:09:00",
@@ -720,6 +758,7 @@ export const evidence = [
   {
     id: "ev-15",
     reportId: "fr-korona-0901",
+    sourceId: null,
     kind: "photo",
     caption: "Захватка 3, монтаж кронштейнов",
     takenAt: "2026-09-01T17:30:00",

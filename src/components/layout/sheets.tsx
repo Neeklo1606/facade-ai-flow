@@ -41,16 +41,19 @@ export function PlusSheet({
   onOpenChange,
   role,
   projectId,
+  initialChannel = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   role: EmployeeRole;
   projectId: string | null;
+  /** С каким каналом открыта шторка: «Ещё» открывает её сразу ради отчёта (ADR-036) */
+  initialChannel?: string | null;
 }) {
   const navigate = useNavigate();
   const { lastInput, rememberInput } = useApp();
   const { can } = useAccess();
-  const [channel, setChannel] = useState<string | null>(null);
+  const [channel, setChannel] = useState<string | null>(initialChannel);
   const [created, setCreated] = useState<{
     value: ReportFormValue;
     zone: string;
@@ -313,11 +316,14 @@ export function MoreSheet({
   onOpenChange,
   role,
   projectId,
+  onQuickReport,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   role: EmployeeRole;
   projectId: string | null;
+  /** Открыть быструю форму отчёта: шторка ввода ADR-029 живёт здесь с G4 */
+  onQuickReport: () => void;
 }) {
   const navigate = useNavigate();
   const user = useCurrentUser();
@@ -326,6 +332,10 @@ export function MoreSheet({
   const employees = useQuery(queries.employees()).data ?? [];
   const inPanel = new Set(bottomNavFor(role, projectId).map((item) => item.key));
   const rest = navItemsFor(role).filter((item) => !inPanel.has(item.key));
+  /* Действия создания: раньше их открывала центральная кнопка, теперь она ведёт в запись */
+  const allActions = plusActionsFor(role, projectId);
+  const quickReport = allActions.find((action) => action.key === "report") ?? null;
+  const create = allActions.filter((action) => action.key !== "report");
   const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id)).filter(
     (item): item is (typeof employees)[number] => !!item,
   );
@@ -343,6 +353,38 @@ export function MoreSheet({
       description="Разделы, которых нет в панели, тема и выход"
     >
       <div className="grid gap-1 pb-2">
+        {/*
+          Создание переехало сюда из центральной кнопки: та стала «Говорить» и ведёт на экран
+          записи (ADR-036). Формы живут на своих экранах, здесь — только двери к ним.
+        */}
+        {quickReport ? (
+          <>
+            <p className="text-text-3 px-3 pb-1 text-[13px] leading-[1.4]">Создать</p>
+            <SheetRow
+              icon={<quickReport.icon className="size-5" strokeWidth={1.75} aria-hidden />}
+              label={quickReport.label}
+              hint={quickReport.hint}
+              onSelect={onQuickReport}
+            />
+          </>
+        ) : null}
+        {create.length > 0 ? (
+          <>
+            {!quickReport ? (
+              <p className="text-text-3 px-3 pb-1 text-[13px] leading-[1.4]">Создать</p>
+            ) : null}
+            {create.map((action) => (
+              <SheetRow
+                key={action.key}
+                icon={<action.icon className="size-5" strokeWidth={1.75} aria-hidden />}
+                label={action.label}
+                hint={action.hint}
+                onSelect={() => go(action.to, (action.search ?? {}) as Record<string, string>)}
+              />
+            ))}
+            <p className="text-text-3 mt-2 px-3 pb-1 text-[13px] leading-[1.4]">Разделы</p>
+          </>
+        ) : null}
         {rest.map((item) => {
           const href = sectionHref(projectId, item.section, item.to);
           return (

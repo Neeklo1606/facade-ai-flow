@@ -2,6 +2,7 @@ import type { DemoEvent } from "@/adapters/demo";
 import type {
   AcceptDeliveryInput,
   AskAgentInput,
+  CaptureInput,
   ChooseSupplierInput,
   CorrectPositionInput,
   CreatePositionInput,
@@ -38,6 +39,7 @@ import type { AccessSession } from "@/domain/access";
 import { FORBIDDEN_MESSAGE } from "@/ports";
 import { currentUserId, dataSource, type DEMO_PERSONAS } from "./config";
 import * as fn from "./functions";
+import { captureFactFn, extractFactFn } from "./ai";
 import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
 /**
@@ -317,6 +319,27 @@ export const api = {
         ? fn.pendingDecisionsFn({ data: { projectId } })
         : local().then((r) => r.timeline.pending(projectId)),
   },
+  /**
+   * Запись факта и его разбор (ADR-036). В демонстрации оба шага идут во вкладке: ключа
+   * модели там нет и быть не может, поэтому разбирает заглушка — и говорит об этом словами.
+   */
+  capture: {
+    save: (data: CaptureInput) =>
+      server ? captureFactFn({ data }) : local().then((r) => r.reports.capture(data, actor())),
+    extract: async (data: { projectId: string; message: string; sourceId: string | null }) => {
+      if (server) return extractFactFn({ data });
+      const [{ createDemoGateway }, { extractWithGateway }, repos] = await Promise.all([
+        import("@/adapters/ai/demo"),
+        import("./extract-flow"),
+        local(),
+      ]);
+      const outcome = await extractWithGateway(repos, createDemoGateway(), data);
+      return outcome.ok && outcome.draft
+        ? { ok: true as const, draft: outcome.draft, by: outcome.by }
+        : { ok: false as const, reason: outcome.reason ?? "Разбор не получен", by: outcome.by };
+    },
+  },
+
   agent: {
     ask: (data: AskAgentInput) =>
       server ? fn.askAgentFn({ data }) : local().then((r) => r.agent.ask(data)),

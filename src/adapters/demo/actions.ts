@@ -32,7 +32,14 @@ import {
   type RequestPositionLink,
 } from "@/domain/deliveries";
 import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
-import { ConflictError, NotFoundError, type RecordJobInput } from "@/ports";
+import {
+  captureInput,
+  ConflictError,
+  NotFoundError,
+  type CaptureInput,
+  type CaptureResult,
+  type RecordJobInput,
+} from "@/ports";
 import {
   milestoneStatusLabel,
   milestoneTransitions,
@@ -44,6 +51,7 @@ import {
 } from "@/contracts";
 import type {
   ProcessingJobRow,
+  Evidence,
   CatalogChange,
   Employee,
   FieldReport,
@@ -1452,6 +1460,7 @@ export function createReport(input: CreateReportInput, actorId: string) {
     projectId: input.projectId,
     location: "внесён вручную",
     excerpt: input.summary,
+    captureKey: null,
   };
   const report: FieldReport = {
     id: liveId("fr"),
@@ -2275,4 +2284,78 @@ export function recordProcessingJob(input: RecordJobInput): ProcessingJobRow {
   const row: ProcessingJobRow = { ...input, id: liveId("pj") };
   update((prev) => ({ ...prev, processingJobs: [...prev.processingJobs, row] }));
   return row;
+}
+
+/**
+ * Записать факт с площадки (ADR-036). Повтор с тем же ключом отправки возвращает тот же
+ * источник и ничего не создаёт: это и есть идемпотентность, из-за которой обрыв сети
+ * на отправке не оставляет дублей.
+ *
+ * Файла записи здесь нет и не появится: сохраняются текст и метки времени. Аудио живёт
+ * во вкладке до отправки, и экран записи говорит это словами.
+ */
+export function captureFact(input: CaptureInput, actorId: string): CaptureResult {
+  const parsed = captureInput.parse(input);
+  const s = getState();
+  const project = s.projects.find((item) => item.id === parsed.projectId);
+  if (!project) throw new NotFoundError("Объект", parsed.projectId);
+
+  const existing = s.sources.find((item) => item.captureKey === parsed.captureKey);
+  if (existing) {
+    return {
+      source: existing,
+      evidence: s.evidence.filter((item) => item.sourceId === existing.id),
+      repeated: true,
+    };
+  }
+
+  const at = tick();
+  const author = s.employees.find((item) => item.id === actorId);
+  const seconds = parsed.durationMs === null ? null : Math.round(parsed.durationMs / 1000);
+  const source: Source = {
+    id: liveId("src"),
+    kind: "manual",
+    title:
+      parsed.kind === "voice"
+        ? `Запись с площадки, ${seconds ?? 0} с`
+        : "Сообщение с площадки, текст",
+    author: author?.name ?? actorId,
+    receivedAt: at,
+    projectId: parsed.projectId,
+    location: parsed.kind === "voice" ? `00:00–${String(seconds ?? 0).padStart(2, "0")}` : "текст",
+    excerpt: parsed.text,
+    captureKey: parsed.captureKey,
+  };
+  /* Запись и фото — материалы источника: отчёт появится после подтверждения человеком (G5) */
+  const media: Evidence[] = [
+    ...(parsed.kind === "voice"
+      ? [
+          {
+            id: liveId("ev"),
+            reportId: null,
+            sourceId: source.id,
+            kind: "audio" as const,
+            caption: `Голосовая запись, ${seconds ?? 0} с`,
+            takenAt: at,
+            location: `00:00–${String(seconds ?? 0).padStart(2, "0")}`,
+          },
+        ]
+      : []),
+    ...parsed.photos.map((photo, index) => ({
+      id: liveId("ev"),
+      reportId: null,
+      sourceId: source.id,
+      kind: "photo" as const,
+      caption: photo.caption || `Фото ${index + 1}`,
+      takenAt: photo.takenAt,
+      location: `фото ${index + 1}`,
+    })),
+  ];
+
+  update((prev) => ({
+    ...prev,
+    sources: [...prev.sources, source],
+    evidence: [...prev.evidence, ...media],
+  }));
+  return { source, evidence: media, repeated: false };
 }

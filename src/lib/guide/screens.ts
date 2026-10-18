@@ -28,6 +28,14 @@ const screens = {
       "Кнопка «Зафиксировать работу» заводит отчёт за смену; строки ведут в разделы объекта.",
     ],
   },
+  capture: {
+    name: "Запись",
+    help: [
+      "Главный вход факта: голос, текст и метки фото в одном месте.",
+      "Отвечает на вопрос, как сообщить, что произошло на объекте, не заполняя форму.",
+      "«Говорить» начинает запись, текст доступен всегда, «Готово» отправляет запись на сервер.",
+    ],
+  },
   inbox: {
     name: "Входящие",
     help: [
@@ -238,6 +246,7 @@ export function screenFor(
   if (path === "/today") return info("today");
   if (path === "/check") return info("check");
   if (path === "/inbox") return info("inbox");
+  if (path === "/capture") return info("capture");
   if (path === "/projects") return info("projects");
   if (path === "/agent") return info("agent");
   if (path === "/access") return info("access");

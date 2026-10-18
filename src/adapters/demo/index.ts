@@ -445,6 +445,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         );
       },
       create: (input, actor) => attempt(() => actions.createReport(input, actor.actorId)),
+      capture: (input, actor) => attempt(() => actions.captureFact(input, actor.actorId)),
       review: (input) => attempt(() => actions.reviewReport(input)),
       source: (sourceId) => {
         const s = state();

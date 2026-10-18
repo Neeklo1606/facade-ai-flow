@@ -20,6 +20,12 @@ export const sources = table(
         columns: ["projectId", "receivedAt desc"],
         purpose: "источники объекта, панель «Источник»",
       },
+      {
+        columns: ["captureKey"],
+        unique: true,
+        where: "capture_key is not null",
+        purpose: "повтор отправки находит свой источник и не создаёт дубль (ADR-036)",
+      },
     ],
   },
   {
@@ -31,6 +37,12 @@ export const sources = table(
     projectId: col.ref("projects", "restrict", { nullable: true }),
     location: col.text({ comment: "место внутри источника: страница, таймкод, абзац" }),
     excerpt: col.text(),
+    /*
+     * Ключ отправки (ADR-036, п. 4): его создаёт клиент и хранит рядом с черновиком.
+     * Повтор отправки с тем же ключом возвращает этот же источник, а не создаёт второй,
+     * поэтому обрыв сети на отправке не оставляет дублей.
+     */
+    captureKey: col.text({ nullable: true, comment: "ключ идемпотентности отправки" }),
   },
 );
 
@@ -152,13 +164,22 @@ export const evidenceKind = pgEnum(
 export const evidence = table(
   {
     name: "evidence",
-    comment: "Фото, аудио или файл отчёта с площадки",
+    comment: "Фото, аудио или файл: приходит с источником, позже привязывается к отчёту",
     primaryKey: ["id"],
-    indexes: [{ columns: ["reportId", "takenAt"], purpose: "галерея отчёта по времени съёмки" }],
+    indexes: [
+      { columns: ["reportId", "takenAt"], purpose: "галерея отчёта по времени съёмки" },
+      { columns: ["sourceId", "takenAt"], purpose: "материалы записи до того, как есть отчёт" },
+    ],
+    /*
+     * Материал висит либо на отчёте, либо на источнике (ADR-036, п. 1): фото во время записи
+     * приходит раньше, чем появляется отчёт, а отчёт появляется только после подтверждения.
+     */
+    checks: ["(report_id is null) <> (source_id is null)"],
   },
   {
     id: col.id(),
-    reportId: col.ref("field_reports", "cascade"),
+    reportId: col.ref("field_reports", "cascade", { nullable: true }),
+    sourceId: col.ref("sources", "cascade", { nullable: true }),
     kind: col.enum(evidenceKind),
     caption: col.text(),
     takenAt: col.timestamp(),

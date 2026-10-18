@@ -1,10 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { extractionResult } from "@/contracts";
-import { buildProjectContext } from "@/domain/ai-context";
+import { extractionResult, sources, evidence as evidenceRow } from "@/contracts";
 import { createModelGateway } from "@/adapters/ai";
+import { captureInput } from "@/ports";
+import { extractWithGateway } from "./extract-flow";
 import { input, respond } from "./errors";
-import { requestRepositories } from "./server-repositories";
+import { requestRepositories, serverActor } from "./server-repositories";
 
 /**
  * Разбор сообщения моделью (GAIKA_AI_GATEWAY.md; ADR-035). Вызов живёт только на сервере:
@@ -42,54 +43,36 @@ export const extractFactFn = createServerFn({ method: "POST" })
   .validator(input(extractFactInput))
   .handler(async ({ data }) => {
     const repos = requestRepositories();
-    const [card, reports, materials, now] = await Promise.all([
-      repos.projects.card(data.projectId),
-      repos.reports.list(data.projectId),
-      repos.positions.materials(),
-      repos.clock.now(),
-    ]);
-    if (!card) throw new Error(`Не найдено: объект ${data.projectId}`);
-
-    const context = buildProjectContext({
-      projectId: card.project.id,
-      projectName: card.project.name,
-      workDate: now.slice(0, 10),
-      zones: card.zones,
-      crews: card.crews,
-      team: card.team,
-      reports: reports.map((card) => card.report),
-      materials,
-    });
-
     const { gateway } = createModelGateway();
-    const answer = await gateway.extract({
-      message: data.message,
-      context,
-      sourceId: data.sourceId,
-    });
-    const by = {
-      provider: gateway.describe.provider,
-      model: gateway.describe.model,
-      demo: gateway.describe.demo,
-    };
-
-    /*
-     * Журнал пишется и на отказ: обращение было, модель отвечала, и это часть истории факта.
-     * Запись журнала не должна ронять разбор, поэтому ошибка записи только логируется.
-     */
-    try {
-      await repos.processing.record({
-        ...answer.job,
-        result: answer.ok ? (answer.value as unknown as Record<string, unknown>) : null,
-      });
-    } catch (error) {
-      console.error("processing.record", error);
-    }
-
+    const outcome = await extractWithGateway(repos, gateway, data);
     return respond(
       extractFactResult,
-      answer.ok
-        ? { ok: true as const, draft: answer.value, by }
-        : { ok: false as const, reason: answer.reason, by },
+      outcome.ok && outcome.draft
+        ? { ok: true as const, draft: outcome.draft, by: outcome.by }
+        : { ok: false as const, reason: outcome.reason ?? "Разбор не получен", by: outcome.by },
     );
+  });
+
+/* ---------- Запись факта ---------- */
+
+const captureFactResult = z.object({
+  source: sources,
+  evidence: z.array(evidenceRow),
+  /** Отправка с этим ключом уже проходила: дубля нет (ADR-036, п. 4) */
+  repeated: z.boolean(),
+});
+
+/**
+ * Записать факт с площадки (ADR-036). Источник и метки материалов сохраняются всегда — даже
+ * когда речь не распознаётся: факт важнее разбора, и терять его из-за отсутствия ключа нельзя.
+ *
+ * Разбор делается отдельным вызовом `extractFactFn`: он может не получиться, и это не повод
+ * потерять запись.
+ */
+export const captureFactFn = createServerFn({ method: "POST" })
+  .validator(input(captureInput))
+  .handler(async ({ data }) => {
+    const repos = requestRepositories();
+    const result = await repos.reports.capture(data, serverActor());
+    return respond(captureFactResult, result);
   });

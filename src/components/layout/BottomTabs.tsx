@@ -1,7 +1,7 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Plus } from "lucide-react";
+import { Menu, Mic } from "lucide-react";
 import { DEMO_PERSONAS, dataSource } from "@/api/config";
 import { signOutFn } from "@/api/auth-functions";
 import { queries } from "@/api/queries";
@@ -21,9 +21,9 @@ const MoreSheet = lazy(() => import("./sheets").then((module) => ({ default: mod
  * роли и объект слева, кнопка записи в центре, «Входящие» справа, «Ещё» последней.
  * Набор одинаков для всех ролей, меняется только первая позиция.
  *
- * Центральная кнопка называется «Записать», а не «Говорить»: записи голоса нет ни в одном
- * контуре, и обещать её кнопкой нельзя (правило 4, ADR-034, п. 2). Имя «Говорить»
- * и удержание для записи приходят вместе с микрофоном в G4.
+ * Центральная кнопка — «Говорить» (ADR-036): касание открывает экран записи, удержание
+ * начинает запись сразу. Запись в браузере работает с G4; чего нет без ключа — расшифровки,
+ * и об этом говорит сам экран записи, а не кнопка.
  *
  * Активная позиция без оранжевого: тёмная иконка, подпись и индикатор над иконкой. Оранжевый
  * в панели один — у центральной кнопки, потому что он означает действие, а не «ты здесь».
@@ -42,8 +42,34 @@ export function BottomTabs() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
 
+  const navigate = useNavigate();
   const items = bottomNavFor(role, projectId);
   const actions = plusActionsFor(role, projectId);
+  /*
+   * Кнопка «Говорить» есть у того, кто ведёт площадку: ей нужно право на запись фактов.
+   * Директору, который ничего не меняет, кнопка действия не рисуется (ADR-026, п. 4).
+   */
+  const canCapture = actions.length > 0;
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+
+  /** Удержание дольше 400 мс — сразу запись; короткое касание открывает экран записи */
+  const holdStart = () => {
+    held.current = false;
+    hold.current = setTimeout(() => {
+      held.current = true;
+      void navigate({ to: "/capture", search: { record: true } });
+    }, 400);
+  };
+  const holdEnd = () => {
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = null;
+    if (!held.current) void navigate({ to: "/capture" });
+  };
+  const holdCancel = () => {
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = null;
+  };
   const overviews = (useQuery(queries.projects()).data ?? []).map((item) => item.overview);
   const counts = badgeCounts(projectId, overviews);
 
@@ -74,17 +100,29 @@ export function BottomTabs() {
           />
         ))}
 
-        {actions.length > 0 && (
+        {canCapture && (
           <div className="grid place-items-center">
             {/* Единственное оранжевое пятно панели: круг 56 px, слегка выступает над ней */}
             <button
               type="button"
-              onClick={() => setPlusOpen(true)}
-              aria-label="Записать факт"
+              onPointerDown={holdStart}
+              onPointerUp={holdEnd}
+              onPointerCancel={holdCancel}
+              onPointerLeave={holdCancel}
+              onKeyDown={(event) => {
+                // Клавиатура: Enter открывает экран, Shift+Enter начинает запись сразу
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                void navigate({
+                  to: "/capture",
+                  ...(event.shiftKey ? { search: { record: true } } : {}),
+                });
+              }}
+              aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
               data-tour="nav-plus"
               className="focus-ring press bg-orange-strong text-on-orange transition-fast -mt-5 grid size-14 place-items-center rounded-full shadow-[var(--glow-ember)]"
             >
-              <Plus className="size-6" strokeWidth={2} aria-hidden />
+              <Mic className="size-6" strokeWidth={2} aria-hidden />
             </button>
           </div>
         )}
@@ -112,12 +150,27 @@ export function BottomTabs() {
       {/* Шторки грузятся по требованию: их разметка и перетаскивание не нужны до нажатия */}
       {plusOpen && (
         <Suspense fallback={null}>
-          <PlusSheet open onOpenChange={setPlusOpen} role={role} projectId={projectId} />
+          <PlusSheet
+            open
+            onOpenChange={setPlusOpen}
+            role={role}
+            projectId={projectId}
+            initialChannel="report"
+          />
         </Suspense>
       )}
       {moreOpen && (
         <Suspense fallback={null}>
-          <MoreSheet open onOpenChange={setMoreOpen} role={role} projectId={projectId} />
+          <MoreSheet
+            open
+            onOpenChange={setMoreOpen}
+            role={role}
+            projectId={projectId}
+            onQuickReport={() => {
+              setMoreOpen(false);
+              setPlusOpen(true);
+            }}
+          />
         </Suspense>
       )}
     </>

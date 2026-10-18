@@ -48,6 +48,45 @@ export const createReportInput = z.object({
 
 export type CreateReportInput = z.infer<typeof createReportInput>;
 
+/**
+ * Запись факта с площадки (ADR-036): голос, текст и метки фото. Файла записи продукт
+ * не хранит — сохраняется источник с текстом и материалы с метками времени.
+ *
+ * `captureKey` создаёт клиент. Повтор отправки с тем же ключом возвращает тот же источник
+ * и `repeated: true`: обрыв сети на отправке не должен оставлять дубль (ADR-036, п. 4).
+ */
+export const capturePhoto = z.object({
+  caption: z.string().trim().max(200),
+  takenAt: z.string().datetime({ local: true, offset: true }),
+});
+
+export const captureInput = z.object({
+  projectId: z.string().min(1),
+  captureKey: z.string().min(8).max(64),
+  /** Расшифровка записи или то, что человек написал руками */
+  text: z.string().trim().min(1).max(4000),
+  kind: z.enum(["voice", "text"]),
+  /** Длительность записи в миллисекундах; null — факт пришёл текстом */
+  durationMs: z.number().int().nonnegative().nullable().default(null),
+  /** Метки фото: до десяти снимков за запись */
+  photos: z.array(capturePhoto).max(10).default([]),
+});
+
+export type CaptureInput = z.input<typeof captureInput>;
+
+export const captureResult = z.object({
+  source: sources,
+  evidence: z.array(evidence),
+  /** Отправка с этим ключом уже проходила: дубль не создан */
+  repeated: z.boolean(),
+});
+
+export interface CaptureResult {
+  source: Source;
+  evidence: Evidence[];
+  repeated: boolean;
+}
+
 export const reportCard = z.object({
   report: fieldReport,
   /** Первоисточник отчёта: расшифровка голосового сообщения или текст */
@@ -86,5 +125,7 @@ export interface ReportsPort {
   create(input: CreateReportInput, actor: Actor): Promise<FieldReport>;
   /** Приёмка или возврат на уточнение */
   review(input: ReviewReportInput, actor: Actor): Promise<void>;
+  /** Записать факт с площадки: источник, текст и метки фото (ADR-036) */
+  capture(input: CaptureInput, actor: Actor): Promise<CaptureResult>;
   source(sourceId: string): Promise<SourceCard | null>;
 }

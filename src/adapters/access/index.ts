@@ -215,6 +215,12 @@ export const ACCESS_RULES: AccessRules = {
       need: WRITE,
       project: (input: { projectId: string }) => project(input.projectId),
     },
+    /* Записать факт может тот, кто ведёт площадку: право на запись отчётов (ADR-036) */
+    capture: {
+      sections: ["field-reports"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
     review: {
       sections: ["field-reports"],
       need: WRITE,

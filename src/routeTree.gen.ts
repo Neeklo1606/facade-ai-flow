@@ -14,6 +14,7 @@ import { Route as AccessRouteImport } from './routes/access'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AttentionRouteImport } from './routes/attention'
+import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as CheckRouteImport } from './routes/check'
 import { Route as ContractsRouteImport } from './routes/contracts'
@@ -70,6 +71,11 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
 const AttentionRoute = AttentionRouteImport.update({
   id: '/attention',
   path: '/attention',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CaptureRoute = CaptureRouteImport.update({
+  id: '/capture',
+  path: '/capture',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogsRoute = CatalogsRouteImport.update({
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/attention': typeof AttentionRoute
+  '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/attention': typeof AttentionRoute
+  '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
@@ -322,6 +330,7 @@ export interface FileRoutesById {
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/attention': typeof AttentionRoute
+  '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/analytics'
     | '/attention'
+    | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
@@ -402,6 +412,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/analytics'
     | '/attention'
+    | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
@@ -441,6 +452,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/analytics'
     | '/attention'
+    | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
@@ -481,6 +493,7 @@ export interface RootRouteChildren {
   AgentRoute: typeof AgentRoute
   AnalyticsRoute: typeof AnalyticsRoute
   AttentionRoute: typeof AttentionRoute
+  CaptureRoute: typeof CaptureRoute
   CatalogsRoute: typeof CatalogsRoute
   CheckRoute: typeof CheckRoute
   ContractsRoute: typeof ContractsRoute
@@ -550,6 +563,13 @@ declare module '@tanstack/react-router' {
       path: '/attention'
       fullPath: '/attention'
       preLoaderRoute: typeof AttentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/capture': {
+      id: '/capture'
+      path: '/capture'
+      fullPath: '/capture'
+      preLoaderRoute: typeof CaptureRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalogs': {
@@ -785,6 +805,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentRoute: AgentRoute,
   AnalyticsRoute: AnalyticsRoute,
   AttentionRoute: AttentionRoute,
+  CaptureRoute: CaptureRoute,
   CatalogsRoute: CatalogsRoute,
   CheckRoute: CheckRoute,
   ContractsRoute: ContractsRoute,
