@@ -50,11 +50,14 @@ async function panel(page: import("@playwright/test").Page) {
       }
     }
     const active = nav.querySelector('[aria-current="page"]');
-    // Свет панели — оранжевое свечение голосовой капсулы, а не заливка (ADR-041)
-    const capsule = nav.querySelector('[data-tour="nav-plus"]');
-    const glow = capsule ? getComputedStyle(capsule).boxShadow : "";
+    /*
+     * Голосовая капсула: ни заливки (ADR-041), ни свечения (ADR-042 отменил декоративные
+     * свечения как украшение). Проверяется, что кнопка записи в панели есть и она одна —
+     * без неё панель теряет главное действие, а размер цели ловит `small`.
+     */
+    const capsules = nav.querySelectorAll('[data-tour="nav-plus"]');
     return {
-      glowing: /255,\s*122,\s*69/u.test(glow) ? (capsule?.getAttribute("aria-label") ?? "") : null,
+      capsule: capsules.length === 1 ? (capsules[0]?.getAttribute("aria-label") ?? "") : null,
       labels: [...nav.children].map((child) =>
         (child.textContent || "").replace(/\s+/g, " ").trim().slice(0, 18),
       ),
@@ -73,7 +76,7 @@ test.describe("нижняя панель @mobile", () => {
   test.describe("снабжение", () => {
     test.use({ persona: "e-dorohov" });
 
-    test("позиции роли, одно оранжевое пятно, активная без акцента @mobile", async ({ page }) => {
+    test("позиции роли, панель без акцента, активная без оранжевого @mobile", async ({ page }) => {
       await open(page, "/projects/p-korona/procurement");
       const state = await panel(page);
       expect(state, "панель не найдена").not.toBeNull();
@@ -85,10 +88,9 @@ test.describe("нижняя панель @mobile", () => {
       // Модулей прежнего контура в панели нет: они за флагом (ADR-034, п. 4)
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       expect(state!.labels.join(" ")).not.toContain("Документ");
-      // Пятно ровно одно, и это кнопка «Говорить»
-      // Оранжевой заливки в панели нет; светится одна голосовая капсула (ADR-041)
+      // Ни заливки, ни свечения: панель — хром (ADR-041, ADR-042)
       expect(state!.orange).toHaveLength(0);
-      expect(state!.glowing).toContain("Говорить");
+      expect(state!.capsule).toContain("Говорить");
       expect(state!.activeOrange).toBe(false);
       expect(state!.small).toEqual([]);
       await expectA11y(page, "нижняя панель");
@@ -134,7 +136,7 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       // Первая позиция — рабочий экран роли: панель начинается там же, где начинается день
       expect(state!.labels[0]).toBe("Сегодня");
-      expect(state!.glowing).toContain("Говорить");
+      expect(state!.capsule).toContain("Говорить");
     });
   });
 
