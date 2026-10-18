@@ -51,6 +51,18 @@ const retiredSet = new Set<string>(RETIRED_PATHS);
 
 export const isRetiredPath = (pathname: string) => retiredSet.has(pathname.replace(/\/$/u, ""));
 
+/**
+ * Экраны вне канона демо 18.10 (ADR-038, ADR-041): ассистент, сотрудники и права, история
+ * решений. Код и проверки остаются; без флага пункты уходят из полевого меню, адреса ведут
+ * на рабочий экран роли. Сотрудники и права вернутся разделом кабинета компании (ADR-039).
+ */
+export const OUTSIDE_CANON_PATHS = ["/agent", "/users", "/access"] as const;
+
+const outsideSet = new Set<string>(OUTSIDE_CANON_PATHS);
+
+export const isOutsideCanonPath = (pathname: string) =>
+  outsideSet.has(pathname.replace(/\/$/u, "")) || /^\/projects\/[^/]+\/timeline/u.test(pathname);
+
 /** Включён ли флаг в этой вкладке: переменная сборки или ключ прогона проверок */
 export function legacyModulesEnabled() {
   if (import.meta.env["VITE_LEGACY_MODULES"] === "1") return true;
@@ -64,6 +76,7 @@ export function legacyModulesEnabled() {
 
 /** Ведёт ли адрес в модуль за флагом: разделы объекта плюс карточка документа и запроса */
 export function isLegacyPath(pathname: string, view?: string) {
+  if (isOutsideCanonPath(pathname)) return true;
   const inProject = /^\/projects\/[^/]+\/([^/]+)/u.exec(pathname);
   const section = inProject?.[1];
   if (!section) return false;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, HardHat, LogOut } from "lucide-react";
+import { Check, HardHat, LogOut, MessageCircleQuestion, RotateCcw } from "lucide-react";
 import { DEMO_PERSONAS, dataSource } from "@/api/config";
 import { signOutFn } from "@/api/auth-functions";
 import { queries } from "@/api/queries";
@@ -12,6 +12,8 @@ import { useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { bottomNavFor, navItemsFor, plusActionsFor, sectionHref } from "@/lib/navigation";
 import { themeChoices, themeLabels, type ThemeChoice } from "@/lib/theme";
 import { BottomSheet, SheetRow } from "@/components/common/BottomSheet";
+import { DemoReset } from "./DemoReset";
+import { reopenGuide, useGuide } from "@/lib/guide/store";
 import { Button } from "@/components/ui/button";
 import {
   emptyReport,
@@ -328,6 +330,7 @@ export function MoreSheet({
   const navigate = useNavigate();
   const user = useCurrentUser();
   const enterAs = useEnterAs();
+  const guide = useGuide();
   const { personaId, themeChoice, setThemeChoice } = useApp();
   const employees = useQuery(queries.employees()).data ?? [];
   const inPanel = new Set(bottomNavFor(role, projectId).map((item) => item.key));
@@ -396,6 +399,39 @@ export function MoreSheet({
             />
           );
         })}
+
+        {/* Показ: вернуть полосу шагов и начать заново (ADR-038, ADR-041) */}
+        {dataSource === "demo" && (
+          <div className="mt-2 border-t border-line pt-2">
+            <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Показ</p>
+            {guide.scenarioId && guide.closed ? (
+              <SheetRow
+                icon={<MessageCircleQuestion className="size-5" strokeWidth={1.75} aria-hidden />}
+                label="Подсказки показа"
+                hint="Вернуть полосу шагов под шапкой"
+                onSelect={() => {
+                  reopenGuide();
+                  onOpenChange(false);
+                }}
+              />
+            ) : null}
+            <DemoReset
+              onDone={() => onOpenChange(false)}
+              trigger={
+                <button
+                  type="button"
+                  className="focus-ring flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] px-3 text-left text-[15px] text-text transition-fast hover:bg-surface-2"
+                >
+                  <RotateCcw className="size-5 text-text-2" strokeWidth={1.75} aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block">Сбросить демо-данные</span>
+                    <span className="block text-[13px] text-text-3">Начать показ заново</span>
+                  </span>
+                </button>
+              }
+            />
+          </div>
+        )}
 
         <div className="mt-2 border-t border-line pt-2">
           <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Тема оформления</p>

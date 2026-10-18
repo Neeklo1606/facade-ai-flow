@@ -22,8 +22,11 @@ export const themeLabels: Record<ThemeChoice, string> = {
   system: "Как в системе",
 };
 
-/** Умолчание контура: демонстрация — тёмная, рабочий режим — как в системе (ADR-017, п. 6) */
-export const defaultChoice: ThemeChoice = dataSource === "server" ? "system" : "light";
+/**
+ * Умолчание контура: демонстрация — тёмная, рабочий режим — как в системе (ADR-017, п. 6;
+ * решение владельца 18.10.2026, ADR-041). Выбор человека важнее умолчания.
+ */
+export const defaultChoice: ThemeChoice = dataSource === "server" ? "system" : "dark";
 
 const isChoice = (value: string | null): value is ThemeChoice =>
   value === "light" || value === "dark" || value === "system";

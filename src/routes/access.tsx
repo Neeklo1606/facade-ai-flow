@@ -41,7 +41,7 @@ function AccessPage() {
   return (
     <div className="grid gap-4">
       <div>
-        <h1 className="sr-only">Права доступа</h1>
+        <h1 className="mb-2 text-page-title lg:sr-only">Права доступа</h1>
         <p className="text-[13px] text-text-2">
           Что может каждая роль в каждом разделе. Эту же таблицу проверяет сервер при каждом
           действии: без права запись отклоняется, раздел не открывается, кнопка не показывается.

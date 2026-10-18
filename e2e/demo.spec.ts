@@ -107,8 +107,9 @@ test.describe("сценарий 3: решение снабжения", () => {
     await expect(page.getByRole("heading", { name: "Заявки на материал" })).toBeVisible();
     const row = page.getByRole("listitem").filter({ hasText: "Нащельник угловой" }).first();
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: "Принять" }).click();
-    await expect(row.getByText("Принята")).toBeVisible();
+    // Решение необратимо: сдвиг ручки, с клавиатуры — End (правило 9 этапа D)
+    await row.getByRole("slider", { name: "Сдвиньте, чтобы принять" }).press("End");
+    await expect(row.getByText("Принята").first()).toBeVisible();
     // Ничего не заказывается автоматически: это сказано на экране
     await expect(page.getByText(/Ничего не заказывается автоматически/)).toBeVisible();
   });

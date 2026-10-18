@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardCheck, Inbox, PackageSearch, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { BottomSheet } from "@/components/common/BottomSheet";
+import { SlideToConfirm } from "@/components/gaika";
 import {
   CountPill,
   EmptyState,
@@ -216,21 +219,25 @@ function MaterialRequests({ rows }: { rows: MaterialRequest[] }) {
   const decide = useDecideMaterialRequest();
   const { can } = useAccess();
   const mayDecide = can("procurement", "write");
-  const [reason, setReason] = useState<Record<string, string>>({});
+  const [declining, setDeclining] = useState<MaterialRequest | null>(null);
+  const [reason, setReason] = useState("");
   if (rows.length === 0) return null;
 
-  const next: Record<string, { to: MaterialRequestStatus; label: string }[]> = {
-    new: [
-      { to: "accepted", label: "Принять" },
-      { to: "declined", label: "Отклонить" },
-    ],
-    accepted: [
-      { to: "ordered", label: "Заказано" },
-      { to: "declined", label: "Отклонить" },
-    ],
-    ordered: [{ to: "closed", label: "Закрыть" }],
-    closed: [],
-    declined: [],
+  const run = (row: MaterialRequest, status: MaterialRequestStatus, decision: string) =>
+    decide.mutate(
+      { id: row.id, status, decision },
+      {
+        onError: (error: Error) =>
+          toast.error("Решение не записано", { description: error.message }),
+      },
+    );
+
+  /* Следующий шаг после принятия: заказ и закрытие — обычными кнопками, решение уже есть */
+  const after: Partial<
+    Record<MaterialRequestStatus, { to: MaterialRequestStatus; label: string }>
+  > = {
+    accepted: { to: "ordered", label: "Отметить заказанной" },
+    ordered: { to: "closed", label: "Закрыть" },
   };
 
   return (
@@ -242,17 +249,11 @@ function MaterialRequests({ rows }: { rows: MaterialRequest[] }) {
         hint={mayDecide ? "решение за снабжением" : "что с вашими заявками"}
         aside={<CountPill>{fmtNum(rows.length)}</CountPill>}
       />
-      <ul className="divide-line mt-2 divide-y">
+      <ul className="mt-3 flex flex-col gap-3">
         {rows.map((row) => (
-          <li key={row.id} className="py-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="text-card-title">{row.name}</span>
-              <span className="tnum text-text-2 text-[13px]">
-                {fmtNum(row.qty)} {row.unit} · к {fmtDate(row.neededBy)}
-              </span>
-            </div>
-            <p className="text-text-2 mt-1 text-[13px]">{row.note}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+          <li key={row.id} className="bg-surface-2 rounded-[var(--r-lg)] px-5 py-5">
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-card-title min-w-0">{row.name}</span>
               <StatusBadge
                 tone={
                   row.status === "closed"
@@ -266,58 +267,92 @@ function MaterialRequests({ rows }: { rows: MaterialRequest[] }) {
               >
                 {materialRequestStatusLabel[row.status]}
               </StatusBadge>
-              {row.decision ? (
-                <span className="text-text-3 text-[13px]">{row.decision}</span>
-              ) : null}
             </div>
-            {mayDecide && next[row.status]!.length > 0 ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {next[row.status]!.map((step) => (
-                  <Button
-                    key={step.to}
-                    variant={step.to === "declined" ? "ghost" : "secondary"}
-                    size="sm"
-                    disabled={decide.isPending}
-                    onClick={() =>
-                      decide.mutate(
-                        {
-                          id: row.id,
-                          status: step.to,
-                          decision:
-                            step.to === "declined"
-                              ? (reason[row.id] ?? "").trim() || "Отклонено без пояснения"
-                              : (reason[row.id] ?? "").trim(),
-                        },
-                        {
-                          onError: (error: Error) =>
-                            toast.error("Решение не записано", { description: error.message }),
-                        },
-                      )
-                    }
-                  >
-                    {step.label}
-                  </Button>
-                ))}
-                <input
-                  value={reason[row.id] ?? ""}
-                  onChange={(event) =>
-                    setReason((prev) => ({ ...prev, [row.id]: event.target.value }))
-                  }
-                  placeholder="Что решили и почему"
-                  aria-label={`Решение по заявке «${row.name}»`}
-                  /* На телефоне поле решения уходит на свою строку: в ряд с кнопками оно
-                     сжималось так, что подсказка обрезалась (находка показа 18.10.2026) */
-                  className="focus-ring bg-surface-2 text-list min-h-12 w-full min-w-0 rounded-[var(--r-sm)] px-3 sm:w-auto sm:flex-1"
+            <p className="tnum text-caption text-text-2 mt-1">
+              {fmtNum(row.qty)} {row.unit} · к {fmtDate(row.neededBy)}
+            </p>
+            {row.note ? <p className="text-body text-text-2 mt-2">{row.note}</p> : null}
+            {row.decision ? (
+              <p className="text-caption text-text-3 mt-2">Решение: {row.decision}</p>
+            ) : null}
+            {mayDecide && row.status === "new" ? (
+              <div className="mt-4 flex flex-col gap-2">
+                {/* Решение снабжения необратимо: сдвиг, а не случайное касание (правило 9) */}
+                <SlideToConfirm
+                  label="Сдвиньте, чтобы принять"
+                  confirmedLabel="Принята"
+                  disabled={decide.isPending}
+                  onConfirm={() => run(row, "accepted", "")}
                 />
+                <Button
+                  variant="ghost"
+                  className="self-start"
+                  onClick={() => {
+                    setReason("");
+                    setDeclining(row);
+                  }}
+                >
+                  Отклонить с причиной
+                </Button>
+              </div>
+            ) : null}
+            {mayDecide && after[row.status] ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={decide.isPending}
+                  onClick={() => run(row, after[row.status]!.to, row.decision ?? "")}
+                >
+                  {after[row.status]!.label}
+                </Button>
+                {row.status === "accepted" ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setReason("");
+                      setDeclining(row);
+                    }}
+                  >
+                    Отклонить
+                  </Button>
+                ) : null}
               </div>
             ) : null}
           </li>
         ))}
       </ul>
-      <p className="text-caption text-text-3 mt-2">
+      <p className="text-caption text-text-3 mt-3">
         Ничего не заказывается автоматически: статус меняет человек, и решение записывается с
         автором.
       </p>
+
+      <BottomSheet
+        open={!!declining}
+        onOpenChange={(open) => !open && setDeclining(null)}
+        title={`Отклонить: ${declining?.name ?? ""}`}
+        description="Причина уйдёт прорабу вместе со статусом"
+      >
+        <div className="flex flex-col gap-3 pb-2">
+          <Textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Например: есть на складе объекта, заберите у кладовщика"
+            aria-label="Причина отказа"
+            rows={3}
+          />
+          <Button
+            variant="accent"
+            disabled={reason.trim().length < 3 || decide.isPending}
+            onClick={() => {
+              if (!declining) return;
+              run(declining, "declined", reason.trim());
+              setDeclining(null);
+            }}
+          >
+            Отклонить заявку
+          </Button>
+        </div>
+      </BottomSheet>
     </WidgetCard>
   );
 }

@@ -15,7 +15,8 @@ describe("набор позиций по роли", () => {
   test("у каждой роли матрицы три позиции плюс кнопка записи и «Ещё»", () => {
     for (const role of MATRIX_ROLES) {
       const items = bottomNavFor(role, PROJECT);
-      expect(items.length, role).toBe(3);
+      // У снабжения рабочий экран и есть «Входящие»: второй такой же двери в панели нет (ADR-041)
+      expect(items.length, role).toBe(role === "supply" ? 2 : 3);
     }
   });
 
@@ -34,11 +35,12 @@ describe("набор позиций по роли", () => {
       bottomNavFor(role, PROJECT).map((item) => item.key);
     expect(keys("foreman")).toEqual(["today", "projects", "inbox"]);
     expect(keys("pto")).toEqual(["check", "projects", "inbox"]);
-    expect(keys("supply")).toEqual(["attention", "projects", "inbox"]);
+    expect(keys("supply")).toEqual(["inbox", "projects"]);
     expect(keys("manager")).toEqual(["attention", "projects", "inbox"]);
     expect(keys("director")).toEqual(["attention", "projects", "inbox"]);
     // Вторая и третья позиции у всех одни и те же: это и есть «набор панели один»
     for (const role of MATRIX_ROLES) {
+      if (role === "supply") continue;
       expect(keys(role).slice(1), role).toEqual(["projects", "inbox"]);
     }
     // Первой стоит рабочий экран роли: панель начинается там же, где начинается день

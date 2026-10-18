@@ -19,7 +19,7 @@ import { useDirectory } from "@/api/directory";
 import { queries } from "@/api/queries";
 import { prefetch } from "@/api/prefetch";
 import { deliveryStatusLabel, reportStatusLabel } from "@/contracts";
-import { fmtDate, fmtNum, plural } from "@/lib/format";
+import { fmtDate, metaLine, shortName, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { AmbientField } from "@/components/gaika";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
@@ -192,19 +192,10 @@ function TodayPage() {
         </div>
       </ScreenGate>
 
-      {!blocked && canRecord && (
-        <MobileActionBar>
-          <Button variant="accent" asChild>
-            <Link
-              to="/projects/$id/field-reports"
-              params={{ id: target }}
-              search={{ new: "report" }}
-            >
-              <HardHat className="size-4" /> Зафиксировать работу
-            </Link>
-          </Button>
-        </MobileActionBar>
-      )}
+      {/*
+        Закреплённой «Зафиксировать работу» больше нет: главное действие экрана — голосовая
+        капсула панели, две главные кнопки на одном экране спорили (правило 1 этапа D).
+      */}
     </>
   );
 }
@@ -221,11 +212,10 @@ function WorkRow({ work }: { work: TodayWork }) {
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-card-title">{work.workType}</div>
-            {/* Метаданные чипами, а не строкой с точками (ADR-028, п. 5) */}
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Chip>{work.zoneName}</Chip>
-              <Chip>{work.projectName}</Chip>
-            </div>
+            {/* Метаданные одной строкой (правило 8 этапа D; заменяет чипы ADR-028, п. 5) */}
+            <p className="mt-1 text-caption text-text-2">
+              {metaLine(work.zoneName, shortName(work.projectName))}
+            </p>
           </div>
           <div className="shrink-0 text-right">
             <div className="tnum text-[20px] leading-none font-semibold">{fmtNum(work.qty)}</div>
@@ -292,10 +282,7 @@ function ReturnRow({ row }: { row: TodayReturn }) {
       >
         <div className="text-card-title">{row.workType}</div>
         <p className="mt-1 line-clamp-2 text-[13px] leading-[1.45] text-text-2">{row.summary}</p>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <Chip>{row.zoneName}</Chip>
-          <Chip>{fmtDate(row.date)}</Chip>
-        </div>
+        <p className="mt-1 text-caption text-text-2">{metaLine(row.zoneName, fmtDate(row.date))}</p>
       </Link>
     </li>
   );

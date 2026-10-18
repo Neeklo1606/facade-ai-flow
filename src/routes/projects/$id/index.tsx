@@ -73,6 +73,9 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+/** Вкладки карточки ГАЙКИ без флага `legacy_modules` (ADR-041) */
+const GAIKA_TABS = new Set<string>(["progress", "team"]);
+
 /** Цвет статуса объекта текстом в подписи шапки */
 export const Route = createFileRoute("/projects/$id/")({
   validateSearch: (search: Record<string, unknown>): { tab?: TabId | undefined } => ({
@@ -118,16 +121,26 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
     (d) => d.status === "recognizing" || d.status === "uploaded",
   );
   const hasDocuments = liveDocuments.length > 0;
-  const { tab: requested = "summary" } = Route.useSearch();
+  /*
+   * Без флага `legacy_modules` карточка объекта — ГАЙКИ, а не FieldOps (ADR-041): «Сводка»
+   * прежнего контура считала позиции спецификации и закупки, «Решения» и «История» читают
+   * события закупок. Остаются «Ход работ» по захваткам и «Команда»; первым — ход работ.
+   */
+  const legacy = legacyModulesEnabled();
+  const defaultTab: TabId = legacy ? "summary" : "progress";
+  const { tab: requested = defaultTab } = Route.useSearch();
   /*
    * Вкладки модулей за флагом `legacy_modules` уходят вместе с модулями (ADR-034, п. 4):
    * вкладка, которая ведёт на перенаправляемый раздел, — тупик.
    */
   const visibleTabs = tabs.filter(
-    (item) => can(item.section) && (legacyModulesEnabled() || !isLegacySection(item.section)),
+    (item) =>
+      can(item.section) && (legacy || (!isLegacySection(item.section) && GAIKA_TABS.has(item.id))),
   );
-  // Вкладка раздела, закрытого роли, по ссылке не открывается — показываем сводку
-  const tab: TabId = visibleTabs.some((item) => item.id === requested) ? requested : "summary";
+  // Вкладка раздела, закрытого роли, по ссылке не открывается — показываем первую
+  const tab: TabId = visibleTabs.some((item) => item.id === requested)
+    ? requested
+    : (visibleTabs[0]?.id ?? defaultTab);
   const screen = useScreenState({
     pending: canDocuments && documents.isPending,
     error: canDocuments && documents.isError,
@@ -150,7 +163,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
 
   const setTab = (next: string) =>
     navigate({
-      search: { tab: next === "summary" ? undefined : (next as TabId) },
+      search: { tab: next === defaultTab ? undefined : (next as TabId) },
       replace: true,
       resetScroll: false,
     });
@@ -203,7 +216,10 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
       section: "procurement" as const,
     },
     // Цифры закрытых роли разделов не показываются (ADR-012)
-  ].filter((figure) => can(figure.section) || (figure.section === "materials" && canDocuments));
+  ]
+    // Цифры спецификации и закупок — модуль прежнего контура: без флага их нет (ADR-041)
+    .filter(() => legacy)
+    .filter((figure) => can(figure.section) || (figure.section === "materials" && canDocuments));
 
   const metricTabs: Record<string, TabId> = {
     Непроверенных: "materials",
@@ -235,6 +251,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
       <PageHeader
         title={project.name}
         actions={
+          legacy &&
           can("documents", "write") && (
             <Button variant="accent" onClick={() => setUploadOpen(true)} disabled={blocked}>
               <Upload className="size-4" /> Загрузить документацию
@@ -248,7 +265,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
           ·
         </span>
         <ProjectStatusControl project={project} variant="caption" />
-        {latestVersion && (
+        {legacy && latestVersion && (
           <>
             <span aria-hidden className="text-text-3">
               ·
@@ -273,28 +290,30 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         </span>
       </div>
 
-      <MetricStrip
-        className="mb-5"
-        items={figures.map((figure) => {
-          const mapped = metricTabs[figure.label];
-          const tabId = visibleTabs.some((item) => item.id === mapped) ? mapped : undefined;
-          return {
-            icon: figureIcons[figure.label] ?? Boxes,
-            label: figure.label,
-            value: (
-              <span
-                className={cn(
-                  figure.tone && figure.value > 0 && figure.tone === "danger" && "text-danger",
-                  figure.tone && figure.value > 0 && figure.tone === "warn" && "text-warn",
-                )}
-              >
-                {fmtNum(figure.value)}
-              </span>
-            ),
-            ...(tabId ? { onSelect: () => setTab(tabId), selected: tab === tabId } : {}),
-          };
-        })}
-      />
+      {figures.length > 0 ? (
+        <MetricStrip
+          className="mb-5"
+          items={figures.map((figure) => {
+            const mapped = metricTabs[figure.label];
+            const tabId = visibleTabs.some((item) => item.id === mapped) ? mapped : undefined;
+            return {
+              icon: figureIcons[figure.label] ?? Boxes,
+              label: figure.label,
+              value: (
+                <span
+                  className={cn(
+                    figure.tone && figure.value > 0 && figure.tone === "danger" && "text-danger",
+                    figure.tone && figure.value > 0 && figure.tone === "warn" && "text-warn",
+                  )}
+                >
+                  {fmtNum(figure.value)}
+                </span>
+              ),
+              ...(tabId ? { onSelect: () => setTab(tabId), selected: tab === tabId } : {}),
+            };
+          })}
+        />
+      ) : null}
 
       <PillTabs
         className="mb-5"

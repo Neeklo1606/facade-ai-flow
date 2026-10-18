@@ -102,7 +102,10 @@ export function BottomTabs() {
 
         {canCapture && (
           <div className="grid place-items-center">
-            {/* Единственное оранжевое пятно панели: круг 56 px, слегка выступает над ней */}
+            {/*
+              Голосовая капсула 64 px (дизайн-система, раздел 8): тёплая белая с оранжевым
+              свечением. Свет — единственный в панели; оранжевой заливки больше нет (ADR-041).
+            */}
             <button
               type="button"
               onPointerDown={holdStart}
@@ -120,7 +123,7 @@ export function BottomTabs() {
               }}
               aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
               data-tour="nav-plus"
-              className="focus-ring press bg-orange-strong text-on-orange transition-fast -mt-5 grid size-14 place-items-center rounded-full shadow-[var(--glow-ember)]"
+              className="focus-ring press bg-pill text-pill-text glow-ember transition-fast -mt-6 grid size-16 place-items-center rounded-full"
             >
               <Mic className="size-6" strokeWidth={2} aria-hidden />
             </button>

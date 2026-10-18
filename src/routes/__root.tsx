@@ -15,7 +15,6 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { reportClientError, startErrorReporting } from "@/lib/error-report";
 import { RolePicker } from "@/components/guide/RolePicker";
-import { GuideDock } from "@/components/guide/GuideDock";
 import { AccessBoundary } from "@/components/access/AccessBoundary";
 import { LegacyBoundary } from "@/components/access/LegacyBoundary";
 import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
@@ -196,8 +195,7 @@ function RootComponent() {
               </AccessBoundary>
             </LegacyBoundary>
           </AppLayout>
-          {/* Выбор роли при первом входе, проводка и обратная связь (ADR-010) */}
-          <GuideDock />
+          {/* Выбор роли при первом входе (ADR-010); полоса шагов живёт в оболочке (ADR-041) */}
           <RolePicker />
           {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}
           <Toaster position="top-center" offset={{ top: 64 }} mobileOffset={{ top: 64 }} />

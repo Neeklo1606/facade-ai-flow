@@ -94,9 +94,11 @@ describe("статьи справки", () => {
   });
 
   test("экран находит свою статью", () => {
-    for (const key of ["field-reports", "access", "attention"]) {
+    for (const key of ["field-reports", "attention"]) {
       expect(articleForScreen(key), key).not.toBeNull();
     }
+    // Права и сотрудники вне канона демо 18.10 (ADR-041): статьи о них ушли вместе с экраном
+    expect(articleForScreen("access")).toBeNull();
     // Экран без своей статьи не получает чужую
     expect(articleForScreen("demo-stats")).toBeNull();
   });
@@ -113,9 +115,11 @@ describe("статьи справки", () => {
       if (!inCatalog) continue;
       expect(visible, id).not.toContain(id);
     }
-    for (const id of ["start", "field-reports", "people", "faq"]) {
+    for (const id of ["start", "field-reports", "faq"]) {
       expect(visible, id).toContain(id);
     }
+    // Статья «Сотрудники и доступ» учит экранам, которые без флага перенаправляют (ADR-041)
+    expect(visible).not.toContain("people");
     expect(articleForScreen("deliveries")).toBeNull();
   });
 

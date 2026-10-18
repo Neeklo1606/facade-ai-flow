@@ -18,7 +18,7 @@ import { activeNavKey, navGroupsFor, sectionHref, type BadgeKey } from "@/lib/na
 import { useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { useEnterAs } from "@/lib/persona";
 import { signOutFn } from "@/api/auth-functions";
-import { useResetDemo } from "@/api/mutations";
+import { DemoReset } from "./DemoReset";
 import { dataSource, DEMO_PERSONAS } from "@/api/config";
 import {
   AlertDialog,
@@ -107,7 +107,6 @@ function SidebarInner({
   // Меню зависит от роли выбранной персоны (ADR-008): снабжение не ведёт площадку,
   // прораб не занимается закупками
   const groups = navGroupsFor(user?.role ?? "manager");
-  const resetDemo = useResetDemo();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const view = useRouterState({
     select: (s) => String((s.location.search as Record<string, unknown>)["view"] ?? ""),
@@ -362,8 +361,9 @@ function SidebarInner({
       {/* Нижний блок: без линии, пункты того же вида */}
       <div className="shrink-0 space-y-1 pt-6">
         {dataSource === "demo" && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          <DemoReset
+            onDone={onClose}
+            trigger={
               <button
                 type="button"
                 title="Сбросить демо-данные"
@@ -379,31 +379,8 @@ function SidebarInner({
                   Сбросить демо-данные
                 </span>
               </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Сбросить демо-данные?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Созданные объекты, проверенные позиции, запросы, предложения и решения удалятся.
-                  Данные вернутся к исходному состоянию демонстрации.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={async () => {
-                    await resetDemo();
-                    setProjectId(ALL_PROJECTS);
-                    onClose();
-                    navigate({ to: "/projects" });
-                    toast.success("Демо-данные сброшены");
-                  }}
-                >
-                  Сбросить
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            }
+          />
         )}
         {/* Карточка пользователя: имя, роль и переключение персоны демонстрации (ADR-008) */}
         <DropdownMenu>

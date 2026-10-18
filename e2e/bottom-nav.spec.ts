@@ -2,8 +2,8 @@ import { expect, expectA11y, open, test } from "./fixtures";
 
 /**
  * Нижняя панель (ADR-026, карта ГАЙКИ — ADR-034, п. 1). Проверяется то, что правило одного
- * оранжевого по содержимому не проверяет: панель — хром, и внутри неё пятно должно быть ровно
- * одно — кнопка записи. Плюс набор позиций: он одинаков для всех ролей, меняется только
+ * оранжевого по содержимому не проверяет: панель — хром, и свет в ней один — свечение голосовой
+ * капсулы; оранжевой заливки с ADR-041 нет вовсе. Плюс набор позиций: он одинаков для всех ролей, меняется только
  * первая, и активная позиция обходится без акцентного цвета.
  */
 
@@ -50,7 +50,11 @@ async function panel(page: import("@playwright/test").Page) {
       }
     }
     const active = nav.querySelector('[aria-current="page"]');
+    // Свет панели — оранжевое свечение голосовой капсулы, а не заливка (ADR-041)
+    const capsule = nav.querySelector('[data-tour="nav-plus"]');
+    const glow = capsule ? getComputedStyle(capsule).boxShadow : "";
     return {
+      glowing: /255,\s*122,\s*69/u.test(glow) ? (capsule?.getAttribute("aria-label") ?? "") : null,
       labels: [...nav.children].map((child) =>
         (child.textContent || "").replace(/\s+/g, " ").trim().slice(0, 18),
       ),
@@ -82,8 +86,9 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       expect(state!.labels.join(" ")).not.toContain("Документ");
       // Пятно ровно одно, и это кнопка «Говорить»
-      expect(state!.orange[0]).toContain("Говорить");
-      expect(state!.orange).toHaveLength(1);
+      // Оранжевой заливки в панели нет; светится одна голосовая капсула (ADR-041)
+      expect(state!.orange).toHaveLength(0);
+      expect(state!.glowing).toContain("Говорить");
       expect(state!.activeOrange).toBe(false);
       expect(state!.small).toEqual([]);
       await expectA11y(page, "нижняя панель");
@@ -129,7 +134,7 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       // Первая позиция — рабочий экран роли: панель начинается там же, где начинается день
       expect(state!.labels[0]).toBe("Сегодня");
-      expect(state!.orange[0]).toContain("Говорить");
+      expect(state!.glowing).toContain("Говорить");
     });
   });
 

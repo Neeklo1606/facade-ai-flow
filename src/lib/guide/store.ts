@@ -138,3 +138,9 @@ export function closeGuide() {
 export function reopenGuide() {
   commit({ ...state, closed: false, collapsed: false });
 }
+
+/** Сброс показа (ADR-038): шаги сценария начинаются заново, сам сценарий остаётся выбранным */
+export function resetGuideProgress() {
+  load();
+  commit({ ...initial, scenarioId: state.scenarioId });
+}

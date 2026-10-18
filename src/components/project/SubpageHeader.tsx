@@ -29,8 +29,8 @@ export function SubpageHeader({
       </Link>
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          {/* Заголовок страницы показывает шапка контента; здесь он остаётся для чтения с экрана */}
-          <h1 className="sr-only">{title}</h1>
+          {/* На телефоне заголовок в контенте (правило 4 этапа D); с 1024 px — в шапке */}
+          <h1 className="text-page-title lg:sr-only">{title}</h1>
           {description && <p className="mt-1 text-[13px] text-text-secondary">{description}</p>}
           {meta && <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">{meta}</div>}
         </div>

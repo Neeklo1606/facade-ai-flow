@@ -100,13 +100,19 @@ export function Topbar() {
             min-w-0 обязателен: без него заголовок не ужимается рядом с пометкой «Демо»
             и обрезается на 375 px посреди слова («Сегод»). Нашлось на снимке панели в G2.
           */}
+          {/*
+            Заголовок экрана на телефоне живёт в контенте (32/36), шапка остаётся строкой
+            «меню, объект, пометка, аватар» (правило 5 этапа D, ADR-041). С 1024 px заголовок
+            снова в шапке рядом с крошками.
+          */}
           <div
-            className="line-clamp-2 min-w-0 text-[18px] leading-tight font-semibold sm:text-section-title lg:truncate lg:text-page-title"
+            className="hidden min-w-0 lg:block lg:truncate lg:text-page-title"
             title={title}
             aria-hidden="true"
           >
             {title}
           </div>
+          <ProjectChip />
           {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
           {dataSource === "demo" && (
             <span
@@ -119,9 +125,6 @@ export function Topbar() {
             </span>
           )}
         </div>
-        {/* Чип объекта: на телефоне своя строка под заголовком — в одну строку пять элементов
-            не помещаются (ADR-027, поправка). Это единственный способ сменить объект с телефона */}
-        <ProjectChip />
         {/* Подпись экрана: страница может заменить путь своей строкой (код, статус объекта) */}
         <div
           id="page-caption"
@@ -169,7 +172,7 @@ export function Topbar() {
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск"
-          className="icon-button focus-ring xl:hidden"
+          className="icon-button focus-ring hidden lg:grid xl:hidden"
         >
           <Search strokeWidth={1.5} />
         </button>
@@ -196,7 +199,7 @@ export function Topbar() {
         */}
         <div id="page-actions" className="hidden items-center gap-2.5 lg:flex" />
         {user && (
-          <span className="avatar hidden sm:grid" title={`${user.name}, ${user.roleLabel}`}>
+          <span className="avatar grid" title={`${user.name}, ${user.roleLabel}`}>
             {initials}
           </span>
         )}

@@ -55,7 +55,7 @@ function HelpPage() {
   return (
     <div className="grid gap-4">
       <div>
-        <h1 className="sr-only">Справка</h1>
+        <h1 className="mb-2 text-page-title lg:sr-only">Справка</h1>
         <p className="text-[13px] leading-[1.5] text-text-2">
           Как работать в системе — по задачам, а не по экранам. Шаги ведут на живой экран
           демонстрации: можно читать и сразу делать. Если экран закрыт вашей роли, шаг говорит об

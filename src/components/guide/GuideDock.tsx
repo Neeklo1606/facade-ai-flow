@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, ChevronUp, MessageCircleQuestion, Send, X } from "lucide-react";
+import { Check, MessageCircleQuestion, Send, X } from "lucide-react";
+import { BottomSheet } from "@/components/common/BottomSheet";
 import { queries } from "@/api/queries";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useProjectId } from "@/lib/project-scope";
@@ -70,78 +71,75 @@ export function GuideDock() {
   const stepDone = !!step && guide.status[step.id] === "done";
   const highlight = !!step && !guide.closed && !stepDone;
   const dockRef = useRef<HTMLDivElement>(null);
-  const [side, setSide] = useState<"right" | "left">("right");
+  const [, setSide] = useState<"right" | "left">("right");
   useHighlight(highlight ? step?.target : undefined, dockRef, setSide);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Работа с экраном сворачивает панель в строку: развёрнутая она закрывает правый нижний угол,
-  // где на многих экранах стоят нужные элементы. Засчитанный шаг разворачивает её снова
-  useEffect(() => {
-    if (guide.collapsed || guide.closed || !step || stepDone) return;
-    const onPointer = (event: PointerEvent) => {
-      if (dockRef.current?.contains(event.target as Node)) return;
-      if ((event.target as Element).closest?.("[role=dialog]")) return;
-      setCollapsed(true);
-    };
-    document.addEventListener("pointerdown", onPointer, true);
-    return () => document.removeEventListener("pointerdown", onPointer, true);
-  }, [guide.collapsed, guide.closed, step, stepDone]);
-  // На широком экране засчитанный шаг разворачивает панель; на телефоне развёрнутая карточка
-  // поднималась бы до середины экрана и закрывала следующий шаг — там «Дальше» есть в строке
-  useEffect(() => {
-    if (stepDone && !mobile) setCollapsed(false);
-  }, [stepDone, mobile]);
-  // На телефоне после «Дальше» и «Пропустить» панель сворачивается: следующий шаг делается на экране
-  const lastIndex = useRef(guide.stepIndex);
-  useEffect(() => {
-    if (lastIndex.current === guide.stepIndex) return;
-    lastIndex.current = guide.stepIndex;
-    if (mobile) setCollapsed(true);
-  }, [guide.stepIndex, mobile]);
-
-  if (chosen !== true) return null;
+  if (chosen !== true || !scenario || guide.closed) return null;
 
   return (
     <div
       ref={dockRef}
-      className={cn(
-        // Контейнер не ловит клики: промежутки между карточками прозрачны для экрана под ними
-        "pointer-events-none fixed z-40 flex w-[min(360px,calc(100vw-32px))] flex-col gap-2 [&>*]:pointer-events-auto",
-        side === "right"
-          ? "right-4 items-end"
-          : "left-4 items-start lg:left-[calc(var(--sidebar-w)+32px)]",
-        "bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+76px)] lg:bottom-6",
-      )}
+      /*
+       * Полоса шагов под шапкой (правило 7 этапа D, ADR-041): не плавает поверх, не закрывает
+       * кнопки. Живёт между шапкой и содержимым, поэтому контент под ней не уходит.
+       */
+      className="flex min-h-12 shrink-0 items-center gap-2 border-b border-line bg-base px-[var(--content-pad)]"
     >
-      {scenario && !guide.closed && !guide.collapsed && (
-        <section
-          aria-label="Подсказки по сценарию"
-          className="w-full rounded-[var(--r-md)] border border-line bg-surface p-4 shadow-[var(--shadow-md)]"
+      <section
+        aria-label="Подсказки по сценарию"
+        className="flex min-w-0 flex-1 items-center gap-2"
+      >
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-label="Открыть шаг сценария"
+          className="focus-ring flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left text-[13px] leading-[1.35]"
         >
-          <header className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] leading-[1.4] text-text-3">
-                {finished
-                  ? scenario.title
-                  : `Шаг ${guide.stepIndex + 1} из ${scenario.steps.length} · ${scenario.title}`}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              aria-label="Свернуть подсказки"
-              className="focus-ring -m-2 grid size-12 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
-            >
-              <ChevronDown className="size-4" strokeWidth={1.5} />
-            </button>
-            <button
-              type="button"
-              onClick={closeGuide}
-              aria-label="Закрыть подсказки"
-              className="focus-ring -m-2 grid size-12 shrink-0 place-items-center text-text-3 hover:text-text lg:size-9"
-            >
-              <X className="size-4" strokeWidth={1.5} />
-            </button>
-          </header>
+          {stepDone || finished ? (
+            <Check className="size-4 shrink-0 text-ok" strokeWidth={2} aria-hidden />
+          ) : null}
+          <span className="min-w-0">
+            <span className="block truncate text-text-2">
+              {finished
+                ? skipped > 0
+                  ? `${scenario.title} · пропущено ${skipped}`
+                  : `${scenario.title} · пройден`
+                : `${scenario.title} · шаг ${guide.stepIndex + 1} из ${scenario.steps.length}`}
+            </span>
+            {step && !finished ? (
+              <span className="block truncate text-text">{step.text}</span>
+            ) : null}
+          </span>
+        </button>
+        {!finished && step ? (
+          <button
+            type="button"
+            onClick={stepDone ? nextStep : skipStep}
+            className="focus-ring min-h-12 shrink-0 rounded-full bg-surface-2 px-4 text-[13px] font-medium text-text"
+          >
+            {stepDone ? "Далее" : "Пропустить"}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={closeGuide}
+          aria-label="Скрыть подсказки"
+          className="focus-ring grid size-12 shrink-0 place-items-center text-text-3 hover:text-text"
+        >
+          <X className="size-4" strokeWidth={1.5} />
+        </button>
+      </section>
+
+      <BottomSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        title={scenario.title}
+        description={
+          finished ? "Сценарий пройден" : `Шаг ${guide.stepIndex + 1} из ${scenario.steps.length}`
+        }
+      >
+        <div className="flex flex-col gap-4 pb-2">
           {finished ? (
             <Finished skipped={skipped} />
           ) : (
@@ -153,84 +151,20 @@ export function GuideDock() {
             status={guide.status}
             ids={scenario.steps.map((s) => s.id)}
           />
-        </section>
-      )}
-
-      {feedbackOpen ? (
-        <FeedbackForm stepId={step?.id ?? null} onClose={() => setFeedbackOpen(false)} />
-      ) : (
-        // Нижняя строка: свёрнутая проводка, «Дальше» по засчитанному шагу и обратная связь.
-        // На телефоне обратная связь — иконка в той же строке: две строки закрывали экран
-        <div className="pointer-events-auto flex max-w-full items-center justify-end gap-2">
-          {scenario && !guide.closed && guide.collapsed && (
-            <>
-              <button
-                type="button"
-                onClick={() => setCollapsed(false)}
-                className="focus-ring flex min-h-12 min-w-0 items-center gap-2 rounded-[var(--r-pill)] border border-line bg-surface px-4 text-[13px] text-text shadow-[var(--shadow-md)] transition-fast hover:border-line-2"
-                aria-label="Развернуть подсказки по сценарию"
-              >
-                <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-text-3">
-                  {stepDone && <Check className="size-4 text-ok" strokeWidth={2} aria-hidden />}
-                  {finished ? (
-                    skipped > 0 ? (
-                      `Сценарий закончен, пропущено ${skipped}`
-                    ) : (
-                      "Сценарий пройден"
-                    )
-                  ) : stepDone ? (
-                    "Сделано"
-                  ) : (
-                    <>
-                      {/* На телефоне строка компактная: текст шага закрывал бы низ экрана */}
-                      <span className="md:hidden">
-                        {guide.stepIndex + 1}/{scenario.steps.length}
-                      </span>
-                      <span className="hidden md:inline">
-                        Шаг {guide.stepIndex + 1} из {scenario.steps.length}
-                      </span>
-                    </>
-                  )}
-                </span>
-                {step && !stepDone && (
-                  <span className="hidden truncate md:inline">{step.text}</span>
-                )}
-                <ChevronUp className="size-4 shrink-0 text-text-3" strokeWidth={1.5} aria-hidden />
-              </button>
-              {stepDone && (
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  className="focus-ring min-h-12 shrink-0 rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] font-medium text-text shadow-[var(--shadow-md)] transition-fast hover:border-line-2"
-                >
-                  Дальше
-                </button>
-              )}
-            </>
-          )}
-          {scenario && guide.closed && (
+          {feedbackOpen ? (
+            <FeedbackForm stepId={step?.id ?? null} onClose={() => setFeedbackOpen(false)} />
+          ) : (
             <button
               type="button"
-              onClick={reopenGuide}
-              className="focus-ring min-h-12 shrink-0 rounded-[var(--r-pill)] border border-line bg-surface px-4 text-[13px] text-text-2 shadow-[var(--shadow-md)] transition-fast hover:text-text"
+              onClick={() => setFeedbackOpen(true)}
+              className="focus-ring flex min-h-12 items-center gap-2 self-start rounded-full px-3 text-[13px] text-text-2 hover:text-text"
             >
-              Подсказки
+              <MessageCircleQuestion className="size-4" strokeWidth={1.5} aria-hidden />
+              Непонятно на этом экране
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setFeedbackOpen(true)}
-            aria-label="Непонятно на этом экране"
-            title="Непонятно на этом экране"
-            className="focus-ring flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-2 rounded-[var(--r-pill)] border border-line bg-surface px-3 text-[13px] text-text-2 shadow-[var(--shadow-md)] transition-fast hover:text-text md:px-4"
-          >
-            <MessageCircleQuestion className="size-4" strokeWidth={1.5} aria-hidden />
-            {/* На телефоне — круг без подписи: над содержимым висит один слой (ADR-027, п. 4).
-                Название остаётся в aria-label и title */}
-            <span className="hidden md:inline">Непонятно на этом экране</span>
-          </button>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }

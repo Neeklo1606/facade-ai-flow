@@ -26,13 +26,13 @@ export function PageHeader({
     <div
       className={
         parts || meta
-          ? "mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2"
-          : "contents"
+          ? "mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2"
+          : "mb-6 block lg:contents"
       }
     >
       <div className="min-w-0">
-        {/* Заголовок страницы показывает шапка контента; здесь он остаётся для чтения с экрана */}
-        <h1 className="sr-only">{title}</h1>
+        {/* Заголовок экрана в контенте на телефоне (правило 4 этапа D); с 1024 px его показывает шапка */}
+        <h1 className="relative mb-2 text-page-title lg:sr-only">{title}</h1>
         {parts && (
           <p className="mt-1 flex min-w-0 items-start gap-1.5 text-[13px] text-text-secondary">
             <span>{parts.lead}</span>

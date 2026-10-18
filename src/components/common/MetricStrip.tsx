@@ -159,14 +159,15 @@ export type MetricStripLayout = "default" | "six" | "three";
 const stripBase =
   "grid overflow-hidden rounded-[var(--r-md)] border border-line bg-surface shadow-[var(--lift-1)] min-[1440px]:flex min-[1440px]:h-[104px] min-[1440px]:items-center min-[1440px]:px-6";
 const stripCols: Record<MetricStripLayout, string> = {
-  default: "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+  // До 640 px — одна колонка: в половине ширины 390 подписи и даты резались многоточием (ADR-041)
+  default: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
   six: "grid-cols-2 md:grid-cols-3",
   // Три числа «Внимания» стоят в ряд и на телефоне: это один вопрос из трёх частей (ADR-028)
   three: "grid-cols-3",
 };
 /** Ячейка: 88px в сетке, во всю высоту полосы в ряд; линии сетки — только внутренние */
 const cellClass =
-  "flex h-[88px] min-w-0 items-center px-4 md:px-5 min-[1440px]:h-auto min-[1440px]:flex-1 min-[1440px]:px-0";
+  "flex min-h-[88px] min-w-0 items-center px-4 py-4 md:px-5 min-[1440px]:h-auto min-[1440px]:flex-1 min-[1440px]:px-0 min-[1440px]:py-0";
 /** Полоса из трёх: на телефоне ячейка 114 px, и поля по 16 съедают пятую часть ширины */
 const tightCellClass =
   "h-auto min-h-[88px] items-start px-3 py-4 md:px-5 min-[1440px]:h-auto min-[1440px]:items-center min-[1440px]:py-0";

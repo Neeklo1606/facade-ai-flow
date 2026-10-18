@@ -22,7 +22,7 @@ import { prefetch } from "@/api/prefetch";
 import { useAccess } from "@/api/access";
 import type { ReportCard } from "@/api/types";
 import { sourceKindLabel } from "@/contracts";
-import { fmtDate, fmtNum, plural } from "@/lib/format";
+import { fmtDate, fmtNum, metaLine, plural, shortName } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { saveShiftFile, useShift } from "@/api/capture";
@@ -235,7 +235,7 @@ function FactCard({
         {...(mayDecide ? swipe.handlers : {})}
         style={swipe.shift ? { transform: `translateX(${swipe.shift}px)` } : undefined}
         className={cn(
-          "rounded-[var(--r-md)] border border-line bg-surface p-4 shadow-[var(--lift-1)]",
+          "rounded-[var(--r-lg)] border border-transparent bg-surface p-5",
           !swipe.shift && "transition-fast",
           // Пока палец ведёт карточку, подсказываем, что произойдёт при отпускании
           swipe.shift > 0 && "border-ok",
@@ -245,17 +245,16 @@ function FactCard({
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-card-title">{report.workType}</h3>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Chip>{zoneName}</Chip>
-              <Chip>{projectName}</Chip>
-              <Chip>{employeeName(report.authorId)}</Chip>
-              {evidence.length > 0 && (
-                <Chip>
-                  <Image className="mr-1 size-3.5" strokeWidth={1.5} aria-hidden />
-                  {fmtNum(evidence.length)}
-                </Chip>
+            {/* Метаданные одной строкой, а не чипами в столбик (правило 8 этапа D) */}
+            <p className="mt-1 text-caption text-text-2">
+              {metaLine(
+                zoneName,
+                shortName(projectName),
+                employeeName(report.authorId),
+                evidence.length > 0 &&
+                  `${fmtNum(evidence.length)} ${plural(evidence.length, "фото", "фото", "фото")}`,
               )}
-            </div>
+            </p>
           </div>
           <div className="shrink-0 text-right">
             <div className="tnum text-[24px] leading-none font-semibold">
@@ -265,16 +264,19 @@ function FactCard({
           </div>
         </div>
 
-        <p className="mt-3 text-[14px] leading-[1.45] text-text-2">{report.summary}</p>
+        {/* Источник значения рядом с ним: откуда пришло и что сказано (правило 2) */}
+        <div className="mt-4">
+          {source ? (
+            <span data-marker="" className="text-marker block">
+              {sourceMarker(source)}
+            </span>
+          ) : null}
+          <p className="mt-1 text-[15px] leading-[1.45] text-text-2">«{report.summary}»</p>
+        </div>
 
-        {source && (
-          <div className="mt-3">
-            <Chip>{sourceKindLabel[source.kind]}</Chip>
-          </div>
-        )}
-
+        {/* Решение по карточке в одно касание; «Вернуть» тише — это не главный путь */}
         {mayDecide ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-5 grid grid-cols-2 gap-2">
             <Button
               variant={current ? "accent" : "secondary"}
               onClick={() => accept(report.declaredQty ?? 0)}
@@ -284,8 +286,8 @@ function FactCard({
             <Button variant="secondary" onClick={() => setQtyOpen(true)}>
               Исправить объём
             </Button>
-            <Button variant="ghost" onClick={back}>
-              <Undo2 className="size-4" /> Вернуть
+            <Button variant="ghost" className="col-span-2 justify-self-start" onClick={back}>
+              <Undo2 className="size-4" /> Вернуть на уточнение
             </Button>
           </div>
         ) : (
@@ -433,4 +435,17 @@ function StatementButton({ projectId }: { projectId: string }) {
       </span>
     </div>
   );
+}
+
+/**
+ * Маркер источника до двух слов: запись с экрана «Запись» — «Голосовое» или «Текст»
+ * (ADR-036 хранит её как ручной источник с ключом отправки), остальное — по виду источника.
+ */
+function sourceMarker(source: {
+  kind: keyof typeof sourceKindLabel;
+  captureKey: string | null;
+  location: string;
+}) {
+  if (source.captureKey) return source.location === "текст" ? "Текст" : "Голосовое";
+  return source.kind === "telegram" ? "С площадки" : sourceKindLabel[source.kind];
 }

@@ -1,6 +1,6 @@
 import type { EmployeeRole } from "@/contracts";
 import { can, type Section } from "@/domain/access";
-import { isLegacySection, legacyModulesEnabled } from "./legacy-modules";
+import { isLegacySection, isOutsideCanonPath, legacyModulesEnabled } from "./legacy-modules";
 import {
   Users,
   BookOpen,
@@ -217,6 +217,13 @@ export const allNavItems = navGroups.flatMap((g) => g.items);
  */
 export function visibleFor(item: NavItem, role: EmployeeRole) {
   if (isLegacySection(item.section) && !legacyModulesEnabled()) return false;
+  // Вне канона демо: ассистент, сотрудники, права, история решений (ADR-041)
+  if (
+    !legacyModulesEnabled() &&
+    ((item.to && isOutsideCanonPath(item.to)) || item.section === "timeline")
+  ) {
+    return false;
+  }
   if (item.roles && !item.roles.includes(role)) return false;
   if (item.anyOf) return item.anyOf.some((section) => can(role, section));
   return item.access ? can(role, item.access) : true;
@@ -245,6 +252,11 @@ export function navItemsFor(role: EmployeeRole) {
 export function homeRouteFor(role: EmployeeRole) {
   if (role === "foreman") return "/today";
   if (role === "pto") return "/check";
+  /*
+   * Снабжение в каноне демо работает с заявками на материал — они во «Входящих» (ADR-038,
+   * сценарий 3). «Обзор» прежнего контура считал закупки и остаётся за флагом (ADR-041).
+   */
+  if (role === "supply" && !legacyModulesEnabled()) return "/inbox";
   if (can(role, "procurement") || can(role, "documents")) return "/attention";
   return "/projects";
 }
@@ -381,6 +393,7 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
     "/today": today,
     "/check": check,
     "/attention": attention,
+    "/inbox": inbox,
   };
   const home = homes[homeRouteFor(role)] ?? projects;
 

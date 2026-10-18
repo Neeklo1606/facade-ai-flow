@@ -58,6 +58,8 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type Project, type ProjectOverview, type ProjectStatus } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { ObjectsList } from "@/components/project/ObjectsList";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { useCreateProject } from "@/api/mutations";
 
 interface ProjectsSearch {
@@ -104,8 +106,7 @@ export const Route = createFileRoute("/projects/")({
       { title: "Объекты — гайка" },
       {
         name: "description",
-        content:
-          "Реестр объектов: где непроверенная спецификация, просроченные ответы и неразобранные изменения.",
+        content: "Объекты: что сделано по захваткам и где не пришёл отчёт с площадки.",
       },
       { property: "og:title", content: "Объекты — гайка" },
       {
@@ -146,7 +147,25 @@ function Count({ value, tone }: { value: number; tone?: "danger" | "warn" | unde
   );
 }
 
+/**
+ * Без флага `legacy_modules` реестр — ГАЙКИ (ADR-041): ход работ и пропущенные отчёты
+ * вместо строк спецификации и ответов поставщиков. Реестр прежнего контура остаётся под флагом.
+ */
 function ProjectsPage() {
+  return legacyModulesEnabled() ? <LegacyProjectsPage /> : <GaikaProjectsPage />;
+}
+
+function GaikaProjectsPage() {
+  const registry = useQuery(queries.projects());
+  return (
+    <>
+      <PageHeader title="Объекты" />
+      {registry.data ? <ObjectsList items={registry.data} /> : <ScreenSkeleton kind="cards" />}
+    </>
+  );
+}
+
+function LegacyProjectsPage() {
   const { employeeName } = useDirectory();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -172,6 +191,7 @@ function ProjectsPage() {
   };
   const filtered = useQuery(queries.projects(filter));
   const allRows = useMemo<Row[]>(() => toRows(registry.data), [registry.data]);
+
   const rows = useMemo<Row[]>(() => toRows(filtered.data), [filtered.data]);
   const regions = [...new Set(allRows.map((row) => row.overview.region))];
   const managers = [...new Set(allRows.map((row) => row.project.manager))];
