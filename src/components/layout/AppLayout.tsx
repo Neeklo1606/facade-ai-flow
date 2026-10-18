@@ -1,11 +1,17 @@
-import type { ReactNode } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
+import { useApp } from "@/lib/app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BottomTabs } from "./BottomTabs";
-import { CommandPalette } from "./CommandPalette";
+// Палитра поиска грузится при первом открытии: Ctrl+K и кнопки поиска живут в контексте
+// приложения, а сама палитра (cmdk) первому экрану не нужна (бюджет бандла, D5)
+const CommandPalette = lazy(() =>
+  import("./CommandPalette").then((module) => ({ default: module.CommandPalette })),
+);
 import { GuideDock } from "@/components/guide/GuideDock";
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const { commandOpen } = useApp();
   return (
     <div className="app-window">
       <div className="app-shell">
@@ -21,7 +27,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
         <BottomTabs />
-        <CommandPalette />
+        {commandOpen ? (
+          <Suspense fallback={null}>
+            <CommandPalette />
+          </Suspense>
+        ) : null}
       </div>
     </div>
   );

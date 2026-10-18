@@ -9,7 +9,7 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type ReactNode, lazy, Suspense } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -20,7 +20,11 @@ import { LegacyBoundary } from "@/components/access/LegacyBoundary";
 import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { OfficeLayout } from "@/components/layout/OfficeLayout";
+import { BOOT_SPLASH_HTML, BOOT_SPLASH_SCRIPT } from "@/lib/boot-splash";
+// Кабинет компании — отдельная поверхность: его макет грузится, только когда открыт /office
+const OfficeLayout = lazy(() =>
+  import("@/components/layout/OfficeLayout").then((module) => ({ default: module.OfficeLayout })),
+);
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { prefetch } from "@/api/prefetch";
@@ -28,7 +32,7 @@ import { themeBootScript } from "@/lib/theme";
 import { previewMeta } from "@/lib/access";
 import { queries } from "@/api/queries";
 import { api } from "@/api/client";
-import { dataSource } from "@/api/config";
+import { dataSource, demoShow } from "@/api/config";
 import { useDemoEvents } from "@/api/demo-events";
 import { toast } from "@/lib/toast";
 
@@ -100,8 +104,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      // Умолчание — светлая тема (ADR-030, п. 1); дальше значение ставит applyTheme
-      { name: "theme-color", content: "#f1f3f4" },
+      // Умолчание демо — тёмная тема (ADR-041); дальше значение ставит applyTheme
+      { name: "theme-color", content: "#0a0908" },
       // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
       // картинка превью и запрет индексации общие (TASK-A5, п. 2 и 3)
       { title: previewMeta.title },
@@ -116,7 +120,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: previewMeta.url.replace(/\/$/, "") + previewMeta.image },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "Экран «Обзор» ГАЙКИ AI" },
+      { property: "og:image:alt", content: "Экран входа ГАЙКИ AI: три сценария показа" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: previewMeta.title },
       { name: "twitter:description", content: previewMeta.description },
@@ -152,6 +156,17 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        {/* Экран до загрузки скриптов: в демо первый HTML иначе пуст (D5, Lighthouse) */}
+        {demoShow ? (
+          <>
+            <div
+              id="boot-splash"
+              aria-hidden="true"
+              dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_HTML }}
+            />
+            <script dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_SCRIPT }} />
+          </>
+        ) : null}
         {children}
         <Scripts />
       </body>
@@ -167,6 +182,10 @@ function RootComponent() {
   );
   // Ловушки необработанных ошибок ставятся один раз на всё приложение (TASK-A5, п. 5)
   useEffect(startErrorReporting, []);
+  // Приложение смонтировано: экран до загрузки скриптов уходит (D5)
+  useEffect(() => {
+    document.documentElement.dataset["booted"] = "";
+  }, []);
   // Телеметрия сессии: открытие экранов и точка выхода (ADR-010)
   useScreenTelemetry();
   /*
@@ -188,11 +207,13 @@ function RootComponent() {
         <TooltipProvider delayDuration={200}>
           {pathname.startsWith("/office") ? (
             /* Кабинет компании — отдельная поверхность со своим макетом (ADR-039) */
-            <OfficeLayout>
-              <AccessBoundary>
-                <Outlet />
-              </AccessBoundary>
-            </OfficeLayout>
+            <Suspense fallback={null}>
+              <OfficeLayout>
+                <AccessBoundary>
+                  <Outlet />
+                </AccessBoundary>
+              </OfficeLayout>
+            </Suspense>
           ) : (
             <AppLayout>
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

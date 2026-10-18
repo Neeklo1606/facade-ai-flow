@@ -203,3 +203,14 @@ export function completeThrough(index: number) {
   }
   commit({ ...state, status, stepIndex: Math.min(index + 1, scenario.steps.length) });
 }
+
+/*
+ * Выбор на экране входа (D3): пока плитка или роль ведут на свой экран, корень `/` не должен
+ * перенаправлять на рабочий экран роли. Переменная модуля, а не состояние компонента:
+ * при смене персоны оболочка перемонтируется, и состояние компонента терялось бы.
+ */
+let entering = false;
+export const setEntering = (value: boolean) => {
+  entering = value;
+};
+export const isEntering = () => entering;

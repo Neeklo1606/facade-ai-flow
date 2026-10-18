@@ -105,7 +105,8 @@ export function SlideToConfirm({
         style={{ left: `calc(${ratio * 100}% - ${ratio * 56}px)` }}
         className={cn(
           "absolute grid size-14 place-items-center rounded-full",
-          done ? "bg-ok text-pill-text" : "bg-pill text-pill-text glow-ember",
+          // Без свечения: свет в кадре один — у голосовой капсулы (правило 2 этапа D)
+          done ? "bg-ok text-pill-text" : "bg-pill text-pill-text",
         )}
       >
         {done ? <Check className="size-5" /> : <ArrowRight className="size-5" />}

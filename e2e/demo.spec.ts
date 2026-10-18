@@ -89,9 +89,9 @@ test.describe("сценарий 3: заявка с площадки", () => {
     await page.getByRole("button", { name: "Показать сразу" }).click();
 
     // Количество и единица подставлены из фразы, дата — из срока ответа
-    await expect(page.getByText(/12 шт · к /)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/40 шт · к /)).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /Заявка снабжению/ }).click();
-    await expect(page.getByLabel("Количество")).toHaveValue("12");
+    await expect(page.getByLabel("Количество")).toHaveValue("40");
     await expect(page.getByLabel("Единица измерения")).toHaveValue("шт");
     await page.getByRole("button", { name: "Сохранить заявку" }).click();
     await page.getByRole("button", { name: "Верно" }).last().click();

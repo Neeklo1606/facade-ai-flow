@@ -405,9 +405,10 @@ export const api = {
           },
         });
       }
+      // Только поток расшифровки, без модуля серверной функции: тот тянет серверные репозитории
       const [{ createDemoSpeech }, { transcribeWith }, repos] = await Promise.all([
         import("@/adapters/speech/demo"),
-        import("./speech"),
+        import("./transcribe-flow"),
         local(),
       ]);
       return transcribeWith(repos, createDemoSpeech(), {

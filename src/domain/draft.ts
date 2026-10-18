@@ -156,15 +156,17 @@ export function requestPrefill(draft: ExtractionResult): RequestPrefill | null {
   if (!risk) return null;
   const text = risk.what.value ?? "";
   const parsed = /(\d+(?:[.,]\d+)?)\s*(шт|м²|м³|пог\.\s?м|кг|т|л)/iu.exec(text);
-  const name = text
-    .replace(/^не\s+хватает\s+/iu, "")
-    .replace(/,?\s*\d+(?:[.,]\d+)?\s*(шт|м²|м³|пог\.\s?м|кг|т|л).*$/iu, "")
-    .trim();
+  const strip = (value: string) =>
+    value.replace(/,?\s*\d+(?:[.,]\d+)?\s*(шт|м²|м³|пог\.\s?м|кг|т|л).*$/iu, "").trim();
   /*
-   * Название приходит из фразы прораба и остаётся в его падеже: справочник номенклатуры
-   * прорабу не виден (права на раздел «Справочники» у него нет), а выдумывать название
-   * нельзя. Первая буква поднимается, чтобы поле не выглядело обрезанным.
+   * Название — из предложенного решения («Докупить нащельник угловой, 12 шт»): там оно
+   * в именительном падеже. Нет решения с глаголом закупки — берётся фраза прораба как есть,
+   * в его падеже. Справочник прорабу не виден, а выдумывать название нельзя.
    */
+  const decided = /^(докупить|купить|заказать|привезти|довезти)\s+(.+)$/iu.exec(
+    risk.decisionNeeded.value ?? "",
+  )?.[2];
+  const name = decided ? strip(decided) : strip(text.replace(/^не\s+хватает\s+/iu, ""));
   const named = name || text;
   return {
     name: named.charAt(0).toUpperCase() + named.slice(1),

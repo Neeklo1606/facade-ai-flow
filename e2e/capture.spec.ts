@@ -107,7 +107,7 @@ test.describe("текст", () => {
     });
     // Пример из ошибки идёт тем же путём, что и голос, с этапа разбора
     await page.getByRole("button", { name: "Пример: Нехватка материала" }).click();
-    await expect(page.getByText(/Заявка снабжению: Нащельника углового/)).toBeVisible({
+    await expect(page.getByText(/Заявка снабжению: Кронштейн несущий/)).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -116,10 +116,10 @@ test.describe("текст", () => {
     await open(page, "/capture");
     await page.getByRole("button", { name: "Нехватка материала" }).click();
     await page.getByRole("button", { name: "или напишите текстом" }).click();
-    const sample = await page.getByText(/^«Нащельника/).innerText();
+    const sample = await page.getByText(/^«Кронштейнов/).innerText();
     await page.getByLabel("Что произошло на объекте").fill(sample.replace(/^«|»$/gu, ""));
     await page.getByRole("button", { name: "Отправить" }).click();
-    await expect(page.getByText(/12 шт · к /)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/40 шт · к /)).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "Верно" }).last().click();
     await expect(page.getByRole("link", { name: /Заявка снабжению/ })).toBeVisible();
   });

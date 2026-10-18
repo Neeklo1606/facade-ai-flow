@@ -206,9 +206,7 @@ function SidebarInner({
             <span className="block truncate text-[17px] leading-tight font-semibold text-text">
               гайка
             </span>
-            <span className="block truncate text-[13px] leading-tight text-text-3">
-              помощник стройплощадки
-            </span>
+            <span className="block truncate text-[13px] leading-tight text-text-3">с объекта</span>
           </span>
         </div>
         {!collapsed && canToggle && (
@@ -367,6 +365,7 @@ function SidebarInner({
               <button
                 type="button"
                 title="Сбросить демо-данные"
+                aria-label="Сбросить демо-данные"
                 className={cn(
                   "nav-item focus-ring w-full transition-fast",
                   collapsed && "lg:justify-center lg:px-0",
@@ -376,7 +375,7 @@ function SidebarInner({
                   <RotateCcw strokeWidth={1.5} />
                 </span>
                 <span className={cn("min-w-0 flex-1 truncate text-left", collapsed && "lg:hidden")}>
-                  Сбросить демо-данные
+                  Сбросить демо
                 </span>
               </button>
             }

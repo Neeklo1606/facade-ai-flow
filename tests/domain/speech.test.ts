@@ -61,7 +61,7 @@ describe("демо-расшифровка", () => {
       durationMs: 3000,
       scenario: "demo-supply",
     });
-    expect(answer.ok && answer.value.text).toContain("Нащельника");
+    expect(answer.ok && answer.value.text).toContain("Кронштейнов");
   });
 
   test("неизвестный сценарий — отказ с причиной, а не чужая расшифровка", async () => {

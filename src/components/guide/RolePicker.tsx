@@ -9,7 +9,7 @@ import { DEMO_PERSONAS, dataSource } from "@/api/config";
 import { useEnterAs } from "@/lib/persona";
 import { homeRouteFor } from "@/lib/navigation";
 import { useCurrentRole } from "@/lib/project-scope";
-import { markRoleChosen, startScenario, useRoleChosen } from "@/lib/guide/store";
+import { markRoleChosen, setEntering, startScenario, useRoleChosen } from "@/lib/guide/store";
 import { CANON_PERSONA, scenarioById, scenarioFor } from "@/lib/guide/scenarios";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,7 @@ const tiles = [
  * Выбор роли при первом входе во вкладку (ADR-010). Роль задаёт персону, стартовый экран
  * и сценарий проводки. Пока вкладка в браузере не известна (SSR), экран не рисуется.
  */
-export function RolePicker() {
+export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
   const chosen = useRoleChosen();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -61,6 +61,12 @@ export function RolePicker() {
   const roleBefore = useCurrentRole();
   const employees = useQuery(queries.employees()).data ?? [];
   const [pickRole, setPickRole] = useState(false);
+  /*
+   * Флаг `legacy_modules` живёт во вкладке: на сервере его нет. Читается после монтирования,
+   * чтобы первый HTML и первый рендер вкладки совпадали (иначе React ругается в консоль).
+   */
+  const [legacy, setLegacy] = useState(false);
+  useEffect(() => setLegacy(legacyModulesEnabled()), []);
 
   // Пока выбирается роль, приложение под экраном выбора недоступно ни мышью, ни клавиатурой
   useEffect(() => {
@@ -78,17 +84,23 @@ export function RolePicker() {
    * после входа по телефону и коду.
    */
   if (dataSource === "server") return null;
-  if (chosen !== false) return null;
+  if (chosen === true) return null;
+  /*
+   * До гидратации выбор вкладки неизвестен. Корень `/` всё равно рисует экран входа уже
+   * в первом HTML: клиент видит заголовок и плитки до загрузки скриптов (D5, Lighthouse).
+   */
+  if (chosen === null && !(entry || pathname === "/")) return null;
 
   const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id))
     .filter((item): item is (typeof employees)[number] => !!item)
     // С флагом `legacy_modules` выбор прежний, из всех ролей демонстрации (ADR-034)
-    .filter((item) => legacyModulesEnabled() || CANON_ROLES.includes(item.role))
+    .filter((item) => legacy || CANON_ROLES.includes(item.role))
     .sort((a, b) => CANON_ROLES.indexOf(a.role) - CANON_ROLES.indexOf(b.role));
 
   const choose = (personaId: string, role: EmployeeRole) => {
+    setEntering(true);
     record({ t: "role", role, personaId });
-    startScenario(scenarioFor(role, legacyModulesEnabled()).id);
+    startScenario(scenarioFor(role, legacy).id);
     markRoleChosen();
     /*
      * Пришли по ссылке на конкретный экран — остаёмся на нём (закрытый роли покажет
@@ -98,10 +110,10 @@ export function RolePicker() {
      * по умолчанию ещё до выбора (ADR-028), и сравнение только с «/» оставляло ПТО и прораба
      * на чужом «Внимании».
      */
-    const fromHome = pathname === "/" || pathname === homeRouteFor(roleBefore);
-    void enterAs(personaId, role).then((to) => {
-      if (fromHome) void navigate({ to });
-    });
+    const fromHome = entry || pathname === "/" || pathname === homeRouteFor(roleBefore);
+    void enterAs(personaId, role)
+      .then((to) => (fromHome ? navigate({ to }) : undefined))
+      .finally(() => setEntering(false));
   };
 
   /** Плитка сценария: роль первого шага, сценарий канона и его стартовый экран */
@@ -111,18 +123,19 @@ export function RolePicker() {
     const role = first?.role ?? "foreman";
     const persona = CANON_PERSONA[role];
     if (!scenario || !persona) return;
+    setEntering(true);
     record({ t: "role", role, personaId: persona });
     startScenario(scenario.id);
     markRoleChosen();
     const projectId = "p-korona";
-    void enterAs(persona, role).then((home) =>
-      navigate({ to: first?.to ? first.to(projectId) : home }),
-    );
+    void enterAs(persona, role)
+      .then((home) => navigate({ to: first?.to ? first.to(projectId) : home }))
+      .finally(() => setEntering(false));
   };
 
-  const fromHome = pathname === "/" || pathname === homeRouteFor(roleBefore);
+  const fromHome = entry || pathname === "/" || pathname === homeRouteFor(roleBefore);
   // Экран входа канона — без флага; с флагом показ идёт прежними сценариями ролей
-  const showEntry = fromHome && !pickRole && !legacyModulesEnabled();
+  const showEntry = fromHome && !pickRole && !legacy;
 
   return (
     <div

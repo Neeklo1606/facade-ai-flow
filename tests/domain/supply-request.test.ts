@@ -48,9 +48,10 @@ describe("черновик разбора", () => {
       reports: [],
     });
     expect(prepared.prefill).not.toBeNull();
-    expect(prepared.prefill!.qty).toBe(12);
+    expect(prepared.prefill!.qty).toBe(40);
     expect(prepared.prefill!.unit).toBe("шт");
-    expect(prepared.prefill!.name.toLowerCase()).toContain("нащельник");
+    // Название — из предложенного решения, в именительном падеже, а не «кронштейнов несущих»
+    expect(prepared.prefill!.name).toBe("Кронштейн несущий");
     // Записей отчёта в этом примере нет: работа не называлась
     expect(prepared.reports).toHaveLength(0);
   });
