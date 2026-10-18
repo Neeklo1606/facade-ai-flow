@@ -94,7 +94,9 @@ export function DataTable<T extends { id: string }>({
               key={row.id}
               className="min-h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface p-4"
             >
-              <div className="min-w-0 break-words text-[16px] leading-6 font-medium">{primary.cell(row)}</div>
+              <div className="min-w-0 break-words text-[16px] leading-6 font-medium">
+                {primary.cell(row)}
+              </div>
               <dl className="mt-3 grid gap-2">
                 {rest.map((c) => (
                   <div

@@ -1438,7 +1438,16 @@
 }
 
 @media (max-width: 1023px) {
-  .content-header { margin-bottom: 20px; gap: 8px; }
-  .widget-card { padding: 20px; }
-  input, select, textarea { font-size: 16px; }
+  .content-header {
+    margin-bottom: 20px;
+    gap: 8px;
+  }
+  .widget-card {
+    padding: 20px;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
