@@ -4,9 +4,9 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/quality")({
   head: () => ({
     meta: [
-      { title: "Качество извлечения — neeklo FieldOps" },
+      { title: "Качество извлечения — гайка" },
       { name: "description", content: "Насколько модели можно доверять и где она ошибается." },
-      { property: "og:title", content: "Качество извлечения — neeklo FieldOps" },
+      { property: "og:title", content: "Качество извлечения — гайка" },
       {
         property: "og:description",
         content: "Насколько модели можно доверять и где она ошибается.",

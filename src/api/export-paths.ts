@@ -1,5 +1,8 @@
 import type { ListProjectsInput } from "@/ports";
 
+/** Адрес серверной выгрузки сводки смены и черновика ведомости (ADR-037) */
+export const SHIFT_EXPORT_PATH = "/api/export/shift";
+
 /** Адрес серверной выгрузки реестра объектов (P3-5) */
 export const REGISTRY_EXPORT_PATH = "/api/export/projects";
 

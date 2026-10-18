@@ -2,6 +2,10 @@ import type { DemoEvent } from "@/adapters/demo";
 import type {
   AcceptDeliveryInput,
   AskAgentInput,
+  CaptureInput,
+  CreateMaterialRequestInput,
+  DecideMaterialRequestInput,
+  ShiftInput,
   ChooseSupplierInput,
   CorrectPositionInput,
   CreatePositionInput,
@@ -38,6 +42,9 @@ import type { AccessSession } from "@/domain/access";
 import { FORBIDDEN_MESSAGE } from "@/ports";
 import { currentUserId, dataSource, type DEMO_PERSONAS } from "./config";
 import * as fn from "./functions";
+import { captureFactFn, extractFactFn } from "./ai";
+import { createRequestFn, decideRequestFn, requestsFn, retractRequestFn, shiftFn } from "./supply";
+import { SHIFT_EXPORT_PATH } from "./export-paths";
 import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
 /**
@@ -94,8 +101,22 @@ export const api = {
   session: (): Promise<AccessSession | null> =>
     server ? (fn.sessionFn() as Promise<AccessSession | null>) : demoSession(),
   /** Вход за персону демонстрации: на сервере — подписанная cookie, в демо — персона вкладки */
+  /*
+   * Подписанная кука персоны выдаётся в обоих контурах: в демонстрации данные живут во вкладке,
+   * но серверные проверки (кабинет компании, ADR-039) должны знать роль, а не угадывать её.
+   */
   signIn: async (personaId: (typeof DEMO_PERSONAS)[number]) => {
-    if (server) await fn.signInFn({ data: { personaId } });
+    if (server) {
+      await fn.signInFn({ data: { personaId } });
+      return;
+    }
+    /*
+     * Демонстрация: данные во вкладке, кука нужна только серверным проверкам кабинета. Сбой
+     * её выдачи не должен ломать выбор роли и показ — кабинет тогда честно ответит отказом.
+     */
+    await fn.signInFn({ data: { personaId } }).catch((error: unknown) => {
+      console.warn("Кука персоны не выдана", error);
+    });
   },
   clock: {
     now: () => (server ? fn.nowFn() : local().then((r) => r.clock.now())),
@@ -300,6 +321,10 @@ export const api = {
       server
         ? fn.reviewReportFn({ data }).then(() => undefined)
         : local().then((r) => r.reports.review(data, actor())),
+    retract: (data: { id: string }) =>
+      server
+        ? fn.retractReportFn({ data }).then(() => undefined)
+        : local().then((r) => r.reports.retract(data, actor())),
     source: (id: string) =>
       server ? fn.sourceFn({ data: { id } }) : local().then((r) => r.reports.source(id)),
   },
@@ -317,6 +342,114 @@ export const api = {
         ? fn.pendingDecisionsFn({ data: { projectId } })
         : local().then((r) => r.timeline.pending(projectId)),
   },
+  /**
+   * Запись факта и его разбор (ADR-036). В демонстрации оба шага идут во вкладке: ключа
+   * модели там нет и быть не может, поэтому разбирает заглушка — и говорит об этом словами.
+   */
+  capture: {
+    save: (data: CaptureInput) =>
+      server ? captureFactFn({ data }) : local().then((r) => r.reports.capture(data, actor())),
+    extract: async (data: { projectId: string; message: string; sourceId: string | null }) => {
+      if (server) return extractFactFn({ data });
+      const [{ createDemoGateway }, { extractWithGateway }, repos] = await Promise.all([
+        import("@/adapters/ai/demo"),
+        import("./extract-flow"),
+        local(),
+      ]);
+      const outcome = await extractWithGateway(repos, createDemoGateway(), data);
+      return outcome.ok && outcome.draft
+        ? { ok: true as const, draft: outcome.draft, by: outcome.by }
+        : { ok: false as const, reason: outcome.reason ?? "Разбор не получен", by: outcome.by };
+    },
+  },
+
+  /** Сводка смены и её файлы (ADR-037): в демонстрации считается и собирается во вкладке */
+  shift: {
+    summary: (data: ShiftInput) =>
+      server ? shiftFn({ data }) : local().then((r) => r.reports.shift(data)),
+    excel: (data: ShiftInput) =>
+      server
+        ? fetch(
+            `${SHIFT_EXPORT_PATH}?projectId=${encodeURIComponent(data.projectId)}&date=${data.date}`,
+          ).then((response) => {
+            if (!response.ok) throw new Error(`Выгрузка не сформирована: ${response.status}`);
+            return response.blob();
+          })
+        : local().then((r) => r.reports.exportShift(data)),
+    statement: (data: ShiftInput) =>
+      server
+        ? fetch(
+            `${SHIFT_EXPORT_PATH}?projectId=${encodeURIComponent(data.projectId)}&date=${data.date}&kind=statement`,
+          ).then((response) => {
+            if (!response.ok) throw new Error(`Документ не сформирован: ${response.status}`);
+            return response.blob();
+          })
+        : local().then((r) => r.reports.exportStatement(data)),
+  },
+
+  /** Заявки на материал (ADR-037, сценарий 3) */
+  /**
+   * Расшифровка записи (ADR-040, п. 2). В демонстрации распознаёт вкладка демо-распознавателем:
+   * звук никуда не уходит. В рабочем контуре запись идёт на сервер, ключ остаётся там.
+   */
+  speech: {
+    transcribe: async (data: {
+      audio: Blob | null;
+      durationMs: number;
+      projectId: string;
+      sourceId: string | null;
+      scenario: string | null;
+    }) => {
+      const mimeType = data.audio?.type || "audio/webm";
+      if (server) {
+        const audio = data.audio ? await blobToBase64(data.audio) : null;
+        const { transcribeFn } = await import("./speech");
+        return transcribeFn({
+          data: {
+            audio,
+            mimeType,
+            durationMs: Math.round(data.durationMs),
+            projectId: data.projectId,
+            sourceId: data.sourceId,
+            scenario: data.scenario,
+          },
+        });
+      }
+      // Только поток расшифровки, без модуля серверной функции: тот тянет серверные репозитории
+      const [{ createDemoSpeech }, { transcribeWith }, repos] = await Promise.all([
+        import("@/adapters/speech/demo"),
+        import("./transcribe-flow"),
+        local(),
+      ]);
+      return transcribeWith(repos, createDemoSpeech(), {
+        bytes: null,
+        mimeType,
+        durationMs: Math.round(data.durationMs),
+        projectId: data.projectId,
+        sourceId: data.sourceId,
+        scenario: data.scenario,
+      });
+    },
+  },
+  supply: {
+    requests: (projectId: string | null) =>
+      server
+        ? requestsFn({ data: { projectId } })
+        : local().then((r) => r.supply.requests(projectId)),
+    create: (data: CreateMaterialRequestInput) =>
+      server
+        ? createRequestFn({ data })
+        : local().then((r) => r.supply.createRequest(data, actor())),
+    decide: (data: DecideMaterialRequestInput) =>
+      server
+        ? decideRequestFn({ data })
+        : local().then((r) => r.supply.decideRequest(data, actor())),
+    retract: (data: { id: string }) =>
+      server
+        ? retractRequestFn({ data }).then(() => undefined)
+        : local().then((r) => r.supply.retractRequest(data, actor())),
+  },
+
   agent: {
     ask: (data: AskAgentInput) =>
       server ? fn.askAgentFn({ data }) : local().then((r) => r.agent.ask(data)),
@@ -324,3 +457,13 @@ export const api = {
 };
 
 export type Api = typeof api;
+
+/** Запись в base64 для серверной функции: двоичное тело она не принимает */
+async function blobToBase64(blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+}

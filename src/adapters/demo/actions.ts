@@ -20,6 +20,7 @@ import {
   deliveryStatusLabel,
   remarkKindLabel,
 } from "@/contracts";
+import { materialRequestStatusLabel, materialRequestTransitions } from "@/contracts";
 import { sheetsOf } from "@/adapters/fixtures";
 import { decisionLink } from "@/domain/timeline";
 import {
@@ -32,7 +33,19 @@ import {
   type RequestPositionLink,
 } from "@/domain/deliveries";
 import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
-import { ConflictError, NotFoundError } from "@/ports";
+import {
+  captureInput,
+  createMaterialRequestInput,
+  decideMaterialRequestInput,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  type CaptureInput,
+  type CaptureResult,
+  type CreateMaterialRequestInput,
+  type DecideMaterialRequestInput,
+  type RecordJobInput,
+} from "@/ports";
 import {
   milestoneStatusLabel,
   milestoneTransitions,
@@ -43,6 +56,9 @@ import {
   zoneLevelLabel,
 } from "@/contracts";
 import type {
+  ProcessingJobRow,
+  Evidence,
+  MaterialRequest,
   CatalogChange,
   Employee,
   FieldReport,
@@ -1441,7 +1457,28 @@ export function createReport(input: CreateReportInput, actorId: string) {
   // Дата смены задним числом — норма, вперёд — нет: это отчёт, а не план
   if (input.reportDate > today) throw new ConflictError("Дата смены не может быть в будущем");
   const author = s.employees.find((item) => item.id === actorId);
-  const sourceId = liveId("src");
+  /*
+   * Отчёт из записи ссылается на неё (ADR-040, п. 3): ПТО видит фразу прораба, а не пересказ.
+   * Повтор «Верно» по той же записи с теми же полями возвращает уже созданный отчёт.
+   */
+  const linked = input.sourceId
+    ? (s.sources.find((item) => item.id === input.sourceId) ?? null)
+    : null;
+  if (input.sourceId && (!linked || linked.projectId !== input.projectId)) {
+    throw new NotFoundError("Запись", input.sourceId);
+  }
+  if (linked) {
+    const same = s.reports.find(
+      (item) =>
+        item.sourceId === linked.id &&
+        item.zoneId === input.zoneId &&
+        item.workType === input.workType &&
+        item.declaredQty === input.declaredQty &&
+        item.unit === input.unit,
+    );
+    if (same) return same;
+  }
+  const sourceId = linked?.id ?? liveId("src");
   const source: Source = {
     id: sourceId,
     kind: "manual",
@@ -1451,6 +1488,7 @@ export function createReport(input: CreateReportInput, actorId: string) {
     projectId: input.projectId,
     location: "внесён вручную",
     excerpt: input.summary,
+    captureKey: null,
   };
   const report: FieldReport = {
     id: liveId("fr"),
@@ -1460,7 +1498,7 @@ export function createReport(input: CreateReportInput, actorId: string) {
     crewId: null,
     date: input.reportDate,
     sentAt: at,
-    kind: "text",
+    kind: linked && linked.location !== "текст" ? "voice" : "text",
     workType: input.workType,
     status: "review",
     summary: input.summary,
@@ -1476,7 +1514,7 @@ export function createReport(input: CreateReportInput, actorId: string) {
   };
   update((prev) => ({
     ...prev,
-    sources: [...prev.sources, source],
+    sources: linked ? prev.sources : [...prev.sources, source],
     reports: [...prev.reports, report],
     events: [
       ...prev.events,
@@ -1485,14 +1523,43 @@ export function createReport(input: CreateReportInput, actorId: string) {
           projectId: input.projectId,
           type: "report_added",
           title: `Отчёт с площадки: ${input.workType}`,
-          details: `${input.declaredQty} ${input.unit}, захватка «${zone.name}». Внесён вручную.`,
+          details: `${input.declaredQty} ${input.unit}, захватка «${zone.name}». ${
+            linked ? "Из записи с площадки." : "Внесён вручную."
+          }`,
           sourceId,
+          reportId: report.id,
         },
         actorId,
       ),
     ],
   }));
   return report;
+}
+
+/**
+ * Снять свой отчёт сразу после «Верно» (ADR-040, п. 4). Только автор и только пока отчёт
+ * на проверке: принятое уже стало фактом объекта, и отмена тут — решение ПТО, а не кнопка.
+ * Запись с площадки остаётся: факт не теряется, снимается только отчёт из него.
+ */
+export function retractReport(id: string, actorId: string) {
+  const s = getState();
+  const report = s.reports.find((item) => item.id === id);
+  if (!report) throw new NotFoundError("Отчёт", id);
+  if (report.authorId !== actorId) throw new ForbiddenError("Отменить можно только свой отчёт");
+  if (report.status !== "review") {
+    throw new ConflictError("Отчёт уже проверен: отменить его нельзя");
+  }
+  const source = s.sources.find((item) => item.id === report.sourceId);
+  // Ручной источник создавался вместе с отчётом — он уходит с ним; запись с площадки остаётся
+  const dropSource =
+    source?.location === "внесён вручную" &&
+    !s.reports.some((item) => item.id !== id && item.sourceId === source.id);
+  update((prev) => ({
+    ...prev,
+    reports: prev.reports.filter((item) => item.id !== id),
+    sources: dropSource ? prev.sources.filter((item) => item.id !== source!.id) : prev.sources,
+    events: prev.events.filter((item) => item.reportId !== id),
+  }));
 }
 
 export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
@@ -2254,6 +2321,183 @@ export function resolveChange(input: ResolveChangeInput, actorId: string) {
         actorId,
       ),
     ],
+  }));
+  return next;
+}
+
+/**
+ * Записать обращение к модели (ADR-035, п. 3). Журнал только пополняется: ни правки, ни
+ * удаления у него нет, поэтому и действия такого нет. Объект проверяется, если указан:
+ * запись о чужом объекте в журнале хуже, чем её отсутствие.
+ */
+export function recordProcessingJob(input: RecordJobInput): ProcessingJobRow {
+  const s = getState();
+  if (input.projectId && !s.projects.some((item) => item.id === input.projectId)) {
+    throw new NotFoundError("Объект", input.projectId);
+  }
+  if (input.sourceId && !s.sources.some((item) => item.id === input.sourceId)) {
+    throw new NotFoundError("Источник", input.sourceId);
+  }
+  const row: ProcessingJobRow = { ...input, id: liveId("pj") };
+  update((prev) => ({ ...prev, processingJobs: [...prev.processingJobs, row] }));
+  return row;
+}
+
+/**
+ * Записать факт с площадки (ADR-036). Повтор с тем же ключом отправки возвращает тот же
+ * источник и ничего не создаёт: это и есть идемпотентность, из-за которой обрыв сети
+ * на отправке не оставляет дублей.
+ *
+ * Файла записи здесь нет и не появится: сохраняются текст и метки времени. Аудио живёт
+ * во вкладке до отправки, и экран записи говорит это словами.
+ */
+export function captureFact(input: CaptureInput, actorId: string): CaptureResult {
+  const parsed = captureInput.parse(input);
+  const s = getState();
+  const project = s.projects.find((item) => item.id === parsed.projectId);
+  if (!project) throw new NotFoundError("Объект", parsed.projectId);
+
+  const existing = s.sources.find((item) => item.captureKey === parsed.captureKey);
+  if (existing) {
+    return {
+      source: existing,
+      evidence: s.evidence.filter((item) => item.sourceId === existing.id),
+      repeated: true,
+    };
+  }
+
+  const at = tick();
+  const author = s.employees.find((item) => item.id === actorId);
+  const seconds = parsed.durationMs === null ? null : Math.round(parsed.durationMs / 1000);
+  const source: Source = {
+    id: liveId("src"),
+    kind: "manual",
+    title:
+      parsed.kind === "voice"
+        ? `Запись с площадки, ${seconds ?? 0} с`
+        : "Сообщение с площадки, текст",
+    author: author?.name ?? actorId,
+    receivedAt: at,
+    projectId: parsed.projectId,
+    location: parsed.kind === "voice" ? `00:00–${String(seconds ?? 0).padStart(2, "0")}` : "текст",
+    excerpt: parsed.text,
+    captureKey: parsed.captureKey,
+  };
+  /* Запись и фото — материалы источника: отчёт появится после подтверждения человеком (G5) */
+  const media: Evidence[] = [
+    ...(parsed.kind === "voice"
+      ? [
+          {
+            id: liveId("ev"),
+            reportId: null,
+            sourceId: source.id,
+            kind: "audio" as const,
+            caption: `Голосовая запись, ${seconds ?? 0} с`,
+            takenAt: at,
+            location: `00:00–${String(seconds ?? 0).padStart(2, "0")}`,
+          },
+        ]
+      : []),
+    ...parsed.photos.map((photo, index) => ({
+      id: liveId("ev"),
+      reportId: null,
+      sourceId: source.id,
+      kind: "photo" as const,
+      caption: photo.caption || `Фото ${index + 1}`,
+      takenAt: photo.takenAt,
+      location: `фото ${index + 1}`,
+    })),
+  ];
+
+  update((prev) => ({
+    ...prev,
+    sources: [...prev.sources, source],
+    evidence: [...prev.evidence, ...media],
+  }));
+  return { source, evidence: media, repeated: false };
+}
+
+/* ---------- Заявки на материал (ADR-037, сценарий 3) ---------- */
+
+/** Завести заявку на материал: площадка говорит, чего не хватает и к какому сроку */
+export function createMaterialRequest(
+  input: CreateMaterialRequestInput,
+  actorId: string,
+): MaterialRequest {
+  const parsed = createMaterialRequestInput.parse(input);
+  const s = getState();
+  if (!s.projects.some((item) => item.id === parsed.projectId)) {
+    throw new NotFoundError("Объект", parsed.projectId);
+  }
+  if (parsed.sourceId && !s.sources.some((item) => item.id === parsed.sourceId)) {
+    throw new NotFoundError("Источник", parsed.sourceId);
+  }
+  const at = tick();
+  // Срок в прошлом — не заявка, а запись о просрочке: такое не заводится молча
+  if (parsed.neededBy < at.slice(0, 10)) {
+    throw new ConflictError("Срок заявки не может быть в прошлом");
+  }
+  const request: MaterialRequest = {
+    id: liveId("mr"),
+    projectId: parsed.projectId,
+    sourceId: parsed.sourceId,
+    name: parsed.name,
+    qty: parsed.qty,
+    unit: parsed.unit,
+    neededBy: parsed.neededBy,
+    status: "new",
+    note: parsed.note,
+    authorId: actorId,
+    requestedAt: at,
+    decidedBy: null,
+    decidedAt: null,
+    decision: null,
+  };
+  update((prev) => ({ ...prev, materialRequests: [...prev.materialRequests, request] }));
+  return request;
+}
+
+/** Снять свою новую заявку сразу после «Верно» (ADR-040, п. 4): решённую отменить нельзя */
+export function retractMaterialRequest(id: string, actorId: string) {
+  const request = getState().materialRequests.find((item) => item.id === id);
+  if (!request) throw new NotFoundError("Заявка", id);
+  if (request.authorId !== actorId) throw new ForbiddenError("Отменить можно только свою заявку");
+  if (request.status !== "new") throw new ConflictError("Снабжение уже решило по заявке");
+  update((prev) => ({
+    ...prev,
+    materialRequests: prev.materialRequests.filter((item) => item.id !== id),
+  }));
+}
+
+/**
+ * Решение снабжения по заявке. Переходы разрешены таблицей контракта: заказать можно только
+ * принятую, закрыть — только заказанную. Отказ фиксируется с причиной, как любое решение.
+ */
+export function decideMaterialRequest(
+  input: DecideMaterialRequestInput,
+  actorId: string,
+): MaterialRequest {
+  const parsed = decideMaterialRequestInput.parse(input);
+  const s = getState();
+  const request = s.materialRequests.find((item) => item.id === parsed.id);
+  if (!request) throw new NotFoundError("Заявка", parsed.id);
+  const allowed = materialRequestTransitions[request.status] as readonly string[];
+  if (!allowed.includes(parsed.status)) {
+    throw new ConflictError(
+      `Из статуса «${materialRequestStatusLabel[request.status]}» нельзя перейти в «${materialRequestStatusLabel[parsed.status]}»`,
+    );
+  }
+  const at = tick();
+  const next: MaterialRequest = {
+    ...request,
+    status: parsed.status,
+    decision: parsed.decision || request.decision,
+    decidedBy: actorId,
+    decidedAt: at,
+  };
+  update((prev) => ({
+    ...prev,
+    materialRequests: prev.materialRequests.map((item) => (item.id === next.id ? next : item)),
   }));
   return next;
 }

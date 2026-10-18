@@ -54,6 +54,13 @@ export const actionLabels: Record<string, string> = {
   moveDelivery: "Отметить движение поставки",
   acceptDelivery: "Принять поставку",
   resolveRemark: "Закрыть замечание по поставке",
+  saveCapture: "Сохранить запись с площадки",
+  extract: "Разобрать запись",
+  confirmDraft: "Подтвердить разбор: «Верно»",
+  retractCreated: "Отменить созданное по «Верно»",
+  decideMaterialRequest: "Решение снабжения по заявке",
+  downloadShift: "Скачать сводку смены",
+  downloadStatement: "Скачать черновик ведомости",
 };
 
 let events: TelemetryEvent[] = load();

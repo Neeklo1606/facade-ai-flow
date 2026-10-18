@@ -49,13 +49,13 @@ export function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-11 shrink-0 gap-2 border px-3 text-[13px] lg:h-9",
+        "h-12 shrink-0 gap-2 border px-3 text-[13px] lg:h-9",
         active ? "border-line-2 bg-surface-3 text-text" : "border-transparent text-text-2",
         className,
       )}
     >
       {children}
-      {count != null && <span className="text-[12px] font-normal text-text-3">{count}</span>}
+      {count != null && <span className="text-[13px] font-normal text-text-3">{count}</span>}
     </Button>
   );
 }

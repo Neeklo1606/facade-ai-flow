@@ -283,7 +283,7 @@ for (const { theme, width } of themes.flatMap((theme) =>
       figure{margin:0}img{width:100%;border-radius:8px;display:block}
       figcaption{margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
       h1{font-size:16px;color:${theme === "light" ? "#1c1814" : "#eee"};margin:0 0 12px}</style>
-      <h1>neeklo FieldOps · тема ${themeLabel[theme] ?? theme} · ширина ${width} px · экранов: ${shots.length}</h1><main>${cells}</main>`,
+      <h1>гайка · тема ${themeLabel[theme] ?? theme} · ширина ${width} px · экранов: ${shots.length}</h1><main>${cells}</main>`,
     { waitUntil: "load" },
   );
   await page.screenshot({

@@ -98,7 +98,7 @@ export function AttentionList({
             to={row.to as string}
             onClick={() => recordAction("openAttention")}
             aria-label={`Открыть: ${row.title}`}
-            className="focus-ring inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 self-center rounded-[var(--r-sm)] border border-line-2 bg-surface-3 px-2 text-[13px] font-medium text-text-2 transition-fast after:absolute after:inset-0 after:content-[''] is-hover:text-text md:bg-surface-2 md:px-3 lg:h-9"
+            className="focus-ring inline-flex h-12 min-w-12 shrink-0 items-center justify-center gap-1.5 self-center rounded-[var(--r-sm)] border border-line-2 bg-surface-3 px-2 text-[13px] font-medium text-text-2 transition-fast after:absolute after:inset-0 after:content-[''] is-hover:text-text md:bg-surface-2 md:px-3 lg:h-9"
           >
             {/* На телефоне подпись отнимала у заголовка 70 px, и он ломался на четыре строки:
                 вся строка и так нажимается, остаётся стрелка (ADR-028, п. 5) */}
@@ -123,7 +123,7 @@ function Chip({
   return (
     <span
       className={cn(
-        "inline-flex h-6 max-w-full items-center gap-1.5 rounded-full px-2.5 text-[12px] leading-none",
+        "inline-flex h-6 max-w-full items-center gap-1.5 rounded-full px-2.5 text-[13px] leading-none",
         tone === "danger" ? "bg-danger-bg text-danger" : "bg-surface-3 text-text-2",
       )}
     >

@@ -215,7 +215,36 @@ export const ACCESS_RULES: AccessRules = {
       need: WRITE,
       project: (input: { projectId: string }) => project(input.projectId),
     },
+    /* Сводка смены и её файлы: те же права, что у чтения фактов площадки (ADR-037) */
+    shift: {
+      sections: ["field-reports"],
+      need: READ,
+      project: (input) => project(input.projectId),
+    },
+    exportShift: {
+      sections: ["field-reports"],
+      need: READ,
+      project: (input) => project(input.projectId),
+    },
+    exportStatement: {
+      sections: ["field-reports"],
+      need: READ,
+      project: (input) => project(input.projectId),
+    },
+
+    /* Записать факт может тот, кто ведёт площадку: право на запись отчётов (ADR-036) */
+    capture: {
+      sections: ["field-reports"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
     review: {
+      sections: ["field-reports"],
+      need: WRITE,
+      project: (input) => ref("report", input.id),
+    },
+    // Отмена своего отчёта: право на запись по объекту отчёта, автора сверяет действие
+    retract: {
       sections: ["field-reports"],
       need: WRITE,
       project: (input) => ref("report", input.id),
@@ -248,6 +277,40 @@ export const ACCESS_RULES: AccessRules = {
     projectOf: SESSION,
   },
   agent: { ask: { sections: ["agent"], need: READ, global: true } },
+  /*
+   * Заявка на материал (ADR-037): заводит её площадка, решает снабжение. Читают обе стороны,
+   * поэтому чтение открыто и тем, у кого есть право на факты площадки.
+   */
+  supply: {
+    requests: {
+      sections: ["field-reports", "procurement"],
+      need: READ,
+      global: true,
+      filter: (rows, ids) => rows.filter((row) => ids.includes(row.projectId)),
+    },
+    createRequest: {
+      sections: ["field-reports"],
+      need: WRITE,
+      project: (input) => project(input.projectId),
+    },
+    decideRequest: { sections: ["procurement"], need: WRITE, global: true },
+    // Отмена своей новой заявки: автора и статус сверяет действие (ADR-040, п. 4)
+    retractRequest: { sections: ["field-reports"], need: WRITE, global: true },
+  },
+
+  /*
+   * Журнал обработок — часть истории факта: его читает тот, кто видит факты площадки,
+   * а пишет шлюз от имени того, кто отправил сообщение (ADR-035, п. 3).
+   */
+  processing: {
+    record: { sections: ["field-reports"], need: WRITE, global: true },
+    list: {
+      sections: ["field-reports"],
+      need: READ,
+      global: true,
+      filter: (rows, ids) => rows.filter((row) => !row.projectId || ids.includes(row.projectId)),
+    },
+  },
 };
 
 function positionScope(input: { projectId?: string | undefined; revisionId?: string | undefined }) {

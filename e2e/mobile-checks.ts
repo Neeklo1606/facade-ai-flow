@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 /**
- * Проверки мобильной версии (Q8, ADR-015): переполнение, области нажатия от 44 px, действия
+ * Проверки мобильной версии (Q8, ADR-015; порог 48 px — ADR-034, п. 6): переполнение, действия
  * только по наведению, фокус за краем экрана и пометка демонстрации в первом экране.
  * Общие для сквозных тестов экранов (375) и обхода продукта (375, 390, 430).
  */
@@ -86,7 +86,7 @@ export function mobileCheck(page: Page): Promise<MobileCheck> {
     const small = [...document.querySelectorAll(selector)]
       .filter((el) => shown(el) && !inlineInText(el) && el.getBoundingClientRect().left < vw)
       .map((el) => ({ el, rect: targetRect(el) }))
-      .filter(({ rect }) => rect.width < 44 - 0.5 || rect.height < 44 - 0.5)
+      .filter(({ rect }) => rect.width < 48 - 0.5 || rect.height < 48 - 0.5)
       .map(({ el, rect }) => ({
         element: describe(el),
         width: Math.round(rect.width),

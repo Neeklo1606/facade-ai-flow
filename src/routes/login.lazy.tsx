@@ -100,8 +100,7 @@ function LoginPage() {
         </span>
         <h1 className="mt-5 text-page-title">Вход в систему</h1>
         <p className="mt-2 text-[14px] leading-[1.5] text-text-2">
-          neeklo FieldOps, пакет Фасады. Введите телефон, который завёл руководитель: пароля в
-          системе нет.
+          ГАЙКА AI. Введите телефон, который завёл руководитель: пароля в системе нет.
         </p>
 
         {invite ? (

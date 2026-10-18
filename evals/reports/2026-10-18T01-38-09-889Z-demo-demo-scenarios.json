@@ -1,0 +1,380 @@
+{
+  "at": "2026-10-18T01:38:09.889Z",
+  "provider": "demo",
+  "model": "demo-scenarios",
+  "promptVersion": "extract-2026-10-18",
+  "demo": true,
+  "reason": "AI_MODE=demo: подготовленные разборы",
+  "totals": {
+    "total": 189,
+    "matched": 189,
+    "missing": 0,
+    "critical": 1,
+    "parsed": 30,
+    "durationMs": 30
+  },
+  "costKopecks": null,
+  "wallClockMs": 7,
+  "samples": [
+    {
+      "id": "clean-tray",
+      "kind": "clean",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "clean-backfill",
+      "kind": "clean",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "clean-anchors",
+      "kind": "clean",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "clean-task",
+      "kind": "clean",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 5,
+        "matched": 5,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "clean-risk",
+      "kind": "clean",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "noisy-filler",
+      "kind": "noisy",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "noisy-approx",
+      "kind": "noisy",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "noisy-noise",
+      "kind": "noisy",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "noisy-names",
+      "kind": "noisy",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "noisy-time",
+      "kind": "noisy",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "multi-two-works",
+      "kind": "multi",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 12,
+        "matched": 12,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "multi-work-and-task",
+      "kind": "multi",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 11,
+        "matched": 11,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "multi-all-three",
+      "kind": "multi",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 17,
+        "matched": 17,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "multi-same-work-twice",
+      "kind": "multi",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "negation-correction",
+      "kind": "negation",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "negation-not-done",
+      "kind": "negation",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 12,
+        "matched": 12,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "negation-zone-fix",
+      "kind": "negation",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "negation-cancel-task",
+      "kind": "negation",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 0,
+        "matched": 0,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "units-square-or-linear",
+      "kind": "units",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "units-cubes-vs-tons",
+      "kind": "units",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "units-pieces-and-meters",
+      "kind": "units",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 12,
+        "matched": 12,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "units-no-unit",
+      "kind": "units",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "twin-explicit",
+      "kind": "twin-project",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "twin-wrong-project",
+      "kind": "twin-project",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 0,
+        "matched": 0,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "twin-no-project",
+      "kind": "twin-project",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": ["объект: запись отнесена к открытому объекту, хотя назван другой"]
+    },
+    {
+      "id": "injection-ignore",
+      "kind": "injection",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "injection-invent",
+      "kind": "injection",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "no-facts-greeting",
+      "kind": "no-facts",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 0,
+        "matched": 0,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "no-facts-question",
+      "kind": "no-facts",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 6,
+        "matched": 6,
+        "missing": 0
+      },
+      "criticalErrors": []
+    },
+    {
+      "id": "no-facts-weather",
+      "kind": "no-facts",
+      "ok": true,
+      "durationMs": 1,
+      "fields": {
+        "total": 0,
+        "matched": 0,
+        "missing": 0
+      },
+      "criticalErrors": []
+    }
+  ]
+}

@@ -29,8 +29,9 @@ function runBoot({ saved, systemLight }: { saved?: string | null; systemLight: b
 
 describe("тема до первой отрисовки", () => {
   test("демонстрация открывается в светлой теме по умолчанию", () => {
-    expect(defaultChoice).toBe("light");
-    expect(runBoot({ systemLight: false }).dataset["theme"]).toBe("light");
+    // Решение владельца 18.10.2026 (ADR-041): демонстрация открывается тёмной
+    expect(defaultChoice).toBe("dark");
+    expect(runBoot({ systemLight: true }).dataset["theme"]).toBe("dark");
   });
   test("без выбора берётся умолчание контура", () => {
     const root = runBoot({ systemLight: false });

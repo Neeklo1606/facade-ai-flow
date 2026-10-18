@@ -28,6 +28,7 @@ import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { ScreenGate, ScreenSkeleton } from "@/components/common/ScreenStates";
 import { PageCaption } from "@/components/layout/PageActions";
 import { AttentionList } from "@/components/dashboard/AttentionList";
+import { isLegacyPath, legacyModulesEnabled } from "@/lib/legacy-modules";
 import { LiveFeed } from "@/components/dashboard/LiveFeed";
 import { ProjectsMini } from "@/components/dashboard/ProjectsMini";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ import type { DashboardMetric, DashboardPeriod } from "@/api/types";
 import { fmtDate, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { useAccess } from "@/api/access";
+import { useCheckQueue } from "@/api/check";
+import { useQuery } from "@tanstack/react-query";
 
 interface DashboardSearch {
   period?: DashboardPeriod | undefined;
@@ -80,13 +83,13 @@ export const Route = createFileRoute("/attention")({
   },
   head: () => ({
     meta: [
-      { title: "Обзор объектов — neeklo FieldOps" },
+      { title: "Обзор объектов — гайка" },
       {
         name: "description",
         content:
           "Что требует решения по всем объектам: незакрытый объём, очередь проверки и просроченные ответы.",
       },
-      { property: "og:title", content: "Обзор объектов — neeklo FieldOps" },
+      { property: "og:title", content: "Обзор объектов — гайка" },
       {
         property: "og:description",
         content: "Что требует решения сегодня по всем объектам.",
@@ -103,10 +106,20 @@ function AttentionPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const period = search.period ?? "week";
   const dash = useDashboard(period);
+  const registryRows = useQuery(queries.projects());
   const [source, setSource] = useState<string | null>(null);
   const { can } = useAccess();
 
   const unverified = dash.metrics.find((metric) => metric.key === "unverified");
+  /*
+   * Строки и ссылки, которые ведут в модули за флагом `legacy_modules`, из «Обзора» уходят
+   * вместе с модулями (ADR-034, п. 4): ссылка, которая перенаправляет на рабочий экран,
+   * человеку не помогает. Число остаётся, дверь исчезает.
+   */
+  const legacy = legacyModulesEnabled();
+  const attentionRows = legacy
+    ? dash.attention
+    : dash.attention.filter((row) => !isLegacyPath(row.to));
   /*
    * Три числа вместо шести (ADR-028, п. 4): незакрытый объём, очередь проверки, просрочено.
    * Каждое показывается, только если роли открыт его источник — «Обзор» не раздел прав,
@@ -114,6 +127,8 @@ function AttentionPage() {
    * в демонстрации говорят «без прироста», то есть занимают место, ничего не сообщая.
    */
   const headline = (["volume", "unverified", "overdue"] as const)
+    // Без флага строки спецификации и ответы поставщиков не считаются (ADR-041)
+    .filter((key) => legacy || key === "volume")
     .map((key) => dash.metrics.find((metric) => metric.key === key))
     .filter((metric): metric is DashboardMetric => !!metric)
     .map((metric) => ({
@@ -122,6 +137,16 @@ function AttentionPage() {
       // Единица уходит в подпись: «97 млн ₽» в ячейку 95 px не помещается, «97,2» помещается
       value: metric.key === "volume" ? heroValue(dash.volume.rub) : metric.value,
     }));
+  /*
+   * Очередь ГАЙКИ — отчёты с площадки на проверке, а не строки спецификации (ADR-041).
+   * Запрос идёт, только если роль решает по отчётам: остальным он вернул бы отказ.
+   */
+  const decidesReports = can("field-reports", "write");
+  const check = useCheckQueue(null, !legacy && decidesReports);
+  const reviewCount = check.queue.length;
+  const missing = dash.progress.length
+    ? (registryRows.data ?? []).reduce((sum, row) => sum + row.overview.missingReports, 0)
+    : 0;
   const screen = useScreenState({
     pending: dash.headPending,
     error: dash.headError,
@@ -134,7 +159,16 @@ function AttentionPage() {
       <PageHeader
         title="Обзор"
         actions={
-          // Главное действие ведёт в проверку позиций: без права на документы его нет
+          !legacy ? (
+            decidesReports ? (
+              <Button variant="accent" asChild>
+                <Link to="/check">
+                  <ClipboardCheck className="size-4" /> К проверке
+                  <span className="tnum font-semibold">{fmtNum(reviewCount)}</span>
+                </Link>
+              </Button>
+            ) : null
+          ) : // Главное действие ведёт в проверку позиций: без права на документы его нет
           can("documents") ? (
             <Button variant="accent" asChild>
               <Link to="/projects" search={{ unverified: true }}>
@@ -180,14 +214,30 @@ function AttentionPage() {
         <MetricStrip
           label="Что требует решения в числах"
           layout="three"
-          items={headline.map((metric) => ({
-            icon: metricIcon[metric.key] ?? Building2,
-            label: metric.label,
-            value: metric.value,
-            delta: metric.delta,
-            to: metric.to,
-            search: metric.search,
-          }))}
+          items={[
+            ...headline.map((metric) => ({
+              icon: metricIcon[metric.key] ?? Building2,
+              label: metric.label,
+              value: metric.value,
+              delta: metric.delta,
+              ...(legacy || !isLegacyPath(String(metric.to ?? ""))
+                ? { to: metric.to, search: metric.search }
+                : {}),
+            })),
+            ...(!legacy && decidesReports
+              ? [
+                  {
+                    icon: ClipboardCheck,
+                    label: "На проверке",
+                    value: fmtNum(reviewCount),
+                    to: "/check",
+                  },
+                ]
+              : []),
+            ...(!legacy
+              ? [{ icon: AlertTriangle, label: "Нет отчёта", value: fmtNum(missing) }]
+              : []),
+          ]}
         />
       )}
 
@@ -227,19 +277,19 @@ function AttentionPage() {
                 level={2}
                 icon={AlertTriangle}
                 title="Требует решения"
-                hint="сначала просроченные ответы"
-                aside={<CountPill>{fmtNum(dash.attention.length)}</CountPill>}
+                hint={legacy ? "сначала просроченные ответы" : "что ждёт вашего ответа"}
+                aside={<CountPill>{fmtNum(attentionRows.length)}</CountPill>}
               />
               <AttentionList
-                rows={dash.attention}
+                rows={attentionRows}
                 pending={dash.listsPending}
                 onSource={setSource}
               />
-              {dash.sources.history && (
+              {legacy && dash.sources.history && (
                 <Link
                   to="/projects"
                   search={{ section: "timeline" }}
-                  className="focus-ring mt-4 inline-flex min-h-11 items-center text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+                  className="focus-ring mt-4 inline-flex min-h-12 items-center text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
                 >
                   Все решения
                 </Link>
@@ -249,7 +299,7 @@ function AttentionPage() {
             <div className="min-w-0 space-y-4 lg:col-span-5">
               {/* Лента событий живёт в «Истории»: роли без права на неё блок не показываем,
                   пустая карточка «почта, Telegram, загрузки» обещала бы несуществующее */}
-              {dash.sources.history && (
+              {legacy && dash.sources.history && (
                 <WidgetCard>
                   <WidgetCardHeader
                     level={2}
@@ -276,7 +326,7 @@ function AttentionPage() {
         </ScreenGate>
       </div>
 
-      {!blocked && dash.insight && (
+      {legacy && !blocked && dash.insight && (
         <InsightBlock
           tone="sand"
           icon={Sparkles}
@@ -293,7 +343,7 @@ function AttentionPage() {
         />
       )}
 
-      {!blocked && can("documents") && (
+      {legacy && !blocked && can("documents") && (
         <MobileActionBar>
           <Button variant="accent" asChild>
             <Link to="/projects" search={{ unverified: true }}>

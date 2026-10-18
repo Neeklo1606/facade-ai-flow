@@ -4,12 +4,12 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Настройки — neeklo FieldOps" },
+      { title: "Настройки — гайка" },
       {
         name: "description",
         content: "Параметры рабочего пространства, уведомлений и отраслевого пакета.",
       },
-      { property: "og:title", content: "Настройки — neeklo FieldOps" },
+      { property: "og:title", content: "Настройки — гайка" },
       {
         property: "og:description",
         content: "Параметры рабочего пространства, уведомлений и отраслевого пакета.",

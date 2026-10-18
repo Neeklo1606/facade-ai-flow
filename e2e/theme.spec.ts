@@ -29,11 +29,11 @@ const luminance = (page: import("@playwright/test").Page, color: string) =>
 test.describe("тема оформления", () => {
   test.use({ persona: "e-sokolov" });
 
-  // Умолчание демонстрации — светлая тема (решение владельца, ADR-030, п. 1).
-  // До 16.10 здесь ожидалась тёмная: поменялось решение, а не проверка под код
-  test("демонстрация открывается светлой", async ({ page }) => {
+  // Умолчание демонстрации — тёмная тема (решение владельца 18.10.2026, ADR-041; до этого
+  // светлая по ADR-030). Поменялось решение, а не проверка под код
+  test("демонстрация открывается тёмной", async ({ page }) => {
     await open(page, "/projects");
-    expect(await theme(page)).toBe("light");
+    expect(await theme(page)).toBe("dark");
   });
 
   test("выбор светлой темы переживает перезагрузку", async ({ page }) => {

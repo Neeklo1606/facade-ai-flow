@@ -4,12 +4,12 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/contracts")({
   head: () => ({
     meta: [
-      { title: "Договоры и обязательства — neeklo FieldOps" },
+      { title: "Договоры и обязательства — гайка" },
       {
         name: "description",
         content: "Двухпанельный вид: текст договора и извлечённые обязательства.",
       },
-      { property: "og:title", content: "Договоры и обязательства — neeklo FieldOps" },
+      { property: "og:title", content: "Договоры и обязательства — гайка" },
       {
         property: "og:description",
         content: "Двухпанельный вид: текст договора и извлечённые обязательства.",

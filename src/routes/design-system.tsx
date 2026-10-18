@@ -22,24 +22,31 @@ import {
   type Column,
 } from "@/components/common";
 import { WidgetGallery } from "@/components/design-system/WidgetGallery";
+import { GaikaGallery } from "@/components/design-system/GaikaGallery";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/design-system")({
   head: () => ({
     meta: [
-      { title: "Дизайн-система EMBER — neeklo FieldOps" },
+      { title: "Дизайн-система — гайка" },
       {
         name: "description",
-        content: "Палитра, типографика, фирменный градиент и глубина слоёв дизайн-системы EMBER.",
+        content: "Палитра, типографика, свет и компоненты дизайн-системы ГАЙКИ, версия 2.",
       },
-      { property: "og:title", content: "Дизайн-система EMBER — neeklo FieldOps" },
-      { property: "og:description", content: "Токены и правила визуального слоя EMBER." },
+      { property: "og:title", content: "Дизайн-система — гайка" },
+      { property: "og:description", content: "Токены и правила визуального слоя ГАЙКИ." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: DesignSystemPage,
 });
+
+/*
+ * Витрины нет ни в демонстрации, ни в рабочем контуре: в собранном приложении модуль маршрута
+ * подменяется заглушкой, и адрес отвечает «Раздел не найден» (vite.config.ts, TASK-A5).
+ * Собрать её намеренно: KEEP_DESIGN_SYSTEM=1 bun run build.
+ */
 
 /* ---------------------------------------------------------------- Данные витрины */
 
@@ -51,71 +58,72 @@ interface Token {
 
 const palette: { title: string; tokens: Token[] }[] = [
   {
-    title: "Глубина",
+    title: "Поверхности",
     tokens: [
-      { name: "--void", value: "#000000", note: "фон окна" },
-      { name: "--base", value: "#0A0A0A", note: "оболочка приложения" },
-      { name: "--surface", value: "#121212", note: "карточки" },
-      { name: "--surface-2", value: "#1A1A1A", note: "вложенные блоки, наведение" },
-      { name: "--surface-3", value: "#242424", note: "поповеры, активные состояния" },
+      { name: "--bg", value: "#0A0908", note: "фон окна, тёплый чёрный" },
+      { name: "--base", value: "#0F0D0C", note: "оболочка приложения" },
+      { name: "--bg-elevated", value: "#131110", note: "карточки" },
+      { name: "--bg-raised", value: "#1B1816", note: "вложенные блоки, наведение" },
+      { name: "--surface-3", value: "#241F1C", note: "поповеры, активные состояния" },
+      { name: "--surface-glass", value: "rgba(255,244,235,.05)", note: "стекло панели и шторки" },
     ],
   },
   {
     title: "Линии",
     tokens: [
-      { name: "--line", value: "rgba(255,255,255,.07)" },
-      { name: "--line-2", value: "rgba(255,255,255,.12)" },
+      { name: "--line", value: "rgba(255,244,235,.08)" },
+      { name: "--line-strong", value: "rgba(255,244,235,.14)" },
       { name: "--line-warm", value: "rgba(217,195,171,.14)" },
     ],
   },
   {
     title: "Текст",
     tokens: [
-      { name: "--text", value: "#F9F9F9", note: "основной" },
-      { name: "--text-2", value: "#A7A7A7", note: "вторичный" },
-      { name: "--text-3", value: "#646464", note: "подписи" },
-      { name: "--text-4", value: "#333333", note: "разделители в тексте" },
-      { name: "--on-orange", value: "#FFFFFF", note: "на оранжевом" },
+      { name: "--text", value: "#F7F3EF", note: "основной, тёплый белый" },
+      { name: "--text-2", value: "#A8A099", note: "вторичный" },
+      { name: "--text-3", value: "#9A918A", note: "подписи; документ давал #6E6761, ниже AA" },
+      { name: "--text-4", value: "#3A342F", note: "разделители в тексте" },
+      { name: "--on-orange", value: "#FFFFFF", note: "на оранжевой заливке" },
     ],
   },
   {
-    title: "Бренд",
+    title: "Свет",
     tokens: [
-      { name: "--orange", value: "#E85002", note: "главное действие, активный пункт" },
-      { name: "--orange-hot", value: "#F16001", note: "наведение" },
-      { name: "--orange-deep", value: "#C10801" },
-      { name: "--orange-dim", value: "rgba(232,80,2,.12)" },
-      { name: "--orange-line", value: "rgba(232,80,2,.28)" },
-      { name: "--sand", value: "#D9C3AB" },
-      { name: "--sand-dim", value: "rgba(217,195,171,.10)" },
+      { name: "--ember", value: "#FF7A45", note: "запись, главное действие" },
+      { name: "--ember-hot", value: "#FF8F63", note: "наведение" },
+      { name: "--ember-deep", value: "#8F1D0B", note: "низ градиента, заливка под белым" },
+      { name: "--ember-soft", value: "rgba(255,122,69,.12)", note: "подложка" },
+      { name: "--sand", value: "#D9C3AB", note: "ИИ думает" },
+      { name: "--sand-soft", value: "rgba(217,195,171,.10)" },
     ],
   },
 ];
 
 const statuses = [
-  { name: "ok", label: "Подтверждено", value: "#4ADE80" },
-  { name: "warn", label: "Внимание", value: "#F5C451" },
-  { name: "danger", label: "Критично", value: "#FF5A6E" },
-  { name: "info", label: "Система и источник", value: "#6BA5FF" },
+  { name: "ok", label: "Подтверждено", value: "#6FCF97" },
+  { name: "warn", label: "Нужно уточнить", value: "#F2B84B" },
+  { name: "danger", label: "Критично", value: "#FF5A5F" },
+  { name: "info", label: "Система и источник", value: "#7AA7E8" },
 ] as const;
 
 const typeScale = [
-  { cls: "text-greeting", spec: "44 / 1.05 / 600 · −0.025em", use: "Приветствие на экране агента" },
-  { cls: "text-page-title", spec: "34 / 1.15 / 600 · −0.025em", use: "Заголовок страницы" },
-  { cls: "text-section-title", spec: "20 / 1.25 / 600 · −0.015em", use: "Заголовок секции" },
-  { cls: "text-card-title", spec: "16 / 1.35 / 600", use: "Заголовок карточки" },
-  { cls: "text-list", spec: "15 / 1.45 / 500", use: "Строка списка" },
-  { cls: "text-body", spec: "14 / 1.5 / 400", use: "Основной текст" },
-  { cls: "text-table", spec: "13 / 1.45 / 400", use: "Таблицы" },
-  { cls: "text-caption", spec: "12 / 1.4 / 400", use: "Подписи, шапки таблиц, группы меню" },
-  { cls: "text-badge", spec: "11 / 1.3 / 500", use: "Бейджи" },
+  { cls: "text-greeting", spec: "40 / 44 / 600 · −0.02em", use: "Приветствие и герой" },
+  { cls: "text-page-title", spec: "32 / 36 → 40 / 44 / 600", use: "Заголовок экрана" },
+  { cls: "text-metric", spec: "48 / 52 / 600 · tnum", use: "Крупная цифра сводки" },
+  { cls: "text-section-title", spec: "24 / 32 / 600", use: "Заголовок секции" },
+  { cls: "text-card-title", spec: "20 / 28 / 600", use: "Заголовок карточки" },
+  { cls: "text-list", spec: "17 / 24 → 15 / 22 / 500", use: "Строка списка" },
+  { cls: "text-body", spec: "17 / 24 → 15 / 22 / 400", use: "Основной текст" },
+  { cls: "text-caption", spec: "14 / 20 / 400", use: "Подписи" },
+  { cls: "text-table", spec: "13 / 18 / 400", use: "Таблицы, самый плотный текст" },
+  { cls: "text-badge", spec: "13 / 18 / 500", use: "Бейджи" },
 ] as const;
 
 const layers = [
-  { token: "--void", label: "Окно", lift: null },
+  { token: "--bg", label: "Окно", lift: null },
   { token: "--base", label: "Оболочка", lift: "--lift-3" },
-  { token: "--surface", label: "Карточка", lift: "--lift-1" },
-  { token: "--surface-2", label: "Вложенный блок", lift: "--lift-1" },
+  { token: "--bg-elevated", label: "Карточка", lift: "--lift-1" },
+  { token: "--bg-raised", label: "Вложенный блок", lift: "--lift-1" },
   { token: "--surface-3", label: "Поповер", lift: "--lift-2" },
 ] as const;
 
@@ -174,9 +182,10 @@ function DesignSystemPage() {
   return (
     <div className="space-y-12 pb-8">
       <PageHeader
-        title="Дизайн-система EMBER"
-        description="Одна тёмная тема: пять уровней глубины, свет вместо теней, оранжевый акцент. Градиент — только для главной метрики и свечения, всегда с зерном."
+        title="Дизайн-система ГАЙКИ"
+        description="Версия 2: тёплая тёмная основа, оранжевый свет как состояние, воздух вместо линий. Один большой градиент и одно светящееся место в кадре. Витрина доступна только в сборке для проверки."
       />
+      <GaikaGallery />
 
       {/* ---------------------------------------------------------- Палитра */}
       <Section
@@ -262,17 +271,17 @@ function DesignSystemPage() {
       {/* ---------------------------------------------------------- Градиент */}
       <Section
         title="Фирменный градиент"
-        caption="--ember — только главная метрика и свечение агента. Без зерна градиент выглядит заливкой, с зерном — материалом."
+        caption="--ember-gradient — герой и одна главная карточка. Без зерна градиент выглядит заливкой, с зерном — материалом."
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <figure className="space-y-2">
             <div className="bg-ember h-48 rounded-[var(--r-lg)]" />
-            <figcaption className="text-caption text-text-3">--ember без зерна</figcaption>
+            <figcaption className="text-caption text-text-3">--ember-gradient без зерна</figcaption>
           </figure>
           <figure className="space-y-2">
             <div className="bg-ember grain h-48 rounded-[var(--r-lg)]" />
             <figcaption className="text-caption text-text-3">
-              --ember + .grain: feTurbulence 0.85, прозрачность 0.04, overlay
+              --ember-gradient + .grain: feTurbulence 0.85, прозрачность 0.04, overlay
             </figcaption>
           </figure>
         </div>
@@ -293,10 +302,10 @@ function DesignSystemPage() {
           <div className="relative overflow-hidden rounded-[var(--r-lg)] bg-surface p-6">
             <div
               aria-hidden
-              className="bg-ember-soft absolute -bottom-24 -left-24 size-72 rounded-full opacity-50 blur-[80px]"
+              className="bg-ember-field absolute -bottom-24 -left-24 size-72 rounded-full opacity-50 blur-[80px]"
             />
             <div className="relative space-y-2">
-              <span className="block text-card-title">--ember-soft</span>
+              <span className="block text-card-title">--ember-field</span>
               <p className="text-[13px] text-text-2">
                 Мягкая версия градиента — фоновое свечение окна: 50vw, blur 180px, прозрачность 0.5,
                 левый нижний угол. Здесь показано в уменьшенном виде.

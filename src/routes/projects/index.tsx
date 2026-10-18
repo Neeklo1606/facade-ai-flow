@@ -58,6 +58,8 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { type Project, type ProjectOverview, type ProjectStatus } from "@/contracts";
 import { useDirectory } from "@/api/directory";
+import { ObjectsList } from "@/components/project/ObjectsList";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { useCreateProject } from "@/api/mutations";
 
 interface ProjectsSearch {
@@ -101,13 +103,12 @@ export const Route = createFileRoute("/projects/")({
   loader: ({ context }) => prefetch(context.queryClient, queries.projects()),
   head: () => ({
     meta: [
-      { title: "Объекты — neeklo FieldOps" },
+      { title: "Объекты — гайка" },
       {
         name: "description",
-        content:
-          "Реестр объектов: где непроверенная спецификация, просроченные ответы и неразобранные изменения.",
+        content: "Объекты: что сделано по захваткам и где не пришёл отчёт с площадки.",
       },
-      { property: "og:title", content: "Объекты — neeklo FieldOps" },
+      { property: "og:title", content: "Объекты — гайка" },
       {
         property: "og:description",
         content: "Реестр объектов: где требуется внимание руководителя.",
@@ -146,7 +147,25 @@ function Count({ value, tone }: { value: number; tone?: "danger" | "warn" | unde
   );
 }
 
+/**
+ * Без флага `legacy_modules` реестр — ГАЙКИ (ADR-041): ход работ и пропущенные отчёты
+ * вместо строк спецификации и ответов поставщиков. Реестр прежнего контура остаётся под флагом.
+ */
 function ProjectsPage() {
+  return legacyModulesEnabled() ? <LegacyProjectsPage /> : <GaikaProjectsPage />;
+}
+
+function GaikaProjectsPage() {
+  const registry = useQuery(queries.projects());
+  return (
+    <>
+      <PageHeader title="Объекты" />
+      {registry.data ? <ObjectsList items={registry.data} /> : <ScreenSkeleton kind="cards" />}
+    </>
+  );
+}
+
+function LegacyProjectsPage() {
   const { employeeName } = useDirectory();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -172,6 +191,7 @@ function ProjectsPage() {
   };
   const filtered = useQuery(queries.projects(filter));
   const allRows = useMemo<Row[]>(() => toRows(registry.data), [registry.data]);
+
   const rows = useMemo<Row[]>(() => toRows(filtered.data), [filtered.data]);
   const regions = [...new Set(allRows.map((row) => row.overview.region))];
   const managers = [...new Set(allRows.map((row) => row.project.manager))];
@@ -477,20 +497,20 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
       <thead>
         <tr className="h-10 bg-subtle text-left">
           <th className="w-[3px] p-0" aria-hidden />
-          <th className="px-3 text-[11px] font-medium text-text-muted">Объект</th>
-          <th className="px-2.5 text-[11px] font-medium text-text-muted">Регион</th>
-          <th className="px-2.5 text-[11px] font-medium text-text-muted">Заказчик</th>
-          <th className="px-2.5 text-[11px] font-medium text-text-muted">Ответственный</th>
+          <th className="px-3 text-[13px] font-medium text-text-muted">Объект</th>
+          <th className="px-2.5 text-[13px] font-medium text-text-muted">Регион</th>
+          <th className="px-2.5 text-[13px] font-medium text-text-muted">Заказчик</th>
+          <th className="px-2.5 text-[13px] font-medium text-text-muted">Ответственный</th>
           {numericHeaders.map((header) => (
             <th
               key={header.label}
               title={header.title}
-              className="px-2 text-right text-[11px] font-medium whitespace-nowrap text-text-muted"
+              className="px-2 text-right text-[13px] font-medium whitespace-nowrap text-text-muted"
             >
               {header.label}
             </th>
           ))}
-          <th className="px-3 text-[11px] font-medium text-text-muted">Статус</th>
+          <th className="px-3 text-[13px] font-medium text-text-muted">Статус</th>
         </tr>
       </thead>
       <tbody>

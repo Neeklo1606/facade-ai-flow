@@ -19,6 +19,7 @@ export const SECTIONS = [
   "analytics",
   "export",
   "access",
+  "office",
 ] as const;
 export type Section = (typeof SECTIONS)[number];
 
@@ -37,6 +38,7 @@ export const sectionLabel: Record<Section, string> = {
   analytics: "Аналитика",
   export: "Выгрузки в Excel",
   access: "Права доступа",
+  office: "Кабинет компании: справочники и подключения",
 };
 
 /** Короткое имя раздела — для экрана «Нет доступа» */
@@ -55,6 +57,7 @@ export const sectionShortLabel: Record<Section, string> = {
   analytics: "Аналитика",
   export: "Выгрузки",
   access: "Права доступа",
+  office: "Кабинет компании",
 };
 
 export type Level = "none" | "read" | "write";
@@ -92,6 +95,8 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     export: READ,
     // Заводит сотрудников, назначает роли и объекты, шлёт приглашения (ADR-021, п. 8)
     access: WRITE,
+    // Кабинет компании: управление данными, которые читает полевое приложение (ADR-039)
+    office: WRITE,
   },
   supply: {
     ...nothing(),
@@ -143,6 +148,7 @@ export const ACCESS: Record<EmployeeRole, Record<Section, Grant>> = {
     analytics: READ,
     export: READ,
     access: READ,
+    office: READ,
   },
   // Персон у этих ролей нет: войти за них в демонстрации нельзя
   finance: { ...nothing(), projects: READ },
@@ -217,6 +223,12 @@ export function sectionOfPath(pathname: string, view?: string): Section | null {
   if (path === "/analytics") return "analytics";
   if (path === "/access") return "access";
   if (path === "/catalogs") return "catalogs";
+  /*
+   * Кабинет компании — отдельная поверхность со своим правом (ADR-039). Справочники в нём
+   * сохраняют своё право (ADR-014): их ведут ПТО и снабжение, у которых кабинета нет.
+   */
+  if (path === "/office/catalogs") return "catalogs";
+  if (path === "/office" || path.startsWith("/office/")) return "office";
   if (path === "/projects") return "projects";
   const inProject = /^\/projects\/[^/]+(?:\/([^/]+))?/.exec(path);
   if (inProject) {

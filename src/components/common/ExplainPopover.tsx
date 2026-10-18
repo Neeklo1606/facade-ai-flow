@@ -35,7 +35,7 @@ export function ExplainPopover({
           className={cn(
             // Палец попадает в 44px, а рисунок остаётся значком 20px: отрицательное поле
             // не даёт кнопке раздвинуть строку подписи
-            "focus-ring -m-3 grid size-11 shrink-0 place-items-center rounded-full text-text-3 transition-fast hover:bg-surface-3 hover:text-text lg:m-0 lg:size-5",
+            "focus-ring -m-3 grid size-12 shrink-0 place-items-center rounded-full text-text-3 transition-fast hover:bg-surface-3 hover:text-text lg:m-0 lg:size-5",
             className,
           )}
         >
@@ -45,7 +45,7 @@ export function ExplainPopover({
       <PopoverContent align="start" className="w-[340px] p-0">
         <div className="border-b border-line px-4 py-3">
           <p className="text-[13px] font-medium text-text">{title}</p>
-          <p className="mt-1.5 rounded-[var(--r-xs)] bg-surface-2 px-2 py-1 text-[12px] leading-[1.45] text-text-2">
+          <p className="mt-1.5 rounded-[var(--r-xs)] bg-surface-2 px-2 py-1 text-[13px] leading-[1.45] text-text-2">
             {formula}
           </p>
         </div>
@@ -59,7 +59,7 @@ export function ExplainPopover({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] text-text">{source.label}</span>
                     {source.hint && (
-                      <span className="block truncate text-[12px] text-text-3">{source.hint}</span>
+                      <span className="block truncate text-[13px] text-text-3">{source.hint}</span>
                     )}
                   </span>
                 </>
@@ -70,7 +70,7 @@ export function ExplainPopover({
                     <button
                       type="button"
                       onClick={() => onOpenSource(source.sourceId!)}
-                      className="focus-ring flex min-h-11 w-full items-start gap-2 px-4 py-2.5 text-left transition-fast is-hover:bg-surface-2"
+                      className="focus-ring flex min-h-12 w-full items-start gap-2 px-4 py-2.5 text-left transition-fast is-hover:bg-surface-2"
                     >
                       {body}
                     </button>

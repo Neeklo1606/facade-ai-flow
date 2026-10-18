@@ -49,7 +49,7 @@ export const Route = createFileRoute("/users")({
   }),
   head: () => ({
     meta: [
-      { title: "Сотрудники и доступ — neeklo FieldOps" },
+      { title: "Сотрудники и доступ — гайка" },
       { name: "description", content: "Кто заведён, с какой ролью и на каких объектах." },
     ],
   }),

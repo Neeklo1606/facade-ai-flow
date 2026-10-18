@@ -33,7 +33,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
-        <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
+        <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
           Тема оформления
         </DropdownMenuLabel>
         <DropdownMenuRadioGroup

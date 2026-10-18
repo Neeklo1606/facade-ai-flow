@@ -34,13 +34,13 @@ export function StatePicker() {
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-60 p-1">
-        <p className="px-3 pt-2 pb-1 text-[11px] font-semibold text-text-muted">Состояние экрана</p>
+        <p className="px-3 pt-2 pb-1 text-[13px] font-semibold text-text-muted">Состояние экрана</p>
         {screenStates.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => pick(item.id)}
-            className="flex min-h-11 w-full items-center gap-2 rounded-[var(--r-sm)] px-3 text-left text-[13px] hover:bg-hover lg:min-h-9"
+            className="flex min-h-12 w-full items-center gap-2 rounded-[var(--r-sm)] px-3 text-left text-[13px] hover:bg-hover lg:min-h-9"
           >
             <span className="flex-1">{item.label}</span>
             {item.id === forced && <Check className="size-4 text-text" />}

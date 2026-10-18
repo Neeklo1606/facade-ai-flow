@@ -105,7 +105,7 @@ export const PositionRow = memo(function PositionRow({
               onAction(item.id, "source");
             }}
             title={`Показать на листе ${item.sheetNumber}`}
-            className="focus-ring ml-auto inline-flex h-11 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[11px] text-info transition-fast hover:bg-info-bg md:h-6"
+            className="focus-ring ml-auto inline-flex h-12 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[11px] text-info transition-fast hover:bg-info-bg md:h-6"
           >
             <FileText className="size-3" strokeWidth={1.75} />
             <span className="tnum">л. {item.sheetNumber}</span>
@@ -190,7 +190,7 @@ export const PositionRow = memo(function PositionRow({
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="h-11 px-2.5 text-[12px] lg:h-7"
+                  className="h-12 px-2.5 text-[12px] lg:h-7"
                   onClick={() => onAction(item.id, "restore")}
                 >
                   <Undo2 className="size-3.5" /> Вернуть
@@ -201,7 +201,7 @@ export const PositionRow = memo(function PositionRow({
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="h-11 px-2.5 text-[12px] lg:h-7"
+                      className="h-12 px-2.5 text-[12px] lg:h-7"
                       onClick={() => onAction(item.id, "confirm")}
                     >
                       <Check className="size-3.5" /> Подтвердить
@@ -210,7 +210,7 @@ export const PositionRow = memo(function PositionRow({
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-11 px-2.5 text-[12px] lg:h-7"
+                    className="h-12 px-2.5 text-[12px] lg:h-7"
                     onClick={() => onAction(item.id, "edit")}
                   >
                     <Pencil className="size-3.5" /> Исправить
@@ -218,7 +218,7 @@ export const PositionRow = memo(function PositionRow({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-11 px-2.5 text-[12px] lg:h-7"
+                    className="h-12 px-2.5 text-[12px] lg:h-7"
                     onClick={() => onAction(item.id, "exclude")}
                   >
                     <Ban className="size-3.5" /> Исключить
@@ -270,7 +270,7 @@ function IconAction({
         <Button
           size="icon"
           variant="ghost"
-          className="size-11 lg:size-7"
+          className="size-12 lg:size-7"
           onClick={onClick}
           aria-label={label}
         >
@@ -374,7 +374,7 @@ function EditForm({
           type="submit"
           size="sm"
           variant="secondary"
-          className="h-11 px-2.5 text-[12px] lg:h-7"
+          className="h-12 px-2.5 text-[12px] lg:h-7"
         >
           <Check className="size-3.5" /> Сохранить и подтвердить
         </Button>
@@ -382,7 +382,7 @@ function EditForm({
           type="button"
           size="sm"
           variant="ghost"
-          className="h-11 px-2.5 text-[12px] lg:h-7"
+          className="h-12 px-2.5 text-[12px] lg:h-7"
           onClick={onCancel}
         >
           Отмена

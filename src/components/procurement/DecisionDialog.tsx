@@ -175,7 +175,7 @@ export function DecisionDialog({
               id="decision-approver"
               value={approvedBy}
               onChange={(e) => setApprover(e.target.value)}
-              className="focus-ring h-11 rounded-[var(--r-sm)] border border-border bg-surface px-3 text-sm lg:h-[38px]"
+              className="focus-ring h-12 rounded-[var(--r-sm)] border border-border bg-surface px-3 text-sm lg:h-[38px]"
             >
               {approvers.map((e) => (
                 <option key={e.id} value={e.id}>

@@ -14,9 +14,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group toast w-[340px] rounded-[var(--r-md)] border border-border bg-[var(--bg-surface)] text-[13px] text-text-primary shadow-[var(--shadow-md)]",
           description: "text-caption text-text-secondary",
           actionButton:
-            "rounded-[var(--r-pill)] bg-ink px-3 py-1 text-[12px] font-medium text-primary-foreground",
+            "rounded-[var(--r-pill)] bg-ink px-3 py-1 text-[13px] font-medium text-primary-foreground",
           cancelButton:
-            "rounded-[var(--r-pill)] bg-subtle px-3 py-1 text-[12px] text-text-secondary",
+            "rounded-[var(--r-pill)] bg-subtle px-3 py-1 text-[13px] text-text-secondary",
         },
       }}
       {...props}

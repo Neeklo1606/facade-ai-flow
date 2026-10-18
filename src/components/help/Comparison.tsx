@@ -41,7 +41,7 @@ export function Comparison() {
         </div>
       ))}
 
-      <p className="border-t border-line pt-3 text-[12px] leading-[1.5] text-text-3">
+      <p className="border-t border-line pt-3 text-[13px] leading-[1.5] text-text-3">
         Сравнение составлено по открытым описаниям этих систем на их сайтах. Где проверить не
         удалось, написано «не проверено» — догадок здесь нет. Цены не сравниваем: они меняются и
         зависят от объёма. Адреса источников и даты обращения — в документе «Показ».

@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { articleForScreen, helpArticles, searchHelp, sortForRole } from "@/lib/help/articles";
+import {
+  articleForScreen,
+  helpArticles,
+  searchHelp,
+  sortForRole,
+  visibleHelpArticles,
+} from "@/lib/help/articles";
 import { screenFor } from "@/lib/guide/screens";
 import { can, sectionOfPath } from "@/domain/access";
 import { createDemoRepositories } from "@/adapters/demo";
@@ -88,11 +94,33 @@ describe("статьи справки", () => {
   });
 
   test("экран находит свою статью", () => {
-    for (const key of ["documents", "deliveries", "field-reports", "materials", "access"]) {
+    for (const key of ["field-reports", "attention"]) {
       expect(articleForScreen(key), key).not.toBeNull();
     }
+    // Права и сотрудники вне канона демо 18.10 (ADR-041): статьи о них ушли вместе с экраном
+    expect(articleForScreen("access")).toBeNull();
     // Экран без своей статьи не получает чужую
     expect(articleForScreen("demo-stats")).toBeNull();
+  });
+
+  /*
+   * Статьи модулей за флагом остаются в наборе и выходят вместе с модулями (ADR-034, п. 4):
+   * справка о разделе, адрес которого перенаправляет, учит несуществующему экрану.
+   * В тестах и в продукте флаг выключен, поэтому здесь видно ровно то, что видит зритель.
+   */
+  test("справка о модулях за флагом не показывается без флага", () => {
+    const visible = visibleHelpArticles().map((article) => article.id);
+    for (const id of ["documents", "procurement", "delivery", "materials"]) {
+      const inCatalog = helpArticles.some((article) => article.id === id);
+      if (!inCatalog) continue;
+      expect(visible, id).not.toContain(id);
+    }
+    for (const id of ["start", "field-reports", "faq"]) {
+      expect(visible, id).toContain(id);
+    }
+    // Статья «Сотрудники и доступ» учит экранам, которые без флага перенаправляют (ADR-041)
+    expect(visible).not.toContain("people");
+    expect(articleForScreen("deliveries")).toBeNull();
   });
 
   test("идентификаторы статей не повторяются: по ним открывается ссылка", () => {
@@ -103,13 +131,13 @@ describe("статьи справки", () => {
 
 describe("поиск по справке", () => {
   test("находит по слову из шага и по ключевому слову, которого нет в тексте", () => {
-    expect(searchHelp("приёмка").map((a) => a.id)).toContain("delivery");
     expect(searchHelp("1С").map((a) => a.id)).toContain("faq");
     expect(searchHelp("телеграм").map((a) => a.id)).toContain("field-reports");
+    expect(searchHelp("смена").map((a) => a.id)).toContain("field-reports");
   });
 
-  test("пустой запрос отдаёт все статьи, бессмысленный — ни одной", () => {
-    expect(searchHelp("  ")).toHaveLength(helpArticles.length);
+  test("пустой запрос отдаёт статьи контура, бессмысленный — ни одной", () => {
+    expect(searchHelp("  ")).toHaveLength(visibleHelpArticles().length);
     expect(searchHelp("квазар")).toHaveLength(0);
   });
 });

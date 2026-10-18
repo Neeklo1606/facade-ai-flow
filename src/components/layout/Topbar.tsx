@@ -96,17 +96,27 @@ export function Topbar() {
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">
+          {/*
+            min-w-0 обязателен: без него заголовок не ужимается рядом с пометкой «Демо»
+            и обрезается на 375 px посреди слова («Сегод»). Нашлось на снимке панели в G2.
+          */}
+          {/*
+            Заголовок экрана на телефоне живёт в контенте (32/36), шапка остаётся строкой
+            «меню, объект, пометка, аватар» (правило 5 этапа D, ADR-041). С 1024 px заголовок
+            снова в шапке рядом с крошками.
+          */}
           <div
-            className="line-clamp-2 text-[18px] leading-tight font-semibold sm:text-section-title lg:truncate lg:text-page-title"
+            className="hidden min-w-0 lg:block lg:truncate lg:text-page-title"
             title={title}
             aria-hidden="true"
           >
             {title}
           </div>
+          <ProjectChip />
           {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
           {dataSource === "demo" && (
             <span
-              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[11px] leading-none font-medium text-text-2"
+              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[13px] leading-none font-medium text-text-2"
               title={DEMO_ONLY_NOTES.mark.text}
             >
               {/* Видимая метка — отдельным элементом: её ищет проверка честности */}
@@ -115,9 +125,6 @@ export function Topbar() {
             </span>
           )}
         </div>
-        {/* Чип объекта: на телефоне своя строка под заголовком — в одну строку пять элементов
-            не помещаются (ADR-027, поправка). Это единственный способ сменить объект с телефона */}
-        <ProjectChip />
         {/* Подпись экрана: страница может заменить путь своей строкой (код, статус объекта) */}
         <div
           id="page-caption"
@@ -157,19 +164,29 @@ export function Topbar() {
           className="header-search focus-ring hidden xl:flex"
         >
           <Search strokeWidth={1.5} />
-          <span className="min-w-0 flex-1 truncate text-left">Поиск по системе</span>
+          {/* Поле ГАЙКИ в шапке — пока только поиск: микрофон приходит в G4 (ADR-034, п. 2) */}
+          <span className="min-w-0 flex-1 truncate text-left">Найти в системе</span>
           <kbd className="kbd">Ctrl K</kbd>
         </button>
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск"
-          className="icon-button focus-ring xl:hidden"
+          className="icon-button focus-ring hidden lg:grid xl:hidden"
         >
           <Search strokeWidth={1.5} />
         </button>
-        <ScreenHelp />
-        <ThemeToggle />
+        {/*
+          На телефоне в шапке остаётся один значок — поиск. Подсказка по экрану живёт
+          в плавающей кнопке проводки, тема — в шторке «Ещё» (раздел 6 продукта): четыре
+          значка по 48 px съедали строку заголовка, и «Входящие» обрезались на 375 px.
+        */}
+        <div className="hidden lg:block">
+          <ScreenHelp />
+        </div>
+        <div className="hidden lg:block">
+          <ThemeToggle />
+        </div>
         {/* Переключатель состояний экрана — инструмент показа с ноутбука (ADR-030, п. 1) */}
         {screenStatesEnabled && (
           <div className="hidden lg:block">
@@ -182,11 +199,28 @@ export function Topbar() {
         */}
         <div id="page-actions" className="hidden items-center gap-2.5 lg:flex" />
         {user && (
-          <span className="avatar hidden sm:grid" title={`${user.name}, ${user.roleLabel}`}>
+          <span className="avatar grid" title={`${user.name}, ${user.roleLabel}`}>
             {initials}
           </span>
         )}
       </div>
     </header>
+  );
+}
+
+/**
+ * Метка «Демо» для других поверхностей (кабинет компании, ADR-039): решение «показывать ли»
+ * живёт здесь, рядом с меткой шапки, — экраны о контуре не знают.
+ */
+export function DemoMark() {
+  if (dataSource !== "demo") return null;
+  return (
+    <span
+      className="inline-flex h-6 items-center rounded-full border border-line px-2 text-[13px] text-text-2"
+      title={DEMO_ONLY_NOTES.mark.text}
+    >
+      <span>Демо</span>
+      <span className="sr-only">. {DEMO_ONLY_NOTES.mark.text}</span>
+    </span>
   );
 }

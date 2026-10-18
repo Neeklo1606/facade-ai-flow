@@ -80,7 +80,7 @@ export const Route = createFileRoute("/projects/$id/procurement/")({
     meta: loaderData
       ? [
           {
-            title: `Поставщики и запросы — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
+            title: `Поставщики и запросы — ${loaderData.project?.name ?? "Объект"} — гайка`,
           },
         ]
       : [],
@@ -317,7 +317,7 @@ function ProcurementPage({ project, overview }: ProjectPageProps): React.JSX.Ele
               {statusFilters.map((f) => (
                 <FilterChip
                   key={f.id}
-                  className="min-h-11 lg:min-h-9"
+                  className="min-h-12 lg:min-h-9"
                   active={(search.status ?? "all") === f.id}
                   onClick={() => setSearch({ status: f.id === "all" ? undefined : f.id })}
                   count={
@@ -822,7 +822,7 @@ function SuppliersView({
                 <button
                   type="button"
                   onClick={() => setOpenId(profile.supplierId)}
-                  className="focus-ring min-h-11 rounded-[var(--r-xs)] text-left text-[15px] font-semibold"
+                  className="focus-ring min-h-12 rounded-[var(--r-xs)] text-left text-[15px] font-semibold"
                 >
                   {supplier?.name}
                 </button>

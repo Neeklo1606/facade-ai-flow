@@ -1,5 +1,6 @@
 import type { EmployeeRole } from "@/contracts";
 import { can, type Section } from "@/domain/access";
+import { isLegacySection, isOutsideCanonPath, legacyModulesEnabled } from "./legacy-modules";
 import {
   Users,
   BookOpen,
@@ -8,6 +9,7 @@ import {
   FileText,
   HardHat,
   History,
+  Inbox,
   AlertTriangle,
   ClipboardCheck,
   LayoutDashboard,
@@ -94,6 +96,23 @@ export const navGroups: NavGroup[] = [
         roles: ["manager", "pto", "director"],
       },
       { key: "projects", label: "Объекты", icon: Building2, access: "projects" },
+      /*
+       * «Входящие» (ADR-034, п. 3): то, что ждёт этого человека — возвраты автору, очередь
+       * проверки и решения. Права раздела те же, что у фактов площадки: экран собирается
+       * из них и из «Обзора», а блок без права просто не показывается.
+       */
+      {
+        key: "inbox",
+        label: "Входящие",
+        icon: Inbox,
+        to: "/inbox",
+        /*
+         * Как и «Обзор», это не раздел прав, а сборка: возвраты и очередь проверки стоят
+         * на фактах площадки, решения — на закупках и истории. Роли видно то, на что у неё
+         * есть право, остальные блоки экран не рисует (ADR-028, ADR-034, п. 3).
+         */
+        anyOf: ["field-reports", "procurement", "timeline"],
+      },
       { key: "agent", label: "Ассистент", icon: Sparkles, to: "/agent", access: "agent" },
     ],
   },
@@ -162,12 +181,25 @@ export const navGroups: NavGroup[] = [
         section: "timeline",
         access: "timeline",
       },
+      /*
+       * Кабинет компании (ADR-039): справочники и подключения переехали туда. Пункт ведёт
+       * в отдельную поверхность; виден тем, у кого есть право на кабинет.
+       */
+      {
+        key: "office",
+        label: "Кабинет компании",
+        icon: BookOpen,
+        to: "/office",
+        access: "office",
+      },
+      // ПТО и снабжение ведут справочники, но кабинета у них нет: дверь сразу в раздел
       {
         key: "catalogs",
         label: "Справочники",
         icon: BookOpen,
-        to: "/catalogs",
+        to: "/office/catalogs",
         access: "catalogs",
+        roles: ["pto", "supply"],
       },
       {
         key: "users",
@@ -191,8 +223,20 @@ export const navGroups: NavGroup[] = [
 
 export const allNavItems = navGroups.flatMap((g) => g.items);
 
-/** Видит ли роль этот пункт меню: по матрице прав (ADR-012) */
+/**
+ * Видит ли роль этот пункт меню: по матрице прав (ADR-012) и по флагу `legacy_modules`
+ * (ADR-034, п. 4). Модули прежнего контура уходят из навигации целиком, независимо от роли:
+ * они не входят в три сценария ГАЙКИ.
+ */
 export function visibleFor(item: NavItem, role: EmployeeRole) {
+  if (isLegacySection(item.section) && !legacyModulesEnabled()) return false;
+  // Вне канона демо: ассистент, сотрудники, права, история решений (ADR-041)
+  if (
+    !legacyModulesEnabled() &&
+    ((item.to && isOutsideCanonPath(item.to)) || item.section === "timeline")
+  ) {
+    return false;
+  }
   if (item.roles && !item.roles.includes(role)) return false;
   if (item.anyOf) return item.anyOf.some((section) => can(role, section));
   return item.access ? can(role, item.access) : true;
@@ -221,6 +265,11 @@ export function navItemsFor(role: EmployeeRole) {
 export function homeRouteFor(role: EmployeeRole) {
   if (role === "foreman") return "/today";
   if (role === "pto") return "/check";
+  /*
+   * Снабжение в каноне демо работает с заявками на материал — они во «Входящих» (ADR-038,
+   * сценарий 3). «Обзор» прежнего контура считал закупки и остаётся за флагом (ADR-041).
+   */
+  if (role === "supply" && !legacyModulesEnabled()) return "/inbox";
   if (can(role, "procurement") || can(role, "documents")) return "/attention";
   return "/projects";
 }
@@ -263,7 +312,8 @@ export function activeNavKey(pathname: string, view: string, pickSection: string
   if (pathname === "/check") return "check";
   if (pathname === "/agent") return "agent";
   if (pathname === "/access") return "access";
-  if (pathname === "/catalogs") return "catalogs";
+  if (pathname === "/catalogs" || pathname === "/office/catalogs") return "catalogs";
+  if (pathname.startsWith("/office")) return "office";
   if (pathname === "/projects" && pickSection) return pickSection;
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);
   if (!match) return pathname.startsWith("/projects") ? "projects" : null;
@@ -302,43 +352,17 @@ const inSection = (name: string) => (pathname: string) =>
   new RegExp(`^/projects/[^/]+/${name}`).test(pathname);
 
 /**
- * Набор позиций панели по роли (ADR-026 и поправка от 05.10.2026): таблица целевой карты.
- * Две слева, «+» в центре, одна справа, «Ещё» последней — «Ещё» и «+» рисует сама панель.
+ * Набор позиций панели (ADR-034, п. 1; раздел 6 GAIKA_PRODUCT_UX). Пять позиций одинаковы
+ * для всех ролей: рабочий экран роли, объект, центральная кнопка записи, входящие, ещё.
+ * Центральную кнопку и «Ещё» рисует сама панель, поэтому здесь три позиции.
  *
- * Первой стоит рабочий экран роли: панель начинается там же, где начинается день.
- * У ПТО вместо «Комплектности» — «Документы» (в модели нет сертификатов и связи работы
- * с документом), вместо «Найти» — «Объекты» до появления единого поиска в N6.
+ * Меняется только первая: прорабу «Сегодня», проверяющему «Проверка», руководителю
+ * и снабжению «Обзор». Подпись равна названию экрана, на который позиция ведёт, иначе
+ * проверяющий нажимал бы «Сегодня» и попадал на «Проверку» (ADR-028).
  *
- * Без выбранного объекта разделы объекта ведут в реестр с просьбой выбрать — тем же
- * механизмом, что сайдбар (`sectionHref`).
+ * Модулей прежнего контура в панели нет: они за флагом `legacy_modules` (ADR-034, п. 4).
  */
 export function bottomNavFor(role: EmployeeRole, projectId: string | null): BottomNavItem[] {
-  const section = (
-    key: string,
-    label: string,
-    icon: LucideIcon,
-    name: ProjectSection,
-    badge?: BadgeKey,
-  ): BottomNavItem => {
-    const href = sectionHref(projectId, name);
-    return {
-      key,
-      label,
-      icon,
-      to: href.to,
-      ...(Object.keys(href.search).length ? { search: href.search as Record<string, string> } : {}),
-      ...(badge ? { badge } : {}),
-      active: (pathname, view, pickSection) =>
-        projectId
-          ? name === "suppliers"
-            ? inSection("procurement")(pathname) && view === "suppliers"
-            : name === "procurement"
-              ? inSection("procurement")(pathname) && view !== "suppliers"
-              : inSection(name)(pathname)
-          : pickSection === name,
-    };
-  };
-
   const attention: BottomNavItem = {
     key: "attention",
     label: "Обзор",
@@ -370,41 +394,30 @@ export function bottomNavFor(role: EmployeeRole, projectId: string | null): Bott
         ? /^\/projects\/[^/]+\/?$/.test(pathname)
         : pathname === "/projects" && !pickSection,
   };
-  // В панели подпись короче, чем в меню: «Документация» не помещается в позицию 11–12 px
-  const documents = section("documents", "Документы", FileText, "documents");
-  const materials = section("materials", "Материалы", Boxes, "materials", "unverifiedSpec");
-  const procurement = section(
-    "procurement",
-    "Закупки",
-    PackageSearch,
-    "procurement",
-    "overdueRequests",
-  );
-  const deliveries = section(
-    "deliveries",
-    "Поставки",
-    PackageCheck,
-    "deliveries",
-    "deliveriesToAccept",
-  );
-  const reports = section("field-reports", "Отчёты", HardHat, "field-reports");
-  const catalogs: BottomNavItem = {
-    key: "catalogs",
-    label: "Справочники",
-    icon: BookOpen,
-    to: "/catalogs",
-    active: (pathname) => pathname === "/catalogs",
+  const inbox: BottomNavItem = {
+    key: "inbox",
+    label: "Входящие",
+    icon: Inbox,
+    to: "/inbox",
+    active: (pathname) => pathname === "/inbox",
   };
 
-  const byRole: Partial<Record<EmployeeRole, BottomNavItem[]>> = {
-    foreman: [today, deliveries, reports],
-    pto: [check, documents, projects],
-    supply: [attention, procurement, projects],
-    manager: [attention, projects, procurement],
-    director: [attention, projects, procurement],
+  /** Рабочий экран роли первой позицией: панель начинается там же, где начинается день */
+  const homes: Record<string, BottomNavItem> = {
+    "/today": today,
+    "/check": check,
+    "/attention": attention,
+    "/inbox": inbox,
   };
-  // Роль вне матрицы (finance, worker) видит только реестр: панель не выдумывает ей разделы
-  const items = byRole[role] ?? [projects];
+  const home = homes[homeRouteFor(role)] ?? projects;
+
+  /*
+   * Роли вне матрицы (worker, finance) работают только с реестром: у них рабочий экран и есть
+   * «Объекты», и вторая такая же позиция была бы кнопкой в ту же дверь.
+   */
+  const items = [home, projects, inbox].filter(
+    (item, index, list) => list.findIndex((other) => other.key === item.key) === index,
+  );
   return items.filter((item) => {
     const nav = allNavItems.find((navItem) => navItem.key === item.key);
     return !nav || visibleFor(nav, role);
@@ -462,7 +475,7 @@ export function plusActionsFor(role: EmployeeRole, projectId: string | null): Pl
     label: "Материал в справочник",
     hint: "Наименование, единица, категория",
     icon: Boxes,
-    to: "/catalogs",
+    to: "/office/catalogs",
     search: { new: "material" },
   };
   const nomenclature: PlusAction = {
@@ -470,7 +483,7 @@ export function plusActionsFor(role: EmployeeRole, projectId: string | null): Pl
     label: "Номенклатура из Excel",
     hint: "Выгрузка из 1С: сопоставление колонок и предпросмотр",
     icon: BookOpen,
-    to: "/catalogs",
+    to: "/office/catalogs",
     search: { new: "import" },
   };
   const newProject: PlusAction = {
@@ -497,5 +510,17 @@ export function plusActionsFor(role: EmployeeRole, projectId: string | null): Pl
     foreman: [report, acceptance],
   };
   // Директор видит всё и не меняет ничего: кнопки без действия у него быть не должно
-  return byRole[role] ?? [];
+  const actions = byRole[role] ?? [];
+  if (legacyModulesEnabled()) return actions;
+  /*
+   * Действия модулей за флагом уходят вместе с модулями (ADR-034, п. 4): шторка не ведёт
+   * на экран, который сейчас перенаправляет на рабочий экран роли.
+   */
+  return actions.filter((action) => !LEGACY_ACTIONS.has(action.key));
 }
+
+/**
+ * Действия шторки, которые живут в модулях прежнего контура. Номенклатуры и материала здесь
+ * нет: они ведут в справочники, а справочники остаются — это контекст объекта для шлюза (G3).
+ */
+const LEGACY_ACTIONS = new Set(["document", "request", "supplier", "acceptance"]);

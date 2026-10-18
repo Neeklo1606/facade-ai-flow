@@ -10,7 +10,8 @@ test.describe("корень ведёт на рабочий экран роли",
     ["e-gareev", "прораб", /\/today$/],
     ["e-volkova", "ПТО", /\/check$/],
     ["e-sokolov", "руководитель", /\/attention$/],
-    ["e-dorohov", "снабжение", /\/attention$/],
+    // Снабжение работает в заявках, а они во «Входящих» (ADR-041)
+    ["e-dorohov", "снабжение", /\/inbox$/],
   ];
   for (const [persona, role, url] of cases) {
     test(`${role} @mobile`, async ({ page, browser }) => {
@@ -56,7 +57,11 @@ test.describe("очередь проверки", () => {
   test("возврат на уточнение тоже отменяется @mobile", async ({ page }) => {
     await open(page, "/check");
     const before = await page.locator("article").count();
-    await page.locator("article").first().getByRole("button", { name: "Вернуть" }).click();
+    await page
+      .locator("article")
+      .first()
+      .getByRole("button", { name: "Вернуть на уточнение" })
+      .click();
     await expect(page.locator("article")).toHaveCount(before - 1);
     await page.getByRole("button", { name: "Отменить" }).click();
     await expect(page.locator("article")).toHaveCount(before);
@@ -72,7 +77,16 @@ test.describe("«Сегодня» показывает факт, а не пла�
     await expect(page.getByRole("heading", { name: "Ожидаются поставки" })).toBeVisible();
     // Плана в данных нет — и слова «план» на экране тоже нет
     await expect(page.locator("main")).not.toContainText(/план/iu);
-    // На телефоне действие закреплено над панелью, на десктопе — в шапке экрана
-    await expect(page.getByRole("link", { name: /Зафиксировать работу/ }).first()).toBeVisible();
+    /*
+     * На телефоне главное действие одно — голосовая капсула панели: закреплённой «Зафиксировать
+     * работу» больше нет (ADR-041). На десктопе панели нет, и действие стоит в шапке экрана.
+     */
+    const phone = (page.viewportSize()?.width ?? 1440) < 1024;
+    if (phone) {
+      await expect(page.getByRole("link", { name: /Зафиксировать работу/ })).toHaveCount(0);
+      await expect(page.locator('[data-tour="nav-plus"]')).toBeVisible();
+    } else {
+      await expect(page.getByRole("link", { name: /Зафиксировать работу/ }).first()).toBeVisible();
+    }
   });
 });

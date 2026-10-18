@@ -57,7 +57,7 @@ export function ProjectsMini({ rows, pending }: { rows: ProjectProgress[]; pendi
               <Link
                 to="/projects/$id"
                 params={{ id: row.projectId }}
-                className="focus-ring flex min-h-11 min-w-0 flex-1 items-center truncate text-[14px] leading-[1.4] font-medium text-text transition-fast is-hover:text-orange-hot lg:min-h-0"
+                className="focus-ring flex min-h-12 min-w-0 flex-1 items-center truncate text-[14px] leading-[1.4] font-medium text-text transition-fast is-hover:text-orange-hot lg:min-h-0"
               >
                 {row.name}
               </Link>
@@ -73,7 +73,7 @@ export function ProjectsMini({ rows, pending }: { rows: ProjectProgress[]; pendi
                 label={`${row.name}: выполнено ${row.donePct}% объёма`}
                 className="flex-1"
               />
-              <span className={cn("tnum shrink-0 text-[12px]", toneText[tone])}>
+              <span className={cn("tnum shrink-0 text-[13px]", toneText[tone])}>
                 {row.deviationPp === null
                   ? "нет срока"
                   : row.deviationPp === 0
@@ -81,7 +81,7 @@ export function ProjectsMini({ rows, pending }: { rows: ProjectProgress[]; pendi
                     : `${row.deviationPp > 0 ? "+" : "−"}${Math.abs(row.deviationPp)} п. п.`}
               </span>
             </div>
-            <p className="mt-1 text-[12px] leading-[1.4] text-text-3">
+            <p className="mt-1 text-[13px] leading-[1.4] text-text-3">
               {row.statusLabel} · осталось {fmtNum(row.qtyLeft)} {row.unit}
             </p>
           </li>

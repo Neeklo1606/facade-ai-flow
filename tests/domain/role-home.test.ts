@@ -14,10 +14,14 @@ describe("корень адреса ведёт на рабочий экран р
     expect(homeRouteFor("pto")).toBe("/check");
   });
 
-  test("руководитель, снабжение и директор начинают со «Внимания»", () => {
+  test("руководитель и директор начинают со «Внимания»", () => {
     expect(homeRouteFor("manager")).toBe("/attention");
-    expect(homeRouteFor("supply")).toBe("/attention");
     expect(homeRouteFor("director")).toBe("/attention");
+  });
+
+  test("снабжение без флага начинает с заявок во «Входящих» (ADR-041)", () => {
+    // Канон демо 18.10: снабжение решает по заявкам на материал, «Обзор» считал закупки
+    expect(homeRouteFor("supply")).toBe("/inbox");
   });
 
   test("роль без закупок и документов открывает реестр, а не пустой экран", () => {

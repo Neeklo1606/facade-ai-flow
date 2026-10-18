@@ -36,7 +36,7 @@ export function HeroMetric({
         </div>
         {secondary && <div className="mt-1 text-[14px] leading-[1.4] text-text-2">{secondary}</div>}
         {note && (
-          <div className="mt-2 max-w-[90ch] text-[12px] leading-[1.5] text-text-3">{note}</div>
+          <div className="mt-2 max-w-[90ch] text-[13px] leading-[1.5] text-text-3">{note}</div>
         )}
       </div>
     </section>

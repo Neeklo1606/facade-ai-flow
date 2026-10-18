@@ -76,4 +76,13 @@ export const keys = {
 };
 
 export type Area =
-  "directory" | "projects" | "documents" | "positions" | "procurement" | "reports" | "timeline";
+  | "directory"
+  | "projects"
+  | "documents"
+  | "positions"
+  | "procurement"
+  | "reports"
+  | "timeline"
+  /** Сводка смены и заявки на материал (ADR-037): приёмка факта меняет и их */
+  | "shift"
+  | "supply";

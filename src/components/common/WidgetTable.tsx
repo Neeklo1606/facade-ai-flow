@@ -41,7 +41,7 @@ export function WidgetTable<T extends { id: string }>({
                 key={column.key}
                 scope="col"
                 className={cn(
-                  "px-4 text-[12px] font-normal whitespace-nowrap text-text-3 first:pl-6 last:pr-6",
+                  "px-4 text-[13px] font-normal whitespace-nowrap text-text-3 first:pl-6 last:pr-6",
                   column.align === "right" && "text-right",
                   column.className,
                 )}
@@ -115,7 +115,7 @@ export function PrimaryCell({
       {avatarName && <InitialsAvatar name={avatarName} />}
       <div className="min-w-0">
         <div className="truncate text-[14px] leading-[1.35] font-medium text-text">{title}</div>
-        {caption && <div className="truncate text-[12px] leading-[1.4] text-text-3">{caption}</div>}
+        {caption && <div className="truncate text-[13px] leading-[1.4] text-text-3">{caption}</div>}
       </div>
     </div>
   );
@@ -134,7 +134,7 @@ export function NumberValue({
   return (
     <span className={cn("whitespace-nowrap tabular-nums", className)}>
       {value}
-      {unit && <span className="ml-1 text-[12px] text-text-3">{unit}</span>}
+      {unit && <span className="ml-1 text-[13px] text-text-3">{unit}</span>}
     </span>
   );
 }

@@ -217,8 +217,10 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
       "acceptDelivery",
       "resolveRemark",
     ]),
-    reports: bridged("reports", ["create", "review"]),
+    reports: bridged("reports", ["create", "review", "capture", "retract"]),
     timeline: bridged("timeline"),
+    processing: bridged("processing", ["record"]),
+    supply: bridged("supply", ["createRequest", "decideRequest", "retractRequest"]),
     catalog: bridged("catalog", [
       "saveMaterial",
       "saveCategory",

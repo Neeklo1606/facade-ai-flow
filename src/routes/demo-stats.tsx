@@ -20,7 +20,7 @@ import {
 export const Route = createFileRoute("/demo-stats")({
   head: () => ({
     meta: [
-      { title: "Статистика сессии — neeklo FieldOps" },
+      { title: "Статистика сессии — гайка" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

@@ -154,8 +154,16 @@ export function AppProvider({
   // Рабочий режим (ADR-012, уточнение п. 4): персона, выбранная во вкладке, главнее — вкладка
   // входит за неё; вкладка без выбора принимает сессию браузера
   useEffect(() => {
-    if (dataSource !== "server") return;
     const tab = hasChosenPersona() ? currentUserId() : null;
+    /*
+     * Демонстрация: персона живёт во вкладке, сервер узнаёт её по куке. Если кука другая
+     * (новая вкладка, истёкшая кука), вкладка входит за свою персону — и только; персону
+     * сессии браузера демонстрация не перенимает (ADR-039, серверные проверки кабинета).
+     */
+    if (dataSource !== "server") {
+      if (tab && tab !== initialPersona && isPersona(tab)) void api.signIn(tab);
+      return;
+    }
     if (tab && tab !== initialPersona && isPersona(tab)) {
       setPersonaSwitching(true);
       void api

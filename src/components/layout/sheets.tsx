@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, HardHat, LogOut } from "lucide-react";
+import { Check, HardHat, LogOut, MessageCircleQuestion, RotateCcw } from "lucide-react";
 import { DEMO_PERSONAS, dataSource } from "@/api/config";
 import { signOutFn } from "@/api/auth-functions";
 import { queries } from "@/api/queries";
@@ -12,6 +12,8 @@ import { useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { bottomNavFor, navItemsFor, plusActionsFor, sectionHref } from "@/lib/navigation";
 import { themeChoices, themeLabels, type ThemeChoice } from "@/lib/theme";
 import { BottomSheet, SheetRow } from "@/components/common/BottomSheet";
+import { DemoReset } from "./DemoReset";
+import { reopenGuide, useGuide } from "@/lib/guide/store";
 import { Button } from "@/components/ui/button";
 import {
   emptyReport,
@@ -41,16 +43,19 @@ export function PlusSheet({
   onOpenChange,
   role,
   projectId,
+  initialChannel = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   role: EmployeeRole;
   projectId: string | null;
+  /** С каким каналом открыта шторка: «Ещё» открывает её сразу ради отчёта (ADR-036) */
+  initialChannel?: string | null;
 }) {
   const navigate = useNavigate();
   const { lastInput, rememberInput } = useApp();
   const { can } = useAccess();
-  const [channel, setChannel] = useState<string | null>(null);
+  const [channel, setChannel] = useState<string | null>(initialChannel);
   const [created, setCreated] = useState<{
     value: ReportFormValue;
     zone: string;
@@ -288,12 +293,12 @@ function ConfirmationCard({
             <dt className="shrink-0 text-[13px] text-text-3">{label}</dt>
             <dd className="min-w-0 text-right">
               <span className="block text-[14px] text-text">{text}</span>
-              <span className="block text-[11px] text-text-3">{source}</span>
+              <span className="block text-[13px] text-text-3">{source}</span>
             </dd>
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-[12px] leading-[1.45] text-text-3">
+      <p className="mt-3 text-[13px] leading-[1.45] text-text-3">
         Отчёт в ленте со статусом «На проверке»: объём принимает руководитель или ПТО.
       </p>
       <div className="mt-4 flex gap-2">
@@ -313,22 +318,31 @@ export function MoreSheet({
   onOpenChange,
   role,
   projectId,
+  onQuickReport,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   role: EmployeeRole;
   projectId: string | null;
+  /** Открыть быструю форму отчёта: шторка ввода ADR-029 живёт здесь с G4 */
+  onQuickReport: () => void;
 }) {
   const navigate = useNavigate();
   const user = useCurrentUser();
   const enterAs = useEnterAs();
+  const guide = useGuide();
   const { personaId, themeChoice, setThemeChoice } = useApp();
   const employees = useQuery(queries.employees()).data ?? [];
   const inPanel = new Set(bottomNavFor(role, projectId).map((item) => item.key));
   const rest = navItemsFor(role).filter((item) => !inPanel.has(item.key));
-  const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id)).filter(
-    (item): item is (typeof employees)[number] => !!item,
-  );
+  /* Действия создания: раньше их открывала центральная кнопка, теперь она ведёт в запись */
+  const allActions = plusActionsFor(role, projectId);
+  const quickReport = allActions.find((action) => action.key === "report") ?? null;
+  const create = allActions.filter((action) => action.key !== "report");
+  // Роли канона показа; директор в коде есть, но в показ не выходит (ADR-038)
+  const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id))
+    .filter((item): item is (typeof employees)[number] => !!item)
+    .filter((item) => item.role !== "director");
 
   const go = (to: string, search: Record<string, string>) => {
     onOpenChange(false);
@@ -343,6 +357,38 @@ export function MoreSheet({
       description="Разделы, которых нет в панели, тема и выход"
     >
       <div className="grid gap-1 pb-2">
+        {/*
+          Создание переехало сюда из центральной кнопки: та стала «Говорить» и ведёт на экран
+          записи (ADR-036). Формы живут на своих экранах, здесь — только двери к ним.
+        */}
+        {quickReport ? (
+          <>
+            <p className="text-text-3 px-3 pb-1 text-[13px] leading-[1.4]">Создать</p>
+            <SheetRow
+              icon={<quickReport.icon className="size-5" strokeWidth={1.75} aria-hidden />}
+              label={quickReport.label}
+              hint={quickReport.hint}
+              onSelect={onQuickReport}
+            />
+          </>
+        ) : null}
+        {create.length > 0 ? (
+          <>
+            {!quickReport ? (
+              <p className="text-text-3 px-3 pb-1 text-[13px] leading-[1.4]">Создать</p>
+            ) : null}
+            {create.map((action) => (
+              <SheetRow
+                key={action.key}
+                icon={<action.icon className="size-5" strokeWidth={1.75} aria-hidden />}
+                label={action.label}
+                hint={action.hint}
+                onSelect={() => go(action.to, (action.search ?? {}) as Record<string, string>)}
+              />
+            ))}
+            <p className="text-text-3 mt-2 px-3 pb-1 text-[13px] leading-[1.4]">Разделы</p>
+          </>
+        ) : null}
         {rest.map((item) => {
           const href = sectionHref(projectId, item.section, item.to);
           return (
@@ -355,8 +401,41 @@ export function MoreSheet({
           );
         })}
 
+        {/* Показ: вернуть полосу шагов и начать заново (ADR-038, ADR-041) */}
+        {dataSource === "demo" && (
+          <div className="mt-2 border-t border-line pt-2">
+            <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Показ</p>
+            {guide.scenarioId && guide.closed ? (
+              <SheetRow
+                icon={<MessageCircleQuestion className="size-5" strokeWidth={1.75} aria-hidden />}
+                label="Подсказки показа"
+                hint="Вернуть полосу шагов под шапкой"
+                onSelect={() => {
+                  reopenGuide();
+                  onOpenChange(false);
+                }}
+              />
+            ) : null}
+            <DemoReset
+              onDone={() => onOpenChange(false)}
+              trigger={
+                <button
+                  type="button"
+                  className="focus-ring flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] px-3 text-left text-[15px] text-text transition-fast hover:bg-surface-2"
+                >
+                  <RotateCcw className="size-5 text-text-2" strokeWidth={1.75} aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block">Сбросить демо-данные</span>
+                    <span className="block text-[13px] text-text-3">Начать показ заново</span>
+                  </span>
+                </button>
+              }
+            />
+          </div>
+        )}
+
         <div className="mt-2 border-t border-line pt-2">
-          <p className="px-3 pb-1 text-[12px] leading-[1.4] text-text-3">Тема оформления</p>
+          <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Тема оформления</p>
           <div className="grid grid-cols-3 gap-1 px-1">
             {themeChoices.map((choice) => (
               <button
@@ -380,7 +459,7 @@ export function MoreSheet({
         {/* Роль в демонстрации меняют здесь же: в рабочем контуре её даёт учётная запись */}
         {dataSource === "demo" && personas.length > 0 && (
           <div className="mt-2 border-t border-line pt-2">
-            <p className="px-3 pb-1 text-[12px] leading-[1.4] text-text-3">Роль в демонстрации</p>
+            <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Роль в демонстрации</p>
             {personas.map((person) => (
               <SheetRow
                 key={person.id}

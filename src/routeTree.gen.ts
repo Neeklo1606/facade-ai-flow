@@ -14,15 +14,19 @@ import { Route as AccessRouteImport } from './routes/access'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AttentionRouteImport } from './routes/attention'
+import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as CheckRouteImport } from './routes/check'
 import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as FinishRouteImport } from './routes/finish'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as OfficeRouteImport } from './routes/office'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RisksRouteImport } from './routes/risks'
 import { Route as ScheduleRouteImport } from './routes/schedule'
@@ -34,8 +38,13 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
+import { Route as OfficeIndexRouteImport } from './routes/office/index'
+import { Route as OfficeCatalogsRouteImport } from './routes/office/catalogs'
+import { Route as OfficeConnectionsRouteImport } from './routes/office/connections'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
+import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
+import { Route as ApiOfficeConnectionsRouteImport } from './routes/api/office/connections'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
 import { Route as ProjectsIdDeliveriesRouteImport } from './routes/projects/$id/deliveries'
 import { Route as ProjectsIdFieldReportsRouteImport } from './routes/projects/$id/field-reports'
@@ -71,6 +80,11 @@ const AttentionRoute = AttentionRouteImport.update({
   path: '/attention',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CaptureRoute = CaptureRouteImport.update({
+  id: '/capture',
+  path: '/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CatalogsRoute = CatalogsRouteImport.update({
   id: '/catalogs',
   path: '/catalogs',
@@ -96,9 +110,19 @@ const DesignSystemRoute = DesignSystemRouteImport.update({
   path: '/design-system',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinishRoute = FinishRouteImport.update({
+  id: '/finish',
+  path: '/finish',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegrationsRoute = IntegrationsRouteImport.update({
@@ -116,6 +140,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/login.lazy').then((d) => d.Route))
+const OfficeRoute = OfficeRouteImport.update({
+  id: '/office',
+  path: '/office',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QualityRoute = QualityRouteImport.update({
   id: '/quality',
   path: '/quality',
@@ -171,6 +200,21 @@ const ApiFeedbackRoute = ApiFeedbackRouteImport.update({
   path: '/api/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OfficeIndexRoute = OfficeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OfficeRoute,
+} as any)
+const OfficeCatalogsRoute = OfficeCatalogsRouteImport.update({
+  id: '/catalogs',
+  path: '/catalogs',
+  getParentRoute: () => OfficeRoute,
+} as any)
+const OfficeConnectionsRoute = OfficeConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => OfficeRoute,
+} as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
@@ -179,6 +223,16 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
 const ApiExportProjectsRoute = ApiExportProjectsRouteImport.update({
   id: '/api/export/projects',
   path: '/api/export/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExportShiftRoute = ApiExportShiftRouteImport.update({
+  id: '/api/export/shift',
+  path: '/api/export/shift',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOfficeConnectionsRoute = ApiOfficeConnectionsRouteImport.update({
+  id: '/api/office/connections',
+  path: '/api/office/connections',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
@@ -237,15 +291,19 @@ export interface FileRoutesByFullPath {
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/attention': typeof AttentionRoute
+  '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
+  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/office': typeof OfficeRouteWithChildren
   '/quality': typeof QualityRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
@@ -257,8 +315,13 @@ export interface FileRoutesByFullPath {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/office/catalogs': typeof OfficeCatalogsRoute
+  '/office/connections': typeof OfficeConnectionsRoute
+  '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
+  '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
@@ -275,12 +338,15 @@ export interface FileRoutesByTo {
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/attention': typeof AttentionRoute
+  '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
+  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -295,8 +361,13 @@ export interface FileRoutesByTo {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/office/catalogs': typeof OfficeCatalogsRoute
+  '/office/connections': typeof OfficeConnectionsRoute
+  '/office': typeof OfficeIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
+  '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
@@ -314,15 +385,19 @@ export interface FileRoutesById {
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
   '/attention': typeof AttentionRoute
+  '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
+  '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/office': typeof OfficeRouteWithChildren
   '/quality': typeof QualityRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
@@ -334,8 +409,13 @@ export interface FileRoutesById {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/office/catalogs': typeof OfficeCatalogsRoute
+  '/office/connections': typeof OfficeConnectionsRoute
+  '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
+  '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
@@ -354,15 +434,19 @@ export interface FileRouteTypes {
     | '/agent'
     | '/analytics'
     | '/attention'
+    | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/finish'
     | '/help'
+    | '/inbox'
     | '/integrations'
     | '/knowledge'
     | '/login'
+    | '/office'
     | '/quality'
     | '/risks'
     | '/schedule'
@@ -374,8 +458,13 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/office/catalogs'
+    | '/office/connections'
+    | '/office/'
     | '/projects/'
     | '/api/export/projects'
+    | '/api/export/shift'
+    | '/api/office/connections'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
@@ -392,12 +481,15 @@ export interface FileRouteTypes {
     | '/agent'
     | '/analytics'
     | '/attention'
+    | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/finish'
     | '/help'
+    | '/inbox'
     | '/integrations'
     | '/knowledge'
     | '/login'
@@ -412,8 +504,13 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/office/catalogs'
+    | '/office/connections'
+    | '/office'
     | '/projects'
     | '/api/export/projects'
+    | '/api/export/shift'
+    | '/api/office/connections'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
@@ -430,15 +527,19 @@ export interface FileRouteTypes {
     | '/agent'
     | '/analytics'
     | '/attention'
+    | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/finish'
     | '/help'
+    | '/inbox'
     | '/integrations'
     | '/knowledge'
     | '/login'
+    | '/office'
     | '/quality'
     | '/risks'
     | '/schedule'
@@ -450,8 +551,13 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/office/catalogs'
+    | '/office/connections'
+    | '/office/'
     | '/projects/'
     | '/api/export/projects'
+    | '/api/export/shift'
+    | '/api/office/connections'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
@@ -469,15 +575,19 @@ export interface RootRouteChildren {
   AgentRoute: typeof AgentRoute
   AnalyticsRoute: typeof AnalyticsRoute
   AttentionRoute: typeof AttentionRoute
+  CaptureRoute: typeof CaptureRoute
   CatalogsRoute: typeof CatalogsRoute
   CheckRoute: typeof CheckRoute
   ContractsRoute: typeof ContractsRoute
   DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
+  FinishRoute: typeof FinishRoute
   HelpRoute: typeof HelpRoute
+  InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LoginRoute: typeof LoginRoute
+  OfficeRoute: typeof OfficeRouteWithChildren
   QualityRoute: typeof QualityRoute
   RisksRoute: typeof RisksRoute
   ScheduleRoute: typeof ScheduleRoute
@@ -491,6 +601,8 @@ export interface RootRouteChildren {
   ApiFeedbackRoute: typeof ApiFeedbackRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
+  ApiExportShiftRoute: typeof ApiExportShiftRoute
+  ApiOfficeConnectionsRoute: typeof ApiOfficeConnectionsRoute
   ProjectsIdDeliveriesRoute: typeof ProjectsIdDeliveriesRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
   ProjectsIdMaterialsRoute: typeof ProjectsIdMaterialsRoute
@@ -539,6 +651,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AttentionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/capture': {
+      id: '/capture'
+      path: '/capture'
+      fullPath: '/capture'
+      preLoaderRoute: typeof CaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/catalogs': {
       id: '/catalogs'
       path: '/catalogs'
@@ -574,11 +693,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DesignSystemRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finish': {
+      id: '/finish'
+      path: '/finish'
+      fullPath: '/finish'
+      preLoaderRoute: typeof FinishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/help': {
       id: '/help'
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/integrations': {
@@ -600,6 +733,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/office': {
+      id: '/office'
+      path: '/office'
+      fullPath: '/office'
+      preLoaderRoute: typeof OfficeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quality': {
@@ -679,6 +819,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFeedbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/office/': {
+      id: '/office/'
+      path: '/'
+      fullPath: '/office/'
+      preLoaderRoute: typeof OfficeIndexRouteImport
+      parentRoute: typeof OfficeRoute
+    }
+    '/office/catalogs': {
+      id: '/office/catalogs'
+      path: '/catalogs'
+      fullPath: '/office/catalogs'
+      preLoaderRoute: typeof OfficeCatalogsRouteImport
+      parentRoute: typeof OfficeRoute
+    }
+    '/office/connections': {
+      id: '/office/connections'
+      path: '/connections'
+      fullPath: '/office/connections'
+      preLoaderRoute: typeof OfficeConnectionsRouteImport
+      parentRoute: typeof OfficeRoute
+    }
     '/projects/': {
       id: '/projects/'
       path: '/projects'
@@ -691,6 +852,20 @@ declare module '@tanstack/react-router' {
       path: '/api/export/projects'
       fullPath: '/api/export/projects'
       preLoaderRoute: typeof ApiExportProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/export/shift': {
+      id: '/api/export/shift'
+      path: '/api/export/shift'
+      fullPath: '/api/export/shift'
+      preLoaderRoute: typeof ApiExportShiftRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/office/connections': {
+      id: '/api/office/connections'
+      path: '/api/office/connections'
+      fullPath: '/api/office/connections'
+      preLoaderRoute: typeof ApiOfficeConnectionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$id/': {
@@ -759,21 +934,40 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OfficeRouteChildren {
+  OfficeCatalogsRoute: typeof OfficeCatalogsRoute
+  OfficeConnectionsRoute: typeof OfficeConnectionsRoute
+  OfficeIndexRoute: typeof OfficeIndexRoute
+}
+
+const OfficeRouteChildren: OfficeRouteChildren = {
+  OfficeCatalogsRoute: OfficeCatalogsRoute,
+  OfficeConnectionsRoute: OfficeConnectionsRoute,
+  OfficeIndexRoute: OfficeIndexRoute,
+}
+
+const OfficeRouteWithChildren =
+  OfficeRoute._addFileChildren(OfficeRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
   AgentRoute: AgentRoute,
   AnalyticsRoute: AnalyticsRoute,
   AttentionRoute: AttentionRoute,
+  CaptureRoute: CaptureRoute,
   CatalogsRoute: CatalogsRoute,
   CheckRoute: CheckRoute,
   ContractsRoute: ContractsRoute,
   DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
+  FinishRoute: FinishRoute,
   HelpRoute: HelpRoute,
+  InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,
   KnowledgeRoute: KnowledgeRoute,
   LoginRoute: LoginRoute,
+  OfficeRoute: OfficeRouteWithChildren,
   QualityRoute: QualityRoute,
   RisksRoute: RisksRoute,
   ScheduleRoute: ScheduleRoute,
@@ -787,6 +981,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFeedbackRoute: ApiFeedbackRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
+  ApiExportShiftRoute: ApiExportShiftRoute,
+  ApiOfficeConnectionsRoute: ApiOfficeConnectionsRoute,
   ProjectsIdDeliveriesRoute: ProjectsIdDeliveriesRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,
   ProjectsIdMaterialsRoute: ProjectsIdMaterialsRoute,
