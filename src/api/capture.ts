@@ -113,6 +113,7 @@ export function useCreateMaterialRequest() {
 export function useDecideMaterialRequest() {
   const client = useQueryClient();
   return useMutation({
+    meta: { action: "decideMaterialRequest" },
     mutationFn: (input: DecideMaterialRequestInput) => api.supply.decide(input),
     onSettled: () => client.invalidateQueries({ queryKey: ["supply"] }),
   });

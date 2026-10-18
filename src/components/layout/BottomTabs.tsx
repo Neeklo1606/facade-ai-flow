@@ -123,7 +123,11 @@ export function BottomTabs() {
               }}
               aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
               data-tour="nav-plus"
-              className="focus-ring press bg-pill text-pill-text glow-ember transition-fast -mt-6 grid size-16 place-items-center rounded-full"
+              className={cn(
+                "focus-ring press bg-pill text-pill-text transition-fast -mt-6 grid size-16 place-items-center rounded-full",
+                // На экране записи светится его собственная капсула: свет в кадре один (правило 2)
+                pathname !== "/capture" && "glow-ember",
+              )}
             >
               <Mic className="size-6" strokeWidth={2} aria-hidden />
             </button>

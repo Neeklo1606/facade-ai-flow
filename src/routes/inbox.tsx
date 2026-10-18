@@ -18,6 +18,7 @@ import { useState } from "react";
 import { useInbox } from "@/api/inbox";
 import { useMaterialRequests, useDecideMaterialRequest } from "@/api/capture";
 import { useAccess } from "@/api/access";
+import { useGuide } from "@/lib/guide/store";
 import {
   materialRequestStatusLabel,
   type MaterialRequest,
@@ -59,7 +60,11 @@ function InboxPage() {
   const inbox = useInbox(projectId);
   /* Заявки считаются вместе с остальным: иначе экран говорил бы «пусто» над очередью заявок */
   const requests = useMaterialRequests(projectId);
-  const requestRows = requests.data ?? [];
+  const guide = useGuide();
+  // Заявка, созданная записью в этой вкладке, стоит первой: снабжение видит именно её (ADR-038)
+  const requestRows = [...(requests.data ?? [])].sort(
+    (a, b) => Number(b.id === guide.chain.requestId) - Number(a.id === guide.chain.requestId),
+  );
   const screen = useScreenState({
     pending: inbox.pending || requests.isPending,
     error: inbox.error || requests.isError,

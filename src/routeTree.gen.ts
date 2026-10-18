@@ -20,6 +20,7 @@ import { Route as CheckRouteImport } from './routes/check'
 import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as FinishRouteImport } from './routes/finish'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
@@ -102,6 +103,11 @@ const DemoStatsRoute = DemoStatsRouteImport.update({
 const DesignSystemRoute = DesignSystemRouteImport.update({
   id: '/design-system',
   path: '/design-system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinishRoute = FinishRouteImport.update({
+  id: '/finish',
+  path: '/finish',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpRoute = HelpRouteImport.update({
@@ -261,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
@@ -302,6 +309,7 @@ export interface FileRoutesByTo {
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/contracts': typeof ContractsRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
@@ -387,6 +396,7 @@ export interface FileRouteTypes {
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/finish'
     | '/help'
     | '/inbox'
     | '/integrations'
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/finish'
     | '/help'
     | '/inbox'
     | '/integrations'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/contracts'
     | '/demo-stats'
     | '/design-system'
+    | '/finish'
     | '/help'
     | '/inbox'
     | '/integrations'
@@ -511,6 +523,7 @@ export interface RootRouteChildren {
   ContractsRoute: typeof ContractsRoute
   DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
+  FinishRoute: typeof FinishRoute
   HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
@@ -618,6 +631,13 @@ declare module '@tanstack/react-router' {
       path: '/design-system'
       fullPath: '/design-system'
       preLoaderRoute: typeof DesignSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finish': {
+      id: '/finish'
+      path: '/finish'
+      fullPath: '/finish'
+      preLoaderRoute: typeof FinishRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help': {
@@ -831,6 +851,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContractsRoute: ContractsRoute,
   DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
+  FinishRoute: FinishRoute,
   HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,

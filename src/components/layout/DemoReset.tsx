@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useResetDemo } from "@/api/mutations";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
-import { resetGuideProgress } from "@/lib/guide/store";
+import { resetGuideProgress, restartShow } from "@/lib/guide/store";
 import { homeRouteFor } from "@/lib/navigation";
 import { useCurrentRole } from "@/lib/project-scope";
 import { toast } from "@/lib/toast";
@@ -23,7 +23,16 @@ import { toast } from "@/lib/toast";
  * шаги показа начинаются заново. Необратимо для этой вкладки, поэтому — диалог, а не тост.
  * Один на продукт: меню, «Ещё» и финал показа зовут этот же компонент.
  */
-export function DemoReset({ trigger, onDone }: { trigger: ReactNode; onDone?: () => void }) {
+export function DemoReset({
+  trigger,
+  onDone,
+  restart = false,
+}: {
+  trigger: ReactNode;
+  onDone?: () => void;
+  /** Пройти показ заново с экрана входа: роль и сценарий выбираются снова */
+  restart?: boolean;
+}) {
   const resetDemo = useResetDemo();
   const { setProjectId } = useApp();
   const role = useCurrentRole();
@@ -44,10 +53,11 @@ export function DemoReset({ trigger, onDone }: { trigger: ReactNode; onDone?: ()
           <AlertDialogAction
             onClick={async () => {
               await resetDemo();
-              resetGuideProgress();
+              if (restart) restartShow();
+              else resetGuideProgress();
               setProjectId(ALL_PROJECTS);
               onDone?.();
-              void navigate({ to: homeRouteFor(role) });
+              void navigate({ to: restart ? "/" : homeRouteFor(role) });
               toast.success("Демо-данные сброшены");
             }}
           >

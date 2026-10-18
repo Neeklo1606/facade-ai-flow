@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_DEMO_ACCESS_KEY?: string;
   /** Публичный адрес для og-тегов, если демонстрация переедет с адреса Lovable */
   readonly VITE_PUBLIC_URL?: string;
+  /** Куда ведёт «Обсудить пилот» на финале показа; пусто — кнопки нет (ADR-038) */
+  readonly VITE_CONTACT_URL?: string;
   /** Переключатель состояний экрана для проверки макетов */
   readonly VITE_SCREEN_STATES?: string;
 }

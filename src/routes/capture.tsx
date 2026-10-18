@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { currentStep, nextStep, setChain, useGuide } from "@/lib/guide/store";
 import { useQuery } from "@tanstack/react-query";
 import {
   Camera,
@@ -59,7 +60,9 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRecorder } from "@/hooks/use-recorder";
 import { CAPTURE_LIMIT_SEC, clock, nearLimit, newCaptureKey, remainingSec } from "@/lib/capture";
 import { fmtDate } from "@/lib/format";
-import { useProjectId } from "@/lib/project-scope";
+import { useCurrentRole, useProjectId } from "@/lib/project-scope";
+import { useEnterAs } from "@/lib/persona";
+import { CANON_PERSONA } from "@/lib/guide/scenarios";
 import { cn } from "@/lib/utils";
 
 /**
@@ -138,6 +141,13 @@ function CapturePage() {
   const scenario = examples.find((example) => example.id === flow.scenario) ?? examples[0] ?? null;
 
   const recorder = useRecorder();
+  const guide = useGuide();
+  const navigate = useNavigate();
+  const enterAs = useEnterAs();
+  const currentRole = useCurrentRole();
+  // Идёт показ, и шаг «Верно» засчитан: экран «Готово» ведёт дальше по сценарию (D1, п. 7)
+  const showGoing =
+    !!guide.scenarioId?.startsWith("canon-") && !guide.closed && !!currentStep(guide);
   const save = useSaveCapture();
   const transcribe = useTranscribe();
   const extract = useExtract();
@@ -403,7 +413,16 @@ function CapturePage() {
               }
             : null,
       })
-      .then((entities) => send({ type: "created", entities, at: Date.now() }))
+      .then((entities) => {
+        // Цепочка показа: отчёт пойдёт в «Проверку» ПТО, заявка — снабжению (ADR-038)
+        const report = entities.find((entity) => entity.kind === "report");
+        const request = entities.find((entity) => entity.kind === "request");
+        setChain({
+          ...(report ? { reportId: report.id } : {}),
+          ...(request ? { requestId: request.id } : {}),
+        });
+        send({ type: "created", entities, at: Date.now() });
+      })
       .catch((error: Error) => send({ type: "failed", message: error.message }));
   };
 
@@ -537,7 +556,8 @@ function CapturePage() {
       {capturing(flow.step) ? (
         <div aria-hidden="true" className="dot-grid pointer-events-none fixed inset-0 -z-0" />
       ) : null}
-      <PageHeader title="Запись" />
+      {/* Экран «Готово» — свой заголовок: «Запись» над ним читалась бы вторым заголовком */}
+      <PageHeader title={flow.step === "done" ? "Готово" : "Запись"} />
 
       <div className="relative flex flex-col gap-6" data-capture-step={flow.step}>
         {/* ---------- Покой ---------- */}
@@ -764,8 +784,7 @@ function CapturePage() {
 
         {/* ---------- Готово ---------- */}
         {flow.step === "done" ? (
-          <section className="flex flex-col gap-4 pt-2">
-            <h2 className="text-page-title">Готово</h2>
+          <section className="flex flex-col gap-4">
             <ul className="flex flex-col gap-2">
               {flow.created.map((entity) => (
                 <li key={entity.id}>
@@ -788,6 +807,23 @@ function CapturePage() {
               {undoLeft > 0 ? (
                 <Button variant="secondary" onClick={onUndo} disabled={retract.isPending}>
                   <Undo2 className="size-4" /> Отменить · <span className="tnum">{undoLeft}</span>
+                </Button>
+              ) : null}
+              {showGoing ? (
+                <Button
+                  variant="accent"
+                  onClick={async () => {
+                    nextStep();
+                    const after = currentStep();
+                    // Следующий шаг глазами другой роли: переключаемся сразу, данные вкладки те же
+                    const persona = after?.role ? CANON_PERSONA[after.role] : undefined;
+                    if (after?.role && persona && after.role !== currentRole) {
+                      await enterAs(persona, after.role);
+                    }
+                    void navigate({ to: after?.to ? after.to(projectId) : "/today" });
+                  }}
+                >
+                  Дальше по сценарию
                 </Button>
               ) : null}
               <Button variant="ghost" onClick={startOver}>

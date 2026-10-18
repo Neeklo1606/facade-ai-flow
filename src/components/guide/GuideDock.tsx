@@ -5,15 +5,22 @@ import { Check, MessageCircleQuestion, Send, X } from "lucide-react";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { queries } from "@/api/queries";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { useProjectId } from "@/lib/project-scope";
 import { useApp } from "@/lib/app-context";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { scenarioById, type GuideStep } from "@/lib/guide/scenarios";
+import { CANON_PERSONA, nextCanon, scenarioById, type GuideStep } from "@/lib/guide/scenarios";
+import { useNavigate } from "@tanstack/react-router";
+import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
+import { useEnterAs } from "@/lib/persona";
+import { useCurrentRole, useProjectId } from "@/lib/project-scope";
 import { screenFor } from "@/lib/guide/screens";
 import {
   closeGuide,
   completeStep,
+  completeThrough,
+  getGuideState,
+  finishScenario,
+  startScenario,
   currentStep,
   nextStep,
   reopenGuide,
@@ -41,24 +48,48 @@ export function GuideDock() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const mobile = useMediaQuery("(max-width: 767px)", false);
 
-  // Шаг засчитывается по факту: открыт нужный экран или выполнено действие
+  const role = useCurrentRole();
+  const roleRef = useRef(role);
+  roleRef.current = role;
+
+  /*
+   * Шаг засчитывается по факту: открыт нужный экран или выполнено действие. В каноне показа
+   * (ADR-038) засчитывается ближайший подходящий шаг глазами своей роли, и показ идёт сам;
+   * в прежних сценариях — только текущий, с «Дальше».
+   */
   useEffect(
     () =>
       onTelemetry((event) => {
-        const active = currentStep();
+        const now = getGuideState();
+        const active = scenarioById(now.scenarioId);
         if (!active) return;
-        if (event.t === "screen" && active.doneOn.screen?.includes(event.screen))
-          completeStep(active.id);
-        if (event.t === "action" && active.doneOn.action?.includes(event.action))
-          completeStep(active.id);
+        const matches = (item: GuideStep) =>
+          (event.t === "screen" && !!item.doneOn.screen?.includes(event.screen)) ||
+          (event.t === "action" && !!item.doneOn.action?.includes(event.action));
+        if (active.id.startsWith("canon-")) {
+          for (let i = now.stepIndex; i < active.steps.length; i++) {
+            const item = active.steps[i]!;
+            if (now.status[item.id]) continue;
+            if (matches(item) && (!item.role || item.role === roleRef.current)) {
+              completeThrough(i);
+              return;
+            }
+          }
+          return;
+        }
+        const current = currentStep();
+        if (current && matches(current)) completeStep(current.id);
       }),
     [],
   );
   // Шаг «откройте экран» стал текущим, а посетитель уже там — засчитываем сразу
   useEffect(() => {
     const active = currentStep();
-    if (active?.doneOn.screen?.includes(currentScreenKey())) completeStep(active.id);
-  }, [guide.scenarioId, guide.stepIndex]);
+    if (!active?.doneOn.screen?.includes(currentScreenKey())) return;
+    if (scenario?.id.startsWith("canon-")) {
+      if (!active.role || active.role === role) completeThrough(guide.stepIndex);
+    } else completeStep(active.id);
+  }, [guide.scenarioId, guide.stepIndex, role, scenario]);
 
   // На телефоне панель начинает свёрнутой: она не должна закрывать экран
   const collapsedDefaultApplied = useRef(false);
@@ -75,7 +106,58 @@ export function GuideDock() {
   useHighlight(highlight ? step?.target : undefined, dockRef, setSide);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const projectId = useProjectId();
+  const enterAs = useEnterAs();
+  const navigate = useNavigate();
+  const projects = useQuery(queries.projects()).data ?? [];
+  const target = projectId ?? projects[0]?.project.id ?? "";
+  const canon = !!scenario && scenario.id.startsWith("canon-");
+  const next = canon && scenario ? nextCanon(scenario.id) : null;
+
+  // Пройденный сценарий канона запоминается: финал показа знает, что пройдено (ADR-038)
+  useEffect(() => {
+    if (finished && canon && scenario) finishScenario(scenario.id);
+  }, [finished, canon, scenario]);
+
   if (chosen !== true || !scenario || guide.closed) return null;
+
+  /** Переключить роль вкладки и открыть экран шага: одно касание, данные вкладки остаются */
+  const switchTo = async (stepRole: EmployeeRole, to: string | null) => {
+    const persona = CANON_PERSONA[stepRole];
+    if (persona && stepRole !== role) await enterAs(persona, stepRole);
+    if (to) void navigate({ to });
+  };
+  const here = currentScreenKey();
+  const needsRole = !!step && !finished && !!step.role && step.role !== role;
+  const elsewhere =
+    !!step && !finished && !stepDone && !!step.to && !!step.on && !step.on.includes(here);
+  const stepHref = step?.to ? step.to(target) : null;
+
+  /* Одна кнопка действия в полосе: что сейчас важнее всего сделать */
+  let action: { label: string; run: () => void } | null = null;
+  if (finished) {
+    action = next
+      ? {
+          label: `Дальше: ${next.title}`,
+          run: () => {
+            startScenario(next.id);
+            const first = next.steps[0];
+            void switchTo(first?.role ?? role, first?.to ? first.to(target) : null);
+          },
+        }
+      : canon
+        ? { label: "Итоги показа", run: () => void navigate({ to: "/finish" }) }
+        : null;
+  } else if (needsRole && step?.role) {
+    action = {
+      label: `Глазами: ${employeeRoleLabel[step.role].toLowerCase()}`,
+      run: () => void switchTo(step.role!, stepHref),
+    };
+  } else if (stepDone) {
+    action = { label: "Далее", run: nextStep };
+  } else if (elsewhere && stepHref) {
+    action = { label: "Перейти", run: () => void navigate({ to: stepHref }) };
+  }
 
   return (
     <div
@@ -84,7 +166,7 @@ export function GuideDock() {
        * Полоса шагов под шапкой (правило 7 этапа D, ADR-041): не плавает поверх, не закрывает
        * кнопки. Живёт между шапкой и содержимым, поэтому контент под ней не уходит.
        */
-      className="flex min-h-12 shrink-0 items-center gap-2 border-b border-line bg-base px-[var(--content-pad)]"
+      className="mb-4 flex min-h-12 shrink-0 items-center gap-2 border-b border-line bg-base px-[var(--content-pad)]"
     >
       <section
         aria-label="Подсказки по сценарию"
@@ -112,13 +194,13 @@ export function GuideDock() {
             ) : null}
           </span>
         </button>
-        {!finished && step ? (
+        {action ? (
           <button
             type="button"
-            onClick={stepDone ? nextStep : skipStep}
-            className="focus-ring min-h-12 shrink-0 rounded-full bg-surface-2 px-4 text-[13px] font-medium text-text"
+            onClick={action.run}
+            className="focus-ring min-h-12 max-w-[50%] shrink-0 truncate rounded-full bg-pill px-4 text-[13px] font-medium text-pill-text"
           >
-            {stepDone ? "Далее" : "Пропустить"}
+            {action.label}
           </button>
         ) : null}
         <button

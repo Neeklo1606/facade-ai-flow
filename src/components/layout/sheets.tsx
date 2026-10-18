@@ -339,9 +339,10 @@ export function MoreSheet({
   const allActions = plusActionsFor(role, projectId);
   const quickReport = allActions.find((action) => action.key === "report") ?? null;
   const create = allActions.filter((action) => action.key !== "report");
-  const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id)).filter(
-    (item): item is (typeof employees)[number] => !!item,
-  );
+  // Роли канона показа; директор в коде есть, но в показ не выходит (ADR-038)
+  const personas = DEMO_PERSONAS.map((id) => employees.find((item) => item.id === id))
+    .filter((item): item is (typeof employees)[number] => !!item)
+    .filter((item) => item.role !== "director");
 
   const go = (to: string, search: Record<string, string>) => {
     onOpenChange(false);

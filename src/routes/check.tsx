@@ -25,6 +25,8 @@ import { sourceKindLabel } from "@/contracts";
 import { fmtDate, fmtNum, metaLine, plural, shortName } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
+import { useGuide } from "@/lib/guide/store";
+import { recordAction } from "@/lib/guide/telemetry";
 import { saveShiftFile, useShift } from "@/api/capture";
 import { useNow } from "@/api/clock";
 import { useProjectId } from "@/lib/project-scope";
@@ -65,6 +67,7 @@ function CheckPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const projectId = useProjectId();
   const data = useCheckQueue(projectId);
+  const guide = useGuide();
   const { can } = useAccess();
   const queueProject = data.queue[0]?.card.report.projectId ?? null;
   const [lastProject, setLastProject] = useState<string | null>(null);
@@ -141,7 +144,7 @@ function CheckPage() {
         {tab === "positions" && legacyModulesEnabled() ? (
           <PositionsTab rows={data.positions} />
         ) : (
-          <FactsTab rows={data.queue} />
+          <FactsTab rows={chainFirst(data.queue, guide.chain.reportId)} />
         )}
       </ScreenGate>
     </>
@@ -412,22 +415,40 @@ function StatementButton({ projectId }: { projectId: string }) {
   const [saving, setSaving] = useState(false);
   const rows = shift.data?.rows.length ?? 0;
 
+  const save = (kind: "shift" | "statement") => {
+    setSaving(true);
+    void saveShiftFile({ projectId, date: shift.data?.date ?? date }, kind)
+      .then(() => recordAction(kind === "statement" ? "downloadStatement" : "downloadShift"))
+      .catch((error: Error) => toast.error("Документ не собрался", { description: error.message }))
+      .finally(() => setSaving(false));
+  };
+
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
-      <Button
-        variant="secondary"
-        disabled={saving || rows === 0}
-        onClick={() => {
-          setSaving(true);
-          void saveShiftFile({ projectId, date: shift.data?.date ?? date }, "statement")
-            .catch((error: Error) =>
-              toast.error("Документ не собрался", { description: error.message }),
-            )
-            .finally(() => setSaving(false));
-        }}
-      >
-        <FileSpreadsheet className="size-4" /> Скачать черновик ведомости
-      </Button>
+    /* Файлы смены — тихой строкой: главное на экране — карточка проверки (правило 1) */
+    <div className="mb-6 flex flex-col gap-2">
+      <span data-marker="" className="text-marker">
+        Файлы смены
+      </span>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label="Скачать сводку смены"
+          disabled={saving || rows === 0}
+          onClick={() => save("shift")}
+        >
+          <FileSpreadsheet className="size-4" /> Сводка
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label="Скачать черновик ведомости"
+          disabled={saving || rows === 0}
+          onClick={() => save("statement")}
+        >
+          <FileSpreadsheet className="size-4" /> Ведомость
+        </Button>
+      </div>
       <span className="text-caption text-text-3">
         {rows > 0
           ? `В документ ${plural(rows, "войдёт", "войдут", "войдут")} ${fmtNum(rows)} ${plural(rows, "принятая запись", "принятые записи", "принятых записей")} за ${fmtDate(shift.data?.date ?? date)}`
@@ -448,4 +469,17 @@ function sourceMarker(source: {
 }) {
   if (source.captureKey) return source.location === "текст" ? "Текст" : "Голосовое";
   return source.kind === "telegram" ? "С площадки" : sourceKindLabel[source.kind];
+}
+
+/**
+ * Цепочка показа (ADR-038): отчёт, созданный записью в этой вкладке, стоит в очереди первым —
+ * ПТО в сценарии 2 видит именно его. Остальной порядок не меняется.
+ */
+function chainFirst<T extends { card: { report: { id: string } } }>(
+  rows: T[],
+  id: string | undefined,
+) {
+  if (!id) return rows;
+  const index = rows.findIndex((row) => row.card.report.id === id);
+  return index <= 0 ? rows : [rows[index]!, ...rows.slice(0, index), ...rows.slice(index + 1)];
 }

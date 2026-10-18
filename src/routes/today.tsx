@@ -23,6 +23,7 @@ import { fmtDate, metaLine, shortName, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { AmbientField } from "@/components/gaika";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
+import { recordAction } from "@/lib/guide/telemetry";
 import { saveShiftFile, useShift } from "@/api/capture";
 import { toast } from "@/lib/toast";
 import { useProjectId } from "@/lib/project-scope";
@@ -311,6 +312,7 @@ function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
   const download = () => {
     setSaving(true);
     void saveShiftFile({ projectId, date: summary?.date ?? date }, "shift")
+      .then(() => recordAction("downloadShift"))
       .catch((error: Error) => toast.error("Файл не собрался", { description: error.message }))
       .finally(() => setSaving(false));
   };
