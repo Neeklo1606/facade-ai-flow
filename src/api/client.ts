@@ -101,8 +101,12 @@ export const api = {
   session: (): Promise<AccessSession | null> =>
     server ? (fn.sessionFn() as Promise<AccessSession | null>) : demoSession(),
   /** Вход за персону демонстрации: на сервере — подписанная cookie, в демо — персона вкладки */
+  /*
+   * Подписанная кука персоны выдаётся в обоих контурах: в демонстрации данные живут во вкладке,
+   * но серверные проверки (кабинет компании, ADR-039) должны знать роль, а не угадывать её.
+   */
   signIn: async (personaId: (typeof DEMO_PERSONAS)[number]) => {
-    if (server) await fn.signInFn({ data: { personaId } });
+    await fn.signInFn({ data: { personaId } });
   },
   clock: {
     now: () => (server ? fn.nowFn() : local().then((r) => r.clock.now())),

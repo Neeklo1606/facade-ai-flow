@@ -38,7 +38,6 @@ export const isLegacySection = (section: string | null | undefined) =>
 export const RETIRED_PATHS = [
   "/analytics",
   "/contracts",
-  "/integrations",
   "/knowledge",
   "/quality",
   "/schedule",

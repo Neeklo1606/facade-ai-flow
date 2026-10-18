@@ -16,6 +16,7 @@ export * from "./agent";
 export * from "./ai";
 export * from "./supply";
 export * from "./catalog";
+export * from "./channels";
 export * from "./clock";
 export * from "./common";
 export * from "./directory";

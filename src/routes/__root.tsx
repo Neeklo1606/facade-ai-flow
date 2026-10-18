@@ -20,6 +20,7 @@ import { LegacyBoundary } from "@/components/access/LegacyBoundary";
 import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { OfficeLayout } from "@/components/layout/OfficeLayout";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { prefetch } from "@/api/prefetch";
@@ -185,16 +186,25 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AppProvider initialPersona={sessionActorId}>
         <TooltipProvider delayDuration={200}>
-          <AppLayout>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            {/* Раздел, закрытый роли, открывается экраном «Нет доступа» (ADR-012) */}
-            {/* Модули прежнего контура за флагом legacy_modules (ADR-034) */}
-            <LegacyBoundary>
+          {pathname.startsWith("/office") ? (
+            /* Кабинет компании — отдельная поверхность со своим макетом (ADR-039) */
+            <OfficeLayout>
               <AccessBoundary>
                 <Outlet />
               </AccessBoundary>
-            </LegacyBoundary>
-          </AppLayout>
+            </OfficeLayout>
+          ) : (
+            <AppLayout>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              {/* Раздел, закрытый роли, открывается экраном «Нет доступа» (ADR-012) */}
+              {/* Модули прежнего контура за флагом legacy_modules (ADR-034) */}
+              <LegacyBoundary>
+                <AccessBoundary>
+                  <Outlet />
+                </AccessBoundary>
+              </LegacyBoundary>
+            </AppLayout>
+          )}
           {/* Выбор роли при первом входе (ADR-010); полоса шагов живёт в оболочке (ADR-041) */}
           <RolePicker />
           {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}

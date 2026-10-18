@@ -27,6 +27,7 @@ export * from "./procurement";
 export * from "./field";
 export * from "./timeline";
 export * from "./ai";
+export * from "./connections";
 export { idSchema, timestampSchema, sqlName } from "./db";
 export type { TableDef, ColumnMeta, IndexMeta, EnumMeta } from "./db";
 

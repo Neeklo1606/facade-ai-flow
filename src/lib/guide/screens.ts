@@ -172,6 +172,22 @@ const screens = {
       "Задайте вопрос или выберите подсказку; по ссылке в ответе откроется раздел.",
     ],
   },
+  office: {
+    name: "Кабинет компании",
+    help: [
+      "Отдельная поверхность для данных, которые читает полевое приложение: справочники и подключения.",
+      "Отвечает на вопрос, что настроено в компании и что включено на сервере.",
+      "Откройте раздел; разделы, которых ещё нет, здесь не обещаются.",
+    ],
+  },
+  connections: {
+    name: "Подключения",
+    help: [
+      "Модель разбора, распознавание речи, Telegram и вход по телефону: состояние из конфигурации сервера.",
+      "Отвечает на вопрос, что включено сейчас и чем подключение включается.",
+      "Ключи хранятся в переменных окружения и на экране не показываются никогда.",
+    ],
+  },
   catalogs: {
     name: "Справочники",
     help: [
@@ -250,7 +266,9 @@ export function screenFor(
   if (path === "/projects") return info("projects");
   if (path === "/agent") return info("agent");
   if (path === "/access") return info("access");
-  if (path === "/catalogs") return info("catalogs");
+  if (path === "/catalogs" || path === "/office/catalogs") return info("catalogs");
+  if (path === "/office") return info("office");
+  if (path === "/office/connections") return info("connections");
   if (path === "/help") return info("help");
   if (path === "/demo-stats") return info("demo-stats");
 

@@ -39,6 +39,8 @@ const TABLE: Record<Section, [Cell, Cell, Cell, Cell, Cell]> = {
   export: ["R", "—", "—", "—", "R"],
   // ADR-021: руководитель заводит сотрудников и шлёт приглашения
   access: ["W", "—", "—", "—", "R"],
+  // ADR-039: кабинет компании — руководитель и директор
+  office: ["W", "—", "—", "—", "R"],
 };
 const ROLES: EmployeeRole[] = ["manager", "supply", "pto", "foreman", "director"];
 
@@ -135,6 +137,9 @@ describe("sectionOfPath и projectOfPath", () => {
     ["/analytics/", undefined, "analytics"],
     ["/access", undefined, "access"],
     ["/catalogs", undefined, "catalogs"],
+    ["/office", undefined, "office"],
+    ["/office/catalogs", undefined, "catalogs"],
+    ["/office/connections", undefined, "office"],
     ["/projects", undefined, "projects"],
     ["/projects/p-korona", undefined, "projects"],
     ["/projects/p-korona/documents/pd-1", undefined, "documents"],

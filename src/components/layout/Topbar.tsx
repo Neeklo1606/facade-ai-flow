@@ -207,3 +207,20 @@ export function Topbar() {
     </header>
   );
 }
+
+/**
+ * Метка «Демо» для других поверхностей (кабинет компании, ADR-039): решение «показывать ли»
+ * живёт здесь, рядом с меткой шапки, — экраны о контуре не знают.
+ */
+export function DemoMark() {
+  if (dataSource !== "demo") return null;
+  return (
+    <span
+      className="inline-flex h-6 items-center rounded-full border border-line px-2 text-[13px] text-text-2"
+      title={DEMO_ONLY_NOTES.mark.text}
+    >
+      <span>Демо</span>
+      <span className="sr-only">. {DEMO_ONLY_NOTES.mark.text}</span>
+    </span>
+  );
+}

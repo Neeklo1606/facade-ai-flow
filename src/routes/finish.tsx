@@ -5,7 +5,7 @@ import { Check, Download, MessageCircle, RotateCcw } from "lucide-react";
 import { AmbientField, Marker } from "@/components/gaika";
 import { Button } from "@/components/ui/button";
 import { DemoReset } from "@/components/layout/DemoReset";
-import { contactUrl, dataSource } from "@/api/config";
+import { contactUrl, demoShow } from "@/api/config";
 import { queries } from "@/api/queries";
 import { saveShiftFile, useMaterialRequests } from "@/api/capture";
 import { useNow } from "@/api/clock";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/finish")({
 });
 
 function FinishPage() {
-  if (dataSource !== "demo") return <Navigate to="/" replace />;
+  if (!demoShow) return <Navigate to="/" replace />;
   return <Finish />;
 }
 

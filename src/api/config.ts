@@ -12,6 +12,9 @@ export const dataSource: DataSource =
 /** Сотрудник, от имени которого выполняются действия до появления сессии (P4-2) */
 export const DEFAULT_USER_ID = "e-sokolov";
 
+/** Показ демонстрации существует только в демо-контуре: финал и шаги показа (ADR-038) */
+export const demoShow = dataSource === "demo";
+
 /** Ссылка «Обсудить пилот» на финале показа; пустая строка — кнопки нет (ADR-038) */
 export const contactUrl = (import.meta.env["VITE_CONTACT_URL"] ?? "").trim();
 

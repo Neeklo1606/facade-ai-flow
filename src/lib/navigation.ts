@@ -181,12 +181,25 @@ export const navGroups: NavGroup[] = [
         section: "timeline",
         access: "timeline",
       },
+      /*
+       * Кабинет компании (ADR-039): справочники и подключения переехали туда. Пункт ведёт
+       * в отдельную поверхность; виден тем, у кого есть право на кабинет.
+       */
+      {
+        key: "office",
+        label: "Кабинет компании",
+        icon: BookOpen,
+        to: "/office",
+        access: "office",
+      },
+      // ПТО и снабжение ведут справочники, но кабинета у них нет: дверь сразу в раздел
       {
         key: "catalogs",
         label: "Справочники",
         icon: BookOpen,
-        to: "/catalogs",
+        to: "/office/catalogs",
         access: "catalogs",
+        roles: ["pto", "supply"],
       },
       {
         key: "users",
@@ -299,7 +312,8 @@ export function activeNavKey(pathname: string, view: string, pickSection: string
   if (pathname === "/check") return "check";
   if (pathname === "/agent") return "agent";
   if (pathname === "/access") return "access";
-  if (pathname === "/catalogs") return "catalogs";
+  if (pathname === "/catalogs" || pathname === "/office/catalogs") return "catalogs";
+  if (pathname.startsWith("/office")) return "office";
   if (pathname === "/projects" && pickSection) return pickSection;
   const match = pathname.match(/^\/projects\/[^/]+(?:\/([^/?]+))?/);
   if (!match) return pathname.startsWith("/projects") ? "projects" : null;
@@ -461,7 +475,7 @@ export function plusActionsFor(role: EmployeeRole, projectId: string | null): Pl
     label: "Материал в справочник",
     hint: "Наименование, единица, категория",
     icon: Boxes,
-    to: "/catalogs",
+    to: "/office/catalogs",
     search: { new: "material" },
   };
   const nomenclature: PlusAction = {
@@ -469,7 +483,7 @@ export function plusActionsFor(role: EmployeeRole, projectId: string | null): Pl
     label: "Номенклатура из Excel",
     hint: "Выгрузка из 1С: сопоставление колонок и предпросмотр",
     icon: BookOpen,
-    to: "/catalogs",
+    to: "/office/catalogs",
     search: { new: "import" },
   };
   const newProject: PlusAction = {
