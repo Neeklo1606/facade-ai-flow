@@ -307,7 +307,7 @@ function SourceOriginal({ sourceId }: { sourceId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone="info">{sourceKindLabel[card.source.kind]}</StatusBadge>
-        <span className="text-[12px] text-text-3">
+        <span className="text-[13px] text-text-3">
           {card.source.author} · {fmtDateTime(card.source.receivedAt)}
         </span>
       </div>

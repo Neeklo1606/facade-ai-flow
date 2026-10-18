@@ -1,10 +1,22 @@
 import { expect, expectA11y, open, test } from "./fixtures";
 
 /**
- * Шторка ввода «+» (ADR-029). Проверяется то, ради чего задача делалась: прораб записывает
+ * Быстрая форма отчёта (ADR-029). Проверяется то, ради чего задача делалась: прораб записывает
  * смену, не уходя с экрана, подставленное помечено источником, а карточка подтверждения
  * говорит, откуда взялось каждое значение.
+ *
+ * С G4 вход другой: центральная кнопка панели стала «Говорить» и ведёт на экран записи,
+ * а быстрая форма открывается из «Ещё» (ADR-036). Поведение самой формы не менялось.
  */
+
+/**
+ * Быстрая форма отчёта (ADR-029) с G4 живёт в шторке «Ещё»: центральная кнопка панели стала
+ * «Говорить» и ведёт на экран записи (ADR-036).
+ */
+async function openQuickReport(page: import("@playwright/test").Page) {
+  await page.getByRole("button", { name: /Ещё/ }).click();
+  await page.getByRole("button", { name: /Отчёт с площадки/ }).click();
+}
 
 test.describe("шторка ввода", () => {
   // Панель и «+» живут до 1024 px (ADR-026)
@@ -15,7 +27,7 @@ test.describe("шторка ввода", () => {
 
     test("факт записывается в самой шторке @mobile", async ({ page }) => {
       await open(page, "/today");
-      await page.locator('[data-tour="nav-plus"]').click();
+      await openQuickReport(page);
       const sheet = page.getByRole("dialog");
       await expect(sheet).toBeVisible();
       // Канал роли открыт сразу: форма, а не список
@@ -52,7 +64,7 @@ test.describe("шторка ввода", () => {
 
     test("исправленная дата не выдаётся за часы объекта @mobile", async ({ page }) => {
       await open(page, "/today");
-      await page.locator('[data-tour="nav-plus"]').click();
+      await openQuickReport(page);
       const sheet = page.getByRole("dialog");
       await sheet.getByLabel("Вид работ").fill("Монтаж отливов");
       await sheet.getByLabel("Объём за смену").fill("18");
@@ -71,13 +83,11 @@ test.describe("шторка ввода", () => {
   test.describe("руководитель", () => {
     test.use({ persona: "e-sokolov" });
 
-    test("объект спрашивается после выбора канала @mobile", async ({ page }) => {
+    test("объект спрашивается до формы @mobile", async ({ page }) => {
       await open(page, "/attention");
-      await page.locator('[data-tour="nav-plus"]').click();
+      await openQuickReport(page);
       const sheet = page.getByRole("dialog");
-      // Сначала каналы: объект не спрашивают, пока не сказано, что записывают
-      await expect(sheet.getByRole("heading", { name: "Создать" })).toBeVisible();
-      await sheet.getByText("Отчёт с площадки").click();
+      // Объект не выбран в шапке: форма просит его первым шагом, а не подставляет молча
       await expect(sheet.getByRole("heading", { name: "На каком объекте" })).toBeVisible();
       await sheet.getByText("ТЦ «Галактика»").click();
       await expect(sheet.getByRole("heading", { name: "Зафиксировать работу" })).toBeVisible();
@@ -87,18 +97,18 @@ test.describe("шторка ввода", () => {
   test.describe("снабжение", () => {
     test.use({ persona: "e-dorohov" });
 
-    test("первым стоит канал роли, неработающих нет @mobile", async ({ page }) => {
+    test("создание роли живёт в «Ещё», неработающих каналов там нет @mobile", async ({ page }) => {
       await open(page, "/attention");
-      await page.locator('[data-tour="nav-plus"]').click();
+      await page.getByRole("button", { name: /Ещё/ }).click();
       const sheet = page.getByRole("dialog");
-      await expect(sheet.getByRole("heading", { name: "Создать" })).toBeVisible();
-      const rows = await sheet.getByRole("button").allInnerTexts();
-      // Первым стоит канал роли: снабжение заводит запрос
-      expect(rows.filter(Boolean)[0]).toContain("Запрос поставщикам");
+      await expect(sheet.getByText("Создать")).toBeVisible();
+      const rows = (await sheet.getByRole("button").allInnerTexts()).filter(Boolean);
+      // Первым в создании стоит действие роли: снабжение заводит запрос
+      expect(rows[0]).toContain("Запрос поставщикам");
       const text = rows.join(" ").toLowerCase();
-      // Голоса и бота в продукте нет — в шторке их тоже быть не должно
-      expect(text).not.toContain("голос");
+      // Бота в продукте нет; голос теперь есть, но он живёт кнопкой «Говорить», а не строкой
       expect(text).not.toContain("telegram");
+      expect(text).not.toContain("голосов");
     });
   });
 });

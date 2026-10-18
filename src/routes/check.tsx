@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ClipboardCheck, FileSearch, Image, Undo2 } from "lucide-react";
+import { Check, ClipboardCheck, FileSearch, FileSpreadsheet, Image, Undo2 } from "lucide-react";
 import {
   CountPill,
   EmptyState,
@@ -22,8 +22,13 @@ import { prefetch } from "@/api/prefetch";
 import { useAccess } from "@/api/access";
 import type { ReportCard } from "@/api/types";
 import { sourceKindLabel } from "@/contracts";
-import { fmtNum, plural } from "@/lib/format";
+import { fmtDate, fmtNum, metaLine, plural, shortName } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
+import { useGuide } from "@/lib/guide/store";
+import { recordAction } from "@/lib/guide/telemetry";
+import { saveShiftFile, useShift } from "@/api/capture";
+import { useNow } from "@/api/clock";
 import { useProjectId } from "@/lib/project-scope";
 import { useSwipe } from "@/hooks/use-swipe";
 import { toast, toastRetry, toastUndo } from "@/lib/toast";
@@ -47,7 +52,7 @@ export const Route = createFileRoute("/check")({
   },
   head: () => ({
     meta: [
-      { title: "Проверка — neeklo FieldOps" },
+      { title: "Проверка — гайка" },
       {
         name: "description",
         content: "Очередь проверки: факты с площадки и позиции спецификации, ждущие решения.",
@@ -62,16 +67,35 @@ function CheckPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const projectId = useProjectId();
   const data = useCheckQueue(projectId);
+  const guide = useGuide();
   const { can } = useAccess();
+  const queueProject = data.queue[0]?.card.report.projectId ?? null;
+  const [lastProject, setLastProject] = useState<string | null>(null);
+  useEffect(() => {
+    if (queueProject) setLastProject(queueProject);
+  }, [queueProject]);
+  const statementProject = projectId ?? queueProject ?? lastProject;
+
   const screen = useScreenState({
     pending: data.pending,
     error: data.error,
-    empty: !data.pending && data.queue.length === 0 && data.positions.length === 0,
+    empty:
+      !data.pending &&
+      data.queue.length === 0 &&
+      (!legacyModulesEnabled() || data.positions.length === 0),
   });
 
   return (
     <>
       <PageHeader title="Проверка" />
+      {/*
+        Черновик ведомости объёмов: файл результата ПТО (ADR-037, сценарий 2).
+        Объект берётся из чипа, а когда чип молчит — из очереди: ПТО обычно смотрит все объекты,
+        и прятать от него файл только из-за этого неправильно. Последний объект запоминается,
+        иначе кнопка исчезала ровно после приёмки последнего факта.
+      */}
+      {statementProject ? <StatementButton projectId={statementProject} /> : null}
+
       <PageCaption>
         <span className="truncate">
           {data.queue.length > 0
@@ -80,7 +104,8 @@ function CheckPage() {
         </span>
       </PageCaption>
 
-      {can("documents") && (
+      {/* Позиции спецификации живут в документации — модуле за флагом (ADR-034, п. 4) */}
+      {can("documents") && legacyModulesEnabled() && (
         <div className="mb-4">
           <PillTabs
             label="Что проверяем"
@@ -116,10 +141,10 @@ function CheckPage() {
           },
         }}
       >
-        {tab === "positions" ? (
+        {tab === "positions" && legacyModulesEnabled() ? (
           <PositionsTab rows={data.positions} />
         ) : (
-          <FactsTab rows={data.queue} />
+          <FactsTab rows={chainFirst(data.queue, guide.chain.reportId)} />
         )}
       </ScreenGate>
     </>
@@ -213,7 +238,7 @@ function FactCard({
         {...(mayDecide ? swipe.handlers : {})}
         style={swipe.shift ? { transform: `translateX(${swipe.shift}px)` } : undefined}
         className={cn(
-          "rounded-[var(--r-md)] border border-line bg-surface p-4 shadow-[var(--lift-1)]",
+          "rounded-[var(--r-lg)] border border-transparent bg-surface p-5",
           !swipe.shift && "transition-fast",
           // Пока палец ведёт карточку, подсказываем, что произойдёт при отпускании
           swipe.shift > 0 && "border-ok",
@@ -223,36 +248,38 @@ function FactCard({
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-card-title">{report.workType}</h3>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Chip>{zoneName}</Chip>
-              <Chip>{projectName}</Chip>
-              <Chip>{employeeName(report.authorId)}</Chip>
-              {evidence.length > 0 && (
-                <Chip>
-                  <Image className="mr-1 size-3.5" strokeWidth={1.5} aria-hidden />
-                  {fmtNum(evidence.length)}
-                </Chip>
+            {/* Метаданные одной строкой, а не чипами в столбик (правило 8 этапа D) */}
+            <p className="mt-1 text-caption text-text-2">
+              {metaLine(
+                zoneName,
+                shortName(projectName),
+                employeeName(report.authorId),
+                evidence.length > 0 &&
+                  `${fmtNum(evidence.length)} ${plural(evidence.length, "фото", "фото", "фото")}`,
               )}
-            </div>
+            </p>
           </div>
           <div className="shrink-0 text-right">
             <div className="tnum text-[24px] leading-none font-semibold">
               {fmtNum(report.declaredQty ?? 0)}
             </div>
-            <div className="mt-1 text-[12px] text-text-3">{report.unit}</div>
+            <div className="mt-1 text-[13px] text-text-3">{report.unit}</div>
           </div>
         </div>
 
-        <p className="mt-3 text-[14px] leading-[1.45] text-text-2">{report.summary}</p>
+        {/* Источник значения рядом с ним: откуда пришло и что сказано (правило 2) */}
+        <div className="mt-4">
+          {source ? (
+            <span data-marker="" className="text-marker block">
+              {sourceMarker(source)}
+            </span>
+          ) : null}
+          <p className="mt-1 text-[15px] leading-[1.45] text-text-2">«{report.summary}»</p>
+        </div>
 
-        {source && (
-          <div className="mt-3">
-            <Chip>{sourceKindLabel[source.kind]}</Chip>
-          </div>
-        )}
-
+        {/* Решение по карточке в одно касание; «Вернуть» тише — это не главный путь */}
         {mayDecide ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-5 grid grid-cols-2 gap-2">
             <Button
               variant={current ? "accent" : "secondary"}
               onClick={() => accept(report.declaredQty ?? 0)}
@@ -262,8 +289,8 @@ function FactCard({
             <Button variant="secondary" onClick={() => setQtyOpen(true)}>
               Исправить объём
             </Button>
-            <Button variant="ghost" onClick={back}>
-              <Undo2 className="size-4" /> Вернуть
+            <Button variant="ghost" className="col-span-2 justify-self-start" onClick={back}>
+              <Undo2 className="size-4" /> Вернуть на уточнение
             </Button>
           </div>
         ) : (
@@ -282,7 +309,7 @@ function FactCard({
         >
           <div className="space-y-4 p-4 pt-0">
             <label className="block">
-              <span className="text-[12px] text-text-3">Объём, {report.unit}</span>
+              <span className="text-[13px] text-text-3">Объём, {report.unit}</span>
               <Input
                 autoFocus
                 inputMode="decimal"
@@ -349,7 +376,7 @@ function PositionsTab({
             >
               <span className="min-w-0">
                 <span className="block truncate text-card-title">{row.projectName}</span>
-                <span className="mt-1 block text-[12px] text-text-3">
+                <span className="mt-1 block text-[13px] text-text-3">
                   из {fmtNum(row.total)} {plural(row.total, "позиции", "позиций", "позиций")}
                 </span>
               </span>
@@ -366,8 +393,93 @@ function PositionsTab({
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[12px] leading-none text-text-2">
+    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
       {children}
     </span>
   );
+}
+
+/**
+ * Черновик ведомости объёмов (ADR-037, сценарий 2). Файл собирается из принятых записей
+ * смены и прямо подписан черновиком: исполнительную документацию демонстрация не выпускает.
+ */
+function StatementButton({ projectId }: { projectId: string }) {
+  const now = useNow();
+  const date = now.slice(0, 10);
+  /*
+   * Ведомость собирается за последнюю смену с принятыми записями: факт, который ПТО принял
+   * сегодня, может быть позавчерашним, и прятать от него документ из-за этого неправильно.
+   * Дата документа названа рядом с кнопкой, поэтому подмены не происходит.
+   */
+  const shift = useShift(projectId, date, true);
+  const [saving, setSaving] = useState(false);
+  const rows = shift.data?.rows.length ?? 0;
+
+  const save = (kind: "shift" | "statement") => {
+    setSaving(true);
+    void saveShiftFile({ projectId, date: shift.data?.date ?? date }, kind)
+      .then(() => recordAction(kind === "statement" ? "downloadStatement" : "downloadShift"))
+      .catch((error: Error) => toast.error("Документ не собрался", { description: error.message }))
+      .finally(() => setSaving(false));
+  };
+
+  return (
+    /* Файлы смены — тихой строкой: главное на экране — карточка проверки (правило 1) */
+    <div className="mb-6 flex flex-col gap-2">
+      <span data-marker="" className="text-marker">
+        Файлы смены
+      </span>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label="Скачать сводку смены"
+          disabled={saving || rows === 0}
+          onClick={() => save("shift")}
+        >
+          <FileSpreadsheet className="size-4" /> Сводка
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label="Скачать черновик ведомости"
+          disabled={saving || rows === 0}
+          onClick={() => save("statement")}
+        >
+          <FileSpreadsheet className="size-4" /> Ведомость
+        </Button>
+      </div>
+      <span className="text-caption text-text-3">
+        {rows > 0
+          ? `В документ ${plural(rows, "войдёт", "войдут", "войдут")} ${fmtNum(rows)} ${plural(rows, "принятая запись", "принятые записи", "принятых записей")} за ${fmtDate(shift.data?.date ?? date)}`
+          : "Принятых записей пока нет: примите факт, и документ соберётся"}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Маркер источника до двух слов: запись с экрана «Запись» — «Голосовое» или «Текст»
+ * (ADR-036 хранит её как ручной источник с ключом отправки), остальное — по виду источника.
+ */
+function sourceMarker(source: {
+  kind: keyof typeof sourceKindLabel;
+  captureKey: string | null;
+  location: string;
+}) {
+  if (source.captureKey) return source.location === "текст" ? "Текст" : "Голосовое";
+  return source.kind === "telegram" ? "С площадки" : sourceKindLabel[source.kind];
+}
+
+/**
+ * Цепочка показа (ADR-038): отчёт, созданный записью в этой вкладке, стоит в очереди первым —
+ * ПТО в сценарии 2 видит именно его. Остальной порядок не меняется.
+ */
+function chainFirst<T extends { card: { report: { id: string } } }>(
+  rows: T[],
+  id: string | undefined,
+) {
+  if (!id) return rows;
+  const index = rows.findIndex((row) => row.card.report.id === id);
+  return index <= 0 ? rows : [rows[index]!, ...rows.slice(0, index), ...rows.slice(index + 1)];
 }

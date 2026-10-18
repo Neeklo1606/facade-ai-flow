@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { queries } from "@/api/queries";
 import { useProjectId } from "@/lib/project-scope";
+import { shortName } from "@/lib/format";
 
 const ProjectSheet = lazy(() =>
   import("./sheets").then((module) => ({ default: module.ProjectSheet })),
@@ -20,9 +21,16 @@ export function ProjectChip() {
   const [open, setOpen] = useState(false);
   const projectId = useProjectId();
   const projects = useQuery(queries.projects()).data ?? [];
-  if (projects.length < 2) return null;
-
+  if (projects.length === 0) return null;
   const current = projects.find((item) => item.project.id === projectId)?.project.name;
+  // Объект один: выбирать не из чего, но человек всё равно видит, где он (правило 5)
+  if (projects.length === 1) {
+    return (
+      <span className="flex h-7 min-w-0 items-center rounded-full bg-surface-2 px-3 text-[13px] leading-none text-text-2 lg:hidden">
+        <span className="truncate">{shortName(projects[0]!.project.name)}</span>
+      </span>
+    );
+  }
   return (
     <>
       <button
@@ -33,10 +41,10 @@ export function ProjectChip() {
           Строка под заголовком: высота самой плашки 28 px, но вертикальные поля доводят цель
           нажатия до 48 px — в перчатке в 28 px не попасть, и проверка ширин это ловит.
         */
-        className="focus-ring -my-2.5 flex h-12 w-full items-center gap-1 text-[12px] leading-none text-text-2 transition-fast lg:hidden"
+        className="focus-ring -my-2.5 flex h-12 min-w-0 items-center gap-1 text-[13px] leading-none text-text-2 transition-fast lg:hidden"
       >
-        <span className="flex h-7 min-w-0 items-center gap-1 rounded-[var(--r-sm)] border border-line bg-surface-2 px-2.5">
-          <span className="truncate">{current ?? "Все объекты"}</span>
+        <span className="flex h-7 min-w-0 items-center gap-1 rounded-full bg-surface-2 px-3">
+          <span className="truncate">{current ? shortName(current) : "Все объекты"}</span>
           <ChevronDown className="size-3.5 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
         </span>
       </button>

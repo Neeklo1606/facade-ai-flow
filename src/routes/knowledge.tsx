@@ -4,9 +4,9 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/knowledge")({
   head: () => ({
     meta: [
-      { title: "База знаний — neeklo FieldOps" },
+      { title: "База знаний — гайка" },
       { name: "description", content: "Нормы, типовые узлы, регламенты и правила приёмки." },
-      { property: "og:title", content: "База знаний — neeklo FieldOps" },
+      { property: "og:title", content: "База знаний — гайка" },
       { property: "og:description", content: "Нормы, типовые узлы, регламенты и правила приёмки." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

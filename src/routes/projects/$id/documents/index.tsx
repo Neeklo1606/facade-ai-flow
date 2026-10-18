@@ -66,7 +66,7 @@ export const Route = createFileRoute("/projects/$id/documents/")({
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `Документация — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps` },
+          { title: `Документация — ${loaderData.project?.name ?? "Объект"} — гайка` },
           {
             name: "description",
             content:

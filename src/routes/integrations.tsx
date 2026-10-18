@@ -1,45 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PagePlaceholder } from "@/components/common/PagePlaceholder";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
+/** Интеграции стали «Подключениями» кабинета компании (ADR-039): заглушка ушла, адрес ведёт туда */
 export const Route = createFileRoute("/integrations")({
-  head: () => ({
-    meta: [
-      { title: "Интеграции — neeklo FieldOps" },
-      { name: "description", content: "Каналы приёма данных и обмен с учётными системами." },
-      { property: "og:title", content: "Интеграции — neeklo FieldOps" },
-      { property: "og:description", content: "Каналы приёма данных и обмен с учётными системами." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: IntegrationsPage,
+  component: () => <Navigate to="/office/connections" replace />,
 });
-
-function IntegrationsPage() {
-  return (
-    <PagePlaceholder
-      title="Интеграции"
-      description={"Каналы приёма данных и обмен с учётными системами."}
-      planned={[
-        "Telegram, почта, телефония, загрузка файлов",
-        "Обмен с учётной системой и ЭДО",
-        "Состояние и журнал синхронизаций",
-        "Ключи и вебхуки",
-      ]}
-      available={[
-        {
-          label: "Отчёты с площадки",
-          to: "/projects",
-          search: { section: "field-reports" },
-          note: "Сообщения прорабов с распознанными объёмами уже в системе",
-        },
-        {
-          label: "Закупки объекта",
-          to: "/projects",
-          search: { section: "procurement" },
-          note: "Запросы поставщикам и ответы с ценами",
-        },
-      ]}
-    />
-  );
-}

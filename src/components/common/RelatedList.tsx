@@ -20,12 +20,12 @@ export function RelatedList({ links, className }: { links: EntityLink[]; classNa
             className="focus-ring group flex items-start gap-2 rounded-[var(--r-sm)] border border-line px-3 py-2 transition-fast is-hover:border-line-2 is-hover:bg-surface-2"
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-[12px] leading-[1.35] text-text-3">{link.label}</span>
+              <span className="block text-[13px] leading-[1.35] text-text-3">{link.label}</span>
               <span className="mt-0.5 block truncate text-[13px] leading-[1.4] font-medium text-text">
                 {link.title}
               </span>
               {link.hint && (
-                <span className="mt-0.5 block truncate text-[12px] leading-[1.35] text-text-3">
+                <span className="mt-0.5 block truncate text-[13px] leading-[1.35] text-text-3">
                   {link.hint}
                 </span>
               )}

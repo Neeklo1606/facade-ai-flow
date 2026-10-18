@@ -4,9 +4,9 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/templates")({
   head: () => ({
     meta: [
-      { title: "Шаблоны — neeklo FieldOps" },
+      { title: "Шаблоны — гайка" },
       { name: "description", content: "Шаблоны писем, актов, запросов и чек-листов." },
-      { property: "og:title", content: "Шаблоны — neeklo FieldOps" },
+      { property: "og:title", content: "Шаблоны — гайка" },
       { property: "og:description", content: "Шаблоны писем, актов, запросов и чек-листов." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

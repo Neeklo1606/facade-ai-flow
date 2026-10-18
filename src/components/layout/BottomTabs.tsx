@@ -1,14 +1,14 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Plus } from "lucide-react";
+import { Menu, Mic } from "lucide-react";
 import { DEMO_PERSONAS, dataSource } from "@/api/config";
 import { signOutFn } from "@/api/auth-functions";
 import { queries } from "@/api/queries";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { useApp } from "@/lib/app-context";
 import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scope";
-import { badgeCounts, badgeIsCritical, badgeText, badgeTotal } from "@/lib/badges";
+import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 import { useKeyboardOpen } from "@/lib/keyboard-open";
 import { bottomNavFor, plusActionsFor, type BottomNavItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -17,11 +17,16 @@ const PlusSheet = lazy(() => import("./sheets").then((module) => ({ default: mod
 const MoreSheet = lazy(() => import("./sheets").then((module) => ({ default: module.MoreSheet })));
 
 /**
- * Нижняя панель телефона (ADR-026): пять позиций — две слева, «+» в центре, одна справа,
- * «Ещё» последней. Набор определяется ролью таблицей в `lib/navigation.ts`.
+ * Нижняя панель телефона (ADR-026, карта ГАЙКИ — ADR-034, п. 1): пять позиций — рабочий экран
+ * роли и объект слева, кнопка записи в центре, «Входящие» справа, «Ещё» последней.
+ * Набор одинаков для всех ролей, меняется только первая позиция.
+ *
+ * Центральная кнопка — «Говорить» (ADR-036): касание открывает экран записи, удержание
+ * начинает запись сразу. Запись в браузере работает с G4; чего нет без ключа — расшифровки,
+ * и об этом говорит сам экран записи, а не кнопка.
  *
  * Активная позиция без оранжевого: тёмная иконка, подпись и индикатор над иконкой. Оранжевый
- * в панели один — у «+», потому что он означает действие, а не «ты здесь» (ADR-017).
+ * в панели один — у центральной кнопки, потому что он означает действие, а не «ты здесь».
  */
 export function BottomTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -37,8 +42,34 @@ export function BottomTabs() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
 
+  const navigate = useNavigate();
   const items = bottomNavFor(role, projectId);
   const actions = plusActionsFor(role, projectId);
+  /*
+   * Кнопка «Говорить» есть у того, кто ведёт площадку: ей нужно право на запись фактов.
+   * Директору, который ничего не меняет, кнопка действия не рисуется (ADR-026, п. 4).
+   */
+  const canCapture = actions.length > 0;
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+
+  /** Удержание дольше 400 мс — сразу запись; короткое касание открывает экран записи */
+  const holdStart = () => {
+    held.current = false;
+    hold.current = setTimeout(() => {
+      held.current = true;
+      void navigate({ to: "/capture", search: { record: true } });
+    }, 400);
+  };
+  const holdEnd = () => {
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = null;
+    if (!held.current) void navigate({ to: "/capture" });
+  };
+  const holdCancel = () => {
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = null;
+  };
   const overviews = (useQuery(queries.projects()).data ?? []).map((item) => item.overview);
   const counts = badgeCounts(projectId, overviews);
 
@@ -53,7 +84,7 @@ export function BottomTabs() {
         aria-label="Основная навигация"
         data-keyboard={keyboardOpen ? "open" : undefined}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 grid h-[calc(64px+env(safe-area-inset-bottom))] items-center border-t border-line bg-base pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
+          "glass-bar fixed inset-x-0 bottom-0 z-40 grid h-[calc(64px+env(safe-area-inset-bottom))] items-center pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
           // Пока фокус в поле ввода, панель уходит: место под неё остаётся, чтобы не прыгало
           keyboardOpen && "pointer-events-none translate-y-full opacity-0",
           // Колонок ровно по числу позиций: классы записаны целиком, иначе сборщик их не соберёт
@@ -65,21 +96,40 @@ export function BottomTabs() {
             key={item.key}
             item={item}
             active={item.active(pathname, view, pickSection)}
-            count={badgeTotal(item.badges, counts)}
+            count={item.badge ? counts[item.badge] : 0}
           />
         ))}
 
-        {actions.length > 0 && (
+        {canCapture && (
           <div className="grid place-items-center">
-            {/* Единственное оранжевое пятно панели: круг 56 px, слегка выступает над ней */}
+            {/*
+              Голосовая капсула 64 px (дизайн-система, раздел 8): тёплая белая с оранжевым
+              свечением. Свет — единственный в панели; оранжевой заливки больше нет (ADR-041).
+            */}
             <button
               type="button"
-              onClick={() => setPlusOpen(true)}
-              aria-label="Создать"
+              onPointerDown={holdStart}
+              onPointerUp={holdEnd}
+              onPointerCancel={holdCancel}
+              onPointerLeave={holdCancel}
+              onKeyDown={(event) => {
+                // Клавиатура: Enter открывает экран, Shift+Enter начинает запись сразу
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                void navigate({
+                  to: "/capture",
+                  ...(event.shiftKey ? { search: { record: true } } : {}),
+                });
+              }}
+              aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
               data-tour="nav-plus"
-              className="focus-ring -mt-5 grid size-14 place-items-center rounded-full bg-orange-strong text-on-orange shadow-[var(--glow-orange)] transition-fast active:translate-y-px"
+              className={cn(
+                "focus-ring press bg-pill text-pill-text transition-fast -mt-6 grid size-16 place-items-center rounded-full",
+                // На экране записи светится его собственная капсула: свет в кадре один (правило 2)
+                pathname !== "/capture" && "glow-ember",
+              )}
             >
-              <Plus className="size-6" strokeWidth={2} aria-hidden />
+              <Mic className="size-6" strokeWidth={2} aria-hidden />
             </button>
           </div>
         )}
@@ -89,7 +139,7 @@ export function BottomTabs() {
             key={item.key}
             item={item}
             active={item.active(pathname, view, pickSection)}
-            count={badgeTotal(item.badges, counts)}
+            count={item.badge ? counts[item.badge] : 0}
           />
         ))}
 
@@ -97,7 +147,7 @@ export function BottomTabs() {
           type="button"
           onClick={() => setMoreOpen(true)}
           aria-label="Ещё: разделы, тема, справка"
-          className="focus-ring flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[11px] leading-none text-text-3 transition-fast"
+          className="focus-ring text-text-3 transition-fast flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[13px] leading-none"
         >
           <Menu className="size-6" strokeWidth={1.75} aria-hidden />
           Ещё
@@ -107,19 +157,34 @@ export function BottomTabs() {
       {/* Шторки грузятся по требованию: их разметка и перетаскивание не нужны до нажатия */}
       {plusOpen && (
         <Suspense fallback={null}>
-          <PlusSheet open onOpenChange={setPlusOpen} role={role} projectId={projectId} />
+          <PlusSheet
+            open
+            onOpenChange={setPlusOpen}
+            role={role}
+            projectId={projectId}
+            initialChannel="report"
+          />
         </Suspense>
       )}
       {moreOpen && (
         <Suspense fallback={null}>
-          <MoreSheet open onOpenChange={setMoreOpen} role={role} projectId={projectId} />
+          <MoreSheet
+            open
+            onOpenChange={setMoreOpen}
+            role={role}
+            projectId={projectId}
+            onQuickReport={() => {
+              setMoreOpen(false);
+              setPlusOpen(true);
+            }}
+          />
         </Suspense>
       )}
     </>
   );
 }
 
-/** Позиция панели: иконка 24 px, подпись 11 px, цель нажатия во всю высоту панели */
+/** Позиция панели: иконка 24 px, подпись 13 px, цель нажатия во всю высоту панели */
 function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; count: number }) {
   return (
     <Link
@@ -128,7 +193,7 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
       data-tour={`nav-${item.key}`}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "focus-ring relative flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[11px] leading-none transition-fast",
+        "focus-ring transition-fast relative flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[13px] leading-none",
         active ? "font-medium text-text" : "text-text-3",
       )}
     >
@@ -145,8 +210,8 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
         {count > 0 && (
           <span
             className={cn(
-              "absolute -top-2 -right-3 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[12px] leading-none font-medium",
-              badgeIsCritical(item.badges)
+              "absolute -top-2 -right-3 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[13px] leading-none font-medium",
+              item.badge && CRITICAL_BADGES.includes(item.badge)
                 ? "bg-danger text-on-orange"
                 : "bg-surface-3 text-text-2",
             )}

@@ -196,7 +196,7 @@ export function AcceptanceDialog({
                         placeholder="Что с расхождением: не довезли, пересорт, брак"
                         maxLength={500}
                         aria-label={`Замечание: ${line.name}`}
-                        className="focus-ring h-11 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
+                        className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
                       />
                     </>
                   )}
@@ -221,7 +221,7 @@ export function AcceptanceDialog({
                         aria-label={value === "ok" ? "Да" : "Нет"}
                         onClick={() => setAnswers((prev) => ({ ...prev, [item.id]: value }))}
                         className={cn(
-                          "focus-ring grid size-11 place-items-center rounded-[var(--r-sm)] border transition-fast",
+                          "focus-ring grid size-12 place-items-center rounded-[var(--r-sm)] border transition-fast",
                           answers[item.id] === value
                             ? value === "ok"
                               ? "border-ok bg-ok-bg text-ok"
@@ -247,7 +247,7 @@ export function AcceptanceDialog({
                     placeholder="Что не так"
                     maxLength={300}
                     aria-label={`Что не так: ${item.label}`}
-                    className="focus-ring h-11 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
+                    className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
                   />
                 )}
               </div>

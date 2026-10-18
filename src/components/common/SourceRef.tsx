@@ -71,7 +71,7 @@ export function SourceRef({
           data-tour="source"
           aria-label={`Источник: ${source.title}, ${source.location}`}
           className={cn(
-            "focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--r-sm)] bg-surface-2 text-text-3 transition-fast is-hover:bg-info-bg is-hover:text-info lg:size-6",
+            "focus-ring inline-flex size-12 shrink-0 items-center justify-center rounded-[var(--r-sm)] bg-surface-2 text-text-3 transition-fast is-hover:bg-info-bg is-hover:text-info lg:size-6",
             className,
           )}
         >
@@ -79,19 +79,19 @@ export function SourceRef({
         </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-72 space-y-1">
-        <div className="text-[12px] font-medium">{source.title}</div>
-        <div className="text-[12px] text-text-secondary">
+        <div className="text-[13px] font-medium">{source.title}</div>
+        <div className="text-[13px] text-text-secondary">
           {sourceKindLabel[source.kind]} · {source.location}
         </div>
-        <div className="text-[12px] text-text-secondary">
+        <div className="text-[13px] text-text-secondary">
           {source.author} · {fmtDateTime(source.receivedAt)}
         </div>
-        <div className="text-[12px] text-text-secondary">
+        <div className="text-[13px] text-text-secondary">
           {approver && approvedAt
             ? `Подтвердил: ${approver.name}, ${fmtDateTime(approvedAt)}`
             : "Пока никто не подтвердил"}
         </div>
-        <div className="text-[12px] text-text-muted">Нажмите, чтобы открыть источник</div>
+        <div className="text-[13px] text-text-muted">Нажмите, чтобы открыть источник</div>
       </TooltipContent>
     </Tooltip>
   );
@@ -160,7 +160,7 @@ export function SourceCardBody({
   return (
     <div className="space-y-5">
       <section className="rounded-[var(--r-md)] border border-border bg-subtle p-4">
-        <p className="text-[12px] text-text-muted">
+        <p className="text-[13px] text-text-muted">
           Распознанный фрагмент, {source.location} · {note("source")}
         </p>
         <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
@@ -170,19 +170,19 @@ export function SourceCardBody({
 
       {fields.length > 0 && (
         <section>
-          <p className="text-[12px] text-text-muted">Что извлечено из этого источника</p>
+          <p className="text-[13px] text-text-muted">Что извлечено из этого источника</p>
           <ul className="mt-2 divide-y divide-border rounded-[var(--r-md)] border border-border">
             {fields.map((field) => (
               <li key={field.id} className="px-3 py-2.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[12px] text-text-muted">{field.label}</p>
+                    <p className="text-[13px] text-text-muted">{field.label}</p>
                     <p className="text-[14px] font-medium">{field.value}</p>
                   </div>
                   <ConfidenceIndicator value={field.confidence} />
                 </div>
                 {field.quote && (
-                  <p className="mt-1 border-l-2 border-border pl-2 text-[12px] text-text-muted">
+                  <p className="mt-1 border-l-2 border-border pl-2 text-[13px] text-text-muted">
                     «{field.quote}» · {field.location}
                   </p>
                 )}
@@ -194,15 +194,15 @@ export function SourceCardBody({
 
       {decisions.length > 0 && (
         <section>
-          <p className="text-[12px] text-text-muted">Решения на основании источника</p>
+          <p className="text-[13px] text-text-muted">Решения на основании источника</p>
           <ul className="mt-2 space-y-2">
             {decisions.map((item) => (
               <li key={item.id} className="rounded-[var(--r-md)] border border-border px-3 py-2.5">
                 <p className="text-[13px] font-medium">{item.title}</p>
-                <p className="mt-1 text-[12px] text-text-muted">
+                <p className="mt-1 text-[13px] text-text-muted">
                   {employeeById(item.approvedBy)?.name ?? "—"} · {fmtDateTime(item.approvedAt)}
                 </p>
-                <p className="mt-1 text-[12px] text-text-secondary">{item.reason}</p>
+                <p className="mt-1 text-[13px] text-text-secondary">{item.reason}</p>
               </li>
             ))}
           </ul>

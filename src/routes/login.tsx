@@ -13,9 +13,9 @@ export const Route = createFileRoute("/login")({
   }),
   head: () => ({
     meta: [
-      { title: "Вход — neeklo FieldOps" },
+      { title: "Вход — гайка" },
       { name: "description", content: "Вход сотрудника в рабочее пространство фасадных объектов." },
-      { property: "og:title", content: "Вход — neeklo FieldOps" },
+      { property: "og:title", content: "Вход — гайка" },
       {
         property: "og:description",
         content: "Вход сотрудника в рабочее пространство фасадных объектов.",

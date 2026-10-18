@@ -4,12 +4,12 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/analytics")({
   head: () => ({
     meta: [
-      { title: "Аналитика — neeklo FieldOps" },
+      { title: "Аналитика — гайка" },
       {
         name: "description",
         content: "Темпы, себестоимость, надёжность поставщиков, нагрузка бригад.",
       },
-      { property: "og:title", content: "Аналитика — neeklo FieldOps" },
+      { property: "og:title", content: "Аналитика — гайка" },
       {
         property: "og:description",
         content: "Темпы, себестоимость, надёжность поставщиков, нагрузка бригад.",

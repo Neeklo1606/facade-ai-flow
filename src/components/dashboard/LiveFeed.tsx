@@ -58,7 +58,7 @@ export function LiveFeed({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="focus-ring -mx-6 flex min-h-11 w-[calc(100%+48px)] items-center gap-2 border-t border-line px-6 pt-3 text-[13px] font-medium text-text-2 md:hidden"
+        className="focus-ring -mx-6 flex min-h-12 w-[calc(100%+48px)] items-center gap-2 border-t border-line px-6 pt-3 text-[13px] font-medium text-text-2 md:hidden"
       >
         {open ? "Скрыть события" : `Показать события: ${items.length}`}
         <ChevronDown
@@ -110,7 +110,7 @@ function FeedRow({ item, onSource }: { item: FeedItem; onSource: (sourceId: stri
         <span className="block truncate text-[14px] leading-[1.4] font-medium text-text">
           {event.title}
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] leading-[1.4] text-text-3">
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[1.4] text-text-3">
           <span className="inline-flex min-w-0 items-center gap-1">
             {!person && !source && (
               <Bot className="size-3 shrink-0" strokeWidth={1.75} aria-hidden />

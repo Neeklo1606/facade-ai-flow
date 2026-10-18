@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 export const Route = createFileRoute("/access")({
   head: () => ({
     meta: [
-      { title: "Права доступа — neeklo FieldOps" },
+      { title: "Права доступа — гайка" },
       {
         name: "description",
         content:
@@ -41,7 +41,7 @@ function AccessPage() {
   return (
     <div className="grid gap-4">
       <div>
-        <h1 className="sr-only">Права доступа</h1>
+        <h1 className="mb-2 text-page-title lg:sr-only">Права доступа</h1>
         <p className="text-[13px] text-text-2">
           Что может каждая роль в каждом разделе. Эту же таблицу проверяет сервер при каждом
           действии: без права запись отклоняется, раздел не открывается, кнопка не показывается.
@@ -59,11 +59,11 @@ function AccessPage() {
           <caption className="sr-only">Права ролей по разделам</caption>
           <thead>
             <tr className="h-10 border-b border-line text-left">
-              <th scope="col" className="px-4 text-[12px] font-normal text-text-3">
+              <th scope="col" className="px-4 text-[13px] font-normal text-text-3">
                 Раздел
               </th>
               {MATRIX_ROLES.map((role) => (
-                <th key={role} scope="col" className="px-4 text-[12px] font-normal text-text-3">
+                <th key={role} scope="col" className="px-4 text-[13px] font-normal text-text-3">
                   {employeeRoleLabel[role]}
                 </th>
               ))}

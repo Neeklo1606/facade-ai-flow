@@ -1,4 +1,6 @@
 import type { AgentPort } from "./agent";
+import type { ProcessingPort } from "./ai";
+import type { SupplyPort } from "./supply";
 import type { CatalogPort } from "./catalog";
 import type { ClockPort } from "./clock";
 import type { DirectoryPort } from "./directory";
@@ -11,7 +13,10 @@ import type { ScopePort } from "./scope";
 import type { TimelinePort } from "./timeline";
 
 export * from "./agent";
+export * from "./ai";
+export * from "./supply";
 export * from "./catalog";
+export * from "./channels";
 export * from "./clock";
 export * from "./common";
 export * from "./directory";
@@ -21,6 +26,7 @@ export * from "./procurement";
 export * from "./projects";
 export * from "./reports";
 export * from "./scope";
+export * from "./speech";
 export * from "./timeline";
 
 /** Все порты приложения. Адаптер (фикстуры или БД) реализует этот набор целиком. */
@@ -39,4 +45,8 @@ export interface Repositories {
   scope: ScopePort;
   /** Ассистент поверх остальных портов (ADR-006) */
   agent: AgentPort;
+  /** Журнал обращений к модели (ADR-035) */
+  processing: ProcessingPort;
+  /** Заявки на материал с площадки (ADR-037) */
+  supply: SupplyPort;
 }

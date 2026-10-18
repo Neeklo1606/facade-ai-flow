@@ -273,7 +273,7 @@ export function ProgressTab({
             </div>
             {zone.lastFact ? (
               <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-4 py-3">
-                <p className="text-[12px] text-text-3">Последний принятый объём</p>
+                <p className="text-[13px] text-text-3">Последний принятый объём</p>
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-[14px] text-text">
                   <span className="tnum font-medium">
                     {fmtNum(zone.lastFact.qty)} {zone.unit}
@@ -394,7 +394,7 @@ export function ProgressTab({
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[12px] leading-[1.4] text-text-3">{label}</p>
+      <p className="text-[13px] leading-[1.4] text-text-3">{label}</p>
       <p className="mt-0.5 text-[14px] leading-[1.45] text-text">{children}</p>
     </div>
   );
@@ -455,7 +455,7 @@ function ZoneItem({
             label={`${row.name}: выполнено ${row.donePct}% при плане ${row.planPct ?? 0}%`}
             className="flex-1"
           />
-          <span className={cn("tnum shrink-0 text-[12px]", deviationText(row.deviationPp))}>
+          <span className={cn("tnum shrink-0 text-[13px]", deviationText(row.deviationPp))}>
             {deviationLabel(row.deviationPp)}
           </span>
         </div>
@@ -499,7 +499,7 @@ function MilestoneTimeline({
               />
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] font-medium text-text">{point.name}</span>
-                <span className="mt-0.5 block text-[12px] text-text-3">
+                <span className="mt-0.5 block text-[13px] text-text-3">
                   {fmtDate(point.dueDate)} · {point.statusLabel}
                 </span>
               </span>
@@ -518,7 +518,7 @@ function MilestoneTimeline({
               className="absolute top-4 bottom-8 w-px bg-sand/60"
               style={{ left: `calc(1rem + ${todayOffset * 100}% - ${todayOffset * 2}rem)` }}
             >
-              <span className="absolute -top-4 -left-6 text-[11px] whitespace-nowrap text-text-3">
+              <span className="absolute -top-4 -left-6 text-[13px] whitespace-nowrap text-text-3">
                 сегодня
               </span>
             </span>
@@ -529,10 +529,10 @@ function MilestoneTimeline({
                 <button
                   type="button"
                   onClick={() => onOpen(point.id)}
-                  className="focus-ring flex min-h-11 flex-col items-center gap-2 rounded-[var(--r-sm)] px-2 py-1 text-center transition-fast is-hover:bg-surface-2"
+                  className="focus-ring flex min-h-12 flex-col items-center gap-2 rounded-[var(--r-sm)] px-2 py-1 text-center transition-fast is-hover:bg-surface-2"
                 >
                   <span aria-hidden className={cn("size-3 rotate-45", diamondClass(point))} />
-                  <span className="tnum text-[12px] text-text-2">{fmtDate(point.dueDate)}</span>
+                  <span className="tnum text-[13px] text-text-2">{fmtDate(point.dueDate)}</span>
                   <span className="line-clamp-2 max-w-[160px] text-[13px] leading-[1.35] text-text">
                     {point.name}
                   </span>

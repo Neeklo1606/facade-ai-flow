@@ -50,7 +50,7 @@ export function DeltaPill({
   return (
     <span
       className={cn(
-        "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] leading-none font-medium whitespace-nowrap",
+        "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-[13px] leading-none font-medium whitespace-nowrap",
         effectClass[delta.effect],
         className,
       )}
@@ -107,7 +107,7 @@ export function MetricStripItem({
           <div className="flex min-w-0 items-center gap-1">
             <div
               className={cn(
-                "text-[12px] leading-[1.35] text-text-3",
+                "text-[13px] leading-[1.35] text-text-3",
                 // В полосе из трёх ячейка на 375 px шириной 95: слова переносим целиком,
                 // иначе «Просроченных ответов» ломается посреди слова. Высота подписи
                 // фиксирована в две строки, чтобы числа в соседних ячейках стояли на одной линии
@@ -143,7 +143,7 @@ export function MetricStripItem({
             {delta && !tight && <DeltaPill delta={delta} className="@3xs:hidden" />}
           </div>
           {note && (
-            <div className="mt-0.5 line-clamp-2 text-[12px] leading-[1.35] text-text-3">{note}</div>
+            <div className="mt-0.5 line-clamp-2 text-[13px] leading-[1.35] text-text-3">{note}</div>
           )}
         </div>
         {delta && !tight && <DeltaPill delta={delta} className="hidden @3xs:inline-flex" />}
@@ -159,14 +159,15 @@ export type MetricStripLayout = "default" | "six" | "three";
 const stripBase =
   "grid overflow-hidden rounded-[var(--r-md)] border border-line bg-surface shadow-[var(--lift-1)] min-[1440px]:flex min-[1440px]:h-[104px] min-[1440px]:items-center min-[1440px]:px-6";
 const stripCols: Record<MetricStripLayout, string> = {
-  default: "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+  // До 640 px — одна колонка: в половине ширины 390 подписи и даты резались многоточием (ADR-041)
+  default: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
   six: "grid-cols-2 md:grid-cols-3",
   // Три числа «Внимания» стоят в ряд и на телефоне: это один вопрос из трёх частей (ADR-028)
   three: "grid-cols-3",
 };
 /** Ячейка: 88px в сетке, во всю высоту полосы в ряд; линии сетки — только внутренние */
 const cellClass =
-  "flex h-[88px] min-w-0 items-center px-4 md:px-5 min-[1440px]:h-auto min-[1440px]:flex-1 min-[1440px]:px-0";
+  "flex min-h-[88px] min-w-0 items-center px-4 py-4 md:px-5 min-[1440px]:h-auto min-[1440px]:flex-1 min-[1440px]:px-0 min-[1440px]:py-0";
 /** Полоса из трёх: на телефоне ячейка 114 px, и поля по 16 съедают пятую часть ширины */
 const tightCellClass =
   "h-auto min-h-[88px] items-start px-3 py-4 md:px-5 min-[1440px]:h-auto min-[1440px]:items-center min-[1440px]:py-0";

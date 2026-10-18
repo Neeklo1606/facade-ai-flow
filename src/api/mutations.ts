@@ -450,7 +450,7 @@ export function useCreateReport(notices: Pick<MutationNotices, "onFailed"> = {})
     meta: { action: "createReport" },
     mutationFn: (input: CreateReportInput) => api.reports.create(input),
     onError: (error: Error) => notices.onFailed?.(error),
-    onSettled: () => invalidate(queryClient, ["reports", "timeline", "projects"]),
+    onSettled: () => invalidate(queryClient, ["reports", "timeline", "projects", "shift"]),
   });
 }
 
@@ -487,7 +487,7 @@ export function useReviewReport(
       rollback(queryClient, snapshot);
       notices.onFailed?.(error);
     },
-    onSettled: () => invalidate(queryClient, ["reports"]),
+    onSettled: () => invalidate(queryClient, ["reports", "shift"]),
   });
 }
 

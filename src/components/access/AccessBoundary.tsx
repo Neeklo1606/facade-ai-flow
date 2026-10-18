@@ -15,6 +15,7 @@ function homeLabel(to: string) {
   if (to === "/today") return "К сегодняшней смене";
   if (to === "/check") return "К очереди проверки";
   if (to === "/projects") return "К реестру объектов";
+  if (to === "/inbox") return "К входящим";
   return "К объекту";
 }
 

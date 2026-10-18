@@ -4,12 +4,12 @@ import { PagePlaceholder } from "@/components/common/PagePlaceholder";
 export const Route = createFileRoute("/schedule")({
   head: () => ({
     meta: [
-      { title: "График работ — neeklo FieldOps" },
+      { title: "График работ — гайка" },
       {
         name: "description",
         content: "Гант по видам работ с критическим путём и прогнозом срыва.",
       },
-      { property: "og:title", content: "График работ — neeklo FieldOps" },
+      { property: "og:title", content: "График работ — гайка" },
       {
         property: "og:description",
         content: "Гант по видам работ с критическим путём и прогнозом срыва.",

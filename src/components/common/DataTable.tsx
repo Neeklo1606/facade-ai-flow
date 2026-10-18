@@ -36,7 +36,7 @@ export function DataTable<T extends { id: string }>({
               {columns.map((c) => (
                 <th
                   key={c.key}
-                  className={cn("px-4 text-[12px] font-normal text-text-3", c.className)}
+                  className={cn("px-4 text-[13px] font-normal text-text-3", c.className)}
                 >
                   {c.header}
                 </th>
@@ -91,7 +91,7 @@ export function DataTable<T extends { id: string }>({
           return (
             <section
               key={row.id}
-              className="min-h-11 w-full rounded-[var(--r-sm)] border border-line bg-surface p-4"
+              className="min-h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface p-4"
             >
               <div className="text-[14px] font-medium">{primary.cell(row)}</div>
               <dl className="mt-3 grid gap-2">
@@ -100,7 +100,7 @@ export function DataTable<T extends { id: string }>({
                     key={c.key}
                     className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-3"
                   >
-                    <dt className="text-[12px] text-text-muted">{c.header}</dt>
+                    <dt className="text-[13px] text-text-muted">{c.header}</dt>
                     <dd className="min-w-0 break-words text-caption">{c.cell(row)}</dd>
                   </div>
                 ))}

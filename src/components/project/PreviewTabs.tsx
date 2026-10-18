@@ -58,7 +58,7 @@ function Td({
   className?: string;
 }) {
   return (
-    <td className={cn("h-11 px-4 text-text-secondary", right && "tnum text-right", className)}>
+    <td className={cn("h-12 px-4 text-text-secondary", right && "tnum text-right", className)}>
       {children}
     </td>
   );
@@ -634,7 +634,7 @@ export function TeamPreview({ projectId }: Props) {
         <ul className="divide-y divide-border">
           {people.map((person) => (
             <li key={person.id} className="flex items-center gap-3 px-4 py-2.5">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-pastel-slate text-[11px] font-medium text-pastel-slate-fg">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-pastel-slate text-[13px] font-medium text-pastel-slate-fg">
                 {person.name
                   .split(" ")
                   .slice(0, 2)

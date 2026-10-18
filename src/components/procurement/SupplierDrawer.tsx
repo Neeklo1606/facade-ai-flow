@@ -89,13 +89,13 @@ export function SupplierDrawer({
           <div className="mt-2 flex flex-wrap gap-2">
             <a
               href={`tel:${profile.phone}`}
-              className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-[var(--r-sm)] border border-line px-3 lg:min-h-8"
+              className="focus-ring inline-flex min-h-12 items-center gap-1.5 rounded-[var(--r-sm)] border border-line px-3 lg:min-h-8"
             >
               <Phone className="size-3.5" aria-hidden /> {profile.phone}
             </a>
             <a
               href={`mailto:${profile.email}`}
-              className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-[var(--r-sm)] border border-line px-3 lg:min-h-8"
+              className="focus-ring inline-flex min-h-12 items-center gap-1.5 rounded-[var(--r-sm)] border border-line px-3 lg:min-h-8"
             >
               <Mail className="size-3.5" aria-hidden /> {profile.email}
             </a>

@@ -7,9 +7,9 @@ export const Route = createFileRoute("/tasks")({
   }),
   head: () => ({
     meta: [
-      { title: "Задачи и замечания — neeklo FieldOps" },
+      { title: "Задачи и замечания — гайка" },
       { name: "description", content: "Происхождение задачи важно так же, как сама задача." },
-      { property: "og:title", content: "Задачи и замечания — neeklo FieldOps" },
+      { property: "og:title", content: "Задачи и замечания — гайка" },
       {
         property: "og:description",
         content: "Происхождение задачи важно так же, как сама задача.",

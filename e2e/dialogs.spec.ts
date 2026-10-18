@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import writeXlsxFile from "write-excel-file/node";
-import { expect, expectA11y, expectEmber, open, test } from "./fixtures";
+import { expect, expectA11y, expectToastA11y, expectEmber, open, test } from "./fixtures";
 
 /**
  * Главные окна продукта под теми же правилами, что и экраны (ADR-017, поправка 22.09.2026):
@@ -113,5 +113,22 @@ test.describe("окна", () => {
       await expectEmber(page, "окно поставщика");
       await expectA11y(page, "окно поставщика");
     });
+  });
+});
+
+test.describe("уведомления", () => {
+  test.use({ persona: "e-volkova" });
+
+  /*
+   * Контраст уведомления на остановившемся кадре. В общей проверке экрана уведомления
+   * исключены: они живут своей анимацией, и axe ловил в ней полупрозрачный кадр.
+   */
+  test("текст уведомления читается на его подложке", async ({ page }) => {
+    await open(page, "/check");
+    await page
+      .getByRole("button", { name: /^Принять/ })
+      .first()
+      .click();
+    await expectToastA11y(page, "уведомление приёмки");
   });
 });

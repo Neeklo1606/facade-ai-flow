@@ -138,6 +138,7 @@ export function simulateReply(
       author: profile.email,
       receivedAt,
       projectId: request.projectId,
+      captureKey: null,
       location: "таблица 1",
       excerpt,
     },

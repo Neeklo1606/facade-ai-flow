@@ -67,3 +67,20 @@ export function plural(n: number, one: string, few: string, many: string) {
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
   return many;
 }
+
+/**
+ * Короткое имя объекта: «ЖК «Северная Корона», корпус 3» → «Северная Корона, к. 3».
+ * Сокращение по смыслу, а не многоточием (правило 8 этапа D, ADR-041).
+ */
+export function shortName(name: string) {
+  return name
+    .replace(/^(ЖК|БЦ|ТЦ|СК)\s+/u, "")
+    .replace(/[«»"]/gu, "")
+    .replace(/,?\s*корпус\s+/u, ", к. ")
+    .replace(/,?\s*дом\s+/u, ", д. ")
+    .trim();
+}
+
+/** Метаданные карточки одной строкой: «Захватка 3 · Корона, к. 3» (правило 8 этапа D) */
+export const metaLine = (...parts: (string | null | undefined | false)[]) =>
+  parts.filter(Boolean).join(" · ");

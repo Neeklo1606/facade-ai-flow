@@ -37,7 +37,7 @@ export function ConfidenceLabel({ value, className }: { value: number; className
   const level = confidenceLevel(value);
   return (
     <span
-      className={cn("inline-flex items-center gap-1.5 text-[12px] leading-none", className)}
+      className={cn("inline-flex items-center gap-1.5 text-[13px] leading-none", className)}
       title={`Уверенность ${Math.round(value * 100)}%`}
     >
       <span className={cn("size-2 shrink-0 rounded-full", dot[level])} aria-hidden />
@@ -62,7 +62,7 @@ export function ConfidenceIndicator({
       <TooltipTrigger asChild>
         <span
           className={cn(
-            "focus-ring inline-flex cursor-help items-center gap-1.5 rounded-full text-[12px] leading-none",
+            "focus-ring inline-flex cursor-help items-center gap-1.5 rounded-full text-[13px] leading-none",
             className,
           )}
         >

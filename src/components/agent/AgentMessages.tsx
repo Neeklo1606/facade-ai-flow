@@ -23,8 +23,8 @@ function SystemHeader({ time }: { time?: string }) {
       <span className="grid size-6 place-items-center rounded-[var(--r-sm)] bg-surface-3">
         <Sparkles className="size-[13px] text-text-2" strokeWidth={1.75} aria-hidden />
       </span>
-      <span className="text-[12px] text-text-3">Система</span>
-      {time && <span className="text-[12px] text-text-3 tabular-nums">{time}</span>}
+      <span className="text-[13px] text-text-3">Система</span>
+      {time && <span className="text-[13px] text-text-3 tabular-nums">{time}</span>}
     </div>
   );
 }
@@ -42,7 +42,7 @@ export function SourceChip({
       type="button"
       onClick={() => onOpen(source)}
       title={`${source.title} · ${source.location}`}
-      className="focus-ring inline-flex h-8 max-w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-3 text-[12px] text-text-2 transition-fast is-hover:border-line-2 is-hover:bg-surface-3 is-hover:text-text"
+      className="focus-ring inline-flex h-8 max-w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-3 text-[13px] text-text-2 transition-fast is-hover:border-line-2 is-hover:bg-surface-3 is-hover:text-text"
     >
       <Icon className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
       <span className="max-w-[240px] truncate">{source.title}</span>
@@ -111,7 +111,7 @@ export function AgentAnswer({
       {next && (
         <Link
           to={next.to as string}
-          className="focus-ring mt-3 inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+          className="focus-ring mt-3 inline-flex min-h-12 items-center gap-1.5 text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
         >
           {next.label} <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
         </Link>

@@ -26,6 +26,12 @@ export const test = base.extend<Options & { consoleGuard: void }>({
             sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
             sessionStorage.setItem("neeklo-fieldops-persona", id);
           }
+          /*
+           * Модули прежнего контура за флагом `legacy_modules` (ADR-034, п. 4). Прогон идёт
+           * с включённым флагом: код модулей остаётся в продукте, и удалять его проверки
+           * нельзя. Что видно с выключенным флагом, проверяет legacy.spec.ts.
+           */
+          sessionStorage.setItem("neeklo-fieldops-legacy", "1");
           if (mode) localStorage.setItem("neeklo-fieldops-theme", mode);
         } catch {
           // Приватный режим: тест увидит экран выбора роли
@@ -158,22 +164,55 @@ export async function expectEmber(page: Page, screen: string) {
         (ownText && isOrange(s.color)) ||
         (svg && (isOrange(s.stroke) || isOrange(s.fill)));
       if (hit) orange.push(el);
-      if (ownText && s.textTransform === "uppercase") caps.push(describe(el));
+      /*
+       * Капс разрешён только моно-маркерам подписи до двух слов (дизайн-система, раздел 8:
+       * ОБЪЁМ, ЛЮДИ, СРОК). Маркер узнаётся по `data-marker`; длиннее двух слов — это уже
+       * текст, и капс в нём ловится как прежде.
+       */
+      const marker =
+        el.hasAttribute("data-marker") &&
+        (el.textContent ?? "").trim().split(/\s+/u).filter(Boolean).length <= 2;
+      if (ownText && s.textTransform === "uppercase" && !marker) caps.push(describe(el));
     }
     const roots = orange.filter((el) => !orange.some((o) => o !== el && o.contains(el)));
-    return { orange: roots.map(describe), caps };
+    /*
+     * Большой градиент в кадре один (дизайн-система, раздел 10). Большим считается заливка
+     * градиентом размером от четверти экрана: мелкие подложки чипов и свечение кнопки
+     * сюда не попадают.
+     */
+    const area = innerWidth * innerHeight;
+    const gradients = all
+      .filter((el) => {
+        const style = getComputedStyle(el);
+        if (!/gradient\(/u.test(style.backgroundImage)) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width * rect.height > area * 0.25;
+      })
+      .map(describe);
+
+    return { orange: roots.map(describe), caps, gradients };
   });
   expect(
     result.orange.length,
     `${screen}: оранжевых пятен ${result.orange.join(", ")}`,
   ).toBeLessThanOrEqual(1);
   expect(result.caps, `${screen}: текст капсом`).toEqual([]);
+  expect(
+    result.gradients.length,
+    `${screen}: больших градиентов ${result.gradients.join(", ")}`,
+  ).toBeLessThanOrEqual(1);
 }
 
 /** axe-core: нарушения уровня serious и critical роняют тест */
 export async function expectA11y(page: Page, screen: string) {
   await settle(page);
-  const results = await new AxeBuilder({ page }).analyze();
+  /*
+   * Уведомления не входят в проверку экрана: они появляются и растворяются сами (их шлёт
+   * симулятор демонстрации), и axe ловит контраст по полупрозрачному кадру анимации —
+   * нарушение, которого человек не видит. Контраст самого уведомления проверяется отдельно,
+   * на остановившемся кадре: `expectToastA11y`.
+   */
+  const results = await new AxeBuilder({ page }).exclude("[data-sonner-toaster]").analyze();
   const serious = results.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
     .map((v) => `${v.id} (${v.impact}, узлов ${v.nodes.length}): ${v.nodes[0]?.target.join(" ")}`);
@@ -182,7 +221,7 @@ export async function expectA11y(page: Page, screen: string) {
 
 /**
  * Мобильная версия и честность экрана (ADR-015): пометка демонстрации видна в первом экране
- * на любой ширине; на телефоне — без переполнения, с областями нажатия от 44 px, без действий
+ * на любой ширине; на телефоне — без переполнения, с областями нажатия от 48 px, без действий
  * только по наведению и без фокуса за краем экрана
  */
 export async function expectMobile(page: Page, screen: string) {
@@ -191,14 +230,15 @@ export async function expectMobile(page: Page, screen: string) {
   expect(check.demoMarked, `${screen}: пометка демонстрации не видна`).toBe(true);
   if ((page.viewportSize()?.width ?? 1440) >= 768) return;
   expect(check.overflow.offenders, `${screen}: страница шире экрана`).toEqual([]);
-  expect(check.small, `${screen}: области нажатия меньше 44 px`).toEqual([]);
+  expect(check.small, `${screen}: области нажатия меньше 48 px`).toEqual([]);
   expect(check.hoverOnly, `${screen}: действия только по наведению`).toEqual([]);
   expect(check.offscreenFocusable, `${screen}: фокус уходит за край экрана`).toEqual([]);
 }
 
 /**
- * Читаемость текста на фирменном градиенте (ADR-017, п. 9). Пикселей взять неоткуда, поэтому
- * цвет под текстом считается честно: берём стопы `--ember`, проектируем центр строки на ось
+ * Читаемость текста на фирменном градиенте (ADR-017, п. 9; имя токена — ADR-033). Пикселей взять
+ * неоткуда, поэтому цвет под текстом считается честно: берём стопы `--ember-gradient`,
+ * проектируем центр строки на ось
  * градиента (135°), смешиваем соседние стопы и накладываем затемнение слоя поверх. Контраст —
  * по WCAG: 3:1 для крупного текста (≥ 24px или ≥ 18,66px полужирный), 4,5:1 для остального.
  */
@@ -249,7 +289,7 @@ export async function expectEmberGradient(page: Page, screen: string) {
     };
 
     // Стопы градиента из токена: «#hex доля%»
-    const ember = getComputedStyle(document.documentElement).getPropertyValue("--ember");
+    const ember = getComputedStyle(document.documentElement).getPropertyValue("--ember-gradient");
     const stops = [...ember.matchAll(/(#[0-9a-f]{3,8})\s+([\d.]+)%/gi)].map((m) => ({
       color: hex(m[1] as string),
       at: Number(m[2]) / 100,
@@ -319,4 +359,32 @@ export async function expectEmberGradient(page: Page, screen: string) {
   });
   if (bad === null) return; // на экране нет главной метрики
   expect(bad, `${screen}: текст на градиенте`).toEqual([]);
+}
+
+/**
+ * Контраст уведомления на остановившемся кадре (ADR-037, находка прогона демонстрации).
+ * Проверяется то, что скрыто из общей проверки: сам текст уведомления на его подложке.
+ */
+export async function expectToastA11y(page: Page, screen: string) {
+  const toast = page.locator('[data-sonner-toast][data-mounted="true"]').first();
+  await toast.waitFor({ timeout: 10_000 });
+  // Ждём конца анимации появления: пока она идёт, цвет считается по полупрозрачному слою
+  await page
+    .waitForFunction(
+      () => {
+        const node = document.querySelector('[data-sonner-toast][data-mounted="true"]');
+        return !!node && getComputedStyle(node).opacity === "1";
+      },
+      undefined,
+      { timeout: 10_000 },
+    )
+    .catch(() => undefined);
+  const results = await new AxeBuilder({ page })
+    .include("[data-sonner-toaster]")
+    .withRules(["color-contrast"])
+    .analyze();
+  const serious = results.violations
+    .filter((v) => v.impact === "serious" || v.impact === "critical")
+    .map((v) => `${v.id} (${v.impact}): ${v.nodes[0]?.target.join(" ")}`);
+  expect(serious, `${screen}: контраст уведомления`).toEqual([]);
 }

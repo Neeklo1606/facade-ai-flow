@@ -2,7 +2,12 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, BookOpen, Check, Search } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
-import { helpArticles, searchHelp, sortForRole, type HelpArticle } from "@/lib/help/articles";
+import {
+  searchHelp,
+  sortForRole,
+  visibleHelpArticles,
+  type HelpArticle,
+} from "@/lib/help/articles";
 import { Comparison } from "@/components/help/Comparison";
 import { StepTarget } from "@/components/help/StepTarget";
 import { useCurrentUser } from "@/lib/project-scope";
@@ -14,11 +19,11 @@ export const Route = createFileRoute("/help")({
   /** Адрес статьи можно отправить коллеге: `/help?article=delivery` */
   validateSearch: (search: Record<string, unknown>): { article?: string } => {
     const id = typeof search["article"] === "string" ? search["article"] : undefined;
-    return id && helpArticles.some((item) => item.id === id) ? { article: id } : {};
+    return id && visibleHelpArticles().some((item) => item.id === id) ? { article: id } : {};
   },
   head: () => ({
     meta: [
-      { title: "Справка — neeklo FieldOps" },
+      { title: "Справка — гайка" },
       {
         name: "description",
         content:
@@ -50,7 +55,7 @@ function HelpPage() {
   return (
     <div className="grid gap-4">
       <div>
-        <h1 className="sr-only">Справка</h1>
+        <h1 className="mb-2 text-page-title lg:sr-only">Справка</h1>
         <p className="text-[13px] leading-[1.5] text-text-2">
           Как работать в системе — по задачам, а не по экранам. Шаги ведут на живой экран
           демонстрации: можно читать и сразу делать. Если экран закрыт вашей роли, шаг говорит об
@@ -96,7 +101,7 @@ function HelpPage() {
                 resetScroll={false}
                 aria-current={article?.id === item.id ? "true" : undefined}
                 className={cn(
-                  "focus-ring min-h-11 rounded-[var(--r-sm)] border px-3 py-2.5 text-left transition-fast",
+                  "focus-ring min-h-12 rounded-[var(--r-sm)] border px-3 py-2.5 text-left transition-fast",
                   article?.id === item.id
                     ? "border-line-2 bg-surface-2"
                     : "border-line is-hover:bg-surface-2",
@@ -105,7 +110,7 @@ function HelpPage() {
                 <span className="block text-[14px] leading-[1.35] font-medium text-text">
                   {item.title}
                 </span>
-                <span className="mt-0.5 block text-[12px] leading-[1.4] text-text-3">
+                <span className="mt-0.5 block text-[13px] leading-[1.4] text-text-3">
                   {item.roles.map((role) => employeeRoleLabel[role]).join(", ")}
                 </span>
               </Link>
@@ -142,7 +147,7 @@ function ArticleView({ article }: { article: HelpArticle }) {
         <ol className="grid gap-2.5">
           {article.steps.map((step, index) => (
             <li key={step.text} className="flex gap-3">
-              <span className="tnum mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border border-line text-[12px] text-text-3">
+              <span className="tnum mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border border-line text-[13px] text-text-3">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1">

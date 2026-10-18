@@ -55,7 +55,7 @@ export function ProjectStatusControl({
           aria-label={`Статус объекта: ${meta.label}. Изменить`}
           disabled={setStatus.isPending}
           className={cn(
-            "focus-ring inline-flex min-h-11 items-center gap-1 rounded-[var(--r-xs)] underline-offset-2 hover:underline lg:min-h-0",
+            "focus-ring inline-flex min-h-12 items-center gap-1 rounded-[var(--r-xs)] underline-offset-2 hover:underline lg:min-h-0",
             textTone[meta.tone],
           )}
         >
@@ -68,7 +68,7 @@ export function ProjectStatusControl({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[220px]">
-        <DropdownMenuLabel className="text-[12px] font-normal text-text-3">
+        <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
           Сменить статус объекта
         </DropdownMenuLabel>
         {next.map((status) => (

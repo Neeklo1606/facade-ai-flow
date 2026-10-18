@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { HardHat, PackageCheck, Undo2 } from "lucide-react";
+import { FileSpreadsheet, HardHat, PackageCheck, Undo2 } from "lucide-react";
 import {
   CountPill,
   EmptyState,
@@ -13,12 +14,18 @@ import { ScreenGate, ScreenSkeleton } from "@/components/common/ScreenStates";
 import { PageCaption } from "@/components/layout/PageActions";
 import { Button } from "@/components/ui/button";
 import { useToday } from "@/api/today";
+import { useCanWrite } from "@/api/access";
 import { useDirectory } from "@/api/directory";
 import { queries } from "@/api/queries";
 import { prefetch } from "@/api/prefetch";
 import { deliveryStatusLabel, reportStatusLabel } from "@/contracts";
-import { fmtDate, fmtNum, plural } from "@/lib/format";
+import { fmtDate, metaLine, shortName, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
+import { AmbientField } from "@/components/gaika";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
+import { recordAction } from "@/lib/guide/telemetry";
+import { saveShiftFile, useShift } from "@/api/capture";
+import { toast } from "@/lib/toast";
 import { useProjectId } from "@/lib/project-scope";
 import type { TodayDelivery, TodayReturn, TodayWork } from "@/api/types";
 
@@ -35,7 +42,7 @@ export const Route = createFileRoute("/today")({
   },
   head: () => ({
     meta: [
-      { title: "Сегодня — neeklo FieldOps" },
+      { title: "Сегодня — гайка" },
       {
         name: "description",
         content: "Смена на площадке: что зафиксировано, какие поставки ждут и что вернули.",
@@ -60,14 +67,26 @@ function TodayPage() {
   const blocked = screen === "loading" || screen === "error" || screen === "forbidden";
   // Куда ведёт «Зафиксировать работу»: объект из чипа, иначе первый доступный
   const target = projectId ?? today.projects[0]?.project.id ?? null;
+  /*
+   * Отчёт за смену заводят прораб, ПТО и руководитель; директору матрица даёт отчёты только
+   * на чтение (ADR-012). Экран ему открыт — смену видно, — а кнопка записи вела бы в форму,
+   * которую он не отправит: кнопка без действия хуже отсутствующей (ADR-015).
+   * Это удобство, а не защита: право всё равно проверяется на сервере.
+   */
+  const canRecord = useCanWrite("field-reports") && target !== null;
 
   return (
     <>
+      {/*
+        Цветовое поле ГАЙКИ (дизайн-система, раздел 8): единственный большой градиент кадра.
+        Оно же показывает состояние разбора, когда разбор появится в G3.
+      */}
+      <AmbientField className="-mx-[var(--content-pad)] -mt-4" />
       <PageHeader
         title="Сегодня"
         actions={
           // На десктопе полосы над панелью нет: главное действие живёт в шапке экрана
-          target ? (
+          canRecord ? (
             <Button variant="accent" asChild>
               <Link
                 to="/projects/$id/field-reports"
@@ -127,27 +146,33 @@ function TodayPage() {
             )}
           </WidgetCard>
 
-          <WidgetCard>
-            <WidgetCardHeader
-              level={2}
-              icon={PackageCheck}
-              title="Ожидаются поставки"
-              hint="по дате прибытия"
-              aside={<CountPill>{fmtNum(today.deliveries.length)}</CountPill>}
-            />
-            {today.deliveries.length ? (
-              <ul className="mt-2 divide-y divide-line">
-                {today.deliveries.map((delivery) => (
-                  <DeliveryRow key={delivery.id} delivery={delivery} />
-                ))}
-              </ul>
-            ) : (
-              <EmptyState
-                title="Поставок в пути нет"
-                description="Здесь появятся поставки, по которым выбран поставщик и назначена дата."
+          {/* Сводка смены и файл результата (ADR-037, сценарий 1) */}
+          {target ? <ShiftCard projectId={target} date={today.now.slice(0, 10)} /> : null}
+
+          {/* Поставки — модуль за флагом legacy_modules (ADR-034, п. 4) */}
+          {legacyModulesEnabled() && (
+            <WidgetCard>
+              <WidgetCardHeader
+                level={2}
+                icon={PackageCheck}
+                title="Ожидаются поставки"
+                hint="по дате прибытия"
+                aside={<CountPill>{fmtNum(today.deliveries.length)}</CountPill>}
               />
-            )}
-          </WidgetCard>
+              {today.deliveries.length ? (
+                <ul className="mt-2 divide-y divide-line">
+                  {today.deliveries.map((delivery) => (
+                    <DeliveryRow key={delivery.id} delivery={delivery} />
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  title="Поставок в пути нет"
+                  description="Здесь появятся поставки, по которым выбран поставщик и назначена дата."
+                />
+              )}
+            </WidgetCard>
+          )}
 
           {today.returned.length > 0 && (
             <WidgetCard>
@@ -168,19 +193,10 @@ function TodayPage() {
         </div>
       </ScreenGate>
 
-      {!blocked && target && (
-        <MobileActionBar>
-          <Button variant="accent" asChild>
-            <Link
-              to="/projects/$id/field-reports"
-              params={{ id: target }}
-              search={{ new: "report" }}
-            >
-              <HardHat className="size-4" /> Зафиксировать работу
-            </Link>
-          </Button>
-        </MobileActionBar>
-      )}
+      {/*
+        Закреплённой «Зафиксировать работу» больше нет: главное действие экрана — голосовая
+        капсула панели, две главные кнопки на одном экране спорили (правило 1 этапа D).
+      */}
     </>
   );
 }
@@ -197,15 +213,14 @@ function WorkRow({ work }: { work: TodayWork }) {
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-card-title">{work.workType}</div>
-            {/* Метаданные чипами, а не строкой с точками (ADR-028, п. 5) */}
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Chip>{work.zoneName}</Chip>
-              <Chip>{work.projectName}</Chip>
-            </div>
+            {/* Метаданные одной строкой (правило 8 этапа D; заменяет чипы ADR-028, п. 5) */}
+            <p className="mt-1 text-caption text-text-2">
+              {metaLine(work.zoneName, shortName(work.projectName))}
+            </p>
           </div>
           <div className="shrink-0 text-right">
             <div className="tnum text-[20px] leading-none font-semibold">{fmtNum(work.qty)}</div>
-            <div className="mt-1 text-[12px] text-text-3">{work.unit}</div>
+            <div className="mt-1 text-[13px] text-text-3">{work.unit}</div>
           </div>
         </div>
         <div className="mt-2">
@@ -268,10 +283,7 @@ function ReturnRow({ row }: { row: TodayReturn }) {
       >
         <div className="text-card-title">{row.workType}</div>
         <p className="mt-1 line-clamp-2 text-[13px] leading-[1.45] text-text-2">{row.summary}</p>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <Chip>{row.zoneName}</Chip>
-          <Chip>{fmtDate(row.date)}</Chip>
-        </div>
+        <p className="mt-1 text-caption text-text-2">{metaLine(row.zoneName, fmtDate(row.date))}</p>
       </Link>
     </li>
   );
@@ -279,8 +291,78 @@ function ReturnRow({ row }: { row: TodayReturn }) {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[12px] leading-none text-text-2">
+    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
       {children}
     </span>
+  );
+}
+
+/**
+ * Сводка смены: что принято за день и файл результата (ADR-037, сценарий 1).
+ *
+ * В сводку идут только принятые отчёты — неподтверждённое в ней не появляется. Разные единицы
+ * не складываются: итог считается по каждой отдельно. Люди стоят отдельным показателем,
+ * а не прибавляются к объёму.
+ */
+function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
+  const shift = useShift(projectId, date, true);
+  const [saving, setSaving] = useState(false);
+  const summary = shift.data;
+
+  const download = () => {
+    setSaving(true);
+    void saveShiftFile({ projectId, date: summary?.date ?? date }, "shift")
+      .then(() => recordAction("downloadShift"))
+      .catch((error: Error) => toast.error("Файл не собрался", { description: error.message }))
+      .finally(() => setSaving(false));
+  };
+
+  return (
+    <WidgetCard>
+      <WidgetCardHeader
+        level={2}
+        icon={FileSpreadsheet}
+        title="Сводка смены"
+        hint={
+          summary && summary.date !== date
+            ? `последняя смена с принятыми записями: ${fmtDate(summary.date)}`
+            : "только принятые записи"
+        }
+        aside={
+          summary && summary.rows.length > 0 ? (
+            <CountPill>{fmtNum(summary.rows.length)}</CountPill>
+          ) : null
+        }
+      />
+      {summary && summary.rows.length > 0 ? (
+        <>
+          <dl className="divide-line mt-2 divide-y">
+            {summary.totals.map((total) => (
+              <div key={total.unit} className="flex items-baseline justify-between gap-3 py-2.5">
+                <dt className="text-text-2 text-[13px]">Принято, {total.unit}</dt>
+                <dd className="tnum text-card-title">{fmtNum(total.qty)}</dd>
+              </div>
+            ))}
+            <div className="flex items-baseline justify-between gap-3 py-2.5">
+              <dt className="text-text-2 text-[13px]">Людей на сменах</dt>
+              <dd className="tnum text-card-title">{fmtNum(summary.people)}</dd>
+            </div>
+          </dl>
+          {summary.pending > 0 ? (
+            <p className="text-caption text-text-3 mt-2">
+              Ещё {fmtNum(summary.pending)} на проверке: в сводку они попадут после приёмки.
+            </p>
+          ) : null}
+          <Button variant="secondary" className="mt-3" onClick={download} disabled={saving}>
+            <FileSpreadsheet className="size-4" /> Скачать Excel
+          </Button>
+        </>
+      ) : (
+        <EmptyState
+          title="За смену ещё нечего сводить"
+          description="В сводку попадают принятые записи: примите факт в «Проверке», и он появится здесь."
+        />
+      )}
+    </WidgetCard>
   );
 }

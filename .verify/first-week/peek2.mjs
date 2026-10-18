@@ -7,19 +7,28 @@ await loginByPhone(page, new URL(url).origin, process.env.PHONE ?? "+79216552784
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(1500);
 if (action) {
-  await page.getByRole("button", { name: new RegExp(action) }).first().click();
+  await page
+    .getByRole("button", { name: new RegExp(action) })
+    .first()
+    .click();
   await page.waitForTimeout(1200);
 }
 console.log("URL:", page.url());
 console.log("--- поля формы:");
 for (const el of await page.locator("input, select, textarea").all()) {
   const id = await el.getAttribute("id");
-  const label = id ? await page.locator(`label[for="${id}"]`).innerText().catch(() => "") : "";
+  const label = id
+    ? await page
+        .locator(`label[for="${id}"]`)
+        .innerText()
+        .catch(() => "")
+    : "";
   console.log(
     " •",
-    (await el.evaluate((n) => n.tagName.toLowerCase())),
+    await el.evaluate((n) => n.tagName.toLowerCase()),
     (await el.getAttribute("type")) ?? "",
-    "| метка:", (label || (await el.getAttribute("aria-label")) || "—").replace(/\n/g, " ").slice(0, 60),
+    "| метка:",
+    (label || (await el.getAttribute("aria-label")) || "—").replace(/\n/g, " ").slice(0, 60),
   );
 }
 console.log("--- кнопки диалога:");

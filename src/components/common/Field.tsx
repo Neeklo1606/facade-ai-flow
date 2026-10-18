@@ -31,7 +31,7 @@ export function Field({
     <div className={cn("min-w-0", className)}>
       <label
         htmlFor={children.props.id ?? id}
-        className="mb-2 block text-[12px] leading-[1.4] font-medium text-text-2"
+        className="mb-2 block text-[13px] leading-[1.4] font-medium text-text-2"
       >
         {label}
       </label>
@@ -39,7 +39,7 @@ export function Field({
       {note && (
         <p
           id={noteId}
-          className={cn("mt-2 text-[12px] leading-[1.4]", error ? "text-danger" : "text-text-3")}
+          className={cn("mt-2 text-[13px] leading-[1.4]", error ? "text-danger" : "text-text-3")}
         >
           {note}
         </p>

@@ -92,7 +92,7 @@ export function RevisionChanges({
             type="button"
             aria-expanded={showResolved}
             onClick={() => setShowResolved((value) => !value)}
-            className="focus-ring flex min-h-11 w-full items-center gap-2 px-4 text-left text-[13px] text-text-secondary hover:text-text-primary lg:min-h-9"
+            className="focus-ring flex min-h-12 w-full items-center gap-2 px-4 text-left text-[13px] text-text-secondary hover:text-text-primary lg:min-h-9"
           >
             <ChevronDown
               className={cn("size-4 transition-fast", !showResolved && "-rotate-90")}

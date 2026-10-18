@@ -19,6 +19,11 @@ export interface GuideStep {
   to?: (projectId: string) => string;
   /** Экран, на котором шаг выполняется: пока посетитель не там, проводка предлагает перейти */
   on?: string[];
+  /**
+   * Чьими глазами делается шаг (канон демо, ADR-038): если роль вкладки другая, полоса шагов
+   * предлагает переключиться в одно касание, данные вкладки сохраняются.
+   */
+  role?: EmployeeRole;
   doneOn: { screen?: string[]; action?: string[] };
 }
 
@@ -251,6 +256,124 @@ const director: Scenario = {
   ],
 };
 
+/* ---------- Канон демо 18.10 (ADR-038): три сценария одной цепочкой ---------- */
+
+const canonShift: Scenario = {
+  id: "canon-shift",
+  title: "Смена → учёт",
+  steps: [
+    {
+      id: "open",
+      text: "Нажмите голосовую капсулу внизу экрана: здесь говорят с объекта.",
+      target: "nav-plus",
+      role: "foreman",
+      to: () => "/capture?scenario=demo-shift",
+      doneOn: { screen: ["capture"] },
+    },
+    {
+      id: "say",
+      text: "Удерживайте капсулу и прочитайте пример вслух или нажмите «Показать без микрофона».",
+      note: "Расшифровка и разбор в демонстрации подготовлены заранее: это написано рядом с результатом.",
+      role: "foreman",
+      on: ["capture"],
+      to: () => "/capture?scenario=demo-shift",
+      doneOn: { action: ["extract"] },
+    },
+    {
+      id: "confirm",
+      text: "Коснитесь любого значения, чтобы увидеть фразу-источник, и нажмите «Верно».",
+      role: "foreman",
+      on: ["capture"],
+      to: () => "/capture?scenario=demo-shift",
+      doneOn: { action: ["confirmDraft"] },
+    },
+    {
+      id: "today",
+      text: "Откройте «Сегодня»: отчёт на проверке, в сводку он попадёт после решения ПТО.",
+      role: "foreman",
+      to: () => "/today",
+      doneOn: { screen: ["today"] },
+    },
+  ],
+};
+
+const canonDocument: Scenario = {
+  id: "canon-document",
+  title: "ПТО → документ",
+  steps: [
+    {
+      id: "queue",
+      text: "Откройте «Проверку» глазами ПТО: первым стоит отчёт прораба из записи.",
+      role: "pto",
+      to: () => "/check",
+      doneOn: { screen: ["check"] },
+    },
+    {
+      id: "accept",
+      text: "Примите отчёт или исправьте объём: принятый объём вводит человек.",
+      role: "pto",
+      on: ["check"],
+      to: () => "/check",
+      doneOn: { action: ["reviewReport"] },
+    },
+    {
+      id: "files",
+      text: "Скачайте сводку смены и черновик ведомости: это настоящие файлы Excel.",
+      note: "Ведомость подписана «Черновик, не исполнительная документация».",
+      role: "pto",
+      on: ["check"],
+      to: () => "/check",
+      doneOn: { action: ["downloadStatement"] },
+    },
+  ],
+};
+
+const canonSupply: Scenario = {
+  id: "canon-supply",
+  title: "Объект → снабжение",
+  steps: [
+    {
+      id: "say",
+      text: "Скажите о нехватке материала или нажмите «Показать без микрофона», затем «Верно».",
+      role: "foreman",
+      to: () => "/capture?scenario=demo-supply",
+      doneOn: { action: ["confirmDraft"] },
+    },
+    {
+      id: "decide",
+      text: "Глазами снабжения примите заявку сдвигом или отклоните с причиной.",
+      note: "Ничего не заказывается автоматически: статус меняет человек.",
+      role: "supply",
+      to: () => "/inbox",
+      doneOn: { action: ["decideMaterialRequest"] },
+    },
+    {
+      id: "status",
+      text: "Вернитесь к прорабу: во «Входящих» виден статус его заявки.",
+      role: "foreman",
+      to: () => "/inbox",
+      doneOn: { screen: ["inbox"] },
+    },
+  ],
+};
+
+/** Порядок показа: цепочка на одном объекте, финал после третьего (ADR-038) */
+export const CANON_SCENARIOS: readonly Scenario[] = [canonShift, canonDocument, canonSupply];
+
+/** Следующий сценарий канона; null — это был последний, впереди финал */
+export function nextCanon(id: string | null): Scenario | null {
+  const index = CANON_SCENARIOS.findIndex((item) => item.id === id);
+  return index >= 0 ? (CANON_SCENARIOS[index + 1] ?? null) : null;
+}
+
+/** Персонажи ролей канона в данных демонстрации */
+export const CANON_PERSONA: Partial<Record<EmployeeRole, string>> = {
+  foreman: "e-gareev",
+  pto: "e-volkova",
+  supply: "e-dorohov",
+  manager: "e-sokolov",
+};
+
 const byRole: Record<EmployeeRole, Scenario> = {
   supply,
   manager,
@@ -262,10 +385,24 @@ const byRole: Record<EmployeeRole, Scenario> = {
   worker: foreman,
 };
 
-export function scenarioFor(role: EmployeeRole): Scenario {
-  return byRole[role];
+/**
+ * Сценарий роли при выборе «самому». С канона 18.10 роль начинает свой сценарий канона;
+ * прежние сценарии ролей остаются в коде и открываются с флагом `legacy_modules`.
+ */
+const canonByRole: Partial<Record<EmployeeRole, Scenario>> = {
+  foreman: canonShift,
+  pto: canonDocument,
+  supply: canonSupply,
+  manager: canonDocument,
+};
+
+export function scenarioFor(role: EmployeeRole, legacy = false): Scenario {
+  return legacy ? byRole[role] : (canonByRole[role] ?? byRole[role]);
 }
 
 export function scenarioById(id: string | null): Scenario | null {
-  return [supply, manager, pto, foreman, director].find((item) => item.id === id) ?? null;
+  return (
+    [...CANON_SCENARIOS, supply, manager, pto, foreman, director].find((item) => item.id === id) ??
+    null
+  );
 }

@@ -15,6 +15,13 @@ export interface GuideState {
   status: Record<string, "done" | "skipped">;
   collapsed: boolean;
   closed: boolean;
+  /** Пройденные сценарии канона: по ним показывается финал (ADR-038) */
+  finished: string[];
+  /**
+   * Цепочка данных показа: отчёт из сценария 1 идёт в «Проверку» сценария 2, заявка
+   * из сценария 3 — снабжению. Хранится во вкладке вместе с данными демонстрации.
+   */
+  chain: { reportId?: string; requestId?: string };
 }
 
 const initial: GuideState = {
@@ -23,6 +30,8 @@ const initial: GuideState = {
   status: {},
   collapsed: false,
   closed: false,
+  finished: [],
+  chain: {},
 };
 
 let state: GuideState = initial;
@@ -90,7 +99,33 @@ export function markRoleChosen() {
 
 export function startScenario(scenarioId: string) {
   load();
-  commit({ ...initial, scenarioId });
+  // Цепочка и пройденные сценарии переживают переход к следующему сценарию показа
+  commit({ ...initial, scenarioId, finished: state.finished, chain: state.chain });
+}
+
+/** Отметить сценарий пройденным: финал показа знает, что осталось */
+export function finishScenario(scenarioId: string) {
+  load();
+  if (state.finished.includes(scenarioId)) return;
+  commit({ ...state, finished: [...state.finished, scenarioId] });
+}
+
+/** Запомнить звено цепочки: что создано в этой вкладке и где его искать дальше */
+export function setChain(part: GuideState["chain"]) {
+  load();
+  commit({ ...state, chain: { ...state.chain, ...part } });
+}
+
+/** Начать показ с экрана входа: роль не выбрана, шаги и цепочка пусты */
+export function restartShow() {
+  load();
+  roleChosen = false;
+  try {
+    window.sessionStorage.removeItem(ROLE_CHOSEN_KEY);
+  } catch {
+    // см. load()
+  }
+  commit({ ...initial });
 }
 
 export function currentStep(from: GuideState = state): GuideStep | null {
@@ -138,3 +173,44 @@ export function closeGuide() {
 export function reopenGuide() {
   commit({ ...state, closed: false, collapsed: false });
 }
+
+/** Сброс показа (ADR-038): шаги и цепочка начинаются заново, сценарий остаётся выбранным */
+export function resetGuideProgress() {
+  load();
+  const first = state.scenarioId?.startsWith("canon-") ? "canon-shift" : state.scenarioId;
+  commit({ ...initial, scenarioId: first });
+}
+
+/** Состояние показа вне React: обработчики телеметрии читают его в момент события */
+export function getGuideState(): GuideState {
+  load();
+  return state;
+}
+
+/**
+ * Канон показа (ADR-038): действие засчитывает ближайший подходящий шаг, и показ идёт сам —
+ * без «Далее» после каждого шага. Шаги до него, если их сделали раньше, тоже засчитываются.
+ */
+export function completeThrough(index: number) {
+  const scenario = scenarioById(state.scenarioId);
+  if (!scenario || index < state.stepIndex) return;
+  const status = { ...state.status };
+  for (let i = state.stepIndex; i <= index; i++) {
+    const step = scenario.steps[i];
+    if (!step || status[step.id]) continue;
+    status[step.id] = "done";
+    record({ t: "step", scenario: state.scenarioId ?? "", step: step.id, status: "done" });
+  }
+  commit({ ...state, status, stepIndex: Math.min(index + 1, scenario.steps.length) });
+}
+
+/*
+ * Выбор на экране входа (D3): пока плитка или роль ведут на свой экран, корень `/` не должен
+ * перенаправлять на рабочий экран роли. Переменная модуля, а не состояние компонента:
+ * при смене персоны оболочка перемонтируется, и состояние компонента терялось бы.
+ */
+let entering = false;
+export const setEntering = (value: boolean) => {
+  entering = value;
+};
+export const isEntering = () => entering;

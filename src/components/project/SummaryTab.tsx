@@ -257,7 +257,7 @@ function DocumentationBlock({ projectId, overview, scope, onSource }: Props) {
               { label: "Проверено", value: latest.verified },
             ].map((item) => (
               <div key={item.label} className="bg-surface px-3 py-2.5">
-                <dt className="truncate text-[11px] text-text-muted">{item.label}</dt>
+                <dt className="truncate text-[13px] text-text-muted">{item.label}</dt>
                 <dd className="tnum mt-0.5 text-[18px] font-semibold">{fmtNum(item.value)}</dd>
               </div>
             ))}
@@ -334,7 +334,7 @@ function MaterialsBlock({ projectId, overview, scope }: Props) {
               className="grid grid-cols-[minmax(0,172px)_minmax(0,1fr)_88px] items-center gap-3"
             >
               <span className="flex min-w-0 items-center gap-2 text-[13px] text-text-secondary">
-                <span className="mono w-3 shrink-0 text-[11px] text-text-muted">{index + 1}</span>
+                <span className="mono w-3 shrink-0 text-[13px] text-text-muted">{index + 1}</span>
                 <span className="truncate">{stage.label}</span>
               </span>
               <div className="h-5 overflow-hidden rounded-[var(--r-xs)] bg-subtle">

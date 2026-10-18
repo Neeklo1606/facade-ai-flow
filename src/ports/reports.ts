@@ -11,6 +11,7 @@ import {
   type ProjectDecision,
   type Source,
 } from "@/contracts";
+import type { ShiftSummary } from "@/domain/shift";
 import type { Actor } from "./common";
 
 /**
@@ -44,9 +45,68 @@ export const createReportInput = z.object({
   headcount: z.number().int().min(0).max(200),
   summary: z.string().min(3).max(600),
   issue: z.string().max(300).optional(),
+  /**
+   * Запись, из которой сделан отчёт (ADR-040, п. 3). Есть — отчёт ссылается на неё, и ПТО
+   * видит фразу прораба; нет — отчёт заведён руками, источник создаётся ручной.
+   */
+  sourceId: z.string().min(1).optional(),
 });
 
 export type CreateReportInput = z.infer<typeof createReportInput>;
+
+/** Отмена созданного в окне «Отменить» (ADR-040, п. 4) */
+export const retractInput = z.object({ id: z.string().min(1) });
+
+export type RetractInput = z.infer<typeof retractInput>;
+
+/**
+ * Запись факта с площадки (ADR-036): голос, текст и метки фото. Файла записи продукт
+ * не хранит — сохраняется источник с текстом и материалы с метками времени.
+ *
+ * `captureKey` создаёт клиент. Повтор отправки с тем же ключом возвращает тот же источник
+ * и `repeated: true`: обрыв сети на отправке не должен оставлять дубль (ADR-036, п. 4).
+ */
+export const capturePhoto = z.object({
+  caption: z.string().trim().max(200),
+  takenAt: z.string().datetime({ local: true, offset: true }),
+});
+
+export const captureInput = z.object({
+  projectId: z.string().min(1),
+  captureKey: z.string().min(8).max(64),
+  /** Расшифровка записи или то, что человек написал руками */
+  text: z.string().trim().min(1).max(4000),
+  kind: z.enum(["voice", "text"]),
+  /** Длительность записи в миллисекундах; null — факт пришёл текстом */
+  durationMs: z.number().int().nonnegative().nullable().default(null),
+  /** Метки фото: до десяти снимков за запись */
+  photos: z.array(capturePhoto).max(10).default([]),
+});
+
+export type CaptureInput = z.input<typeof captureInput>;
+
+export const captureResult = z.object({
+  source: sources,
+  evidence: z.array(evidence),
+  /** Отправка с этим ключом уже проходила: дубль не создан */
+  repeated: z.boolean(),
+});
+
+export interface CaptureResult {
+  source: Source;
+  evidence: Evidence[];
+  repeated: boolean;
+}
+
+/** Сводка смены и её файлы (ADR-037, сценарий 1 и 2) */
+export const shiftInput = z.object({
+  projectId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u),
+  /** Нет принятых записей за эту дату — показать последнюю смену, где они есть (ADR-037) */
+  fallbackToLast: z.boolean().optional(),
+});
+
+export type ShiftInput = z.infer<typeof shiftInput>;
 
 export const reportCard = z.object({
   report: fieldReport,
@@ -86,5 +146,15 @@ export interface ReportsPort {
   create(input: CreateReportInput, actor: Actor): Promise<FieldReport>;
   /** Приёмка или возврат на уточнение */
   review(input: ReviewReportInput, actor: Actor): Promise<void>;
+  /** Снять свой отчёт, пока он на проверке: отмена сразу после «Верно» (ADR-040, п. 4) */
+  retract(input: RetractInput, actor: Actor): Promise<void>;
+  /** Записать факт с площадки: источник, текст и метки фото (ADR-036) */
+  capture(input: CaptureInput, actor: Actor): Promise<CaptureResult>;
+  /** Сводка смены объекта: только принятые отчёты (ADR-037, инвариант 1) */
+  shift(input: ShiftInput): Promise<ShiftSummary>;
+  /** Сводка смены файлом Excel */
+  exportShift(input: ShiftInput): Promise<Blob>;
+  /** Черновик ведомости объёмов для ПТО: не исполнительная документация */
+  exportStatement(input: ShiftInput): Promise<Blob>;
   source(sourceId: string): Promise<SourceCard | null>;
 }

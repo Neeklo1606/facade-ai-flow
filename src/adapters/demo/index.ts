@@ -22,6 +22,7 @@ import { registryColumns, registryRows, type RegistryFilter } from "@/domain/reg
 import { timelineOf } from "@/domain/timeline";
 import { supplierStats } from "@/domain/catalog";
 import { buildXlsx } from "@/adapters/export/xlsx";
+import { shiftColumns, shiftSummary, statementColumns } from "@/domain/shift";
 import { createAgentPort } from "@/adapters/agent";
 import {
   ConflictError,
@@ -58,6 +59,23 @@ export interface DemoOptions {
 }
 
 const done = <T>(value: T) => Promise.resolve(value);
+
+/** Сводка смены из состояния демонстрации: объект, его отчёты, захватки и источники */
+function shiftOf(
+  s: DemoState,
+  input: { projectId: string; date: string; fallbackToLast?: boolean | undefined },
+) {
+  const project = s.projects.find((item) => item.id === input.projectId);
+  return shiftSummary({
+    projectName: project?.name ?? "Объект",
+    date: input.date,
+    ...(input.fallbackToLast === undefined ? {} : { fallbackToLast: input.fallbackToLast }),
+    reports: s.reports.filter((item) => item.projectId === input.projectId),
+    zones: s.zones.filter((item) => item.projectId === input.projectId),
+    sources: s.sources,
+    evidence: s.evidence,
+  });
+}
 /** Действие, которое проверяет правила и бросает ошибку порта: ошибка становится отказом промиса */
 const attempt = <T>(fn: () => T): Promise<T> => {
   try {
@@ -445,6 +463,21 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         );
       },
       create: (input, actor) => attempt(() => actions.createReport(input, actor.actorId)),
+      retract: (input, actor) => attempt(() => actions.retractReport(input.id, actor.actorId)),
+      capture: (input, actor) => attempt(() => actions.captureFact(input, actor.actorId)),
+      /*
+       * Сводка смены и её файлы (ADR-037). Считается из состояния вкладки тем же доменом,
+       * что и на сервере: цифры файла и экрана совпадают по построению.
+       */
+      shift: (input) => done(shiftOf(state(), input)),
+      exportShift: (input) => {
+        const summary = shiftOf(state(), input);
+        return buildXlsx(shiftColumns(), summary.rows);
+      },
+      exportStatement: (input) => {
+        const summary = shiftOf(state(), input);
+        return buildXlsx(statementColumns(), summary.rows);
+      },
       review: (input) => attempt(() => actions.reviewReport(input)),
       source: (sourceId) => {
         const s = state();
@@ -455,6 +488,40 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
           extractions: s.extractions.filter((item) => item.sourceId === sourceId),
           decisions: s.decisions.filter((item) => item.basisSourceId === sourceId),
         });
+      },
+    },
+
+    /* Заявки на материал (ADR-037, сценарий 3): очередь снабжения и решения по ней */
+    supply: {
+      requests: (projectId) => {
+        const s = state();
+        return done(
+          s.materialRequests
+            .filter((item) => !projectId || item.projectId === projectId)
+            .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)),
+        );
+      },
+      createRequest: (input, actor) =>
+        attempt(() => actions.createMaterialRequest(input, actor.actorId)),
+      decideRequest: (input, actor) =>
+        attempt(() => actions.decideMaterialRequest(input, actor.actorId)),
+      retractRequest: (input, actor) =>
+        attempt(() => actions.retractMaterialRequest(input.id, actor.actorId)),
+    },
+
+    /*
+     * Журнал обращений к модели (ADR-035, п. 3). Только добавление и чтение: это журнал,
+     * а не состояние, и редактировать его нечем.
+     */
+    processing: {
+      record: (input) => attempt(() => actions.recordProcessingJob(input)),
+      list: (projectId) => {
+        const s = state();
+        return done(
+          s.processingJobs
+            .filter((item) => !projectId || item.projectId === projectId)
+            .sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
+        );
       },
     },
 

@@ -46,11 +46,7 @@ export const Route = createFileRoute("/projects/$id/deliveries")({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [
-          {
-            title: `Снабжение: поставки — ${loaderData.project?.name ?? "Объект"} — neeklo FieldOps`,
-          },
-        ]
+      ? [{ title: `Снабжение: поставки — ${loaderData.project?.name ?? "Объект"} — гайка` }]
       : [],
   }),
   notFoundComponent: ProjectNotFound,

@@ -25,7 +25,7 @@ export function StepTarget({ to }: { to: string }) {
       <Link
         to={to}
         search={{}}
-        className="focus-ring mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-[var(--r-xs)] text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+        className="focus-ring mt-1 inline-flex min-h-12 items-center gap-1.5 rounded-[var(--r-xs)] text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
       >
         Открыть экран <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
       </Link>

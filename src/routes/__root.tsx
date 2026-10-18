@@ -9,17 +9,22 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type ReactNode, lazy, Suspense } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { reportClientError, startErrorReporting } from "@/lib/error-report";
 import { RolePicker } from "@/components/guide/RolePicker";
-import { GuideDock } from "@/components/guide/GuideDock";
 import { AccessBoundary } from "@/components/access/AccessBoundary";
+import { LegacyBoundary } from "@/components/access/LegacyBoundary";
 import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
 import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { BOOT_SPLASH_HTML, BOOT_SPLASH_SCRIPT } from "@/lib/boot-splash";
+// Кабинет компании — отдельная поверхность: его макет грузится, только когда открыт /office
+const OfficeLayout = lazy(() =>
+  import("@/components/layout/OfficeLayout").then((module) => ({ default: module.OfficeLayout })),
+);
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { prefetch } from "@/api/prefetch";
@@ -27,7 +32,7 @@ import { themeBootScript } from "@/lib/theme";
 import { previewMeta } from "@/lib/access";
 import { queries } from "@/api/queries";
 import { api } from "@/api/client";
-import { dataSource } from "@/api/config";
+import { dataSource, demoShow } from "@/api/config";
 import { useDemoEvents } from "@/api/demo-events";
 import { toast } from "@/lib/toast";
 
@@ -99,15 +104,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      // Умолчание — светлая тема (ADR-030, п. 1); дальше значение ставит applyTheme
-      { name: "theme-color", content: "#f1f3f4" },
+      // Умолчание демо — тёмная тема (ADR-041); дальше значение ставит applyTheme
+      { name: "theme-color", content: "#0a0908" },
       // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
       // картинка превью и запрет индексации общие (TASK-A5, п. 2 и 3)
       { title: previewMeta.title },
       { name: "description", content: previewMeta.description },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "neeklo FieldOps" },
+      { property: "og:site_name", content: "гайка" },
       { property: "og:locale", content: "ru_RU" },
       { property: "og:title", content: previewMeta.title },
       { property: "og:description", content: previewMeta.description },
@@ -115,7 +120,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: previewMeta.url.replace(/\/$/, "") + previewMeta.image },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "Экран «Обзор» neeklo FieldOps" },
+      { property: "og:image:alt", content: "Экран входа ГАЙКИ AI: три сценария показа" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: previewMeta.title },
       { name: "twitter:description", content: previewMeta.description },
@@ -126,7 +131,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
       },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
@@ -151,6 +156,17 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        {/* Экран до загрузки скриптов: в демо первый HTML иначе пуст (D5, Lighthouse) */}
+        {demoShow ? (
+          <>
+            <div
+              id="boot-splash"
+              aria-hidden="true"
+              dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_HTML }}
+            />
+            <script dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_SCRIPT }} />
+          </>
+        ) : null}
         {children}
         <Scripts />
       </body>
@@ -166,6 +182,10 @@ function RootComponent() {
   );
   // Ловушки необработанных ошибок ставятся один раз на всё приложение (TASK-A5, п. 5)
   useEffect(startErrorReporting, []);
+  // Приложение смонтировано: экран до загрузки скриптов уходит (D5)
+  useEffect(() => {
+    document.documentElement.dataset["booted"] = "";
+  }, []);
   // Телеметрия сессии: открытие экранов и точка выхода (ADR-010)
   useScreenTelemetry();
   /*
@@ -185,15 +205,28 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AppProvider initialPersona={sessionActorId}>
         <TooltipProvider delayDuration={200}>
-          <AppLayout>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            {/* Раздел, закрытый роли, открывается экраном «Нет доступа» (ADR-012) */}
-            <AccessBoundary>
-              <Outlet />
-            </AccessBoundary>
-          </AppLayout>
-          {/* Выбор роли при первом входе, проводка и обратная связь (ADR-010) */}
-          <GuideDock />
+          {pathname.startsWith("/office") ? (
+            /* Кабинет компании — отдельная поверхность со своим макетом (ADR-039) */
+            <Suspense fallback={null}>
+              <OfficeLayout>
+                <AccessBoundary>
+                  <Outlet />
+                </AccessBoundary>
+              </OfficeLayout>
+            </Suspense>
+          ) : (
+            <AppLayout>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              {/* Раздел, закрытый роли, открывается экраном «Нет доступа» (ADR-012) */}
+              {/* Модули прежнего контура за флагом legacy_modules (ADR-034) */}
+              <LegacyBoundary>
+                <AccessBoundary>
+                  <Outlet />
+                </AccessBoundary>
+              </LegacyBoundary>
+            </AppLayout>
+          )}
+          {/* Выбор роли при первом входе (ADR-010); полоса шагов живёт в оболочке (ADR-041) */}
           <RolePicker />
           {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}
           <Toaster position="top-center" offset={{ top: 64 }} mobileOffset={{ top: 64 }} />

@@ -8,12 +8,12 @@ export const Route = createFileRoute("/risks")({
   }),
   head: () => ({
     meta: [
-      { title: "Риски и отклонения — neeklo FieldOps" },
+      { title: "Риски и отклонения — гайка" },
       {
         name: "description",
         content: "Строгий формат: риск, причина, действие, ответственный, срок. Ничего размытого.",
       },
-      { property: "og:title", content: "Риски и отклонения — neeklo FieldOps" },
+      { property: "og:title", content: "Риски и отклонения — гайка" },
       {
         property: "og:description",
         content: "Строгий формат: риск, причина, действие, ответственный, срок. Ничего размытого.",

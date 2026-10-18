@@ -1,4 +1,6 @@
 import type {
+  ProcessingJobRow,
+  MaterialRequest,
   DeliveryAcceptance,
   DeliveryPhoto,
   DeliveryRemark,
@@ -78,6 +80,10 @@ export interface FixtureSnapshot {
   reports: FieldReport[];
   evidence: Evidence[];
   sources: Source[];
+  /** Журнал обращений к модели (ADR-035): строки как есть, представления у него нет */
+  processingJobs: ProcessingJobRow[];
+  /** Заявки на материал (ADR-037): строки как есть */
+  materialRequests: MaterialRequest[];
   extractions: Extraction[];
   events: ProjectEvent[];
 }
@@ -265,6 +271,8 @@ export function buildSnapshot(t: FixtureTables): FixtureSnapshot {
     })),
     evidence: t.evidence,
     sources: t.sources,
+    processingJobs: t.processing_jobs,
+    materialRequests: t.material_requests,
     extractions: t.extractions,
     extractionJobs: t.extraction_jobs,
     events: t.project_events,
@@ -380,6 +388,8 @@ export function snapshotTables(s: FixtureSnapshot): FixtureTables {
     delivery_remarks: s.remarks,
     project_decisions: s.decisions.map(({ link: _link, ...row }) => row),
     sources: s.sources,
+    processing_jobs: s.processingJobs,
+    material_requests: s.materialRequests,
     extractions: s.extractions,
     field_reports: s.reports.map(
       ({ date, issues: _issues, evidenceIds: _evidenceIds, ...row }) => ({

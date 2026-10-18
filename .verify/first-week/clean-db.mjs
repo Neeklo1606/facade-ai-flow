@@ -24,7 +24,9 @@ log.push(`корень адреса привёл на: ${page.url()}`);
 await shot("01-koren");
 
 // Шаг 2: попытка войти телефоном руководителя, которого в базе нет
-const phone = page.locator('input[type="tel"], input[name="phone"], input[inputmode="tel"]').first();
+const phone = page
+  .locator('input[type="tel"], input[name="phone"], input[inputmode="tel"]')
+  .first();
 if (await phone.count()) {
   await phone.fill("+7 921 655-27-84");
   await shot("02-telefon-vveden");

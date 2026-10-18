@@ -6,7 +6,10 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, loc
 await loginByPhone(page, new URL(url).origin, "+79216552784");
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(1500);
-await page.locator("input[type=file]").first().setInputFiles(".verify/first-week/nomenklatura.xlsx");
+await page
+  .locator("input[type=file]")
+  .first()
+  .setInputFiles(".verify/first-week/nomenklatura.xlsx");
 await page.waitForTimeout(1500);
 const dialog = page.getByRole("dialog");
 console.log("диалог:", await dialog.count());

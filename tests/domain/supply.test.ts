@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { can, MATRIX_ROLES } from "@/domain/access";
+import { LEGACY_KEY } from "@/lib/legacy-modules";
 import {
   activeNavKey,
   allNavItems,
   bottomNavFor,
   navItemsFor,
   sectionHref,
+  visibleFor,
 } from "@/lib/navigation";
 import { badgeCriticalTotal, badgeTotal } from "@/lib/badges";
 import {
@@ -27,6 +29,27 @@ const PROJECT = "p-korona";
 
 /** Параметр вкладки из адреса, собранного `sectionHref`: у поставщиков это `?view=suppliers` */
 const viewOf = (search: unknown) => String((search as Record<string, unknown>)["view"] ?? "");
+
+/**
+ * Флаг `legacy_modules` (ADR-034, п. 4) читается из `sessionStorage`, которого в прогоне
+ * домена нет: по умолчанию он выключен — так продукт видит зритель показа. Эти проверки
+ * включают его: так продукт видит заказчик, который снабжением уже пользуется, и так идут
+ * все сквозные прогоны.
+ */
+function withLegacy<T>(body: () => T): T {
+  const holder = globalThis as { window?: unknown };
+  const had = "window" in holder;
+  const before = holder.window;
+  holder.window = {
+    sessionStorage: { getItem: (key: string) => (key === LEGACY_KEY ? "1" : null) },
+  };
+  try {
+    return body();
+  } finally {
+    if (had) holder.window = before;
+    else delete holder.window;
+  }
+}
 
 describe("вкладки раздела", () => {
   test("вкладка показывается только роли, которой открыт её раздел прав", () => {
@@ -120,7 +143,7 @@ describe("счётчик раздела", () => {
   });
 });
 
-describe("раздел в меню и в панели", () => {
+describe("раздел в меню", () => {
   test("четырёх отдельных пунктов больше нет — вместо них один", () => {
     for (const key of ["materials", "procurement", "deliveries", "suppliers"]) {
       expect(
@@ -133,36 +156,37 @@ describe("раздел в меню и в панели", () => {
     expect(supply.label).toBe("Снабжение");
   });
 
-  test("пункт меню ведёт на дверь роли", () => {
+  test("без флага раздел уходит из меню вместе со своими модулями (ADR-034, п. 4)", () => {
+    const supply = allNavItems.find((item) => item.key === "supply")!;
     for (const role of MATRIX_ROLES) {
-      const item = navItemsFor(role).find((nav) => nav.key === "supply")!;
-      expect(item, role).toBeTruthy();
-      expect(item.section, role).toBe(supplyDoorFor(role)!.section);
+      // Иначе один пункт остался бы вместо четырёх убранных и вёл бы на перенаправление
+      expect(visibleFor(supply, role), role).toBe(false);
     }
   });
 
-  test("раздел, который уже стоит в панели, в шторке «Ещё» не повторяется", () => {
-    // У прораба позиция называется «Поставки», а пункт меню — «Снабжение» (ADR-031, п. 5)
-    const deliveries = bottomNavFor("foreman", PROJECT).find((item) => item.key === "deliveries")!;
-    expect(deliveries.navKey).toBe("supply");
-    for (const role of MATRIX_ROLES) {
-      const inPanel = new Set(bottomNavFor(role, PROJECT).map((item) => item.navKey ?? item.key));
-      const rest = navItemsFor(role).filter((item) => !inPanel.has(item.key));
-      expect(
-        rest.some((item) => item.key === "supply"),
-        role,
-      ).toBe(!inPanel.has("supply"));
-    }
+  test("с флагом пункт виден и ведёт на дверь роли", () => {
+    withLegacy(() => {
+      for (const role of MATRIX_ROLES) {
+        const item = navItemsFor(role).find((nav) => nav.key === "supply")!;
+        expect(item, role).toBeTruthy();
+        expect(item.section, role).toBe(supplyDoorFor(role)!.section);
+      }
+    });
   });
 
-  test("позиция панели ведёт в раздел и активна на любой его вкладке", () => {
-    const item = bottomNavFor("supply", PROJECT).find((nav) => nav.key === "supply")!;
-    expect(item.to).toBe(`/projects/${PROJECT}/procurement`);
-    for (const tab of SUPPLY_TABS) {
-      const href = sectionHref(PROJECT, tab.section);
-      expect(item.active(href.to, viewOf(href.search), ""), tab.id).toBe(true);
-    }
-    expect(item.active(`/projects/${PROJECT}/documents`, "", "")).toBe(false);
+  test("в панели раздела нет: он берётся из шторки «Ещё» (ADR-034, п. 1)", () => {
+    withLegacy(() => {
+      for (const role of MATRIX_ROLES) {
+        const inPanel = new Set(bottomNavFor(role, PROJECT).map((item) => item.key));
+        expect(inPanel.has("supply"), role).toBe(false);
+        // А значит он не потерян: шторка показывает разделы, которых в панели нет
+        const rest = navItemsFor(role).filter((item) => !inPanel.has(item.key));
+        expect(
+          rest.some((item) => item.key === "supply"),
+          role,
+        ).toBe(true);
+      }
+    });
   });
 });
 

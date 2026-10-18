@@ -135,7 +135,7 @@ export const SheetViewer = forwardRef<SheetViewerHandle, Props>(function SheetVi
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[color-mix(in_oklab,var(--bg-subtle)_70%,var(--bg-page))]">
-      <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-3">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-3">
         <div className="flex items-center gap-1">
           <Button
             size="icon"
@@ -175,7 +175,7 @@ export const SheetViewer = forwardRef<SheetViewerHandle, Props>(function SheetVi
           >
             <Minus className="size-4" />
           </Button>
-          <span className="tnum w-11 text-center text-caption text-text-secondary">
+          <span className="tnum w-12 text-center text-caption text-text-secondary">
             {Math.round(effectiveZoom * 100)}%
           </span>
           <Button

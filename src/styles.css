@@ -3,10 +3,12 @@
 @import "tw-animate-css";
 
 /*
- * EMBER — дизайн-система neeklo FieldOps.
- * Одна тёмная тема: глубина из пяти близких уровней, свет вместо теней, оранжевый акцент.
- * Фирменный градиент — только для главной метрики и свечения; на градиенте всегда зерно (.grain).
- * Витрина токенов — страница /design-system.
+ * Дизайн-система ГАЙКИ, версия 2 (docs/gaika/GAIKA_DESIGN_SYSTEM.md, решение ADR-033).
+ * Тёплая тёмная основа, оранжевый свет как состояние, воздух вместо линий.
+ * Развивает EMBER, а не заменяет: прежние имена токенов оставлены псевдонимами и держат
+ * значения ГАЙКИ, поэтому разметка экранов не правилась.
+ * Фирменный градиент --ember-gradient — только герой и одна главная карточка; на нём всегда
+ * зерно (.grain). Витрина токенов — страница /design-system, только в сборке с флагом.
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -40,23 +42,27 @@
   color-scheme: dark;
 
   /* Глубина. Пять уровней, разница минимальна */
-  --void: #0a0d10; /* фон окна */
-  --base: #11151a; /* оболочка приложения */
-  --surface: #171c22; /* карточки */
-  --surface-2: #20272e; /* вложенные блоки, строки при наведении */
-  --surface-3: #29323b; /* поповеры, выпадающие, активные состояния */
+  --void: #0a0908; /* фон окна: тёплый чёрный */
+  --base: #0f0d0c; /* оболочка приложения */
+  --surface: #131110; /* карточки, --bg-elevated ГАЙКИ */
+  --surface-2: #1b1816; /* вложенные блоки, --bg-raised ГАЙКИ */
+  --surface-3: #241f1c; /* поповеры, выпадающие, активные состояния */
+  --surface-glass: rgba(255, 244, 235, 0.05); /* стекло нижней панели и шторки */
 
   /* Линии почти не видны и слегка тёплые */
-  --line: rgba(255, 250, 242, 0.08);
-  --line-2: rgba(255, 250, 242, 0.14);
+  --line: rgba(255, 244, 235, 0.08);
+  --line-2: rgba(255, 244, 235, 0.14);
   --line-warm: rgba(217, 195, 171, 0.14);
 
   /* Текст */
-  --text: #f0f3f5;
-  --text-2: #9ca7b0;
-  /* Подписи. #646464 из исходной палитры не проходил WCAG AA (3,2:1 на --surface): поднято до 4,7:1 */
-  --text-3: #8e8e8e;
-  --text-4: #333333;
+  --text: #f7f3ef;
+  --text-2: #a8a099;
+  /*
+   * Подписи. Документ ГАЙКИ предлагает #6E6761: 3,18:1 на --surface-2, ниже WCAG AA.
+   * Оттенок сохранён, светлота поднята: 5,71:1 на --surface-2 и 6,43:1 на --void (ADR-033)
+   */
+  --text-3: #9a918a;
+  --text-4: #3a342f;
   --on-orange: #ffffff;
   /*
    * Текст поверх фирменного градиента. Градиент тёмный в обеих темах, поэтому эти два цвета
@@ -66,23 +72,31 @@
   --on-ember: #ffffff;
   --on-ember-2: #f0e4d8;
 
-  /* Бренд */
+  /* Свет. Оранжевый появляется на записи, главном действии и критическом сигнале */
   --orange: #ff7a45;
-  --orange-hot: #ff8b5c;
-  /* Заливка под белым текстом: на --orange белый 14px даёт 3,8:1, на --orange-strong — 5:1 (WCAG AA) */
-  --orange-strong: #c74300;
-  --orange-strong-hover: #b33c00;
-  --orange-deep: #c10801;
-  --orange-dim: rgba(232, 80, 2, 0.12);
-  --orange-line: rgba(232, 80, 2, 0.28);
+  --orange-hot: #ff8f63;
+  /* Заливка под белым текстом: на --orange белый даёт 2,59:1, на --orange-strong — 5,18:1 */
+  --orange-strong: #c2410c;
+  --orange-strong-hover: #a93809;
+  --orange-deep: #8f1d0b;
+  --orange-dim: rgba(255, 122, 69, 0.12);
+  --orange-line: rgba(255, 122, 69, 0.28);
   --sand: #d9c3ab;
   --sand-dim: rgba(217, 195, 171, 0.1);
 
-  /* Фирменный градиент. Только для главной метрики и свечения агента */
-  --ember: linear-gradient(135deg, #000000 0%, #c10801 38%, #f16001 68%, #d9c3ab 100%);
-  --ember-soft: linear-gradient(
+  /* Главная кнопка: тёплая белая капсула */
+  --pill-bg: #f7f3ef;
+  --pill-text: #0a0908;
+
+  /*
+   * Фирменный градиент: герой лендинга и одна главная карточка экрана. Единственный большой
+   * градиент в кадре. --ember-field — мягкое пятно свечения оболочки и ассистента.
+   * Имена разошлись с EMBER намеренно: в ГАЙКЕ --ember это цвет, а не градиент (ADR-033)
+   */
+  --ember-gradient: linear-gradient(135deg, #0a0908 0%, #8f1d0b 35%, #f16001 68%, #d9c3ab 100%);
+  --ember-field: linear-gradient(
     135deg,
-    rgba(193, 8, 1, 0.22) 0%,
+    rgba(143, 29, 11, 0.22) 0%,
     rgba(241, 96, 1, 0.18) 55%,
     rgba(217, 195, 171, 0.12) 100%
   );
@@ -91,12 +105,12 @@
    * Статусы. Приглушены под тёплый уголь: чистые неоновые оттенки на нём выглядят дёшево
    * (ADR-027, п. 1). Контраст как текста на всех трёх поверхностях выше WCAG AA
    */
-  --ok: #5fbf8a;
-  --ok-bg: rgba(95, 191, 138, 0.1);
-  --warn: #e0b464;
-  --warn-bg: rgba(224, 180, 100, 0.1);
-  --danger: #ef6b7c;
-  --danger-bg: rgba(239, 107, 124, 0.1);
+  --ok: #6fcf97;
+  --ok-bg: rgba(111, 207, 151, 0.1);
+  --warn: #f2b84b;
+  --warn-bg: rgba(242, 184, 75, 0.1);
+  --danger: #ff5a5f;
+  --danger-bg: rgba(255, 90, 95, 0.1);
   --info: #7aa7e8;
   --info-bg: rgba(122, 167, 232, 0.1);
 
@@ -104,19 +118,27 @@
   --lift-1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --lift-2: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.6);
   --lift-3: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 64px rgba(0, 0, 0, 0.75);
-  --glow-orange: 0 0 32px rgba(232, 80, 2, 0.28);
+  /* Свет это состояние: светится запись, главное действие и одна критичная карточка */
+  --glow-ember:
+    0 0 0 1px rgba(255, 122, 69, 0.3), 0 0 32px rgba(255, 122, 69, 0.28),
+    0 20px 70px rgba(241, 96, 1, 0.18);
+  --glow-sand: 0 0 36px rgba(217, 195, 171, 0.22);
+  --glow-risk: 0 0 28px rgba(255, 90, 95, 0.26);
+  --glow-orange: var(--glow-ember);
   --glow-soft: 0 0 80px rgba(241, 96, 1, 0.18);
 
-  /* Движение: меняются фон, граница, свечение, прозрачность и сдвиг до 2px */
+  /* Движение: 160-280 мс, та же кривая у всех переходов */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur: 160ms;
+  --dur-2: 280ms;
 
-  /* Радиусы */
-  --r-xs: 4px; /* плашки клавиш, мелкие метки */
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 8px;
-  --r-xl: 8px;
+  /* Радиусы ГАЙКИ: сетка 4 px, воздух вместо обводок */
+  --r-xs: 8px; /* плашки клавиш, мелкие метки, чипы */
+  --r-sm: 12px; /* кнопки, узкие элементы */
+  --r-md: 16px; /* поле ввода */
+  --r-lg: 24px; /* карточка */
+  --r-xl: 32px; /* большая панель, оболочка */
+  --r-sheet: 28px; /* шторка: радиус только сверху */
   --r-pill: 999px;
 
   /* Размеры оболочки */
@@ -126,7 +148,7 @@
   /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
   --bottom-nav-h: 64px;
   /* Отступ контента от краёв оболочки */
-  --content-pad: 16px;
+  --content-pad: 20px;
 
   /* Зерно: шум feTurbulence, накладывается поверх градиента */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -135,6 +157,18 @@
    * Семантические имена, на которые опираются экраны. Значения — только из EMBER выше:
    * экраны перекрашиваются без правок разметки.
    */
+  /* Имена ГАЙКИ (дизайн-система, раздел 4). Значения общие с псевдонимами EMBER выше */
+  --bg: var(--void);
+  --bg-elevated: var(--surface);
+  --line-strong: var(--line-2);
+  --ember: var(--orange);
+  --ember-hot: var(--orange-hot);
+  --ember-deep: var(--orange-deep);
+  --ember-soft: var(--orange-dim);
+  --sand-soft: var(--sand-dim);
+  --risk: var(--danger);
+  --risk-bg: var(--danger-bg);
+
   --bg-page: var(--void);
   --bg-shell: var(--base);
   --bg-app: var(--base);
@@ -191,44 +225,59 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --void: #f1f3f4;
-  --base: #f1f3f4;
+  --void: #f5f2ee;
+  --base: #f5f2ee;
   --surface: #ffffff;
-  --surface-2: #f1f3f4;
-  --surface-3: #e6eaed;
+  --surface-2: #ede8e2;
+  --surface-3: #e9e3dc;
+  --surface-glass: rgba(28, 24, 20, 0.04);
 
-  --line: rgba(20, 26, 30, 0.08);
-  --line-2: rgba(20, 26, 30, 0.16);
+  --line: rgba(28, 24, 20, 0.08);
+  --line-2: rgba(28, 24, 20, 0.16);
   --line-warm: rgba(158, 132, 104, 0.22);
 
-  --text: #14191d;
+  --text: #1c1814;
   /*
    * Второй уровень текста. #5D6870 из правок 16.10 давал 4,46:1 на янтарной плашке над
    * --surface-2 (12 px, норма 4,5) — поймала axe на закупках и поставщиках. Опущено до
    * 5,53:1 там и 6,9:1 на белом; ступень до --text-3 осталась видимой (ADR-030, «Границы»)
    */
-  --text-2: #4f5a62;
+  --text-2: #5a544c;
   /*
    * Подписи. #68757E из правок 16.10 давал 4,24:1 на --void и --surface-2 (#f1f3f4) — ниже
    * WCAG AA. Оттенок оставлен, светлота опущена: 5,58:1 на белом, 4,99:1 на #f1f3f4,
    * 4,60:1 на --surface-3. Поймала проверка axe на мобильных подписях (ADR-030, «Границы»)
    */
-  --text-3: #5c6a73;
-  --text-4: #c8d0d5;
+  --text-3: #655f57;
+  --text-4: #cbc3b9;
 
-  /* Текстом оранжевый должен читаться: #D94A04 давал 4,3:1 на белом, здесь 5,2:1 */
-  --orange: #d75a2a;
-  --orange-hot: #d94a04;
-  /* Заливка под белым текстом: на --orange белый 14px даёт 4,1:1, на --orange-strong — 5,3:1 */
+  /*
+   * Оранжевый как текст. Документ ГАЙКИ предлагает #D94A04: 3,50:1 на --surface-2, ниже AA.
+   * Оттенок сохранён, светлота опущена: 5,03:1 на --surface-2 и 6,13:1 на белом (ADR-033)
+   */
+  --orange: #9c3402;
+  --orange-hot: #ae3b02;
+  /* Заливка под белым текстом: на --orange-strong белый даёт 5,3:1 */
   --orange-strong: #bf4103;
   --orange-strong-hover: #a63803;
+  --orange-deep: #8f2d02;
   --orange-dim: rgba(217, 74, 4, 0.1);
   --orange-line: rgba(217, 74, 4, 0.3);
-  /* Песочный как текст: #9E8468 давал 3,5:1 на белом. Здесь 6,4:1, на своей плашке — 4,9:1 */
-  --sand: #6e5a48;
+  /* Песочный как текст: #9E8468 из документа давал 2,90:1 на --surface-2, здесь 6,0:1 и выше */
+  --sand: #5f4d3d;
   --sand-dim: rgba(158, 132, 104, 0.12);
 
-  --ember: linear-gradient(135deg, #1c1814 0%, #c10801 38%, #f16001 68%, #d9c3ab 100%);
+  /* Главная кнопка светлой темы: тёмная капсула */
+  --pill-bg: #1c1814;
+  --pill-text: #ffffff;
+
+  --ember-gradient: linear-gradient(135deg, #1c1814 0%, #8f1d0b 35%, #f16001 68%, #d9c3ab 100%);
+  --ember-field: linear-gradient(
+    135deg,
+    rgba(143, 29, 11, 0.1) 0%,
+    rgba(241, 96, 1, 0.08) 55%,
+    rgba(217, 195, 171, 0.06) 100%
+  );
 
   /*
    * Статусы. Оттенки палитры, притемнённые до WCAG AA как текст на всех трёх светлых
@@ -237,21 +286,31 @@
    * ловил axe на подписи «лучшее по итогу» в окне решения (находка независимой проверки).
    * Здесь 5,05:1 на --surface-3 и 6,23:1 на белом.
    */
-  --ok: #166f3b;
+  /*
+   * Статусы ГАЙКИ, притемнённые до AA. Считается не текст на поверхности, а текст на своей
+   * прозрачной плашке поверх поверхности: именно так статус и выглядит в интерфейсе, и именно
+   * это поймал axe на плашке «--info» после перехода на тёплые поверхности (ADR-033).
+   * Значения документа давали на плашке над --surface-3 от 3,99:1 до 4,36:1.
+   */
+  --ok: #115c31;
   --ok-bg: rgba(31, 138, 76, 0.1);
-  /* На собственной подложке (--warn-bg поверх светлой) #946208 давал 4,3:1 — здесь 5,2:1 */
-  --warn: #835606;
+  --warn: #6e4805;
   --warn-bg: rgba(168, 112, 10, 0.12);
-  --danger: #b32837;
+  --danger: #9e222f;
   --danger-bg: rgba(200, 48, 63, 0.1);
-  --info: #2f5db8;
+  --info: #254a94;
   --info-bg: rgba(47, 93, 184, 0.1);
 
   /* Тени вместо внутреннего света: на белом свет не виден */
   --lift-1: 0 1px 2px rgba(28, 24, 20, 0.05);
   --lift-2: 0 1px 2px rgba(28, 24, 20, 0.05), 0 4px 16px rgba(28, 24, 20, 0.06);
   --lift-3: 0 4px 16px rgba(28, 24, 20, 0.06), 0 24px 48px rgba(28, 24, 20, 0.1);
-  --glow-orange: 0 0 24px rgba(217, 74, 4, 0.18);
+  --glow-ember:
+    0 0 0 1px rgba(174, 59, 2, 0.22), 0 0 24px rgba(217, 74, 4, 0.18),
+    0 16px 48px rgba(28, 24, 20, 0.08);
+  --glow-sand: 0 0 24px rgba(158, 132, 104, 0.2);
+  --glow-risk: 0 0 20px rgba(179, 40, 55, 0.22);
+  --glow-orange: var(--glow-ember);
   --glow-soft: 0 8px 32px rgba(28, 24, 20, 0.07);
 
   /* Инверсный текст: на светлой теме это белый по тёмному, а не наоборот */
@@ -279,13 +338,16 @@
 }
 
 @theme inline {
-  --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Коды, номера и маркеры до двух слов (дизайн-система, раздел 5) */
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Menlo", monospace;
 
   --radius-sm: var(--r-xs);
   --radius-md: var(--r-sm);
   --radius-lg: var(--r-md);
   --radius-xl: var(--r-lg);
   --radius-2xl: var(--r-xl);
+  --radius-sheet: var(--r-sheet);
 
   --color-void: var(--void);
   --color-base: var(--base);
@@ -311,6 +373,15 @@
   --color-orange-line: var(--orange-line);
   --color-sand: var(--sand);
   --color-sand-dim: var(--sand-dim);
+  --color-ember: var(--ember);
+  --color-ember-hot: var(--ember-hot);
+  --color-ember-deep: var(--ember-deep);
+  --color-ember-soft: var(--ember-soft);
+  --color-risk: var(--risk);
+  --color-risk-bg: var(--risk-bg);
+  --color-pill: var(--pill-bg);
+  --color-pill-text: var(--pill-text);
+  --color-surface-glass: var(--surface-glass);
 
   --color-background: var(--bg-page);
   --color-foreground: var(--text);
@@ -408,8 +479,8 @@
     margin: 0;
     background: var(--void);
     color: var(--text);
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 17px;
+    line-height: 24px;
     font-weight: 400;
     /* Числа моноширинные везде без исключений */
     font-variant-numeric: tabular-nums;
@@ -425,6 +496,13 @@
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: 0;
+  }
+  /* Десктоп: основной текст плотнее, как в шкале ГАЙКИ (15/22) */
+  @media (min-width: 1024px) {
+    body {
+      font-size: 15px;
+      line-height: 22px;
+    }
   }
   /*
    * В Inter признак tnum расширяет не только цифры, но и дефис, двоеточие и косую черту
@@ -484,80 +562,126 @@
 }
 
 /* ---------------------------------------------------------------- Типографика */
-/* Трекинг: −0.025em от 28px, −0.015em от 20px, 0 ниже */
+/*
+ * Шкала ГАЙКИ (дизайн-система, раздел 5). Трекинг −0.02em от 32 px, 0 ниже.
+ * Служебный текст не мельче 13 px. Вес 400, 500, 600; тонких начертаний нет.
+ */
 
 @utility text-greeting {
   font-variant-numeric: proportional-nums;
-  font-size: 28px;
-  line-height: 1.05;
+  font-size: 40px;
+  line-height: 44px;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 @utility text-page-title {
   font-variant-numeric: proportional-nums;
-  font-size: 28px;
-  line-height: 1.15;
+  font-size: 32px;
+  line-height: 36px;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
+  @media (min-width: 1024px) {
+    font-size: 40px;
+    line-height: 44px;
+  }
+}
+/* Крупная цифра: сводка, показатель объекта */
+@utility text-metric {
+  font-variant-numeric: tabular-nums;
+  font-size: 48px;
+  line-height: 52px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 @utility text-section-title {
   font-variant-numeric: proportional-nums;
-  font-size: 20px;
-  line-height: 1.25;
+  font-size: 24px;
+  line-height: 32px;
   font-weight: 600;
   letter-spacing: 0;
 }
+/* Крупный читаемый текст: подсказка «Скажите, например», расшифровка — её читают вслух */
+@utility text-lead {
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
 @utility text-card-title {
   font-variant-numeric: proportional-nums;
-  font-size: 18px;
-  line-height: 1.35;
+  font-size: 20px;
+  line-height: 28px;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-list {
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 17px;
+  line-height: 24px;
   font-weight: 500;
+  @media (min-width: 1024px) {
+    font-size: 15px;
+    line-height: 22px;
+  }
 }
 @utility text-body {
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 17px;
+  line-height: 24px;
   font-weight: 400;
+  @media (min-width: 1024px) {
+    font-size: 15px;
+    line-height: 22px;
+  }
 }
+/* Таблицы: самый плотный текст системы, ниже 13 px не опускаемся */
 @utility text-table {
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 18px;
   font-weight: 400;
 }
 @utility text-caption {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 400;
 }
 @utility text-badge {
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: 13px;
+  line-height: 18px;
   font-weight: 500;
 }
-/* Подписи полей и шапки таблиц: 12px, обычный регистр */
+/* Подписи полей и шапки таблиц: обычный регистр, без капса */
 @utility text-overline {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 18px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
 }
 @utility text-micro {
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: 13px;
+  line-height: 18px;
   letter-spacing: 0;
 }
 @utility tnum {
   font-variant-numeric: tabular-nums;
 }
-/* Коды и номера: тот же Inter, цифры одной ширины */
+/*
+ * Моно-маркер подписи (дизайн-система, раздел 8: ОБЪЁМ, ЛЮДИ, СРОК). Единственное место,
+ * где разрешён капс: моноширинный, до двух слов, всегда с атрибутом `data-marker` —
+ * по нему проверка кадра отличает маркер от запрещённого капса в тексте.
+ */
+@utility text-marker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Коды и номера: моноширинный JetBrains Mono, цифры одной ширины */
 @utility mono {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums slashed-zero;
   letter-spacing: 0;
 }
@@ -617,10 +741,126 @@
   }
 }
 @utility bg-ember {
-  background: var(--ember);
+  background: var(--ember-gradient);
 }
-@utility bg-ember-soft {
-  background: var(--ember-soft);
+@utility bg-ember-field {
+  background: var(--ember-field);
+}
+
+/* ---------------------------------------------------------------- Приёмы ГАЙКИ */
+
+/*
+ * Цветовое поле (дизайн-система, раздел 8). Верх экранов «Сегодня», «Запись», «Ассистент»:
+ * тёплый радиальный градиент, уходящий в фон к 45 процентам высоты. Единственный большой
+ * градиент рабочего экрана. Состояние меняет цвет, а не яркость: покой оранжевый,
+ * обработка песочная, критичное красное.
+ */
+@utility ambient-field {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 45%;
+  max-height: 320px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    120% 100% at 50% 0%,
+    var(--field-from) 0%,
+    color-mix(in oklab, var(--field-from) 45%, transparent) 38%,
+    transparent 100%
+  );
+  --field-from: color-mix(in oklab, var(--orange-deep) 70%, var(--void));
+  transition: background var(--dur-2) var(--ease);
+}
+@utility ambient-field-processing {
+  --field-from: color-mix(in oklab, var(--sand) 38%, var(--void));
+  animation: gaika-field 6s ease-in-out infinite;
+}
+@utility ambient-field-success {
+  --field-from: color-mix(in oklab, var(--ok) 32%, var(--void));
+}
+@utility ambient-field-critical {
+  --field-from: color-mix(in oklab, var(--risk) 42%, var(--void));
+}
+@keyframes gaika-field {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Точечная сетка: экран записи и герой лендинга. Точки 1 px, шаг 16 px, прозрачность 5% */
+@utility dot-grid {
+  background-image: radial-gradient(circle, rgba(247, 243, 239, 0.05) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Свечение как состояние. В покое светится одно место на экране */
+@utility glow-ember {
+  box-shadow: var(--glow-ember);
+}
+@utility glow-sand {
+  box-shadow: var(--glow-sand);
+}
+@utility glow-risk {
+  box-shadow: var(--glow-risk);
+}
+
+/* Запись: кнопка дышит, цикл 2 с. prefers-reduced-motion отключает дыхание ниже */
+@keyframes gaika-breathe {
+  0%,
+  100% {
+    box-shadow: var(--glow-ember);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 122, 69, 0.45),
+      0 0 44px rgba(255, 122, 69, 0.4),
+      0 20px 80px rgba(241, 96, 1, 0.26);
+    transform: scale(1.03);
+  }
+}
+@utility breathe {
+  animation: gaika-breathe 2s ease-in-out infinite;
+}
+
+/* Нажатие: сжатие до 0.97 за 120 мс, только на касание */
+@utility press {
+  transition: transform 120ms var(--ease);
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/*
+ * Стеклянная нижняя панель (дизайн-система, раздел 8): фон --bg-elevated с прозрачностью
+ * 80 процентов и размытие 20 px, без обводки. Обводка здесь была лишней линией: слои
+ * различаются фоном, а на тёплом чёрном полоска читается как шов.
+ */
+@utility glass-bar {
+  background: color-mix(in oklab, var(--bg-elevated) 80%, transparent);
+  backdrop-filter: blur(20px);
+}
+
+/* Главная кнопка экрана: тёплая капсула. Размер 56 px, с 1024 px — 48 */
+@utility pill-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  padding-inline: 24px;
+  border-radius: var(--r-pill);
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  font-weight: 500;
+  @media (min-width: 1024px) {
+    min-height: 48px;
+  }
 }
 
 /* ---------------------------------------------------------------- Оболочка */
@@ -632,34 +872,6 @@
   color: var(--text);
   @media (min-width: 1024px) {
     padding: var(--shell-gap);
-  }
-}
-/* Одно размытое пятно поверх фона окна, левый нижний угол */
-/* Обёртка свечения: зерно рисуется поверх пятна, поэтому blur его не размывает */
-@utility app-glow {
-  /* На телефоне фонового свечения нет: blur дорогой, а оболочка во весь экран */
-  display: none;
-  @media (min-width: 768px) {
-    display: block;
-  }
-  position: fixed;
-  left: -12vw;
-  bottom: -12vw;
-  z-index: 0;
-  width: 50vw;
-  height: 50vw;
-  border-radius: 50%;
-  pointer-events: none;
-}
-@utility app-glow-shape {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: var(--ember-soft);
-  opacity: 0.5;
-  /* blur только с планшета: на телефоне свечения нет вообще */
-  @media (min-width: 768px) {
-    filter: blur(180px);
   }
 }
 @utility app-shell {
@@ -726,7 +938,7 @@
   align-items: center;
   gap: 6px;
   padding: 22px 12px 8px;
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   line-height: 1.4;
   font-weight: 400;
   color: var(--text-3);
@@ -783,7 +995,7 @@
   padding-inline: 7px;
   border-radius: var(--r-pill);
   background: var(--surface-3);
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   line-height: 1;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -811,7 +1023,7 @@
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   font-weight: 500;
   & svg {
     width: 12px;
@@ -881,9 +1093,9 @@
 }
 @utility icon-button {
   display: grid;
-  /* 44px до 1024px: палец должен попадать в «Меню» и «Поиск» (находка ревью LOW) */
-  width: 44px;
-  height: 44px;
+  /* 48px до 1024px: минимальная область нажатия ГАЙКИ (правило 6, ADR-034, п. 6) */
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   place-items: center;
   border-radius: var(--r-sm);
@@ -981,11 +1193,15 @@
   box-shadow: none;
 }
 @utility segment {
-  min-height: 36px;
+  /* Сегмент на телефоне — область нажатия 48 px, на десктопе ряд плотнее (ADR-034, п. 6) */
+  min-height: 48px;
   padding: 0 12px;
+  @media (min-width: 1024px) {
+    min-height: 36px;
+  }
   border-radius: var(--r-sm);
   color: var(--text-3);
-  font-size: 12px;
+  font-size: 13px; /* не мельче 13 px (правило 6) */
   &:hover {
     color: var(--text);
   }
@@ -1094,6 +1310,14 @@
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
+  /* Дыхание записи и перелив поля не мигают один раз, а не включаются вовсе */
+  .breathe,
+  .ambient-field-processing {
+    animation: none !important;
+  }
+  .press:active {
+    transform: none;
+  }
 }
 
 /* Подсветка элемента шага проводки (ADR-010): тонкая линия, а не заливка — второго пятна не добавляет */
@@ -1150,7 +1374,6 @@
   }
 
   /* Оболочка на листе не нужна */
-  .app-glow,
   [data-sidebar="app"],
   .content-header,
   [data-print="hide"],
@@ -1184,4 +1407,7 @@
 }
 
 /* Readable metadata across legacy working screens. */
-[class~="text-[10px]"], [class~="text-[11px]"] { font-size: 12px; }
+[class~="text-[10px]"],
+[class~="text-[11px]"] {
+  font-size: 12px;
+}

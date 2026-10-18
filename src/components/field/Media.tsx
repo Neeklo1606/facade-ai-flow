@@ -87,7 +87,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
                 caption={photo.caption}
                 className="transition-opacity duration-150 group-hover:opacity-90"
               />
-              <span className="absolute inset-x-0 bottom-0 bg-black/65 px-2 pt-1.5 pb-1.5 text-left text-[11px] leading-tight text-white">
+              <span className="absolute inset-x-0 bottom-0 bg-black/65 px-2 pt-1.5 pb-1.5 text-left text-[13px] leading-tight text-white">
                 {photo.caption}
               </span>
             </button>
@@ -114,7 +114,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
                   type="button"
                   onClick={() => setOpen(null)}
                   aria-label="Закрыть"
-                  className="grid size-11 place-items-center rounded-full hover:bg-white/10"
+                  className="grid size-12 place-items-center rounded-full hover:bg-white/10"
                 >
                   <X className="size-5" />
                 </button>
@@ -125,7 +125,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
                     type="button"
                     aria-label="Предыдущее фото"
                     onClick={() => setOpen((open! - 1 + photos.length) % photos.length)}
-                    className="absolute top-1/2 left-2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/50 hover:bg-black/70"
+                    className="absolute top-1/2 left-2 grid size-12 -translate-y-1/2 place-items-center rounded-full bg-black/50 hover:bg-black/70"
                   >
                     <ChevronLeft className="size-5" />
                   </button>
@@ -133,7 +133,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
                     type="button"
                     aria-label="Следующее фото"
                     onClick={() => setOpen((open! + 1) % photos.length)}
-                    className="absolute top-1/2 right-2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/50 hover:bg-black/70"
+                    className="absolute top-1/2 right-2 grid size-12 -translate-y-1/2 place-items-center rounded-full bg-black/50 hover:bg-black/70"
                   >
                     <ChevronRight className="size-5" />
                   </button>
@@ -204,7 +204,7 @@ export function VoiceReport({
                   recordAction("inspectVoiceField");
                 }}
                 className={cn(
-                  "flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left transition-fast hover:bg-hover",
+                  "flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-fast hover:bg-hover",
                   active && "bg-surface-2",
                 )}
               >
