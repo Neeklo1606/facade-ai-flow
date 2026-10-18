@@ -62,8 +62,16 @@ export function WidgetTable<T extends { id: string }>({
               key={row.id}
               data-force={forceHoverRowId === row.id ? "hover" : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={onRowClick ? (event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onRowClick(row);
+                }
+              } : undefined}
               className={cn(
-                "group h-12 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-within:bg-surface-2",
+                "group h-14 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-within:bg-surface-2 focus-ring",
                 onRowClick && "cursor-pointer",
               )}
             >

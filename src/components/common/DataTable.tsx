@@ -36,6 +36,7 @@ export function DataTable<T extends { id: string }>({
               {columns.map((c) => (
                 <th
                   key={c.key}
+                  scope="col"
                   className={cn("px-4 text-[13px] font-normal text-text-3", c.className)}
                 >
                   {c.header}
@@ -61,7 +62,7 @@ export function DataTable<T extends { id: string }>({
                     : undefined
                 }
                 className={cn(
-                  "h-12 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-ring",
+                  "h-14 border-b border-line transition-fast last:border-0 is-hover:bg-surface-2 focus-ring",
                   onRowClick && "cursor-pointer",
                 )}
               >
@@ -93,7 +94,7 @@ export function DataTable<T extends { id: string }>({
               key={row.id}
               className="min-h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface p-4"
             >
-              <div className="text-[14px] font-medium">{primary.cell(row)}</div>
+              <div className="min-w-0 break-words text-[16px] leading-6 font-medium">{primary.cell(row)}</div>
               <dl className="mt-3 grid gap-2">
                 {rest.map((c) => (
                   <div

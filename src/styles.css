@@ -42,11 +42,11 @@
   color-scheme: dark;
 
   /* Глубина. Пять уровней, разница минимальна */
-  --void: #0a0908; /* фон окна: тёплый чёрный */
-  --base: #0f0d0c; /* оболочка приложения */
-  --surface: #131110; /* карточки, --bg-elevated ГАЙКИ */
-  --surface-2: #1b1816; /* вложенные блоки, --bg-raised ГАЙКИ */
-  --surface-3: #241f1c; /* поповеры, выпадающие, активные состояния */
+  --void: oklch(0.17 0.005 260);
+  --base: oklch(0.17 0.005 260);
+  --surface: oklch(0.205 0.005 260);
+  --surface-2: oklch(0.245 0.005 260);
+  --surface-3: oklch(0.285 0.006 260);
   --surface-glass: rgba(255, 244, 235, 0.05); /* стекло нижней панели и шторки */
 
   /* Линии почти не видны и слегка тёплые */
@@ -124,7 +124,7 @@
     0 20px 70px rgba(241, 96, 1, 0.18);
   --glow-sand: 0 0 36px rgba(217, 195, 171, 0.22);
   --glow-risk: 0 0 28px rgba(255, 90, 95, 0.26);
-  --glow-orange: var(--glow-ember);
+  --glow-orange: none;
   --glow-soft: 0 0 80px rgba(241, 96, 1, 0.18);
 
   /* Движение: 160-280 мс, та же кривая у всех переходов */
@@ -134,19 +134,19 @@
 
   /* Радиусы ГАЙКИ: сетка 4 px, воздух вместо обводок */
   --r-xs: 8px; /* плашки клавиш, мелкие метки, чипы */
-  --r-sm: 12px; /* кнопки, узкие элементы */
-  --r-md: 16px; /* поле ввода */
-  --r-lg: 24px; /* карточка */
-  --r-xl: 32px; /* большая панель, оболочка */
-  --r-sheet: 28px; /* шторка: радиус только сверху */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-sheet: 24px;
   --r-pill: 999px;
 
   /* Размеры оболочки */
   --shell-gap: 0px;
-  --sidebar-w: 240px;
+  --sidebar-w: 248px;
   --topbar-h: 56px;
   /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
-  --bottom-nav-h: 64px;
+  --bottom-nav-h: 72px;
   /* Отступ контента от краёв оболочки */
   --content-pad: 20px;
 
@@ -215,6 +215,9 @@
   --shadow-sm: var(--lift-2);
   --shadow-md: var(--lift-3);
   --shadow-shell: var(--lift-3);
+  --overlay: oklch(0.12 0.005 260 / 0.6);
+  --nav-active: color-mix(in oklab, var(--surface-3) 80%, var(--surface));
+  --nav-marker: var(--orange);
 }
 
 /*
@@ -225,30 +228,30 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --void: #f5f2ee;
-  --base: #f5f2ee;
-  --surface: #ffffff;
-  --surface-2: #ede8e2;
-  --surface-3: #e9e3dc;
+  --void: oklch(0.978 0.003 260);
+  --base: oklch(0.978 0.003 260);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.956 0.004 260);
+  --surface-3: oklch(0.928 0.005 260);
   --surface-glass: rgba(28, 24, 20, 0.04);
 
   --line: rgba(28, 24, 20, 0.08);
   --line-2: rgba(28, 24, 20, 0.16);
   --line-warm: rgba(158, 132, 104, 0.22);
 
-  --text: #1c1814;
+  --text: oklch(0.24 0.01 260);
   /*
    * Второй уровень текста. #5D6870 из правок 16.10 давал 4,46:1 на янтарной плашке над
    * --surface-2 (12 px, норма 4,5) — поймала axe на закупках и поставщиках. Опущено до
    * 5,53:1 там и 6,9:1 на белом; ступень до --text-3 осталась видимой (ADR-030, «Границы»)
    */
-  --text-2: #5a544c;
+  --text-2: oklch(0.43 0.014 260);
   /*
    * Подписи. #68757E из правок 16.10 давал 4,24:1 на --void и --surface-2 (#f1f3f4) — ниже
    * WCAG AA. Оттенок оставлен, светлота опущена: 5,58:1 на белом, 4,99:1 на #f1f3f4,
    * 4,60:1 на --surface-3. Поймала проверка axe на мобильных подписях (ADR-030, «Границы»)
    */
-  --text-3: #655f57;
+  --text-3: oklch(0.48 0.012 260);
   --text-4: #cbc3b9;
 
   /*
@@ -310,7 +313,7 @@
     0 16px 48px rgba(28, 24, 20, 0.08);
   --glow-sand: 0 0 24px rgba(158, 132, 104, 0.2);
   --glow-risk: 0 0 20px rgba(179, 40, 55, 0.22);
-  --glow-orange: var(--glow-ember);
+  --glow-orange: none;
   --glow-soft: 0 8px 32px rgba(28, 24, 20, 0.07);
 
   /* Инверсный текст: на светлой теме это белый по тёмному, а не наоборот */
@@ -572,17 +575,17 @@
   font-size: 40px;
   line-height: 44px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 @utility text-page-title {
   font-variant-numeric: proportional-nums;
   font-size: 32px;
   line-height: 36px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   @media (min-width: 1024px) {
-    font-size: 40px;
-    line-height: 44px;
+    font-size: 32px;
+    line-height: 40px;
   }
 }
 /* Крупная цифра: сводка, показатель объекта */
@@ -591,7 +594,7 @@
   font-size: 48px;
   line-height: 52px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 @utility text-section-title {
   font-variant-numeric: proportional-nums;
@@ -605,7 +608,7 @@
   font-size: 22px;
   line-height: 30px;
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 @utility text-card-title {
   font-variant-numeric: proportional-nums;
@@ -674,8 +677,8 @@
   font-size: 13px;
   line-height: 16px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--text-3);
 }
 
@@ -697,7 +700,7 @@
 @utility accent-fill {
   background-color: var(--ink);
   color: var(--text-inverse);
-  box-shadow: var(--lift-2);
+  box-shadow: none;
   @media (hover: hover) {
     &:hover {
       background-color: var(--ink-hover);
@@ -709,7 +712,7 @@
   @media (min-width: 1024px) {
     background-color: var(--orange-strong);
     color: var(--on-orange);
-    box-shadow: var(--glow-orange);
+    box-shadow: none;
     @media (hover: hover) {
       &:hover {
         background-color: var(--orange-strong-hover);
@@ -842,8 +845,9 @@
  * различаются фоном, а на тёплом чёрном полоска читается как шов.
  */
 @utility glass-bar {
-  background: color-mix(in oklab, var(--bg-elevated) 80%, transparent);
+  background: color-mix(in oklab, var(--bg-elevated) 94%, transparent);
   backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line);
 }
 
 /* Главная кнопка экрана: тёплая капсула. Размер 56 px, с 1024 px — 48 */
@@ -883,9 +887,9 @@
   overflow: hidden;
   background: var(--base);
   @media (min-width: 1024px) {
-    height: calc(100vh - var(--shell-gap) * 2);
-    border-radius: var(--r-xl);
-    box-shadow: var(--lift-3);
+    height: calc(100dvh - var(--shell-gap) * 2);
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
@@ -910,7 +914,7 @@
 
 @utility sidebar-header {
   display: flex;
-  height: 60px;
+  height: 80px;
   flex-shrink: 0;
   align-items: center;
   gap: 10px;
@@ -947,6 +951,7 @@
   }
 }
 @utility nav-item {
+  position: relative;
   display: flex;
   height: 44px;
   align-items: center;
@@ -974,17 +979,27 @@
   }
   /* На телефоне цель касания не меньше 44px */
   @media (max-width: 1023px) {
-    height: 44px;
+    height: 48px;
   }
   /* Активный: оранжевая заливка на всю ширину, без полосы слева */
   &[data-active="true"] {
-    background: var(--surface-3);
+    background: var(--nav-active);
     color: var(--text);
     font-weight: 600;
     box-shadow: none;
   }
   &[data-active="true"] svg {
     color: var(--text);
+  }
+  &[data-active="true"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: var(--r-pill);
+    background: var(--nav-marker);
   }
 }
 @utility nav-badge {
@@ -1044,9 +1059,9 @@
   align-items: center;
   gap: 12px;
   padding-inline: var(--content-pad);
-  background: var(--base);
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   @media (min-width: 768px) {
     padding-inline: var(--content-pad);
   }
@@ -1054,13 +1069,13 @@
 @utility header-search {
   display: flex;
   height: 40px;
-  width: 300px;
+  width: 240px;
   align-items: center;
   gap: 10px;
   padding-inline: 14px 6px;
-  border: 1px solid transparent;
+  border: 1px solid var(--line);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--surface-2);
   font-size: 13px;
   color: var(--text-3);
   & > svg {
@@ -1166,7 +1181,7 @@
   outline: none;
   &:focus-visible,
   &[data-force~="focus"] {
-    outline: 2px solid var(--orange-line);
+    outline: 2px solid var(--orange);
     outline-offset: 2px;
   }
 }
@@ -1218,7 +1233,7 @@
 @utility widget-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   box-shadow: none;
   padding: 24px;
 }
@@ -1409,5 +1424,21 @@
 /* Readable metadata across legacy working screens. */
 [class~="text-[10px]"],
 [class~="text-[11px]"] {
-  font-size: 12px;
+  font-size: 13px;
+}
+
+[data-sidebar="app"] {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+
+.app-shell main {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 1023px) {
+  .content-header { margin-bottom: 20px; gap: 8px; }
+  .widget-card { padding: 20px; }
+  input, select, textarea { font-size: 16px; }
 }

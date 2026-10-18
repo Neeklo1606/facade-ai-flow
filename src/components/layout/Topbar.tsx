@@ -16,6 +16,7 @@ import { screenFor } from "@/lib/guide/screens";
 import { useCurrentUser } from "@/lib/project-scope";
 import { dataSource } from "@/api/config";
 import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
+import { Button } from "@/components/ui/button";
 
 export function Topbar() {
   const { setMobileNavOpen, setCommandOpen, setProjectId } = useApp();
@@ -94,14 +95,16 @@ export function Topbar() {
 
   return (
     <header className="content-header">
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label="Открыть меню"
         className="icon-button focus-ring -ml-2 lg:hidden"
       >
         <Menu strokeWidth={1.5} />
-      </button>
+      </Button>
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">
@@ -165,8 +168,9 @@ export function Topbar() {
         </nav>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2.5">
-        <button
+      <div className="flex shrink-0 items-center gap-1.5 xl:gap-2.5">
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск по объектам, документам и материалам"
@@ -176,15 +180,17 @@ export function Topbar() {
           {/* Поле ГАЙКИ в шапке — пока только поиск: микрофон приходит в G4 (ADR-034, п. 2) */}
           <span className="min-w-0 flex-1 truncate text-left">Найти в системе</span>
           <kbd className="kbd">Ctrl K</kbd>
-        </button>
-        <button
+      </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск"
-          className="icon-button focus-ring hidden lg:grid xl:hidden"
+          className="icon-button focus-ring grid xl:hidden"
         >
           <Search strokeWidth={1.5} />
-        </button>
+        </Button>
         {/*
           На телефоне в шапке остаётся один значок — поиск. Подсказка по экрану живёт
           в плавающей кнопке проводки, тема — в шторке «Ещё» (раздел 6 продукта): четыре
@@ -198,7 +204,7 @@ export function Topbar() {
         </div>
         {/* Переключатель состояний экрана — инструмент показа с ноутбука (ADR-030, п. 1) */}
         {screenStatesEnabled && (
-          <div className="hidden lg:block">
+          <div className="hidden 2xl:block">
             <StatePicker />
           </div>
         )}
