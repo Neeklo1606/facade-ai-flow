@@ -51,3 +51,13 @@ export type {
 
 /** Строки экрана «Сегодня» (ADR-028): объёмы и сроки посчитаны слоем данных */
 export type { TodayDelivery, TodayReturn, TodayWork } from "@/domain/today";
+
+/** Заявки на материал, сводка смены и черновик разбора — типы для экранов (ADR-037) */
+export type { MaterialRequest, MaterialRequestStatus } from "@/contracts";
+export type {
+  CreateMaterialRequestInput,
+  CreateReportInput,
+  DecideMaterialRequestInput,
+} from "@/ports";
+export type { ShiftSummary, ShiftRow } from "@/domain/shift";
+export type { DraftCard, DraftField, RequestPrefill } from "@/domain/draft";

@@ -20,6 +20,7 @@ import {
   deliveryStatusLabel,
   remarkKindLabel,
 } from "@/contracts";
+import { materialRequestStatusLabel, materialRequestTransitions } from "@/contracts";
 import { sheetsOf } from "@/adapters/fixtures";
 import { decisionLink } from "@/domain/timeline";
 import {
@@ -34,10 +35,14 @@ import {
 import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
 import {
   captureInput,
+  createMaterialRequestInput,
+  decideMaterialRequestInput,
   ConflictError,
   NotFoundError,
   type CaptureInput,
   type CaptureResult,
+  type CreateMaterialRequestInput,
+  type DecideMaterialRequestInput,
   type RecordJobInput,
 } from "@/ports";
 import {
@@ -52,6 +57,7 @@ import {
 import type {
   ProcessingJobRow,
   Evidence,
+  MaterialRequest,
   CatalogChange,
   Employee,
   FieldReport,
@@ -2358,4 +2364,77 @@ export function captureFact(input: CaptureInput, actorId: string): CaptureResult
     evidence: [...prev.evidence, ...media],
   }));
   return { source, evidence: media, repeated: false };
+}
+
+/* ---------- Заявки на материал (ADR-037, сценарий 3) ---------- */
+
+/** Завести заявку на материал: площадка говорит, чего не хватает и к какому сроку */
+export function createMaterialRequest(
+  input: CreateMaterialRequestInput,
+  actorId: string,
+): MaterialRequest {
+  const parsed = createMaterialRequestInput.parse(input);
+  const s = getState();
+  if (!s.projects.some((item) => item.id === parsed.projectId)) {
+    throw new NotFoundError("Объект", parsed.projectId);
+  }
+  if (parsed.sourceId && !s.sources.some((item) => item.id === parsed.sourceId)) {
+    throw new NotFoundError("Источник", parsed.sourceId);
+  }
+  const at = tick();
+  // Срок в прошлом — не заявка, а запись о просрочке: такое не заводится молча
+  if (parsed.neededBy < at.slice(0, 10)) {
+    throw new ConflictError("Срок заявки не может быть в прошлом");
+  }
+  const request: MaterialRequest = {
+    id: liveId("mr"),
+    projectId: parsed.projectId,
+    sourceId: parsed.sourceId,
+    name: parsed.name,
+    qty: parsed.qty,
+    unit: parsed.unit,
+    neededBy: parsed.neededBy,
+    status: "new",
+    note: parsed.note,
+    authorId: actorId,
+    requestedAt: at,
+    decidedBy: null,
+    decidedAt: null,
+    decision: null,
+  };
+  update((prev) => ({ ...prev, materialRequests: [...prev.materialRequests, request] }));
+  return request;
+}
+
+/**
+ * Решение снабжения по заявке. Переходы разрешены таблицей контракта: заказать можно только
+ * принятую, закрыть — только заказанную. Отказ фиксируется с причиной, как любое решение.
+ */
+export function decideMaterialRequest(
+  input: DecideMaterialRequestInput,
+  actorId: string,
+): MaterialRequest {
+  const parsed = decideMaterialRequestInput.parse(input);
+  const s = getState();
+  const request = s.materialRequests.find((item) => item.id === parsed.id);
+  if (!request) throw new NotFoundError("Заявка", parsed.id);
+  const allowed = materialRequestTransitions[request.status] as readonly string[];
+  if (!allowed.includes(parsed.status)) {
+    throw new ConflictError(
+      `Из статуса «${materialRequestStatusLabel[request.status]}» нельзя перейти в «${materialRequestStatusLabel[parsed.status]}»`,
+    );
+  }
+  const at = tick();
+  const next: MaterialRequest = {
+    ...request,
+    status: parsed.status,
+    decision: parsed.decision || request.decision,
+    decidedBy: actorId,
+    decidedAt: at,
+  };
+  update((prev) => ({
+    ...prev,
+    materialRequests: prev.materialRequests.map((item) => (item.id === next.id ? next : item)),
+  }));
+  return next;
 }

@@ -5,11 +5,17 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, loc
 await loginByPhone(page, "http://localhost:4712", "+79216552784");
 await page.goto("http://localhost:4712/projects", { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(1200);
-await page.getByRole("button", { name: /Добавить объект/ }).first().click();
+await page
+  .getByRole("button", { name: /Добавить объект/ })
+  .first()
+  .click();
 await page.waitForTimeout(800);
 for (const label of ["Регион", "Ответственный"]) {
   const box = page.getByRole("combobox", { name: new RegExp(label) }).first();
-  if (!(await box.count())) { console.log(label, "— нет"); continue; }
+  if (!(await box.count())) {
+    console.log(label, "— нет");
+    continue;
+  }
   await box.click();
   await page.waitForTimeout(600);
   const options = await page.getByRole("option").all();

@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { HardHat, PackageCheck, Undo2 } from "lucide-react";
+import { FileSpreadsheet, HardHat, PackageCheck, Undo2 } from "lucide-react";
 import {
   CountPill,
   EmptyState,
@@ -22,6 +23,8 @@ import { fmtDate, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { AmbientField } from "@/components/gaika";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
+import { saveShiftFile, useShift } from "@/api/capture";
+import { toast } from "@/lib/toast";
 import { useProjectId } from "@/lib/project-scope";
 import type { TodayDelivery, TodayReturn, TodayWork } from "@/api/types";
 
@@ -141,6 +144,9 @@ function TodayPage() {
               />
             )}
           </WidgetCard>
+
+          {/* Сводка смены и файл результата (ADR-037, сценарий 1) */}
+          {target ? <ShiftCard projectId={target} date={today.now.slice(0, 10)} /> : null}
 
           {/* Поставки — модуль за флагом legacy_modules (ADR-034, п. 4) */}
           {legacyModulesEnabled() && (
@@ -300,5 +306,74 @@ function Chip({ children }: { children: React.ReactNode }) {
     <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
       {children}
     </span>
+  );
+}
+
+/**
+ * Сводка смены: что принято за день и файл результата (ADR-037, сценарий 1).
+ *
+ * В сводку идут только принятые отчёты — неподтверждённое в ней не появляется. Разные единицы
+ * не складываются: итог считается по каждой отдельно. Люди стоят отдельным показателем,
+ * а не прибавляются к объёму.
+ */
+function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
+  const shift = useShift(projectId, date, true);
+  const [saving, setSaving] = useState(false);
+  const summary = shift.data;
+
+  const download = () => {
+    setSaving(true);
+    void saveShiftFile({ projectId, date: summary?.date ?? date }, "shift")
+      .catch((error: Error) => toast.error("Файл не собрался", { description: error.message }))
+      .finally(() => setSaving(false));
+  };
+
+  return (
+    <WidgetCard>
+      <WidgetCardHeader
+        level={2}
+        icon={FileSpreadsheet}
+        title="Сводка смены"
+        hint={
+          summary && summary.date !== date
+            ? `последняя смена с принятыми записями: ${fmtDate(summary.date)}`
+            : "только принятые записи"
+        }
+        aside={
+          summary && summary.rows.length > 0 ? (
+            <CountPill>{fmtNum(summary.rows.length)}</CountPill>
+          ) : null
+        }
+      />
+      {summary && summary.rows.length > 0 ? (
+        <>
+          <dl className="divide-line mt-2 divide-y">
+            {summary.totals.map((total) => (
+              <div key={total.unit} className="flex items-baseline justify-between gap-3 py-2.5">
+                <dt className="text-text-2 text-[13px]">Принято, {total.unit}</dt>
+                <dd className="tnum text-card-title">{fmtNum(total.qty)}</dd>
+              </div>
+            ))}
+            <div className="flex items-baseline justify-between gap-3 py-2.5">
+              <dt className="text-text-2 text-[13px]">Людей на сменах</dt>
+              <dd className="tnum text-card-title">{fmtNum(summary.people)}</dd>
+            </div>
+          </dl>
+          {summary.pending > 0 ? (
+            <p className="text-caption text-text-3 mt-2">
+              Ещё {fmtNum(summary.pending)} на проверке: в сводку они попадут после приёмки.
+            </p>
+          ) : null}
+          <Button variant="secondary" className="mt-3" onClick={download} disabled={saving}>
+            <FileSpreadsheet className="size-4" /> Скачать Excel
+          </Button>
+        </>
+      ) : (
+        <EmptyState
+          title="За смену ещё нечего сводить"
+          description="В сводку попадают принятые записи: примите факт в «Проверке», и он появится здесь."
+        />
+      )}
+    </WidgetCard>
   );
 }

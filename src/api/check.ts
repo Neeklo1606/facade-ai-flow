@@ -10,7 +10,7 @@ import { useAccess } from "./access";
  *
  * `projectId` — объект из чипа шапки; `null` означает «все мои объекты».
  */
-export function useCheckQueue(projectId: string | null) {
+export function useCheckQueue(projectId: string | null, enabled = true) {
   const { can } = useAccess();
   const registry = useQuery(queries.projects());
   const rows = useMemo(() => registry.data ?? [], [registry.data]);
@@ -19,8 +19,13 @@ export function useCheckQueue(projectId: string | null) {
     [rows, projectId],
   );
 
-  const cards = useQueries({ queries: ids.map((id) => queries.project(id)) });
-  const reports = useQueries({ queries: ids.map((id) => queries.reports(id)) });
+  /*
+   * Очередь нужна не всем: «Входящие» зовут её только у тех, кто решает. Запрос, который
+   * вернёт отказ, не отправляется вовсе — иначе экран падал бы с ошибкой у снабжения
+   * (ADR-012, п. 6: отказ не должен быть способом узнать, что раздела нет).
+   */
+  const cards = useQueries({ queries: ids.map((id) => ({ ...queries.project(id), enabled })) });
+  const reports = useQueries({ queries: ids.map((id) => ({ ...queries.reports(id), enabled })) });
 
   const cardsData = cards.map((query) => query.data);
   const reportsData = reports.map((query) => query.data);

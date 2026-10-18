@@ -1,5 +1,6 @@
 import type { AgentPort } from "./agent";
 import type { ProcessingPort } from "./ai";
+import type { SupplyPort } from "./supply";
 import type { CatalogPort } from "./catalog";
 import type { ClockPort } from "./clock";
 import type { DirectoryPort } from "./directory";
@@ -13,6 +14,7 @@ import type { TimelinePort } from "./timeline";
 
 export * from "./agent";
 export * from "./ai";
+export * from "./supply";
 export * from "./catalog";
 export * from "./clock";
 export * from "./common";
@@ -43,4 +45,6 @@ export interface Repositories {
   agent: AgentPort;
   /** Журнал обращений к модели (ADR-035) */
   processing: ProcessingPort;
+  /** Заявки на материал с площадки (ADR-037) */
+  supply: SupplyPort;
 }

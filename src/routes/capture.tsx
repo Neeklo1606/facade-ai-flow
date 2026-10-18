@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, Check, Mic, Pause, Play, Square } from "lucide-react";
+import { Camera, Check, Mic, PackageSearch, Pause, Play, Square } from "lucide-react";
 import { EmptyState, PageHeader, WidgetCard, WidgetCardHeader } from "@/components/common";
 import { PageCaption } from "@/components/layout/PageActions";
-import { AmbientField, AttentionDot, SyncIndicator } from "@/components/gaika";
+import { AmbientField, AttentionDot, DraftReview, SyncIndicator } from "@/components/gaika";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
-import { useCapture } from "@/api/capture";
+import { prepareDraft, useCapture, useCreateMaterialRequest, useDemoExamples } from "@/api/capture";
+import { useCreateReport } from "@/api/mutations";
+import type { CreateMaterialRequestInput, RequestPrefill } from "@/api/types";
 import { useAccess } from "@/api/access";
+import { useNow } from "@/api/clock";
 import { useRecorder } from "@/hooks/use-recorder";
 import {
   CAPTURE_LIMIT_SEC,
@@ -70,6 +73,9 @@ function CapturePage() {
   const [picked, setPicked] = useState<string | null>(null);
   const projectId =
     chipProject ?? picked ?? (projects.length === 1 ? (projects[0]?.project.id ?? null) : null);
+  const now = useNow();
+  /* Примеры показа: в рабочем контуре их нет, и решает это слой данных (ADR-001, п. 5) */
+  const examples = useDemoExamples().data ?? [];
   const recorder = useRecorder();
   const capture = useCapture();
   const [draft, setDraft] = useState<CaptureDraft | null>(null);
@@ -105,13 +111,41 @@ function CapturePage() {
   const fieldState = capture.isPending ? "processing" : capture.isSuccess ? "success" : "rest";
 
   const outcome = capture.data ?? null;
+  const outcomeDraft = outcome?.draft ?? null;
+  const createReport = useCreateReport();
+  const createRequest = useCreateMaterialRequest();
+  const [doneReports, setDoneReports] = useState(0);
+  const [request, setRequest] = useState<RequestPrefill | null>(null);
+  const [requestDone, setRequestDone] = useState(false);
+  const card = useQuery({ ...queries.project(projectId ?? ""), enabled: !!projectId }).data;
+  const reports = useQuery({ ...queries.reports(projectId ?? ""), enabled: !!projectId }).data;
+  /*
+   * Дата берётся из часов продукта, а не из браузера: в демонстрации часы свои, и отчёт
+   * с датой браузера уходил в будущее — порт его законно отвергал.
+   */
+  const today = now.slice(0, 10);
+  /* Карточки и готовые записи считает слой данных: экран их только показывает */
+  const prepared = useMemo(
+    () =>
+      outcomeDraft && card
+        ? prepareDraft(outcomeDraft, {
+            projectId: projectId ?? "",
+            date: today,
+            summary: draft?.text ?? "",
+            zones: card.zones,
+            reports: (reports ?? []).map((item) => item.report),
+          })
+        : null,
+    [outcomeDraft, card, projectId, today, draft?.text, reports],
+  );
+
   const limitLeft = remainingSec(recorder.elapsedMs);
 
   const photos = draft?.photos ?? [];
   const canWrite = can("field-reports", "write");
 
   const addPhoto = () => {
-    const at = new Date().toISOString().slice(0, 19);
+    const at = now.slice(0, 19);
     change({
       photos: [
         ...photos,
@@ -207,6 +241,60 @@ function CapturePage() {
       </PageCaption>
 
       <div className="flex flex-col gap-3">
+        {/* ---------- Примеры показа ---------- */}
+        {examples.some((example) => example.projectId === projectId) ? (
+          <WidgetCard>
+            <WidgetCardHeader
+              level={2}
+              icon={Mic}
+              title="Примеры показа"
+              hint="подготовленные сообщения: разбор к ним готов заранее"
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              {examples
+                .filter((example) => example.projectId === projectId)
+                .map((example) => (
+                  <Button
+                    key={example.id}
+                    variant="secondary"
+                    disabled={capture.isPending}
+                    onClick={() => {
+                      setDoneReports(0);
+                      setRequestDone(false);
+                      setRequest(null);
+                      const next = { ...(draft ?? emptyDraft(projectId)), text: example.message };
+                      setDraft(next);
+                      capture.mutate(
+                        {
+                          projectId,
+                          captureKey: next.captureKey,
+                          text: example.message,
+                          kind: "text",
+                          durationMs: null,
+                          photos: [],
+                        },
+                        {
+                          onSuccess: () => setDraft((prev) => (prev ? markSaved(prev) : prev)),
+                          onError: (error) =>
+                            setDraft((prev) => (prev ? markFailed(prev, error.message) : prev)),
+                        },
+                      );
+                    }}
+                  >
+                    {example.label}
+                  </Button>
+                ))}
+            </div>
+            <p className="text-caption text-text-3 mt-2">
+              {examples
+                .filter((example) => example.projectId === projectId)
+                .map((example) => `${example.label} — ${example.outcome}`)
+                .join("; ")}
+              .
+            </p>
+          </WidgetCard>
+        ) : null}
+
         {/* ---------- Запись ---------- */}
         <WidgetCard>
           <div className="flex flex-col items-center gap-4 py-2">
@@ -400,6 +488,44 @@ function CapturePage() {
           </p>
         </WidgetCard>
 
+        {/* ---------- Черновик разбора ---------- */}
+        {prepared ? (
+          <DraftReview
+            cards={prepared.cards}
+            ready={prepared.reports}
+            prefill={prepared.prefill}
+            demo={outcome?.by?.demo ?? true}
+            pending={createReport.isPending || createRequest.isPending}
+            done={{ reports: doneReports, request: requestDone }}
+            onConfirm={(rows) => {
+              // Каждая запись черновика заводится отдельным отчётом: объём, люди и часы
+              // проходят проверку по одному, а не пачкой
+              void Promise.all(rows.map((row) => createReport.mutateAsync(row))).then(() =>
+                setDoneReports(rows.length),
+              );
+            }}
+            onRequest={(prefill) => setRequest(prefill)}
+          />
+        ) : null}
+
+        {/* ---------- Заявка снабжению ---------- */}
+        {request && projectId ? (
+          <RequestForm
+            prefill={request}
+            projectId={projectId}
+            sourceId={outcome?.sourceId ?? null}
+            today={today}
+            pending={createRequest.isPending}
+            onCancel={() => setRequest(null)}
+            onSend={(input) => {
+              void createRequest.mutateAsync(input).then(() => {
+                setRequestDone(true);
+                setRequest(null);
+              });
+            }}
+          />
+        ) : null}
+
         {/* ---------- Что услышала система ---------- */}
         {outcome ? (
           <WidgetCard>
@@ -458,5 +584,113 @@ function CapturePage() {
         ) : null}
       </div>
     </>
+  );
+}
+
+/**
+ * Заявка на материал из черновика (ADR-037, сценарий 3). Название, количество, единица и дата
+ * подставлены из той фразы, где они сказаны; чего в тексте не было, человек вписывает сам —
+ * выдумывать за него нельзя.
+ */
+function RequestForm({
+  prefill,
+  projectId,
+  sourceId,
+  today,
+  pending,
+  onCancel,
+  onSend,
+}: {
+  prefill: RequestPrefill;
+  projectId: string;
+  sourceId: string | null;
+  /** Рабочая дата продукта: от неё считается «завтра» для срока заявки */
+  today: string;
+  pending: boolean;
+  onCancel: () => void;
+  onSend: (input: CreateMaterialRequestInput) => void;
+}) {
+  const tomorrow = new Date(`${today}T12:00:00Z`).getTime() + 86_400_000;
+  const nextDay = new Date(tomorrow).toISOString().slice(0, 10);
+  const [name, setName] = useState(prefill.name);
+  const [qty, setQty] = useState(prefill.qty === null ? "" : String(prefill.qty));
+  const [unit, setUnit] = useState(prefill.unit ?? "шт");
+  const [neededBy, setNeededBy] = useState(prefill.neededBy ?? nextDay);
+  const value = Number(qty.replace(",", "."));
+  const ready = name.trim().length > 1 && Number.isFinite(value) && value > 0 && !!neededBy;
+
+  return (
+    <WidgetCard>
+      <WidgetCardHeader
+        level={2}
+        icon={PackageSearch}
+        title="Заявка снабжению"
+        hint="ничего не заказывается автоматически: снабжение решает руками"
+      />
+      <div className="mt-2 grid gap-3">
+        <label className="grid gap-1">
+          <span className="text-overline text-text-3">Что нужно</span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            aria-label="Название материала"
+            className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="grid gap-1">
+            <span className="text-overline text-text-3">Сколько</span>
+            <input
+              value={qty}
+              inputMode="decimal"
+              onChange={(event) => setQty(event.target.value)}
+              aria-label="Количество"
+              className="focus-ring bg-surface-2 text-list tnum min-h-12 rounded-[var(--r-sm)] px-3"
+            />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-overline text-text-3">Единица</span>
+            <input
+              value={unit}
+              onChange={(event) => setUnit(event.target.value)}
+              aria-label="Единица измерения"
+              className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
+            />
+          </label>
+        </div>
+        <label className="grid gap-1">
+          <span className="text-overline text-text-3">Нужен к дате</span>
+          <input
+            type="date"
+            value={neededBy}
+            onChange={(event) => setNeededBy(event.target.value)}
+            aria-label="Нужен к дате"
+            className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="accent"
+            disabled={!ready || pending}
+            onClick={() =>
+              onSend({
+                projectId,
+                sourceId,
+                name: name.trim(),
+                qty: value,
+                unit: unit.trim() || "шт",
+                neededBy,
+                note: prefill.note,
+              })
+            }
+          >
+            Отправить снабжению
+          </Button>
+          <Button variant="ghost" onClick={onCancel} disabled={pending}>
+            Не сейчас
+          </Button>
+        </div>
+      </div>
+    </WidgetCard>
   );
 }

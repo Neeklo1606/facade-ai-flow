@@ -108,7 +108,9 @@ await shot("w05-nomenklatura-mastera");
 await click(/^Загрузить \d+$/);
 await page.waitForTimeout(1800);
 const importText = await page.locator("body").innerText();
-step(`4. Номенклатура загружена: ${importText.match(/Добавлено[^\n]*/)?.[0] ?? "нет строки итога"}`);
+step(
+  `4. Номенклатура загружена: ${importText.match(/Добавлено[^\n]*/)?.[0] ?? "нет строки итога"}`,
+);
 step(`   непринятые: ${importText.match(/строка \d+ — [^\n]*/g)?.join("; ") ?? "нет"}`);
 await shot("w06-nomenklatura-itog");
 await click(/Готово/);
@@ -213,7 +215,10 @@ if (await toReview.count()) {
   await toReview.first().click();
   await page.waitForTimeout(2500);
 } else {
-  await page.getByText(/specifikaciya/i).first().click();
+  await page
+    .getByText(/specifikaciya/i)
+    .first()
+    .click();
   await page.waitForTimeout(2500);
 }
 step(`   экран проверки: ${page.url()}`);
@@ -259,7 +264,9 @@ for (let index = 0; index < rowCount; index += 1) {
 }
 await shot("w19-sopostavlenie");
 const afterMatch = await page.locator("body").innerText();
-step(`10. Сопоставление: ${afterMatch.match(/Не удалось определить[^\n]*/)?.[0] ?? "строк «не удалось определить» нет"}`);
+step(
+  `10. Сопоставление: ${afterMatch.match(/Не удалось определить[^\n]*/)?.[0] ?? "строк «не удалось определить» нет"}`,
+);
 
 const handOver = page.getByRole("button", { name: /Передать в закупку/ });
 if (await handOver.count()) {
@@ -293,7 +300,10 @@ await click(/Далее: Поставщики/);
 await page.waitForTimeout(1200);
 const supplierBox = (await scope()).getByRole("checkbox");
 if (await supplierBox.count()) {
-  await supplierBox.first().check().catch(() => {});
+  await supplierBox
+    .first()
+    .check()
+    .catch(() => {});
   await page.waitForTimeout(500);
 }
 await shot("w23-zapros-postavshchiki");

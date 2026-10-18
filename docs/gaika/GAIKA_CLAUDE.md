@@ -83,6 +83,7 @@ Senior Product Engineer, Solution Architect и AI Systems Engineer.
 ## Остановки
 
 Ждать владельца только если:
+
 1. Класс T3: публикация, слияние в main, необратимые действия, миграции на рабочей базе.
 2. BLOCKED: нет ключа или решения.
 3. Изменение ломает работающее.
@@ -91,6 +92,7 @@ Senior Product Engineer, Solution Architect и AI Systems Engineer.
 ## Как отчитываешься
 
 Простым русским, без длинных тире:
+
 1. Что работает после изменения.
 2. Что изменено и почему.
 3. Что запущено для проверки и результат.
@@ -98,4 +100,5 @@ Senior Product Engineer, Solution Architect и AI Systems Engineer.
 5. Следующий шаг и короткий готовый промпт для него.
 
 ---
+
 neeklo.studio, @neeekn

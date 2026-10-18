@@ -198,7 +198,13 @@ export async function expectEmber(page: Page, screen: string) {
 /** axe-core: нарушения уровня serious и critical роняют тест */
 export async function expectA11y(page: Page, screen: string) {
   await settle(page);
-  const results = await new AxeBuilder({ page }).analyze();
+  /*
+   * Уведомления не входят в проверку экрана: они появляются и растворяются сами (их шлёт
+   * симулятор демонстрации), и axe ловит контраст по полупрозрачному кадру анимации —
+   * нарушение, которого человек не видит. Контраст самого уведомления проверяется отдельно,
+   * на остановившемся кадре: `expectToastA11y`.
+   */
+  const results = await new AxeBuilder({ page }).exclude("[data-sonner-toaster]").analyze();
   const serious = results.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
     .map((v) => `${v.id} (${v.impact}, узлов ${v.nodes.length}): ${v.nodes[0]?.target.join(" ")}`);
@@ -345,4 +351,32 @@ export async function expectEmberGradient(page: Page, screen: string) {
   });
   if (bad === null) return; // на экране нет главной метрики
   expect(bad, `${screen}: текст на градиенте`).toEqual([]);
+}
+
+/**
+ * Контраст уведомления на остановившемся кадре (ADR-037, находка прогона демонстрации).
+ * Проверяется то, что скрыто из общей проверки: сам текст уведомления на его подложке.
+ */
+export async function expectToastA11y(page: Page, screen: string) {
+  const toast = page.locator('[data-sonner-toast][data-mounted="true"]').first();
+  await toast.waitFor({ timeout: 10_000 });
+  // Ждём конца анимации появления: пока она идёт, цвет считается по полупрозрачному слою
+  await page
+    .waitForFunction(
+      () => {
+        const node = document.querySelector('[data-sonner-toast][data-mounted="true"]');
+        return !!node && getComputedStyle(node).opacity === "1";
+      },
+      undefined,
+      { timeout: 10_000 },
+    )
+    .catch(() => undefined);
+  const results = await new AxeBuilder({ page })
+    .include("[data-sonner-toaster]")
+    .withRules(["color-contrast"])
+    .analyze();
+  const serious = results.violations
+    .filter((v) => v.impact === "serious" || v.impact === "critical")
+    .map((v) => `${v.id} (${v.impact}): ${v.nodes[0]?.target.join(" ")}`);
+  expect(serious, `${screen}: контраст уведомления`).toEqual([]);
 }

@@ -19,10 +19,10 @@
 
 ```ts
 interface ModelGateway {
-  transcribe(audio: AudioInput): Promise<Transcript>            // речь в текст с интервалами
-  extract<T>(input: ExtractInput, schema: ZodSchema<T>): Promise<ExtractResult<T>>
-  draft(input: DraftInput): Promise<DraftResult>                 // черновик сводки и формулировок
-  answer(input: AnswerInput): Promise<AnswerWithSources>         // ответ только со ссылками на источники
+  transcribe(audio: AudioInput): Promise<Transcript>; // речь в текст с интервалами
+  extract<T>(input: ExtractInput, schema: ZodSchema<T>): Promise<ExtractResult<T>>;
+  draft(input: DraftInput): Promise<DraftResult>; // черновик сводки и формулировок
+  answer(input: AnswerInput): Promise<AnswerWithSources>; // ответ только со ссылками на источники
 }
 ```
 
@@ -33,14 +33,14 @@ interface ModelGateway {
 
 Один адаптер `OpenAICompatibleLLM` покрывает провайдеров с совместимым chat API. Отдельные адаптеры только где API другой.
 
-| Провайдер | Для чего | Адаптер | Что проверить при подключении |
-|---|---|---|---|
-| DeepSeek | Извлечение и черновики, дёшево | OpenAI-совместимый | Поддержка JSON-режима, лимиты, задержка из РФ |
-| OpenAI (ChatGPT) | Извлечение, эталон качества, распознавание речи | OpenAI-совместимый, отдельный для речи | Доступность из контура клиента |
-| OpenRouter | Быстро сравнить Qwen и другие модели | OpenAI-совместимый | Какая модель реально отвечает |
-| YandexGPT / AI Studio | Российский контур | Проверить совместимость, иначе свой адаптер | Формат авторизации |
-| GigaChat | Российский контур | Свой адаптер, позже | Сертификаты, scopes |
-| Yandex SpeechKit | Русская речь | Свой адаптер для `transcribe` | Ограничение длины сессии, сегментация |
+| Провайдер             | Для чего                                        | Адаптер                                     | Что проверить при подключении                 |
+| --------------------- | ----------------------------------------------- | ------------------------------------------- | --------------------------------------------- |
+| DeepSeek              | Извлечение и черновики, дёшево                  | OpenAI-совместимый                          | Поддержка JSON-режима, лимиты, задержка из РФ |
+| OpenAI (ChatGPT)      | Извлечение, эталон качества, распознавание речи | OpenAI-совместимый, отдельный для речи      | Доступность из контура клиента                |
+| OpenRouter            | Быстро сравнить Qwen и другие модели            | OpenAI-совместимый                          | Какая модель реально отвечает                 |
+| YandexGPT / AI Studio | Российский контур                               | Проверить совместимость, иначе свой адаптер | Формат авторизации                            |
+| GigaChat              | Российский контур                               | Свой адаптер, позже                         | Сертификаты, scopes                           |
+| Yandex SpeechKit      | Русская речь                                    | Свой адаптер для `transcribe`               | Ограничение длины сессии, сегментация         |
 
 DeepSeek речь не распознаёт. Для `transcribe` нужен отдельный провайдер.
 
@@ -102,18 +102,19 @@ AI_TIMEOUT_MS=30000
 
 ```ts
 const Provenance = z.object({
-  quote: z.string(),                 // точная фраза из расшифровки
+  quote: z.string(), // точная фраза из расшифровки
   audioStartMs: z.number().optional(),
   audioEndMs: z.number().optional(),
   mediaId: z.string().optional(),
-})
+});
 
-const Field = <T extends z.ZodTypeAny>(v: T) => z.object({
-  value: v.nullable(),               // null = неизвестно
-  basis: z.enum(['stated', 'inferred_from_context', 'unknown']),
-  attention: z.string().nullable(),  // причина для янтарной точки
-  provenance: Provenance.nullable(),
-})
+const Field = <T extends z.ZodTypeAny>(v: T) =>
+  z.object({
+    value: v.nullable(), // null = неизвестно
+    basis: z.enum(["stated", "inferred_from_context", "unknown"]),
+    attention: z.string().nullable(), // причина для янтарной точки
+    provenance: Provenance.nullable(),
+  });
 
 const WorkRecordDraft = z.object({
   zone: Field(z.string()),
@@ -122,24 +123,26 @@ const WorkRecordDraft = z.object({
   unit: Field(z.string()),
   people: Field(z.number().int()),
   hours: Field(z.number()),
-})
+});
 
 const TaskDraft = z.object({
   location: Field(z.string()),
   defect: Field(z.string()),
   assignee: Field(z.string()),
   dueDate: Field(z.string()),
-  evidenceRequired: Field(z.array(z.enum(['photo_before', 'photo_after']))),
-})
+  evidenceRequired: Field(z.array(z.enum(["photo_before", "photo_after"]))),
+});
 
 const RiskDraft = z.object({
-  kind: Field(z.enum(['material_shortage', 'delivery_delay', 'doc_mismatch', 'downtime', 'client_question'])),
+  kind: Field(
+    z.enum(["material_shortage", "delivery_delay", "doc_mismatch", "downtime", "client_question"]),
+  ),
   what: Field(z.string()),
-  impact: Field(z.enum(['schedule', 'cost', 'quality', 'safety'])),
+  impact: Field(z.enum(["schedule", "cost", "quality", "safety"])),
   decisionNeeded: Field(z.string()),
   owner: Field(z.string()),
   answerBy: Field(z.string()),
-})
+});
 
 const ExtractionResult = z.object({
   workRecords: z.array(WorkRecordDraft),
@@ -147,7 +150,7 @@ const ExtractionResult = z.object({
   risks: z.array(RiskDraft),
   plannedTomorrow: z.array(z.string()),
   clarifications: z.array(z.string()).max(3),
-})
+});
 ```
 
 Невалидный ответ модели не применяется. Пользователь видит карточку «Не удалось разобрать, уточните или заполните вручную».
@@ -194,4 +197,5 @@ const ExtractionResult = z.object({
 только если ключ задан; иначе честное сообщение и пример кнопками.
 
 ---
+
 neeklo.studio, @neeekn

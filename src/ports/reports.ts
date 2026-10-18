@@ -11,6 +11,7 @@ import {
   type ProjectDecision,
   type Source,
 } from "@/contracts";
+import type { ShiftSummary } from "@/domain/shift";
 import type { Actor } from "./common";
 
 /**
@@ -87,6 +88,16 @@ export interface CaptureResult {
   repeated: boolean;
 }
 
+/** Сводка смены и её файлы (ADR-037, сценарий 1 и 2) */
+export const shiftInput = z.object({
+  projectId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u),
+  /** Нет принятых записей за эту дату — показать последнюю смену, где они есть (ADR-037) */
+  fallbackToLast: z.boolean().optional(),
+});
+
+export type ShiftInput = z.infer<typeof shiftInput>;
+
 export const reportCard = z.object({
   report: fieldReport,
   /** Первоисточник отчёта: расшифровка голосового сообщения или текст */
@@ -127,5 +138,11 @@ export interface ReportsPort {
   review(input: ReviewReportInput, actor: Actor): Promise<void>;
   /** Записать факт с площадки: источник, текст и метки фото (ADR-036) */
   capture(input: CaptureInput, actor: Actor): Promise<CaptureResult>;
+  /** Сводка смены объекта: только принятые отчёты (ADR-037, инвариант 1) */
+  shift(input: ShiftInput): Promise<ShiftSummary>;
+  /** Сводка смены файлом Excel */
+  exportShift(input: ShiftInput): Promise<Blob>;
+  /** Черновик ведомости объёмов для ПТО: не исполнительная документация */
+  exportStatement(input: ShiftInput): Promise<Blob>;
   source(sourceId: string): Promise<SourceCard | null>;
 }

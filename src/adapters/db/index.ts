@@ -220,6 +220,7 @@ export function createDbRepositories({ driver, codec, clock, onRetry }: DbOption
     reports: bridged("reports", ["create", "review", "capture"]),
     timeline: bridged("timeline"),
     processing: bridged("processing", ["record"]),
+    supply: bridged("supply", ["createRequest", "decideRequest"]),
     catalog: bridged("catalog", [
       "saveMaterial",
       "saveCategory",

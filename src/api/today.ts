@@ -18,7 +18,7 @@ import { useNow } from "./clock";
  *
  * `projectId` — объект из чипа шапки; `null` означает «все мои объекты».
  */
-export function useToday(projectId: string | null) {
+export function useToday(projectId: string | null, enabled = true) {
   const now = useNow();
   /*
    * Поставки открыты не всем, кому открыты отчёты: у ПТО права на них нет. Запрос, который
@@ -35,8 +35,18 @@ export function useToday(projectId: string | null) {
     [rows, projectId],
   );
 
-  const cards = useQueries({ queries: ids.map((id) => queries.project(id)) });
-  const reports = useQueries({ queries: ids.map((id) => queries.reports(id)) });
+  /*
+   * Факты площадки открыты не всем: у снабжения права на них нет, и запрос, который вернёт
+   * отказ, не отправляется вовсе. Иначе «Входящие» у снабжения падали с ошибкой загрузки
+   * вместо того, чтобы показать его заявки (находка сквозной проверки демонстрации).
+   */
+  const seesReports = enabled && can("field-reports");
+  const cards = useQueries({
+    queries: ids.map((id) => ({ ...queries.project(id), enabled: seesReports })),
+  });
+  const reports = useQueries({
+    queries: ids.map((id) => ({ ...queries.reports(id), enabled: seesReports })),
+  });
   const deliveries = useQueries({
     queries: ids.map((id) => ({ ...queries.deliveries(id), enabled: seesDeliveries })),
   });

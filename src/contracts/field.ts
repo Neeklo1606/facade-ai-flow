@@ -224,3 +224,71 @@ export const reportKindLabel: Record<FieldReport["kind"], string> = {
   text: "Текст",
   photo: "Только фото",
 };
+
+/* ---------- Заявка на материал (ADR-037, сценарий 3) ---------- */
+
+/**
+ * Движение заявки: снабжение принимает её в работу, заказывает и закрывает. Отказ — тоже
+ * решение и требует причины. Ничего не заказывается автоматически: статус меняет человек.
+ */
+export const materialRequestTransitions = {
+  new: ["accepted", "declined"],
+  accepted: ["ordered", "declined"],
+  ordered: ["closed"],
+  closed: [],
+  declined: [],
+} as const;
+
+export const materialRequestStatus = pgEnum(
+  "material_request_status",
+  ["new", "accepted", "ordered", "closed", "declined"],
+  "Заявка на материал: от площадки к снабжению",
+  materialRequestTransitions,
+);
+
+export const materialRequests = table(
+  {
+    name: "material_requests",
+    comment: "Заявка на материал с площадки: что, сколько, к какому сроку (ADR-037)",
+    primaryKey: ["id"],
+    audited: true,
+    indexes: [
+      { columns: ["projectId", "neededBy"], purpose: "заявки объекта по сроку" },
+      { columns: ["status", "neededBy"], purpose: "очередь снабжения" },
+      { columns: ["authorId", "requestedAt desc"], purpose: "мои заявки на «Сегодня»" },
+    ],
+    checks: [
+      "qty > 0",
+      // Решение приходит вместе с автором и временем: иначе непонятно, кто ответил
+      "(decided_by is null) = (decided_at is null)",
+    ],
+  },
+  {
+    id: col.id(),
+    projectId: col.ref("projects", "restrict"),
+    /** Источник, из которого выросла заявка: голосовое или текст с площадки */
+    sourceId: col.ref("sources", "set null", { nullable: true }),
+    name: col.name({ comment: "что нужно: наименование материала словами площадки" }),
+    qty: col.qty(),
+    unit: col.name(),
+    neededBy: col.date({ comment: "к какой дате материал нужен на объекте" }),
+    status: col.enum(materialRequestStatus),
+    note: col.text({ comment: "зачем и что встанет без него" }),
+    authorId: col.ref("employees", "restrict"),
+    requestedAt: col.timestamp({ comment: "когда заявка пришла с площадки" }),
+    decidedBy: col.ref("employees", "set null", { nullable: true }),
+    decidedAt: col.timestamp({ nullable: true }),
+    decision: col.text({ nullable: true, comment: "что решило снабжение и почему" }),
+  },
+);
+
+export type MaterialRequest = z.infer<typeof materialRequests>;
+export type MaterialRequestStatus = z.infer<typeof materialRequestStatus.schema>;
+
+export const materialRequestStatusLabel: Record<MaterialRequestStatus, string> = {
+  new: "Новая",
+  accepted: "Принята",
+  ordered: "Заказана",
+  closed: "Закрыта",
+  declined: "Отклонена",
+};

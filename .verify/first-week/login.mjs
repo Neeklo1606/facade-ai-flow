@@ -2,7 +2,10 @@
 export async function loginByPhone(page, base, phone) {
   await page.goto(`${base}/login`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(800);
-  await page.getByLabel(/Телефон/i).first().fill(phone);
+  await page
+    .getByLabel(/Телефон/i)
+    .first()
+    .fill(phone);
   await page.getByRole("button", { name: /Получить код/ }).click();
   await page.waitForTimeout(1500);
   const text = await page.locator("body").innerText();

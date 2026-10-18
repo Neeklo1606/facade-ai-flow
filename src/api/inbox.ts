@@ -18,8 +18,9 @@ import { useAccess } from "./access";
 export function useInbox(projectId: string | null) {
   const { can, role } = useAccess();
   const decides = can("field-reports", "write") || role === "director";
-  const today = useToday(projectId);
-  const check = useCheckQueue(projectId);
+  const seesReports = can("field-reports");
+  const today = useToday(projectId, seesReports);
+  const check = useCheckQueue(projectId, decides);
   const dash = useDashboard("week");
 
   const decisions = useMemo(
@@ -37,8 +38,8 @@ export function useInbox(projectId: string | null) {
     queue,
     decisions,
     count: today.returned.length + queue.length + decisions.length,
-    pending: today.pending || (decides && check.pending) || dash.listsPending,
-    error: today.error || check.error || dash.listsError,
+    pending: (seesReports && today.pending) || (decides && check.pending) || dash.listsPending,
+    error: (seesReports && today.error) || (decides && check.error) || dash.listsError,
     refetch: () => {
       today.refetch();
       check.refetch();

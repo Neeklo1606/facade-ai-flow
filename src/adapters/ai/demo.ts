@@ -9,6 +9,7 @@ import {
 } from "@/ports";
 import { EXTRACT_PROMPT_VERSION } from "@/ai/prompts/extract";
 import { SAMPLE_MESSAGES } from "@/ai/samples/messages";
+import { DEMO_EXAMPLES } from "@/ai/samples/demo-examples";
 
 /**
  * Заглушка шлюза для `AI_MODE=demo` (ADR-035, п. 1): модель не вызывается, ключи не нужны.
@@ -36,8 +37,15 @@ export const normalizeMessage = (text: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 
+/*
+ * Словарь подготовленных разборов: набор оценки плюс три примера показа (ADR-037, п. 3).
+ * Примеры показа привязаны к данным демонстрации, набор оценки — к синтетическому объекту.
+ */
 const byMessage = new Map(
-  SAMPLE_MESSAGES.map((sample) => [normalizeMessage(sample.message), sample]),
+  [...SAMPLE_MESSAGES, ...DEMO_EXAMPLES].map((sample) => [
+    normalizeMessage(sample.message),
+    sample,
+  ]),
 );
 const byId = new Map(SAMPLE_MESSAGES.map((sample) => [sample.id, sample]));
 

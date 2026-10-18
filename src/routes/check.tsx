@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ClipboardCheck, FileSearch, Image, Undo2 } from "lucide-react";
+import { Check, ClipboardCheck, FileSearch, FileSpreadsheet, Image, Undo2 } from "lucide-react";
 import {
   CountPill,
   EmptyState,
@@ -22,9 +22,11 @@ import { prefetch } from "@/api/prefetch";
 import { useAccess } from "@/api/access";
 import type { ReportCard } from "@/api/types";
 import { sourceKindLabel } from "@/contracts";
-import { fmtNum, plural } from "@/lib/format";
+import { fmtDate, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
+import { saveShiftFile, useShift } from "@/api/capture";
+import { useNow } from "@/api/clock";
 import { useProjectId } from "@/lib/project-scope";
 import { useSwipe } from "@/hooks/use-swipe";
 import { toast, toastRetry, toastUndo } from "@/lib/toast";
@@ -64,6 +66,13 @@ function CheckPage() {
   const projectId = useProjectId();
   const data = useCheckQueue(projectId);
   const { can } = useAccess();
+  const queueProject = data.queue[0]?.card.report.projectId ?? null;
+  const [lastProject, setLastProject] = useState<string | null>(null);
+  useEffect(() => {
+    if (queueProject) setLastProject(queueProject);
+  }, [queueProject]);
+  const statementProject = projectId ?? queueProject ?? lastProject;
+
   const screen = useScreenState({
     pending: data.pending,
     error: data.error,
@@ -76,6 +85,14 @@ function CheckPage() {
   return (
     <>
       <PageHeader title="Проверка" />
+      {/*
+        Черновик ведомости объёмов: файл результата ПТО (ADR-037, сценарий 2).
+        Объект берётся из чипа, а когда чип молчит — из очереди: ПТО обычно смотрит все объекты,
+        и прятать от него файл только из-за этого неправильно. Последний объект запоминается,
+        иначе кнопка исчезала ровно после приёмки последнего факта.
+      */}
+      {statementProject ? <StatementButton projectId={statementProject} /> : null}
+
       <PageCaption>
         <span className="truncate">
           {data.queue.length > 0
@@ -374,5 +391,46 @@ function Chip({ children }: { children: React.ReactNode }) {
     <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
       {children}
     </span>
+  );
+}
+
+/**
+ * Черновик ведомости объёмов (ADR-037, сценарий 2). Файл собирается из принятых записей
+ * смены и прямо подписан черновиком: исполнительную документацию демонстрация не выпускает.
+ */
+function StatementButton({ projectId }: { projectId: string }) {
+  const now = useNow();
+  const date = now.slice(0, 10);
+  /*
+   * Ведомость собирается за последнюю смену с принятыми записями: факт, который ПТО принял
+   * сегодня, может быть позавчерашним, и прятать от него документ из-за этого неправильно.
+   * Дата документа названа рядом с кнопкой, поэтому подмены не происходит.
+   */
+  const shift = useShift(projectId, date, true);
+  const [saving, setSaving] = useState(false);
+  const rows = shift.data?.rows.length ?? 0;
+
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <Button
+        variant="secondary"
+        disabled={saving || rows === 0}
+        onClick={() => {
+          setSaving(true);
+          void saveShiftFile({ projectId, date: shift.data?.date ?? date }, "statement")
+            .catch((error: Error) =>
+              toast.error("Документ не собрался", { description: error.message }),
+            )
+            .finally(() => setSaving(false));
+        }}
+      >
+        <FileSpreadsheet className="size-4" /> Скачать черновик ведомости
+      </Button>
+      <span className="text-caption text-text-3">
+        {rows > 0
+          ? `В документ ${plural(rows, "войдёт", "войдут", "войдут")} ${fmtNum(rows)} ${plural(rows, "принятая запись", "принятые записи", "принятых записей")} за ${fmtDate(shift.data?.date ?? date)}`
+          : "Принятых записей пока нет: примите факт, и документ соберётся"}
+      </span>
+    </div>
   );
 }

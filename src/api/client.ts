@@ -3,6 +3,9 @@ import type {
   AcceptDeliveryInput,
   AskAgentInput,
   CaptureInput,
+  CreateMaterialRequestInput,
+  DecideMaterialRequestInput,
+  ShiftInput,
   ChooseSupplierInput,
   CorrectPositionInput,
   CreatePositionInput,
@@ -40,6 +43,8 @@ import { FORBIDDEN_MESSAGE } from "@/ports";
 import { currentUserId, dataSource, type DEMO_PERSONAS } from "./config";
 import * as fn from "./functions";
 import { captureFactFn, extractFactFn } from "./ai";
+import { createRequestFn, decideRequestFn, requestsFn, shiftFn } from "./supply";
+import { SHIFT_EXPORT_PATH } from "./export-paths";
 import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
 /**
@@ -338,6 +343,46 @@ export const api = {
         ? { ok: true as const, draft: outcome.draft, by: outcome.by }
         : { ok: false as const, reason: outcome.reason ?? "Разбор не получен", by: outcome.by };
     },
+  },
+
+  /** Сводка смены и её файлы (ADR-037): в демонстрации считается и собирается во вкладке */
+  shift: {
+    summary: (data: ShiftInput) =>
+      server ? shiftFn({ data }) : local().then((r) => r.reports.shift(data)),
+    excel: (data: ShiftInput) =>
+      server
+        ? fetch(
+            `${SHIFT_EXPORT_PATH}?projectId=${encodeURIComponent(data.projectId)}&date=${data.date}`,
+          ).then((response) => {
+            if (!response.ok) throw new Error(`Выгрузка не сформирована: ${response.status}`);
+            return response.blob();
+          })
+        : local().then((r) => r.reports.exportShift(data)),
+    statement: (data: ShiftInput) =>
+      server
+        ? fetch(
+            `${SHIFT_EXPORT_PATH}?projectId=${encodeURIComponent(data.projectId)}&date=${data.date}&kind=statement`,
+          ).then((response) => {
+            if (!response.ok) throw new Error(`Документ не сформирован: ${response.status}`);
+            return response.blob();
+          })
+        : local().then((r) => r.reports.exportStatement(data)),
+  },
+
+  /** Заявки на материал (ADR-037, сценарий 3) */
+  supply: {
+    requests: (projectId: string | null) =>
+      server
+        ? requestsFn({ data: { projectId } })
+        : local().then((r) => r.supply.requests(projectId)),
+    create: (data: CreateMaterialRequestInput) =>
+      server
+        ? createRequestFn({ data })
+        : local().then((r) => r.supply.createRequest(data, actor())),
+    decide: (data: DecideMaterialRequestInput) =>
+      server
+        ? decideRequestFn({ data })
+        : local().then((r) => r.supply.decideRequest(data, actor())),
   },
 
   agent: {
