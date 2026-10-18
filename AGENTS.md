@@ -15,3 +15,4 @@
 
 - Apply shared interface changes through global semantic tokens and existing common components; this keeps every working screen consistent without duplicating UI or altering domain logic.
 - Keep the desktop navigation expanded unless the user collapses it; visible section labels support orientation across laptop and desktop screens.
+- Keep responsive navigation dimensions in shared shell tokens and use them for content clearance; this prevents pinned controls and phone navigation from overlapping.
