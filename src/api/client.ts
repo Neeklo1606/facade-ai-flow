@@ -106,7 +106,17 @@ export const api = {
    * но серверные проверки (кабинет компании, ADR-039) должны знать роль, а не угадывать её.
    */
   signIn: async (personaId: (typeof DEMO_PERSONAS)[number]) => {
-    await fn.signInFn({ data: { personaId } });
+    if (server) {
+      await fn.signInFn({ data: { personaId } });
+      return;
+    }
+    /*
+     * Демонстрация: данные во вкладке, кука нужна только серверным проверкам кабинета. Сбой
+     * её выдачи не должен ломать выбор роли и показ — кабинет тогда честно ответит отказом.
+     */
+    await fn.signInFn({ data: { personaId } }).catch((error: unknown) => {
+      console.warn("Кука персоны не выдана", error);
+    });
   },
   clock: {
     now: () => (server ? fn.nowFn() : local().then((r) => r.clock.now())),
