@@ -38,6 +38,7 @@ import {
   createMaterialRequestInput,
   decideMaterialRequestInput,
   ConflictError,
+  ForbiddenError,
   NotFoundError,
   type CaptureInput,
   type CaptureResult,
@@ -1456,7 +1457,28 @@ export function createReport(input: CreateReportInput, actorId: string) {
   // Дата смены задним числом — норма, вперёд — нет: это отчёт, а не план
   if (input.reportDate > today) throw new ConflictError("Дата смены не может быть в будущем");
   const author = s.employees.find((item) => item.id === actorId);
-  const sourceId = liveId("src");
+  /*
+   * Отчёт из записи ссылается на неё (ADR-040, п. 3): ПТО видит фразу прораба, а не пересказ.
+   * Повтор «Верно» по той же записи с теми же полями возвращает уже созданный отчёт.
+   */
+  const linked = input.sourceId
+    ? (s.sources.find((item) => item.id === input.sourceId) ?? null)
+    : null;
+  if (input.sourceId && (!linked || linked.projectId !== input.projectId)) {
+    throw new NotFoundError("Запись", input.sourceId);
+  }
+  if (linked) {
+    const same = s.reports.find(
+      (item) =>
+        item.sourceId === linked.id &&
+        item.zoneId === input.zoneId &&
+        item.workType === input.workType &&
+        item.declaredQty === input.declaredQty &&
+        item.unit === input.unit,
+    );
+    if (same) return same;
+  }
+  const sourceId = linked?.id ?? liveId("src");
   const source: Source = {
     id: sourceId,
     kind: "manual",
@@ -1476,7 +1498,7 @@ export function createReport(input: CreateReportInput, actorId: string) {
     crewId: null,
     date: input.reportDate,
     sentAt: at,
-    kind: "text",
+    kind: linked && linked.location !== "текст" ? "voice" : "text",
     workType: input.workType,
     status: "review",
     summary: input.summary,
@@ -1492,7 +1514,7 @@ export function createReport(input: CreateReportInput, actorId: string) {
   };
   update((prev) => ({
     ...prev,
-    sources: [...prev.sources, source],
+    sources: linked ? prev.sources : [...prev.sources, source],
     reports: [...prev.reports, report],
     events: [
       ...prev.events,
@@ -1501,14 +1523,43 @@ export function createReport(input: CreateReportInput, actorId: string) {
           projectId: input.projectId,
           type: "report_added",
           title: `Отчёт с площадки: ${input.workType}`,
-          details: `${input.declaredQty} ${input.unit}, захватка «${zone.name}». Внесён вручную.`,
+          details: `${input.declaredQty} ${input.unit}, захватка «${zone.name}». ${
+            linked ? "Из записи с площадки." : "Внесён вручную."
+          }`,
           sourceId,
+          reportId: report.id,
         },
         actorId,
       ),
     ],
   }));
   return report;
+}
+
+/**
+ * Снять свой отчёт сразу после «Верно» (ADR-040, п. 4). Только автор и только пока отчёт
+ * на проверке: принятое уже стало фактом объекта, и отмена тут — решение ПТО, а не кнопка.
+ * Запись с площадки остаётся: факт не теряется, снимается только отчёт из него.
+ */
+export function retractReport(id: string, actorId: string) {
+  const s = getState();
+  const report = s.reports.find((item) => item.id === id);
+  if (!report) throw new NotFoundError("Отчёт", id);
+  if (report.authorId !== actorId) throw new ForbiddenError("Отменить можно только свой отчёт");
+  if (report.status !== "review") {
+    throw new ConflictError("Отчёт уже проверен: отменить его нельзя");
+  }
+  const source = s.sources.find((item) => item.id === report.sourceId);
+  // Ручной источник создавался вместе с отчётом — он уходит с ним; запись с площадки остаётся
+  const dropSource =
+    source?.location === "внесён вручную" &&
+    !s.reports.some((item) => item.id !== id && item.sourceId === source.id);
+  update((prev) => ({
+    ...prev,
+    reports: prev.reports.filter((item) => item.id !== id),
+    sources: dropSource ? prev.sources.filter((item) => item.id !== source!.id) : prev.sources,
+    events: prev.events.filter((item) => item.reportId !== id),
+  }));
 }
 
 export function reviewReport({ id, status, acceptedQty }: ReviewReportInput) {
@@ -2404,6 +2455,18 @@ export function createMaterialRequest(
   };
   update((prev) => ({ ...prev, materialRequests: [...prev.materialRequests, request] }));
   return request;
+}
+
+/** Снять свою новую заявку сразу после «Верно» (ADR-040, п. 4): решённую отменить нельзя */
+export function retractMaterialRequest(id: string, actorId: string) {
+  const request = getState().materialRequests.find((item) => item.id === id);
+  if (!request) throw new NotFoundError("Заявка", id);
+  if (request.authorId !== actorId) throw new ForbiddenError("Отменить можно только свою заявку");
+  if (request.status !== "new") throw new ConflictError("Снабжение уже решило по заявке");
+  update((prev) => ({
+    ...prev,
+    materialRequests: prev.materialRequests.filter((item) => item.id !== id),
+  }));
 }
 
 /**

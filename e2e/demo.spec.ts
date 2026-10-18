@@ -13,29 +13,33 @@ test.describe("сценарий 1: объект → учёт", () => {
 
   test("пример смены разбирается и становится отчётом @mobile", async ({ page }) => {
     await open(page, "/capture");
-    // Подготовленные примеры показа: нажатие ставит текст и прогоняет разбор
-    await page.getByRole("button", { name: "Смена", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Что система услышала" })).toBeVisible();
-    await expect(page.getByText("разбор подготовлен заранее")).toBeVisible();
+    // Микрофона в прогоне нет: показ идёт имитацией записи с той же расшифровкой
+    await page.getByRole("button", { name: /Удерживайте, чтобы говорить/ }).click();
+    await page.getByRole("button", { name: "Показать без микрофона" }).click();
+    await page.getByRole("button", { name: "Готово" }).click();
+    await page.getByRole("button", { name: "Показать сразу" }).click();
+    await expect(page.getByText("Демо: разбор подготовлен заранее")).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Карточки разбора: работы, люди и часы, план на завтра
-    await expect(page.getByRole("heading", { name: "Работы" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Люди и часы" })).toBeVisible();
+    await expect(page.getByText("Работы", { exact: true })).toBeVisible();
+    await expect(page.getByText("Люди", { exact: true })).toBeVisible();
     await expect(page.getByText("96 м²")).toBeVisible();
 
-    // Источник значения виден по кнопке, а не прячется
-    await page.getByRole("button", { name: "Показать источник" }).first().click();
-    // Источник — это фраза из сообщения, а не пересказ
-    await expect(page.getByText(/«облицовки из керамогранита»/)).toBeVisible();
+    // Источник значения — касанием: фраза из сообщения, а не пересказ
+    await page.getByRole("button", { name: /Вид работ: .*Откуда взято/ }).click();
+    await expect(page.getByRole("dialog").locator("mark")).toHaveText(/облицовки из керамогранита/);
+    await page.keyboard.press("Escape");
 
     // «Верно» заводит отчёт: он уходит на проверку, а не в сводку
-    await page.getByRole("button", { name: /Верно/ }).click();
-    await expect(page.getByRole("button", { name: /Отчёт заведён/ })).toBeVisible();
+    await page.getByRole("button", { name: "Верно" }).last().click();
+    await expect(page.getByRole("link", { name: /Отчёт на проверку/ })).toBeVisible();
 
     await open(page, "/today");
     // Новая строка видна именно как новая: захватка примера в демонстрации ещё не встречалась
     await expect(page.locator("main")).toContainText("Стилобат, оси А–Р");
-    await expect(page.locator("main")).toContainText("96");
+    await expect(page.locator("main")).toContainText(/96\s*м²/u);
   });
 
   test("сводка смены скачивается файлом @mobile", async ({ page }) => {
@@ -79,14 +83,19 @@ test.describe("сценарий 3: заявка с площадки", () => {
   test("прораб создаёт заявку из разбора @mobile", async ({ page }) => {
     await open(page, "/capture");
     await page.getByRole("button", { name: "Нехватка материала" }).click();
-    await expect(page.getByRole("heading", { name: "Что система услышала" })).toBeVisible();
-    await page.getByRole("button", { name: /Создать заявку/ }).click();
+    await page.getByRole("button", { name: /Удерживайте, чтобы говорить/ }).click();
+    await page.getByRole("button", { name: "Показать без микрофона" }).click();
+    await page.getByRole("button", { name: "Готово" }).click();
+    await page.getByRole("button", { name: "Показать сразу" }).click();
 
     // Количество и единица подставлены из фразы, дата — из срока ответа
+    await expect(page.getByText(/12 шт · к /)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: /Заявка снабжению/ }).click();
     await expect(page.getByLabel("Количество")).toHaveValue("12");
     await expect(page.getByLabel("Единица измерения")).toHaveValue("шт");
-    await page.getByRole("button", { name: "Отправить снабжению" }).click();
-    await expect(page.getByRole("button", { name: "Заявка создана" })).toBeVisible();
+    await page.getByRole("button", { name: "Сохранить заявку" }).click();
+    await page.getByRole("button", { name: "Верно" }).last().click();
+    await expect(page.getByRole("link", { name: /Заявка снабжению/ })).toBeVisible();
   });
 });
 

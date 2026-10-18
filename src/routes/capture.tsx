@@ -1,51 +1,86 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, Check, Mic, PackageSearch, Pause, Play, Square } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Camera,
+  Check,
+  ChevronRight,
+  FileText,
+  Mic,
+  PackageSearch,
+  Pause,
+  Play,
+  RotateCcw,
+  Square,
+  Undo2,
+} from "lucide-react";
 import { EmptyState, PageHeader, WidgetCard, WidgetCardHeader } from "@/components/common";
-import { PageCaption } from "@/components/layout/PageActions";
-import { AmbientField, AttentionDot, DraftReview, SyncIndicator } from "@/components/gaika";
+import { BottomSheet } from "@/components/common/BottomSheet";
+import { MobileActionBar } from "@/components/common/MobileActionBar";
+import {
+  AmbientField,
+  DraftReview,
+  LiveWave,
+  Marker,
+  SourceSheet,
+  StageList,
+  TranscriptReveal,
+} from "@/components/gaika";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
-import { prepareDraft, useCapture, useCreateMaterialRequest, useDemoExamples } from "@/api/capture";
-import { useCreateReport } from "@/api/mutations";
-import type { CreateMaterialRequestInput, RequestPrefill } from "@/api/types";
+import {
+  prepareDraft,
+  useConfirmDraft,
+  useDemoExamples,
+  useExtract,
+  useRetractCreated,
+  useSaveCapture,
+  useTranscribe,
+} from "@/api/capture";
+import {
+  EXTRACT_STAGES,
+  EXTRACT_STAGE_MS,
+  SIMULATED_RECORDING_MS,
+  captureReducer,
+  capturing,
+  initialFlow,
+  locateQuote,
+  revealSchedule,
+  undoSecondsLeft,
+  working,
+  type CaptureEvent,
+  type CaptureFlow,
+} from "@/api/capture-flow";
+import type { DraftField, RequestPrefill } from "@/api/types";
 import { useAccess } from "@/api/access";
 import { useNow } from "@/api/clock";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRecorder } from "@/hooks/use-recorder";
-import {
-  CAPTURE_LIMIT_SEC,
-  clock,
-  emptyDraft,
-  markFailed,
-  markSaved,
-  markSending,
-  nearLimit,
-  readDraft,
-  readyToSend,
-  remainingSec,
-  submitLabel,
-  writeDraft,
-  type CaptureDraft,
-} from "@/lib/capture";
-import { note } from "@/lib/contour-copy";
+import { CAPTURE_LIMIT_SEC, clock, nearLimit, newCaptureKey, remainingSec } from "@/lib/capture";
+import { fmtDate } from "@/lib/format";
 import { useProjectId } from "@/lib/project-scope";
 import { cn } from "@/lib/utils";
 
 /**
- * Экран «Запись» (раздел 7 GAIKA_PRODUCT_UX; ADR-036). Главный вход факта: голос, текст, фото.
+ * Экран «Запись» (ADR-036, ADR-040). Одна линия состояний: покой → запись → отправка →
+ * расшифровка → разбор → проверка человеком → готово. Правила переходов живут в домене
+ * и проверены тестами; здесь — микрофон, сеть и вид.
  *
- * Текст открыт всегда — и до записи, и во время, и когда микрофон запрещён: отказ в микрофоне
- * не должен оставлять прораба без способа сообщить факт.
- *
- * Чего экран не обещает: файла записи он не хранит и расшифровки без ключа не делает.
- * Про то и другое сказано на самом экране, а не в сноске.
+ * Текст доступен всегда, отказ в микрофоне его не блокирует. Подготовленная расшифровка
+ * и разбор помечены одной строкой рядом с результатом (правило 4).
  */
 export const Route = createFileRoute("/capture")({
-  /** `?record=1` — удержание центральной кнопки: запись начинается сразу (ADR-036) */
-  validateSearch: (search: Record<string, unknown>): { record?: true | undefined } =>
-    search["record"] === "1" || search["record"] === true ? { record: true } : {},
+  /**
+   * `?record=1` — удержание центральной кнопки: запись начинается сразу (ADR-036);
+   * `?scenario=` — сценарий показа, который выбрала полоса шагов (D3)
+   */
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { record?: true | undefined; scenario?: string | undefined } => ({
+    ...(search["record"] === "1" || search["record"] === true ? { record: true as const } : {}),
+    ...(typeof search["scenario"] === "string" ? { scenario: search["scenario"] } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Запись — гайка" },
@@ -60,144 +95,398 @@ export const Route = createFileRoute("/capture")({
   component: CapturePage,
 });
 
+/** Удержание дольше этого — «говорю, пока держу»: отпускание завершает запись */
+const HOLD_MS = 450;
+
+interface Machine {
+  flow: CaptureFlow;
+  /** Номер перехода: эффекты этапов срабатывают один раз на вход в этап */
+  seq: number;
+}
+
+function machine(state: Machine, event: CaptureEvent): Machine {
+  const next = captureReducer(state.flow, event);
+  return next === state.flow ? state : { flow: next, seq: state.seq + 1 };
+}
+
+interface Heard {
+  text: string;
+  segments: { text: string; startMs: number; endMs: number }[];
+  demo: boolean;
+}
+
 function CapturePage() {
-  const { record } = Route.useSearch();
+  const { record, scenario: scenarioParam } = Route.useSearch();
   const chipProject = useProjectId();
   const { can } = useAccess();
-  /*
-   * Объект записи: выбранный в шапке, единственный объект человека или выбранный здесь
-   * кнопками — тем же правилом, что и быстрая форма (ADR-029, п. 4). У прораба чипа нет вовсе,
-   * и спрашивать его об объекте, когда он один, незачем.
-   */
   const projects = useQuery(queries.projects()).data ?? [];
   const [picked, setPicked] = useState<string | null>(null);
   const projectId =
     chipProject ?? picked ?? (projects.length === 1 ? (projects[0]?.project.id ?? null) : null);
   const now = useNow();
+  const today = now.slice(0, 10);
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)", false);
+
   /* Примеры показа: в рабочем контуре их нет, и решает это слой данных (ADR-001, п. 5) */
-  const examples = useDemoExamples().data ?? [];
+  const examples = (useDemoExamples().data ?? []).filter(
+    (example) => !projectId || example.projectId === projectId,
+  );
+  const [{ flow, seq }, send] = useReducer(machine, {
+    flow: initialFlow(scenarioParam ?? null),
+    seq: 0,
+  });
+  const scenario = examples.find((example) => example.id === flow.scenario) ?? examples[0] ?? null;
+
   const recorder = useRecorder();
-  const capture = useCapture();
-  const [draft, setDraft] = useState<CaptureDraft | null>(null);
+  const save = useSaveCapture();
+  const transcribe = useTranscribe();
+  const extract = useExtract();
+  const confirm = useConfirmDraft();
+  const retract = useRetractCreated();
 
-  // Черновик переживает перезагрузку: ключ отправки тот же, поэтому повтор не создаёт дубль
-  useEffect(() => {
-    if (!projectId) return;
-    const saved = readDraft();
-    setDraft(saved && saved.projectId === projectId ? saved : emptyDraft(projectId));
-  }, [projectId]);
+  const [captureKey, setCaptureKey] = useState(newCaptureKey);
+  const [text, setText] = useState("");
+  const [textOpen, setTextOpen] = useState(false);
+  const [photos, setPhotos] = useState<{ takenAt: string; atMs: number | null }[]>([]);
+  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [heard, setHeard] = useState<Heard | null>(null);
+  const [instant, setInstant] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [outcome, setOutcome] = useState<Awaited<ReturnType<typeof extract.mutateAsync>> | null>(
+    null,
+  );
+  const [source, setSource] = useState<DraftField | null>(null);
+  const [requestDraft, setRequestDraft] = useState<RequestPrefill | null>(null);
+  const [editRequest, setEditRequest] = useState(false);
+  const [tick, setTick] = useState(() => Date.now());
 
-  useEffect(() => {
-    if (draft) writeDraft(draft);
-  }, [draft]);
-
-  /*
-   * Удержание центральной кнопки начинает запись сразу (раздел 8 дизайн-системы). Запрос
-   * доступа идёт из обработчика перехода, а не из рендера: браузер показывает его один раз.
-   */
-  const [autoStarted, setAutoStarted] = useState(false);
-  useEffect(() => {
-    if (record && !autoStarted && recorder.state === "idle") {
-      setAutoStarted(true);
-      void recorder.start();
-    }
-  }, [record, autoStarted, recorder]);
-
-  const change = (parts: Partial<CaptureDraft>) =>
-    setDraft((prev) => (prev ? { ...prev, ...parts } : prev));
-
-  const recording = recorder.state === "recording";
-  const paused = recorder.state === "paused";
-  const fieldState = capture.isPending ? "processing" : capture.isSuccess ? "success" : "rest";
-
-  const outcome = capture.data ?? null;
-  const outcomeDraft = outcome?.draft ?? null;
-  const createReport = useCreateReport();
-  const createRequest = useCreateMaterialRequest();
-  const [doneReports, setDoneReports] = useState(0);
-  const [request, setRequest] = useState<RequestPrefill | null>(null);
-  const [requestDone, setRequestDone] = useState(false);
   const card = useQuery({ ...queries.project(projectId ?? ""), enabled: !!projectId }).data;
   const reports = useQuery({ ...queries.reports(projectId ?? ""), enabled: !!projectId }).data;
+  const canWrite = can("field-reports", "write");
+
+  /* ---------- Имитация записи без микрофона (только в показе) ---------- */
+  const [simMs, setSimMs] = useState(0);
+  const simulated = flow.input === "simulated";
+  useEffect(() => {
+    if (!(flow.step === "recording" && simulated)) return;
+    const started = Date.now();
+    setSimMs(0);
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - started;
+      setSimMs(elapsed);
+      if (elapsed >= SIMULATED_RECORDING_MS) send({ type: "finish" });
+    }, 100);
+    return () => clearInterval(timer);
+  }, [flow.step, simulated]);
+
+  const elapsedMs = simulated ? simMs : recorder.elapsedMs;
+  const level = simulated
+    ? 0.35 + 0.3 * Math.abs(Math.sin(simMs / 180)) * Math.abs(Math.cos(simMs / 410))
+    : recorder.level;
+
+  /* ---------- Микрофон ---------- */
+  useEffect(() => {
+    if (flow.step !== "recording" || flow.input !== "voice") return;
+    if (recorder.state === "idle") void recorder.start();
+    // Запись дошла до предела и остановилась сама: это то же «Готово»
+    else if (recorder.state === "stopped") send({ type: "finish" });
+  }, [flow.step, flow.input, recorder]);
+
+  useEffect(() => {
+    if (flow.step !== "recording" || flow.input !== "voice") return;
+    if (recorder.state === "denied") send({ type: "mic-unavailable", reason: "denied" });
+    if (recorder.state === "unsupported") send({ type: "mic-unavailable", reason: "unsupported" });
+    if (recorder.state === "error") send({ type: "mic-unavailable", reason: "failed" });
+  }, [flow.step, flow.input, recorder.state]);
+
+  /* Удержание центральной кнопки панели начинает запись сразу (ADR-036) */
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (record && !autoStarted.current && projectId) {
+      autoStarted.current = true;
+      send({ type: "start" });
+    }
+  }, [record, projectId]);
+
+  /* ---------- Этапы обработки: каждый срабатывает один раз на вход ---------- */
+  const handled = useRef(-1);
+  const sourceText = flow.input === "text" ? text : (heard?.text ?? "");
+
+  const runExtract = useCallback(
+    async (message: string, savedId: string | null) => {
+      if (!projectId) return;
+      setStage(0);
+      const started = Date.now();
+      // Этапы идут по очереди, даже если ответ пришёл раньше: глаз успевает прочитать
+      const stages = setInterval(() => {
+        setStage((value) => Math.min(EXTRACT_STAGES.length - 1, value + 1));
+      }, EXTRACT_STAGE_MS);
+      try {
+        const answer = await extract.mutateAsync({ projectId, message, sourceId: savedId });
+        const left = EXTRACT_STAGES.length * EXTRACT_STAGE_MS - (Date.now() - started);
+        if (left > 0 && !reduced) await new Promise((resolve) => setTimeout(resolve, left));
+        clearInterval(stages);
+        setStage(EXTRACT_STAGES.length);
+        setOutcome(answer);
+        if (answer.ok) send({ type: "extracted" });
+        else send({ type: "failed", message: answer.reason, refused: true });
+      } catch (error) {
+        clearInterval(stages);
+        send({ type: "failed", message: (error as Error).message });
+      }
+    },
+    [projectId, extract, reduced],
+  );
+
+  useEffect(() => {
+    if (handled.current === seq || !projectId) return;
+    handled.current = seq;
+
+    if (flow.step === "uploading" && flow.input === "text") {
+      save
+        .mutateAsync({
+          projectId,
+          captureKey,
+          text: text.trim(),
+          kind: "text",
+          durationMs: null,
+          photos: photoMarks(photos),
+        })
+        .then((saved) => {
+          setSourceId(saved.source.id);
+          send({ type: "uploaded" });
+        })
+        .catch((error: Error) => send({ type: "failed", message: error.message }));
+    }
+
+    // Имитация записи: файла нет, распознаватель показа отдаёт расшифровку сценария
+    if (flow.step === "uploading" && flow.input === "simulated") sendAudio(null);
+    if (flow.step === "uploading" && flow.input === "voice") voiceSent.current = false;
+
+    if (flow.step === "extracting") void runExtract(sourceText.trim(), sourceId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- этап запускается входом, а не данными
+  }, [seq]);
+
   /*
-   * Дата берётся из часов продукта, а не из браузера: в демонстрации часы свои, и отчёт
-   * с датой браузера уходил в будущее — порт его законно отвергал.
+   * Голос: запись останавливается, и только когда файл собран, уходит распознавателю.
+   * Источник сохраняется уже с текстом расшифровки (ADR-040, п. 1).
    */
-  const today = now.slice(0, 10);
-  /* Карточки и готовые записи считает слой данных: экран их только показывает */
+  const voiceSent = useRef(false);
+  useEffect(() => {
+    if (flow.step !== "uploading" || flow.input !== "voice") return;
+    if (recorder.state === "recording" || recorder.state === "paused") recorder.stop();
+    else if (recorder.state === "stopped" && !voiceSent.current) {
+      voiceSent.current = true;
+      sendAudio(recorder.blob);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ждём состояния микрофона
+  }, [flow.step, flow.input, recorder.state]);
+
+  function sendAudio(audio: Blob | null) {
+    if (!projectId) return;
+    setInstant(reduced);
+    heardSaved.current = false;
+    transcribe
+      .mutateAsync({
+        audio,
+        durationMs: Math.round(elapsedMs),
+        projectId,
+        sourceId: null,
+        scenario: scenario?.id ?? null,
+      })
+      .then((answer) => {
+        if (!answer.ok || !answer.transcript) {
+          send({ type: "failed", message: answer.reason ?? "Речь не распознана" });
+          return;
+        }
+        setHeard({
+          text: answer.transcript.text,
+          segments: answer.transcript.segments,
+          demo: answer.by.demo,
+        });
+        send({ type: "uploaded" });
+      })
+      .catch((error: Error) => send({ type: "failed", message: error.message }));
+  }
+
+  /* Расшифровка показана — сохраняем источник с её текстом и идём в разбор */
+  const heardSaved = useRef(false);
+  const onHeard = useCallback(() => {
+    if (!projectId || !heard || flow.step !== "transcribing" || heardSaved.current) return;
+    heardSaved.current = true;
+    save
+      .mutateAsync({
+        projectId,
+        captureKey,
+        text: heard.text,
+        kind: "voice",
+        durationMs: Math.round(elapsedMs),
+        photos: photoMarks(photos),
+      })
+      .then((saved) => {
+        setSourceId(saved.source.id);
+        send({ type: "transcribed" });
+      })
+      .catch((error: Error) => {
+        heardSaved.current = false;
+        send({ type: "failed", message: error.message });
+      });
+  }, [projectId, heard, flow.step, save, captureKey, elapsedMs, photos]);
+
+  const schedule = useMemo(() => (heard ? revealSchedule(heard.segments, 2_000) : []), [heard]);
+  const words = useMemo(() => heard?.segments.map((segment) => segment.text) ?? [], [heard]);
+
+  /* ---------- Черновик для проверки ---------- */
+  const draft = outcome?.ok ? outcome.draft : null;
   const prepared = useMemo(
     () =>
-      outcomeDraft && card
-        ? prepareDraft(outcomeDraft, {
-            projectId: projectId ?? "",
+      draft && card && projectId
+        ? prepareDraft(draft, {
+            projectId,
             date: today,
-            summary: draft?.text ?? "",
+            summary: sourceText,
             zones: card.zones,
             reports: (reports ?? []).map((item) => item.report),
           })
         : null,
-    [outcomeDraft, card, projectId, today, draft?.text, reports],
+    [draft, card, projectId, today, sourceText, reports],
   );
 
-  const limitLeft = remainingSec(recorder.elapsedMs);
+  // Заготовка заявки ставится один раз на разбор: обновление списка отчётов правку не стирает
+  const prefillFor = useRef<unknown>(null);
+  useEffect(() => {
+    if (!prepared || prefillFor.current === draft) return;
+    prefillFor.current = draft;
+    setRequestDraft(prepared.prefill);
+  }, [prepared, draft]);
 
-  const photos = draft?.photos ?? [];
-  const canWrite = can("field-reports", "write");
+  const nextDay = useMemo(() => {
+    const at = new Date(`${today}T12:00:00Z`).getTime() + 86_400_000;
+    return new Date(at).toISOString().slice(0, 10);
+  }, [today]);
+  const requestReady =
+    !!requestDraft &&
+    requestDraft.name.trim().length > 1 &&
+    requestDraft.qty !== null &&
+    requestDraft.qty > 0;
+  const requestMissing = requestDraft
+    ? requestDraft.qty === null
+      ? "Не сказано, сколько нужно: укажите количество"
+      : null
+    : null;
+  const nothingToCreate = !!prepared && prepared.reports.length === 0 && !requestDraft;
 
-  const addPhoto = () => {
-    const at = now.slice(0, 19);
-    change({
-      photos: [
-        ...photos,
-        {
-          caption: "",
-          takenAt: at,
-          atMs: recording || paused ? recorder.elapsedMs : null,
-        },
-      ],
-    });
+  const onConfirm = () => {
+    if (!prepared || !projectId || flow.step !== "review") return;
+    if (requestDraft && !requestReady) {
+      setEditRequest(true);
+      return;
+    }
+    send({ type: "confirm" });
+    confirm
+      .mutateAsync({
+        sourceId,
+        reports: prepared.reports,
+        request:
+          requestDraft && requestReady
+            ? {
+                projectId,
+                sourceId,
+                name: requestDraft.name.trim(),
+                qty: requestDraft.qty!,
+                unit: requestDraft.unit ?? "шт",
+                neededBy:
+                  requestDraft.neededBy && requestDraft.neededBy >= today
+                    ? requestDraft.neededBy
+                    : nextDay,
+                note: requestDraft.note,
+              }
+            : null,
+      })
+      .then((entities) => send({ type: "created", entities, at: Date.now() }))
+      .catch((error: Error) => send({ type: "failed", message: error.message }));
   };
 
-  const send = () => {
-    if (!draft || !readyToSend(draft)) return;
-    setDraft(markSending(draft, recorder.elapsedMs || draft.durationMs));
-    capture.mutate(
-      {
-        projectId: draft.projectId,
-        captureKey: draft.captureKey,
-        text: draft.text,
-        kind: recorder.elapsedMs > 0 ? "voice" : "text",
-        durationMs: recorder.elapsedMs > 0 ? recorder.elapsedMs : draft.durationMs,
-        photos: photos.map((photo, index) => ({
-          caption: photo.caption.trim() || `Фото ${index + 1}`,
-          takenAt: photo.takenAt,
-        })),
-      },
-      {
-        onSuccess: () => setDraft((prev) => (prev ? markSaved(prev) : prev)),
-        onError: (error) => setDraft((prev) => (prev ? markFailed(prev, error.message) : prev)),
-      },
-    );
+  /* Окно отмены: секунды на кнопке идут, пока экран «Готово» открыт */
+  useEffect(() => {
+    if (flow.step !== "done") return;
+    const timer = setInterval(() => setTick(Date.now()), 250);
+    return () => clearInterval(timer);
+  }, [flow.step]);
+  const undoLeft = undoSecondsLeft(flow, tick);
+
+  const onUndo = () => {
+    const entities = flow.created;
+    const at = Date.now();
+    if (undoSecondsLeft(flow, at) === 0) return;
+    send({ type: "undo", at });
+    void retract
+      .mutateAsync(entities)
+      .catch((error: Error) =>
+        send({ type: "failed", message: `Отменить не удалось: ${error.message}` }),
+      );
   };
 
-  const summary = useMemo(() => {
-    const value = outcome?.draft;
-    if (!value) return null;
-    return [
-      { label: "работы", count: value.workRecords.length },
-      { label: "задачи", count: value.tasks.length },
-      { label: "запросы", count: value.risks.length },
-      { label: "уточнения", count: value.clarifications.length },
-    ].filter((row) => row.count > 0);
-  }, [outcome]);
+  /* Новая запись: новый ключ отправки, прежние данные экрана уходят */
+  const startOver = () => {
+    send({ type: "reset" });
+    setCaptureKey(newCaptureKey());
+    setText("");
+    setTextOpen(false);
+    setPhotos([]);
+    setSourceId(null);
+    setHeard(null);
+    setOutcome(null);
+    setRequestDraft(null);
+    setInstant(false);
+    recorder.reset();
+  };
 
+  const clarify = () => {
+    recorder.reset();
+    setCaptureKey(newCaptureKey());
+    setHeard(null);
+    setOutcome(null);
+    setSourceId(null);
+    send({ type: "clarify" });
+  };
+
+  const runExample = (id: string, message: string) => {
+    setText(message);
+    setCaptureKey(newCaptureKey());
+    send({ type: "pick", scenario: id });
+    send({ type: "submit-text" });
+  };
+
+  /*
+   * Удержание голосовой капсулы. Капсула уходит с экрана, как только запись началась, поэтому
+   * отпускание ловится на окне: держал дольше HOLD_MS — отпустил, и запись закончилась.
+   * Короткое касание просто начинает запись.
+   */
+  const onCapsuleDown = () => {
+    if (!canWrite || !(flow.step === "idle" || flow.step === "error")) return;
+    const pressedAt = Date.now();
+    send({ type: "start" });
+    const release = () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+      if (Date.now() - pressedAt >= HOLD_MS) send({ type: "finish" });
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+  };
+
+  const addPhoto = () =>
+    setPhotos((prev) => [
+      ...prev,
+      { takenAt: now.slice(0, 19), atMs: capturing(flow.step) ? Math.round(elapsedMs) : null },
+    ]);
+
+  /* ---------- Без объекта ---------- */
   if (!projectId) {
     return (
       <>
         <PageHeader title="Запись" />
-        <PageCaption>
-          <span className="truncate">Выберите объект — дальше можно говорить</span>
-        </PageCaption>
         <WidgetCard>
           {projects.length > 0 ? (
             <>
@@ -232,465 +521,466 @@ function CapturePage() {
     );
   }
 
+  const fieldState =
+    flow.step === "done"
+      ? "success"
+      : working(flow.step)
+        ? "processing"
+        : flow.step === "error" && !flow.error?.refused
+          ? "critical"
+          : "rest";
+  const limitLeft = remainingSec(elapsedMs);
+
   return (
     <>
       <AmbientField state={fieldState} className="-mx-[var(--content-pad)] -mt-4" />
+      {capturing(flow.step) ? (
+        <div aria-hidden="true" className="dot-grid pointer-events-none fixed inset-0 -z-0" />
+      ) : null}
       <PageHeader title="Запись" />
-      <PageCaption>
-        <span className="truncate">Скажите, что произошло. Текст и фото — здесь же</span>
-      </PageCaption>
 
-      <div className="flex flex-col gap-3">
-        {/* ---------- Примеры показа ---------- */}
-        {examples.some((example) => example.projectId === projectId) ? (
-          <WidgetCard>
-            <WidgetCardHeader
-              level={2}
-              icon={Mic}
-              title="Примеры показа"
-              hint="подготовленные сообщения: разбор к ним готов заранее"
-            />
-            <div className="mt-2 flex flex-wrap gap-2">
-              {examples
-                .filter((example) => example.projectId === projectId)
-                .map((example) => (
-                  <Button
-                    key={example.id}
-                    variant="secondary"
-                    disabled={capture.isPending}
-                    onClick={() => {
-                      setDoneReports(0);
-                      setRequestDone(false);
-                      setRequest(null);
-                      const next = { ...(draft ?? emptyDraft(projectId)), text: example.message };
-                      setDraft(next);
-                      capture.mutate(
-                        {
-                          projectId,
-                          captureKey: next.captureKey,
-                          text: example.message,
-                          kind: "text",
-                          durationMs: null,
-                          photos: [],
-                        },
-                        {
-                          onSuccess: () => setDraft((prev) => (prev ? markSaved(prev) : prev)),
-                          onError: (error) =>
-                            setDraft((prev) => (prev ? markFailed(prev, error.message) : prev)),
-                        },
-                      );
-                    }}
-                  >
-                    {example.label}
-                  </Button>
-                ))}
-            </div>
-            <p className="text-caption text-text-3 mt-2">
-              {examples
-                .filter((example) => example.projectId === projectId)
-                .map((example) => `${example.label} — ${example.outcome}`)
-                .join("; ")}
-              .
-            </p>
-          </WidgetCard>
+      <div className="relative flex flex-col gap-6" data-capture-step={flow.step}>
+        {/* ---------- Покой ---------- */}
+        {flow.step === "idle" ? (
+          <section className="flex flex-col gap-6">
+            {examples.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <Marker>Скажите, например</Marker>
+                <p className="text-lead text-text">«{scenario?.message}»</p>
+                {examples.length > 1 ? (
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Сценарий показа">
+                    {examples.map((example) => (
+                      <button
+                        key={example.id}
+                        type="button"
+                        aria-pressed={example.id === scenario?.id}
+                        onClick={() => send({ type: "pick", scenario: example.id })}
+                        className={cn(
+                          "focus-ring press text-list min-h-12 rounded-full px-4",
+                          example.id === scenario?.id
+                            ? "bg-surface-3 text-text"
+                            : "bg-surface text-text-2",
+                        )}
+                      >
+                        {example.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Marker>Скажите</Marker>
+                <p className="text-lead text-text">Что сделали, где, сколько и сколько людей.</p>
+              </div>
+            )}
+          </section>
         ) : null}
 
         {/* ---------- Запись ---------- */}
-        <WidgetCard>
-          <div className="flex flex-col items-center gap-4 py-2">
-            <div className="flex items-baseline gap-2">
-              <span
-                className={cn(
-                  "tnum text-metric",
-                  recording && nearLimit(recorder.elapsedMs) && "text-risk",
-                )}
-              >
-                {clock(recorder.elapsedMs)}
+        {capturing(flow.step) ? (
+          <section className="flex flex-col items-center gap-4 pt-4">
+            <span
+              className={cn("tnum text-metric", nearLimit(elapsedMs) && !simulated && "text-risk")}
+            >
+              {clock(elapsedMs)}
+            </span>
+            <span className="text-caption text-text-3">
+              {simulated
+                ? "Демо: имитация записи"
+                : flow.step === "paused"
+                  ? "Пауза"
+                  : `осталось ${Math.max(0, limitLeft)} с из ${CAPTURE_LIMIT_SEC}`}
+            </span>
+            <LiveWave
+              level={flow.step === "paused" ? 0 : level}
+              active={flow.step === "recording"}
+            />
+            {photos.length > 0 ? (
+              <span className="text-caption text-text-2">
+                Фото: <span className="tnum">{photos.length}</span>
               </span>
-              <span className="text-caption text-text-3">
-                {recording || paused
-                  ? `осталось ${Math.max(0, limitLeft)} с`
-                  : `предел ${CAPTURE_LIMIT_SEC} с`}
-              </span>
-            </div>
-
-            {/* Живая волна громкости: двадцать полос, высота по уровню сигнала */}
-            <div aria-hidden="true" className="flex h-12 items-end gap-1">
-              {Array.from({ length: 20 }).map((_, index) => (
-                <span
-                  key={index}
-                  className={cn(
-                    "w-1.5 rounded-full transition-[height] duration-150",
-                    recording ? "bg-ember" : "bg-surface-2",
-                  )}
-                  style={{
-                    height: `${Math.max(
-                      6,
-                      Math.round(
-                        recorder.level * 44 * (0.55 + 0.45 * Math.sin((index / 20) * Math.PI)),
-                      ),
-                    )}px`,
-                  }}
-                />
-              ))}
-            </div>
-
+            ) : null}
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {recorder.state === "idle" || recorder.state === "stopped" ? (
-                <Button variant="accent" onClick={() => void recorder.start()} disabled={!canWrite}>
-                  <Mic className="size-4" />{" "}
-                  {recorder.state === "stopped" ? "Записать ещё" : "Говорить"}
-                </Button>
-              ) : null}
-              {recording ? (
-                <>
-                  <Button variant="secondary" onClick={recorder.pause}>
-                    <Pause className="size-4" /> Пауза
-                  </Button>
-                  <Button variant="accent" onClick={recorder.stop}>
-                    <Square className="size-4" /> Готово
-                  </Button>
-                </>
-              ) : null}
-              {paused ? (
-                <>
-                  <Button variant="secondary" onClick={recorder.resume}>
+              {flow.input === "voice" ? (
+                flow.step === "paused" ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      recorder.resume();
+                      send({ type: "resume" });
+                    }}
+                  >
                     <Play className="size-4" /> Продолжить
                   </Button>
-                  <Button variant="accent" onClick={recorder.stop}>
-                    <Square className="size-4" /> Готово
+                ) : (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      recorder.pause();
+                      send({ type: "pause" });
+                    }}
+                  >
+                    <Pause className="size-4" /> Пауза
                   </Button>
-                </>
+                )
               ) : null}
-              <Button variant="secondary" onClick={addPhoto} disabled={!canWrite}>
+              <Button variant="secondary" onClick={addPhoto}>
                 <Camera className="size-4" /> Фото
               </Button>
+              <Button variant="accent" onClick={() => send({ type: "finish" })}>
+                <Square className="size-4" /> Готово
+              </Button>
             </div>
+          </section>
+        ) : null}
 
-            {/* Правда про запись: файла нет, расшифровки без ключа нет (ADR-036, п. 1 и 2) */}
-            <p className="text-caption text-text-2 max-w-prose text-center">
-              {note("speech")} {note("captureFiles")}
+        {/* ---------- Нет микрофона ---------- */}
+        {flow.step === "no-mic" ? (
+          <section className="flex flex-col gap-4">
+            <p className="text-body text-text-2">
+              {flow.noMic === "denied"
+                ? "Доступ к микрофону запрещён. Его возвращают в настройках браузера."
+                : flow.noMic === "unsupported"
+                  ? "Этот браузер не записывает звук."
+                  : "Микрофон не включился."}
             </p>
+            {examples.length > 0 ? (
+              <div className="flex flex-col items-start gap-2">
+                <Button variant="accent" onClick={() => send({ type: "simulate" })}>
+                  <Play className="size-4" /> Показать без микрофона
+                </Button>
+                <span className="text-caption text-text-3">Демо: имитация записи</span>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
-            {recorder.state === "denied" ? (
-              <p className="text-caption text-risk max-w-prose text-center">
-                Доступ к микрофону запрещён. Это не мешает записать факт текстом ниже, а доступ
-                возвращается в настройках браузера для этого адреса.
-              </p>
-            ) : null}
-            {recorder.state === "unsupported" ? (
-              <p className="text-caption text-risk max-w-prose text-center">
-                Этот браузер не умеет записывать звук. Факт можно записать текстом ниже.
-              </p>
-            ) : null}
-            {recorder.state === "error" ? (
-              <p className="text-caption text-risk max-w-prose text-center">
-                Микрофон не включился. Попробуйте ещё раз или запишите факт текстом.
-              </p>
-            ) : null}
-          </div>
-        </WidgetCard>
+        {/* ---------- Отправка, расшифровка, разбор ---------- */}
+        {flow.step === "uploading" ? (
+          <section className="flex flex-col gap-3 pt-4" aria-live="polite">
+            <Marker>{flow.input === "text" ? "Сохраняем" : "Отправляем запись"}</Marker>
+            <p className="text-lead text-text-2">
+              {flow.input === "text" ? "Сохраняем текст" : "Запись ушла на расшифровку"}
+            </p>
+          </section>
+        ) : null}
 
-        {/* ---------- Фото ---------- */}
-        {photos.length > 0 ? (
-          <WidgetCard>
-            <WidgetCardHeader
-              level={2}
-              icon={Camera}
-              title="Фото"
-              hint="сохраняются метки времени, сами снимки остаются на телефоне"
+        {flow.step === "transcribing" && heard ? (
+          <section className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center justify-between gap-3">
+              <Marker>Расшифровка</Marker>
+              {!instant ? (
+                <Button variant="ghost" size="sm" onClick={() => setInstant(true)}>
+                  Показать сразу
+                </Button>
+              ) : null}
+            </div>
+            <TranscriptReveal
+              words={words}
+              schedule={schedule}
+              instant={instant}
+              onDone={onHeard}
             />
-            <ul className="divide-line mt-2 divide-y">
-              {photos.map((photo, index) => (
-                <li key={`${photo.takenAt}-${index}`} className="flex items-center gap-3 py-3">
-                  <span className="text-caption text-text-3 tnum shrink-0">
-                    {photo.atMs === null ? photo.takenAt.slice(11, 16) : clock(photo.atMs)}
-                  </span>
-                  <input
-                    value={photo.caption}
-                    onChange={(event) =>
-                      change({
-                        photos: photos.map((item, position) =>
-                          position === index ? { ...item, caption: event.target.value } : item,
-                        ),
-                      })
+            {heard.demo ? (
+              <p className="text-caption text-text-3">Демо: расшифровка подготовлена заранее</p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {flow.step === "extracting" ? (
+          <section className="flex flex-col gap-4 pt-2">
+            {sourceText ? <p className="text-body text-text-2">«{sourceText}»</p> : null}
+            <StageList stages={EXTRACT_STAGES} current={stage} />
+          </section>
+        ) : null}
+
+        {/* ---------- Проверка человеком ---------- */}
+        {flow.step === "review" && prepared ? (
+          <section className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <Marker>Разбор</Marker>
+              {outcome?.by?.demo ? (
+                <p className="text-caption text-text-3">Демо: разбор подготовлен заранее</p>
+              ) : null}
+            </div>
+            <DraftReview
+              cards={prepared.cards}
+              onSource={setSource}
+              request={
+                requestDraft
+                  ? {
+                      title: `Заявка снабжению: ${requestDraft.name}`,
+                      detail: [
+                        requestDraft.qty !== null
+                          ? `${requestDraft.qty} ${requestDraft.unit ?? "шт"}`
+                          : null,
+                        `к ${fmtDate(
+                          requestDraft.neededBy && requestDraft.neededBy >= today
+                            ? requestDraft.neededBy
+                            : nextDay,
+                        )}`,
+                        "Исправить",
+                      ]
+                        .filter(Boolean)
+                        .join(" · "),
+                      missing: requestMissing,
+                      onEdit: () => setEditRequest(true),
                     }
-                    placeholder={`Фото ${index + 1}: что на нём`}
-                    aria-label={`Подпись фото ${index + 1}`}
-                    className="focus-ring bg-surface-2 text-list min-h-12 w-full rounded-[var(--r-sm)] px-3"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      change({ photos: photos.filter((_item, position) => position !== index) })
-                    }
+                  : null
+              }
+            />
+            {nothingToCreate ? (
+              <p className="text-caption text-text-2">
+                В разборе нет объёма и нехватки: заводить нечего. Уточните голосом.
+              </p>
+            ) : null}
+            <div className="hidden gap-2 lg:flex">
+              <Button variant="secondary" onClick={clarify}>
+                <Mic className="size-4" /> Уточнить голосом
+              </Button>
+              <Button
+                variant="accent"
+                onClick={onConfirm}
+                disabled={nothingToCreate || confirm.isPending || !canWrite}
+              >
+                <Check className="size-4" /> Верно
+              </Button>
+            </div>
+            <MobileActionBar>
+              <Button variant="secondary" onClick={clarify}>
+                <Mic className="size-4" /> Уточнить голосом
+              </Button>
+              <Button
+                variant="accent"
+                onClick={onConfirm}
+                disabled={nothingToCreate || confirm.isPending || !canWrite}
+              >
+                <Check className="size-4" /> Верно
+              </Button>
+            </MobileActionBar>
+          </section>
+        ) : null}
+
+        {/* ---------- Готово ---------- */}
+        {flow.step === "done" ? (
+          <section className="flex flex-col gap-4 pt-2">
+            <h2 className="text-page-title">Готово</h2>
+            <ul className="flex flex-col gap-2">
+              {flow.created.map((entity) => (
+                <li key={entity.id}>
+                  <Link
+                    to={entity.kind === "request" ? "/inbox" : "/today"}
+                    className="focus-ring press bg-surface flex min-h-12 items-center gap-3 rounded-[var(--r-md)] px-4 py-3"
                   >
-                    Убрать
-                  </Button>
+                    {entity.kind === "request" ? (
+                      <PackageSearch className="text-text-2 size-5 shrink-0" />
+                    ) : (
+                      <FileText className="text-text-2 size-5 shrink-0" />
+                    )}
+                    <span className="text-list min-w-0 flex-1">{entity.title}</span>
+                    <ChevronRight className="text-text-3 size-4 shrink-0" />
+                  </Link>
                 </li>
               ))}
             </ul>
-          </WidgetCard>
-        ) : null}
-
-        {/* ---------- Текст ---------- */}
-        <WidgetCard>
-          <WidgetCardHeader
-            level={2}
-            icon={Check}
-            title="Что произошло"
-            hint="текст доступен всегда: и вместо записи, и вместе с ней"
-          />
-          <Textarea
-            value={draft?.text ?? ""}
-            onChange={(event) => change({ text: event.target.value })}
-            placeholder="Например: секция Б, смонтировали двадцать четыре метра лотка, работали втроём по восемь часов"
-            rows={4}
-            aria-label="Что произошло на объекте"
-            className="mt-2"
-          />
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <SyncIndicator
-              state={
-                draft?.status === "saved"
-                  ? "saved"
-                  : draft?.status === "sending"
-                    ? "sending"
-                    : draft?.status === "failed"
-                      ? "conflict"
-                      : "local"
-              }
-            />
-            <div className="flex items-center gap-2">
-              {draft?.status === "failed" ? (
-                <Button variant="secondary" onClick={send}>
-                  Повторить
+            <div className="flex flex-wrap gap-2">
+              {undoLeft > 0 ? (
+                <Button variant="secondary" onClick={onUndo} disabled={retract.isPending}>
+                  <Undo2 className="size-4" /> Отменить · <span className="tnum">{undoLeft}</span>
                 </Button>
               ) : null}
-              <Button
-                variant="accent"
-                onClick={send}
-                disabled={!draft || !readyToSend(draft) || !canWrite}
-              >
-                {draft?.status === "saved" ? "Отправлено" : "Готово"}
+              <Button variant="ghost" onClick={startOver}>
+                <Mic className="size-4" /> Записать ещё
               </Button>
             </div>
-          </div>
-          {draft?.status === "failed" && draft.error ? (
-            <p className="text-caption text-risk mt-2">
-              {draft.error}. Повтор отправит ту же запись: дубля не будет.
-            </p>
-          ) : null}
-          <p className="text-caption text-text-3 mt-2">
-            Статус «{submitLabel[draft?.status ?? "draft"]}» ставится по ответу сервера, а не по
-            нажатию кнопки.
-          </p>
-        </WidgetCard>
-
-        {/* ---------- Черновик разбора ---------- */}
-        {prepared ? (
-          <DraftReview
-            cards={prepared.cards}
-            ready={prepared.reports}
-            prefill={prepared.prefill}
-            demo={outcome?.by?.demo ?? true}
-            pending={createReport.isPending || createRequest.isPending}
-            done={{ reports: doneReports, request: requestDone }}
-            onConfirm={(rows) => {
-              // Каждая запись черновика заводится отдельным отчётом: объём, люди и часы
-              // проходят проверку по одному, а не пачкой
-              void Promise.all(rows.map((row) => createReport.mutateAsync(row))).then(() =>
-                setDoneReports(rows.length),
-              );
-            }}
-            onRequest={(prefill) => setRequest(prefill)}
-          />
+          </section>
         ) : null}
 
-        {/* ---------- Заявка снабжению ---------- */}
-        {request && projectId ? (
-          <RequestForm
-            prefill={request}
-            projectId={projectId}
-            sourceId={outcome?.sourceId ?? null}
-            today={today}
-            pending={createRequest.isPending}
-            onCancel={() => setRequest(null)}
-            onSend={(input) => {
-              void createRequest.mutateAsync(input).then(() => {
-                setRequestDone(true);
-                setRequest(null);
-              });
-            }}
-          />
-        ) : null}
-
-        {/* ---------- Что услышала система ---------- */}
-        {outcome ? (
-          <WidgetCard>
-            <WidgetCardHeader
-              level={2}
-              icon={Check}
-              title={outcome.repeated ? "Эта запись уже была сохранена" : "Запись сохранена"}
-              hint={
-                outcome.by
-                  ? `разбор: ${outcome.by.demo ? "подготовлен заранее" : `${outcome.by.provider}/${outcome.by.model}`}`
-                  : "разбор не запрашивался"
-              }
-            />
-            {summary ? (
-              <>
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {summary.map((row) => (
-                    <li
-                      key={row.label}
-                      className="bg-surface-2 text-badge rounded-[var(--r-xs)] px-2 py-1"
-                    >
-                      {row.label}: <span className="tnum font-medium">{row.count}</span>
-                    </li>
-                  ))}
-                </ul>
-                {outcome.draft?.clarifications.length ? (
-                  <ul className="text-caption text-text-2 mt-3 space-y-1">
-                    {outcome.draft.clarifications.map((question) => (
-                      <li key={question} className="flex items-start gap-2">
-                        <AttentionDot reason="Система просит уточнить" className="mt-1.5" />
-                        {question}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <p className="text-caption text-text-3 mt-3">
-                  Это черновик разбора. В сводку объекта он не попадает: объём, люди и часы
-                  заводятся отчётом и проходят проверку.
-                </p>
-                <Button asChild variant="secondary" className="mt-3">
-                  <Link
-                    to="/projects/$id/field-reports"
-                    params={{ id: projectId }}
-                    search={{ new: "report" }}
+        {/* ---------- Ошибка или отказ ---------- */}
+        {flow.step === "error" && flow.error ? (
+          <section className="flex flex-col gap-3">
+            <p className="text-body text-text">{flow.error.message}</p>
+            {flow.error.refused && examples.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {examples.map((example) => (
+                  <Button
+                    key={example.id}
+                    variant="secondary"
+                    onClick={() => runExample(example.id, example.message)}
                   >
-                    Завести отчёт
-                  </Link>
-                </Button>
-              </>
+                    Пример: {example.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            {flow.error.retry ? (
+              <Button
+                variant="secondary"
+                onClick={() => send({ type: "retry" })}
+                className="self-start"
+              >
+                <RotateCcw className="size-4" /> Повторить
+              </Button>
+            ) : null}
+          </section>
+        ) : null}
+
+        {/* ---------- Голосовая капсула и текст ---------- */}
+        {flow.step === "idle" || flow.step === "no-mic" || flow.step === "error" ? (
+          <section className="flex flex-col items-center gap-3 pt-2">
+            {flow.step !== "no-mic" ? (
+              <button
+                type="button"
+                disabled={!canWrite}
+                onPointerDown={onCapsuleDown}
+                onClick={(event) => {
+                  // Клавиатура: Enter и пробел дают click без pointerdown
+                  if (event.detail === 0 && (flow.step === "idle" || flow.step === "error")) {
+                    send({ type: "start" });
+                  }
+                }}
+                className="focus-ring press glow-ember bg-pill text-pill-text flex min-h-16 w-full max-w-sm items-center justify-center gap-3 rounded-full px-6 text-[17px] font-medium disabled:opacity-45"
+              >
+                <Mic className="size-5" /> Удерживайте, чтобы говорить
+              </button>
+            ) : null}
+            {!textOpen ? (
+              <button
+                type="button"
+                onClick={() => setTextOpen(true)}
+                className="focus-ring text-caption text-text-2 min-h-12 rounded-[var(--r-xs)] px-3 underline-offset-4 hover:underline"
+              >
+                или напишите текстом
+              </button>
             ) : (
-              <p className="text-caption text-text-2 mt-2">
-                {outcome.refusal ?? "Текста для разбора не было: сохранены запись и метки фото."}
-              </p>
+              <div className="flex w-full flex-col gap-2">
+                <Textarea
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  placeholder="Что произошло на объекте"
+                  rows={3}
+                  aria-label="Что произошло на объекте"
+                  autoFocus
+                />
+                <Button
+                  variant="accent"
+                  className="self-end"
+                  disabled={!text.trim() || !canWrite}
+                  onClick={() => {
+                    setCaptureKey(newCaptureKey());
+                    send({ type: "submit-text" });
+                  }}
+                >
+                  Отправить
+                </Button>
+              </div>
             )}
-          </WidgetCard>
+          </section>
         ) : null}
       </div>
+
+      {/* Шторка источника: фраза расшифровки с выделенным фрагментом */}
+      <SourceSheet
+        open={!!source}
+        onOpenChange={(open) => !open && setSource(null)}
+        label={source?.label ?? ""}
+        value={source?.value ?? ""}
+        text={sourceText}
+        range={locateQuote(sourceText, source?.quote ?? null)}
+        origin={flow.input === "text" ? "Текст" : `Голосовое, ${clock(elapsedMs)}`}
+      />
+
+      {/* Правка заявки: что сказано во фразе, подставлено; чего нет — вписывает человек */}
+      <BottomSheet
+        open={editRequest}
+        onOpenChange={setEditRequest}
+        title="Заявка снабжению"
+        description="Ничего не заказывается автоматически: снабжение решает руками"
+      >
+        {requestDraft ? (
+          <RequestFields
+            value={requestDraft}
+            fallbackDate={nextDay}
+            onChange={setRequestDraft}
+            onDone={() => setEditRequest(false)}
+          />
+        ) : null}
+      </BottomSheet>
     </>
   );
 }
 
-/**
- * Заявка на материал из черновика (ADR-037, сценарий 3). Название, количество, единица и дата
- * подставлены из той фразы, где они сказаны; чего в тексте не было, человек вписывает сам —
- * выдумывать за него нельзя.
- */
-function RequestForm({
-  prefill,
-  projectId,
-  sourceId,
-  today,
-  pending,
-  onCancel,
-  onSend,
-}: {
-  prefill: RequestPrefill;
-  projectId: string;
-  sourceId: string | null;
-  /** Рабочая дата продукта: от неё считается «завтра» для срока заявки */
-  today: string;
-  pending: boolean;
-  onCancel: () => void;
-  onSend: (input: CreateMaterialRequestInput) => void;
-}) {
-  const tomorrow = new Date(`${today}T12:00:00Z`).getTime() + 86_400_000;
-  const nextDay = new Date(tomorrow).toISOString().slice(0, 10);
-  const [name, setName] = useState(prefill.name);
-  const [qty, setQty] = useState(prefill.qty === null ? "" : String(prefill.qty));
-  const [unit, setUnit] = useState(prefill.unit ?? "шт");
-  const [neededBy, setNeededBy] = useState(prefill.neededBy ?? nextDay);
-  const value = Number(qty.replace(",", "."));
-  const ready = name.trim().length > 1 && Number.isFinite(value) && value > 0 && !!neededBy;
+const photoMarks = (photos: { takenAt: string }[]) =>
+  photos.map((photo, index) => ({ caption: `Фото ${index + 1}`, takenAt: photo.takenAt }));
 
+/** Поля заявки в шторке: название, количество, единица, срок */
+function RequestFields({
+  value,
+  fallbackDate,
+  onChange,
+  onDone,
+}: {
+  value: RequestPrefill;
+  fallbackDate: string;
+  onChange: (next: RequestPrefill) => void;
+  onDone: () => void;
+}) {
+  const [qty, setQty] = useState(value.qty === null ? "" : String(value.qty));
+  const parsed = Number(qty.replace(",", "."));
+  const ready = value.name.trim().length > 1 && Number.isFinite(parsed) && parsed > 0;
   return (
-    <WidgetCard>
-      <WidgetCardHeader
-        level={2}
-        icon={PackageSearch}
-        title="Заявка снабжению"
-        hint="ничего не заказывается автоматически: снабжение решает руками"
-      />
-      <div className="mt-2 grid gap-3">
+    <div className="grid gap-3 pb-2">
+      <label className="grid gap-1">
+        <span className="text-caption text-text-3">Что нужно</span>
+        <input
+          value={value.name}
+          onChange={(event) => onChange({ ...value, name: event.target.value })}
+          aria-label="Название материала"
+          className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
+        />
+      </label>
+      <div className="grid grid-cols-2 gap-3">
         <label className="grid gap-1">
-          <span className="text-overline text-text-3">Что нужно</span>
+          <span className="text-caption text-text-3">Сколько</span>
           <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            aria-label="Название материала"
+            value={qty}
+            inputMode="decimal"
+            onChange={(event) => setQty(event.target.value)}
+            aria-label="Количество"
+            className="focus-ring bg-surface-2 text-list tnum min-h-12 rounded-[var(--r-sm)] px-3"
+          />
+        </label>
+        <label className="grid gap-1">
+          <span className="text-caption text-text-3">Единица</span>
+          <input
+            value={value.unit ?? "шт"}
+            onChange={(event) => onChange({ ...value, unit: event.target.value })}
+            aria-label="Единица измерения"
             className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
           />
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="grid gap-1">
-            <span className="text-overline text-text-3">Сколько</span>
-            <input
-              value={qty}
-              inputMode="decimal"
-              onChange={(event) => setQty(event.target.value)}
-              aria-label="Количество"
-              className="focus-ring bg-surface-2 text-list tnum min-h-12 rounded-[var(--r-sm)] px-3"
-            />
-          </label>
-          <label className="grid gap-1">
-            <span className="text-overline text-text-3">Единица</span>
-            <input
-              value={unit}
-              onChange={(event) => setUnit(event.target.value)}
-              aria-label="Единица измерения"
-              className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
-            />
-          </label>
-        </div>
-        <label className="grid gap-1">
-          <span className="text-overline text-text-3">Нужен к дате</span>
-          <input
-            type="date"
-            value={neededBy}
-            onChange={(event) => setNeededBy(event.target.value)}
-            aria-label="Нужен к дате"
-            className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
-          />
-        </label>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="accent"
-            disabled={!ready || pending}
-            onClick={() =>
-              onSend({
-                projectId,
-                sourceId,
-                name: name.trim(),
-                qty: value,
-                unit: unit.trim() || "шт",
-                neededBy,
-                note: prefill.note,
-              })
-            }
-          >
-            Отправить снабжению
-          </Button>
-          <Button variant="ghost" onClick={onCancel} disabled={pending}>
-            Не сейчас
-          </Button>
-        </div>
       </div>
-    </WidgetCard>
+      <label className="grid gap-1">
+        <span className="text-caption text-text-3">Нужен к дате</span>
+        <input
+          type="date"
+          value={value.neededBy ?? fallbackDate}
+          onChange={(event) => onChange({ ...value, neededBy: event.target.value })}
+          aria-label="Нужен к дате"
+          className="focus-ring bg-surface-2 text-list min-h-12 rounded-[var(--r-sm)] px-3"
+        />
+      </label>
+      <Button
+        variant="accent"
+        disabled={!ready}
+        onClick={() => {
+          onChange({ ...value, qty: parsed });
+          onDone();
+        }}
+      >
+        Сохранить заявку
+      </Button>
+    </div>
   );
 }

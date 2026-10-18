@@ -17,6 +17,11 @@ export interface DemoExample {
   projectId: string;
   message: string;
   expected: ExtractionResult;
+  /**
+   * Отложен решением владельца: пример и его разбор остаются в коде, в «Примерах показа»
+   * его нет (ADR-038). Строка — почему.
+   */
+  deferred?: string;
 }
 
 export const DEMO_EXAMPLES: DemoExample[] = [
@@ -51,6 +56,7 @@ export const DEMO_EXAMPLES: DemoExample[] = [
     label: "Замечание",
     outcome: "задача с исполнителем и сроком",
     projectId: "p-korona",
+    deferred: "Сущности задачи нет: сценарий вернётся после первого платного пилота",
     message:
       "Захватка 3, оси К–Р, отметка плюс шесть. Не завершена огнезащита подконструкции. Назначить бригаду Петрова, исправить до пятницы, нужны фото до и после.",
     expected: result({

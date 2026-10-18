@@ -463,6 +463,7 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         );
       },
       create: (input, actor) => attempt(() => actions.createReport(input, actor.actorId)),
+      retract: (input, actor) => attempt(() => actions.retractReport(input.id, actor.actorId)),
       capture: (input, actor) => attempt(() => actions.captureFact(input, actor.actorId)),
       /*
        * Сводка смены и её файлы (ADR-037). Считается из состояния вкладки тем же доменом,
@@ -504,6 +505,8 @@ export function createDemoRepositories(options: DemoOptions): Repositories {
         attempt(() => actions.createMaterialRequest(input, actor.actorId)),
       decideRequest: (input, actor) =>
         attempt(() => actions.decideMaterialRequest(input, actor.actorId)),
+      retractRequest: (input, actor) =>
+        attempt(() => actions.retractMaterialRequest(input.id, actor.actorId)),
     },
 
     /*

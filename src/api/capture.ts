@@ -17,9 +17,11 @@ import {
 } from "@/domain/draft";
 import { shiftFileName, statementFileName } from "@/domain/shift";
 import { saveFile } from "@/lib/download";
+import type { CreatedEntity } from "@/domain/capture-flow";
 import { api } from "./client";
 import { dataSource } from "./config";
 import { keys } from "./keys";
+import { invalidate } from "./mutations";
 
 /**
  * Отправка записи (ADR-036, п. 6). Сначала сохраняется факт, потом делается разбор: разбор
@@ -64,6 +66,31 @@ export function useCapture() {
       void client.invalidateQueries({ queryKey: keys.reports.list(input.projectId) });
       void client.invalidateQueries({ queryKey: keys.projects.card(input.projectId) });
     },
+  });
+}
+
+/**
+ * Сохранить запись отдельно от разбора (ADR-040): голос сначала расшифровывается, и источник
+ * сохраняется уже с текстом; текст сохраняется сразу. Ключ отправки защищает от дубля.
+ */
+export function useSaveCapture() {
+  const client = useQueryClient();
+  return useMutation({
+    meta: { action: "saveCapture" },
+    mutationFn: (input: CaptureInput) => api.capture.save(input),
+    onSuccess: (_saved, input) => {
+      void client.invalidateQueries({ queryKey: keys.reports.list(input.projectId) });
+      void client.invalidateQueries({ queryKey: keys.projects.card(input.projectId) });
+    },
+  });
+}
+
+/** Разбор сохранённой записи: отказ приходит причиной, а не исключением */
+export function useExtract() {
+  return useMutation({
+    meta: { action: "extract" },
+    mutationFn: (input: { projectId: string; message: string; sourceId: string | null }) =>
+      api.capture.extract(input),
   });
 }
 
@@ -169,8 +196,75 @@ export function useDemoExamples() {
     queryFn: async () => {
       if (dataSource !== "demo") return [];
       const module = await import("@/ai/samples/demo-examples");
-      return module.DEMO_EXAMPLES;
+      // Отложенные решением 18.10 примеры в показ не выходят (ADR-038)
+      return module.DEMO_EXAMPLES.filter((example) => !example.deferred);
     },
     staleTime: Infinity,
+  });
+}
+
+/* ---------- Голос: расшифровка, «Верно» и отмена (ADR-040) ---------- */
+
+/** Расшифровка записи через порт речи: экран не знает, демо это или живой распознаватель */
+export function useTranscribe() {
+  return useMutation({
+    mutationFn: (input: Parameters<typeof api.speech.transcribe>[0]) =>
+      api.speech.transcribe(input),
+  });
+}
+
+/**
+ * «Верно»: из черновика создаются отчёты и заявка — сразу, без диалога (отмена вместо
+ * подтверждения). Отчёт ссылается на запись, из которой сделан (ADR-040, п. 3).
+ * Возвращает строки для экрана «Готово»: одна строка на сущность.
+ */
+export function useConfirmDraft() {
+  const client = useQueryClient();
+  return useMutation({
+    meta: { action: "confirmDraft" },
+    mutationFn: async (input: {
+      sourceId: string | null;
+      reports: CreateReportInput[];
+      request: CreateMaterialRequestInput | null;
+    }): Promise<CreatedEntity[]> => {
+      const created: CreatedEntity[] = [];
+      for (const row of input.reports) {
+        const report = await api.reports.create({
+          ...row,
+          ...(input.sourceId ? { sourceId: input.sourceId } : {}),
+        });
+        created.push({
+          kind: "report",
+          id: report.id,
+          title: `Отчёт на проверку: ${row.workType.toLowerCase()}, ${row.declaredQty} ${row.unit}`,
+        });
+      }
+      if (input.request) {
+        const request = await api.supply.create(input.request);
+        created.push({
+          kind: "request",
+          id: request.id,
+          title: `Заявка снабжению: ${request.name.toLowerCase()}, ${request.qty} ${request.unit}`,
+        });
+      }
+      return created;
+    },
+    onSettled: () => invalidate(client, ["reports", "timeline", "projects", "shift", "supply"]),
+  });
+}
+
+/** «Отменить» в окне 6 секунд: снимает всё созданное по «Верно» (ADR-040, п. 4) */
+export function useRetractCreated() {
+  const client = useQueryClient();
+  return useMutation({
+    meta: { action: "retractCreated" },
+    mutationFn: async (entities: CreatedEntity[]) => {
+      // Обратный порядок: заявка снимается раньше отчёта, как будто их не было
+      for (const entity of [...entities].reverse()) {
+        if (entity.kind === "request") await api.supply.retract({ id: entity.id });
+        else await api.reports.retract({ id: entity.id });
+      }
+    },
+    onSettled: () => invalidate(client, ["reports", "timeline", "projects", "shift", "supply"]),
   });
 }

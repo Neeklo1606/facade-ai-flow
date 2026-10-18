@@ -29,6 +29,8 @@ export default defineConfig<Options>({
     {
       name: "desktop",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+      // Путь с микрофоном — свой проект: без флагов фальшивого устройства он не пройдёт
+      grepInvert: /@mic/,
     },
     {
       // Светлая тема (ADR-017, п. 9): те же экраны, то же правило одного оранжевого, тот же axe
@@ -47,6 +49,23 @@ export default defineConfig<Options>({
       name: "mobile",
       use: { ...devices["Pixel 7"], viewport: { width: 375, height: 812 } },
       grep: /@mobile/,
+    },
+    {
+      /*
+       * Голос с микрофоном (ADR-040): Chromium подставляет фальшивое устройство и сам
+       * разрешает доступ. Без этого проекта путь записи проверялся бы только имитацией.
+       */
+      name: "mic",
+      use: {
+        ...devices["Pixel 7"],
+        viewport: { width: 390, height: 844 },
+        permissions: ["microphone"],
+        launchOptions: {
+          ...(executablePath ? { executablePath } : {}),
+          args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+        },
+      },
+      grep: /@mic/,
     },
   ],
   webServer: {

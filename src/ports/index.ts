@@ -25,6 +25,7 @@ export * from "./procurement";
 export * from "./projects";
 export * from "./reports";
 export * from "./scope";
+export * from "./speech";
 export * from "./timeline";
 
 /** Все порты приложения. Адаптер (фикстуры или БД) реализует этот набор целиком. */

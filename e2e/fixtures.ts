@@ -164,7 +164,15 @@ export async function expectEmber(page: Page, screen: string) {
         (ownText && isOrange(s.color)) ||
         (svg && (isOrange(s.stroke) || isOrange(s.fill)));
       if (hit) orange.push(el);
-      if (ownText && s.textTransform === "uppercase") caps.push(describe(el));
+      /*
+       * Капс разрешён только моно-маркерам подписи до двух слов (дизайн-система, раздел 8:
+       * ОБЪЁМ, ЛЮДИ, СРОК). Маркер узнаётся по `data-marker`; длиннее двух слов — это уже
+       * текст, и капс в нём ловится как прежде.
+       */
+      const marker =
+        el.hasAttribute("data-marker") &&
+        (el.textContent ?? "").trim().split(/\s+/u).filter(Boolean).length <= 2;
+      if (ownText && s.textTransform === "uppercase" && !marker) caps.push(describe(el));
     }
     const roots = orange.filter((el) => !orange.some((o) => o !== el && o.contains(el)));
     /*

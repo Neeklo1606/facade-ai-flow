@@ -243,6 +243,12 @@ export const ACCESS_RULES: AccessRules = {
       need: WRITE,
       project: (input) => ref("report", input.id),
     },
+    // Отмена своего отчёта: право на запись по объекту отчёта, автора сверяет действие
+    retract: {
+      sections: ["field-reports"],
+      need: WRITE,
+      project: (input) => ref("report", input.id),
+    },
     // Фрагмент источника открывают из отчётов, закупок, истории и дашборда
     source: {
       sections: ["field-reports", "procurement", "timeline", "dashboard", "documents"],
@@ -288,6 +294,8 @@ export const ACCESS_RULES: AccessRules = {
       project: (input) => project(input.projectId),
     },
     decideRequest: { sections: ["procurement"], need: WRITE, global: true },
+    // Отмена своей новой заявки: автора и статус сверяет действие (ADR-040, п. 4)
+    retractRequest: { sections: ["field-reports"], need: WRITE, global: true },
   },
 
   /*

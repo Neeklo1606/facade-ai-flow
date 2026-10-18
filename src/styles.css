@@ -600,6 +600,13 @@
   font-weight: 600;
   letter-spacing: 0;
 }
+/* Крупный читаемый текст: подсказка «Скажите, например», расшифровка — её читают вслух */
+@utility text-lead {
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
 @utility text-card-title {
   font-variant-numeric: proportional-nums;
   font-size: 20px;
@@ -657,6 +664,21 @@
 @utility tnum {
   font-variant-numeric: tabular-nums;
 }
+/*
+ * Моно-маркер подписи (дизайн-система, раздел 8: ОБЪЁМ, ЛЮДИ, СРОК). Единственное место,
+ * где разрешён капс: моноширинный, до двух слов, всегда с атрибутом `data-marker` —
+ * по нему проверка кадра отличает маркер от запрещённого капса в тексте.
+ */
+@utility text-marker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
 /* Коды и номера: моноширинный JetBrains Mono, цифры одной ширины */
 @utility mono {
   font-family: var(--font-mono);

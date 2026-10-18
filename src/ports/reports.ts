@@ -45,9 +45,19 @@ export const createReportInput = z.object({
   headcount: z.number().int().min(0).max(200),
   summary: z.string().min(3).max(600),
   issue: z.string().max(300).optional(),
+  /**
+   * Запись, из которой сделан отчёт (ADR-040, п. 3). Есть — отчёт ссылается на неё, и ПТО
+   * видит фразу прораба; нет — отчёт заведён руками, источник создаётся ручной.
+   */
+  sourceId: z.string().min(1).optional(),
 });
 
 export type CreateReportInput = z.infer<typeof createReportInput>;
+
+/** Отмена созданного в окне «Отменить» (ADR-040, п. 4) */
+export const retractInput = z.object({ id: z.string().min(1) });
+
+export type RetractInput = z.infer<typeof retractInput>;
 
 /**
  * Запись факта с площадки (ADR-036): голос, текст и метки фото. Файла записи продукт
@@ -136,6 +146,8 @@ export interface ReportsPort {
   create(input: CreateReportInput, actor: Actor): Promise<FieldReport>;
   /** Приёмка или возврат на уточнение */
   review(input: ReviewReportInput, actor: Actor): Promise<void>;
+  /** Снять свой отчёт, пока он на проверке: отмена сразу после «Верно» (ADR-040, п. 4) */
+  retract(input: RetractInput, actor: Actor): Promise<void>;
   /** Записать факт с площадки: источник, текст и метки фото (ADR-036) */
   capture(input: CaptureInput, actor: Actor): Promise<CaptureResult>;
   /** Сводка смены объекта: только принятые отчёты (ADR-037, инвариант 1) */

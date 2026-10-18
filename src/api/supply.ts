@@ -41,6 +41,13 @@ export const decideRequestFn = createServerFn({ method: "POST" })
     ),
   );
 
+export const retractRequestFn = createServerFn({ method: "POST" })
+  .validator(input(z.object({ id: z.string().min(1) })))
+  .handler(async ({ data }) => {
+    await requestRepositories().supply.retractRequest(data, serverActor());
+    return { ok: true as const };
+  });
+
 const shiftSummarySchema = z.object({
   projectName: z.string(),
   date: z.string(),

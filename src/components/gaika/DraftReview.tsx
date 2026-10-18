@@ -1,119 +1,93 @@
-import { useState } from "react";
-import { HardHat, PackageSearch } from "lucide-react";
-import type { CreateReportInput, DraftCard, RequestPrefill } from "@/api/types";
+import { ChevronRight } from "lucide-react";
+import type { DraftCard, DraftField } from "@/api/types";
 import { AttentionDot } from "./AttentionDot";
-import { Button } from "@/components/ui/button";
-import { WidgetCard, WidgetCardHeader } from "@/components/common";
+import { Marker } from "./Marker";
 import { cn } from "@/lib/utils";
 
 /**
- * Черновик разбора: карточки «Работы, Люди, Материалы, Проблемы, Завтра» и два действия —
- * «Верно» заводит отчёт, «Создать заявку» отправляет нехватку материала снабжению
- * (ADR-037, сценарии 1 и 3).
+ * Разбор: карточки «Работы, Люди и часы, Материалы, Проблемы, Завтра» (D1, п. 6). Пустые
+ * группы не показываются. Значение крупно, подпись мелко; касание значения открывает шторку
+ * источника с фразой расшифровки — строки «Показать источник» под каждым полем больше нет.
  *
- * Ничего не применяется само: пока человек не нажал, это черновик. Сомнительное помечено
- * янтарной точкой с причиной, а не молча.
+ * Ничего не применяется само: действия «Уточнить голосом» и «Верно» закреплены экраном.
+ * Сомнительное помечено янтарной точкой и причиной словами.
  */
+/** Маркер группы: до двух слов, как требует моно-подпись (дизайн-система, раздел 8) */
+const groupMarker: Record<DraftCard["key"], string> = {
+  works: "Работы",
+  people: "Люди",
+  materials: "Материалы",
+  problems: "Проблемы",
+  tomorrow: "Завтра",
+};
+
 export function DraftReview({
   cards,
-  ready,
-  prefill,
-  demo,
-  onConfirm,
-  onRequest,
-  pending,
-  done,
+  onSource,
+  request,
+  className,
 }: {
   /** Карточки разбора: считает слой данных, экран показывает (ADR-001, п. 5) */
   cards: DraftCard[];
-  /** Записи, готовые стать отчётом: у них есть захватка, вид работ, объём и единица */
-  ready: CreateReportInput[];
-  prefill: RequestPrefill | null;
-  /** Разбор подготовлен заранее: пометка показа стоит рядом с результатом (правило 4) */
-  demo: boolean;
-  onConfirm: (reports: CreateReportInput[]) => void;
-  onRequest: (prefill: RequestPrefill) => void;
-  pending: boolean;
-  /** Что уже заведено: кнопки не предлагают сделать это второй раз */
-  done: { reports: number; request: boolean };
+  /** Касание значения с источником: экран открывает шторку */
+  onSource: (field: DraftField) => void;
+  /** Заявка, которая уйдёт по «Верно»; правка открывается касанием */
+  request?: { title: string; detail: string; missing: string | null; onEdit: () => void } | null;
+  className?: string;
 }) {
-  const [open, setOpen] = useState<string | null>(null);
-
   return (
-    <WidgetCard>
-      <WidgetCardHeader
-        level={2}
-        icon={HardHat}
-        title="Что система услышала"
-        hint={demo ? "разбор подготовлен заранее" : "разобрано моделью"}
-      />
-      <div className="mt-2 flex flex-col gap-4">
-        {cards.map((card) => (
-          <section key={card.key}>
-            <h4 className="text-overline text-text-3">{card.title}</h4>
-            <dl className="divide-line mt-1 divide-y">
+    <div className={cn("flex flex-col gap-3", className)}>
+      {cards
+        .filter((card) => card.fields.length > 0)
+        .map((card) => (
+          <section key={card.key} className="bg-surface rounded-[var(--r-lg)] px-5 py-5">
+            <Marker>{groupMarker[card.key]}</Marker>
+            <dl className="mt-3 flex flex-col gap-4">
               {card.fields.map((field, index) => (
-                <div key={`${card.key}-${index}`} className="flex items-start gap-3 py-2.5">
-                  <dt className="text-text-3 w-28 shrink-0 text-[13px]">{field.label}</dt>
-                  <dd className="min-w-0 flex-1">
-                    <span className="text-list flex items-center gap-2">
-                      {field.value}
-                      {field.attention ? <AttentionDot reason={field.attention} /> : null}
-                    </span>
+                <div key={`${card.key}-${index}`}>
+                  <dt className="text-caption text-text-3">{field.label}</dt>
+                  <dd className="mt-0.5">
                     {field.quote ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          setOpen(open === `${card.key}-${index}` ? null : `${card.key}-${index}`)
-                        }
-                        className="focus-ring text-text-3 is-hover:text-text-2 mt-1 text-[13px] underline-offset-2 hover:underline"
+                        onClick={() => onSource(field)}
+                        aria-label={`${field.label}: ${field.value}. Откуда взято`}
+                        className="focus-ring press text-card-title text-text -mx-1 inline-flex min-h-12 items-center gap-2 rounded-[var(--r-xs)] px-1 text-left"
                       >
-                        {open === `${card.key}-${index}` ? "Скрыть источник" : "Показать источник"}
+                        {field.value}
+                        {field.attention ? <AttentionDot reason={field.attention} /> : null}
                       </button>
-                    ) : null}
-                    {open === `${card.key}-${index}` && field.quote ? (
-                      <p className="bg-surface-2 text-text-2 mt-1 rounded-[var(--r-xs)] px-3 py-2 text-[13px]">
-                        «{field.quote}»
-                      </p>
+                    ) : (
+                      <span className="text-card-title text-text inline-flex min-h-12 items-center gap-2">
+                        {field.value}
+                        {field.attention ? <AttentionDot reason={field.attention} /> : null}
+                      </span>
+                    )}
+                    {field.attention ? (
+                      <p className="text-caption text-warn">{field.attention}</p>
                     ) : null}
                   </dd>
                 </div>
               ))}
             </dl>
+            {card.key === "materials" && request ? (
+              <button
+                type="button"
+                onClick={request.onEdit}
+                className="focus-ring press bg-surface-2 mt-4 flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] px-4 py-3 text-left"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="text-list block">{request.title}</span>
+                  <span className="text-caption text-text-3 block">{request.detail}</span>
+                  {request.missing ? (
+                    <span className="text-caption text-warn block">{request.missing}</span>
+                  ) : null}
+                </span>
+                <ChevronRight className="text-text-3 size-4 shrink-0" />
+              </button>
+            ) : null}
           </section>
         ))}
-      </div>
-
-      <div className={cn("mt-4 flex flex-wrap items-center gap-2")}>
-        {ready.length > 0 ? (
-          <Button
-            variant="accent"
-            disabled={pending || done.reports > 0}
-            onClick={() => onConfirm(ready)}
-          >
-            <HardHat className="size-4" />
-            {done.reports > 0
-              ? `Отчёт заведён: ${done.reports}`
-              : ready.length > 1
-                ? `Верно: завести ${ready.length} записи`
-                : "Верно: завести отчёт"}
-          </Button>
-        ) : null}
-        {prefill ? (
-          <Button
-            variant="secondary"
-            disabled={pending || done.request}
-            onClick={() => onRequest(prefill)}
-          >
-            <PackageSearch className="size-4" />
-            {done.request ? "Заявка создана" : "Создать заявку снабжению"}
-          </Button>
-        ) : null}
-      </div>
-      <p className="text-caption text-text-3 mt-2">
-        Пока вы не нажали, это черновик: в сводку объекта он не попадает. Отчёт проходит проверку,
-        заявка уходит снабжению — ничего не заказывается автоматически.
-      </p>
-    </WidgetCard>
+    </div>
   );
 }

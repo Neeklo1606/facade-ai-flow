@@ -72,6 +72,7 @@ import {
   saveEmployeeInput,
   saveSupplierInput,
   reviewReportInput,
+  retractInput,
   revisionChangeView,
   sourceCard,
   splitPositionInput,
@@ -472,6 +473,13 @@ export const reviewReportFn = createServerFn({ method: "POST" })
   .validator(input(reviewReportInput))
   .handler(async ({ data }) => {
     await repos().reports.review(data, actor());
+    return ok.parse({ ok: true });
+  });
+
+export const retractReportFn = createServerFn({ method: "POST" })
+  .validator(input(retractInput))
+  .handler(async ({ data }) => {
+    await repos().reports.retract(data, actor());
     return ok.parse({ ok: true });
   });
 

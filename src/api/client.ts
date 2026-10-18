@@ -43,7 +43,7 @@ import { FORBIDDEN_MESSAGE } from "@/ports";
 import { currentUserId, dataSource, type DEMO_PERSONAS } from "./config";
 import * as fn from "./functions";
 import { captureFactFn, extractFactFn } from "./ai";
-import { createRequestFn, decideRequestFn, requestsFn, shiftFn } from "./supply";
+import { createRequestFn, decideRequestFn, requestsFn, retractRequestFn, shiftFn } from "./supply";
 import { SHIFT_EXPORT_PATH } from "./export-paths";
 import { REGISTRY_EXPORT_PATH, registryExportQuery } from "./export-paths";
 
@@ -307,6 +307,10 @@ export const api = {
       server
         ? fn.reviewReportFn({ data }).then(() => undefined)
         : local().then((r) => r.reports.review(data, actor())),
+    retract: (data: { id: string }) =>
+      server
+        ? fn.retractReportFn({ data }).then(() => undefined)
+        : local().then((r) => r.reports.retract(data, actor())),
     source: (id: string) =>
       server ? fn.sourceFn({ data: { id } }) : local().then((r) => r.reports.source(id)),
   },
@@ -370,6 +374,48 @@ export const api = {
   },
 
   /** Заявки на материал (ADR-037, сценарий 3) */
+  /**
+   * Расшифровка записи (ADR-040, п. 2). В демонстрации распознаёт вкладка демо-распознавателем:
+   * звук никуда не уходит. В рабочем контуре запись идёт на сервер, ключ остаётся там.
+   */
+  speech: {
+    transcribe: async (data: {
+      audio: Blob | null;
+      durationMs: number;
+      projectId: string;
+      sourceId: string | null;
+      scenario: string | null;
+    }) => {
+      const mimeType = data.audio?.type || "audio/webm";
+      if (server) {
+        const audio = data.audio ? await blobToBase64(data.audio) : null;
+        const { transcribeFn } = await import("./speech");
+        return transcribeFn({
+          data: {
+            audio,
+            mimeType,
+            durationMs: Math.round(data.durationMs),
+            projectId: data.projectId,
+            sourceId: data.sourceId,
+            scenario: data.scenario,
+          },
+        });
+      }
+      const [{ createDemoSpeech }, { transcribeWith }, repos] = await Promise.all([
+        import("@/adapters/speech/demo"),
+        import("./speech"),
+        local(),
+      ]);
+      return transcribeWith(repos, createDemoSpeech(), {
+        bytes: null,
+        mimeType,
+        durationMs: Math.round(data.durationMs),
+        projectId: data.projectId,
+        sourceId: data.sourceId,
+        scenario: data.scenario,
+      });
+    },
+  },
   supply: {
     requests: (projectId: string | null) =>
       server
@@ -383,6 +429,10 @@ export const api = {
       server
         ? decideRequestFn({ data })
         : local().then((r) => r.supply.decideRequest(data, actor())),
+    retract: (data: { id: string }) =>
+      server
+        ? retractRequestFn({ data }).then(() => undefined)
+        : local().then((r) => r.supply.retractRequest(data, actor())),
   },
 
   agent: {
@@ -392,3 +442,13 @@ export const api = {
 };
 
 export type Api = typeof api;
+
+/** Запись в base64 для серверной функции: двоичное тело она не принимает */
+async function blobToBase64(blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+}

@@ -42,6 +42,8 @@ export interface SupplyPort {
   createRequest(input: CreateMaterialRequestInput, actor: Actor): Promise<MaterialRequest>;
   /** Решение снабжения: статус меняется только по разрешённым переходам */
   decideRequest(input: DecideMaterialRequestInput, actor: Actor): Promise<MaterialRequest>;
+  /** Снять свою новую заявку: отмена сразу после «Верно» (ADR-040, п. 4) */
+  retractRequest(input: { id: string }, actor: Actor): Promise<void>;
 }
 
 export type { MaterialRequest };
