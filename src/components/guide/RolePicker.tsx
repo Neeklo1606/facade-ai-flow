@@ -175,6 +175,7 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
                       <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
                     </span>
                     <span className="relative mt-1 text-caption text-text-2">{tile.hint}</span>
+                    <span className="mt-2 text-[13px] font-normal text-text-3">1 минута</span>
                   </Button>
                 </li>
               ))}

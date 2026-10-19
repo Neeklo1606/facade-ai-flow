@@ -872,7 +872,8 @@ function CapturePage() {
         {flow.step === "idle" || flow.step === "no-mic" || flow.step === "error" ? (
           <section className="flex flex-col items-center gap-3 pt-2">
             {flow.step !== "no-mic" ? (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 disabled={!canWrite}
                 onPointerDown={onCapsuleDown}
@@ -882,10 +883,10 @@ function CapturePage() {
                     send({ type: "start" });
                   }
                 }}
-                className="focus-ring press glow-ember bg-pill text-pill-text flex min-h-16 w-full max-w-sm items-center justify-center gap-3 rounded-full px-6 text-[17px] font-medium disabled:opacity-45"
+                className="focus-ring press bg-pill text-pill-text flex h-auto min-h-16 w-full max-w-sm items-center justify-center gap-3 whitespace-normal rounded-full px-6 text-[17px] font-medium hover:bg-pill hover:text-pill-text disabled:opacity-45"
               >
                 <Mic className="size-5" /> Удерживайте, чтобы говорить
-              </button>
+              </Button>
             ) : null}
             {!textOpen ? (
               <button
