@@ -6,7 +6,7 @@
  * Запуск: `bun run scripts/audit-fact-report.ts`
  * Печатает отчёт; выводы руками перенесены в `docs/claude/01-DATA-AUDIT.md`.
  */
-import { factReport } from "@/data/mock/fact-report";
+import { factReportFull as factReport } from "@/data/mock/fact-report.full";
 import { minutesOfHours, revenuePerHour } from "@/domain/gas-ops/calc";
 import { frameSpan } from "@/domain/gas-ops/report";
 

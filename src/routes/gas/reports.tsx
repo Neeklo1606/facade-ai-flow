@@ -105,32 +105,37 @@ function ReportsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <PillTabs
-          label="Вид отчёта"
-          variant="primary"
-          value={view}
-          onChange={setView}
-          tabs={[
-            { value: "customer", label: "Формат заказчика" },
-            { value: "analytic", label: "Аналитическая таблица", count: flat.length },
-          ]}
-        />
-        <PillTabs
-          label="Что включено"
-          value={mode}
-          onChange={setMode}
-          tabs={[
-            { value: "confirmed", label: "Только подтверждённые" },
-            { value: "preliminary", label: "Предварительный" },
-          ]}
-        />
+      {/* На телефоне наборы вкладок прокручиваются внутри себя, а не уезжают за край */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="-mx-1 overflow-x-auto px-1">
+          <PillTabs
+            label="Вид отчёта"
+            variant="primary"
+            value={view}
+            onChange={setView}
+            tabs={[
+              { value: "customer", label: "Формат заказчика" },
+              { value: "analytic", label: "Аналитическая таблица", count: flat.length },
+            ]}
+          />
+        </div>
+        <div className="-mx-1 overflow-x-auto px-1">
+          <PillTabs
+            label="Что включено"
+            value={mode}
+            onChange={setMode}
+            tabs={[
+              { value: "confirmed", label: "Только подтверждённые" },
+              { value: "preliminary", label: "Предварительный" },
+            ]}
+          />
+        </div>
         <Button
           variant="outline"
           size="sm"
           disabled={busy}
           onClick={() => void exportFile()}
-          className="ms-auto"
+          className="self-start lg:ms-auto"
         >
           <Download className="size-4" aria-hidden />
           {busy ? "Готовлю файл" : "Выгрузить XLSX"}
@@ -153,15 +158,15 @@ function ReportsPage() {
           title={view === "customer" ? "Формат заказчика" : "Аналитическая таблица"}
           hint={`Неделя ${fmtDate(week.from)} — ${fmtDate(week.to)}, записей в отчёте: ${report.count}`}
           level={2}
-          aside={
-            total ? (
-              <span className="text-[13px] tabular-nums">
-                {fmtRub(total.total.amountRub ?? 0)} · {fmtHours((total.total.minutes ?? 0) / 60)} ·{" "}
-                {fmtRate(total.total.revenue)}
-              </span>
-            ) : null
-          }
         />
+
+        {/* Итог строкой под заголовком: справа от названия он на телефоне ломал шапку карточки */}
+        {total && (
+          <p className="mt-2 text-[13px] tabular-nums text-text-2">
+            Итог недели: {fmtRub(total.total.amountRub ?? 0)} ·{" "}
+            {fmtHours((total.total.minutes ?? 0) / 60)} · {fmtRate(total.total.revenue)}
+          </p>
+        )}
 
         <div className="mt-4">
           {view === "customer" ? (

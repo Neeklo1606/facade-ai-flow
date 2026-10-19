@@ -65,7 +65,13 @@ function ForemanPage() {
   const objects = useGasAllowedObjects();
   const history = useGasMyEntries().slice(0, 8);
   const object = objects.find((o) => o.id === objectId) ?? null;
-  const brigadeName = directory.brigades.find((b) => b.id === brigadeId)?.name ?? "Бригада";
+  const brigade = directory.brigades.find((b) => b.id === brigadeId);
+  const brigadeName = brigade?.name ?? "Бригада";
+  /*
+   * В шапке «диалога» стоит бригадир этой бригады, а не тот, кто открыл экран: менеджер
+   * и администратор смотрят на тот же экран, что увидит бригадир в боте.
+   */
+  const speakerName = actor.role === "foreman" ? actor.name : (brigade?.leadName ?? "Бригадир");
 
   const minutes = useMemo(() => previewMinutes(start, end, breaks), [start, end, breaks]);
   const yesterday = week.yesterday;
@@ -118,7 +124,7 @@ function ForemanPage() {
               {brigadeId.replace("brg-", "Б")}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-medium">{actor.name}</p>
+              <p className="truncate text-[15px] font-medium">{speakerName}</p>
               <p className="text-[13px] text-text-3">{brigadeName}</p>
             </div>
           </div>

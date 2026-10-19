@@ -59,7 +59,8 @@ export function GasSectionNav() {
         <span className="text-[13px] text-text-3">
           Сегодня в демонстрации: {fmtDate(week.today)}
         </span>
-        <div className="ms-auto flex items-center gap-2">
+        {/* На телефоне управление уходит на свою строку: иначе кнопка сброса уезжает за край */}
+        <div className="flex w-full flex-wrap items-center gap-2 sm:ms-auto sm:w-auto">
           <label className="flex items-center gap-2 text-[13px] text-text-3">
             Роль
             <select
@@ -78,7 +79,7 @@ export function GasSectionNav() {
                   });
                 });
               }}
-              className="h-9 min-w-[180px] rounded-[var(--r-sm)] border border-line bg-surface px-2 text-[13px] text-text focus-ring"
+              className="h-9 min-w-[160px] max-w-full flex-1 rounded-[var(--r-sm)] border border-line bg-surface px-2 text-[13px] text-text focus-ring sm:flex-none"
             >
               {users.map((user) => (
                 <option key={user.id} value={user.id}>

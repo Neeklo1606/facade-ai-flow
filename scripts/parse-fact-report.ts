@@ -23,7 +23,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 const SOURCE = process.argv[2] ?? "docs/source/fact-report.xlsx";
+/** Полный набор с деревом строк исходного файла: им пользуются скрипты сверки и тесты */
 const OUT = "src/data/mock/fact-report.anonymized.json";
+/**
+ * Набор для вкладки: то же самое без дерева строк. Дерево нужно только сверке с файлом,
+ * а в клиентский набор оно добавляло четверть веса — отчёт всё равно собирается из записей.
+ */
+const OUT_CLIENT = "src/data/mock/fact-report.lite.json";
 
 /** Первый столбец каждого дня; в следующих двух — часы и доходность */
 const DAY_COLS = [5, 8, 11, 14, 17, 20];
@@ -562,6 +568,42 @@ if (leaked.length > 0) {
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, `${json}\n`);
 
+// Рамки смен вынимаются здесь: вкладке они нужны готовым списком, дерево ей ни к чему
+interface FrameRow {
+  brigadeId: string;
+  employeeId: string | null;
+  day: string;
+  frame: string;
+  excelRow: number;
+}
+const frameRows: FrameRow[] = [];
+const collectFrames = (node: OutNode, brigadeId: string | null, employeeId: string | null) => {
+  const brigade =
+    node.kind === "brigade"
+      ? (brigades.find((b) => b.excelRow === node.excelRow)?.id ?? brigadeId)
+      : brigadeId;
+  const employee =
+    node.kind === "employee" || node.kind === "crew"
+      ? (employees.find((e) => e.excelRow === node.excelRow)?.id ?? employeeId)
+      : employeeId;
+  if (node.frames && brigade) {
+    for (const [dayIndex, frame] of Object.entries(node.frames)) {
+      frameRows.push({
+        brigadeId: brigade,
+        employeeId: employee,
+        day: days[Number(dayIndex)]!,
+        frame,
+        excelRow: node.excelRow,
+      });
+    }
+  }
+  for (const child of node.children) collectFrames(child, brigade, employee);
+};
+for (const root of tree) collectFrames(root, null, null);
+
+const { tree: _tree, ...withoutTree } = payload;
+writeFileSync(OUT_CLIENT, `${JSON.stringify({ ...withoutTree, frames: frameRows }, null, 2)}\n`);
+
 console.log(`Лист «${ws.name}», строк ${ws.rowCount}, колонок ${ws.columnCount}`);
 console.log(`Дни: ${days.join(", ")}`);
 console.log(
@@ -569,4 +611,4 @@ console.log(
     `объекты ${objects.size}, записи ${entries.length}`,
 );
 console.log(`ФИО заменено: ${realNames.size}, улиц заменено: ${realStreets.size}`);
-console.log(`Записано: ${OUT}`);
+console.log(`Записано: ${OUT} и ${OUT_CLIENT} (рамок смен: ${frameRows.length})`);

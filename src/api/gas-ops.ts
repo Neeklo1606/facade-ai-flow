@@ -275,14 +275,18 @@ export function useGasReport(mode: ReportMode): ReportData {
 
 /** Справочники для фильтров экранов */
 export function useGasDirectory(): {
-  brigades: { id: string; name: string }[];
+  brigades: { id: string; name: string; leadName: string | null }[];
   groups: { id: string; name: string }[];
   objects: WorkObject[];
   days: string[];
 } {
   const data = useGasData();
   return {
-    brigades: data.brigades.map((b) => ({ id: b.id, name: b.name })),
+    brigades: data.brigades.map((b) => ({
+      id: b.id,
+      name: b.name,
+      leadName: data.employees.find((e) => e.brigadeId === b.id && e.isLead)?.name ?? null,
+    })),
     groups: data.groups.map((g) => ({ id: g.id, name: g.name })),
     objects: data.objects,
     days: data.week.days,

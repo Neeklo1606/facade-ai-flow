@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { buildSeed } from "@/data/mock/gas-ops-seed";
-import { factReport } from "@/data/mock/fact-report";
+import { factReportFull as factReport } from "@/data/mock/fact-report.full";
 import { analyticRows, customerFormatRows, reportEntries } from "@/domain/gas-ops/report";
 import { hoursOfMinutes } from "@/domain/gas-ops/calc";
 

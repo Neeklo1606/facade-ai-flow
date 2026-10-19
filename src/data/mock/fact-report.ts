@@ -3,7 +3,7 @@
  * JSON собирает `scripts/parse-fact-report.ts` из `docs/source/fact-report.xlsx`
  * (реальный файл в git не попадает). Руками JSON не правим: его перезапишет скрипт.
  */
-import raw from "./fact-report.anonymized.json";
+import raw from "./fact-report.lite.json";
 
 export interface FactDayValue {
   day: number;
@@ -74,7 +74,8 @@ export interface FactReport {
     demoNumber: number;
   }[];
   entries: FactEntry[];
-  tree: FactNode[];
+  /** Рамки смен из строк интервалов: вынуты скриптом, дерева строк в наборе вкладки нет */
+  frames: ShiftFrame[];
   grandTotal: { label: string; excelRow: number; values: FactDayValue[]; total: FactDayValue };
 }
 
@@ -83,7 +84,7 @@ export const factReport = raw as unknown as FactReport;
 /** Дни недели отчёта: 28.09 — 03.10.2026 */
 export const factDays = factReport.meta.days;
 
-/** Рамки смен из строк интервалов: кому принадлежит, за какой день, какая рамка */
+/** Рамка смены: кому принадлежит, за какой день, какая рамка */
 export interface ShiftFrame {
   brigadeId: string;
   employeeId: string | null;
@@ -94,29 +95,5 @@ export interface ShiftFrame {
 }
 
 export function shiftFrames(): ShiftFrame[] {
-  const out: ShiftFrame[] = [];
-  const walk = (node: FactNode, brigadeId: string | null, employeeId: string | null) => {
-    const brigade =
-      node.kind === "brigade"
-        ? (factReport.brigades.find((b) => b.excelRow === node.excelRow)?.id ?? brigadeId)
-        : brigadeId;
-    const employee =
-      node.kind === "employee" || node.kind === "crew"
-        ? (factReport.employees.find((e) => e.excelRow === node.excelRow)?.id ?? employeeId)
-        : employeeId;
-    if (node.frames && brigade) {
-      for (const [dayIndex, frame] of Object.entries(node.frames)) {
-        out.push({
-          brigadeId: brigade,
-          employeeId: employee,
-          day: factDays[Number(dayIndex)]!,
-          frame,
-          excelRow: node.excelRow,
-        });
-      }
-    }
-    for (const child of node.children) walk(child, brigade, employee);
-  };
-  for (const root of factReport.tree) walk(root, null, null);
-  return out;
+  return factReport.frames;
 }

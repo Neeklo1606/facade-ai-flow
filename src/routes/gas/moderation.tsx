@@ -87,26 +87,28 @@ function ModerationPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <div className="flex flex-col gap-4">
-        <PillTabs
-          label="Статус записи"
-          variant="primary"
-          value={tab}
-          onChange={(value) => {
-            setTab(value);
-            setSelected(null);
-          }}
-          tabs={[
-            { value: "pending", label: ENTRY_STATUS_LABEL.pending, count: counts.pending },
-            { value: "clarify", label: ENTRY_STATUS_LABEL.clarify, count: counts.clarify },
-            { value: "draft", label: ENTRY_STATUS_LABEL.draft, count: counts.draft },
-            { value: "rejected", label: ENTRY_STATUS_LABEL.rejected, count: counts.rejected },
-            {
-              value: "all",
-              label: "Все",
-              count: counts.pending + counts.clarify + counts.draft + counts.rejected,
-            },
-          ]}
-        />
+        <div className="-mx-1 overflow-x-auto px-1">
+          <PillTabs
+            label="Статус записи"
+            variant="primary"
+            value={tab}
+            onChange={(value) => {
+              setTab(value);
+              setSelected(null);
+            }}
+            tabs={[
+              { value: "pending", label: ENTRY_STATUS_LABEL.pending, count: counts.pending },
+              { value: "clarify", label: ENTRY_STATUS_LABEL.clarify, count: counts.clarify },
+              { value: "draft", label: ENTRY_STATUS_LABEL.draft, count: counts.draft },
+              { value: "rejected", label: ENTRY_STATUS_LABEL.rejected, count: counts.rejected },
+              {
+                value: "all",
+                label: "Все",
+                count: counts.pending + counts.clarify + counts.draft + counts.rejected,
+              },
+            ]}
+          />
+        </div>
 
         {rows.length === 0 ? (
           <EmptyState
