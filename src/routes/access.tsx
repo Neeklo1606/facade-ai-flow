@@ -1,19 +1,25 @@
+import { completePageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { ACCESS, MATRIX_ROLES, SECTIONS, sectionLabel, type Section } from "@/api/access";
 import { StatusBadge } from "@/components/common/StatusBadge";
 
 export const Route = createFileRoute("/access")({
-  head: () => ({
-    meta: [
-      { title: "Права доступа — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content:
-          "Матрица прав: разделы в строках, роли в столбцах — запись, чтение или нет доступа.",
+        meta: [
+          { title: "Права доступа — гайка" },
+          {
+            name: "description",
+            content:
+              "Матрица прав: разделы в строках, роли в столбцах — запись, чтение или нет доступа.",
+          },
+        ],
       },
-    ],
-  }),
+      "Права доступа — гайка",
+      "Матрица прав по разделам и ролям.",
+    ),
   component: AccessPage,
 });
 

@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useConnections } from "@/api/office-client";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -11,7 +12,12 @@ import { connectionStateLabel } from "@/contracts";
  * переменными окружения, и экран называет какими.
  */
 export const Route = createFileRoute("/office/connections")({
-  head: () => ({ meta: [{ title: "Подключения — гайка" }] }),
+  head: () =>
+    completePageHead(
+      { meta: [{ title: "Подключения — гайка" }] },
+      "Подключения компании — гайка",
+      "Доступные подключения и их статус.",
+    ),
   component: ConnectionsPage,
 });
 

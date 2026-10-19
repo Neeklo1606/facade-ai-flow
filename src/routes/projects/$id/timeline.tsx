@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -72,11 +73,16 @@ export const Route = createFileRoute("/projects/$id/timeline")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [{ title: `История и решения — ${loaderData.project?.name ?? "Объект"} — гайка` }]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [{ title: `История и решения — ${loaderData.project?.name ?? "Объект"} — гайка` }]
+          : [],
+      },
+      "История объекта — гайка",
+      "История работ и решений с первоисточниками.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(TimelinePage),
 });

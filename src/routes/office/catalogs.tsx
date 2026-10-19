@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -30,16 +31,21 @@ export const Route = createFileRoute("/office/catalogs")({
         ? (search["new"] as "material" | "import")
         : undefined,
   }),
-  head: () => ({
-    meta: [
-      { title: "Справочники — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content:
-          "Номенклатура материалов с характеристиками, синонимами и историей; дерево категорий с правилами.",
+        meta: [
+          { title: "Справочники — гайка" },
+          {
+            name: "description",
+            content:
+              "Номенклатура материалов с характеристиками, синонимами и историей; дерево категорий с правилами.",
+          },
+        ],
       },
-    ],
-  }),
+      "Справочники компании — гайка",
+      "Номенклатура, характеристики и категории материалов.",
+    ),
   component: CatalogsPage,
 });
 

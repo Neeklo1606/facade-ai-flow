@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { demoShow } from "@/api/config";
 import { isEntering, useRoleChosen } from "@/lib/guide/store";
@@ -13,16 +14,21 @@ import { homeRouteFor } from "@/lib/navigation";
  * это перенаправление, а не ошибка.
  */
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "гайка — говорите с объекта" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content:
-          "Говорите с объекта. Голос с площадки становится отчётом, документом и заявкой, а человек только подтверждает.",
+        meta: [
+          { title: "гайка — говорите с объекта" },
+          {
+            name: "description",
+            content:
+              "Говорите с объекта. Голос с площадки становится отчётом, документом и заявкой, а человек только подтверждает.",
+          },
+        ],
       },
-    ],
-  }),
+      "гайка — говорите с объекта",
+      "Голос с площадки становится проверенным отчётом и заявкой.",
+    ),
   component: Home,
 });
 

@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, ChevronRight, PlugZap } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -8,7 +9,12 @@ import { useAccess } from "@/api/access";
  * не сделанные, здесь не обещаются.
  */
 export const Route = createFileRoute("/office/")({
-  head: () => ({ meta: [{ title: "Кабинет компании — гайка" }] }),
+  head: () =>
+    completePageHead(
+      { meta: [{ title: "Кабинет компании — гайка" }] },
+      "Кабинет компании — гайка",
+      "Управление справочниками и подключениями.",
+    ),
   component: OfficeHome,
 });
 

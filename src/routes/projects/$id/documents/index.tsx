@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -63,18 +64,23 @@ export const Route = createFileRoute("/projects/$id/documents/")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `Документация — ${loaderData.project?.name ?? "Объект"} — гайка` },
-          {
-            name: "description",
-            content:
-              "Реестр проектной документации объекта: загрузка, распознавание и извлечение позиций.",
-          },
-        ]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [
+              { title: `Документация — ${loaderData.project?.name ?? "Объект"} — гайка` },
+              {
+                name: "description",
+                content:
+                  "Реестр проектной документации объекта: загрузка, распознавание и извлечение позиций.",
+              },
+            ]
+          : [],
+      },
+      "Документация объекта — гайка",
+      "Документы, распознавание и проверка позиций.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(DocumentsPage),
 });

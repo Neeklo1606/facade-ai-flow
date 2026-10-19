@@ -147,10 +147,7 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
     >
       <div className="relative mx-auto flex min-h-full w-full max-w-[560px] flex-col justify-center">
         {/* Знак «гайка» строчными: фирменный знак ещё не утверждён, это рабочее начертание */}
-        <span
-          aria-hidden
-          className="text-[22px] leading-none font-semibold text-text"
-        >
+        <span aria-hidden className="text-[22px] leading-none font-semibold text-text">
           гайка
         </span>
         {showEntry ? (

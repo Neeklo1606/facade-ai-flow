@@ -171,7 +171,7 @@ export function Topbar() {
           {/* Поле ГАЙКИ в шапке — пока только поиск: микрофон приходит в G4 (ADR-034, п. 2) */}
           <span className="min-w-0 flex-1 truncate text-left">Найти в системе</span>
           <kbd className="kbd">Ctrl K</kbd>
-      </Button>
+        </Button>
         <Button
           variant="ghost"
           size="icon"

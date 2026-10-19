@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Mail, PackageSearch, Phone, Plus, Send, Truck } from "lucide-react";
@@ -76,15 +77,20 @@ export const Route = createFileRoute("/projects/$id/procurement/")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          {
-            title: `Поставщики и запросы — ${loaderData.project?.name ?? "Объект"} — гайка`,
-          },
-        ]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [
+              {
+                title: `Поставщики и запросы — ${loaderData.project?.name ?? "Объект"} — гайка`,
+              },
+            ]
+          : [],
+      },
+      "Запросы объекта — гайка",
+      "Поставщики и запросы по материалам объекта.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(ProcurementPage),
 });

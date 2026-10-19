@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
@@ -73,11 +74,16 @@ export const Route = createFileRoute("/projects/$id/field-reports")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [{ title: `Отчёты с площадки — ${loaderData.project?.name ?? "Объект"} — гайка` }]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [{ title: `Отчёты с площадки — ${loaderData.project?.name ?? "Объект"} — гайка` }]
+          : [],
+      },
+      "Отчёты объекта — гайка",
+      "Отчёты с площадки и источники подтверждённых объёмов.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(FieldReportsPage),
 });

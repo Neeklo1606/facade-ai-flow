@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { currentStep, nextStep, setChain, useGuide } from "@/lib/guide/store";
@@ -84,17 +85,22 @@ export const Route = createFileRoute("/capture")({
     ...(search["record"] === "1" || search["record"] === true ? { record: true as const } : {}),
     ...(typeof search["scenario"] === "string" ? { scenario: search["scenario"] } : {}),
   }),
-  head: () => ({
-    meta: [
-      { title: "Запись — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content: "Скажите, что произошло на объекте: голос, текст и фото в одном месте.",
+        meta: [
+          { title: "Запись — гайка" },
+          {
+            name: "description",
+            content: "Скажите, что произошло на объекте: голос, текст и фото в одном месте.",
+          },
+          { property: "og:title", content: "Запись — гайка" },
+          { property: "og:type", content: "website" },
+        ],
       },
-      { property: "og:title", content: "Запись — гайка" },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+      "Запись — гайка",
+      "Голос, текст и фото с объекта в одном месте.",
+    ),
   component: CapturePage,
 });
 

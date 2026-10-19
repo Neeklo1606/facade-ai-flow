@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, ClipboardCheck, FileSearch, FileSpreadsheet, Image, Undo2 } from "lucide-react";
@@ -50,15 +51,20 @@ export const Route = createFileRoute("/check")({
   loader: async ({ context }) => {
     await prefetch(context.queryClient, queries.projects());
   },
-  head: () => ({
-    meta: [
-      { title: "Проверка — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content: "Очередь проверки: факты с площадки и позиции спецификации, ждущие решения.",
+        meta: [
+          { title: "Проверка — гайка" },
+          {
+            name: "description",
+            content: "Очередь проверки: факты с площадки и позиции спецификации, ждущие решения.",
+          },
+        ],
       },
-    ],
-  }),
+      "Проверка — гайка",
+      "Отчёты с площадки, ожидающие проверки человеком.",
+    ),
   component: CheckPage,
 });
 

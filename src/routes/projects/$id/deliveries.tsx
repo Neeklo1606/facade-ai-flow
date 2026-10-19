@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -43,11 +44,16 @@ export const Route = createFileRoute("/projects/$id/deliveries")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [{ title: `Поставки — ${loaderData.project?.name ?? "Объект"} — гайка` }]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [{ title: `Поставки — ${loaderData.project?.name ?? "Объект"} — гайка` }]
+          : [],
+      },
+      "Поставки объекта — гайка",
+      "Ожидаемые поставки и приёмка материалов.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(DeliveriesPage),
 });
