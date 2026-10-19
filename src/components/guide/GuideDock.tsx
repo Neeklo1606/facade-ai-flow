@@ -9,6 +9,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { useEnterAs } from "@/lib/persona";
 import { useCurrentRole, useProjectId } from "@/lib/project-scope";
+import { Button } from "@/components/ui/button";
 
 // Шторка шага грузится по касанию полосы: в оболочке ей место не нужно (бюджет бандла)
 const GuideSheet = lazy(() =>
@@ -169,19 +170,19 @@ export function GuideDock() {
     >
       <section
         aria-label="Подсказки по сценарию"
-        className="flex min-w-0 flex-1 items-center gap-2"
+        className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex"
       >
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
           aria-label="Открыть шаг сценария"
-          className="focus-ring flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left text-[13px] leading-[1.35]"
+          className="focus-ring col-start-1 flex min-h-12 min-w-0 flex-1 items-center gap-2 py-2 text-left text-[13px] leading-[1.45]"
         >
           {stepDone || finished ? (
             <Check className="size-4 shrink-0 text-ok" strokeWidth={2} aria-hidden />
           ) : null}
           <span className="min-w-0">
-            <span className="block truncate text-text-2">
+            <span className="block text-text-2">
               {finished
                 ? skipped > 0
                   ? `${scenario.title} · пропущено ${skipped}`
@@ -189,24 +190,25 @@ export function GuideDock() {
                 : `${scenario.title} · шаг ${guide.stepIndex + 1} из ${scenario.steps.length}`}
             </span>
             {step && !finished ? (
-              <span className="block truncate text-text">{step.text}</span>
+              <span className="block text-text">{step.text}</span>
             ) : null}
           </span>
         </button>
         {action ? (
-          <button
+          <Button
+            variant="outline"
             type="button"
             onClick={action.run}
-            className="focus-ring min-h-12 max-w-[50%] shrink-0 truncate rounded-full bg-pill px-4 text-[13px] font-medium text-pill-text"
+            className="focus-ring col-start-1 row-start-2 mb-2 min-h-12 justify-self-start px-4 text-[13px] sm:mb-0 sm:min-h-10"
           >
             {action.label}
-          </button>
+          </Button>
         ) : null}
         <button
           type="button"
           onClick={closeGuide}
           aria-label="Скрыть подсказки"
-          className="focus-ring grid size-12 shrink-0 place-items-center text-text-3 hover:text-text"
+          className="focus-ring col-start-2 row-start-1 grid size-12 shrink-0 place-items-center text-text-3 hover:text-text"
         >
           <X className="size-4" strokeWidth={1.5} />
         </button>

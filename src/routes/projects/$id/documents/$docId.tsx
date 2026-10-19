@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -66,15 +67,20 @@ export const Route = createFileRoute("/projects/$id/documents/$docId")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          {
-            title: `Извлечение позиций — ${loaderData.project?.name ?? "Объект"} — гайка`,
-          },
-        ]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [
+              {
+                title: `Извлечение позиций — ${loaderData.project?.name ?? "Объект"} — гайка`,
+              },
+            ]
+          : [],
+      },
+      "Разбор документа — гайка",
+      "Извлечённые позиции и оригинал документа объекта.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(ExtractionPage),
 });

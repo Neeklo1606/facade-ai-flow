@@ -8,12 +8,11 @@
  * `data-booted` на `<html>`, который ставит приложение после монтирования.
  */
 export const BOOT_SPLASH_HTML = `<style>
-#boot-splash{position:fixed;inset:0;z-index:70;background:#0a0908;color:#f7f3ef;padding:40px 20px;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
-html[data-theme="light"] #boot-splash{background:#f5f2ee;color:#1c1814}
+#boot-splash{position:fixed;inset:0;z-index:70;background:var(--void);color:var(--text);padding:40px 20px;font-family:var(--font-sans)}
 html[data-booted] #boot-splash{display:none}
 #boot-splash .b-wrap{max-width:560px;margin:0 auto}
-#boot-splash .b-mark{font-size:22px;line-height:1;font-weight:600;letter-spacing:-0.02em}
-#boot-splash .b-hero{margin-top:24px;font-size:40px;line-height:44px;font-weight:600;letter-spacing:-0.02em}
+#boot-splash .b-mark{font-size:22px;line-height:1;font-weight:600;letter-spacing:0}
+#boot-splash .b-hero{margin-top:24px;font-size:40px;line-height:44px;font-weight:600;letter-spacing:0}
 #boot-splash .b-sub{margin-top:12px;font-size:17px;line-height:24px;opacity:.72}
 </style>
 <div class="b-wrap">
@@ -23,4 +22,4 @@ html[data-booted] #boot-splash{display:none}
 </div>`;
 
 /** Заголовок входа — только на корне без выбранной роли: иначе это был бы чужой экран */
-export const BOOT_SPLASH_SCRIPT = `(function(){try{var root=location.pathname==="/";var chosen=sessionStorage.getItem("neeklo-fieldops-role-chosen")==="1";if(!root||chosen){var h=document.querySelectorAll("[data-boot-hero]");for(var i=0;i<h.length;i++)h[i].style.display="none";}}catch(e){}})()`;
+export const BOOT_SPLASH_SCRIPT = `(function(){try{var root=location.pathname==="/";var chosen=sessionStorage.getItem("neeklo-fieldops-role-chosen")==="1";if(!root||chosen)document.documentElement.dataset.bootCompact="";}catch(e){}})()`;

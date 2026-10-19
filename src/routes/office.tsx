@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 /**
@@ -5,6 +6,11 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
  * ставит корень по адресу `/office`, здесь только место для разделов.
  */
 export const Route = createFileRoute("/office")({
-  head: () => ({ meta: [{ title: "Кабинет компании — гайка" }] }),
+  head: () =>
+    completePageHead(
+      { meta: [{ title: "Кабинет компании — гайка" }] },
+      "Кабинет компании — гайка",
+      "Справочники и подключения компании.",
+    ),
   component: () => <Outlet />,
 });

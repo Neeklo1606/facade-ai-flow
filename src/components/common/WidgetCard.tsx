@@ -56,20 +56,25 @@ export function WidgetCardHeader({
 }) {
   const Heading = level === 2 ? "h2" : "h3";
   return (
-    <header className={cn("mb-5 grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex", className)}>
-      <div className="flex min-w-0 items-center gap-3 sm:flex-1">
-      {Icon && (
-        <span className="grid size-[30px] shrink-0 place-items-center rounded-[var(--r-sm)] bg-surface-3">
-          <Icon className="size-[15px] text-text-2" strokeWidth={1.5} aria-hidden />
-        </span>
+    <header
+      className={cn(
+        "mb-5 grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex",
+        className,
       )}
-      <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-        <Heading className="truncate text-[16px] leading-[1.35] font-semibold text-text">
-          {title}
-        </Heading>
-        {/* Подпись переносится, а не режется многоточием (правило 8 этапа D) */}
-        {hint && <span className="text-[13px] leading-[1.45] text-text-3">{hint}</span>}
-      </div>
+    >
+      <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+        {Icon && (
+          <span className="grid size-[30px] shrink-0 place-items-center rounded-[var(--r-sm)] bg-surface-3">
+            <Icon className="size-[15px] text-text-2" strokeWidth={1.5} aria-hidden />
+          </span>
+        )}
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+          <Heading className="truncate text-[16px] leading-[1.35] font-semibold text-text">
+            {title}
+          </Heading>
+          {/* Подпись переносится, а не режется многоточием (правило 8 этапа D) */}
+          {hint && <span className="text-[13px] leading-[1.45] text-text-3">{hint}</span>}
+        </div>
       </div>
       {aside && <div className="flex shrink-0 items-center gap-2">{aside}</div>}
     </header>

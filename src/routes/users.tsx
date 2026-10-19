@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -47,12 +48,17 @@ export const Route = createFileRoute("/users")({
   validateSearch: (search: Record<string, unknown>): UsersSearch => ({
     new: search["new"] === "employee" ? "employee" : undefined,
   }),
-  head: () => ({
-    meta: [
-      { title: "Сотрудники и доступ — гайка" },
-      { name: "description", content: "Кто заведён, с какой ролью и на каких объектах." },
-    ],
-  }),
+  head: () =>
+    completePageHead(
+      {
+        meta: [
+          { title: "Сотрудники и доступ — гайка" },
+          { name: "description", content: "Кто заведён, с какой ролью и на каких объектах." },
+        ],
+      },
+      "Сотрудники и доступ — гайка",
+      "Сотрудники, роли и назначенные объекты.",
+    ),
   component: UsersPage,
 });
 

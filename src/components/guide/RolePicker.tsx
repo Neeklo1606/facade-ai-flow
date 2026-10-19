@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ClipboardCheck, HardHat, PackageSearch } from "lucide-react";
+import { ArrowUpRight, Building2, ClipboardCheck, HardHat, PackageSearch } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { queries } from "@/api/queries";
@@ -14,6 +14,7 @@ import { CANON_PERSONA, scenarioById, scenarioFor } from "@/lib/guide/scenarios"
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { cn } from "@/lib/utils";
 import { record } from "@/lib/guide/telemetry";
+import { Button } from "@/components/ui/button";
 
 /** Что роль делает в показе: одна строка под названием (канон 18.10, ADR-038) */
 const roleHint: Partial<Record<EmployeeRole, { icon: LucideIcon; text: string }>> = {
@@ -144,18 +145,9 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
       aria-labelledby="role-picker-title"
       className="fixed inset-0 z-[60] overflow-y-auto bg-void px-5 py-10"
     >
-      {showEntry ? (
-        <div
-          aria-hidden="true"
-          className="ambient-field pointer-events-none fixed inset-x-0 top-0"
-        />
-      ) : null}
       <div className="relative mx-auto flex min-h-full w-full max-w-[560px] flex-col justify-center">
         {/* Знак «гайка» строчными: фирменный знак ещё не утверждён, это рабочее начертание */}
-        <span
-          aria-hidden
-          className="text-[22px] leading-none font-semibold tracking-[-0.02em] text-text"
-        >
+        <span aria-hidden className="text-[22px] leading-none font-semibold text-text">
           гайка
         </span>
         {showEntry ? (
@@ -170,38 +162,32 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
             <ul className="mt-8 flex flex-col gap-3">
               {tiles.map((tile, index) => (
                 <li key={tile.id}>
-                  <button
+                  <Button
+                    variant="outline"
                     type="button"
                     onClick={() => startTile(tile.id)}
-                    className="focus-ring press relative flex min-h-[96px] w-full flex-col justify-center overflow-hidden rounded-[var(--r-lg)] bg-surface px-5 py-4 text-left"
+                    className="focus-ring press relative flex h-auto min-h-[104px] w-full flex-col items-stretch justify-center gap-0 whitespace-normal rounded-[var(--r-lg)] bg-surface px-5 py-5 text-left"
                   >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "absolute inset-x-0 top-0 h-16 bg-gradient-to-b to-transparent",
-                        tile.glow,
-                      )}
-                    />
-                    <span className="relative flex items-baseline justify-between gap-3">
+                    <span className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                       <span className="text-card-title">
                         <span className="tnum text-text-3">{index + 1}</span> {tile.title}
                       </span>
-                      <span data-marker="" className="text-marker shrink-0">
-                        1 минута
-                      </span>
+                      <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
                     </span>
                     <span className="relative mt-1 text-caption text-text-2">{tile.hint}</span>
-                  </button>
+                    <span className="mt-2 text-[13px] font-normal text-text-3">1 минута</span>
+                  </Button>
                 </li>
               ))}
             </ul>
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => setPickRole(true)}
               className="focus-ring mt-4 min-h-12 self-start rounded-[var(--r-xs)] text-caption text-text-2 underline-offset-4 hover:underline"
             >
               Выбрать роль самому
-            </button>
+            </Button>
             <p className="mt-6 text-caption text-text-3">
               Демонстрация на вымышленных данных: речь и разбор подготовлены заранее, ничего не
               заказывается и не отправляется.
@@ -221,10 +207,11 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
                 const Icon = hint?.icon ?? Building2;
                 return (
                   <li key={person.id}>
-                    <button
+                    <Button
+                      variant="outline"
                       type="button"
                       onClick={() => choose(person.id, person.role)}
-                      className="focus-ring press flex min-h-[64px] w-full items-center gap-3 rounded-[var(--r-lg)] bg-surface px-4 py-3 text-left transition-fast hover:bg-surface-2"
+                      className="focus-ring press flex h-auto min-h-[80px] w-full items-center gap-3 whitespace-normal rounded-[var(--r-lg)] bg-surface px-4 py-4 text-left transition-fast hover:bg-surface-2"
                     >
                       <span className="grid size-10 shrink-0 place-items-center rounded-[var(--r-sm)] bg-surface-2 text-text-2">
                         <Icon className="size-5" strokeWidth={1.5} aria-hidden />
@@ -237,19 +224,20 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
                           {hint?.text ?? person.position} · {person.name}
                         </span>
                       </span>
-                    </button>
+                    </Button>
                   </li>
                 );
               })}
             </ul>
             {fromHome ? (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setPickRole(false)}
                 className="focus-ring mt-4 min-h-12 self-start rounded-[var(--r-xs)] text-caption text-text-2 underline-offset-4 hover:underline"
               >
                 К сценариям показа
-              </button>
+              </Button>
             ) : null}
           </>
         )}

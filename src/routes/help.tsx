@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, BookOpen, Check, Search } from "lucide-react";
@@ -21,16 +22,21 @@ export const Route = createFileRoute("/help")({
     const id = typeof search["article"] === "string" ? search["article"] : undefined;
     return id && visibleHelpArticles().some((item) => item.id === id) ? { article: id } : {};
   },
-  head: () => ({
-    meta: [
-      { title: "Справка — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content:
-          "Как работать в системе: загрузка документации, запросы поставщикам, приёмка, отчёты с площадки, права и частые вопросы.",
+        meta: [
+          { title: "Справка — гайка" },
+          {
+            name: "description",
+            content:
+              "Как работать в системе: загрузка документации, запросы поставщикам, приёмка, отчёты с площадки, права и частые вопросы.",
+          },
+        ],
       },
-    ],
-  }),
+      "Справка — гайка",
+      "Ответы на вопросы о работе с объектами и отчётами.",
+    ),
   component: HelpPage,
 });
 
