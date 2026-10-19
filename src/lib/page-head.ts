@@ -13,11 +13,12 @@ export function completePageHead(
   if (!meta.some((tag) => tag.title)) meta.push({ title });
   if (!meta.some((tag) => tag.name === "description"))
     meta.push({ name: "description", content: description });
-  for (const [property, content] of [
+  const openGraph: [string, string][] = [
     ["og:title", title],
     ["og:description", description],
     ["og:type", "website"],
-  ]) {
+  ];
+  for (const [property, content] of openGraph) {
     if (!meta.some((tag) => tag.property === property)) meta.push({ property, content });
   }
   if (!meta.some((tag) => tag.name === "twitter:card"))
