@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useEffect, useMemo, useState } from "react";
 import { demoOnly } from "@/lib/contour-copy";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -110,15 +111,20 @@ export const Route = createFileRoute("/projects/$id/materials")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          {
-            title: `Снабжение: спецификация — ${loaderData.project?.name ?? "Объект"} — гайка`,
-          },
-        ]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [
+              {
+                title: `Снабжение: спецификация — ${loaderData.project?.name ?? "Объект"} — гайка`,
+              },
+            ]
+          : [],
+      },
+      "Снабжение: спецификация — гайка",
+      "Позиции материалов и источники по объекту.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(MaterialsPage),
 });

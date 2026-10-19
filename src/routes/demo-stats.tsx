@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useSyncExternalStore } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -18,12 +19,17 @@ import {
  * пройденные шаги, время по экранам, действия, ошибки, обратную связь, точку выхода.
  */
 export const Route = createFileRoute("/demo-stats")({
-  head: () => ({
-    meta: [
-      { title: "Статистика сессии — гайка" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
+  head: () =>
+    completePageHead(
+      {
+        meta: [
+          { title: "Статистика сессии — гайка" },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+      },
+      "Статистика сессии — гайка",
+      "Действия и результаты текущей демонстрации.",
+    ),
   component: DemoStatsPage,
 });
 

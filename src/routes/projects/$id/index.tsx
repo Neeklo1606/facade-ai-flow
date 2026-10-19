@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -91,22 +92,27 @@ export const Route = createFileRoute("/projects/$id/")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.project?.name ?? "Объект"} — гайка` },
-          {
-            name: "description",
-            content: `Карточка объекта ${loaderData.project?.code ?? ""}: что требует внимания, документация, материалы и закупки.`,
-          },
-          {
-            property: "og:title",
-            content: `${loaderData.project?.name ?? "Объект"} — гайка`,
-          },
-          { property: "og:type", content: "website" },
-        ]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [
+              { title: `${loaderData.project?.name ?? "Объект"} — гайка` },
+              {
+                name: "description",
+                content: `Карточка объекта ${loaderData.project?.code ?? ""}: что требует внимания, документация, материалы и закупки.`,
+              },
+              {
+                property: "og:title",
+                content: `${loaderData.project?.name ?? "Объект"} — гайка`,
+              },
+              { property: "og:type", content: "website" },
+            ]
+          : [],
+      },
+      "Объект — гайка",
+      "Ход работ, отчёты и сводка по объекту.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(ProjectPage),
 });

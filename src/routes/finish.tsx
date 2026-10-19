@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +22,12 @@ import { cn } from "@/lib/utils";
  * и «Обсудить пилот». Живёт только в демонстрации: в рабочем контуре показа нет.
  */
 export const Route = createFileRoute("/finish")({
-  head: () => ({ meta: [{ title: "Итоги показа — гайка" }] }),
+  head: () =>
+    completePageHead(
+      { meta: [{ title: "Итоги показа — гайка" }] },
+      "Итоги показа — гайка",
+      "Сводка смены и черновик ведомости по итогам демонстрации.",
+    ),
   component: FinishPage,
 });
 

@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FileSpreadsheet, HardHat, PackageCheck, Undo2 } from "lucide-react";
@@ -40,15 +41,20 @@ export const Route = createFileRoute("/today")({
   loader: async ({ context }) => {
     await prefetch(context.queryClient, queries.projects());
   },
-  head: () => ({
-    meta: [
-      { title: "Сегодня — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content: "Смена на площадке: что зафиксировано, какие поставки ждут и что вернули.",
+        meta: [
+          { title: "Сегодня — гайка" },
+          {
+            name: "description",
+            content: "Смена на площадке: что зафиксировано, какие поставки ждут и что вернули.",
+          },
+        ],
       },
-    ],
-  }),
+      "Сегодня — гайка",
+      "Смена на площадке, записи и статусы проверки.",
+    ),
   component: TodayPage,
 });
 

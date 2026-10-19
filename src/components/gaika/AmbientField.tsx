@@ -21,5 +21,6 @@ export function AmbientField({
   state?: AmbientState;
   className?: string;
 }) {
+  if (state === "rest") return null;
   return <div aria-hidden="true" className={cn("ambient-field", stateClass[state], className)} />;
 }

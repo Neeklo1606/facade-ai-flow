@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 /** Справочники переехали в кабинет компании (ADR-039): старый адрес ведёт туда же */
@@ -10,6 +11,8 @@ export const Route = createFileRoute("/catalogs")({
         ? (search["new"] as "material" | "import")
         : undefined,
   }),
+  head: () =>
+    completePageHead({ meta: [] }, "Справочники — гайка", "Материалы и корпоративные справочники."),
   component: CatalogsRedirect,
 });
 

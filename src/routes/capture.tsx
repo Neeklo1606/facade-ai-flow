@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { currentStep, nextStep, setChain, useGuide } from "@/lib/guide/store";
@@ -84,17 +85,22 @@ export const Route = createFileRoute("/capture")({
     ...(search["record"] === "1" || search["record"] === true ? { record: true as const } : {}),
     ...(typeof search["scenario"] === "string" ? { scenario: search["scenario"] } : {}),
   }),
-  head: () => ({
-    meta: [
-      { title: "Запись — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content: "Скажите, что произошло на объекте: голос, текст и фото в одном месте.",
+        meta: [
+          { title: "Запись — гайка" },
+          {
+            name: "description",
+            content: "Скажите, что произошло на объекте: голос, текст и фото в одном месте.",
+          },
+          { property: "og:title", content: "Запись — гайка" },
+          { property: "og:type", content: "website" },
+        ],
       },
-      { property: "og:title", content: "Запись — гайка" },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+      "Запись — гайка",
+      "Голос, текст и фото с объекта в одном месте.",
+    ),
   component: CapturePage,
 });
 
@@ -866,7 +872,8 @@ function CapturePage() {
         {flow.step === "idle" || flow.step === "no-mic" || flow.step === "error" ? (
           <section className="flex flex-col items-center gap-3 pt-2">
             {flow.step !== "no-mic" ? (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 disabled={!canWrite}
                 onPointerDown={onCapsuleDown}
@@ -876,10 +883,10 @@ function CapturePage() {
                     send({ type: "start" });
                   }
                 }}
-                className="focus-ring press glow-ember bg-pill text-pill-text flex min-h-16 w-full max-w-sm items-center justify-center gap-3 rounded-full px-6 text-[17px] font-medium disabled:opacity-45"
+                className="focus-ring press bg-pill text-pill-text flex h-auto min-h-16 w-full max-w-sm items-center justify-center gap-3 whitespace-normal rounded-full px-6 text-[17px] font-medium hover:bg-pill hover:text-pill-text disabled:opacity-45"
               >
                 <Mic className="size-5" /> Удерживайте, чтобы говорить
-              </button>
+              </Button>
             ) : null}
             {!textOpen ? (
               <button

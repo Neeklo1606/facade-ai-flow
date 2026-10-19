@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardCheck, Inbox, PackageSearch, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,17 +42,22 @@ export const Route = createFileRoute("/inbox")({
   loader: async ({ context }) => {
     await prefetch(context.queryClient, queries.projects());
   },
-  head: () => ({
-    meta: [
-      { title: "Входящие — гайка" },
+  head: () =>
+    completePageHead(
       {
-        name: "description",
-        content: "Что ждёт вас: вернули на доработку, очередь проверки и решения.",
+        meta: [
+          { title: "Входящие — гайка" },
+          {
+            name: "description",
+            content: "Что ждёт вас: вернули на доработку, очередь проверки и решения.",
+          },
+          { property: "og:title", content: "Входящие — гайка" },
+          { property: "og:type", content: "website" },
+        ],
       },
-      { property: "og:title", content: "Входящие — гайка" },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+      "Входящие — гайка",
+      "Проверка, уточнения и решения по объектам.",
+    ),
   component: InboxPage,
 });
 

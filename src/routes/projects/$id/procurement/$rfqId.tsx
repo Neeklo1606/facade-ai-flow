@@ -1,3 +1,4 @@
+import { completePageHead } from "@/lib/page-head";
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, BellRing, Crown, Gavel, Scale } from "lucide-react";
@@ -39,15 +40,20 @@ export const Route = createFileRoute("/projects/$id/procurement/$rfqId")({
     ]);
     return result;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          {
-            title: `Сравнение предложений — ${loaderData.project?.name ?? "Объект"} — гайка`,
-          },
-        ]
-      : [],
-  }),
+  head: ({ loaderData }) =>
+    completePageHead(
+      {
+        meta: loaderData
+          ? [
+              {
+                title: `Сравнение предложений — ${loaderData.project?.name ?? "Объект"} — гайка`,
+              },
+            ]
+          : [],
+      },
+      "Сравнение предложений — гайка",
+      "Предложения поставщиков и зафиксированное решение.",
+    ),
   notFoundComponent: ProjectNotFound,
   component: withProject(ComparisonPage),
 });
