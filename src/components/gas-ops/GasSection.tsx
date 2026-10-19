@@ -63,6 +63,7 @@ export function GasSectionNav() {
           <label className="flex items-center gap-2 text-[13px] text-text-3">
             Роль
             <select
+              aria-label="Роль в учёте времени"
               value={actor.id}
               onChange={(event) => {
                 const userId = event.target.value;
@@ -96,7 +97,8 @@ export function GasSectionNav() {
             }}
           >
             <RotateCcw className="size-4" aria-hidden />
-            Сбросить демо-данные
+            {/* Подпись отличается от общей кнопки сброса в меню: сбрасывается только учёт времени */}
+            Сбросить данные учёта
           </Button>
         </div>
       </div>

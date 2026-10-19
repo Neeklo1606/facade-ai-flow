@@ -40,9 +40,14 @@ import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
 import { Route as GasIndexRouteImport } from './routes/gas/index'
+import { Route as GasAdminRouteImport } from './routes/gas/admin'
+import { Route as GasBrigadesRouteImport } from './routes/gas/brigades'
+import { Route as GasEmployeesRouteImport } from './routes/gas/employees'
 import { Route as GasEntriesRouteImport } from './routes/gas/entries'
+import { Route as GasEstimatesRouteImport } from './routes/gas/estimates'
 import { Route as GasForemanRouteImport } from './routes/gas/foreman'
 import { Route as GasModerationRouteImport } from './routes/gas/moderation'
+import { Route as GasObjectsRouteImport } from './routes/gas/objects'
 import { Route as GasReportsRouteImport } from './routes/gas/reports'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as OfficeCatalogsRouteImport } from './routes/office/catalogs'
@@ -217,9 +222,29 @@ const GasIndexRoute = GasIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GasRoute,
 } as any)
+const GasAdminRoute = GasAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasBrigadesRoute = GasBrigadesRouteImport.update({
+  id: '/brigades',
+  path: '/brigades',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasEmployeesRoute = GasEmployeesRouteImport.update({
+  id: '/employees',
+  path: '/employees',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasEntriesRoute = GasEntriesRouteImport.update({
   id: '/entries',
   path: '/entries',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasEstimatesRoute = GasEstimatesRouteImport.update({
+  id: '/estimates',
+  path: '/estimates',
   getParentRoute: () => GasRoute,
 } as any)
 const GasForemanRoute = GasForemanRouteImport.update({
@@ -230,6 +255,11 @@ const GasForemanRoute = GasForemanRouteImport.update({
 const GasModerationRoute = GasModerationRouteImport.update({
   id: '/moderation',
   path: '/moderation',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasObjectsRoute = GasObjectsRouteImport.update({
+  id: '/objects',
+  path: '/objects',
   getParentRoute: () => GasRoute,
 } as any)
 const GasReportsRoute = GasReportsRouteImport.update({
@@ -358,9 +388,14 @@ export interface FileRoutesByFullPath {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/gas/admin': typeof GasAdminRoute
+  '/gas/brigades': typeof GasBrigadesRoute
+  '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
+  '/gas/estimates': typeof GasEstimatesRoute
   '/gas/foreman': typeof GasForemanRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/objects': typeof GasObjectsRoute
   '/gas/reports': typeof GasReportsRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
@@ -410,9 +445,14 @@ export interface FileRoutesByTo {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/gas/admin': typeof GasAdminRoute
+  '/gas/brigades': typeof GasBrigadesRoute
+  '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
+  '/gas/estimates': typeof GasEstimatesRoute
   '/gas/foreman': typeof GasForemanRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/objects': typeof GasObjectsRoute
   '/gas/reports': typeof GasReportsRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
@@ -465,9 +505,14 @@ export interface FileRoutesById {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/gas/admin': typeof GasAdminRoute
+  '/gas/brigades': typeof GasBrigadesRoute
+  '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
+  '/gas/estimates': typeof GasEstimatesRoute
   '/gas/foreman': typeof GasForemanRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/objects': typeof GasObjectsRoute
   '/gas/reports': typeof GasReportsRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
@@ -521,9 +566,14 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/gas/admin'
+    | '/gas/brigades'
+    | '/gas/employees'
     | '/gas/entries'
+    | '/gas/estimates'
     | '/gas/foreman'
     | '/gas/moderation'
+    | '/gas/objects'
     | '/gas/reports'
     | '/office/catalogs'
     | '/office/connections'
@@ -573,9 +623,14 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/gas/admin'
+    | '/gas/brigades'
+    | '/gas/employees'
     | '/gas/entries'
+    | '/gas/estimates'
     | '/gas/foreman'
     | '/gas/moderation'
+    | '/gas/objects'
     | '/gas/reports'
     | '/office/catalogs'
     | '/office/connections'
@@ -627,9 +682,14 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/gas/admin'
+    | '/gas/brigades'
+    | '/gas/employees'
     | '/gas/entries'
+    | '/gas/estimates'
     | '/gas/foreman'
     | '/gas/moderation'
+    | '/gas/objects'
     | '/gas/reports'
     | '/office/catalogs'
     | '/office/connections'
@@ -917,11 +977,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasIndexRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/admin': {
+      id: '/gas/admin'
+      path: '/admin'
+      fullPath: '/gas/admin'
+      preLoaderRoute: typeof GasAdminRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/brigades': {
+      id: '/gas/brigades'
+      path: '/brigades'
+      fullPath: '/gas/brigades'
+      preLoaderRoute: typeof GasBrigadesRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/employees': {
+      id: '/gas/employees'
+      path: '/employees'
+      fullPath: '/gas/employees'
+      preLoaderRoute: typeof GasEmployeesRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/entries': {
       id: '/gas/entries'
       path: '/entries'
       fullPath: '/gas/entries'
       preLoaderRoute: typeof GasEntriesRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/estimates': {
+      id: '/gas/estimates'
+      path: '/estimates'
+      fullPath: '/gas/estimates'
+      preLoaderRoute: typeof GasEstimatesRouteImport
       parentRoute: typeof GasRoute
     }
     '/gas/foreman': {
@@ -936,6 +1024,13 @@ declare module '@tanstack/react-router' {
       path: '/moderation'
       fullPath: '/gas/moderation'
       preLoaderRoute: typeof GasModerationRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/objects': {
+      id: '/gas/objects'
+      path: '/objects'
+      fullPath: '/gas/objects'
+      preLoaderRoute: typeof GasObjectsRouteImport
       parentRoute: typeof GasRoute
     }
     '/gas/reports': {
@@ -1068,17 +1163,27 @@ declare module '@tanstack/react-router' {
 }
 
 interface GasRouteChildren {
+  GasAdminRoute: typeof GasAdminRoute
+  GasBrigadesRoute: typeof GasBrigadesRoute
+  GasEmployeesRoute: typeof GasEmployeesRoute
   GasEntriesRoute: typeof GasEntriesRoute
+  GasEstimatesRoute: typeof GasEstimatesRoute
   GasForemanRoute: typeof GasForemanRoute
   GasModerationRoute: typeof GasModerationRoute
+  GasObjectsRoute: typeof GasObjectsRoute
   GasReportsRoute: typeof GasReportsRoute
   GasIndexRoute: typeof GasIndexRoute
 }
 
 const GasRouteChildren: GasRouteChildren = {
+  GasAdminRoute: GasAdminRoute,
+  GasBrigadesRoute: GasBrigadesRoute,
+  GasEmployeesRoute: GasEmployeesRoute,
   GasEntriesRoute: GasEntriesRoute,
+  GasEstimatesRoute: GasEstimatesRoute,
   GasForemanRoute: GasForemanRoute,
   GasModerationRoute: GasModerationRoute,
+  GasObjectsRoute: GasObjectsRoute,
   GasReportsRoute: GasReportsRoute,
   GasIndexRoute: GasIndexRoute,
 }
