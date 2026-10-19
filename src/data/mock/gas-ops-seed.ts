@@ -1,0 +1,445 @@
+/**
+ * Стартовый набор газового направления: факт из отчёта заказчика плюс демо-сценарии.
+ *
+ * Правило честности: у каждой записи есть поле `source`. `fact-report` — перенесено из
+ * выгрузки заказчика (суммы, часы и интервалы настоящие, ФИО и адреса анонимны).
+ * `mock` — придумано для показа сценариев: черновик, очередь проверки, отклонение,
+ * пересечение, дубль, объект без подтверждённой стоимости. В интерфейсе это различимо.
+ *
+ * «Сегодня» направления — 3 октября 2026: последний день недели фактического отчёта.
+ * Так подтверждение записи в очереди видно в том же недельном отчёте, который открыт
+ * на экране, и сквозной сценарий проверяется целиком.
+ */
+import { factDays, factReport, shiftFrames, type ShiftFrame } from "./fact-report";
+import type {
+  AuditLog,
+  Brigade,
+  Employee,
+  Estimate,
+  Group,
+  Review,
+  TimeEntry,
+  User,
+  WorkObject,
+} from "@/domain/gas-ops/model";
+
+/** Последний день недели отчёта: он же «сегодня» в демонстрации */
+export const GAS_TODAY = factDays[factDays.length - 1]!;
+/** Предыдущий день: нужен сценарию «ввод за вчера» (OPEN-QUESTION 5) */
+export const GAS_YESTERDAY = factDays[factDays.length - 2]!;
+
+export interface GasOpsSeed {
+  today: string;
+  week: { from: string; to: string; days: string[] };
+  groups: Group[];
+  brigades: Brigade[];
+  employees: Employee[];
+  objects: WorkObject[];
+  estimates: Estimate[];
+  entries: TimeEntry[];
+  reviews: Review[];
+  audit: AuditLog[];
+  frames: ShiftFrame[];
+  users: User[];
+}
+
+const MANAGER = "u-manager";
+
+function numberOf(index: number): string {
+  return `ГЗ-${String(index + 1).padStart(5, "0")}`;
+}
+
+export function buildSeed(): GasOpsSeed {
+  const groups: Group[] = factReport.groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    code: g.code,
+    excelRow: g.excelRow,
+  }));
+
+  const brigades: Brigade[] = factReport.brigades.map((b) => ({
+    id: b.id,
+    groupId: b.groupId,
+    name: b.name,
+    code: b.code,
+    excelRow: b.excelRow,
+    source: "fact-report",
+  }));
+
+  const employees: Employee[] = factReport.employees.map((e, i) => ({
+    id: e.id,
+    brigadeId: e.brigadeId,
+    name: e.name,
+    isLead: e.isLead,
+    // Канал MAX не подключён: идентификатор показывается как имитация рядом со значением
+    maxId: `max-demo-${100 + i}`,
+    excelRow: e.excelRow,
+    source: "fact-report",
+  }));
+
+  const objects: WorkObject[] = factReport.objects.map((o) => ({
+    id: o.id,
+    label: o.label,
+    settlement: o.settlement,
+    workType: o.workType,
+    code: `ОБ-${String(o.demoNumber).padStart(3, "0")}`,
+    source: "fact-report",
+  }));
+
+  // --- факт из отчёта: эти записи заказчик уже принял в свой недельный отчёт ---
+  const entries: TimeEntry[] = factReport.entries.map((e, i) => ({
+    id: e.id,
+    number: numberOf(i),
+    day: e.day,
+    brigadeId: e.brigadeId,
+    employeeId: e.employeeId,
+    objectId: e.objectId,
+    startMinutes: null,
+    endMinutes: null,
+    breakMinutes: 0,
+    minutes: e.minutes ?? 0,
+    amountRub: e.amount,
+    status: "confirmed",
+    createdBy: e.employeeId ?? e.brigadeId,
+    createdAt: `${e.day}T18:30:00`,
+    reviewedBy: MANAGER,
+    reviewedAt: `${e.day}T19:10:00`,
+    comment: null,
+    source: "fact-report",
+    revenueInFile: e.revenueInFile,
+    excelRow: e.excelRow,
+  }));
+
+  // --- демо-сценарии: всё ниже помечено source: "mock" ---
+  const mockObjects: WorkObject[] = [
+    {
+      id: "obj-m1",
+      label: "ст. Петровская, ул. Демо, 101 - котел",
+      settlement: "ст. Петровская",
+      workType: "котел",
+      code: "ОБ-101",
+      source: "mock",
+    },
+    {
+      id: "obj-m2",
+      label: "г. Славянск н/К, ул. Демо, 102 - котел, насос",
+      settlement: "г. Славянск н/К",
+      workType: "котел, насос",
+      code: "ОБ-102",
+      source: "mock",
+    },
+    {
+      id: "obj-m3",
+      label: "х. Прикубанский, ул. Демо, 103 - ввод",
+      settlement: "х. Прикубанский",
+      workType: "ввод",
+      code: "ОБ-103",
+      source: "mock",
+    },
+  ];
+
+  const estimates: Estimate[] = [
+    {
+      id: "est-m1",
+      objectId: "obj-m1",
+      version: 1,
+      amountRub: 14_700,
+      status: "manual-pending",
+      origin: "manual",
+      confirmedBy: null,
+      confirmedAt: null,
+      note: "Котёл без сметы: сумму вносит менеджер. Кто утверждает — OPEN-QUESTION 4.",
+      source: "mock",
+    },
+    {
+      id: "est-m2",
+      objectId: "obj-m2",
+      version: 2,
+      amountRub: 19_950,
+      status: "confirmed",
+      origin: "estimate",
+      confirmedBy: MANAGER,
+      confirmedAt: `${GAS_YESTERDAY}T11:20:00`,
+      note: "Стоимость работ без материалов. Какие статьи входят — OPEN-QUESTION 3.",
+      source: "mock",
+    },
+    {
+      id: "est-m3",
+      objectId: "obj-m3",
+      version: 1,
+      amountRub: 0,
+      status: "missing",
+      origin: "none",
+      confirmedBy: null,
+      confirmedAt: null,
+      note: "Ввод: стоимость работ не передана, время есть. Доходность не считается.",
+      source: "mock",
+    },
+  ];
+
+  const mock = (
+    index: number,
+    data: Omit<TimeEntry, "id" | "number" | "source" | "breakMinutes"> &
+      Partial<Pick<TimeEntry, "breakMinutes">>,
+  ): TimeEntry => ({
+    id: `mk-${index}`,
+    number: numberOf(entries.length + index),
+    breakMinutes: 0,
+    source: "mock",
+    ...data,
+  });
+
+  const mockEntries: TimeEntry[] = [
+    // 1. Черновик бригадира: ещё не отправлен на проверку
+    mock(1, {
+      day: GAS_TODAY,
+      brigadeId: "brg-1",
+      employeeId: "emp-1-1",
+      objectId: "obj-m1",
+      startMinutes: 8 * 60 + 10,
+      endMinutes: 12 * 60 + 40,
+      breakMinutes: 30,
+      minutes: 240,
+      amountRub: null,
+      status: "draft",
+      createdBy: "emp-1-1",
+      createdAt: `${GAS_TODAY}T12:45:00`,
+      reviewedBy: null,
+      reviewedAt: null,
+      comment: null,
+    }),
+    // 2. Ожидает проверки: обычная запись в очереди
+    mock(2, {
+      day: GAS_TODAY,
+      brigadeId: "brg-2",
+      employeeId: "emp-2-1",
+      objectId: "obj-m2",
+      startMinutes: 8 * 60,
+      endMinutes: 16 * 60 + 30,
+      breakMinutes: 40,
+      minutes: 470,
+      amountRub: 19_950,
+      status: "pending",
+      createdBy: "emp-2-1",
+      createdAt: `${GAS_TODAY}T16:40:00`,
+      reviewedBy: null,
+      reviewedAt: null,
+      comment: null,
+    }),
+    // 3 и 4. Пересечение времени внутри одной бригады за один день
+    mock(3, {
+      day: GAS_TODAY,
+      brigadeId: "brg-3",
+      employeeId: "emp-3-1",
+      objectId: "obj-m1",
+      startMinutes: 9 * 60,
+      endMinutes: 13 * 60,
+      breakMinutes: 0,
+      minutes: 240,
+      amountRub: 14_700,
+      status: "pending",
+      createdBy: "emp-3-1",
+      createdAt: `${GAS_TODAY}T13:05:00`,
+      reviewedBy: null,
+      reviewedAt: null,
+      comment: null,
+    }),
+    mock(4, {
+      day: GAS_TODAY,
+      brigadeId: "brg-3",
+      employeeId: "emp-3-1",
+      objectId: "obj-m3",
+      startMinutes: 12 * 60,
+      endMinutes: 15 * 60,
+      breakMinutes: 0,
+      minutes: 180,
+      amountRub: null,
+      status: "pending",
+      createdBy: "emp-3-1",
+      createdAt: `${GAS_TODAY}T15:10:00`,
+      reviewedBy: null,
+      reviewedAt: null,
+      comment: null,
+    }),
+    // 5 и 6. Дубль: та же бригада, тот же объект, тот же день
+    mock(5, {
+      day: GAS_TODAY,
+      brigadeId: "brg-4",
+      employeeId: "emp-4-1",
+      objectId: "obj-m2",
+      startMinutes: 8 * 60 + 20,
+      endMinutes: 14 * 60,
+      breakMinutes: 30,
+      minutes: 310,
+      amountRub: 19_950,
+      status: "pending",
+      createdBy: "emp-4-1",
+      createdAt: `${GAS_TODAY}T14:10:00`,
+      reviewedBy: null,
+      reviewedAt: null,
+      comment: null,
+    }),
+    mock(6, {
+      day: GAS_TODAY,
+      brigadeId: "brg-4",
+      employeeId: "emp-4-1",
+      objectId: "obj-m2",
+      startMinutes: 14 * 60 + 30,
+      endMinutes: 17 * 60,
+      breakMinutes: 0,
+      minutes: 150,
+      amountRub: 19_950,
+      status: "pending",
+      createdBy: "emp-4-1",
+      createdAt: `${GAS_TODAY}T17:05:00`,
+      reviewedBy: null,
+      reviewedAt: null,
+      comment: null,
+    }),
+    // 7. Отклонено с причиной
+    mock(7, {
+      day: GAS_YESTERDAY,
+      brigadeId: "brg-5",
+      employeeId: "emp-5-1",
+      objectId: "obj-m1",
+      startMinutes: 7 * 60 + 30,
+      endMinutes: 7 * 60 + 45,
+      breakMinutes: 0,
+      minutes: 15,
+      amountRub: null,
+      status: "rejected",
+      createdBy: "emp-5-1",
+      createdAt: `${GAS_YESTERDAY}T07:50:00`,
+      reviewedBy: MANAGER,
+      reviewedAt: `${GAS_YESTERDAY}T09:00:00`,
+      comment: "Заезд на объект, работы не начинались. Время не учитывается.",
+    }),
+    // 8. Требует уточнения: объект тот, время спорное
+    mock(8, {
+      day: GAS_YESTERDAY,
+      brigadeId: "brg-7",
+      employeeId: "emp-7-2",
+      objectId: "obj-m3",
+      startMinutes: 8 * 60,
+      endMinutes: 17 * 60,
+      breakMinutes: 60,
+      minutes: 480,
+      amountRub: null,
+      status: "clarify",
+      createdBy: "emp-7-2",
+      createdAt: `${GAS_YESTERDAY}T17:20:00`,
+      reviewedBy: MANAGER,
+      reviewedAt: `${GAS_YESTERDAY}T18:00:00`,
+      comment: "Уточните, был ли обед: в рамке смены 9 часов, перерыв указан один час.",
+    }),
+    // 9. Ввод за вчера бригадиром: правило согласуется (OPEN-QUESTION 5)
+    mock(9, {
+      day: GAS_YESTERDAY,
+      brigadeId: "brg-1",
+      employeeId: "emp-1-1",
+      objectId: "obj-m2",
+      startMinutes: 8 * 60 + 30,
+      endMinutes: 11 * 60 + 40,
+      breakMinutes: 0,
+      minutes: 190,
+      amountRub: 19_950,
+      status: "pending",
+      createdBy: "emp-1-1",
+      createdAt: `${GAS_TODAY}T08:05:00`,
+      reviewedBy: null,
+      reviewedAt: null,
+      comment: null,
+    }),
+  ];
+
+  const reviews: Review[] = [
+    {
+      id: "rev-m1",
+      entryId: "mk-7",
+      action: "reject",
+      actor: MANAGER,
+      at: `${GAS_YESTERDAY}T09:00:00`,
+      comment: "Заезд на объект, работы не начинались. Время не учитывается.",
+      changes: [],
+    },
+    {
+      id: "rev-m2",
+      entryId: "mk-8",
+      action: "clarify",
+      actor: MANAGER,
+      at: `${GAS_YESTERDAY}T18:00:00`,
+      comment: "Уточните, был ли обед: в рамке смены 9 часов, перерыв указан один час.",
+      changes: [],
+    },
+  ];
+
+  const audit: AuditLog[] = [
+    {
+      id: "aud-m1",
+      at: `${GAS_YESTERDAY}T09:00:00`,
+      actor: MANAGER,
+      action: "entry.reject",
+      entityId: "mk-7",
+      detail: "Запись отклонена: заезд на объект без работ",
+    },
+    {
+      id: "aud-m2",
+      at: `${GAS_YESTERDAY}T11:20:00`,
+      actor: MANAGER,
+      action: "estimate.confirm",
+      entityId: "est-m2",
+      detail: "Подтверждена стоимость работ 19 950 ₽ без материалов",
+    },
+  ];
+
+  const brigadeOneObjects = [
+    ...new Set(entries.filter((e) => e.brigadeId === "brg-1").map((e) => e.objectId)),
+  ];
+
+  const users: User[] = [
+    {
+      id: "u-admin",
+      name: "Администратор",
+      role: "admin",
+      brigadeId: null,
+      allowedObjectIds: "all",
+    },
+    {
+      id: MANAGER,
+      name: "Менеджер проверки",
+      role: "manager",
+      brigadeId: null,
+      allowedObjectIds: "all",
+    },
+    {
+      id: "u-foreman-1",
+      name: "Бригадир 1",
+      role: "foreman",
+      brigadeId: "brg-1",
+      // Бригадир вводит время только по разрешённым объектам (ТЗ, п. 5.3)
+      allowedObjectIds: [...brigadeOneObjects, "obj-m1", "obj-m2"],
+    },
+    {
+      id: "u-director",
+      name: "Руководитель",
+      role: "director",
+      brigadeId: null,
+      allowedObjectIds: "all",
+    },
+  ];
+
+  return {
+    today: GAS_TODAY,
+    week: { from: factReport.meta.week.from, to: factReport.meta.week.to, days: factDays },
+    groups,
+    brigades,
+    employees,
+    objects: [...objects, ...mockObjects],
+    estimates,
+    entries: [...entries, ...mockEntries],
+    reviews,
+    audit,
+    frames: shiftFrames(),
+    users,
+  };
+}

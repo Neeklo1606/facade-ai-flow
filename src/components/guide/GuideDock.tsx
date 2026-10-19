@@ -189,9 +189,7 @@ export function GuideDock() {
                   : `${scenario.title} · пройден`
                 : `${scenario.title} · шаг ${guide.stepIndex + 1} из ${scenario.steps.length}`}
             </span>
-            {step && !finished ? (
-              <span className="block text-text">{step.text}</span>
-            ) : null}
+            {step && !finished ? <span className="block text-text">{step.text}</span> : null}
           </span>
         </button>
         {action ? (
