@@ -1437,6 +1437,8 @@
   overscroll-behavior: contain;
 }
 
+html[data-boot-compact] [data-boot-hero] { display: none; }
+
 @media (max-width: 1023px) {
   .content-header { margin-bottom: 20px; gap: 8px; }
   .widget-card { padding: 20px; }

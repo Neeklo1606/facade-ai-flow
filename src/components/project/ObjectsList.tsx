@@ -17,7 +17,7 @@ export function ObjectsList({ items }: { items: ProjectListItem[] }) {
   const missing = items.reduce((sum, item) => sum + item.overview.missingReports, 0);
   return (
     <div className="flex flex-col gap-6">
-      <dl className="grid grid-cols-3 gap-3">
+      <dl className="grid grid-cols-3 gap-3 border-y border-line bg-surface py-5">
         <Figure label="Объекты" value={fmtNum(items.length)} />
         <Figure label="Под риском" value={fmtNum(atRisk)} tone={atRisk > 0 ? "warn" : undefined} />
         <Figure
@@ -26,7 +26,7 @@ export function ObjectsList({ items }: { items: ProjectListItem[] }) {
           tone={missing > 0 ? "warn" : undefined}
         />
       </dl>
-      <ul className="flex flex-col gap-3">
+      <ul className="grid gap-3 xl:grid-cols-2">
         {items.map((item) => (
           <ObjectRow key={item.project.id} item={item} />
         ))}
@@ -45,7 +45,7 @@ function Figure({
   tone?: "warn" | undefined;
 }) {
   return (
-    <div className="bg-surface rounded-[var(--r-lg)] px-4 py-4">
+    <div className="min-w-0 border-r border-line px-4 last:border-r-0">
       <dt>
         <Marker>{label}</Marker>
       </dt>
@@ -69,7 +69,7 @@ function ObjectRow({ item }: { item: ProjectListItem }) {
       <Link
         to="/projects/$id"
         params={{ id: item.project.id }}
-        className="focus-ring press bg-surface flex flex-col gap-3 rounded-[var(--r-lg)] px-5 py-5"
+        className="focus-ring press bg-surface flex h-full flex-col gap-4 rounded-[var(--r-lg)] border border-line px-5 py-5 transition-fast hover:border-line-2"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
