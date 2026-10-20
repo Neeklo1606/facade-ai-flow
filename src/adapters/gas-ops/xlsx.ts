@@ -1,5 +1,5 @@
 /**
- * Выгрузка недельного отчёта в XLSX «как у заказчика» (ADR-043).
+ * Выгрузка недельного отчёта в XLSX «как у заказчика» (ADR-043, ADR-044 F6).
  *
  * Что повторяется из исходного файла: объединённые заголовки дней, три показателя
  * под каждым днём, колонка «Итого», группировка строк уровнями (outline), подпись строки
@@ -10,14 +10,13 @@
  * 1. В исходном файле формул нет вовсе — это выгрузка. Здесь итоги групп, бригад
  *    и сотрудников стоят формулами `SUM` по дочерним строкам: открыв файл, заказчик
  *    видит, из чего сложился итог, и может сам проверить.
- * 2. Доходность адресной строки записана значением: система считает её от минут,
- *    а минут в листе нет. Доходность итоговых строк записана формулой от суммы и часов
- *    той же строки, поэтому на половине рубля она может отличаться от значения в системе
- *    ровно на рубль. Это описано на листе «Как считалось».
- * 3. Лист «Записи» — плоская таблица всех записей отчёта.
+ * 2. Часы записаны точным значением минуты / 60 с форматом 0.00: видно 6,58, внутри 6,5833.
+ *    Поэтому доходность итоговых строк формулой `ROUND(E/F,0)` совпадает с системой.
+ *    Доходность адресной строки записана значением, посчитанным от минут.
+ * 3. Лист «Записи» — плоская таблица тех же записей, что под строками листа «Отчёт».
+ * 4. Набор строк тот же, что на экране при текущих переключателях: режим и «скрыть пустые».
  */
-import type { ReportRow } from "@/domain/gas-ops/report";
-import type { AnalyticRow } from "@/domain/gas-ops/report";
+import { gasReportFileName, type AnalyticRow, type ReportRow } from "@/domain/gas-ops/report";
 
 export const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -46,16 +45,16 @@ function columnLetter(index: number): string {
   return name;
 }
 
-/** Строки-дети уровнем ниже, идущие подряд до следующей строки того же или высшего уровня */
+/**
+ * Строки-дети по связи в дереве, а не по уровню: строка рамки смены стоит на уровне
+ * сотрудника, и по уровню она обрывала бы его адреса — итог сотрудника выходил значением.
+ */
 function childRowNumbers(rows: ReportRow[], index: number, excelRows: number[]): number[] {
   const parent = rows[index];
   if (!parent) return [];
   const result: number[] = [];
-  for (let i = index + 1; i < rows.length; i++) {
-    const row = rows[i]!;
-    if (row.level <= parent.level) break;
-    if (row.kind === "frame") continue;
-    if (row.level === parent.level + 1) result.push(excelRows[i]!);
+  for (const [i, row] of rows.entries()) {
+    if (row.parentId === parent.id && row.kind !== "frame") result.push(excelRows[i]!);
   }
   return result;
 }
@@ -67,9 +66,22 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
   wb.created = new Date();
 
   const ws = wb.addWorksheet("Отчёт", {
-    views: [{ state: "frozen", xSplit: 4, ySplit: 2 }],
+    // Закрепление E3: подпись строки и обе строки шапки дней остаются на месте
+    views: [{ state: "frozen", xSplit: 4, ySplit: 2, topLeftCell: "E3" }],
     properties: { outlineLevelRow: 3 },
+    pageSetup: {
+      paperSize: 9,
+      orientation: "landscape",
+      // По ширине на одну страницу, по высоте сколько выйдет
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+    },
   });
+  // Заголовки повторяются на каждой странице печати: шапка дней и подпись строки
+  ws.pageSetup.printTitlesRow = "1:2";
+  ws.pageSetup.printTitlesColumn = "A:D";
 
   const totalCol = FIRST_DAY_COL + payload.days.length * DAY_WIDTH;
   const lastCol = totalCol + DAY_WIDTH - 1;
@@ -96,10 +108,25 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
     row.height = rowNumber === 2 ? 34 : 20;
   }
 
-  ws.getColumn(1).width = 46;
+  // Ширина по содержимому: подпись строки с отступом уровня, числа по самому длинному
+  const labelWidth = Math.max(
+    16,
+    ...payload.rows.map((row) => row.label.length + row.level * 2 + 2),
+  );
+  ws.getColumn(1).width = Math.min(labelWidth, 70);
   for (let col = 2; col <= 4; col++) ws.getColumn(col).width = 2;
+  const cellsOf = (row: ReportRow) => [...row.days, row.total];
+  const widest = (pick: (cell: ReportRow["total"]) => string) =>
+    Math.max(...payload.rows.flatMap((row) => cellsOf(row).map((cell) => pick(cell).length)));
+  const widths = [
+    widest((c) => (c.frame ? c.frame : c.amountRub === null ? "" : group(c.amountRub))),
+    widest((c) => (c.minutes === null ? "" : (c.minutes / 60).toFixed(2))),
+    widest((c) => (c.revenue === null ? "" : group(c.revenue))),
+  ];
   for (let col = FIRST_DAY_COL; col <= lastCol; col++) {
-    ws.getColumn(col).width = col % DAY_WIDTH === FIRST_DAY_COL % DAY_WIDTH ? 16 : 14;
+    const offset = (col - FIRST_DAY_COL) % DAY_WIDTH;
+    // Подпись шапки переносится на две строки: по ширине её половина, а не вся длина
+    ws.getColumn(col).width = Math.max(11, (widths[offset] ?? 8) + 3);
   }
 
   // --- строки отчёта ---
@@ -172,6 +199,9 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
     { header: "Источник данных", key: "source", width: 18 },
   ];
   flat.getRow(1).font = { bold: true };
+  flat.getColumn("hours").numFmt = "0.00";
+  flat.getColumn("amount").numFmt = "# ##0";
+  flat.getColumn("rate").numFmt = "# ##0";
   for (const row of payload.analytic) {
     flat.addRow({
       number: row.number,
@@ -182,7 +212,7 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
       object: row.objectLabel,
       work: row.workType ?? "",
       minutes: row.minutes,
-      hours: Math.round(row.hours * 100) / 100,
+      hours: row.minutes / 60,
       amount: row.amountRub ?? "",
       rate: row.revenue ?? "",
       status: row.status,
@@ -194,22 +224,29 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
   const notes = wb.addWorksheet("Как считалось");
   notes.getColumn(1).width = 110;
   const lines = [
-    `Неделя ${ru(payload.week.from)} — ${ru(payload.week.to)}.`,
+    `Неделя ${ru(payload.week.from)} - ${ru(payload.week.to)}.`,
     payload.mode === "confirmed"
       ? "В отчёт включены только подтверждённые записи."
       : "Предварительный отчёт: включены записи, которые ещё не проверил человек.",
     "",
     "Правила расчёта:",
     "1. Эффективное время = окончание минус начало минус перерывы. Считается в минутах.",
-    "2. Часы = минуты / 60, показываются с двумя знаками.",
+    "2. Часы = минуты / 60. В ячейке точное значение, формат показывает два знака:",
+    "   видно 6,58, внутри 6,5833 (395 мин).",
     "3. Доходность часа = сумма / (минуты / 60), округление до рубля.",
     "4. Доходность адресной строки записана значением и посчитана от минут.",
-    "   Доходность итоговых строк записана формулой от суммы и часов этой же строки:",
-    "   на половине рубля она может отличаться от значения в системе ровно на рубль.",
+    "   Доходность итоговых строк записана формулой ROUND(сумма / часы; 0) этой же строки.",
+    "   Часы точные, поэтому формула даёт то же значение, что система.",
     "5. Итоги групп, бригад и сотрудников — формулы SUM по дочерним строкам.",
     "   Агрегат не складывается с детьми: строка группы это сумма её бригад.",
     "6. Строка рамки смены показывает границу дня и не несёт денег и часов работы.",
     "7. Строка без суммы остаётся без суммы: доходность по ней не считается.",
+    "8. Набор строк тот же, что на экране при выгрузке: режим отчёта и «скрыть пустые».",
+    "",
+    "Открытый вопрос 7 (правило округления половины рубля):",
+    "   две строки по 14 700 ₽ за 160 мин (2,67 ч) дают ровно 5 512,5 ₽/ч.",
+    "   В файле заказчика стоит 5 512, система и Excel округляют арифметически: 5 513.",
+    "   Формулы под файл не подгонялись, правило согласует заказчик.",
     "",
     "Данные обезличены: ФИО заменены на роли, улица и дом — на «ул. Демо, N».",
     "Населённый пункт, вид работ, суммы, часы и интервалы перенесены из отчёта заказчика.",
@@ -238,15 +275,19 @@ function writeTriple(
     amount.value = { formula: `SUM(${amountRefs})`, result: cell.amountRub ?? 0 };
     hours.value = {
       formula: `SUM(${hoursRefs})`,
-      result: cell.minutes === null ? 0 : Math.round((cell.minutes / 60) * 100) / 100,
+      result: cell.minutes === null ? 0 : cell.minutes / 60,
     };
+    const e = `${columnLetter(col)}${rowNumber}`;
+    const f = `${columnLetter(col + 1)}${rowNumber}`;
+    // Без суммы или без часов доходности нет: пустая ячейка, как прочерк на экране
     rate.value = {
-      formula: `IF(${columnLetter(col + 1)}${rowNumber}=0,"",ROUND(${columnLetter(col)}${rowNumber}/${columnLetter(col + 1)}${rowNumber},0))`,
-      result: cell.revenue ?? 0,
+      formula: `IF(OR(${e}=0,${f}=0),"",ROUND(${e}/${f},0))`,
+      result: cell.revenue ?? "",
     };
   } else {
     if (cell.amountRub !== null) amount.value = cell.amountRub;
-    if (cell.minutes !== null) hours.value = Math.round((cell.minutes / 60) * 100) / 100;
+    // Точное значение: формат показывает два знака, а ROUND(E/F,0) считает от минут
+    if (cell.minutes !== null) hours.value = cell.minutes / 60;
     if (cell.revenue !== null) rate.value = cell.revenue;
   }
 
@@ -256,6 +297,12 @@ function writeTriple(
   for (const item of [amount, hours, rate]) item.alignment = { horizontal: "right" };
 }
 
+/** Имя файла: «Выработка_бригад_28.09-03.10.2026.xlsx» */
 export function customerFileName(week: { from: string; to: string }): string {
-  return `Фактический отчёт ${ru(week.from)}-${ru(week.to)}.xlsx`;
+  return gasReportFileName(week);
+}
+
+/** «1 524 132»: оценка ширины столбца по тому, как число видно в ячейке */
+function group(value: number): string {
+  return Math.round(value).toLocaleString("ru-RU");
 }
