@@ -37,6 +37,9 @@ import {
 import {
   allowedObjects,
   brigadeCards,
+  busyIntervals,
+  clashOf,
+  dayObjects,
   dashboardMetrics,
   entryView,
   myEntries,
@@ -44,6 +47,7 @@ import {
   queue,
   queueCounts,
   type BrigadeCard,
+  type BusyInterval,
   type DashboardMetrics,
   type EntryView,
   type ObjectCard,
@@ -71,9 +75,12 @@ export {
   useGasHydration,
 };
 
+export { clashOf };
+
 export type {
   AnalyticRow,
   BrigadeCard,
+  BusyInterval,
   DashboardMetrics,
   DataSource,
   EntryFlag,
@@ -235,6 +242,25 @@ export function useGasEmployees(): EmployeeRow[] {
 export function useGasAllowedObjects(): WorkObject[] {
   const data = useGasData();
   return useMemo(() => allowedObjects(data), [data]);
+}
+
+/** Объекты бригады «на сегодня»: первые кнопки бота (ADR-044, F4) */
+export function useGasDayObjects(brigadeId: string | null, day: string): WorkObject[] {
+  const data = useGasData();
+  return useMemo(() => (brigadeId ? dayObjects(data, brigadeId, day) : []), [data, brigadeId, day]);
+}
+
+/** Занятые интервалы бригады за день: кнопки времени с ними недоступны (F4) */
+export function useGasBusy(
+  brigadeId: string | null,
+  day: string,
+  exceptId?: string,
+): BusyInterval[] {
+  const data = useGasData();
+  return useMemo(
+    () => (brigadeId ? busyIntervals(data, brigadeId, day, exceptId) : []),
+    [data, brigadeId, day, exceptId],
+  );
 }
 
 /** Записи бригады текущего человека: история в боте */

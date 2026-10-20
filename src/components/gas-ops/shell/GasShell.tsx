@@ -7,7 +7,7 @@
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { CircleHelp, MoreHorizontal, RotateCcw, Search } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import {
@@ -54,6 +54,7 @@ export function GasShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const actor = useGasActor();
   const screen = gasScreenOf(pathname);
+  useTourHighlight();
   // Бригадир живёт в боте: без нижней панели и без меню, как в мессенджере
   const botOnly = actor.role === "foreman" && screen.key === "foreman";
 
@@ -76,6 +77,37 @@ export function GasShell({ children }: { children: ReactNode }) {
       <GasShowDock lifted={!botOnly} />
     </div>
   );
+}
+
+/**
+ * «Показать на экране» из инструкции (F2): адрес `?tour=цель` подсвечивает элемент
+ * с `data-tour="цель"` на 4 секунды и прокручивает к нему. Элемент может появиться позже
+ * первой отрисовки (данные, шторка), поэтому ждём его до 3 секунд.
+ */
+function useTourHighlight() {
+  const tour = useRouterState({
+    select: (s) => (s.location.search as Record<string, unknown>)["tour"],
+  });
+  useEffect(() => {
+    if (typeof tour !== "string" || !tour) return;
+    let element: Element | null = null;
+    let done = false;
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      element = document.querySelector(`[data-tour="${CSS.escape(tour)}"]`);
+      if (!element && Date.now() - started < 3000) return;
+      window.clearInterval(timer);
+      if (!element || done) return;
+      done = true;
+      element.classList.add("guide-target");
+      element.scrollIntoView({ block: "center", behavior: "smooth" });
+      window.setTimeout(() => element?.classList.remove("guide-target"), 4000);
+    }, 120);
+    return () => {
+      window.clearInterval(timer);
+      element?.classList.remove("guide-target");
+    };
+  }, [tour]);
 }
 
 /* ------------------------------------------------------------ Десктоп: сайдбар */
