@@ -348,6 +348,8 @@ export function useGasActions(): {
   updateEntry: (input: UpdateEntryInput) => Promise<ActionResult<TimeEntry>>;
   submitEntry: (id: string) => Promise<ActionResult<TimeEntry>>;
   review: (input: ReviewInput) => Promise<ActionResult<TimeEntry>>;
+  /** Отменить последнее решение проверки: тост «Отменить» */
+  undoReview: (id: string) => Promise<ActionResult<TimeEntry>>;
   setEstimate: (input: {
     objectId: string;
     amountRub: number;
@@ -363,6 +365,7 @@ export function useGasActions(): {
     updateEntry: useCallback((input) => run(() => port.updateEntry(input)), [run, port]),
     submitEntry: useCallback((id) => run(() => port.submitEntry(id)), [run, port]),
     review: useCallback((input) => run(() => port.review(input)), [run, port]),
+    undoReview: useCallback((id) => run(() => port.undoReview(id)), [run, port]),
     setEstimate: useCallback((input) => run(() => port.setEstimate(input)), [run, port]),
     reset: useCallback(() => run(() => port.reset()), [run, port]),
   };

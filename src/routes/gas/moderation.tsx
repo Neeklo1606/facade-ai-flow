@@ -1,339 +1,485 @@
 import { completePageHead } from "@/lib/page-head";
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Check, ClipboardCheck, MessageCircleQuestion, Pencil, X } from "lucide-react";
-import { PillTabs } from "@/components/common/PillTabs";
-import { WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
-import { EmptyState } from "@/components/common/EmptyState";
-import { EntryStatusBadge, FlagList, SourceMark } from "@/components/gas-ops/marks";
-import { EntryDetails } from "@/components/gas-ops/EntryDetails";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CheckCheck, ClipboardCheck } from "lucide-react";
+import { QueueCard } from "@/components/gas-ops/review/QueueCard";
+import {
+  ReviewPanel,
+  type CorrectInput,
+  type DecideResult,
+} from "@/components/gas-ops/review/ReviewPanel";
+import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
+import { useFloatingBottom, useIsDesktop } from "@/components/gas-ops/review/use-layout";
+import { marksOf, needsAttention, type Mark } from "@/components/gas-ops/review/rules";
+import { ScreenHint, SectionTitle } from "@/components/gas-ops/page";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ENTRY_STATUS_LABEL,
-  fmtHours,
-  formatClock,
   useGasActions,
   useGasActor,
   useGasEntry,
   useGasQueue,
   useGasQueueCounts,
+  useGasUsers,
   type EntryStatus,
+  type EntryView,
 } from "@/api/gas-ops";
-import { fmtDate } from "@/lib/format";
-import { toast } from "@/lib/toast";
+import { gasShowEvent, useGasShow } from "@/lib/gas-ops/show";
+import { plural } from "@/lib/format";
+import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 /**
- * Очередь проверки (ТЗ, п. 8). Менеджер видит, что ввёл бригадир, что из этого посчитала
- * система и почему запись помечена. Решение всегда с причиной, кроме подтверждения.
+ * Очередь проверки (ADR-044, F5). Менеджер с первого взгляда видит, что требует внимания,
+ * а что можно подтвердить пачкой. Решение по записи в два касания: открыть и подтвердить.
+ * Обратимое действие выполняется сразу, отмена живёт в тосте 6 секунд.
  */
+type Tab = EntryStatus | "all";
+
+interface ModerationSearch {
+  open?: string | undefined;
+  tour?: string | undefined;
+}
+
 export const Route = createFileRoute("/gas/moderation")({
+  validateSearch: (search: Record<string, unknown>): ModerationSearch => ({
+    open: typeof search["open"] === "string" && search["open"] ? search["open"] : undefined,
+    tour: typeof search["tour"] === "string" && search["tour"] ? search["tour"] : undefined,
+  }),
   head: () =>
     completePageHead(
       { meta: [{ title: "Проверка записей времени — гайка" }] },
       "Проверка записей времени — гайка",
-      "Очередь проверки: подтвердить, исправить, отклонить или уточнить.",
+      "Очередь проверки: подтвердить, вернуть на уточнение, исправить или отклонить.",
     ),
   component: ModerationPage,
 });
 
-type Tab = EntryStatus | "all";
+const TABS: Tab[] = ["pending", "clarify", "draft", "rejected", "all"];
+
+const DONE_TEXT = {
+  confirm: "Подтверждено",
+  reject: "Отклонено",
+  clarify: "Возвращено на уточнение",
+} as const;
+
+interface Item {
+  view: EntryView;
+  marks: Mark[];
+  fresh: boolean;
+}
 
 function ModerationPage() {
   const actor = useGasActor();
   const actions = useGasActions();
+  const desktop = useIsDesktop();
+  const floatingBottom = useFloatingBottom();
+  const show = useGasShow();
+  const { open: openParam } = Route.useSearch();
+
   const [tab, setTab] = useState<Tab>("pending");
   const [selected, setSelected] = useState<string | null>(null);
-  const [comment, setComment] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
 
   const counts = useGasQueueCounts();
   const rows = useGasQueue(tab);
-  const current = rows.find((row) => row.entry.id === selected) ?? rows[0] ?? null;
+  const users = useGasUsers();
+  const userIds = useMemo(() => new Set(users.map((u) => u.id)), [users]);
+
+  /*
+   * Группы очереди. Новые записи этой вкладки — внесённые через бота или экран, а не
+   * пришедшие с набором: их автор человек из списка входа, а не сотрудник из выгрузки.
+   */
+  const { attention, clean, ordered } = useMemo(() => {
+    const items: Item[] = rows.map((view) => {
+      const marks = marksOf(view);
+      return {
+        view,
+        marks,
+        fresh: view.entry.source === "mock" && userIds.has(view.entry.createdBy),
+      };
+    });
+    const byFresh = (a: Item, b: Item) => Number(b.fresh) - Number(a.fresh);
+    const attention = items.filter((item) => needsAttention(item.marks)).sort(byFresh);
+    const clean = items.filter((item) => !needsAttention(item.marks)).sort(byFresh);
+    return { attention, clean, ordered: [...attention, ...clean] };
+  }, [rows, userIds]);
+
+  const currentId = desktop
+    ? (ordered.find((item) => item.view.entry.id === selected)?.view.entry.id ??
+      ordered[0]?.view.entry.id ??
+      null)
+    : sheetOpen
+      ? selected
+      : null;
+  // Запись могла уйти из вкладки (решение принято): детали берём из всех записей
+  const current = useMemo(() => {
+    if (!currentId) return null;
+    const inList = ordered.find((item) => item.view.entry.id === currentId);
+    return inList?.view ?? null;
+  }, [currentId, ordered]);
+
+  const cards = useRef(new Map<string, HTMLButtonElement>());
+
+  /* ---------- ?open=<id>: открыть и подсветить запись (показ, ссылки) ---------- */
+  const handledOpen = useRef<string | null>(null);
+  const opened = useGasEntry(openParam ?? null);
+  const openStatus = opened?.entry.status ?? null;
+  useEffect(() => {
+    if (!openParam || !openStatus || handledOpen.current === openParam) return;
+    handledOpen.current = openParam;
+    setTab(TABS.includes(openStatus) ? openStatus : "all");
+    setSelected(openParam);
+    setSheetOpen(true);
+    setHighlight(openParam);
+    const timer = window.setTimeout(() => setHighlight(null), 4000);
+    window.setTimeout(() => {
+      cards.current.get(openParam)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [openParam, openStatus]);
+
+  /** Следующая запись той же группы, иначе соседняя, иначе первая из другой группы */
+  const nextAfter = useCallback(
+    (id: string): string | null => {
+      const group = attention.some((item) => item.view.entry.id === id) ? attention : clean;
+      const other = group === attention ? clean : attention;
+      const index = group.findIndex((item) => item.view.entry.id === id);
+      const next = group[index + 1] ?? group[index - 1] ?? other[0];
+      return next?.view.entry.id ?? null;
+    },
+    [attention, clean],
+  );
+
+  const undo = useCallback(
+    async (id: string) => {
+      const result = await actions.undoReview(id);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      setTab((value) => (value === "all" || value === result.value.status ? value : "pending"));
+      setSelected(id);
+    },
+    [actions],
+  );
+
+  const decide = useCallback(
+    async (
+      view: EntryView,
+      action: "confirm" | "reject" | "clarify",
+      comment?: string,
+    ): Promise<DecideResult> => {
+      const id = view.entry.id;
+      const next = nextAfter(id);
+      const result = await actions.review({ id, action, comment });
+      if (!result.ok) {
+        toast.error(result.message);
+        return { ok: false, message: result.message };
+      }
+      if (action === "confirm") gasShowEvent("gasEntryConfirmed", { gasEntryId: id });
+      toastUndo(
+        DONE_TEXT[action],
+        () => void undo(id),
+        `${view.entry.number}, ${view.object?.label ?? ""}`,
+      );
+      // Решённая запись уходит из вкладки «Ожидает проверки»: открываем следующую
+      if (tab !== "all") {
+        setSelected(next);
+        if (!next) setSheetOpen(false);
+      }
+      return { ok: true };
+    },
+    [actions, nextAfter, tab, undo],
+  );
+
+  const correct = useCallback(
+    async (view: EntryView, input: CorrectInput): Promise<DecideResult> => {
+      const result = await actions.updateEntry({ id: view.entry.id, ...input });
+      if (!result.ok) return { ok: false, message: result.message };
+      toast.success("Исправлено", {
+        description: `${view.entry.number}: изменение записано в журнал. Теперь запись можно подтвердить.`,
+      });
+      return { ok: true };
+    },
+    [actions],
+  );
+
+  /* ---------- Пачка «Без замечаний» ---------- */
+  const confirmClean = async () => {
+    setConfirmAll(false);
+    const ids = clean.map((item) => item.view.entry.id);
+    const done: string[] = [];
+    for (const id of ids) {
+      const result = await actions.review({ id, action: "confirm" });
+      if (result.ok) done.push(id);
+    }
+    if (done.length === 0) {
+      toast.error("Не получилось подтвердить записи. Повторите.");
+      return;
+    }
+    const showId = show.state.chain.gasEntryId;
+    if (showId && done.includes(showId)) gasShowEvent("gasEntryConfirmed", { gasEntryId: showId });
+    toastUndo(
+      `Подтверждено: ${done.length} ${plural(done.length, "запись", "записи", "записей")}`,
+      () => {
+        void (async () => {
+          for (const id of done) await actions.undoReview(id);
+        })();
+      },
+      "Записи без замечаний ушли в недельный отчёт",
+    );
+    if (currentId && done.includes(currentId)) setSelected(attention[0]?.view.entry.id ?? null);
+  };
+
+  /* ---------- Клавиши на десктопе: J и K по списку, Enter подтверждает ---------- */
+  useEffect(() => {
+    if (!desktop || !actor.canReview) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (document.querySelector("[role='dialog'], [role='alertdialog'], [role='menu']")) return;
+      if (document.getElementById("reason-title")) return;
+      const index = ordered.findIndex((item) => item.view.entry.id === currentId);
+      if (event.code === "KeyJ" || event.code === "KeyK") {
+        event.preventDefault();
+        const step = event.code === "KeyJ" ? 1 : -1;
+        const next = ordered[Math.min(ordered.length - 1, Math.max(0, index + step))];
+        if (!next) return;
+        setSelected(next.view.entry.id);
+        cards.current.get(next.view.entry.id)?.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (event.key === "Enter" && current) {
+        // Enter на чужой кнопке делает своё; на карточке открытой записи — подтверждает
+        const card = target?.closest("[data-queue-card]");
+        if (
+          target?.closest("button, a") &&
+          card?.getAttribute("data-queue-card") !== current.entry.id
+        )
+          return;
+        if (current.entry.status === "confirmed") return;
+        event.preventDefault();
+        void decide(current, "confirm");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [desktop, actor.canReview, ordered, currentId, current, decide]);
 
   if (!actor.canReview) {
     return (
-      <EmptyState
-        icon={ClipboardCheck}
-        title="Проверку ведёт менеджер"
-        description="Войдите как менеджер проверки или администратор, чтобы работать с очередью."
-      />
+      <div className="card-v3 mx-auto mt-6 max-w-[520px] p-6 text-center">
+        <ClipboardCheck className="mx-auto size-8 text-text-3" aria-hidden />
+        <h2 className="mt-3 text-[18px] font-semibold">Проверку ведёт менеджер</h2>
+        <p className="mt-1 text-[14px] leading-5 text-text-2">
+          Войдите как менеджер проверки или администратор, чтобы работать с очередью.
+        </p>
+      </div>
     );
   }
 
-  const decide = async (action: "confirm" | "reject" | "clarify") => {
-    if (!current) return;
-    const result = await actions.review({
-      id: current.entry.id,
-      action,
-      comment: comment.trim() || undefined,
-    });
-    if (!result.ok) {
-      toast.error(result.message);
-      return;
-    }
-    const titles: Record<typeof action, string> = {
-      confirm: "Запись подтверждена",
-      reject: "Запись отклонена",
-      clarify: "Отправлено на уточнение",
-    };
-    toast.success(titles[action], {
-      description: `${current.entry.number}, ${current.object?.label ?? ""}`,
-    });
-    setComment("");
-    setSelected(null);
+  const openEntry = (id: string) => {
+    setSelected(id);
+    setSheetOpen(true);
   };
 
+  const renderGroup = (items: Item[]) => (
+    <ul className="flex flex-col gap-2">
+      {items.map((item) => {
+        const id = item.view.entry.id;
+        return (
+          <li key={id}>
+            <QueueCard
+              ref={(node) => {
+                if (node) cards.current.set(id, node);
+                else cards.current.delete(id);
+              }}
+              view={item.view}
+              marks={item.marks}
+              fresh={item.fresh}
+              active={desktop && currentId === id}
+              highlight={highlight === id}
+              showStatus={tab === "all"}
+              onOpen={() => openEntry(id)}
+            />
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  const panel = current ? (
+    <ReviewPanel
+      key={current.entry.id}
+      view={current}
+      layout={desktop ? "panel" : "sheet"}
+      floatingBottom={floatingBottom}
+      canDecide={actor.canReview}
+      showKeys={desktop}
+      onConfirm={() => void decide(current, "confirm")}
+      onDecide={(action, comment) => decide(current, action, comment)}
+      onCorrect={(input) => correct(current, input)}
+      {...(desktop ? {} : { onClose: () => setSheetOpen(false) })}
+    />
+  ) : null;
+
+  const total = counts.pending + counts.clarify + counts.draft + counts.rejected;
+
   return (
-    /* min-w-0 обязателен: иначе широкая карточка справа растягивает колонку, и на телефоне
-       очередь уезжает за правый край экрана */
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="-mx-1 overflow-x-auto px-1">
-          <PillTabs
-            label="Статус записи"
-            variant="primary"
-            value={tab}
-            onChange={(value) => {
-              setTab(value);
-              setSelected(null);
-            }}
-            tabs={[
-              { value: "pending", label: ENTRY_STATUS_LABEL.pending, count: counts.pending },
-              { value: "clarify", label: ENTRY_STATUS_LABEL.clarify, count: counts.clarify },
-              { value: "draft", label: ENTRY_STATUS_LABEL.draft, count: counts.draft },
-              { value: "rejected", label: ENTRY_STATUS_LABEL.rejected, count: counts.rejected },
-              {
-                value: "all",
-                label: "Все",
-                count: counts.pending + counts.clarify + counts.draft + counts.rejected,
-              },
-            ]}
-          />
+    <div className="min-w-0">
+      <ScreenHint screen="moderation" />
+
+      <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+        <div role="tablist" aria-label="Статус записи" className="seg">
+          {TABS.map((value) => {
+            const count = value === "all" ? total : counts[value];
+            return (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={tab === value}
+                onClick={() => {
+                  setTab(value);
+                  setSelected(null);
+                  setSheetOpen(false);
+                }}
+                className="seg-item focus-ring"
+              >
+                {value === "all" ? "Все" : ENTRY_STATUS_LABEL[value]}
+                <span className="text-[12px] opacity-70 tnum">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-5 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          {desktop && ordered.length > 0 ? (
+            <p className="flex items-center gap-2 text-[13px] leading-5 text-text-3">
+              <kbd className="kbd">J</kbd>
+              <kbd className="kbd">K</kbd>
+              по списку
+              <span aria-hidden>·</span>
+              <kbd className="kbd">Enter</kbd>
+              подтвердить открытую
+            </p>
+          ) : null}
+
+          {ordered.length === 0 ? (
+            <div className="card-v3 px-6 py-10 text-center">
+              <CheckCheck className="mx-auto size-8 text-ok" aria-hidden />
+              <h2 className="mt-3 text-[18px] font-semibold">
+                {tab === "pending" ? "Очередь пуста" : "Здесь пусто"}
+              </h2>
+              <p className="mx-auto mt-1 max-w-[340px] text-[14px] leading-5 text-text-2">
+                {tab === "pending"
+                  ? "Новые записи бригадиров появятся здесь. Подтверждённые уже в журнале и отчёте."
+                  : "В этом состоянии записей нет."}
+              </p>
+              <Link to="/gas/entries" className="pill-action mt-5 text-[15px] focus-ring press">
+                Открыть журнал
+              </Link>
+            </div>
+          ) : null}
+
+          {attention.length > 0 ? (
+            <section aria-labelledby="group-attention">
+              <SectionTitle
+                aside={
+                  <span className="pb-0.5 text-[13px] text-text-3 tnum">{attention.length}</span>
+                }
+              >
+                <span id="group-attention">Требуют внимания</span>
+              </SectionTitle>
+              {renderGroup(attention)}
+            </section>
+          ) : null}
+
+          {clean.length > 0 ? (
+            <section aria-labelledby="group-clean">
+              <SectionTitle
+                aside={
+                  tab === "pending" ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmAll(true)}
+                      className="inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 text-[14px] font-medium text-text transition-fast focus-ring press is-hover:bg-surface-3"
+                    >
+                      <CheckCheck className="size-4" aria-hidden />
+                      Подтвердить все ({clean.length})
+                    </button>
+                  ) : (
+                    <span className="pb-0.5 text-[13px] text-text-3 tnum">{clean.length}</span>
+                  )
+                }
+              >
+                <span id="group-clean">Без замечаний</span>
+              </SectionTitle>
+              {renderGroup(clean)}
+            </section>
+          ) : null}
         </div>
 
-        {rows.length === 0 ? (
-          <EmptyState
-            icon={ClipboardCheck}
-            title="Здесь пусто"
-            description="В этом состоянии записей нет. Переключите вкладку, чтобы увидеть остальные."
-          />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {rows.map((row) => {
-              const active = current?.entry.id === row.entry.id;
-              return (
-                <li key={row.entry.id}>
-                  <button
-                    type="button"
-                    // Выбранная запись названа выбранной и для чтения с экрана, не только рамкой
-                    aria-pressed={active}
-                    onClick={() => {
-                      setSelected(row.entry.id);
-                      setComment("");
-                    }}
-                    className={cn(
-                      "w-full rounded-[var(--r-md)] border p-4 text-left transition-fast focus-ring",
-                      active
-                        ? "border-primary bg-surface-2"
-                        : "border-line bg-surface hover:border-line-2",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[13px] font-medium tabular-nums">
-                        {row.entry.number}
-                      </span>
-                      <EntryStatusBadge status={row.entry.status} />
-                      <SourceMark source={row.entry.source} />
-                      <span className="ms-auto text-[13px] text-text-3 tabular-nums">
-                        {fmtDate(row.entry.day)}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[13px] text-text">
-                      {row.object?.label ?? "Объект не указан"}
-                    </p>
-                    <p className="mt-1 text-[13px] text-text-3">
-                      {row.brigade?.name ?? "—"}
-                      {row.employee ? ` · ${row.employee.name}` : ""} ·{" "}
-                      <span className="tabular-nums">{fmtHours(row.hours)}</span>
-                    </p>
-                    <FlagList flags={row.flags} className="mt-2" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      <div className="min-w-0">
-        {current ? (
-          <WidgetCard>
-            <WidgetCardHeader
-              icon={ClipboardCheck}
-              title={`Запись ${current.entry.number}`}
-              hint={`${current.brigade?.name ?? ""} · ${fmtDate(current.entry.day)}`}
-              level={2}
-              aside={<EntryStatusBadge status={current.entry.status} />}
-            />
-
-            <div className="mt-4">
-              <EntryDetails view={current} />
-            </div>
-
-            <div className="mt-6 border-t border-line pt-4">
-              <label className="block text-[13px] text-text-2" htmlFor="review-comment">
-                Комментарий. Обязателен для отклонения, уточнения и исправления
-              </label>
-              <Textarea
-                id="review-comment"
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                placeholder="Что именно не так и что нужно сделать"
-                className="mt-2 min-h-[84px]"
-              />
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button onClick={() => void decide("confirm")} className="min-h-12">
-                  <Check className="size-4" aria-hidden />
-                  Подтвердить
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void decide("clarify")}
-                  className="min-h-12"
-                >
-                  <MessageCircleQuestion className="size-4" aria-hidden />
-                  На уточнение
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void decide("reject")}
-                  className="min-h-12 text-danger"
-                >
-                  <X className="size-4" aria-hidden />
-                  Отклонить
-                </Button>
-                <CorrectAction entryId={current.entry.id} />
-              </div>
-              <p className="mt-3 text-[13px] text-text-3">
-                Подтверждение переносит запись в недельный отчёт и пересчитывает итоги. Любое
-                решение пишется в журнал действий.
+        {desktop ? (
+          <aside
+            aria-labelledby={current ? "review-title" : undefined}
+            aria-label={current ? undefined : "Детали записи"}
+            className="card-v3 sticky top-6 flex flex-col overflow-hidden rounded-[var(--r-2xl)]"
+            style={{ maxHeight: `calc(100dvh - 48px - ${Math.max(0, floatingBottom - 8)}px)` }}
+          >
+            {panel ?? (
+              <p className="px-6 py-10 text-center text-[14px] text-text-2">
+                Выберите запись слева, чтобы увидеть, что ввёл бригадир и что посчитала система.
               </p>
-            </div>
-          </WidgetCard>
-        ) : (
-          <EmptyState
-            icon={ClipboardCheck}
-            title="Выберите запись"
-            description="Слева очередь проверки. Нажмите на запись, чтобы увидеть исходные данные и расчёт."
-          />
-        )}
+            )}
+          </aside>
+        ) : null}
       </div>
-    </div>
-  );
-}
 
-/** Исправление времени проверяющим: обязателен комментарий, изменение идёт в журнал */
-function CorrectAction({ entryId }: { entryId: string }) {
-  const actions = useGasActions();
-  const [open, setOpen] = useState(false);
-  const entry = useGasEntry(entryId)?.entry ?? null;
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [breaks, setBreaks] = useState("");
-  const [why, setWhy] = useState("");
-
-  if (!entry) return null;
-
-  const clock = (minutes: number | null) => (minutes === null ? "" : formatClock(minutes));
-
-  const openForm = () => {
-    setStart(clock(entry.startMinutes));
-    setEnd(clock(entry.endMinutes));
-    setBreaks(String(entry.breakMinutes));
-    setWhy("");
-    setOpen(true);
-  };
-
-  const save = async () => {
-    const result = await actions.updateEntry({
-      id: entry.id,
-      start,
-      end,
-      breakMinutes: breaks,
-      comment: why,
-    });
-    if (!result.ok) {
-      toast.error(result.message);
-      return;
-    }
-    toast.success("Запись исправлена", { description: "Изменение записано в журнал" });
-    setOpen(false);
-  };
-
-  if (!open) {
-    return (
-      <Button variant="outline" onClick={openForm} className="min-h-12">
-        <Pencil className="size-4" aria-hidden />
-        Исправить время
-      </Button>
-    );
-  }
-
-  return (
-    <div className="w-full rounded-[var(--r-md)] border border-line bg-surface-2 p-4">
-      <p className="text-[13px] font-medium">Исправление времени</p>
-      {entry.startMinutes === null && (
-        <p className="mt-2 text-[13px] text-warn">
-          У записи из выгрузки нет начала и окончания смены: в файле заказчика стоят только минуты.
-        </p>
+      {desktop ? null : (
+        <PhoneSheet
+          open={sheetOpen && !!current}
+          onClose={() => setSheetOpen(false)}
+          labelledBy="review-title"
+        >
+          {panel}
+        </PhoneSheet>
       )}
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <label className="text-[13px] text-text-2">
-          Начало
-          <input
-            value={start}
-            onChange={(event) => setStart(event.target.value)}
-            inputMode="numeric"
-            placeholder="8:20"
-            className="mt-1 h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[15px] tabular-nums focus-ring"
-          />
-        </label>
-        <label className="text-[13px] text-text-2">
-          Окончание
-          <input
-            value={end}
-            onChange={(event) => setEnd(event.target.value)}
-            inputMode="numeric"
-            placeholder="16:40"
-            className="mt-1 h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[15px] tabular-nums focus-ring"
-          />
-        </label>
-        <label className="text-[13px] text-text-2">
-          Перерыв, мин
-          <input
-            value={breaks}
-            onChange={(event) => setBreaks(event.target.value)}
-            inputMode="numeric"
-            placeholder="60"
-            className="mt-1 h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[15px] tabular-nums focus-ring"
-          />
-        </label>
-      </div>
-      <Textarea
-        value={why}
-        onChange={(event) => setWhy(event.target.value)}
-        placeholder="Что и почему исправлено"
-        className="mt-3 min-h-[64px]"
-      />
-      <div className="mt-3 flex gap-2">
-        <Button onClick={() => void save()} className="min-h-12">
-          Сохранить исправление
-        </Button>
-        <Button variant="ghost" onClick={() => setOpen(false)} className="min-h-12">
-          Отмена
-        </Button>
-      </div>
+
+      <AlertDialog open={confirmAll} onOpenChange={setConfirmAll}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Подтвердить {clean.length} {plural(clean.length, "запись", "записи", "записей")} без
+              замечаний?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Записи уйдут в недельный отчёт. Отменить можно в течение 6 секунд в уведомлении.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className={cn("min-h-12")}>Не сейчас</AlertDialogCancel>
+            <AlertDialogAction className="min-h-12" onClick={() => void confirmClean()}>
+              Подтвердить {clean.length}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

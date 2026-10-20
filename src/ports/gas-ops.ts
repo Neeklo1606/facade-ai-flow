@@ -79,7 +79,8 @@ export class GasOpsError extends Error {
       | "not-allowed"
       | "not-found"
       | "already-reviewed"
-      | "comment-required",
+      | "comment-required"
+      | "nothing-to-undo",
     message: string,
   ) {
     super(message);
@@ -95,6 +96,12 @@ export interface GasOpsPort {
   updateEntry(input: UpdateEntryInput): Promise<TimeEntry>;
   submitEntry(id: string): Promise<TimeEntry>;
   review(input: ReviewInput): Promise<TimeEntry>;
+  /**
+   * Отменить последнее решение проверки по записи (тост «Отменить», 6 секунд): запись
+   * возвращается в прежний статус и с прежней суммой, решение убирается из истории,
+   * в журнал действий пишется отмена. Исправление времени так не отменяется.
+   */
+  undoReview(id: string): Promise<TimeEntry>;
   /** Ручная сумма по объекту без сметы: подтверждает менеджер (OPEN-QUESTION 4) */
   setEstimate(input: {
     objectId: string;

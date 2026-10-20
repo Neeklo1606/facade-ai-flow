@@ -11,7 +11,14 @@ import {
   findOverlaps,
   MINUTES_ERROR_TEXT,
 } from "@/domain/gas-ops/calc";
-import type { AuditLog, Estimate, Review, TimeEntry } from "@/domain/gas-ops/model";
+import {
+  ENTRY_STATUS_LABEL,
+  type AuditLog,
+  type EntryStatus,
+  type Estimate,
+  type Review,
+  type TimeEntry,
+} from "@/domain/gas-ops/model";
 import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
   GasOpsError,
@@ -24,6 +31,21 @@ import {
 import { getSnapshot, resetState, update } from "./state";
 
 const done = <T>(value: T) => Promise.resolve(value);
+
+/*
+ * Поля решения проверки, по которым его можно отменить: решение помнит, что было до него.
+ * Подписи человеческие, потому что те же изменения показывает история записи.
+ */
+const STATUS_FIELD = "Статус";
+const AMOUNT_FIELD = "Сумма начисления";
+const COMMENT_FIELD = "Комментарий";
+
+function statusOfLabel(label: string): EntryStatus | null {
+  const found = (Object.keys(ENTRY_STATUS_LABEL) as EntryStatus[]).find(
+    (key) => ENTRY_STATUS_LABEL[key] === label,
+  );
+  return found ?? null;
+}
 
 function nextNumber(snapshot: GasOpsSnapshot): string {
   const max = snapshot.entries.reduce((a, e) => {
@@ -302,6 +324,21 @@ export function createGasOpsDemo(): GasOpsPort {
         reviewedAt: nowOf(snapshot),
         comment: input.comment?.trim() ?? null,
       };
+      const changes: Review["changes"] = [
+        {
+          field: STATUS_FIELD,
+          from: ENTRY_STATUS_LABEL[entry.status],
+          to: ENTRY_STATUS_LABEL[status],
+        },
+      ];
+      if (amountRub !== entry.amountRub)
+        changes.push({
+          field: AMOUNT_FIELD,
+          from: entry.amountRub === null ? "нет" : String(entry.amountRub),
+          to: amountRub === null ? "нет" : String(amountRub),
+        });
+      if (entry.comment && entry.comment !== draft.comment)
+        changes.push({ field: COMMENT_FIELD, from: entry.comment, to: draft.comment ?? "" });
       const review: Review = {
         id: newId("rev"),
         entryId: entry.id,
@@ -309,16 +346,7 @@ export function createGasOpsDemo(): GasOpsPort {
         actor: snapshot.actorId,
         at: nowOf(snapshot),
         comment: input.comment?.trim() ?? null,
-        changes:
-          amountRub !== entry.amountRub
-            ? [
-                {
-                  field: "Сумма начисления",
-                  from: entry.amountRub === null ? "нет" : String(entry.amountRub),
-                  to: amountRub === null ? "нет" : String(amountRub),
-                },
-              ]
-            : [],
+        changes,
       };
 
       const next = update((s) => ({
@@ -336,6 +364,55 @@ export function createGasOpsDemo(): GasOpsPort {
         ],
       }));
       return done(next.entries.find((e) => e.id === draft.id)!);
+    },
+
+    undoReview: (id) => {
+      const snapshot = getSnapshot();
+      const entry = mustFind(snapshot, id);
+      const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      if (actor?.role === "foreman") {
+        throw new GasOpsError("not-allowed", "Проверку ведёт менеджер.");
+      }
+      // Решения лежат от нового к старому: первое по записи и есть последнее
+      const last = snapshot.reviews.find((r) => r.entryId === id);
+      const statusChange = last?.changes.find((c) => c.field === STATUS_FIELD);
+      const before = statusChange ? statusOfLabel(statusChange.from) : null;
+      const after = statusChange ? statusOfLabel(statusChange.to) : null;
+      if (!last || last.action === "correct" || !before || after !== entry.status) {
+        throw new GasOpsError("nothing-to-undo", "Отменять нечего: запись уже изменилась.");
+      }
+
+      const amountChange = last.changes.find((c) => c.field === AMOUNT_FIELD);
+      const commentChange = last.changes.find((c) => c.field === COMMENT_FIELD);
+      const earlier = snapshot.reviews.find((r) => r.entryId === id && r.id !== last.id);
+      const restored: TimeEntry = {
+        ...entry,
+        status: before,
+        amountRub: amountChange
+          ? amountChange.from === "нет"
+            ? null
+            : Number(amountChange.from)
+          : entry.amountRub,
+        reviewedBy: earlier?.actor ?? null,
+        reviewedAt: earlier?.at ?? null,
+        comment: commentChange ? commentChange.from : null,
+      };
+
+      const next = update((s) => ({
+        ...s,
+        entries: s.entries.map((e) => (e.id === id ? restored : e)),
+        reviews: s.reviews.filter((r) => r.id !== last.id),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "entry.undo",
+            entityId: id,
+            detail: `${entry.number}: отменено «${ENTRY_STATUS_LABEL[entry.status]}», снова «${ENTRY_STATUS_LABEL[before]}»`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(next.entries.find((e) => e.id === id)!);
     },
 
     setEstimate: (input) => {
