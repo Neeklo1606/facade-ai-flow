@@ -1239,12 +1239,21 @@
 /* ---------------------------------------------------------------- Виджеты */
 
 /* Карточка виджета; кликабельная — с подсветкой границы и подъёмом */
+/*
+ * Карточка v3 (ADR-044): радиус как у виджетов, слой отделён фоном. В светлой теме белая
+ * карточка на молочном фоне держится мягкой тенью без обводки, в тёмной остаётся еле
+ * заметная линия: уголь на чёрном без неё сливается.
+ */
 @utility widget-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-xl);
   box-shadow: none;
   padding: 24px;
+  :root[data-theme="light"] & {
+    border-color: transparent;
+    box-shadow: var(--lift-1);
+  }
 }
 @utility widget-card-interactive {
   cursor: pointer;

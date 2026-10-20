@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { ScreenHint } from "@/components/gas-ops/page";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HardHat, Users } from "lucide-react";
@@ -15,8 +16,8 @@ import { fmtHours, fmtRate, fmtRub, useGasBrigades } from "@/api/gas-ops";
 export const Route = createFileRoute("/gas/brigades")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Бригады — гайка" }] },
-      "Бригады — гайка",
+      { meta: [{ title: "Бригады — Учёт выработки бригад" }] },
+      "Бригады — Учёт выработки бригад",
       "Состав бригад, объекты недели, часы и начисления.",
     ),
   component: BrigadesPage,
@@ -30,6 +31,7 @@ function BrigadesPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ScreenHint screen="brigades" className="mb-0" />
       {groups.map((groupName) => {
         const own = cards.filter((card) => (card.group?.name ?? "Без подразделения") === groupName);
         const amount = own.reduce((a, card) => a + card.totals.amountRub, 0);
@@ -46,10 +48,7 @@ function BrigadesPage() {
               {own.map((card) => {
                 const expanded = open === card.brigade.id;
                 return (
-                  <li
-                    key={card.brigade.id}
-                    className="rounded-[var(--r-md)] border border-line bg-surface p-4"
-                  >
+                  <li key={card.brigade.id} className="rounded-[var(--r-lg)] bg-surface-2 p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-[15px] font-medium">{card.brigade.name}</h3>
                       <SourceMark source={card.brigade.source} />

@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { ScreenHint } from "@/components/gas-ops/page";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Building2, Search } from "lucide-react";
@@ -25,8 +26,8 @@ import { fmtDate, plural } from "@/lib/format";
 export const Route = createFileRoute("/gas/objects")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Объекты — гайка" }] },
-      "Объекты — гайка",
+      { meta: [{ title: "Объекты — Учёт выработки бригад" }] },
+      "Объекты — Учёт выработки бригад",
       "Реестр объектов: адрес, вид работ, бригады, стоимость и записи времени.",
     ),
   component: ObjectsPage,
@@ -151,6 +152,7 @@ function ObjectsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ScreenHint screen="objects" className="mb-0" />
       <WidgetCard>
         <WidgetCardHeader
           icon={Building2}
