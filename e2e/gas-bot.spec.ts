@@ -23,7 +23,11 @@ async function signInForeman(page: Page) {
   } else {
     await page.getByRole("button", { name: /Вы смотрите как/ }).click();
   }
-  await page.getByRole("button", { name: /^Бригадир/ }).click();
+  // На стартовом экране есть и карточка роли «Бригадир»: выбираем в списке переключателя
+  await page
+    .getByRole("list", { name: "Роли" })
+    .getByRole("button", { name: /^Бригадир/ })
+    .click();
   await expect(page).toHaveURL(/\/gas\/foreman/);
 }
 

@@ -9,6 +9,8 @@ import type { ReportPeriod } from "@/api/gas-report";
 import { gasShowEvent } from "@/lib/gas-ops/show";
 
 const FLASH_MS = 4000;
+/** Сколько ждать строку и её появления в окне */
+const WAIT_MS = 15_000;
 
 export function useReportHighlight({
   highlight,
@@ -24,51 +26,63 @@ export function useReportHighlight({
   expand: (ids: string[]) => void;
 }): string | null {
   const [flash, setFlash] = useState<string | null>(null);
-  const handled = useRef<string | null>(null);
-  const cleanup = useRef<(() => void) | null>(null);
+  // Последние значения для эффекта: сам эффект зависит только от адреса и строки
+  const latest = useRef({ target, phone, setPeriod, expand });
+  latest.current = { target, phone, setPeriod, expand };
+  const rowId = target?.rowId ?? null;
 
+  /*
+   * Раскрытие, подсветка и поиск строки. У эффекта своя очистка, без флага «уже сделано»:
+   * строгий режим React и смена раскладки (дерево на телефоне, таблица на десктопе) повторно
+   * запускают эффект, и он просто начинает заново. Каждые 150 мс берём текущую строку,
+   * прокручиваем к ней (повторно, если восстановление прокрутки вернуло окно наверх) и
+   * засчитываем шаг, когда она видна хотя бы на 60 процентов.
+   */
   useEffect(() => {
-    if (!highlight || !target || handled.current === highlight) return;
-    handled.current = highlight;
-    cleanup.current?.();
+    if (!highlight || !rowId) return;
+    const { target: current, phone: isPhone, setPeriod: pick, expand: open } = latest.current;
+    if (!current) return;
+    open(current.ancestors);
+    if (isPhone && current.dayIndex !== null) pick(current.dayIndex);
+    setFlash(rowId);
 
-    expand(target.ancestors);
-    if (phone && target.dayIndex !== null) setPeriod(target.dayIndex);
-    setFlash(target.rowId);
-
-    let observer: IntersectionObserver | null = null;
-    let tries = 0;
-    let frame = 0;
-    // Строка появляется после раскрытия родителей: ищем её несколько кадров
-    const find = () => {
-      const element = document.querySelector(`[data-report-row="${CSS.escape(target.rowId)}"]`);
-      if (!element) {
-        if (tries++ < 30) frame = window.requestAnimationFrame(find);
+    const selector = `[data-report-row="${CSS.escape(rowId)}"]`;
+    const started = Date.now();
+    let scrolledAt = 0;
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      if (now - started > WAIT_MS) {
+        window.clearInterval(timer);
         return;
       }
-      element.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
-      observer = new IntersectionObserver(
-        (entries) => {
-          if (!entries.some((entry) => entry.isIntersecting)) return;
-          observer?.disconnect();
-          gasShowEvent("gasReportSeen");
-        },
-        { threshold: 0.6 },
-      );
-      observer.observe(element);
-    };
-    frame = window.requestAnimationFrame(find);
+      const element = document.querySelector(selector);
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+      if (rect.height > 0 && visible / rect.height >= 0.6) {
+        window.clearInterval(timer);
+        gasShowEvent("gasReportSeen");
+        return;
+      }
+      if (now - scrolledAt > 900) {
+        const first = scrolledAt === 0;
+        scrolledAt = now;
+        element.scrollIntoView({
+          block: "center",
+          inline: "nearest",
+          behavior: first ? "smooth" : "auto",
+        });
+      }
+    }, 150);
+    return () => window.clearInterval(timer);
+  }, [highlight, rowId]);
+
+  // Подсветка гаснет через FLASH_MS: таймер привязан к самой подсветке
+  useEffect(() => {
+    if (!flash) return;
     const timer = window.setTimeout(() => setFlash(null), FLASH_MS);
-
-    cleanup.current = () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-      observer?.disconnect();
-    };
-  }, [highlight, target, phone, setPeriod, expand]);
-
-  // Таймеры живут до ухода с экрана: смена данных не должна обрывать подсветку
-  useEffect(() => () => cleanup.current?.(), []);
+    return () => window.clearTimeout(timer);
+  }, [flash]);
 
   return flash;
 }

@@ -42,8 +42,8 @@ for (const width of WIDTHS) {
       await answer(bot, "Внести время");
       await answer(bot, /ул\. Демо, 200/);
       await answer(bot, /^Сегодня, 03\.10/);
-      await answer(bot, "12:00");
-      await answer(bot, "14:30");
+      await answer(bot, /^12:00/);
+      await answer(bot, /^14:30/);
       await answer(bot, /^0 мин/);
       await expect(bot.getByTestId("bot-total")).toHaveText("150 мин = 2,50 ч");
       await answer(bot, "Отправить");
