@@ -2,9 +2,10 @@ import { expect, expectA11y, open, test } from "./fixtures";
 
 /**
  * Нижняя панель (ADR-026, карта ГАЙКИ — ADR-034, п. 1). Проверяется то, что правило одного
- * оранжевого по содержимому не проверяет: панель — хром, и свет в ней один — свечение голосовой
- * капсулы; оранжевой заливки с ADR-041 нет вовсе. Плюс набор позиций: он одинаков для всех ролей, меняется только
- * первая, и активная позиция обходится без акцентного цвета.
+ * оранжевого по содержимому не проверяет: панель — хром. Оранжевой заливки в ней нет с ADR-041,
+ * а с 18.10.2026 (правка владельца `032b15b`, поправка к ADR-041) нет и свечения голосовой
+ * капсулы. Плюс набор позиций: он одинаков для всех ролей, меняется только первая,
+ * и активная позиция обходится без акцентного цвета.
  */
 
 /** Сколько оранжевых пятен внутри панели и какого цвета активная позиция */
@@ -50,11 +51,17 @@ async function panel(page: import("@playwright/test").Page) {
       }
     }
     const active = nav.querySelector('[aria-current="page"]');
-    // Свет панели — оранжевое свечение голосовой капсулы, а не заливка (ADR-041)
+    /*
+     * Голосовая капсула. С 18.10.2026 (правка владельца `032b15b`) она без свечения:
+     * 56 px, в обводке линии, на фоне `--pill`. Раньше была 64 px с оранжевым свечением
+     * (ADR-041) — поменялось решение, а не проверка под код. Поэтому здесь возвращается
+     * её подпись и то, светится ли она, а сравнение живёт в самих проверках.
+     */
     const capsule = nav.querySelector('[data-tour="nav-plus"]');
     const glow = capsule ? getComputedStyle(capsule).boxShadow : "";
     return {
-      glowing: /255,\s*122,\s*69/u.test(glow) ? (capsule?.getAttribute("aria-label") ?? "") : null,
+      capsule: capsule?.getAttribute("aria-label")?.slice(0, 24) ?? null,
+      capsuleGlows: /255,\s*122,\s*69/u.test(glow),
       labels: [...nav.children].map((child) =>
         (child.textContent || "").replace(/\s+/g, " ").trim().slice(0, 18),
       ),
@@ -73,7 +80,7 @@ test.describe("нижняя панель @mobile", () => {
   test.describe("снабжение", () => {
     test.use({ persona: "e-dorohov" });
 
-    test("позиции роли, одно оранжевое пятно, активная без акцента @mobile", async ({ page }) => {
+    test("позиции роли, панель без оранжевого, активная без акцента @mobile", async ({ page }) => {
       await open(page, "/projects/p-korona/procurement");
       const state = await panel(page);
       expect(state, "панель не найдена").not.toBeNull();
@@ -85,10 +92,14 @@ test.describe("нижняя панель @mobile", () => {
       // Модулей прежнего контура в панели нет: они за флагом (ADR-034, п. 4)
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       expect(state!.labels.join(" ")).not.toContain("Документ");
-      // Пятно ровно одно, и это кнопка «Говорить»
-      // Оранжевой заливки в панели нет; светится одна голосовая капсула (ADR-041)
+      /*
+       * Панель — хром: цветом она не спорит с содержимым. Ни оранжевой заливки, ни свечения
+       * капсулы (решение владельца 18.10.2026, правка `032b15b`; до этого капсула светилась
+       * по ADR-041). Голосовая капсула при этом на месте и называется «Говорить».
+       */
       expect(state!.orange).toHaveLength(0);
-      expect(state!.glowing).toContain("Говорить");
+      expect(state!.capsule).toContain("Говорить");
+      expect(state!.capsuleGlows).toBe(false);
       expect(state!.activeOrange).toBe(false);
       expect(state!.small).toEqual([]);
       await expectA11y(page, "нижняя панель");
@@ -134,7 +145,7 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       // Первая позиция — рабочий экран роли: панель начинается там же, где начинается день
       expect(state!.labels[0]).toBe("Сегодня");
-      expect(state!.glowing).toContain("Говорить");
+      expect(state!.capsule).toContain("Говорить");
     });
   });
 
