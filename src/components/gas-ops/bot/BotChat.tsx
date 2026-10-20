@@ -77,10 +77,10 @@ interface Past {
 
 const shortDay = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}`;
 
-/** Исправлять в боте можно только то, что ещё не ушло менеджеру (как в порте) */
+/** Исправлять в боте можно всё, по чему менеджер ещё не принял решение (как в порте) */
 function editableInBot(entry: TimeEntry): boolean {
   return (
-    (entry.status === "draft" || entry.status === "clarify") &&
+    (entry.status === "draft" || entry.status === "pending" || entry.status === "clarify") &&
     entry.startMinutes !== null &&
     entry.endMinutes !== null
   );

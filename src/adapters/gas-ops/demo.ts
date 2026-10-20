@@ -188,11 +188,19 @@ export function createGasOpsDemo(): GasOpsPort {
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
 
-      // Бригадир правит только до проверки (ТЗ, п. 4): после подтверждения правит менеджер
-      if (actor?.role === "foreman" && entry.status !== "draft" && entry.status !== "clarify") {
+      /*
+       * Бригадир правит только до проверки (ТЗ, п. 4; ADR-044, F4): черновик, запись, которая
+       * ещё ждёт проверки, и запись, возвращённую на уточнение. После решения правит менеджер.
+       */
+      if (
+        actor?.role === "foreman" &&
+        entry.status !== "draft" &&
+        entry.status !== "pending" &&
+        entry.status !== "clarify"
+      ) {
         throw new GasOpsError(
           "already-reviewed",
-          "Запись уже на проверке. Исправления вносит менеджер.",
+          "Запись уже проверена. Исправления вносит менеджер.",
         );
       }
       // Правка проверяющим идёт в журнал, поэтому причина обязательна
