@@ -41,12 +41,15 @@
 :root {
   color-scheme: dark;
 
-  /* Глубина. Пять уровней, разница минимальна */
-  --void: oklch(0.17 0.005 260);
-  --base: oklch(0.17 0.005 260);
-  --surface: oklch(0.205 0.005 260);
-  --surface-2: oklch(0.245 0.005 260);
-  --surface-3: oklch(0.285 0.006 260);
+  /*
+   * Глубина. Тёплый чёрный, как в документе ГАЙКИ (раздел 4) и референсах v3 (ADR-044):
+   * холодный графит oklch(… 260) из ADR-042 на тёплом оранжевом свете выглядел серым.
+   */
+  --void: #0b0a09;
+  --base: #0b0a09;
+  --surface: #151311;
+  --surface-2: #1d1a17;
+  --surface-3: #27231f;
   --surface-glass: rgba(255, 244, 235, 0.05); /* стекло нижней панели и шторки */
 
   /* Линии почти не видны и слегка тёплые */
@@ -133,12 +136,14 @@
   --dur-2: 280ms;
 
   /* Радиусы ГАЙКИ: сетка 4 px, воздух вместо обводок */
+  /* v3 (ADR-044): крупнее, как у виджетов и карточек референсов */
   --r-xs: 8px; /* плашки клавиш, мелкие метки, чипы */
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-xl: 20px;
-  --r-sheet: 24px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 24px;
+  --r-2xl: 28px;
+  --r-sheet: 32px;
   --r-pill: 999px;
 
   /* Размеры оболочки */
@@ -215,7 +220,7 @@
   --shadow-sm: var(--lift-2);
   --shadow-md: var(--lift-3);
   --shadow-shell: var(--lift-3);
-  --overlay: oklch(0.12 0.005 260 / 0.6);
+  --overlay: rgba(8, 7, 6, 0.6);
   --nav-active: color-mix(in oklab, var(--surface-3) 80%, var(--surface));
   --nav-marker: var(--orange);
 }
@@ -228,30 +233,34 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --void: oklch(0.978 0.003 260);
-  --base: oklch(0.978 0.003 260);
-  --surface: oklch(1 0 0);
-  --surface-2: oklch(0.956 0.004 260);
-  --surface-3: oklch(0.928 0.005 260);
+  /*
+   * Тёплый молочный фон и белые карточки (ADR-044): холодный серый ADR-042 спорил
+   * с тёплым светом шапки. Ступени различаются фоном, обводки почти не нужны.
+   */
+  --void: #f4f1ec;
+  --base: #f4f1ec;
+  --surface: #ffffff;
+  --surface-2: #efebe5;
+  --surface-3: #e6e1da;
   --surface-glass: rgba(28, 24, 20, 0.04);
 
   --line: rgba(28, 24, 20, 0.08);
   --line-2: rgba(28, 24, 20, 0.16);
   --line-warm: rgba(158, 132, 104, 0.22);
 
-  --text: oklch(0.24 0.01 260);
+  --text: #1c1814;
   /*
    * Второй уровень текста. #5D6870 из правок 16.10 давал 4,46:1 на янтарной плашке над
    * --surface-2 (12 px, норма 4,5) — поймала axe на закупках и поставщиках. Опущено до
    * 5,53:1 там и 6,9:1 на белом; ступень до --text-3 осталась видимой (ADR-030, «Границы»)
    */
-  --text-2: oklch(0.43 0.014 260);
+  --text-2: #4f4942;
   /*
    * Подписи. #68757E из правок 16.10 давал 4,24:1 на --void и --surface-2 (#f1f3f4) — ниже
    * WCAG AA. Оттенок оставлен, светлота опущена: 5,58:1 на белом, 4,99:1 на #f1f3f4,
    * 4,60:1 на --surface-3. Поймала проверка axe на мобильных подписях (ADR-030, «Границы»)
    */
-  --text-3: oklch(0.48 0.012 260);
+  --text-3: #645c53;
   --text-4: #cbc3b9;
 
   /*
@@ -1230,12 +1239,21 @@
 /* ---------------------------------------------------------------- Виджеты */
 
 /* Карточка виджета; кликабельная — с подсветкой границы и подъёмом */
+/*
+ * Карточка v3 (ADR-044): радиус как у виджетов, слой отделён фоном. В светлой теме белая
+ * карточка на молочном фоне держится мягкой тенью без обводки, в тёмной остаётся еле
+ * заметная линия: уголь на чёрном без неё сливается.
+ */
 @utility widget-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-xl);
   box-shadow: none;
   padding: 24px;
+  :root[data-theme="light"] & {
+    border-color: transparent;
+    box-shadow: var(--lift-1);
+  }
 }
 @utility widget-card-interactive {
   cursor: pointer;
@@ -1443,4 +1461,133 @@ html[data-boot-compact] [data-boot-hero] { display: none; }
   .content-header { margin-bottom: 20px; gap: 8px; }
   .widget-card { padding: 20px; }
   input, select, textarea { font-size: 16px; }
+}
+
+/* ---------------------------------------------------------------- Приёмы v3 (ADR-044) */
+/*
+ * Градиентная шапка экрана, как у календаря в референсах: тёплое пятно сверху слева
+ * и песочное справа, уходит в фон страницы. Одна на экран, под главной цифрой или заголовком.
+ * В светлой теме то же пятно мягче: молочный фон остаётся читаемым на солнце.
+ */
+@utility hero-field {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--r-2xl);
+  background:
+    radial-gradient(90% 120% at 0% 0%, var(--hero-a) 0%, transparent 60%),
+    radial-gradient(80% 110% at 100% 0%, var(--hero-b) 0%, transparent 62%),
+    radial-gradient(120% 90% at 50% 120%, var(--hero-c) 0%, transparent 70%),
+    var(--surface);
+  --hero-a: rgba(241, 96, 1, 0.42);
+  --hero-b: rgba(217, 195, 171, 0.22);
+  --hero-c: rgba(143, 29, 11, 0.4);
+  :root[data-theme="light"] & {
+    --hero-a: rgba(255, 138, 76, 0.34);
+    --hero-b: rgba(255, 214, 170, 0.5);
+    --hero-c: rgba(241, 96, 1, 0.14);
+  }
+}
+
+/* Шар свечения за главной цифрой: Catalist, карточка 1. Чисто декоративный слой */
+@utility orb {
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(48px);
+  background: radial-gradient(circle at 40% 40%, #ff8a4c 0%, #f16001 40%, transparent 70%);
+  opacity: 0.55;
+  :root[data-theme="light"] & {
+    opacity: 0.4;
+  }
+}
+
+/* Стекло: шапка телефона, плавающая панель, капсула шага. Слой различается фоном, не линией */
+@utility glass {
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
+  backdrop-filter: saturate(1.4) blur(20px);
+  -webkit-backdrop-filter: saturate(1.4) blur(20px);
+}
+
+/* Капсульные вкладки: активная тёмная в светлой теме и светлая в тёмной, как «All / New» */
+@utility seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+@utility seg-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding-inline: 16px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+  @media (hover: hover) {
+    &:hover {
+      color: var(--text);
+    }
+  }
+  &[aria-selected="true"],
+  &[aria-current="page"],
+  &[data-active="true"] {
+    background: var(--pill-bg);
+    color: var(--pill-text);
+  }
+}
+
+/* Карточка v3: белая в светлой, тёплый уголь в тёмной, без обводки */
+@utility card-v3 {
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--lift-1);
+}
+
+/* Крупная цифра экрана: 48/52 на телефоне, 64/64 на десктопе */
+@utility text-hero-num {
+  font-size: 44px;
+  line-height: 48px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  @media (min-width: 768px) {
+    font-size: 56px;
+    line-height: 60px;
+  }
+  @media (min-width: 1280px) {
+    font-size: 64px;
+    line-height: 64px;
+  }
+}
+
+/* Заголовок стартового экрана: крупно, плотный трекинг. Продолжение строки тише (.tone-2) */
+@utility text-display {
+  font-size: 34px;
+  line-height: 38px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: proportional-nums;
+  @media (min-width: 768px) {
+    font-size: 48px;
+    line-height: 52px;
+  }
+  @media (min-width: 1280px) {
+    font-size: 56px;
+    line-height: 60px;
+  }
+}
+@utility tone-2 {
+  color: var(--text-3);
+}
+
+/* Нижняя граница экрана с учётом «чёлки» и полосы жестов */
+@utility pb-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }

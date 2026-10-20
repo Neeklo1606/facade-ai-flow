@@ -1,12 +1,13 @@
 /**
  * Метки и мелкие ячейки раздела учёта времени: статус записи, источник данных, признаки
  * проверки, числа в табличном начертании. Один источник правды для всех экранов раздела.
+ *
+ * Иерархия меток (ADR-044, F5, п. 2): статус один и текстом с точкой; признаки в три уровня:
+ * красный блокирует решение, янтарный требует решения, серый только сообщает. На карточке
+ * списка не больше двух признаков, остальные «+N» и в деталях. «Факт» и «Демо» тихой подписью.
  */
-import { StatusBadge } from "@/components/common/StatusBadge";
-import type { Tone } from "@/components/common/StatusBadge";
 import {
   ENTRY_STATUS_LABEL,
-  FLAG_LABEL,
   fmtHours,
   fmtRate,
   fmtRub,
@@ -14,67 +15,130 @@ import {
   type EntryFlag,
   type EntryStatus,
 } from "@/api/gas-ops";
+import { FLAG_LEVEL, LEVEL_ORDER, MARK_BASE, type Mark, type MarkLevel } from "./review/rules";
 import { cn } from "@/lib/utils";
 
-const STATUS_TONE: Record<EntryStatus, Tone> = {
-  draft: "neutral",
-  pending: "warn",
-  confirmed: "ok",
-  rejected: "danger",
-  clarify: "info",
+/* ---------------------------------------------------------------- Статус */
+
+const STATUS_DOT: Record<EntryStatus, string> = {
+  draft: "bg-text-3",
+  pending: "bg-warn",
+  confirmed: "bg-ok",
+  rejected: "bg-danger",
+  clarify: "bg-info",
 };
 
-export function EntryStatusBadge({ status }: { status: EntryStatus }) {
+/** Статус записи: текст с цветной точкой, без плашки. Один на запись */
+export function EntryStatusBadge({
+  status,
+  className,
+}: {
+  status: EntryStatus;
+  className?: string;
+}) {
   return (
-    <StatusBadge tone={STATUS_TONE[status]} dot>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-[13px] leading-5 font-medium whitespace-nowrap text-text-2",
+        className,
+      )}
+    >
+      <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
       {ENTRY_STATUS_LABEL[status]}
-    </StatusBadge>
+    </span>
   );
 }
 
-/** Откуда данные. Имитация помечена рядом со значением, а не в сноске */
-export function SourceMark({ source }: { source: DataSource | "mixed" | null }) {
+/** Откуда данные. Имитация помечена рядом со значением тихой серой подписью */
+export function SourceMark({
+  source,
+  className,
+}: {
+  source: DataSource | "mixed" | null;
+  className?: string;
+}) {
   if (source === null) return null;
-  if (source === "fact-report")
-    return (
-      <StatusBadge tone="neutral" className="font-normal">
-        Факт
-      </StatusBadge>
-    );
-  if (source === "mock")
-    return (
-      <StatusBadge tone="accent" className="font-normal">
-        Демо
-      </StatusBadge>
-    );
+  const text = source === "fact-report" ? "Факт" : source === "mock" ? "Демо" : "Факт и демо";
   return (
-    <StatusBadge tone="neutral" className="font-normal">
-      Факт и демо
-    </StatusBadge>
+    <span className={cn("text-[12px] leading-4 whitespace-nowrap text-text-3", className)}>
+      {text}
+    </span>
   );
 }
 
-const FLAG_TONE: Record<EntryFlag, Tone> = {
-  "no-amount": "neutral",
-  overlap: "danger",
-  duplicate: "danger",
-  "high-rate": "warn",
-  "multi-day-object": "info",
-  "no-estimate": "warn",
+/* ---------------------------------------------------------------- Признаки */
+
+const LEVEL_TONE: Record<MarkLevel, string> = {
+  block: "bg-danger-bg text-danger",
+  decide: "bg-warn-bg text-warn",
+  info: "bg-surface-2 text-text-2",
 };
 
-export function FlagList({ flags, className }: { flags: EntryFlag[]; className?: string }) {
-  if (flags.length === 0) return null;
+export function MarkChip({ mark }: { mark: Pick<Mark, "label" | "level"> }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-6 items-center rounded-full px-2.5 text-[12px] leading-none font-medium whitespace-nowrap",
+        LEVEL_TONE[mark.level],
+      )}
+    >
+      {mark.label}
+    </span>
+  );
+}
+
+/** Признаки строкой: первые `max`, остальные «+N» (полный список в деталях) */
+export function MarkList({
+  marks,
+  max = 2,
+  className,
+}: {
+  marks: Mark[];
+  max?: number;
+  className?: string | undefined;
+}) {
+  if (marks.length === 0) return null;
+  const shown = marks.slice(0, max);
+  const rest = marks.slice(max);
   return (
     <ul className={cn("flex flex-wrap items-center gap-1.5", className)}>
-      {flags.map((flag) => (
-        <li key={flag}>
-          <StatusBadge tone={FLAG_TONE[flag]}>{FLAG_LABEL[flag]}</StatusBadge>
+      {shown.map((mark) => (
+        <li key={mark.key}>
+          <MarkChip mark={mark} />
         </li>
       ))}
+      {rest.length > 0 ? (
+        <li>
+          <span
+            className="inline-flex h-6 items-center rounded-full bg-surface-2 px-2 text-[12px] leading-none font-medium text-text-2 tnum"
+            title={rest.map((m) => m.label).join(", ")}
+          >
+            +{rest.length}
+            <span className="sr-only">: {rest.map((m) => m.label).join(", ")}</span>
+          </span>
+        </li>
+      ) : null}
     </ul>
   );
 }
+
+/** Признаки по одним флагам домена: для объектов и строк, где записи целиком нет */
+export function FlagList({
+  flags,
+  max = 2,
+  className,
+}: {
+  flags: EntryFlag[];
+  max?: number;
+  className?: string;
+}) {
+  const marks: Mark[] = flags
+    .map((key) => ({ key, ...MARK_BASE[key], level: FLAG_LEVEL[key] }))
+    .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
+  return <MarkList marks={marks} max={max} className={className} />;
+}
+
+/* ---------------------------------------------------------------- Числа */
 
 /** Число в таблице: табличное начертание, выравнивание вправо, прочерк вместо нуля */
 export function Num({
@@ -110,8 +174,8 @@ export function RateCell({ value }: { value: number | null }) {
 /** Текст «что требует согласования»: открытый вопрос показывается рядом со значением */
 export function NeedsAgreement({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[13px] text-warn">
-      <StatusBadge tone="warn">Требует согласования</StatusBadge>
+    <span className="inline-flex flex-wrap items-center gap-1.5 text-[13px]">
+      <MarkChip mark={{ label: "Требует согласования", level: "info" }} />
       <span className="text-text-2">{children}</span>
     </span>
   );

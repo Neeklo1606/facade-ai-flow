@@ -32,7 +32,7 @@ export function WidgetTable<T extends { id: string }>({
 }) {
   return (
     // Таблица выходит на поля карточки (24px), чтобы подсветка строки шла от края до края
-    <div className={cn("-mx-6 overflow-x-auto", className)}>
+    <div className={cn("relative -mx-6 overflow-x-auto", className)}>
       <table className="w-full border-collapse text-[13px] leading-[1.45]">
         <thead>
           <tr className="h-10 border-b border-line text-left">

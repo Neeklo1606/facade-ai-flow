@@ -37,6 +37,9 @@ import {
 import {
   allowedObjects,
   brigadeCards,
+  busyIntervals,
+  clashOf,
+  dayObjects,
   dashboardMetrics,
   entryView,
   myEntries,
@@ -44,6 +47,7 @@ import {
   queue,
   queueCounts,
   type BrigadeCard,
+  type BusyInterval,
   type DashboardMetrics,
   type EntryView,
   type ObjectCard,
@@ -71,9 +75,12 @@ export {
   useGasHydration,
 };
 
+export { clashOf };
+
 export type {
   AnalyticRow,
   BrigadeCard,
+  BusyInterval,
   DashboardMetrics,
   DataSource,
   EntryFlag,
@@ -237,6 +244,25 @@ export function useGasAllowedObjects(): WorkObject[] {
   return useMemo(() => allowedObjects(data), [data]);
 }
 
+/** Объекты бригады «на сегодня»: первые кнопки бота (ADR-044, F4) */
+export function useGasDayObjects(brigadeId: string | null, day: string): WorkObject[] {
+  const data = useGasData();
+  return useMemo(() => (brigadeId ? dayObjects(data, brigadeId, day) : []), [data, brigadeId, day]);
+}
+
+/** Занятые интервалы бригады за день: кнопки времени с ними недоступны (F4) */
+export function useGasBusy(
+  brigadeId: string | null,
+  day: string,
+  exceptId?: string,
+): BusyInterval[] {
+  const data = useGasData();
+  return useMemo(
+    () => (brigadeId ? busyIntervals(data, brigadeId, day, exceptId) : []),
+    [data, brigadeId, day, exceptId],
+  );
+}
+
 /** Записи бригады текущего человека: история в боте */
 export function useGasMyEntries(): EntryView[] {
   const data = useGasData();
@@ -322,6 +348,8 @@ export function useGasActions(): {
   updateEntry: (input: UpdateEntryInput) => Promise<ActionResult<TimeEntry>>;
   submitEntry: (id: string) => Promise<ActionResult<TimeEntry>>;
   review: (input: ReviewInput) => Promise<ActionResult<TimeEntry>>;
+  /** Отменить последнее решение проверки: тост «Отменить» */
+  undoReview: (id: string) => Promise<ActionResult<TimeEntry>>;
   setEstimate: (input: {
     objectId: string;
     amountRub: number;
@@ -337,6 +365,7 @@ export function useGasActions(): {
     updateEntry: useCallback((input) => run(() => port.updateEntry(input)), [run, port]),
     submitEntry: useCallback((id) => run(() => port.submitEntry(id)), [run, port]),
     review: useCallback((input) => run(() => port.review(input)), [run, port]),
+    undoReview: useCallback((id) => run(() => port.undoReview(id)), [run, port]),
     setEstimate: useCallback((input) => run(() => port.setEstimate(input)), [run, port]),
     reset: useCallback(() => run(() => port.reset()), [run, port]),
   };

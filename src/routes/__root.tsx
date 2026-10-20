@@ -22,6 +22,10 @@ import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BOOT_SPLASH_HTML, BOOT_SPLASH_SCRIPT } from "@/lib/boot-splash";
 // Кабинет компании — отдельная поверхность: его макет грузится, только когда открыт /office
+// Оболочка газа нужна только на /gas/*: в общий набор первого экрана она не едет (ADR-044)
+const GasShell = lazy(() =>
+  import("@/components/gas-ops/shell/GasShell").then((module) => ({ default: module.GasShell })),
+);
 const OfficeLayout = lazy(() =>
   import("@/components/layout/OfficeLayout").then((module) => ({ default: module.OfficeLayout })),
 );
@@ -200,7 +204,14 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AppProvider initialPersona={sessionActorId}>
         <TooltipProvider delayDuration={200}>
-          {pathname.startsWith("/office") ? (
+          {pathname === "/gas" || pathname.startsWith("/gas/") ? (
+            /* Рабочий контур газа: своя оболочка без меню и персон ГАЙКИ (ADR-044, F1) */
+            <Suspense fallback={null}>
+              <GasShell>
+                <Outlet />
+              </GasShell>
+            </Suspense>
+          ) : pathname.startsWith("/office") ? (
             /* Кабинет компании — отдельная поверхность со своим макетом (ADR-039) */
             <Suspense fallback={null}>
               <OfficeLayout>

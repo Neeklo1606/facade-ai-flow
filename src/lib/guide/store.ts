@@ -21,7 +21,14 @@ export interface GuideState {
    * Цепочка данных показа: отчёт из сценария 1 идёт в «Проверку» сценария 2, заявка
    * из сценария 3 — снабжению. Хранится во вкладке вместе с данными демонстрации.
    */
-  chain: { reportId?: string; requestId?: string };
+  chain: {
+    reportId?: string;
+    requestId?: string;
+    /** Показ газа (ADR-044, F3): запись бригадира и файл, которые прошли цепочку */
+    gasEntryId?: string;
+    gasEntryNumber?: string;
+    gasFile?: string;
+  };
 }
 
 const initial: GuideState = {
@@ -179,6 +186,12 @@ export function resetGuideProgress() {
   load();
   const first = state.scenarioId?.startsWith("canon-") ? "canon-shift" : state.scenarioId;
   commit({ ...initial, scenarioId: first });
+}
+
+/** Закончить сценарий без следа: сброс демо газа не трогает выбор роли ГАЙКИ */
+export function clearScenario() {
+  load();
+  commit({ ...initial, finished: state.finished.filter((id) => !id.startsWith("gas-")) });
 }
 
 /** Состояние показа вне React: обработчики телеметрии читают его в момент события */

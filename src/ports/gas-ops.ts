@@ -5,6 +5,7 @@
  * демонстрации. Поэтому замена демо-адаптера на сервер не переписывает интерфейс.
  */
 import type {
+  Assignment,
   AuditLog,
   Brigade,
   Employee,
@@ -30,6 +31,8 @@ export interface GasOpsSnapshot {
   reviews: Review[];
   audit: AuditLog[];
   frames: { brigadeId: string; employeeId: string | null; day: string; frame: string }[];
+  /** Объекты бригад «на сегодня»: демо-назначения, в выгрузке заказчика их нет */
+  assignments: Assignment[];
   users: User[];
   /** Кто сейчас в системе: выбирается на экране входа, настоящей проверки пароля нет */
   actorId: string;
@@ -76,7 +79,8 @@ export class GasOpsError extends Error {
       | "not-allowed"
       | "not-found"
       | "already-reviewed"
-      | "comment-required",
+      | "comment-required"
+      | "nothing-to-undo",
     message: string,
   ) {
     super(message);
@@ -92,6 +96,12 @@ export interface GasOpsPort {
   updateEntry(input: UpdateEntryInput): Promise<TimeEntry>;
   submitEntry(id: string): Promise<TimeEntry>;
   review(input: ReviewInput): Promise<TimeEntry>;
+  /**
+   * Отменить последнее решение проверки по записи (тост «Отменить», 6 секунд): запись
+   * возвращается в прежний статус и с прежней суммой, решение убирается из истории,
+   * в журнал действий пишется отмена. Исправление времени так не отменяется.
+   */
+  undoReview(id: string): Promise<TimeEntry>;
   /** Ручная сумма по объекту без сметы: подтверждает менеджер (OPEN-QUESTION 4) */
   setEstimate(input: {
     objectId: string;

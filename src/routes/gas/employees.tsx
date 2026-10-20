@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { ScreenHint } from "@/components/gas-ops/page";
 import { createFileRoute } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import { WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
@@ -16,8 +17,8 @@ import { useGasEmployees, type EmployeeRow } from "@/api/gas-ops";
 export const Route = createFileRoute("/gas/employees")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Сотрудники — гайка" }] },
-      "Сотрудники — гайка",
+      { meta: [{ title: "Сотрудники — Учёт выработки бригад" }] },
+      "Сотрудники — Учёт выработки бригад",
       "Состав бригад, роли и связанные записи времени.",
     ),
   component: EmployeesPage,
@@ -60,6 +61,7 @@ function EmployeesPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ScreenHint screen="employees" className="mb-0" />
       <WidgetCard>
         <WidgetCardHeader
           icon={Users}

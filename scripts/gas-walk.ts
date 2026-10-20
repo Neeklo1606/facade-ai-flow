@@ -30,18 +30,33 @@ const SCREENS = [
   "/gas/objects",
   "/gas/estimates",
   "/gas/employees",
+  "/gas/summary",
   "/gas/admin",
+  "/gas/guide",
+  "/gas/questions",
+  "/gas/finish",
 ];
 
 const VIEWS = [
   { label: "1440", width: 1440, height: 980 },
   { label: "768", width: 768, height: 1024 },
+  { label: "390", width: 390, height: 844 },
   { label: "375", width: 375, height: 812 },
 ];
 
-/** Элементы раздела: обходим только то, что внутри main, оболочка проверена своими тестами */
-const INTERACTIVE =
-  "main a[href], main button, main select, main input, main textarea, main [role=tab]";
+/** Ширины телефона: на них цель касания не меньше 48 px */
+const PHONE = new Set([375, 390]);
+
+/**
+ * Элементы раздела и оболочки контура (ADR-044): main, шапка и нижняя панель. Нажатия делаются
+ * только внутри main, размер касания и подписи проверяются везде.
+ */
+const INTERACTIVE = [
+  "main a[href], main button, main select, main input, main textarea, main [role=tab]",
+  "header a[href], header button",
+  "nav[aria-label='Основные разделы'] a, nav[aria-label='Основные разделы'] button",
+  "[data-gas-show-dock] button",
+].join(", ");
 
 interface Problem {
   screen: string;
@@ -153,6 +168,39 @@ for (const view of VIEWS) {
       });
     }
 
+    /*
+     * Закреплённые панели экрана (кнопки действия, шторки) не должны уходить под нижнюю панель
+     * оболочки и полосу показа: пересечение прямоугольников видно сразу, без нажатий.
+     */
+    const covered = await page.evaluate(() => {
+      const bars = [
+        ...document.querySelectorAll(
+          "nav[aria-label='Основные разделы'] ul, [data-gas-show-dock] > div",
+        ),
+      ].map((el) => el.getBoundingClientRect());
+      const hits: string[] = [];
+      for (const el of document.querySelectorAll("main *")) {
+        const style = getComputedStyle(el);
+        if (style.position !== "fixed" && style.position !== "sticky") continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+        for (const bar of bars) {
+          const x = Math.min(rect.right, bar.right) - Math.max(rect.left, bar.left);
+          const y = Math.min(rect.bottom, bar.bottom) - Math.max(rect.top, bar.top);
+          if (x > 4 && y > 4) hits.push((el.textContent ?? el.tagName).trim().slice(0, 40));
+        }
+      }
+      return hits;
+    });
+    for (const hit of covered) {
+      problems.push({
+        screen,
+        view: view.label,
+        kind: "overlap",
+        detail: `закреплённый «${hit}» перекрыт нижней панелью или полосой показа`,
+      });
+    }
+
     for (const item of snapshot.items) {
       if (!item.label) {
         problems.push({
@@ -163,7 +211,7 @@ for (const view of VIEWS) {
         });
       }
       const short = Math.min(item.width, item.height);
-      if (view.width === 375 && short < 48 && item.tag !== "input" && item.tag !== "textarea") {
+      if (PHONE.has(view.width) && short < 48 && item.tag !== "input" && item.tag !== "textarea") {
         problems.push({
           screen,
           view: view.label,

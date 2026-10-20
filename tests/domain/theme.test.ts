@@ -28,14 +28,17 @@ function runBoot({ saved, systemLight }: { saved?: string | null; systemLight: b
 }
 
 describe("тема до первой отрисовки", () => {
-  test("демонстрация открывается в светлой теме по умолчанию", () => {
-    // Последнее предпочтение владельца: светлая тема, ручной выбор важнее умолчания.
-    expect(defaultChoice).toBe("light");
-    expect(runBoot({ systemLight: false }).dataset["theme"]).toBe("light");
+  test("по умолчанию тема берётся из системы", () => {
+    // Решение владельца 21.10.2026 (ADR-044): как в системе, ручной выбор важнее умолчания.
+    expect(defaultChoice).toBe("system");
+    expect(runBoot({ systemLight: false }).dataset["theme"]).toBe("dark");
+    expect(runBoot({ systemLight: true }).dataset["theme"]).toBe("light");
   });
   test("без выбора берётся умолчание контура", () => {
     const root = runBoot({ systemLight: false });
-    expect(root.dataset["theme"]).toBe(resolveTheme(defaultChoice));
+    expect(root.dataset["theme"]).toBe(
+      defaultChoice === "system" ? "dark" : resolveTheme(defaultChoice),
+    );
   });
 
   test("сохранённый выбор главнее умолчания", () => {
@@ -49,8 +52,8 @@ describe("тема до первой отрисовки", () => {
   });
 
   test("мусор в хранилище не ломает страницу", () => {
-    const root = runBoot({ saved: "полосатая", systemLight: false });
-    expect(root.dataset["theme"]).toBe(resolveTheme(defaultChoice));
+    const root = runBoot({ saved: "полосатая", systemLight: true });
+    expect(root.dataset["theme"]).toBe("light");
   });
 
   test("color-scheme ставится вместе с темой: формы и полосы прокрутки красит он", () => {

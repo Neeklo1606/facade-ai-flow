@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { ScreenHint } from "@/components/gas-ops/page";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Banknote } from "lucide-react";
@@ -26,8 +27,8 @@ import { toast } from "@/lib/toast";
 export const Route = createFileRoute("/gas/estimates")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Стоимость работ — гайка" }] },
-      "Стоимость работ — гайка",
+      { meta: [{ title: "Стоимость работ — Учёт выработки бригад" }] },
+      "Стоимость работ — Учёт выработки бригад",
       "Подтверждённая стоимость работ без материалов и ручной ввод сумм.",
     ),
   component: EstimatesPage,
@@ -132,7 +133,8 @@ function EstimatesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="rounded-[var(--r-sm)] border border-line bg-surface p-4 text-[13px] text-text-2">
+      <ScreenHint screen="estimates" className="mb-0" />
+      <p className="rounded-[var(--r-lg)] bg-surface-2 p-4 text-[13px] text-text-2">
         В фактическом отчёте заказчика суммы стоят как начисления по объекту за день, а
         подтверждённой стоимости работ в нём нет. Поэтому здесь только то, что подтвердил человек.
         Какие статьи сметы входят в стоимость работ и кто утверждает сумму по котлам без сметы —

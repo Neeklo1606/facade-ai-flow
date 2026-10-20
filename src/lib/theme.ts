@@ -21,10 +21,11 @@ export const themeLabels: Record<ThemeChoice, string> = {
 };
 
 /**
- * Умолчание контура: демонстрация — тёмная, рабочий режим — как в системе (ADR-017, п. 6;
- * решение владельца 18.10.2026, ADR-041). Выбор человека важнее умолчания.
+ * Умолчание: как в системе (решение владельца 21.10.2026, ADR-044). Обе темы доведены до
+ * одного уровня, поэтому телефон в тёмном режиме получает тёмную, ноутбук днём светлую.
+ * Выбор человека важнее умолчания.
  */
-export const defaultChoice: ThemeChoice = "light";
+export const defaultChoice: ThemeChoice = "system";
 
 const isChoice = (value: string | null): value is ThemeChoice =>
   value === "light" || value === "dark" || value === "system";

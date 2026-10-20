@@ -7,9 +7,18 @@
  */
 import ExcelJS from "exceljs";
 import { writeFileSync } from "node:fs";
-import { buildCustomerWorkbook } from "@/adapters/gas-ops/xlsx";
+import { buildCustomerWorkbook, customerFileName } from "@/adapters/gas-ops/xlsx";
+import { gasExportResponse } from "@/api/gas-export";
+import { fileNameFromDisposition } from "@/lib/gas-ops/export";
 import { buildSeed } from "@/data/mock/gas-ops-seed";
-import { analyticRows, customerFormatRows, reportEntries } from "@/domain/gas-ops/report";
+import {
+  analyticRows,
+  customerFormatRows,
+  entriesOfRows,
+  reportEntries,
+  visibleReportRows,
+} from "@/domain/gas-ops/report";
+import { revenuePerHour } from "@/domain/gas-ops/calc";
 
 const out = process.argv[2] ?? ".verify/gas-report.xlsx";
 const seed = buildSeed();
@@ -141,6 +150,139 @@ const confirmed = reportEntries(seed.entries, "confirmed");
 check(
   analytic.length === confirmed.length,
   `в отчёт вошли только подтверждённые записи: ${confirmed.length}`,
+);
+
+// --- ADR-044, F6: имя файла, точные часы, ROUND, печать, закрепление ---
+
+const expectedName = "Выработка_бригад_28.09-03.10.2026.xlsx";
+check(customerFileName(seed.week) === expectedName, `имя файла: ${customerFileName(seed.week)}`);
+
+// Заголовок ответа сервера: filename* по RFC 5987 и ASCII-запасной filename
+const response = await gasExportResponse(
+  new Request("http://localhost/api/gas/export", {
+    method: "POST",
+    body: JSON.stringify({
+      rows,
+      analytic,
+      days: seed.week.days,
+      week: seed.week,
+      mode: "confirmed",
+    }),
+  }),
+);
+const disposition = response.headers.get("content-disposition") ?? "";
+check(
+  disposition.includes(`filename*=UTF-8''${encodeURIComponent(expectedName)}`),
+  "Content-Disposition: filename* в UTF-8",
+);
+check(
+  /filename="Vyrabotka_brigad_28\.09-03\.10\.2026\.xlsx"/.test(disposition),
+  "Content-Disposition: запасной filename латиницей",
+);
+check(
+  [...disposition].every((c) => c.charCodeAt(0) < 128),
+  "заголовок целиком в ASCII",
+);
+check(
+  fileNameFromDisposition(disposition) === expectedName,
+  `вкладка читает имя из заголовка: ${fileNameFromDisposition(disposition)}`,
+);
+
+// Часы точным значением минуты / 60 с форматом 0.00
+const firstAddress = rows.findIndex((r) => r.kind === "address" && r.total.minutes);
+if (firstAddress >= 0) {
+  const minutes = rows[firstAddress]!.total.minutes!;
+  const cell = sheet.getRow(3 + firstAddress).getCell(totalCol + 1);
+  check(
+    numberOf(3 + firstAddress, totalCol + 1) === minutes / 60,
+    `часы адресной строки точные: ${numberOf(3 + firstAddress, totalCol + 1)} = ${minutes} / 60`,
+  );
+  check(cell.numFmt === "0.00", `формат часов ${cell.numFmt}`);
+}
+
+// Доходность итоговых строк формулой ROUND(E/F,0) и с тем же результатом, что в системе
+let roundRows = 0;
+let roundSame = 0;
+for (const [index, row] of rows.entries()) {
+  if (row.kind === "address" || row.kind === "frame") continue;
+  const formula = formulaOf(3 + index, totalCol + 2) ?? "";
+  if (!formula.includes("ROUND(")) continue;
+  roundRows += 1;
+  // Пересчёт формулы так же, как Excel: сумма делится на точные часы ячейки
+  const e = numberOf(3 + index, totalCol) ?? 0;
+  const f = numberOf(3 + index, totalCol + 1) ?? 0;
+  const excel = e === 0 || f === 0 ? null : Math.round(e / f);
+  if (excel === row.total.revenue) roundSame += 1;
+}
+const aggregates = rows.filter((r) => r.kind !== "address" && r.kind !== "frame").length;
+check(
+  roundRows === aggregates,
+  `доходность итоговых строк формулой ROUND: ${roundRows} из ${aggregates}`,
+);
+check(roundSame === roundRows, `ROUND(E/F,0) совпадает с системой: ${roundSame} из ${roundRows}`);
+
+// Открытый вопрос 7: половина рубля на 14 700 ₽ / 160 мин описана как есть, не подогнана
+const half = seed.entries.filter(
+  (e) => e.amountRub === 14_700 && e.minutes === 160 && e.revenueInFile === 5_512,
+);
+check(half.length === 2, `строк 14 700 ₽ / 2,67 ч с половиной рубля: ${half.length}`);
+check(
+  half.every((e) => revenuePerHour(e.amountRub, e.minutes) === 5_513),
+  "в системе и в файле выгрузки 5 513 ₽/ч, в файле заказчика 5 512: вопрос 7 открыт",
+);
+const notesText = (notes?.getColumn(1).values ?? []).map(String).join("\n");
+check(notesText.includes("Открытый вопрос 7"), "лист «Как считалось» описывает вопрос 7");
+check(notesText.includes("ROUND"), "лист «Как считалось» описывает ROUND(E/F,0)");
+
+// Закрепление E3, печать альбомная по ширине на одну страницу, заголовки повторяются
+const view = sheet.views[0] as {
+  state?: string;
+  xSplit?: number;
+  ySplit?: number;
+  topLeftCell?: string;
+};
+check(
+  view?.state === "frozen" && view.xSplit === 4 && view.ySplit === 2,
+  `закрепление E3: xSplit ${view?.xSplit}, ySplit ${view?.ySplit}`,
+);
+const page = sheet.pageSetup;
+check(page.orientation === "landscape", `печать: ${page.orientation}`);
+check(
+  page.fitToPage === true && page.fitToWidth === 1 && page.fitToHeight === 0,
+  "печать по ширине на одну страницу",
+);
+check(page.printTitlesRow === "1:2", `повтор строк заголовка: ${page.printTitlesRow}`);
+check(
+  (sheet.getColumn(1).width ?? 0) >= 16,
+  `ширина подписи по содержимому: ${sheet.getColumn(1).width}`,
+);
+
+// Тот же набор строк, что на экране: «скрыть пустые» для субботы
+const saturday = seed.week.days.length - 1;
+const dayRows = visibleReportRows(rows, { period: saturday, hideEmpty: true });
+const dayEntries = entriesOfRows(dayRows);
+const dayBytes = await buildCustomerWorkbook({
+  rows: dayRows,
+  analytic: analytic.filter((a) => dayEntries.has(a.entryId)),
+  days: seed.week.days,
+  week: seed.week,
+  mode: "confirmed",
+});
+const dayBook = new ExcelJS.Workbook();
+await dayBook.xlsx.load(
+  dayBytes.buffer.slice(
+    dayBytes.byteOffset,
+    dayBytes.byteOffset + dayBytes.byteLength,
+  ) as ArrayBuffer,
+);
+const daySheet = dayBook.getWorksheet("Отчёт")!;
+check(
+  daySheet.rowCount === 2 + dayRows.length && dayRows.length < rows.length,
+  `«скрыть пустые» за ${seed.week.days[saturday]}: строк в файле ${daySheet.rowCount - 2}, на экране ${dayRows.length} из ${rows.length}`,
+);
+check(
+  String(daySheet.getRow(2 + dayRows.length).getCell(1).value) === "Итого",
+  "в урезанном наборе последняя строка тоже «Итого»",
 );
 
 // Ни одной реальной фамилии и улицы в файле

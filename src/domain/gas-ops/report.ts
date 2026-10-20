@@ -324,3 +324,119 @@ export function analyticRows(input: Omit<ReportInput, "frames">): AnalyticRow[] 
     };
   });
 }
+
+// --- вид отчёта на экране и в файле (ADR-044, F6) ------------------------------
+
+/**
+ * Период вида: вся неделя, один день (индекс в `days`) или только колонка «Итого».
+ * Набор строк и в файле, и на экране определяется периодом и галочкой «скрыть пустые».
+ */
+export type ReportPeriod = "week" | "total" | number;
+
+/** Есть ли в строке значения в выбранном периоде: деньги, минуты или рамка смены */
+export function rowHasValues(row: ReportRow, period: ReportPeriod): boolean {
+  if (row.kind === "total") return true;
+  if (typeof period === "number") {
+    const cell = row.days[period];
+    if (!cell) return false;
+    return cell.amountRub !== null || cell.minutes !== null || !!cell.frame;
+  }
+  if (row.kind === "frame") return row.days.some((cell) => !!cell.frame);
+  return row.total.amountRub !== null || row.total.minutes !== null;
+}
+
+/**
+ * Строки вида при текущих переключателях. «Скрыть пустые» по умолчанию выключено:
+ * тогда вид совпадает с Excel заказчика. Агрегат с пустыми детьми сам пуст (итоги снизу
+ * вверх), поэтому родители непустых строк остаются без отдельного правила. Строка рамки
+ * смены уходит вместе со своим сотрудником.
+ */
+export function visibleReportRows(
+  rows: ReportRow[],
+  options: { period: ReportPeriod; hideEmpty: boolean },
+): ReportRow[] {
+  if (!options.hideEmpty) return rows;
+  const kept = new Set<string>();
+  const result: ReportRow[] = [];
+  for (const row of rows) {
+    if (row.parentId && !kept.has(row.parentId)) continue;
+    if (!rowHasValues(row, options.period)) continue;
+    kept.add(row.id);
+    result.push(row);
+  }
+  return result;
+}
+
+/** Путь до адресной строки записи: сама строка, её день и все родители сверху вниз */
+export function pathToEntry(
+  rows: ReportRow[],
+  entryId: string,
+  entries: Pick<TimeEntry, "id" | "day">[],
+  days: string[],
+): { rowId: string; ancestors: string[]; dayIndex: number | null } | null {
+  const row = rows.find((r) => r.kind === "address" && r.entryIds.includes(entryId));
+  if (!row) return null;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ancestors: string[] = [];
+  let parent = row.parentId;
+  while (parent) {
+    ancestors.unshift(parent);
+    parent = byId.get(parent)?.parentId ?? null;
+  }
+  const day = entries.find((e) => e.id === entryId)?.day;
+  const index = day ? days.indexOf(day) : -1;
+  return { rowId: row.id, ancestors, dayIndex: index >= 0 ? index : null };
+}
+
+/**
+ * Записи, которые изменились в этой вкладке относительно исходного набора: созданы,
+ * подтверждены, исправлены. Строка с такой записью отмечается точкой «новая».
+ */
+export function changedEntryIds(current: TimeEntry[], base: TimeEntry[]): Set<string> {
+  const before = new Map(base.map((e) => [e.id, e]));
+  const changed = new Set<string>();
+  for (const entry of current) {
+    const was = before.get(entry.id);
+    if (
+      !was ||
+      was.status !== entry.status ||
+      was.minutes !== entry.minutes ||
+      was.amountRub !== entry.amountRub ||
+      was.objectId !== entry.objectId ||
+      was.day !== entry.day ||
+      was.reviewedAt !== entry.reviewedAt
+    ) {
+      changed.add(entry.id);
+    }
+  }
+  return changed;
+}
+
+/** Записи, на которых стоят строки вида: так лист «Записи» совпадает с листом «Отчёт» */
+export function entriesOfRows(rows: ReportRow[]): Set<string> {
+  return new Set(rows.filter((r) => r.kind === "address").flatMap((r) => r.entryIds));
+}
+
+const WEEKDAY = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"] as const;
+
+/** «Сб 03.10»: подпись дня в узких местах */
+export function dayShortLabel(iso: string): string {
+  const weekday = WEEKDAY[new Date(`${iso}T00:00:00Z`).getUTCDay()] ?? "";
+  return `${weekday} ${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+}
+
+const ddmm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+const ddmmyyyy = (iso: string) => `${ddmm(iso)}.${iso.slice(0, 4)}`;
+
+/**
+ * Имя файла выгрузки: «Выработка_бригад_28.09-03.10.2026.xlsx». Одно правило для сервера
+ * (заголовок ответа) и для вкладки (имя при сохранении), иначе они разойдутся.
+ */
+export function gasReportFileName(week: { from: string; to: string }): string {
+  return `Выработка_бригад_${ddmm(week.from)}-${ddmmyyyy(week.to)}.xlsx`;
+}
+
+/** Запасное имя латиницей для `filename=` в заголовке: старые клиенты не читают `filename*` */
+export function gasReportFileNameAscii(week: { from: string; to: string }): string {
+  return `Vyrabotka_brigad_${ddmm(week.from)}-${ddmmyyyy(week.to)}.xlsx`;
+}

@@ -5,7 +5,7 @@ import { WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
 import { WidgetTable, type WidgetColumn } from "@/components/common/WidgetTable";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Num } from "@/components/gas-ops/marks";
-import { OutOfScopeNotice } from "@/components/gas-ops/GasSection";
+import { GrowthLine, ScreenHint } from "@/components/gas-ops/page";
 import { ROLE_LABEL, useGasAudit, useGasUsers, type Role } from "@/api/gas-ops";
 
 /**
@@ -16,8 +16,8 @@ import { ROLE_LABEL, useGasAudit, useGasUsers, type Role } from "@/api/gas-ops";
 export const Route = createFileRoute("/gas/admin")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Настройка учёта времени — гайка" }] },
-      "Настройка учёта времени — гайка",
+      { meta: [{ title: "Настройка учёта времени — Учёт выработки бригад" }] },
+      "Настройка учёта времени — Учёт выработки бригад",
       "Роли, правила расчёта, подключения и журнал действий.",
     ),
   component: AdminPage,
@@ -87,10 +87,8 @@ function AdminPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <OutOfScopeNotice>
-        Отдельная веб-админка в договор v1.0 не входит. Для менеджера в договоре простая очередь
-        проверки. Этот экран показывает, что можно вынести в настройку при развитии.
-      </OutOfScopeNotice>
+      <ScreenHint screen="admin" className="mb-0" />
+      <GrowthLine />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <WidgetCard>

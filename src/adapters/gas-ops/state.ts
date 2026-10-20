@@ -15,7 +15,7 @@ import type { GasOpsSnapshot } from "@/ports/gas-ops";
 
 const KEY = "neeklo-gas-ops-v1";
 /** Версия набора: меняется вместе с формой данных, иначе старый снимок во вкладке ломает экран */
-const VERSION = 1;
+const VERSION = 2;
 
 interface Stored {
   version: number;
@@ -36,6 +36,7 @@ function initial(): GasOpsSnapshot {
     reviews: seed.reviews,
     audit: seed.audit,
     frames: seed.frames,
+    assignments: seed.assignments,
     users: seed.users,
     // По умолчанию входим менеджером проверки: его экран — очередь, с него начинается показ
     actorId: "u-manager",
