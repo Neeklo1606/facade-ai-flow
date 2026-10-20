@@ -35,7 +35,7 @@
       `/gas/brigades`, `/gas/objects`.
 - [x] P1: выгрузка XLSX через exceljs, `/gas/estimates`, `/gas/employees`, `/gas/admin`, адаптив.
 - [x] `e2e/gas.spec.ts`: 38 проверок, включая сквозной сценарий и 375 px.
-- [x] ADR-042, заметки 00–08, README, скриншоты 1440 и 375.
+- [x] ADR-043, заметки 00–08, README, скриншоты 1440 и 375.
 - [x] Бандл ветки вынесен в папку проекта: `.bundles/gas-ops-prototype.bundle`.
 
 ## В работе

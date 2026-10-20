@@ -156,7 +156,7 @@ export function CustomerReport({ rows, days }: { rows: ReportRow[]; days: string
                       onClick={() => toggle(row.id)}
                       aria-expanded={isOpen}
                       style={{ paddingInlineStart: `${row.level * 14}px` }}
-                      className="flex min-h-11 w-full items-center gap-1.5 rounded-[var(--r-xs)] text-start transition-fast hover:bg-surface-2 focus-ring lg:min-h-0"
+                      className="flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-xs)] text-start transition-fast hover:bg-surface-2 focus-ring lg:min-h-0"
                     >
                       <span className="grid size-6 shrink-0 place-items-center text-text-3">
                         {isOpen ? (
@@ -173,7 +173,7 @@ export function CustomerReport({ rows, days }: { rows: ReportRow[]; days: string
                     </button>
                   ) : (
                     <span
-                      className="flex min-h-11 items-center gap-1.5 lg:min-h-0"
+                      className="flex min-h-12 items-center gap-1.5 lg:min-h-0"
                       style={{ paddingInlineStart: `${row.level * 14}px` }}
                     >
                       <span className="size-6 shrink-0" aria-hidden />

@@ -46,7 +46,7 @@ bun run dev --mode server       # рабочий контур, нужна баз
 
 Раздел `/gas` — прототип для газовой компании: бригадир вводит фактическое время, менеджер
 проверяет, система считает выработку и отдаёт недельный отчёт в структуре Excel заказчика
-([ADR-042](docs/adr/ADR-042-gas-ops.md), рабочие заметки — [docs/claude](docs/claude/00-MASTER-PLAN.md)).
+([ADR-043](docs/adr/ADR-043-gas-ops.md), рабочие заметки — [docs/claude](docs/claude/00-MASTER-PLAN.md)).
 
 ```bash
 bun run dev                                  # раздел открывается на /gas

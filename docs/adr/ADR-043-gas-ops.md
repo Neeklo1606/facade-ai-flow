@@ -4,7 +4,9 @@
 
 Связано: [ADR-001](ADR-001-data-layer.md) (слои), [ADR-004](ADR-004-demo-adapter-in-browser.md)
 (демо-адаптер во вкладке), [ADR-033](ADR-033-gaika-visual.md) (визуальный слой),
-[ADR-039](ADR-039-three-surfaces.md) (поверхности).
+[ADR-039](ADR-039-three-surfaces.md) (поверхности),
+[ADR-042](ADR-042-product-interface-polish.md) (премиальный рабочий интерфейс: светлая тема,
+иерархия вместо украшений, цели касания от 48 px — раздел следует ему).
 
 ## Задача
 
