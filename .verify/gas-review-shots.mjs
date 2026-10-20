@@ -45,30 +45,30 @@ for (const [width, height, theme] of [
   const { context, page, errors } = await session(width, height, theme);
   await page.goto(`${base}/gas/moderation`, { waitUntil: "domcontentloaded" });
   await ready(page);
-  await page.screenshot({ path: `${out}/queue-${tag}.png`, fullPage: width > 1000 });
+  await page.screenshot({ path: `${out}/queue-${tag}.jpg`, fullPage: width > 1000 });
   if (width < 1000) {
     await page.locator("[data-queue-card]").first().click();
     await page.waitForTimeout(700);
-    await page.screenshot({ path: `${out}/details-${tag}.png` });
+    await page.screenshot({ path: `${out}/details-${tag}.jpg` });
     await page.locator("[data-review-sheet]").evaluate((el) => el.scrollTo(0, 99999));
     await page.waitForTimeout(300);
-    await page.screenshot({ path: `${out}/details-bottom-${tag}.png` });
+    await page.screenshot({ path: `${out}/details-bottom-${tag}.jpg` });
     await page.getByRole("button", { name: "Ещё действия" }).click();
     await page.getByRole("menuitem", { name: "Отклонить" }).click();
     await page.getByRole("button", { name: "Дубль записи" }).click();
     await page.waitForTimeout(500);
-    await page.screenshot({ path: `${out}/reject-${tag}.png` });
+    await page.screenshot({ path: `${out}/reject-${tag}.jpg` });
   } else {
     await page.getByRole("button", { name: "Ещё действия" }).click();
     await page.getByRole("menuitem", { name: "Отклонить" }).click();
     await page.getByRole("button", { name: "Дубль записи" }).click();
     await page.waitForTimeout(500);
-    await page.screenshot({ path: `${out}/reject-${tag}.png` });
+    await page.screenshot({ path: `${out}/reject-${tag}.jpg` });
   }
   await page.goto(`${base}/gas/entries`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("table tbody tr, [data-queue-card]", { timeout: 60000 });
   await page.waitForTimeout(800);
-  await page.screenshot({ path: `${out}/entries-${tag}.png` });
+  await page.screenshot({ path: `${out}/entries-${tag}.jpg` });
   console.log(tag, errors.length ? errors.join(" | ") : "без ошибок");
   await context.close();
 }

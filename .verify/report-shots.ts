@@ -40,8 +40,8 @@ for (const width of [1440, 390]) {
       await page.locator("[data-report-row]").first().waitFor({ timeout: 60_000 });
       if (view === "day" && width > 500) await page.getByRole("tab", { name: "Сб 03.10" }).click();
       await page.waitForTimeout(view === "day" ? 900 : 400);
-      await page.screenshot({ path: `${out}/${name}.png`, fullPage: width < 500 });
-      console.log(`${out}/${name}.png`);
+      await page.screenshot({ path: `${out}/${name}.jpg`, fullPage: width < 500 });
+      console.log(`${out}/${name}.jpg`);
       await context.close();
     }
   }

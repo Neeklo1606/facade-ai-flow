@@ -40,7 +40,9 @@ export function GasShowDock({ lifted }: { lifted: boolean }) {
     };
   }, [target, location.pathname]);
 
-  if (!active || !step || step.id === "gas-finish") return null;
+  if (!active || !step) return null;
+  // Последний шаг — экран «Готово»: на нём полоса не нужна, по дороге к нему ведёт туда
+  if (step.id === "gas-finish" && location.pathname === "/gas/finish") return null;
 
   const path = gasStepPath(step, state.chain);
   const base = path.split("?")[0]!;
@@ -83,7 +85,11 @@ export function GasShowDock({ lifted }: { lifted: boolean }) {
             onClick={() => void go()}
             className="inline-flex min-h-12 shrink-0 items-center gap-1.5 rounded-full bg-pill px-4 text-[13px] font-medium text-pill-text focus-ring press"
           >
-            {!roleOk && step.gasRole ? `Как ${ROLE_LABEL[step.gasRole].toLowerCase()}` : "Открыть"}
+            {!roleOk && step.gasRole
+              ? `Как ${ROLE_LABEL[step.gasRole].toLowerCase()}`
+              : step.id === "gas-finish"
+                ? "Итог показа"
+                : "Открыть"}
             <ArrowRight className="size-4" aria-hidden />
           </button>
         ) : done ? (
