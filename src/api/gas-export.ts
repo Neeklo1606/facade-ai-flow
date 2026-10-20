@@ -1,4 +1,20 @@
 import { buildCustomerWorkbook, customerFileName, XLSX_MIME } from "@/adapters/gas-ops/xlsx";
+import { gasReportFileNameAscii } from "@/domain/gas-ops/report";
+
+/**
+ * Content-Disposition с именем по RFC 6266 и RFC 5987: `filename*` в UTF-8 для браузеров
+ * и `filename` латиницей для старых клиентов. Без кириллицы в `filename` заголовок
+ * остаётся валидным ASCII.
+ */
+export function contentDisposition(name: string, ascii: string): string {
+  // encodeURIComponent оставляет ' ( ) *, а в attr-char RFC 5987 их нет
+  const encoded = encodeURIComponent(name).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  const safe = ascii.replace(/[^\x20-\x7e]|["\\]/g, "_");
+  return `attachment; filename="${safe}"; filename*=UTF-8''${encoded}`;
+}
 
 /**
  * Ответ серверного маршрута выгрузки газового отчёта (ADR-043). Файл собирается здесь,
@@ -21,9 +37,10 @@ export async function gasExportResponse(request: Request): Promise<Response> {
   return new Response(file as unknown as BodyInit, {
     headers: {
       "content-type": XLSX_MIME,
-      "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(
+      "content-disposition": contentDisposition(
         customerFileName(payload.week),
-      )}`,
+        gasReportFileNameAscii(payload.week),
+      ),
       "cache-control": "no-store",
     },
   });

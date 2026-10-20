@@ -1,121 +1,171 @@
 /**
- * Недельный отчёт в структуре Excel заказчика: подпись строки, по каждому дню три
- * показателя и колонка «Итого». Уровни сворачиваются, как группировка строк в файле.
+ * Недельный отчёт в структуре Excel заказчика, десктоп (ADR-043; ADR-044, F6).
+ *
+ * Первый столбец «Бригада и адрес» и обе строки шапки дней закреплены, таблица
+ * прокручивается внутри своей карточки, у закреплённого края при прокрутке появляется тень.
+ * В режиме дня три столбца показателей дня и итог недели: ничего не прокручивается.
  *
  * Инварианты видны прямо на экране: агрегат не складывается с детьми, строка без суммы
  * остаётся с прочерком, строка рамки смены не несёт денег.
  */
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { fmtHours, fmtRate, fmtRub, type ReportRow } from "@/api/gas-ops";
-import { SourceMark } from "./marks";
-import { fmtDate } from "@/lib/format";
+import type { ReportRow } from "@/api/gas-ops";
+import type { ReportPeriod } from "@/api/gas-report";
 import { cn } from "@/lib/utils";
+import {
+  amountText,
+  hoursText,
+  isNewRow,
+  rateText,
+  type ReportCellValue,
+} from "./report/cell-text";
+import { DemoMark, NewDot, Value } from "./report/cells";
 
-const HEAD = ["Сумма начислений", "Эффективное рабочее время (ч.)", "Доходность часа"];
+const HEAD = [
+  { short: "Сумма", full: "Сумма начислений" },
+  { short: "Часы", full: "Эффективное рабочее время (ч.)" },
+  { short: "Доходность", full: "Доходность часа" },
+];
 
-function Cell({
-  value,
-  kind,
-}: {
-  value: {
-    amountRub: number | null;
-    minutes: number | null;
-    revenue: number | null;
-    frame?: string;
-  };
-  kind: "amount" | "hours" | "rate";
-}) {
-  if (value.frame && kind === "amount") {
-    return <span className="text-text-3 tabular-nums">{value.frame}</span>;
-  }
-  if (value.frame) return <span className="text-text-3 tabular-nums">{value.frame}</span>;
-  if (kind === "amount")
-    return (
-      <span className={cn("tabular-nums", value.amountRub === null && "text-text-3")}>
-        {value.amountRub === null ? "—" : fmtRub(value.amountRub)}
-      </span>
-    );
-  if (kind === "hours")
-    return (
-      <span className={cn("tabular-nums", !value.minutes && "text-text-3")}>
-        {value.minutes ? fmtHours(value.minutes / 60) : "—"}
-      </span>
-    );
-  return (
-    <span className={cn("tabular-nums", value.revenue === null && "text-text-3")}>
-      {fmtRate(value.revenue)}
-    </span>
-  );
+export interface CustomerReportProps {
+  rows: ReportRow[];
+  days: { iso: string; label: string }[];
+  period: ReportPeriod;
+  collapsed: Set<string>;
+  onToggle: (id: string) => void;
+  changed: Set<string>;
+  /** Строка из сценария: подсвечена 4 секунды */
+  flashRowId: string | null;
+  /** Строка, на которую указывает шаг показа */
+  tourRowId: string | null;
 }
 
-export function CustomerReport({ rows, days }: { rows: ReportRow[]; days: string[] }) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+/** Фон строки непрозрачный: под закреплённым столбцом не должны просвечивать числа */
+function rowTone(row: ReportRow, flash: boolean): string {
+  if (flash) return "bg-[color-mix(in_oklab,var(--orange)_16%,var(--surface))]";
+  if (row.kind === "group") return "bg-surface-2";
+  if (row.kind === "total") return "bg-surface-3";
+  return "bg-surface";
+}
 
+export function CustomerReport({
+  rows,
+  days,
+  period,
+  collapsed,
+  onToggle,
+  changed,
+  flashRowId,
+  tourRowId,
+}: CustomerReportProps) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    const onScroll = () => setScrolled(element.scrollLeft > 2);
+    onScroll();
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => element.removeEventListener("scroll", onScroll);
+  }, [period]);
+
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const parents = new Set(rows.map((r) => r.parentId).filter(Boolean));
   const hidden = (row: ReportRow): boolean => {
     let parent = row.parentId;
-    const byId = new Map(rows.map((r) => [r.id, r]));
     while (parent) {
       if (collapsed.has(parent)) return true;
       parent = byId.get(parent)?.parentId ?? null;
     }
     return false;
   };
-
-  const toggle = (id: string) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  const hasChildren = (row: ReportRow) => rows.some((r) => r.parentId === row.id);
   const visible = rows.filter((row) => !hidden(row));
 
+  // Колонки вида: все дни и «Итого», один день и «Итого» или только «Итого»
+  const columns: { key: string; title: string; cell: (row: ReportRow) => ReportCellValue }[] =
+    period === "week"
+      ? [
+          ...days.map((day, index) => ({
+            key: day.iso,
+            title: day.label,
+            cell: (row: ReportRow) => row.days[index]!,
+          })),
+          { key: "total", title: "Итого недели", cell: (row: ReportRow) => row.total },
+        ]
+      : period === "total"
+        ? [{ key: "total", title: "Итого недели", cell: (row: ReportRow) => row.total }]
+        : [
+            {
+              key: days[period]?.iso ?? "day",
+              title: days[period]?.label ?? "",
+              cell: (row: ReportRow) => row.days[period]!,
+            },
+            { key: "total", title: "Итого недели", cell: (row: ReportRow) => row.total },
+          ];
+  const wide = period === "week";
+
+  const stickyEdge = cn(
+    "sticky start-0 z-10 transition-shadow",
+    scrolled && "shadow-[10px_0_14px_-10px_rgba(0,0,0,0.35)]",
+  );
+
   return (
-    // Таблица шире экрана: прокручивается внутри своего контейнера, страница не едет
-    <div className="-mx-6 overflow-x-auto">
-      <table className="min-w-max border-collapse text-[13px]">
+    <div
+      ref={scroller}
+      data-testid="report-table"
+      className={cn(
+        "card-v3 relative max-h-[min(72dvh,820px)] overflow-auto overscroll-x-contain",
+        !wide && "overflow-x-hidden",
+      )}
+    >
+      <table
+        className={cn(
+          "border-separate border-spacing-0 text-[13px]",
+          wide ? "min-w-max" : "w-full",
+        )}
+      >
         <thead>
-          <tr className="border-b border-line">
+          <tr>
             <th
               scope="col"
               rowSpan={2}
-              className="sticky start-0 z-10 bg-surface px-4 py-2 text-start font-normal text-text-3 first:ps-6"
+              className={cn(
+                stickyEdge,
+                "top-0 z-30 h-[84px] min-w-[300px] border-b border-line bg-surface px-5 text-start align-bottom pb-3 font-normal text-text-3",
+              )}
             >
               Бригада и адрес
             </th>
-            {days.map((day) => (
+            {columns.map((column) => (
               <th
-                key={day}
+                key={column.key}
                 scope="colgroup"
                 colSpan={3}
-                className="border-s border-line px-4 py-2 text-center font-medium whitespace-nowrap tabular-nums"
+                className={cn(
+                  "sticky top-0 z-20 h-11 border-s border-b border-line bg-surface px-4 text-center text-[14px] font-semibold whitespace-nowrap tnum",
+                  column.key === "total" && "bg-surface-2",
+                )}
               >
-                {fmtDate(day)}
+                {column.title}
               </th>
             ))}
-            <th
-              scope="colgroup"
-              colSpan={3}
-              className="border-s border-line px-4 py-2 text-center font-medium"
-            >
-              Итого
-            </th>
           </tr>
-          <tr className="border-b border-line">
-            {[...days, "total"].flatMap((key) =>
-              HEAD.map((title, index) => (
+          <tr>
+            {columns.flatMap((column) =>
+              HEAD.map((head, index) => (
                 <th
-                  key={`${key}-${title}`}
+                  key={`${column.key}-${head.short}`}
                   scope="col"
+                  title={head.full}
                   className={cn(
-                    "px-4 py-2 text-end text-[12px] font-normal whitespace-nowrap text-text-3",
-                    index === 0 && "border-s border-line",
+                    "sticky top-11 z-20 h-10 border-b border-line bg-surface px-4 text-end text-[12px] font-normal whitespace-nowrap text-text-3",
+                    index === 0 && "border-s",
+                    column.key === "total" && "bg-surface-2",
                   )}
                 >
-                  {title}
+                  {head.short}
                 </th>
               )),
             )}
@@ -123,102 +173,143 @@ export function CustomerReport({ rows, days }: { rows: ReportRow[]; days: string
         </thead>
         <tbody>
           {visible.map((row) => {
-            const expandable = hasChildren(row) && row.kind !== "frame";
-            const isOpen = !collapsed.has(row.id);
+            const expandable = parents.has(row.id) && row.kind !== "frame";
+            const open = !collapsed.has(row.id);
+            const flash = flashRowId === row.id;
+            const tone = rowTone(row, flash);
+            const strong = row.kind === "group" || row.kind === "total";
             return (
               <tr
                 key={row.id}
+                data-report-row={row.id}
+                data-kind={row.kind}
+                data-flash={flash ? "true" : undefined}
+                data-tour={tourRowId === row.id ? "report-row" : undefined}
                 className={cn(
-                  "border-b border-line last:border-0",
-                  row.kind === "group" && "bg-surface-2 font-medium",
-                  row.kind === "total" && "bg-orange-dim font-medium",
-                  row.kind === "frame" && "text-text-3",
+                  strong && "font-semibold",
+                  row.kind === "brigade" && "font-medium",
+                  row.kind === "frame" && "text-[12px] text-text-3",
                 )}
               >
                 <th
                   scope="row"
                   className={cn(
-                    "sticky start-0 z-10 max-w-[320px] px-4 py-2 text-start font-normal first:ps-6",
-                    row.kind === "group"
-                      ? "bg-surface-2"
-                      : row.kind === "total"
-                        ? "bg-orange-dim"
-                        : "bg-surface",
+                    stickyEdge,
+                    tone,
+                    row.kind === "total" && "bottom-0 z-[25] border-t",
+                    wide ? "max-w-[360px]" : "max-w-[560px]",
+                    "border-b border-line px-5 py-0 text-start font-[inherit] transition-colors duration-500",
                   )}
                 >
-                  {/*
-                    Сворачивает вся подпись строки, а не значок: значок 24 px мимо пальца
-                    на телефоне. Строка без детей подписью и остаётся, кнопкой не притворяется.
-                  */}
-                  {expandable ? (
-                    <button
-                      type="button"
-                      onClick={() => toggle(row.id)}
-                      aria-expanded={isOpen}
-                      style={{ paddingInlineStart: `${row.level * 14}px` }}
-                      className="flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-xs)] text-start transition-fast hover:bg-surface-2 focus-ring lg:min-h-0"
-                    >
-                      <span className="grid size-6 shrink-0 place-items-center text-text-3">
-                        {isOpen ? (
-                          <ChevronDown className="size-4" aria-hidden />
-                        ) : (
-                          <ChevronRight className="size-4" aria-hidden />
-                        )}
-                      </span>
-                      <span className="truncate" title={row.label}>
-                        {row.label}
-                      </span>
-                      {row.source === "mock" && <SourceMark source="mock" />}
-                      <span className="sr-only">{isOpen ? ". Свернуть" : ". Развернуть"}</span>
-                    </button>
-                  ) : (
-                    <span
-                      className="flex min-h-12 items-center gap-1.5 lg:min-h-0"
-                      style={{ paddingInlineStart: `${row.level * 14}px` }}
-                    >
-                      <span className="size-6 shrink-0" aria-hidden />
-                      <span className="truncate" title={row.label}>
-                        {row.kind === "frame" ? "Рамка смены" : row.label}
-                      </span>
-                      {row.kind !== "frame" && row.source === "mock" && (
-                        <SourceMark source="mock" />
-                      )}
-                    </span>
-                  )}
+                  <RowLabel
+                    row={row}
+                    expandable={expandable}
+                    open={open}
+                    onToggle={onToggle}
+                    isNew={isNewRow(row, changed)}
+                  />
                 </th>
-
-                {row.days.map((cell, index) => (
-                  <Fragment key={`${row.id}-${index}`}>
-                    <td className="border-s border-line px-4 py-2 text-end">
-                      <Cell value={cell} kind="amount" />
-                    </td>
-                    <td className="px-4 py-2 text-end">
-                      {cell.frame ? null : <Cell value={cell} kind="hours" />}
-                    </td>
-                    <td className="px-4 py-2 text-end">
-                      {cell.frame ? null : <Cell value={cell} kind="rate" />}
-                    </td>
-                  </Fragment>
-                ))}
-
-                <td className="border-s border-line px-4 py-2 text-end">
-                  {row.kind === "frame" ? (
-                    <span className="whitespace-nowrap text-text-3">{row.frameTotalText}</span>
-                  ) : (
-                    <Cell value={row.total} kind="amount" />
-                  )}
-                </td>
-                <td className="px-4 py-2 text-end">
-                  {row.kind === "frame" ? null : <Cell value={row.total} kind="hours" />}
-                </td>
-                <td className="px-4 py-2 text-end">
-                  {row.kind === "frame" ? null : <Cell value={row.total} kind="rate" />}
-                </td>
+                {columns.map((column) => {
+                  const cell = column.cell(row);
+                  const tint =
+                    column.key === "total" &&
+                    !flash &&
+                    row.kind !== "group" &&
+                    row.kind !== "total";
+                  const td = cn(
+                    "h-11 border-b border-line px-4 text-end whitespace-nowrap transition-colors duration-500",
+                    tint ? "bg-[color-mix(in_oklab,var(--surface-2)_45%,var(--surface))]" : tone,
+                    // «Итого» прилипает к низу карточки: итог виден при любой прокрутке
+                    row.kind === "total" && "sticky bottom-0 z-[15] border-t",
+                  );
+                  if (row.kind === "frame") {
+                    const text = column.key === "total" ? row.frameTotalText : cell.frame;
+                    return (
+                      <td
+                        key={column.key}
+                        colSpan={3}
+                        className={cn(td, "border-s text-center tnum")}
+                      >
+                        {text ?? ""}
+                      </td>
+                    );
+                  }
+                  return (
+                    <Fragment key={column.key}>
+                      <td className={cn(td, "border-s")}>
+                        <Value text={amountText(cell)} />
+                      </td>
+                      <td className={td}>
+                        <Value text={hoursText(cell)} />
+                      </td>
+                      <td className={td}>
+                        <Value text={rateText(cell)} />
+                      </td>
+                    </Fragment>
+                  );
+                })}
               </tr>
             );
           })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function RowLabel({
+  row,
+  expandable,
+  open,
+  onToggle,
+  isNew,
+}: {
+  row: ReportRow;
+  expandable: boolean;
+  open: boolean;
+  onToggle: (id: string) => void;
+  isNew: boolean;
+}) {
+  const indent = { paddingInlineStart: `${row.level * 16}px` };
+  const label = row.kind === "frame" ? "Рамка смены" : row.label;
+  const tail = (
+    <>
+      {isNew ? <NewDot /> : null}
+      {row.kind !== "frame" && row.kind !== "total" && row.source === "mock" ? <DemoMark /> : null}
+    </>
+  );
+  if (!expandable) {
+    return (
+      <span className="flex min-h-11 items-center gap-2" style={indent}>
+        <span className="size-5 shrink-0" aria-hidden />
+        <span className="truncate" title={label}>
+          {label}
+        </span>
+        {tail}
+      </span>
+    );
+  }
+  // Сворачивает вся подпись строки, а не значок: в значок мышью и пальцем не попасть
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(row.id)}
+      aria-expanded={open}
+      style={indent}
+      className="flex min-h-11 w-full items-center gap-2 rounded-[10px] text-start focus-ring is-hover:text-orange"
+    >
+      <span className="grid size-5 shrink-0 place-items-center text-text-3">
+        {open ? (
+          <ChevronDown className="size-4" aria-hidden />
+        ) : (
+          <ChevronRight className="size-4" aria-hidden />
+        )}
+      </span>
+      <span className="truncate" title={label}>
+        {label}
+      </span>
+      {tail}
+      <span className="sr-only">{open ? ". Свернуть" : ". Развернуть"}</span>
+    </button>
   );
 }
