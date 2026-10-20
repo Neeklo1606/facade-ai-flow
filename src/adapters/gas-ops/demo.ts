@@ -12,6 +12,7 @@ import {
   MINUTES_ERROR_TEXT,
 } from "@/domain/gas-ops/calc";
 import type { AuditLog, Estimate, Review, TimeEntry } from "@/domain/gas-ops/model";
+import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
   GasOpsError,
   type CreateEntryInput,
@@ -66,11 +67,8 @@ function validate(
   }
 
   const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
-  if (
-    actor?.role === "foreman" &&
-    actor.allowedObjectIds !== "all" &&
-    !actor.allowedObjectIds.includes(draft.objectId)
-  ) {
+  const allowed = actor ? allowedObjectIdsFor(snapshot, actor) : "all";
+  if (allowed !== "all" && !allowed.has(draft.objectId)) {
     throw new GasOpsError(
       "not-allowed",
       "Этот объект не закреплён за вашей бригадой. Обратитесь к менеджеру.",

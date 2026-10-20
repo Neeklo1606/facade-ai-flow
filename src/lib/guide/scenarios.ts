@@ -6,6 +6,7 @@
  * действительно делает; где звено имитируется, шаг говорит об этом прямо.
  */
 import type { EmployeeRole } from "@/contracts";
+import type { Role as GasRole } from "@/domain/gas-ops/model";
 
 export interface GuideStep {
   id: string;
@@ -24,6 +25,8 @@ export interface GuideStep {
    * предлагает переключиться в одно касание, данные вкладки сохраняются.
    */
   role?: EmployeeRole;
+  /** Роль газового контура для шага показа «gas-week» (ADR-044, F3) */
+  gasRole?: GasRole;
   doneOn: { screen?: string[]; action?: string[] };
 }
 
@@ -400,9 +403,69 @@ export function scenarioFor(role: EmployeeRole, legacy = false): Scenario {
   return legacy ? byRole[role] : (canonByRole[role] ?? byRole[role]);
 }
 
+/**
+ * Показ газа «gas-week» (ADR-044, F3): путь записи от бригадира до Excel за 3 минуты.
+ * Шаг засчитывается действием экрана; адрес шага строит полоса показа из цепочки вкладки.
+ */
+export const gasWeek: Scenario = {
+  id: "gas-week",
+  title: "Неделя бригады: от бота до Excel",
+  steps: [
+    {
+      id: "gas-enter",
+      text: "Внесите время по объекту на сегодня.",
+      note: "Подсказка: ОБ-200, начало 12:00, окончание 14:30, без перерыва.",
+      target: "bot",
+      gasRole: "foreman",
+      on: ["gas-foreman"],
+      doneOn: { action: ["gasEntrySummary"] },
+    },
+    {
+      id: "gas-send",
+      text: "Отправьте запись и посмотрите номер.",
+      target: "bot-send",
+      gasRole: "foreman",
+      on: ["gas-foreman"],
+      doneOn: { action: ["gasEntrySubmitted"] },
+    },
+    {
+      id: "gas-confirm",
+      text: "Откройте новую запись в проверке и подтвердите её.",
+      target: "review-confirm",
+      gasRole: "manager",
+      on: ["gas-moderation"],
+      doneOn: { action: ["gasEntryConfirmed"] },
+    },
+    {
+      id: "gas-report",
+      text: "Найдите запись в недельном отчёте.",
+      note: "Строка объекта подсвечена: 14 700 ₽, 2,50 ч, 5 880 ₽/ч.",
+      target: "report-row",
+      gasRole: "director",
+      on: ["gas-reports"],
+      doneOn: { action: ["gasReportSeen"] },
+    },
+    {
+      id: "gas-export",
+      text: "Выгрузите Excel.",
+      target: "export",
+      gasRole: "director",
+      on: ["gas-reports"],
+      doneOn: { action: ["gasExport"] },
+    },
+    {
+      id: "gas-finish",
+      text: "Готово: посмотрите, что создано за показ.",
+      on: ["gas-finish"],
+      doneOn: { screen: ["gas-finish"] },
+    },
+  ],
+};
+
 export function scenarioById(id: string | null): Scenario | null {
   return (
-    [...CANON_SCENARIOS, supply, manager, pto, foreman, director].find((item) => item.id === id) ??
-    null
+    [...CANON_SCENARIOS, supply, manager, pto, foreman, director, gasWeek].find(
+      (item) => item.id === id,
+    ) ?? null
   );
 }

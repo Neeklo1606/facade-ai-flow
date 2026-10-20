@@ -5,6 +5,7 @@
  */
 import { flagsOf, hoursOfMinutes, revenuePerHour, totalsOf, type Totals } from "./calc";
 import type {
+  Assignment,
   AuditLog,
   Brigade,
   Employee,
@@ -31,6 +32,8 @@ export interface GasData {
   users: User[];
   /** Рамки смен из отчёта заказчика: нужны строке интервала в «Формате заказчика» */
   frames: { brigadeId: string; employeeId: string | null; day: string; frame: string }[];
+  /** Объекты бригад «на сегодня» (демо-назначения) */
+  assignments: Assignment[];
   /** Журнал действий: кто и что сделал */
   audit: AuditLog[];
   actorId: string;
@@ -228,13 +231,75 @@ export function dashboardMetrics(data: GasData): DashboardMetrics {
   };
 }
 
+/**
+ * Разрешённые объекты бригадира (ТЗ, п. 5.3; ADR-044, F4): объекты, где его бригада работала
+ * или куда назначена, плюс явно закреплённые за ним. Остальные роли вводят по любому объекту.
+ * Бригадир не видит 82 объекта списком: в боте MAX столько кнопок невозможно.
+ */
+export function allowedObjectIdsFor(
+  data: Pick<GasData, "entries" | "assignments">,
+  user: User,
+): Set<string> | "all" {
+  if (user.role !== "foreman" || !user.brigadeId) return "all";
+  const ids = new Set<string>();
+  for (const entry of data.entries) if (entry.brigadeId === user.brigadeId) ids.add(entry.objectId);
+  for (const a of data.assignments)
+    if (a.brigadeId === user.brigadeId) a.objectIds.forEach((id) => ids.add(id));
+  if (user.allowedObjectIds !== "all") user.allowedObjectIds.forEach((id) => ids.add(id));
+  return ids;
+}
+
 /** Объекты, по которым этому человеку разрешено вводить время (ТЗ, п. 5.3) */
 export function allowedObjects(data: GasData): WorkObject[] {
   const actor = actorOf(data);
   if (!actor) return [];
-  if (actor.allowedObjectIds === "all") return data.objects;
-  const allowed = new Set(actor.allowedObjectIds);
+  const allowed = allowedObjectIdsFor(data, actor);
+  if (allowed === "all") return data.objects;
   return data.objects.filter((o) => allowed.has(o.id));
+}
+
+/** Объекты бригады «на сегодня»: первые кнопки бота. Порядок как в назначении */
+export function dayObjects(
+  data: Pick<GasData, "assignments" | "objects">,
+  brigadeId: string,
+  day: string,
+): WorkObject[] {
+  const ids =
+    data.assignments.find((a) => a.brigadeId === brigadeId && a.day === day)?.objectIds ?? [];
+  return ids.map((id) => data.objects.find((o) => o.id === id)).filter((o): o is WorkObject => !!o);
+}
+
+/** Занятые интервалы бригады за день: кнопки времени с ними недоступны (F4) */
+export interface BusyInterval {
+  id: string;
+  number: string;
+  start: number;
+  end: number;
+}
+
+export function busyIntervals(
+  data: Pick<GasData, "entries">,
+  brigadeId: string,
+  day: string,
+  exceptId?: string,
+): BusyInterval[] {
+  return data.entries
+    .filter(
+      (e) =>
+        e.brigadeId === brigadeId &&
+        e.day === day &&
+        e.id !== exceptId &&
+        e.status !== "rejected" &&
+        e.startMinutes !== null &&
+        e.endMinutes !== null,
+    )
+    .map((e) => ({ id: e.id, number: e.number, start: e.startMinutes!, end: e.endMinutes! }))
+    .sort((a, b) => a.start - b.start);
+}
+
+/** Интервал, с которым пересекается [start, end): первый найденный или null */
+export function clashOf(busy: BusyInterval[], start: number, end: number): BusyInterval | null {
+  return busy.find((b) => Math.min(end, b.end) - Math.max(start, b.start) > 0) ?? null;
 }
 
 /** Записи бригадира за день: его история в боте */

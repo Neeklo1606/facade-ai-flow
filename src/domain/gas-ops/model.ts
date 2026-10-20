@@ -107,6 +107,17 @@ export interface TimeEntry {
   excelRow?: number | null;
 }
 
+/**
+ * Назначение бригады на день: какие объекты у неё «на сегодня» (ADR-044, F3–F4). В выгрузке
+ * заказчика назначений нет, поэтому все они демо-данные и помечены `source: "mock"`.
+ */
+export interface Assignment {
+  brigadeId: string;
+  day: string;
+  objectIds: string[];
+  source: DataSource;
+}
+
 export interface Review {
   id: string;
   entryId: string;

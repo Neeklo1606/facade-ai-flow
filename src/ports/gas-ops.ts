@@ -5,6 +5,7 @@
  * демонстрации. Поэтому замена демо-адаптера на сервер не переписывает интерфейс.
  */
 import type {
+  Assignment,
   AuditLog,
   Brigade,
   Employee,
@@ -30,6 +31,8 @@ export interface GasOpsSnapshot {
   reviews: Review[];
   audit: AuditLog[];
   frames: { brigadeId: string; employeeId: string | null; day: string; frame: string }[];
+  /** Объекты бригад «на сегодня»: демо-назначения, в выгрузке заказчика их нет */
+  assignments: Assignment[];
   users: User[];
   /** Кто сейчас в системе: выбирается на экране входа, настоящей проверки пароля нет */
   actorId: string;

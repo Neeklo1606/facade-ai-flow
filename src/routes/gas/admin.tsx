@@ -5,7 +5,7 @@ import { WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
 import { WidgetTable, type WidgetColumn } from "@/components/common/WidgetTable";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Num } from "@/components/gas-ops/marks";
-import { OutOfScopeNotice } from "@/components/gas-ops/GasSection";
+import { GrowthLine } from "@/components/gas-ops/page";
 import { ROLE_LABEL, useGasAudit, useGasUsers, type Role } from "@/api/gas-ops";
 
 /**
@@ -87,10 +87,7 @@ function AdminPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <OutOfScopeNotice>
-        Отдельная веб-админка в договор v1.0 не входит. Для менеджера в договоре простая очередь
-        проверки. Этот экран показывает, что можно вынести в настройку при развитии.
-      </OutOfScopeNotice>
+      <GrowthLine />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <WidgetCard>

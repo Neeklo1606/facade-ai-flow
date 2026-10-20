@@ -12,6 +12,7 @@
  */
 import { factDays, factReport, shiftFrames, type ShiftFrame } from "./fact-report";
 import type {
+  Assignment,
   AuditLog,
   Brigade,
   Employee,
@@ -40,6 +41,7 @@ export interface GasOpsSeed {
   reviews: Review[];
   audit: AuditLog[];
   frames: ShiftFrame[];
+  assignments: Assignment[];
   users: User[];
 }
 
@@ -136,6 +138,15 @@ export function buildSeed(): GasOpsSeed {
       code: "ОБ-103",
       source: "mock",
     },
+    // Объект сценария показа (ADR-044, F3): стоимость подтверждена, записей по нему нет
+    {
+      id: "obj-m200",
+      label: "ст. Петровская, ул. Демо, 200 - котел",
+      settlement: "ст. Петровская",
+      workType: "котел",
+      code: "ОБ-200",
+      source: "mock",
+    },
   ];
 
   const estimates: Estimate[] = [
@@ -175,6 +186,18 @@ export function buildSeed(): GasOpsSeed {
       note: "Ввод: стоимость работ не передана, время есть. Доходность не считается.",
       source: "mock",
     },
+    {
+      id: "est-m200",
+      objectId: "obj-m200",
+      version: 1,
+      amountRub: 14_700,
+      status: "confirmed",
+      origin: "estimate",
+      confirmedBy: MANAGER,
+      confirmedAt: `${GAS_YESTERDAY}T16:00:00`,
+      note: "Итог сметчика: стоимость работ без материалов.",
+      source: "mock",
+    },
   ];
 
   const mock = (
@@ -196,10 +219,11 @@ export function buildSeed(): GasOpsSeed {
       brigadeId: "brg-1",
       employeeId: "emp-1-1",
       objectId: "obj-m1",
+      // Утро до 11:40: у Бригады 1 свободно 12:00–15:00 для сценария показа (ADR-044, F3)
       startMinutes: 8 * 60 + 10,
-      endMinutes: 12 * 60 + 40,
+      endMinutes: 11 * 60 + 40,
       breakMinutes: 30,
-      minutes: 240,
+      minutes: 180,
       amountRub: null,
       status: "draft",
       createdBy: "emp-1-1",
@@ -392,6 +416,30 @@ export function buildSeed(): GasOpsSeed {
     },
   ];
 
+  /*
+   * Назначения «на сегодня» (ADR-044, F3–F4): у каждой бригады 2–5 объектов. В выгрузке
+   * заказчика назначений нет, поэтому это демо-данные: объекты недели бригады плюс демо-объекты.
+   */
+  const assignments: Assignment[] = brigades.map((brigade, index) => {
+    const own = [
+      ...new Set(
+        entries
+          .filter((e) => e.brigadeId === brigade.id)
+          .sort((a, b) => b.day.localeCompare(a.day))
+          .map((e) => e.objectId),
+      ),
+    ];
+    const extra =
+      brigade.id === "brg-1" ? ["obj-m200", "obj-m1"] : index % 2 ? ["obj-m2"] : ["obj-m1"];
+    const picked = [...extra, ...own.filter((id) => !extra.includes(id))].slice(0, 2 + (index % 4));
+    return {
+      brigadeId: brigade.id,
+      day: GAS_TODAY,
+      objectIds: picked.length >= 2 ? picked : [...picked, "obj-m3"],
+      source: "mock",
+    };
+  });
+
   const brigadeOneObjects = [
     ...new Set(entries.filter((e) => e.brigadeId === "brg-1").map((e) => e.objectId)),
   ];
@@ -440,6 +488,7 @@ export function buildSeed(): GasOpsSeed {
     reviews,
     audit,
     frames: shiftFrames(),
+    assignments,
     users,
   };
 }
