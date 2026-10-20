@@ -4,7 +4,8 @@ import { Banknote, Building2, ClipboardCheck, Clock, HardHat, TriangleAlert } fr
 import { MetricStrip } from "@/components/common/MetricStrip";
 import { WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
 import { WidgetTable, type WidgetColumn } from "@/components/common/WidgetTable";
-import { GrowthLine, SourceLegend } from "@/components/gas-ops/page";
+import { GrowthLine, ScreenHint, SourceLegend } from "@/components/gas-ops/page";
+import { GAS_BRAND, gasTitle } from "@/lib/gas-ops/brand";
 import {
   EntryStatusBadge,
   HoursCell,
@@ -24,8 +25,8 @@ import { fmtDate } from "@/lib/format";
 export const Route = createFileRoute("/gas/summary")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Сводка по учёту времени — гайка" }] },
-      "Сводка по учёту времени — гайка",
+      { meta: [{ title: gasTitle("Сводка") }] },
+      gasTitle("Сводка"),
       "Выработка бригад за неделю: суммы, часы, доходность.",
     ),
   component: GasDashboard,
@@ -94,25 +95,34 @@ function GasDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <GrowthLine />
-      <SourceLegend />
+      <div>
+        <ScreenHint screen="summary" className="mb-2" />
+        <GrowthLine />
+        <SourceLegend />
+      </div>
 
       {/*
-        Четыре числа недели. Своя раскладка, а не общая полоса показателей: сумма недели
-        в ней не помещалась и обрезалась многоточием, а главное число экрана читается целиком
-        или не считается показанным.
+        Главная цифра экрана: начислено за неделю, крупно на тёплом поле с шаром (визуал v3).
+        Три числа поменьше рядом. Сумма недели читается целиком, без многоточия.
       */}
-      <section
-        aria-label="Выработка за неделю"
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-      >
+      <section aria-label="Выработка за неделю" className="grid gap-3 lg:grid-cols-3">
+        <article className="hero-field flex min-w-0 flex-col justify-between gap-6 p-6 sm:p-8 lg:col-span-2 lg:row-span-3">
+          <span aria-hidden className="orb -top-20 -left-16 size-[300px] sm:size-[380px]" />
+          <span className="flex items-center gap-2 text-[14px] text-text-2">
+            <Banknote className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
+            Начислено за неделю
+          </span>
+          <div>
+            <p className="text-hero-num break-words" data-testid="summary-amount">
+              {fmtRub(metrics.totals.amountRub)}
+            </p>
+            <p className="mt-3 text-[14px] leading-5 text-text-2">
+              Только подтверждённые записи за {GAS_BRAND.periodLabel}. Те же числа, что в недельном
+              отчёте.
+            </p>
+          </div>
+        </article>
         {[
-          {
-            icon: Banknote,
-            label: "Начислено за неделю",
-            value: fmtRub(metrics.totals.amountRub),
-            note: "только подтверждённые записи",
-          },
           {
             icon: Clock,
             label: "Эффективное время",
@@ -133,15 +143,12 @@ function GasDashboard() {
               metrics.clarify > 0 ? `и ${metrics.clarify} на уточнении` : "очередь проверки пуста",
           },
         ].map((item) => (
-          <article
-            key={item.label}
-            className="flex min-w-0 flex-col gap-1 rounded-[var(--r-md)] border border-line bg-surface p-4"
-          >
+          <article key={item.label} className="card-v3 flex min-w-0 flex-col gap-1 p-5">
             <span className="flex items-center gap-2 text-[13px] text-text-3">
               <item.icon className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
               {item.label}
             </span>
-            <span className="text-[26px] leading-[1.15] font-medium tabular-nums break-words">
+            <span className="tnum text-[28px] leading-[34px] font-semibold tracking-[-0.02em] break-words">
               {item.value}
             </span>
             <span className="text-[12px] text-text-3">{item.note}</span>
@@ -150,31 +157,36 @@ function GasDashboard() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <WidgetCard>
+        <WidgetCard className="card-v3 border-0">
           <WidgetCardHeader
             icon={Clock}
             title="По дням недели"
             hint="Подтверждённые начисления и эффективное время"
             level={2}
           />
-          <ul className="mt-4 flex flex-col gap-3">
+          <ul className="mt-4 flex flex-col gap-1">
             {metrics.byDay.map((day) => (
-              <li key={day.day} className="flex items-center gap-3">
-                <span className="w-24 shrink-0 text-[13px] text-text-2 tabular-nums">
-                  {fmtDate(day.day)}
-                </span>
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
-                  <span
-                    className="block h-full rounded-full bg-primary"
-                    style={{ width: `${Math.round((day.amountRub / maxAmount) * 100)}%` }}
-                  />
-                </span>
-                <span className="w-28 shrink-0 text-right text-[13px] tabular-nums">
-                  {day.amountRub === 0 ? "—" : fmtRub(day.amountRub)}
-                </span>
-                <span className="hidden w-24 shrink-0 text-right text-[13px] text-text-3 tabular-nums sm:block">
-                  {day.minutes === 0 ? "—" : fmtHours(day.minutes / 60)}
-                </span>
+              <li key={day.day}>
+                <Link
+                  to="/gas/entries"
+                  className="-mx-2 flex min-h-12 items-center gap-3 rounded-[var(--r-sm)] px-2 focus-ring is-hover:bg-surface-2"
+                >
+                  <span className="w-24 shrink-0 text-[13px] text-text-2 tabular-nums">
+                    {fmtDate(day.day)}
+                  </span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                    <span
+                      className="block h-full rounded-full bg-orange"
+                      style={{ width: `${Math.round((day.amountRub / maxAmount) * 100)}%` }}
+                    />
+                  </span>
+                  <span className="w-28 shrink-0 text-right text-[13px] tabular-nums">
+                    {day.amountRub === 0 ? "—" : fmtRub(day.amountRub)}
+                  </span>
+                  <span className="hidden w-24 shrink-0 text-right text-[13px] text-text-3 tabular-nums sm:block">
+                    {day.minutes === 0 ? "—" : fmtHours(day.minutes / 60)}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -191,7 +203,7 @@ function GasDashboard() {
           </p>
         </WidgetCard>
 
-        <WidgetCard>
+        <WidgetCard className="card-v3 border-0">
           <WidgetCardHeader
             icon={Building2}
             title="Что в работе"
@@ -233,7 +245,7 @@ function GasDashboard() {
         </WidgetCard>
       </div>
 
-      <WidgetCard>
+      <WidgetCard className="card-v3 border-0">
         <WidgetCardHeader
           icon={ClipboardCheck}
           title="Ждут проверки"
