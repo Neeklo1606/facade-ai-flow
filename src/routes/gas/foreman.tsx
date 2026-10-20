@@ -109,8 +109,8 @@ function ForemanPage() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[390px_minmax(0,1fr)]">
-      <div>
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[390px_minmax(0,1fr)]">
+      <div className="min-w-0">
         <p className="mb-3 flex flex-wrap items-center gap-2 text-[13px] text-text-3">
           <Smartphone className="size-4" aria-hidden />
           Так выглядит в боте MAX.
@@ -409,7 +409,7 @@ function ForemanPage() {
         </div>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <h2 className="text-section-title">Мои записи</h2>
         <p className="mt-1 text-[13px] text-text-3">
           История бригады: что отправлено, что проверено, что вернули. До проверки запись можно

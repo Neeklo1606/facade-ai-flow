@@ -16,7 +16,7 @@ import {
 } from "@/components/gas-ops/marks";
 import { Button } from "@/components/ui/button";
 import { fmtHours, fmtRub, useGasObjects, type ObjectCard } from "@/api/gas-ops";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, plural } from "@/lib/format";
 
 /**
  * Реестр объектов (ТЗ, п. 8). Адрес не единственный ключ: у объекта есть номер.
@@ -85,36 +85,65 @@ function ObjectsPage() {
     [cards, search, onlyWithoutEstimate],
   );
 
+  /* Колонки парами: номер с адресом, дни с часами, сумма с доходностью. Одиннадцать
+     столбцов ломали числа на две строки и читались по складам */
   const columns: WidgetColumn<Row>[] = [
-    { key: "code", header: "Номер", cell: (row) => <Num>{row.code}</Num> },
-    { key: "label", header: "Объект", cell: (row) => row.label },
-    { key: "work", header: "Вид работ", cell: (row) => row.workType },
+    {
+      key: "object",
+      header: "Объект",
+      cell: (row) => (
+        <span className="block min-w-[220px]">
+          <span className="block">{row.label}</span>
+          <span className="block text-text-3">
+            <Num>{row.code}</Num>
+            {row.workType === "не указан" ? "" : ` · ${row.workType}`}
+          </span>
+        </span>
+      ),
+    },
     { key: "brigades", header: "Бригады", cell: (row) => row.brigades },
-    { key: "days", header: "Дней", align: "right", cell: (row) => <Num>{row.days}</Num> },
     {
-      key: "hours",
-      header: "Часы",
+      key: "time",
+      header: "Дней и часов",
       align: "right",
-      cell: (row) => <HoursCell minutes={row.minutes} />,
+      cell: (row) => (
+        <span className="block whitespace-nowrap">
+          <Num className="block">
+            {row.days} {plural(row.days, "день", "дня", "дней")}
+          </Num>
+          <span className="block text-text-3">
+            <HoursCell minutes={row.minutes} />
+          </span>
+        </span>
+      ),
     },
     {
-      key: "amount",
-      header: "Начислено",
+      key: "money",
+      header: "Начислено и доходность",
       align: "right",
-      cell: (row) => <MoneyCell value={row.amountRub} />,
+      cell: (row) => (
+        <span className="block whitespace-nowrap">
+          <MoneyCell value={row.amountRub} />
+          <span className="block text-text-3">
+            <RateCell value={row.revenue} />
+          </span>
+        </span>
+      ),
     },
     {
-      key: "rate",
-      header: "Доходность",
-      align: "right",
-      cell: (row) => <RateCell value={row.revenue} />,
+      key: "estimate",
+      header: "Стоимость работ",
+      cell: (row) => <span className="whitespace-nowrap">{row.estimate}</span>,
     },
-    { key: "estimate", header: "Стоимость работ", cell: (row) => row.estimate },
-    { key: "flags", header: "Признаки", cell: (row) => <FlagList flags={row.card.flags} /> },
     {
-      key: "source",
-      header: "Данные",
-      cell: (row) => <SourceMark source={row.card.object.source} />,
+      key: "flags",
+      header: "Признаки",
+      cell: (row) => (
+        <span className="flex flex-col items-start gap-1">
+          <FlagList flags={row.card.flags} />
+          <SourceMark source={row.card.object.source} />
+        </span>
+      ),
     },
   ];
 
@@ -126,7 +155,7 @@ function ObjectsPage() {
         <WidgetCardHeader
           icon={Building2}
           title="Объекты"
-          hint={`${rows.length} объектов из ${cards.length}`}
+          hint={`${rows.length} ${plural(rows.length, "объект", "объекта", "объектов")} из ${cards.length}`}
           level={2}
         />
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -140,13 +169,15 @@ function ObjectsPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Адрес или номер объекта"
               aria-label="Поиск объекта"
-              className="h-10 w-full rounded-[var(--r-sm)] border border-line bg-surface ps-9 pe-3 text-[13px] focus-ring"
+              className="h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface ps-9 pe-3 text-[13px] focus-ring sm:h-10"
             />
           </label>
           <Button
             variant={onlyWithoutEstimate ? "default" : "outline"}
             size="sm"
+            aria-pressed={onlyWithoutEstimate}
             onClick={() => setOnlyWithoutEstimate((value) => !value)}
+            className="min-h-12 w-full sm:min-h-10 sm:w-auto"
           >
             Без подтверждённой стоимости
           </Button>

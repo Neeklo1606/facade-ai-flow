@@ -56,6 +56,7 @@ const made: string[] = [];
 
 for (const view of [
   { label: "1440", width: 1440, height: 1000 },
+  { label: "768", width: 768, height: 1024 },
   { label: "375", width: 375, height: 812 },
 ]) {
   const context = await browser.newContext({
@@ -79,14 +80,14 @@ for (const view of [
     const leaked = FORBIDDEN.filter((word) => text.includes(word));
     if (leaked.length > 0) problems.push(`${screen.path} ${view.label}: ${leaked.join(", ")}`);
 
-    // Переполнение страницы вбок на телефоне: снимок без него не считается
-    if (view.width === 375) {
-      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      if (scrollWidth > 375) problems.push(`${screen.path} 375: прокрутка страницы ${scrollWidth}`);
+    // Переполнение страницы вбок: снимок с ним не считается ни на одной ширине
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (scrollWidth > view.width) {
+      problems.push(`${screen.path} ${view.label}: прокрутка страницы ${scrollWidth}`);
     }
 
     const file = `${out}/${screen.name}-${view.label}.png`;
-    writeFileSync(file, await page.screenshot({ fullPage: view.width === 1440 }));
+    writeFileSync(file, await page.screenshot({ fullPage: view.width >= 768 }));
     made.push(file);
   }
   await context.close();

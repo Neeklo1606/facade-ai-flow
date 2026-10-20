@@ -26,7 +26,7 @@ import {
   type EntryFlag,
   type EntryStatus,
 } from "@/api/gas-ops";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, plural } from "@/lib/format";
 
 /**
  * Журнал записей времени (ТЗ, п. 8): всё, что заведено, с фильтрами и историей.
@@ -100,42 +100,75 @@ function EntriesPage() {
     [views],
   );
 
+  /*
+   * Колонок меньше, чем полей: смена и время, статус и признаки идут парами в одной ячейке.
+   * Одиннадцать столбцов на экране ломали числа на две строки, а читать таблицу нужно
+   * взглядом, а не по складам.
+   */
   const columns: WidgetColumn<Row>[] = [
-    { key: "number", header: "Номер", cell: (row) => <Num>{row.number}</Num> },
-    { key: "day", header: "Дата", cell: (row) => <Num>{fmtDate(row.day)}</Num> },
-    { key: "brigade", header: "Бригада", cell: (row) => row.brigade },
-    { key: "object", header: "Объект", cell: (row) => row.object },
-    { key: "frame", header: "Смена", align: "right", cell: (row) => <Num>{row.frame}</Num> },
     {
-      key: "minutes",
-      header: "Минуты",
-      align: "right",
-      cell: (row) => <Num>{row.minutes}</Num>,
+      key: "number",
+      header: "Номер и дата",
+      cell: (row) => (
+        <span className="whitespace-nowrap">
+          <Num className="block">{row.number}</Num>
+          <Num className="block text-text-3">{fmtDate(row.day)}</Num>
+        </span>
+      ),
     },
     {
-      key: "hours",
-      header: "Часы",
+      key: "object",
+      header: "Объект и бригада",
+      cell: (row) => (
+        <span className="block min-w-[200px]">
+          <span className="block">{row.object}</span>
+          <span className="block text-text-3">
+            {row.brigade}
+            {row.employee === "—" ? "" : ` · ${row.employee}`}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "time",
+      header: "Смена и время",
       align: "right",
-      cell: (row) => <HoursCell minutes={row.minutes} />,
+      cell: (row) => (
+        <span className="block whitespace-nowrap">
+          <Num className="block">{row.frame}</Num>
+          <Num className="block text-text-3">
+            {row.minutes} мин · <HoursCell minutes={row.minutes} />
+          </Num>
+        </span>
+      ),
     },
     ...(actor.canSeeMoney
       ? [
           {
-            key: "amount",
-            header: "Сумма",
+            key: "money",
+            header: "Сумма и доходность",
             align: "right" as const,
-            cell: (row: Row) => <MoneyCell value={row.amountRub} />,
-          },
-          {
-            key: "rate",
-            header: "Доходность",
-            align: "right" as const,
-            cell: (row: Row) => <RateCell value={row.revenue} />,
+            cell: (row: Row) => (
+              <span className="block whitespace-nowrap">
+                <MoneyCell value={row.amountRub} />
+                <span className="block text-text-3">
+                  <RateCell value={row.revenue} />
+                </span>
+              </span>
+            ),
           },
         ]
       : []),
-    { key: "status", header: "Статус", cell: (row) => <EntryStatusBadge status={row.status} /> },
-    { key: "flags", header: "Признаки", cell: (row) => <FlagList flags={row.flags} /> },
+    {
+      key: "status",
+      header: "Статус",
+      cell: (row) => (
+        <span className="flex flex-col items-start gap-1">
+          <EntryStatusBadge status={row.status} />
+          <FlagList flags={row.flags} />
+        </span>
+      ),
+    },
     { key: "source", header: "Данные", cell: (row) => <SourceMark source={row.source} /> },
   ];
 
@@ -147,7 +180,7 @@ function EntriesPage() {
         <WidgetCardHeader
           icon={ListFilter}
           title="Журнал записей"
-          hint={`${rows.length} записей по текущим фильтрам`}
+          hint={`${rows.length} ${plural(rows.length, "запись", "записи", "записей")} по текущим фильтрам`}
           level={2}
         />
 
@@ -162,7 +195,7 @@ function EntriesPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Номер, объект, бригада"
-              className="h-10 w-full rounded-[var(--r-sm)] border border-line bg-surface ps-9 pe-3 text-[13px] focus-ring"
+              className="h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface ps-9 pe-3 text-[13px] focus-ring sm:h-10"
             />
           </label>
 
@@ -268,12 +301,12 @@ function Select({
   options: { value: string; label: string }[];
 }) {
   return (
-    <label className="block text-[13px] text-text-3">
+    <label className="block w-full text-[13px] text-text-3 sm:w-auto">
       <span className="mb-1 block">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 min-w-[150px] rounded-[var(--r-sm)] border border-line bg-surface px-2 text-[13px] text-text focus-ring"
+        className="h-12 w-full min-w-[150px] rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[13px] text-text focus-ring sm:h-10 sm:w-auto"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

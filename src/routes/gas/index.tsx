@@ -48,10 +48,26 @@ function GasDashboard() {
     status: "draft" | "pending" | "confirmed" | "rejected" | "clarify";
     source: "fact-report" | "mock";
   }>[] = [
-    { key: "number", header: "Номер", cell: (row) => <Num>{row.number}</Num> },
-    { key: "day", header: "Дата", cell: (row) => <Num>{fmtDate(row.day)}</Num> },
-    { key: "brigade", header: "Бригада", cell: (row) => row.brigade },
-    { key: "object", header: "Объект", cell: (row) => row.object },
+    {
+      key: "number",
+      header: "Номер и дата",
+      cell: (row) => (
+        <span className="whitespace-nowrap">
+          <Num className="block">{row.number}</Num>
+          <Num className="block text-text-3">{fmtDate(row.day)}</Num>
+        </span>
+      ),
+    },
+    {
+      key: "object",
+      header: "Объект и бригада",
+      cell: (row) => (
+        <span className="block min-w-[200px]">
+          <span className="block">{row.object}</span>
+          <span className="block text-text-3">{row.brigade}</span>
+        </span>
+      ),
+    },
     {
       key: "hours",
       header: "Время",
@@ -64,8 +80,16 @@ function GasDashboard() {
       align: "right",
       cell: (row) => <MoneyCell value={row.amountRub} />,
     },
-    { key: "status", header: "Статус", cell: (row) => <EntryStatusBadge status={row.status} /> },
-    { key: "source", header: "Данные", cell: (row) => <SourceMark source={row.source} /> },
+    {
+      key: "status",
+      header: "Статус",
+      cell: (row) => (
+        <span className="flex flex-col items-start gap-1">
+          <EntryStatusBadge status={row.status} />
+          <SourceMark source={row.source} />
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -75,9 +99,16 @@ function GasDashboard() {
       </OutOfScopeNotice>
       <DataSourceLegend />
 
-      <MetricStrip
-        label="Выработка за неделю"
-        items={[
+      {/*
+        Четыре числа недели. Своя раскладка, а не общая полоса показателей: сумма недели
+        в ней не помещалась и обрезалась многоточием, а главное число экрана читается целиком
+        или не считается показанным.
+      */}
+      <section
+        aria-label="Выработка за неделю"
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {[
           {
             icon: Banknote,
             label: "Начислено за неделю",
@@ -100,10 +131,25 @@ function GasDashboard() {
             icon: ClipboardCheck,
             label: "Ждут проверки",
             value: String(metrics.pending),
-            note: metrics.clarify > 0 ? `и ${metrics.clarify} на уточнении` : undefined,
+            note:
+              metrics.clarify > 0 ? `и ${metrics.clarify} на уточнении` : "очередь проверки пуста",
           },
-        ]}
-      />
+        ].map((item) => (
+          <article
+            key={item.label}
+            className="flex min-w-0 flex-col gap-1 rounded-[var(--r-md)] border border-line bg-surface p-4"
+          >
+            <span className="flex items-center gap-2 text-[13px] text-text-3">
+              <item.icon className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
+              {item.label}
+            </span>
+            <span className="text-[26px] leading-[1.15] font-medium tabular-nums break-words">
+              {item.value}
+            </span>
+            <span className="text-[12px] text-text-3">{item.note}</span>
+          </article>
+        ))}
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <WidgetCard>
@@ -134,6 +180,17 @@ function GasDashboard() {
               </li>
             ))}
           </ul>
+          {/* Итог недели той же строкой: он и есть то, ради чего смотрят на дни */}
+          <p className="mt-4 flex items-center gap-3 border-t border-line pt-3 text-[13px]">
+            <span className="w-24 shrink-0 text-text-2">Неделя</span>
+            <span className="flex-1" />
+            <span className="w-28 shrink-0 text-right font-medium tabular-nums">
+              {fmtRub(metrics.totals.amountRub)}
+            </span>
+            <span className="hidden w-24 shrink-0 text-right tabular-nums sm:block">
+              {fmtHours(metrics.totals.hours)}
+            </span>
+          </p>
         </WidgetCard>
 
         <WidgetCard>
@@ -167,10 +224,13 @@ function GasDashboard() {
               </div>
             ))}
           </dl>
-          <p className="mt-4 flex items-center gap-2 text-[13px] text-text-3">
-            <TriangleAlert className="size-4 text-warn" aria-hidden />
-            Строка «Итого» в файле заказчика больше суммы видимых групп: см. вывод в
-            docs/claude/01-DATA-AUDIT.md
+          <p className="mt-4 flex items-start gap-2 text-[13px] text-text-3">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
+            <span>
+              Строка «Итого» в файле заказчика больше суммы видимых строк: в выгрузку не попали два
+              подразделения. Система считает по тому, что видит, и расхождение вынесено в вопрос
+              заказчику.
+            </span>
           </p>
         </WidgetCard>
       </div>

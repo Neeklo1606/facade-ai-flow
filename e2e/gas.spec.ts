@@ -164,7 +164,8 @@ test.describe("отчёт и выгрузка", () => {
   test("уровни отчёта сворачиваются", async ({ page }) => {
     await open(page, "/gas/reports");
     const rowsBefore = await page.locator("tbody tr").count();
-    await page.getByRole("button", { name: /Свернуть 1\. СТАЛЬНЫЕ/ }).click();
+    // Сворачивает вся подпись строки, а не значок: кнопка названа строкой и действием
+    await page.getByRole("button", { name: /1\. СТАЛЬНЫЕ/ }).click();
     const rowsAfter = await page.locator("tbody tr").count();
     expect(rowsAfter).toBeLessThan(rowsBefore);
   });

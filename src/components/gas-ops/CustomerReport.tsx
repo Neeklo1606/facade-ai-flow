@@ -146,34 +146,45 @@ export function CustomerReport({ rows, days }: { rows: ReportRow[]; days: string
                         : "bg-surface",
                   )}
                 >
-                  <span
-                    className="flex items-center gap-1.5"
-                    style={{ paddingInlineStart: `${row.level * 14}px` }}
-                  >
-                    {expandable ? (
-                      <button
-                        type="button"
-                        onClick={() => toggle(row.id)}
-                        aria-expanded={isOpen}
-                        className="grid size-6 shrink-0 place-items-center rounded-[var(--r-xs)] text-text-3 hover:bg-surface-2 focus-ring"
-                      >
+                  {/*
+                    Сворачивает вся подпись строки, а не значок: значок 24 px мимо пальца
+                    на телефоне. Строка без детей подписью и остаётся, кнопкой не притворяется.
+                  */}
+                  {expandable ? (
+                    <button
+                      type="button"
+                      onClick={() => toggle(row.id)}
+                      aria-expanded={isOpen}
+                      style={{ paddingInlineStart: `${row.level * 14}px` }}
+                      className="flex min-h-11 w-full items-center gap-1.5 rounded-[var(--r-xs)] text-start transition-fast hover:bg-surface-2 focus-ring lg:min-h-0"
+                    >
+                      <span className="grid size-6 shrink-0 place-items-center text-text-3">
                         {isOpen ? (
                           <ChevronDown className="size-4" aria-hidden />
                         ) : (
                           <ChevronRight className="size-4" aria-hidden />
                         )}
-                        <span className="sr-only">
-                          {isOpen ? "Свернуть" : "Развернуть"} {row.label}
-                        </span>
-                      </button>
-                    ) : (
+                      </span>
+                      <span className="truncate" title={row.label}>
+                        {row.label}
+                      </span>
+                      {row.source === "mock" && <SourceMark source="mock" />}
+                      <span className="sr-only">{isOpen ? ". Свернуть" : ". Развернуть"}</span>
+                    </button>
+                  ) : (
+                    <span
+                      className="flex min-h-11 items-center gap-1.5 lg:min-h-0"
+                      style={{ paddingInlineStart: `${row.level * 14}px` }}
+                    >
                       <span className="size-6 shrink-0" aria-hidden />
-                    )}
-                    <span className="truncate" title={row.label}>
-                      {row.kind === "frame" ? "Рамка смены" : row.label}
+                      <span className="truncate" title={row.label}>
+                        {row.kind === "frame" ? "Рамка смены" : row.label}
+                      </span>
+                      {row.kind !== "frame" && row.source === "mock" && (
+                        <SourceMark source="mock" />
+                      )}
                     </span>
-                    {row.kind !== "frame" && row.source === "mock" && <SourceMark source="mock" />}
-                  </span>
+                  )}
                 </th>
 
                 {row.days.map((cell, index) => (

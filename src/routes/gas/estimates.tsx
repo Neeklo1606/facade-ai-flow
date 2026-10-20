@@ -160,12 +160,12 @@ function EstimatesPage() {
             level={2}
           />
           <div className="mt-4 flex flex-wrap items-end gap-3">
-            <label className="block text-[13px] text-text-3">
+            <label className="block w-full text-[13px] text-text-3 sm:w-auto">
               <span className="mb-1 block">Объект</span>
               <select
                 value={objectId}
                 onChange={(event) => setObjectId(event.target.value)}
-                className="h-10 min-w-[280px] rounded-[var(--r-sm)] border border-line bg-surface px-2 text-[13px] text-text focus-ring"
+                className="h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[13px] text-text focus-ring sm:h-10 sm:w-[320px]"
               >
                 <option value="">Выберите объект</option>
                 {directory.objects.map((object) => (
@@ -175,14 +175,14 @@ function EstimatesPage() {
                 ))}
               </select>
             </label>
-            <label className="block text-[13px] text-text-3">
+            <label className="block w-full text-[13px] text-text-3 sm:w-auto">
               <span className="mb-1 block">Стоимость работ, ₽</span>
               <input
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
                 inputMode="numeric"
                 placeholder="14700"
-                className="h-10 w-[160px] rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[13px] tabular-nums focus-ring"
+                className="h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[13px] tabular-nums focus-ring sm:h-10 sm:w-[160px]"
               />
             </label>
             <label className="block flex-1 text-[13px] text-text-3">
@@ -191,10 +191,10 @@ function EstimatesPage() {
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="Откуда сумма: договор, прайс, согласование"
-                className="h-10 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[13px] focus-ring"
+                className="h-12 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 text-[13px] focus-ring sm:h-10"
               />
             </label>
-            <Button onClick={() => void save()} className="min-h-10">
+            <Button onClick={() => void save()} className="min-h-12 w-full sm:w-auto">
               Подтвердить стоимость
             </Button>
           </div>

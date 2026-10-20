@@ -85,8 +85,10 @@ function ModerationPage() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <div className="flex flex-col gap-4">
+    /* min-w-0 обязателен: иначе широкая карточка справа растягивает колонку, и на телефоне
+       очередь уезжает за правый край экрана */
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+      <div className="flex min-w-0 flex-col gap-4">
         <div className="-mx-1 overflow-x-auto px-1">
           <PillTabs
             label="Статус записи"
@@ -124,6 +126,8 @@ function ModerationPage() {
                 <li key={row.entry.id}>
                   <button
                     type="button"
+                    // Выбранная запись названа выбранной и для чтения с экрана, не только рамкой
+                    aria-pressed={active}
                     onClick={() => {
                       setSelected(row.entry.id);
                       setComment("");
@@ -162,7 +166,7 @@ function ModerationPage() {
         )}
       </div>
 
-      <div>
+      <div className="min-w-0">
         {current ? (
           <WidgetCard>
             <WidgetCardHeader
