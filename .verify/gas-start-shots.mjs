@@ -71,9 +71,9 @@ for (const theme of ["light", "dark"]) {
         errors.push(`${name} ${label} ${theme}: горизонтальное переполнение ${overflow}px`);
       if (mobile) {
         // Снимок первого экрана телефона как его видит человек: шапка и нижняя панель на месте
-        await page.screenshot({ path: `${out}/${name}-${label}-${theme}-top.png` });
+        await page.screenshot({ path: `${out}/${name}-${label}-${theme}-top.jpg` });
       }
-      await page.screenshot({ path: `${out}/${name}-${label}-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${out}/${name}-${label}-${theme}.jpg`, fullPage: true });
     }
     await context.close();
   }
