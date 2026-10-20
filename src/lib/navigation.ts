@@ -21,6 +21,7 @@ import {
   Inbox,
   AlertTriangle,
   ClipboardCheck,
+  Clock,
   LayoutDashboard,
   LifeBuoy,
   PackageCheck,
@@ -159,6 +160,15 @@ export const navGroups: NavGroup[] = [
         legacy: true,
       },
     ],
+  },
+  {
+    /*
+     * Газовое направление (ADR-043): учёт фактического времени бригад, проверка и недельный
+     * отчёт. Раздел прав у пункта нет: у направления свой набор ролей и свой переключатель
+     * в шапке раздела. Это удобство показа, а не защита.
+     */
+    title: "Газ",
+    items: [{ key: "gas", label: "Учёт времени", icon: Clock, to: "/gas" }],
   },
   {
     title: "Площадка",
@@ -335,6 +345,7 @@ export function activeNavKey(pathname: string, _view: string, pickSection: strin
   if (pathname === "/today") return "today";
   if (pathname === "/check") return "check";
   if (pathname === "/agent") return "agent";
+  if (pathname === "/gas" || pathname.startsWith("/gas/")) return "gas";
   if (pathname === "/access") return "access";
   if (pathname === "/catalogs" || pathname === "/office/catalogs") return "catalogs";
   if (pathname.startsWith("/office")) return "office";

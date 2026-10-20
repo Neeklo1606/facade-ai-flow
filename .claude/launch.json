@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gas-ops",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev", "--port", "5273"],
+      "port": 5273
+    }
+  ]
+}
