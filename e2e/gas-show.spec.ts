@@ -17,7 +17,7 @@ const FILE = "Выработка_бригад_28.09-03.10.2026.xlsx";
 test.describe.configure({ timeout: 180_000 });
 
 const dock = (page: Page) => page.locator("[data-gas-show-dock]");
-const plain = (value: string) => value.replace(/[  ]/g, " ");
+const plain = (value: string) => value.replace(/[\u00a0\u202f]/g, " ");
 
 /** Ответ на последнее сообщение бота */
 async function answer(bot: Locator, name: string | RegExp) {
