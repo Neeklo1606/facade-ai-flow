@@ -14,7 +14,6 @@ import { useEffect, type ReactNode, lazy, Suspense } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { reportClientError, startErrorReporting } from "@/lib/error-report";
-import { RolePicker } from "@/components/guide/RolePicker";
 import { AccessBoundary } from "@/components/access/AccessBoundary";
 import { LegacyBoundary } from "@/components/access/LegacyBoundary";
 import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
@@ -22,6 +21,11 @@ import { AppProvider } from "@/lib/app-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BOOT_SPLASH_HTML, BOOT_SPLASH_SCRIPT } from "@/lib/boot-splash";
 // Кабинет компании — отдельная поверхность: его макет грузится, только когда открыт /office
+// Экран входа показа грузится отдельным куском: до загрузки скриптов его повторяет заставка
+// (boot-splash), поэтому первый экран не меняется, а первый кусок держит порог бандла (ADR-044)
+const RolePicker = lazy(() =>
+  import("@/components/guide/RolePicker").then((module) => ({ default: module.RolePicker })),
+);
 // Оболочка газа нужна только на /gas/*: в общий набор первого экрана она не едет (ADR-044)
 const GasShell = lazy(() =>
   import("@/components/gas-ops/shell/GasShell").then((module) => ({ default: module.GasShell })),
@@ -237,7 +241,11 @@ function RootComponent() {
             В разделе «Газ: учёт времени» его нет: у направления свой набор ролей и свой
             переключатель в шапке раздела, два выбора роли подряд только путают (ADR-043).
           */}
-          {pathname.startsWith("/gas") ? null : <RolePicker />}
+          {pathname.startsWith("/gas") ? null : (
+            <Suspense fallback={null}>
+              <RolePicker />
+            </Suspense>
+          )}
           {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}
           <Toaster position="top-center" offset={{ top: 64 }} mobileOffset={{ top: 64 }} />
         </TooltipProvider>

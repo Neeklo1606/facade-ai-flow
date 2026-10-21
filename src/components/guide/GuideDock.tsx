@@ -166,7 +166,7 @@ export function GuideDock() {
        * Полоса шагов под шапкой (правило 7 этапа D, ADR-041): не плавает поверх, не закрывает
        * кнопки. Живёт между шапкой и содержимым, поэтому контент под ней не уходит.
        */
-      className="mb-4 flex min-h-12 shrink-0 items-center gap-2 border-b border-line bg-base px-[var(--content-pad)]"
+      className="mx-[var(--content-pad)] mb-4 flex min-h-12 shrink-0 items-center gap-2 rounded-[24px] bg-surface ps-4 pe-1 shadow-[var(--lift-1)] ring-1 ring-orange-line"
     >
       <section
         aria-label="Подсказки по сценарию"

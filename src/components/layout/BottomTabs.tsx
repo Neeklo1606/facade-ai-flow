@@ -85,7 +85,11 @@ export function BottomTabs() {
         aria-label="Основная навигация"
         data-keyboard={keyboardOpen ? "open" : undefined}
         className={cn(
-          "glass-bar fixed inset-x-0 bottom-0 z-40 grid h-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] items-center pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
+          /*
+           * v3 (ADR-044): плавающая стеклянная капсула, как док в референсах. Отступ от краёв
+           * и от полосы жестов, активная позиция залита цветом главной кнопки.
+           */
+          "glass fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 mx-auto grid h-[68px] max-w-[520px] items-center gap-1 rounded-[28px] p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.28)] transition-fast lg:hidden",
           // Пока фокус в поле ввода, панель уходит: место под неё остаётся, чтобы не прыгало
           keyboardOpen && "pointer-events-none translate-y-full opacity-0",
           // Колонок ровно по числу позиций: классы записаны целиком, иначе сборщик их не соберёт
@@ -126,7 +130,8 @@ export function BottomTabs() {
               aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
               data-tour="nav-plus"
               className={cn(
-                "focus-ring press border border-line-2 bg-pill text-pill-text transition-fast -mt-4 grid size-14 place-items-center rounded-full p-0 hover:bg-pill hover:text-pill-text [&_svg]:size-6",
+                // Тёплая капсула со свечением: единственный свет панели (дизайн-система, раздел 8)
+                "focus-ring press glow-ember bg-pill text-pill-text transition-fast -mt-6 grid size-16 place-items-center rounded-full p-0 hover:bg-pill hover:text-pill-text [&_svg]:size-6",
               )}
             >
               <Mic className="size-6" strokeWidth={2} aria-hidden />
@@ -148,7 +153,7 @@ export function BottomTabs() {
           type="button"
           onClick={() => setMoreOpen(true)}
           aria-label="Ещё: разделы, тема, справка"
-          className="focus-ring text-text-3 transition-fast flex h-full min-h-12 flex-col items-center justify-center gap-1 rounded-none px-0 text-[13px] leading-none [&_svg]:size-6"
+          className="focus-ring text-text-2 transition-fast flex h-full min-h-12 flex-col items-center justify-center gap-1 rounded-[22px] px-0 text-[12px] leading-none font-medium [&_svg]:size-5"
         >
           <Menu className="size-6" strokeWidth={1.75} aria-hidden />
           Ещё
@@ -194,20 +199,13 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
       data-tour={`nav-${item.key}`}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "focus-ring transition-fast relative flex h-full min-h-12 flex-col items-center justify-center gap-1 text-[13px] leading-none",
-        active ? "font-medium text-text" : "text-text-3",
+        "focus-ring transition-fast press relative flex h-full min-h-12 flex-col items-center justify-center gap-1 rounded-[22px] text-[12px] leading-none font-medium",
+        // «Где я» — капсула цвета главной кнопки, без оранжевого: оранжевый у микрофона
+        active ? "bg-pill text-pill-text" : "text-text-2",
       )}
     >
-      {/* Индикатор 3 px над иконкой: «где я» читается без акцентного цвета */}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute top-0 h-[3px] w-8 rounded-b-[2px]",
-          active ? "bg-text" : "bg-transparent",
-        )}
-      />
       <span className="relative">
-        <item.icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
+        <item.icon className="size-5" strokeWidth={active ? 2 : 1.75} aria-hidden />
         {count > 0 && (
           <span
             className={cn(

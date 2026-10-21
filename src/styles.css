@@ -151,7 +151,7 @@
   --sidebar-w: 248px;
   --topbar-h: 56px;
   /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
-  --bottom-nav-h: 72px;
+  --bottom-nav-h: 80px;
   /* Отступ контента от краёв оболочки */
   --content-pad: 20px;
 
@@ -936,9 +936,9 @@
   height: 56px;
   flex-direction: column;
   justify-content: center;
-  padding-inline: 14px 36px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--line-2);
+  padding-inline: 16px 36px;
+  border-radius: var(--r-lg);
+  border: 1px solid transparent;
   background: var(--surface);
   box-shadow: none;
   &:hover {
@@ -966,7 +966,7 @@
   align-items: center;
   gap: 12px;
   padding-inline: 12px;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-pill);
   font-size: 14px;
   line-height: 1;
   font-weight: 400;
@@ -991,24 +991,15 @@
     height: 48px;
   }
   /* Активный: оранжевая заливка на всю ширину, без полосы слева */
+  /* v3 (ADR-044): активный пункт залит цветом главной кнопки, как капсула «All» в референсе */
   &[data-active="true"] {
-    background: var(--nav-active);
-    color: var(--text);
-    font-weight: 600;
+    background: var(--pill-bg);
+    color: var(--pill-text);
+    font-weight: 500;
     box-shadow: none;
   }
   &[data-active="true"] svg {
-    color: var(--text);
-  }
-  &[data-active="true"]::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 12px;
-    bottom: 12px;
-    width: 3px;
-    border-radius: var(--r-pill);
-    background: var(--nav-marker);
+    color: var(--pill-text);
   }
 }
 @utility nav-badge {
@@ -1068,9 +1059,12 @@
   align-items: center;
   gap: 12px;
   padding-inline: var(--content-pad);
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 24px;
+  /* v3 (ADR-044): стекло без линии, как шапка календаря в референсах */
+  background: color-mix(in oklab, var(--base) 78%, transparent);
+  backdrop-filter: saturate(1.4) blur(20px);
+  -webkit-backdrop-filter: saturate(1.4) blur(20px);
+  border-bottom: 1px solid transparent;
+  margin-bottom: 20px;
   @media (min-width: 768px) {
     padding-inline: var(--content-pad);
   }
@@ -1081,9 +1075,9 @@
   width: 240px;
   align-items: center;
   gap: 10px;
-  padding-inline: 14px 6px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
+  padding-inline: 16px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
   background: var(--surface-2);
   font-size: 13px;
   color: var(--text-3);
@@ -1122,7 +1116,7 @@
   height: 48px;
   flex-shrink: 0;
   place-items: center;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--text-2);
   & svg {
@@ -1166,10 +1160,10 @@
   flex-shrink: 0;
   place-items: center;
   border-radius: 50%;
-  background: var(--surface-3);
+  background: var(--pill-bg);
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
+  font-weight: 600;
+  color: var(--pill-text);
 }
 
 /* ---------------------------------------------------------------- Экранные блоки */
@@ -1455,12 +1449,23 @@
   overscroll-behavior: contain;
 }
 
-html[data-boot-compact] [data-boot-hero] { display: none; }
+html[data-boot-compact] [data-boot-hero] {
+  display: none;
+}
 
 @media (max-width: 1023px) {
-  .content-header { margin-bottom: 20px; gap: 8px; }
-  .widget-card { padding: 20px; }
-  input, select, textarea { font-size: 16px; }
+  .content-header {
+    margin-bottom: 20px;
+    gap: 8px;
+  }
+  .widget-card {
+    padding: 20px;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 /* ---------------------------------------------------------------- Приёмы v3 (ADR-044) */
@@ -1477,8 +1482,7 @@ html[data-boot-compact] [data-boot-hero] { display: none; }
   background:
     radial-gradient(90% 120% at 0% 0%, var(--hero-a) 0%, transparent 60%),
     radial-gradient(80% 110% at 100% 0%, var(--hero-b) 0%, transparent 62%),
-    radial-gradient(120% 90% at 50% 120%, var(--hero-c) 0%, transparent 70%),
-    var(--surface);
+    radial-gradient(120% 90% at 50% 120%, var(--hero-c) 0%, transparent 70%), var(--surface);
   --hero-a: rgba(241, 96, 1, 0.42);
   --hero-b: rgba(217, 195, 171, 0.22);
   --hero-c: rgba(143, 29, 11, 0.4);
