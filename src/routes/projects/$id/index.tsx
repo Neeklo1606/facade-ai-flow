@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 import { MetricStrip } from "@/components/common/MetricStrip";
 import { PageHeader } from "@/components/common/PageHeader";
-import { PillTabs } from "@/components/common/PillTabs";
+import { SegTabs } from "@/components/v3";
+import { ProjectHealth } from "@/components/project/ProjectHealth";
+import { ProjectFeed } from "@/components/project/ProjectFeed";
 import { isLegacySection, legacyModulesEnabled } from "@/lib/legacy-modules";
 import { PageCaption } from "@/components/layout/PageActions";
 import { SourceDrawer } from "@/components/common/SourceRef";
@@ -63,6 +65,7 @@ import { prefetch } from "@/api/prefetch";
 /** Вкладки карточки и разделы прав, которым они принадлежат (ADR-012) */
 const tabs = [
   { id: "summary", label: "Сводка", section: "projects" },
+  { id: "feed", label: "Лента", section: "field-reports" },
   { id: "documents", label: "Документация", section: "documents" },
   { id: "materials", label: "Материалы", section: "materials" },
   { id: "purchases", label: "Закупки", section: "procurement" },
@@ -75,13 +78,15 @@ const tabs = [
 type TabId = (typeof tabs)[number]["id"];
 
 /** Вкладки карточки ГАЙКИ без флага `legacy_modules` (ADR-041) */
-const GAIKA_TABS = new Set<string>(["progress", "team"]);
+const GAIKA_TABS = new Set<string>(["feed", "progress", "team"]);
 
 /** Цвет статуса объекта текстом в подписи шапки */
 export const Route = createFileRoute("/projects/$id/")({
   validateSearch: (search: Record<string, unknown>): { tab?: TabId | undefined } => ({
     tab:
-      tabs.some((t) => t.id === search["tab"]) && search["tab"] !== "summary"
+      tabs.some((t) => t.id === search["tab"]) &&
+      search["tab"] !== "summary" &&
+      search["tab"] !== "feed"
         ? (search["tab"] as TabId)
         : undefined,
   }),
@@ -130,10 +135,12 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
   /*
    * Без флага `legacy_modules` карточка объекта — ГАЙКИ, а не FieldOps (ADR-041): «Сводка»
    * прежнего контура считала позиции спецификации и закупки, «Решения» и «История» читают
-   * события закупок. Остаются «Ход работ» по захваткам и «Команда»; первым — ход работ.
+   * события закупок. Остаются «Ход работ» по захваткам и «Команда». Первой стоит «Лента»
+   * (продукт, раздел 7: «Объект»): события объекта, а не сообщения; здоровье объекта — над
+   * вкладками.
    */
   const legacy = legacyModulesEnabled();
-  const defaultTab: TabId = legacy ? "summary" : "progress";
+  const defaultTab: TabId = legacy ? "summary" : "feed";
   const { tab: requested = defaultTab } = Route.useSearch();
   /*
    * Вкладки модулей за флагом `legacy_modules` уходят вместе с модулями (ADR-034, п. 4):
@@ -141,7 +148,8 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
    */
   const visibleTabs = tabs.filter(
     (item) =>
-      can(item.section) && (legacy || (!isLegacySection(item.section) && GAIKA_TABS.has(item.id))),
+      can(item.section) &&
+      (legacy ? item.id !== "feed" : !isLegacySection(item.section) && GAIKA_TABS.has(item.id)),
   );
   // Вкладка раздела, закрытого роли, по ссылке не открывается — показываем первую
   const tab: TabId = visibleTabs.some((item) => item.id === requested)
@@ -245,6 +253,7 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
     documents: <DocumentsPreview {...shared} />,
     materials: <MaterialsPreview {...shared} />,
     purchases: <PurchasesPreview {...shared} />,
+    feed: <ProjectFeed project={project} />,
     progress: <ProgressTab project={project} onSource={setSourceId} />,
     decisions: <DecisionsPreview {...shared} />,
     history: <HistoryPreview {...shared} />,
@@ -296,6 +305,8 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         </span>
       </div>
 
+      <ProjectHealth project={project} overview={overview} />
+
       {figures.length > 0 ? (
         <MetricStrip
           className="mb-5"
@@ -321,11 +332,11 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         />
       ) : null}
 
-      <PillTabs
+      <SegTabs
         className="mb-5"
         label="Разделы объекта"
         value={tab}
-        onChange={(next) => setTab(next)}
+        onChange={(next) => void setTab(next)}
         tabs={visibleTabs.map((item) => ({
           value: item.id,
           label: item.label,
@@ -382,7 +393,8 @@ function ProjectPage({ project, overview, contract }: ProjectPageProps): React.J
         </ScreenGate>
       </div>
 
-      {!blocked && can("documents", "write") && (
+      {/* Загрузка документации — модуль прежнего контура: без флага кнопки нет и в шапке */}
+      {legacy && !blocked && can("documents", "write") && (
         <MobileActionBar>
           <Button variant="accent" onClick={() => setUploadOpen(true)}>
             <Upload className="size-4" /> Загрузить документацию

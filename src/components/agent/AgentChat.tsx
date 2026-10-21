@@ -174,36 +174,37 @@ export function AgentChat() {
                   ref={introRef}
                   aria-label="Начало диалога"
                   className={cn(
-                    "mx-auto flex max-w-[614px] flex-col items-center text-center transition-opacity duration-200",
+                    "mx-auto flex max-w-[760px] flex-col items-center text-center transition-opacity duration-200",
                     phase === "leaving" && "opacity-0",
                   )}
                 >
                   <h1
                     ref={titleRef}
                     className={cn(
-                      "text-[32px] leading-[1.05] font-semibold tracking-[-0.025em] text-text transition-opacity duration-200 sm:text-[44px]",
+                      "text-display text-balance transition-opacity duration-200",
                       greeting ? "opacity-100" : "opacity-0",
                     )}
                   >
                     {greeting ?? "Здравствуйте"}
-                    {firstName && `, ${firstName}`}
+                    {firstName ? "," : null}
+                    {firstName ? <span className="tone-2 block">{firstName}</span> : null}
                   </h1>
-                  <p className="mt-3 max-w-[460px] text-[14px] leading-[1.5] text-text-3">
+                  <p className="mt-4 max-w-[460px] text-[15px] leading-[1.5] text-text-2">
                     Спросите о любом объекте, документе или поставке. Ответ будет со ссылкой на
                     источник
                   </p>
-                  <div className="mt-12 grid w-full grid-cols-1 justify-center gap-3.5 sm:w-auto lg:grid-cols-[repeat(2,300px)]">
+                  <div className="mt-8 grid w-full grid-cols-2 gap-3 sm:mt-10 lg:grid-cols-4">
                     {quickActions.map((action) => (
                       <button
                         key={action.intent}
                         type="button"
                         onClick={() => void send(action.prompt, action.intent)}
                         disabled={phase !== "empty"}
-                        className="focus-ring flex h-16 w-full items-center gap-3.5 rounded-[var(--r-md)] border border-line bg-surface px-4 text-left text-[15px] font-medium text-text transition-fast is-hover:border-line-2 is-hover:bg-surface-2 is-hover:shadow-[var(--lift-2)] sm:h-[76px] sm:w-[300px]"
+                        className="card-v3 focus-ring press flex min-h-[112px] w-full flex-col items-start justify-between gap-4 p-4 text-left text-[15px] leading-[1.3] font-medium text-text transition-fast is-hover:bg-surface-2 is-hover:shadow-[var(--lift-2)] sm:min-h-[128px]"
                       >
                         <span
                           className={cn(
-                            "grid size-10 shrink-0 place-items-center rounded-[var(--r-sm)]",
+                            "grid size-10 shrink-0 place-items-center rounded-full",
                             action.tone,
                           )}
                         >
@@ -275,6 +276,8 @@ export function AgentChat() {
             dimmed={phase !== "empty"}
             busy={busy}
             onSend={(prompt) => void send(prompt)}
+            examples={examplePrompts}
+            onExample={(prompt, intent) => void send(prompt, intent)}
           />
         </div>
       </DetailsLayout>

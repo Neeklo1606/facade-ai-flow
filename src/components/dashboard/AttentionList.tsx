@@ -6,11 +6,13 @@ import { EmptyState, SourceRef } from "@/components/common";
 import { ListRowSkeleton } from "@/components/common/Skeletons";
 import type { AttentionRow } from "@/api/types";
 import { cn } from "@/lib/utils";
+import { EventCard } from "@/components/v3";
+import { stretchedLink, type V3Tone } from "@/components/v3/classes";
 
-const severityBar: Record<AttentionRow["severity"], string> = {
-  danger: "bg-danger",
-  warn: "bg-warn",
-  info: "bg-info",
+const severityTone: Record<AttentionRow["severity"], V3Tone> = {
+  danger: "danger",
+  warn: "warn",
+  info: "info",
 };
 
 const severityWord: Record<AttentionRow["severity"], string> = {
@@ -20,93 +22,89 @@ const severityWord: Record<AttentionRow["severity"], string> = {
 };
 
 /**
- * «Требует решения» по всем объектам: полоса критичности слева, причина одной строкой,
- * чипы «объект», «срок», «источник». Ссылка «Открыть» растянута на строку — строка кликабельна
- * целиком; на мышке кнопка проявляется при наведении, на телефоне видна всегда,
- * с клавиатуры получает фокус.
+ * «Требует решения» по всем объектам: карточки событий v3 с полосой критичности слева,
+ * причина под заголовком, чипы «объект», «срок», «источник». Ссылка растянута на карточку —
+ * карточка нажимается целиком, с клавиатуры ссылка получает фокус.
  */
 export function AttentionList({
   rows,
   pending,
   onSource,
+  extra,
+  extraCount = 0,
 }: {
   rows: AttentionRow[];
   pending: boolean;
   onSource: (sourceId: string) => void;
+  /** Ещё карточки той же ленты, которые собирает экран: отчёты на проверке (ГАЙКА) */
+  extra?: ReactNode;
+  extraCount?: number;
 }) {
   if (pending)
     return (
-      <div className="md:-mx-6 md:divide-y md:divide-line">
+      <div className="space-y-2.5">
         {Array.from({ length: 4 }).map((_, index) => (
           <ListRowSkeleton key={index} />
         ))}
       </div>
     );
 
-  if (!rows.length)
+  if (!rows.length && !extraCount)
     return (
-      <EmptyState
-        icon={CheckCheck}
-        title="Открытых вопросов нет"
-        description="Просроченных ответов поставщиков и решений, которые ждут человека, по объектам не осталось."
-      />
+      <div className="card-v3 px-5 py-6">
+        <EmptyState
+          icon={CheckCheck}
+          title="Открытых вопросов нет"
+          description="Просроченных ответов поставщиков и решений, которые ждут человека, по объектам не осталось."
+        />
+      </div>
     );
 
   return (
-    <ul
-      data-tour="attention-list"
-      className="space-y-2.5 md:-mx-6 md:space-y-0 md:divide-y md:divide-line"
-    >
+    <ul data-tour="attention-list" className="space-y-2.5">
       {rows.map((row) => (
-        <li
-          key={row.id}
-          className="group relative flex items-start gap-3 overflow-hidden rounded-[var(--r-md)] border border-line bg-surface-2 px-4 py-3 transition-fast md:rounded-none md:border-0 md:bg-transparent md:px-6 md:py-3.5 md:is-hover:bg-surface-2"
-        >
-          <span
-            aria-hidden
-            className={cn(
-              "absolute top-0 bottom-0 left-0 w-[3px] md:top-3.5 md:bottom-3.5 md:rounded-r-full",
-              severityBar[row.severity],
-            )}
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] leading-[1.35] font-medium text-text">
-              {row.title}
-              <span className="sr-only">, {severityWord[row.severity]}</span>
-            </p>
-            <p
-              className="mt-0.5 truncate text-[13px] leading-[1.45] text-text-3"
-              title={row.reason}
-            >
-              {row.reason}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Chip icon={Building2}>{row.projectName}</Chip>
-              {row.due && (
-                <Chip icon={Clock} tone={row.severity === "danger" ? "danger" : "default"}>
-                  {row.due}
-                </Chip>
-              )}
-              <SourceRef
-                sourceId={row.sourceId}
-                onOpen={() => row.sourceId && onSource(row.sourceId)}
-                className="relative z-[2] lg:size-6"
+        <li key={row.id}>
+          <EventCard
+            tone={severityTone[row.severity]}
+            title={
+              <>
+                {row.title}
+                <span className="sr-only">, {severityWord[row.severity]}</span>
+              </>
+            }
+            meta={<span className="line-clamp-2">{row.reason}</span>}
+            footer={
+              <>
+                <Chip icon={Building2}>{row.projectName}</Chip>
+                {row.due && (
+                  <Chip icon={Clock} tone={row.severity === "danger" ? "danger" : "default"}>
+                    {row.due}
+                  </Chip>
+                )}
+                <SourceRef
+                  sourceId={row.sourceId}
+                  onOpen={() => row.sourceId && onSource(row.sourceId)}
+                  className="relative z-[2] lg:size-6"
+                />
+              </>
+            }
+            aside={
+              <span className="grid size-9 place-items-center rounded-full bg-surface-2 text-text-2 transition-fast group-hover:text-text">
+                <ArrowRight className="size-4" strokeWidth={1.75} aria-hidden />
+              </span>
+            }
+            action={
+              <Link
+                to={row.to as string}
+                onClick={() => recordAction("openAttention")}
+                aria-label={`Открыть: ${row.title}`}
+                className={stretchedLink}
               />
-            </div>
-          </div>
-          <Link
-            to={row.to as string}
-            onClick={() => recordAction("openAttention")}
-            aria-label={`Открыть: ${row.title}`}
-            className="focus-ring inline-flex h-12 min-w-12 shrink-0 items-center justify-center gap-1.5 self-center rounded-[var(--r-sm)] border border-line-2 bg-surface-3 px-2 text-[13px] font-medium text-text-2 transition-fast after:absolute after:inset-0 after:content-[''] is-hover:text-text md:bg-surface-2 md:px-3 lg:h-9"
-          >
-            {/* На телефоне подпись отнимала у заголовка 70 px, и он ломался на четыре строки:
-                вся строка и так нажимается, остаётся стрелка (ADR-028, п. 5) */}
-            <span className="hidden md:inline">Открыть</span>
-            <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
-          </Link>
+            }
+          />
         </li>
       ))}
+      {extra}
     </ul>
   );
 }
@@ -123,8 +121,8 @@ function Chip({
   return (
     <span
       className={cn(
-        "inline-flex h-6 max-w-full items-center gap-1.5 rounded-full px-2.5 text-[13px] leading-none",
-        tone === "danger" ? "bg-danger-bg text-danger" : "bg-surface-3 text-text-2",
+        "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] leading-none",
+        tone === "danger" ? "bg-danger-bg text-danger" : "bg-surface-2 text-text-2",
       )}
     >
       <Icon className="size-3 shrink-0" strokeWidth={1.75} aria-hidden />
