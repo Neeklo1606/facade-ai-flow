@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
 import { useWorkProgress } from "@/api/work-progress";
 import type { ProjectListItem } from "@/api/types";
 import { SegTabs, ToneDot } from "@/components/v3";
-import { healthField, type V3Tone } from "@/components/v3/classes";
+import type { V3Tone } from "@/components/v3/classes";
 import { fmtNum, plural, shortName } from "@/lib/format";
 import { projectStatusMeta } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
@@ -14,8 +13,8 @@ import { cn } from "@/lib/utils";
  * спецификации, ответов поставщиков и ревизий — это модуль прежнего контура за флагом.
  * Цифры хода работ считает слой данных по захваткам и принятым отчётам.
  *
- * Визуал v3 (ADR-044): объект — крупная плитка-виджет с полем цвета здоровья сверху,
- * подпись с названием под плиткой. Фильтры — капсулы.
+ * Вид ADR-045, 5.16: карточка не выше 200 на 390, без градиента: название text-heading,
+ * город и этап, процент выполнения, полоса 6 и три показателя. Статус точкой и словом.
  */
 type Filter = "all" | "risk" | "missing";
 
@@ -26,8 +25,8 @@ export function ObjectsList({ items }: { items: ProjectListItem[] }) {
   const missing = items.reduce((sum, item) => sum + item.overview.missingReports, 0);
   const shown = filter === "risk" ? atRisk : filter === "missing" ? missingItems : items;
   return (
-    <div className="flex flex-col gap-6">
-      <p className="text-heading text-balance text-text">
+    <div className="flex flex-col gap-block">
+      <p className="text-body-strong text-balance text-text">
         {fmtNum(items.length)} {plural(items.length, "объект", "объекта", "объектов")} в работе.{" "}
         <span className="tone-2">
           {atRisk.length > 0 ? `${fmtNum(atRisk.length)} под риском` : "Под риском ни одного"}
@@ -48,7 +47,7 @@ export function ObjectsList({ items }: { items: ProjectListItem[] }) {
         ]}
       />
       {shown.length ? (
-        <ul className="grid gap-x-4 gap-y-6 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-block sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((item) => (
             <ObjectTile key={item.project.id} item={item} />
           ))}
@@ -85,48 +84,37 @@ function ObjectTile({ item }: { item: ProjectListItem }) {
       <Link
         to="/projects/$id"
         params={{ id: item.project.id }}
-        className="focus-ring press group flex h-full flex-col gap-3 rounded-[var(--r-2xl)]"
+        className="surface-1 focus-ring flex h-full flex-col gap-3 p-card transition-fast is-hover:bg-surface-2"
       >
-        <div className="card-v3 relative flex flex-1 flex-col overflow-hidden rounded-[var(--r-2xl)] p-5 transition-fast">
-          <span aria-hidden className={cn("absolute inset-x-0 top-0 h-36", healthField[tone])} />
-          <div className="relative flex items-center justify-between gap-3">
-            <span className="text-meta-strong glass inline-flex h-8 items-center gap-2 rounded-full px-3 font-medium text-text">
+        <span className="flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block truncate text-heading text-text">
+              {shortName(item.project.name)}
+            </span>
+            <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-meta text-text-3">
               <ToneDot tone={tone} />
-              {status.label}
+              <span className="truncate">
+                {status.label} · {item.overview.region} · {item.overview.stage}
+              </span>
             </span>
-            <span className="grid size-9 place-items-center rounded-full bg-surface-2 text-text-2 transition-fast group-hover:text-text">
-              <ArrowUpRight className="size-4" aria-hidden />
-            </span>
-          </div>
-          <div className="relative mt-6 flex items-baseline gap-2">
-            <span className="text-hero tnum text-text">{pct === null ? "—" : `${pct}%`}</span>
-            <span className="text-body text-text-3">выполнено</span>
-          </div>
-          <div
-            className="relative mt-4 h-1.5 overflow-hidden rounded-full bg-surface-3"
-            aria-hidden
-          >
-            <div className="h-full rounded-full bg-text-2" style={{ width: `${pct ?? 0}%` }} />
-          </div>
-          <dl className="relative mt-5 grid grid-cols-3 gap-3">
-            <Indicator label="Объём" value={done?.note ?? "считается"} wide />
-            <Indicator label="План-факт" value={deviation?.value ?? "—"} />
-            <Indicator label="Точка" value={next?.value ?? "нет"} />
-            <Indicator
-              label="Нет отчёта"
-              value={fmtNum(missing)}
-              tone={missing > 0 ? "warn" : undefined}
-            />
-          </dl>
-        </div>
-        <span className="block px-1 text-center">
-          <span className="text-body-strong block truncate font-medium text-text">
-            {shortName(item.project.name)}
           </span>
-          <span className="text-meta mt-0.5 block truncate text-text-3">
-            {item.overview.region} · {item.overview.stage}
+          <span className="shrink-0 text-heading tnum text-text">
+            {pct === null ? "—" : `${pct}%`}
           </span>
         </span>
+        <span className="h-1.5 overflow-hidden rounded-full bg-surface-3" aria-hidden>
+          <span className="block h-full rounded-full bg-text-2" style={{ width: `${pct ?? 0}%` }} />
+        </span>
+        <dl className="grid grid-cols-3 gap-3">
+          <Indicator label="План-факт" value={deviation?.value ?? "—"} />
+          <Indicator label="Точка" value={next?.value ?? "нет"} />
+          <Indicator
+            label="Нет отчёта"
+            value={fmtNum(missing)}
+            tone={missing > 0 ? "warn" : undefined}
+          />
+        </dl>
+        {done?.note ? <p className="text-meta text-text-3 tnum">{done.note}</p> : null}
       </Link>
     </li>
   );

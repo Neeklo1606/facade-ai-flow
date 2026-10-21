@@ -100,7 +100,6 @@ function TodayPage() {
         Заголовок экрана для чтения с экрана: на телефоне его место занимает цветовое поле
         с приветствием, на десктопе название показывает шапка (как у PageHeader).
       */}
-      <h1 className="sr-only">Сегодня</h1>
       {canRecord ? (
         // На десктопе полосы над панелью нет: главное действие живёт в шапке экрана
         <PageActions>
@@ -218,14 +217,6 @@ function TodayPage() {
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"] as const;
 
-/** Приветствие по часу смены: время берётся из часов данных, а не из браузера */
-function greetingOf(now: string) {
-  const hour = Number(now.slice(11, 13));
-  if (hour >= 5 && hour < 12) return "Доброе утро";
-  if (hour >= 12 && hour < 18) return "Добрый день";
-  return "Добрый вечер";
-}
-
 /** Итог смены по единицам: разные единицы не складываются, главная — где больше записей */
 function shiftTotals(works: TodayWork[]) {
   const byUnit = new Map<string, { unit: string; qty: number; rows: number }>();
@@ -262,74 +253,56 @@ function TodayHero({
   const rest = totals.slice(1);
   const review = works?.filter((work) => work.status === "review").length ?? 0;
 
+  /*
+   * ADR-045, 5.13: заголовок «Сегодня» и дата, полоса недели 44, итог дня одной строкой.
+   * Без градиента и шара: тихий фон, громкое содержание. Число итога text-title, а не 48+.
+   */
   return (
-    <section
-      aria-label="Смена сегодня"
-      className="hero-field px-5 pt-5 pb-6 sm:px-8 sm:pt-7 sm:pb-8 lg:px-10 lg:pt-9 lg:pb-10"
-    >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:gap-10">
-        <div className="min-w-0">
-          <p className="text-body text-text-2 tnum">
-            {WEEKDAYS[(day.getDay() + 6) % 7]} {format(day, "dd.MM")}
-            {greetingName ? ` · ${greetingName}` : ""}
-          </p>
-          {/* Двухтоновый заголовок: приветствие и объект тише */}
-          <p className="text-display mt-3 text-balance lg:text-wrap">
-            {greetingOf(now)}.<span className="tone-2 block">{place}</span>
-          </p>
-        </div>
-
-        {/* Полоса дней, как у календаря: сегодняшний день залит цветом главной кнопки */}
-        <ol aria-label="Неделя" className="grid grid-cols-7 gap-1 self-start lg:pt-1">
-          {week.map(({ label, date }) => {
-            const current = isSameDay(date, day);
-            return (
-              <li
-                key={label}
-                aria-current={current ? "date" : undefined}
-                className="flex flex-col items-center gap-2"
-              >
-                <span className="text-meta text-text-3">{label}</span>
-                <span
-                  className={cn(
-                    "text-body-strong grid size-10 place-items-center rounded-full font-medium tnum lg:size-11",
-                    current ? "bg-pill text-pill-text" : "text-text-2",
-                  )}
-                >
-                  {format(date, "d")}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+    <section aria-label="Смена сегодня" className="flex flex-col gap-block">
+      <div>
+        <h1 className="text-title">Сегодня</h1>
+        <p className="text-meta text-text-3 tnum">
+          {WEEKDAYS[(day.getDay() + 6) % 7]} {format(day, "dd.MM")} · {place}
+          {greetingName ? ` · ${greetingName}` : ""}
+        </p>
       </div>
 
-      <div className="relative mt-8 lg:mt-12">
-        {/* Шар Catalist: только за главной цифрой */}
-        <span aria-hidden className="orb -top-12 -left-10 size-[200px] lg:size-[260px]" />
-        {works === null ? (
-          <div aria-hidden className="h-16 w-44 rounded-[var(--r-sm)] bg-surface-2/70" />
-        ) : main ? (
-          <>
-            <p className="flex items-baseline gap-2">
-              <span className="text-hero tnum">{fmtNum(main.qty)}</span>
-              <span className="text-title text-text-2">{main.unit}</span>
-            </p>
-            <p className="text-body mt-3 text-text-2">
-              заявлено за смену
-              {rest.length > 0
-                ? ` · ещё ${rest.map((item) => `${fmtNum(item.qty)} ${item.unit}`).join(", ")}`
-                : ""}
-              {review > 0 ? ` · ${fmtNum(review)} на проверке` : ""}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-hero tnum">0</p>
-            <p className="text-body mt-3 text-text-2">записей за смену пока нет</p>
-          </>
-        )}
-      </div>
+      <ol aria-label="Неделя" className="grid grid-cols-7 gap-1 lg:max-w-[420px]">
+        {week.map(({ label, date }) => {
+          const current = isSameDay(date, day);
+          return (
+            <li
+              key={label}
+              aria-current={current ? "date" : undefined}
+              className={cn(
+                "flex min-h-control flex-col items-center justify-center rounded-control",
+                current ? "bg-orange-strong text-on-orange" : "text-text-2",
+              )}
+            >
+              <span className={cn("text-meta", current ? "text-on-orange" : "text-text-3")}>
+                {label}
+              </span>
+              <span className="text-body-strong tnum">{format(date, "d")}</span>
+            </li>
+          );
+        })}
+      </ol>
+
+      {works === null ? (
+        <div aria-hidden className="skeleton h-8 w-56 rounded-[var(--r-xs)]" />
+      ) : (
+        <p className="flex flex-wrap items-baseline gap-x-1.5 text-body text-text-2">
+          <span className="text-title text-text tnum">{fmtNum(main?.qty ?? 0)}</span>
+          {main ? <span className="text-meta text-text-3">{main.unit}</span> : null}
+          <span>
+            {main ? "заявлено" : "записей за смену пока нет"}
+            {rest.length > 0
+              ? ` · ещё ${rest.map((item) => `${fmtNum(item.qty)} ${item.unit}`).join(", ")}`
+              : ""}
+            {review > 0 ? ` · ${fmtNum(review)} на проверке` : ""}
+          </span>
+        </p>
+      )}
     </section>
   );
 }
@@ -483,7 +456,7 @@ function WorksSection({ works }: { works: TodayWork[] }) {
   return (
     <section aria-labelledby="today-works-title" className="pt-2">
       <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
-        <h2 id="today-works-title" className="text-title">
+        <h2 id="today-works-title" className="text-heading">
           Зафиксировано сегодня
         </h2>
         <span className="text-body text-text-3 tnum">
@@ -607,7 +580,7 @@ function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 id="today-shift-title" className="text-title">
+          <h2 id="today-shift-title" className="text-heading">
             Сводка смены
           </h2>
           <p className="text-body mt-1 text-text-2">

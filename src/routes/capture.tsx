@@ -587,7 +587,7 @@ function CapturePage() {
               examples.length > 0 ? (
                 <>
                   <Marker className="order-1 lg:order-3">Скажите, например</Marker>
-                  <p className="text-title order-2 lg:order-4 lg:max-w-[36ch]">
+                  <p className="order-2 text-transcript lg:order-4 lg:max-w-[36ch]">
                     «<span className="text-text">{phraseLead}</span>
                     {phraseRest ? " " : null}
                     {phraseRest ? <span className="tone-2">{phraseRest}</span> : null}»
@@ -618,7 +618,7 @@ function CapturePage() {
               ) : (
                 <>
                   <Marker className="order-1">Скажите</Marker>
-                  <p className="text-title order-2">
+                  <p className="order-2 text-transcript">
                     <span className="text-text">Что сделали и где.</span>{" "}
                     <span className="tone-2">Сколько, сколько людей и что нужно на завтра.</span>
                   </p>
@@ -801,7 +801,7 @@ function CapturePage() {
                 </span>
                 <span
                   className={cn(
-                    "text-hero tnum",
+                    "text-body-strong tnum",
                     nearLimit(elapsedMs) && !simulated && "text-risk",
                   )}
                 >
@@ -907,7 +907,7 @@ function CapturePage() {
                   schedule={schedule}
                   instant={instant}
                   onDone={onHeard}
-                  className="text-title lg:max-w-[38ch]"
+                  className="text-transcript lg:max-w-[38ch]"
                 />
                 {heard.demo ? (
                   <p className="text-caption text-text-2">Демо: расшифровка подготовлена заранее</p>
@@ -945,7 +945,7 @@ function CapturePage() {
                     <span aria-hidden="true" className="bg-warn size-2 rounded-full" />
                     Черновик
                   </span>
-                  <h2 className="text-hero">
+                  <h2 className="text-title">
                     Разбор. <span className="tone-2">Проверьте, что поняли верно</span>
                   </h2>
                   {outcome?.by?.demo ? (
@@ -1042,7 +1042,7 @@ function CapturePage() {
                 <Check className="size-8" strokeWidth={2.25} />
               </span>
               <div className="flex flex-col gap-1">
-                <h1 className="text-hero">Готово</h1>
+                <h1 className="text-title">Готово</h1>
                 <p className="text-heading">
                   Создано: <span className="tnum">{flow.created.length}</span>.{" "}
                   <span className="tone-2">Касание строки откроет её</span>
@@ -1197,11 +1197,8 @@ function Stage({
     <section
       data-stage={tone}
       className={cn(
-        "hero-field flex flex-col gap-5 rounded-[var(--r-sheet)] p-5 sm:p-8 lg:p-10",
-        "transition-[background] duration-500",
-        // Точечная сетка: точки 1 px, шаг 16 px, к низу поля растворяются
-        "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-[radial-gradient(circle,var(--stage-dot)_1px,transparent_1.2px)] before:bg-[length:16px_16px] before:[mask-image:linear-gradient(to_bottom,black,transparent_80%)] before:content-['']",
-        "[--stage-dot:rgba(247,243,239,0.08)] [[data-theme=light]_&]:[--stage-dot:rgba(28,24,20,0.08)]",
+        // ADR-045, 3.4 и 5.14: сцена без градиента, сетки и шара, поверхность уровня 1
+        "hero-field flex flex-col gap-5 p-card sm:p-8 lg:p-10",
         toneField[tone],
         className,
       )}

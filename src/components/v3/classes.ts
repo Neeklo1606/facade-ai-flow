@@ -7,18 +7,15 @@
 export type V3Tone = "danger" | "warn" | "ok" | "info" | "neutral";
 
 /**
- * Тёплое поле сверху плитки цветом здоровья, как свечение у виджетов. Мелкая заливка:
- * правило «один большой градиент на экран» её не касается. Классы записаны целиком,
- * иначе сборщик стилей их не увидит.
+ * Поле цветом здоровья сверху плитки было в v3. ADR-045, 3.4 и 5.16: градиентов на рабочих
+ * экранах нет, статус показывается точкой и словом. Ключи оставлены, чтобы разметка не ломалась.
  */
 export const healthField: Record<V3Tone, string> = {
-  danger:
-    "bg-[radial-gradient(120%_100%_at_0%_0%,color-mix(in_oklab,var(--danger)_30%,transparent)_0%,transparent_62%)]",
-  warn: "bg-[radial-gradient(120%_100%_at_0%_0%,color-mix(in_oklab,var(--warn)_30%,transparent)_0%,transparent_62%)]",
-  ok: "bg-[radial-gradient(120%_100%_at_0%_0%,color-mix(in_oklab,var(--ok)_24%,transparent)_0%,transparent_62%)]",
-  info: "bg-[radial-gradient(120%_100%_at_0%_0%,color-mix(in_oklab,var(--info)_24%,transparent)_0%,transparent_62%)]",
-  neutral:
-    "bg-[radial-gradient(120%_100%_at_0%_0%,color-mix(in_oklab,var(--sand)_22%,transparent)_0%,transparent_62%)]",
+  danger: "",
+  warn: "",
+  ok: "",
+  info: "",
+  neutral: "",
 };
 
 /** Класс растянутой ссылки карточки: вся карточка нажимается, фокус виден по контуру */

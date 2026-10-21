@@ -168,7 +168,7 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
       <span
         aria-hidden
         className={cn(
-          "orb",
+          "orb-brand",
           showEntry
             ? "-top-20 -right-24 size-[300px] sm:-top-24 sm:right-[-40px] sm:size-[440px] lg:top-[-120px] lg:right-[6%] lg:size-[560px]"
             : "-top-24 -right-28 size-[260px] sm:size-[360px] lg:right-[8%] lg:size-[440px]",
@@ -188,50 +188,41 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
           <>
             <h1
               id="role-picker-title"
-              className="text-hero mt-14 max-w-[980px] text-balance text-text sm:mt-20 lg:mt-24"
+              className="mt-section max-w-[980px] text-display text-balance text-text lg:mt-24"
             >
               Говорите с объекта. <span className="tone-2 block">Гайка соберёт остальное.</span>
             </h1>
-            <p className="text-heading mt-5 max-w-[560px] text-text-2 sm:mt-6">
+            <p className="mt-3 max-w-[560px] text-body text-text-2">
               Голос с площадки становится отчётом, документом и заявкой. Человек только
               подтверждает.
             </p>
-            <ul className="mt-10 grid gap-3 sm:mt-14 md:grid-cols-3 md:gap-4 lg:mt-auto lg:pt-16">
+            {/* Плитки сценариев строками 64 (ADR-045, 5.12) */}
+            <ul className="surface-1 mt-section overflow-hidden lg:mt-16 [&>li+li]:border-t [&>li+li]:border-line">
               {tiles.map((tile, index) => (
-                <li key={tile.id} className="flex">
+                <li key={tile.id}>
                   <button
                     type="button"
                     onClick={() => startTile(tile.id)}
-                    className="focus-ring press card-v3 relative flex min-h-[148px] w-full flex-col overflow-hidden rounded-[var(--r-2xl)] p-5 text-left md:min-h-[232px] md:p-6"
+                    className="flex min-h-row w-full items-center gap-3 px-row py-row text-left focus-ring is-hover:bg-surface-2"
                   >
-                    {/* Свечение сверху своим оттенком сценария (ScenarioTile) */}
                     <span
                       aria-hidden
-                      className={cn("absolute inset-x-0 top-0 h-28 md:h-36", tile.glow)}
-                    />
-                    <span className="relative flex items-center justify-between gap-3">
-                      <span className="text-meta mono text-text-3">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="text-meta inline-flex min-h-7 items-center rounded-full bg-surface-2 px-3 text-text-2">
-                        1 минута
+                      className={cn(
+                        "grid size-8 shrink-0 place-items-center rounded-full text-meta-strong tnum",
+                        index === 0
+                          ? "bg-orange-strong text-on-orange"
+                          : "bg-surface-2 text-text-2",
+                      )}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-heading text-text">{tile.title}</span>
+                      <span className="mt-0.5 block text-meta text-text-3">
+                        {tile.hint} · <span>1 минута</span>
                       </span>
                     </span>
-                    <span className="relative mt-auto grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 pt-6">
-                      <span className="min-w-0">
-                        <span className="text-title block text-text">{tile.title}</span>
-                        <span className="text-body mt-1.5 block text-text-2">{tile.hint}</span>
-                      </span>
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "grid size-12 shrink-0 place-items-center rounded-full",
-                          index === 0 ? "bg-pill text-pill-text" : "bg-surface-2 text-text",
-                        )}
-                      >
-                        <ArrowUpRight className="size-5" />
-                      </span>
-                    </span>
+                    <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
                   </button>
                 </li>
               ))}
@@ -253,36 +244,36 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
           </>
         ) : (
           <>
-            <h1 id="role-picker-title" className="text-hero mt-14 text-text sm:mt-20 lg:mt-24">
+            <h1 id="role-picker-title" className="mt-section text-display text-text lg:mt-24">
               Выберите роль
             </h1>
-            <p className="text-heading tone-2 mt-3 max-w-[620px]">
+            <p className="mt-2 max-w-[620px] text-body text-text-2">
               Роль задаёт стартовый экран и сценарий подсказок. Сменить её можно в «Ещё».
             </p>
-            <ul className="mt-10 grid gap-3 sm:mt-14 md:grid-cols-2 md:gap-4">
+            <ul className="surface-1 mt-section overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
               {personas.map((person) => {
                 const hint = roleHint[person.role];
                 const Icon = hint?.icon ?? Building2;
                 return (
-                  <li key={person.id} className="flex">
+                  <li key={person.id}>
                     <button
                       type="button"
                       onClick={() => choose(person.id, person.role)}
-                      className="focus-ring press card-v3 flex min-h-[120px] w-full items-start gap-4 rounded-[var(--r-2xl)] p-5 text-left md:min-h-[132px] md:p-6"
+                      className="flex min-h-row w-full items-center gap-3 px-row py-row text-left focus-ring is-hover:bg-surface-2"
                     >
-                      <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-2 text-text">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-2 text-text">
                         <Icon className="size-5" strokeWidth={1.75} aria-hidden />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="text-title block text-text">
+                        <span className="block text-heading text-text">
                           {employeeRoleLabel[person.role]}
                         </span>
-                        <span className="text-body mt-1 block text-text-2">
+                        <span className="mt-0.5 block text-meta text-text-2">
                           {hint?.text ?? person.position}
                         </span>
-                        <span className="text-meta mt-2 block text-text-3">{person.name}</span>
+                        <span className="block text-meta text-text-3">{person.name}</span>
                       </span>
-                      <ArrowUpRight className="mt-1 size-5 shrink-0 text-text-3" aria-hidden />
+                      <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
                     </button>
                   </li>
                 );

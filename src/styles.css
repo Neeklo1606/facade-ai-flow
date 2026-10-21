@@ -853,20 +853,8 @@
 
 /* Зерно поверх градиента: без него градиент — заливка, с ним — материал */
 @utility grain {
+  /* ADR-045, 3.4: зерна на рабочих экранах нет; класс остаётся пустым, блок виден */
   position: relative;
-  isolation: isolate;
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    border-radius: inherit;
-    background-image: var(--grain);
-    background-size: 220px 220px;
-    opacity: 0.04;
-    mix-blend-mode: overlay;
-    pointer-events: none;
-  }
 }
 @utility bg-ember {
   background: var(--ember-gradient);
@@ -884,21 +872,8 @@
  * обработка песочная, критичное красное.
  */
 @utility ambient-field {
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 45%;
-  max-height: 320px;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(
-    120% 100% at 50% 0%,
-    var(--field-from) 0%,
-    color-mix(in oklab, var(--field-from) 45%, transparent) 38%,
-    transparent 100%
-  );
-  --field-from: color-mix(in oklab, var(--orange-deep) 70%, var(--void));
-  transition: background var(--dur-2) var(--ease);
+  /* ADR-045, 3.4: зерна и цветового поля на рабочих экранах нет */
+  display: none;
 }
 @utility ambient-field-processing {
   --field-from: color-mix(in oklab, var(--sand) 38%, var(--void));
@@ -928,13 +903,16 @@
 
 /* Свечение как состояние. В покое светится одно место на экране */
 @utility glow-ember {
-  box-shadow: var(--glow-ember);
+  /* ADR-045, 3.4: свечений на рабочих экранах нет */
+  box-shadow: none;
 }
 @utility glow-sand {
-  box-shadow: var(--glow-sand);
+  /* ADR-045, 3.4: свечений на рабочих экранах нет */
+  box-shadow: none;
 }
 @utility glow-risk {
-  box-shadow: var(--glow-risk);
+  /* ADR-045, 3.4: свечений на рабочих экранах нет */
+  box-shadow: none;
 }
 
 /* Запись: кнопка дышит, цикл 2 с. prefers-reduced-motion отключает дыхание ниже */
@@ -1605,7 +1583,19 @@ html[data-boot-compact] [data-boot-hero] {
  * и песочное справа, уходит в фон страницы. Одна на экран, под главной цифрой или заголовком.
  * В светлой теме то же пятно мягче: молочный фон остаётся читаемым на солнце.
  */
+/*
+ * ADR-045, 3.4: на рабочих экранах градиентов нет. hero-field стала плоской карточкой
+ * уровня 1; градиент бренда остался в hero-brand для стартового экрана и финала показа.
+ */
 @utility hero-field {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+@utility hero-brand {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -1625,7 +1615,11 @@ html[data-boot-compact] [data-boot-hero] {
 }
 
 /* Шар свечения за главной цифрой: Catalist, карточка 1. Чисто декоративный слой */
+/* Шар света только на бренд-экранах (orb-brand); на рабочих экранах его нет (3.4) */
 @utility orb {
+  display: none;
+}
+@utility orb-brand {
   position: absolute;
   pointer-events: none;
   z-index: -1;

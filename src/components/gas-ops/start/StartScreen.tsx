@@ -148,11 +148,11 @@ function Hero({
   return (
     <section
       aria-labelledby="gas-start-title"
-      className="hero-field px-5 pt-6 pb-6 sm:px-10 sm:pt-10 sm:pb-10 lg:px-14 lg:pt-14 lg:pb-12"
+      className="hero-brand px-5 pt-6 pb-6 sm:px-10 sm:pt-10 sm:pb-10 lg:px-14 lg:pt-14 lg:pb-12"
     >
       <span
         aria-hidden
-        className="orb -top-24 -right-20 size-[300px] sm:-top-28 sm:-right-10 sm:size-[420px] lg:right-10 lg:size-[520px]"
+        className="orb-brand -top-24 -right-20 size-[300px] sm:-top-28 sm:-right-10 sm:size-[420px] lg:right-10 lg:size-[520px]"
       />
       <p className="text-meta-strong glass inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 font-medium text-text-2">
         <Sparkles className="size-4 text-orange" aria-hidden />
