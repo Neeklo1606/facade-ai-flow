@@ -378,7 +378,16 @@ function EntriesPage() {
 
       {wide ? (
         current ? (
-          <SidePanel onClose={() => setOpen(null)}>{panel}</SidePanel>
+          <SidePanel
+            onClose={() => setOpen(null)}
+            onStep={(delta) => {
+              const index = rows.findIndex((row) => row.id === open);
+              const next = rows[Math.min(rows.length - 1, Math.max(0, index + delta))];
+              if (next) setOpen(next.id);
+            }}
+          >
+            {panel}
+          </SidePanel>
         ) : null
       ) : (
         <PhoneSheet open={!!current} onClose={() => setOpen(null)} labelledBy="review-title">
@@ -441,15 +450,32 @@ function EntriesPage() {
   );
 }
 
-/** Деталь записи на компьютере: панель справа 420 поверх журнала, Esc закрывает (4.16) */
-function SidePanel({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+/**
+ * Деталь записи на компьютере и планшете: панель справа 420 поверх журнала (4.16).
+ * Esc закрывает, стрелки вверх и вниз листают записи списка.
+ */
+function SidePanel({
+  onClose,
+  onStep,
+  children,
+}: {
+  onClose: () => void;
+  onStep: (delta: number) => void;
+  children: React.ReactNode;
+}) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest("input, textarea, select")) return;
+        event.preventDefault();
+        onStep(event.key === "ArrowDown" ? 1 : -1);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, onStep]);
   return (
     <aside
       role="dialog"

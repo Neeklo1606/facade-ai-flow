@@ -260,7 +260,8 @@ function TodayHero({
   return (
     <section aria-label="Смена сегодня" className="flex flex-col gap-block">
       <div>
-        <h1 className="text-title">Сегодня</h1>
+        {/* На компьютере заголовок экрана в шапке 56 (4.2): здесь он для читалки */}
+        <h1 className="text-title lg:sr-only">Сегодня</h1>
         <p className="text-meta text-text-3 tnum">
           {WEEKDAYS[(day.getDay() + 6) % 7]} {format(day, "dd.MM")} · {place}
           {greetingName ? ` · ${greetingName}` : ""}

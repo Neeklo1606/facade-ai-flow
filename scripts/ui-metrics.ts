@@ -49,7 +49,15 @@ const HINT_SCREENS = [
   "finish",
 ];
 /** Высота экрана по ширине: телефон 844, планшет 1024x768 и 768x1024, компьютер 900 */
-const HEIGHT: Record<number, number> = { 375: 812, 390: 844, 430: 932, 768: 1024, 1024: 768 };
+const HEIGHT: Record<number, number> = {
+  375: 812,
+  390: 844,
+  430: 932,
+  768: 1024,
+  1024: 768,
+  1280: 800,
+  1920: 1080,
+};
 const viewFor = (width: number) => ({ width, height: HEIGHT[width] ?? 900 });
 
 type Theme = "light" | "dark";
