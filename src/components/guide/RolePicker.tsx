@@ -1,7 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Building2, ClipboardCheck, HardHat, PackageSearch } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Building2,
+  ClipboardCheck,
+  HardHat,
+  PackageSearch,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { queries } from "@/api/queries";
@@ -14,7 +22,6 @@ import { CANON_PERSONA, scenarioById, scenarioFor } from "@/lib/guide/scenarios"
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { cn } from "@/lib/utils";
 import { record } from "@/lib/guide/telemetry";
-import { Button } from "@/components/ui/button";
 
 /** Что роль делает в показе: одна строка под названием (канон 18.10, ADR-038) */
 const roleHint: Partial<Record<EmployeeRole, { icon: LucideIcon; text: string }>> = {
@@ -27,25 +34,28 @@ const roleHint: Partial<Record<EmployeeRole, { icon: LucideIcon; text: string }>
 /** Роли канона в выборе: директор остаётся в коде, но в показ не выходит (ADR-038) */
 const CANON_ROLES: readonly EmployeeRole[] = ["foreman", "pto", "supply", "manager"];
 
-/** Плитки сценариев на экране входа: оттенок свечения у каждой свой */
+/**
+ * Плитки сценариев на экране входа: свечение сверху своим оттенком, как у ScenarioTile —
+ * отчёт оранжевый, документ песочный, снабжение красный
+ */
 const tiles = [
   {
     id: "canon-shift",
     title: "Смена → учёт",
     hint: "Прораб говорит, гайка раскладывает",
-    glow: "from-ember/25",
+    glow: "bg-[radial-gradient(110%_100%_at_20%_0%,color-mix(in_oklab,var(--color-ember)_34%,transparent),transparent_72%)]",
   },
   {
     id: "canon-document",
     title: "ПТО → документ",
     hint: "Проверка, сводка и черновик ведомости",
-    glow: "from-sand/25",
+    glow: "bg-[radial-gradient(110%_100%_at_20%_0%,color-mix(in_oklab,var(--color-sand)_30%,transparent),transparent_72%)]",
   },
   {
     id: "canon-supply",
     title: "Объект → снабжение",
     hint: "Заявка на материал и решение",
-    glow: "from-info/25",
+    glow: "bg-[radial-gradient(110%_100%_at_20%_0%,color-mix(in_oklab,var(--color-risk)_24%,transparent),transparent_72%)]",
   },
 ] as const;
 
@@ -62,6 +72,11 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
   const roleBefore = useCurrentRole();
   const employees = useQuery(queries.employees()).data ?? [];
   const [pickRole, setPickRole] = useState(false);
+  // Смена экрана внутри окна начинается сверху: иначе выбор роли открывался с середины списка
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scroller.current?.scrollTo?.({ top: 0 });
+  }, [pickRole]);
   /*
    * Флаг `legacy_modules` живёт во вкладке: на сервере его нет. Читается после монтирования,
    * чтобы первый HTML и первый рендер вкладки совпадали (иначе React ругается в консоль).
@@ -143,101 +158,156 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="role-picker-title"
-      className="fixed inset-0 z-[60] overflow-y-auto bg-void px-5 py-10"
+      ref={scroller}
+      className="fixed inset-0 z-[60] isolate overflow-x-hidden overflow-y-auto bg-void"
     >
-      <div className="relative mx-auto flex min-h-full w-full max-w-[560px] flex-col justify-center">
-        {/* Знак «гайка» строчными: фирменный знак ещё не утверждён, это рабочее начертание */}
-        <span aria-hidden className="text-[22px] leading-none font-semibold text-text">
-          гайка
-        </span>
+      {/*
+        Шар как у Catalist: тёплый свет за заголовком, единственный на экране. В светлой теме
+        утилита сама делает его мягче, и молочный фон остаётся с тёплым пятном.
+      */}
+      <span
+        aria-hidden
+        className={cn(
+          "orb",
+          showEntry
+            ? "-top-20 -right-24 size-[300px] sm:-top-24 sm:right-[-40px] sm:size-[440px] lg:top-[-120px] lg:right-[6%] lg:size-[560px]"
+            : "-top-24 -right-28 size-[260px] sm:size-[360px] lg:right-[8%] lg:size-[440px]",
+        )}
+      />
+      <div className="relative mx-auto flex min-h-full w-full max-w-[1200px] flex-col px-5 pt-5 pb-10 sm:px-10 sm:pt-8 lg:px-16 lg:pt-10 lg:pb-14">
+        <div className="flex min-h-10 items-center justify-between gap-3">
+          {/* Знак «гайка» строчными: фирменный знак ещё не утверждён, это рабочее начертание */}
+          <span
+            aria-hidden
+            className="text-[24px] leading-none font-semibold tracking-[-0.02em] text-text"
+          >
+            гайка
+          </span>
+          <span className="glass inline-flex min-h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-text-2">
+            Демо-показ
+          </span>
+        </div>
         {showEntry ? (
           <>
-            <h1 id="role-picker-title" className="mt-6 text-greeting">
-              Говорите с объекта. Гайка соберёт остальное.
+            <h1
+              id="role-picker-title"
+              className="mt-14 max-w-[980px] text-[44px] leading-[46px] font-semibold tracking-[-0.035em] text-balance text-text sm:mt-20 sm:text-[64px] sm:leading-[64px] lg:mt-24 lg:text-[88px] lg:leading-[86px]"
+            >
+              Говорите с объекта. <span className="tone-2 block">Гайка соберёт остальное.</span>
             </h1>
-            <p className="mt-3 text-body text-text-2">
+            <p className="mt-5 max-w-[560px] text-[17px] leading-6 text-text-2 sm:mt-6 sm:text-[19px] sm:leading-7">
               Голос с площадки становится отчётом, документом и заявкой. Человек только
               подтверждает.
             </p>
-            <ul className="mt-8 flex flex-col gap-3">
+            <ul className="mt-10 grid gap-3 sm:mt-14 md:grid-cols-3 md:gap-4 lg:mt-auto lg:pt-16">
               {tiles.map((tile, index) => (
-                <li key={tile.id}>
-                  <Button
-                    variant="outline"
+                <li key={tile.id} className="flex">
+                  <button
                     type="button"
                     onClick={() => startTile(tile.id)}
-                    className="focus-ring press relative flex h-auto min-h-[104px] w-full flex-col items-stretch justify-center gap-0 whitespace-normal rounded-[var(--r-lg)] bg-surface px-5 py-5 text-left"
+                    className="focus-ring press card-v3 relative flex min-h-[148px] w-full flex-col overflow-hidden rounded-[var(--r-2xl)] p-5 text-left md:min-h-[232px] md:p-6"
                   >
-                    <span className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                      <span className="text-card-title">
-                        <span className="tnum text-text-3">{index + 1}</span> {tile.title}
+                    {/* Свечение сверху своим оттенком сценария (ScenarioTile) */}
+                    <span
+                      aria-hidden
+                      className={cn("absolute inset-x-0 top-0 h-28 md:h-36", tile.glow)}
+                    />
+                    <span className="relative flex items-center justify-between gap-3">
+                      <span className="mono text-[13px] text-text-3">
+                        {String(index + 1).padStart(2, "0")}
                       </span>
-                      <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
+                      <span className="inline-flex min-h-7 items-center rounded-full bg-surface-2 px-3 text-[13px] text-text-2">
+                        1 минута
+                      </span>
                     </span>
-                    <span className="relative mt-1 text-caption text-text-2">{tile.hint}</span>
-                    <span className="mt-2 text-[13px] font-normal text-text-3">1 минута</span>
-                  </Button>
+                    <span className="relative mt-auto grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 pt-6">
+                      <span className="min-w-0">
+                        <span className="block text-[24px] leading-[28px] font-semibold tracking-[-0.02em] text-text md:text-[26px] md:leading-[30px]">
+                          {tile.title}
+                        </span>
+                        <span className="mt-1.5 block text-[15px] leading-[21px] text-text-2">
+                          {tile.hint}
+                        </span>
+                      </span>
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "grid size-12 shrink-0 place-items-center rounded-full",
+                          index === 0 ? "bg-pill text-pill-text" : "bg-surface-2 text-text",
+                        )}
+                      >
+                        <ArrowUpRight className="size-5" />
+                      </span>
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => setPickRole(true)}
-              className="focus-ring mt-4 min-h-12 self-start rounded-[var(--r-xs)] text-caption text-text-2 underline-offset-4 hover:underline"
-            >
-              Выбрать роль самому
-            </Button>
-            <p className="mt-6 text-caption text-text-3">
-              Демонстрация на вымышленных данных: речь и разбор подготовлены заранее, ничего не
-              заказывается и не отправляется.
-            </p>
+            <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => setPickRole(true)}
+                className="focus-ring press glass inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 text-[15px] font-medium text-text ring-1 ring-line-2 ring-inset"
+              >
+                Выбрать роль самому
+                <ArrowRight className="size-4 text-text-2" aria-hidden />
+              </button>
+              <p className="max-w-[520px] text-[13px] leading-5 text-text-3 sm:text-right">
+                Демонстрация на вымышленных данных: речь и разбор подготовлены заранее, ничего не
+                заказывается и не отправляется.
+              </p>
+            </div>
           </>
         ) : (
           <>
-            <h1 id="role-picker-title" className="mt-6 text-page-title">
+            <h1
+              id="role-picker-title"
+              className="mt-14 text-[44px] leading-[46px] font-semibold tracking-[-0.035em] text-text sm:mt-20 sm:text-[64px] sm:leading-[64px] lg:mt-24 lg:text-[72px] lg:leading-[72px]"
+            >
               Выберите роль
             </h1>
-            <p className="mt-2 text-body text-text-2">
+            <p className="tone-2 mt-3 max-w-[620px] text-[19px] leading-7 font-medium sm:text-[22px] sm:leading-8">
               Роль задаёт стартовый экран и сценарий подсказок. Сменить её можно в «Ещё».
             </p>
-            <ul className="mt-6 flex flex-col gap-2">
+            <ul className="mt-10 grid gap-3 sm:mt-14 md:grid-cols-2 md:gap-4">
               {personas.map((person) => {
                 const hint = roleHint[person.role];
                 const Icon = hint?.icon ?? Building2;
                 return (
-                  <li key={person.id}>
-                    <Button
-                      variant="outline"
+                  <li key={person.id} className="flex">
+                    <button
                       type="button"
                       onClick={() => choose(person.id, person.role)}
-                      className="focus-ring press flex h-auto min-h-[80px] w-full items-center gap-3 whitespace-normal rounded-[var(--r-lg)] bg-surface px-4 py-4 text-left transition-fast hover:bg-surface-2"
+                      className="focus-ring press card-v3 flex min-h-[120px] w-full items-start gap-4 rounded-[var(--r-2xl)] p-5 text-left md:min-h-[132px] md:p-6"
                     >
-                      <span className="grid size-10 shrink-0 place-items-center rounded-[var(--r-sm)] bg-surface-2 text-text-2">
-                        <Icon className="size-5" strokeWidth={1.5} aria-hidden />
+                      <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-2 text-text">
+                        <Icon className="size-5" strokeWidth={1.75} aria-hidden />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] leading-[1.35] font-medium text-text">
+                        <span className="block text-[22px] leading-[28px] font-semibold tracking-[-0.02em] text-text">
                           {employeeRoleLabel[person.role]}
                         </span>
-                        <span className="block text-[13px] leading-[1.4] text-text-3">
-                          {hint?.text ?? person.position} · {person.name}
+                        <span className="mt-1 block text-[15px] leading-[21px] text-text-2">
+                          {hint?.text ?? person.position}
+                        </span>
+                        <span className="mt-2 block text-[13px] leading-5 text-text-3">
+                          {person.name}
                         </span>
                       </span>
-                    </Button>
+                      <ArrowUpRight className="mt-1 size-5 shrink-0 text-text-3" aria-hidden />
+                    </button>
                   </li>
                 );
               })}
             </ul>
             {fromHome ? (
-              <Button
-                variant="ghost"
+              <button
                 type="button"
                 onClick={() => setPickRole(false)}
-                className="focus-ring mt-4 min-h-12 self-start rounded-[var(--r-xs)] text-caption text-text-2 underline-offset-4 hover:underline"
+                className="focus-ring press glass mt-6 inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 text-[15px] font-medium text-text ring-1 ring-line-2 ring-inset"
               >
-                К сценариям показа
-              </Button>
+                <ArrowLeft className="size-4 text-text-2" aria-hidden />К сценариям показа
+              </button>
             ) : null}
           </>
         )}
