@@ -14,9 +14,9 @@ import {
   Rows3,
   X,
 } from "lucide-react";
-import { MetricStrip } from "@/components/common/MetricStrip";
+import { ToneDot } from "@/components/v3";
+import { healthField, type V3Tone } from "@/components/v3/classes";
 import { PageHeader } from "@/components/common/PageHeader";
-import { Panel } from "@/components/common/Panel";
 import { FilterChip } from "@/components/common/FilterBar";
 import { MobileActionBar } from "@/components/common/MobileActionBar";
 import { useAccess } from "@/api/access";
@@ -281,17 +281,28 @@ function LegacyProjectsPage() {
         неразобранные изменения документации.
       </p>
 
-      <MetricStrip
-        className="mb-6"
+      <FigureTiles
+        label="Объекты в числах"
         items={[
           { icon: Building2, label: "Объектов", value: fmtNum(rows.length) },
           {
             icon: AlertTriangle,
             label: "Требуют внимания",
             value: `${totals.attention} из ${rows.length}`,
+            tone: totals.attention > 0 ? "danger" : undefined,
           },
-          { icon: FileSearch, label: "Непроверенных строк", value: fmtNum(totals.unverified) },
-          { icon: Clock, label: "Просроченных ответов", value: fmtNum(totals.overdue) },
+          {
+            icon: FileSearch,
+            label: "Непроверенных строк",
+            value: fmtNum(totals.unverified),
+            tone: totals.unverified > 0 ? "warn" : undefined,
+          },
+          {
+            icon: Clock,
+            label: "Просроченных ответов",
+            value: fmtNum(totals.overdue),
+            tone: totals.overdue > 0 ? "danger" : undefined,
+          },
           { icon: FileDiff, label: "Открытых изменений", value: fmtNum(totals.changes) },
         ]}
       />
@@ -313,8 +324,8 @@ function LegacyProjectsPage() {
           </StateBanner>
         )}
 
-        <Panel bodyClassName="p-0">
-          <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
+        <div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="grid min-w-0 flex-1 grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
               <FilterSelect
                 label="Регион"
@@ -368,30 +379,22 @@ function LegacyProjectsPage() {
               <span className="mr-auto text-caption text-text-muted sm:mr-0">
                 Объектов: {rows.length}
               </span>
-              <div
-                className="segmented-control hidden lg:flex"
-                role="group"
-                aria-label="Вид реестра"
-              >
+              <div className="seg hidden lg:inline-flex" role="group" aria-label="Вид реестра">
                 <button
                   type="button"
                   aria-pressed={view === "table"}
+                  data-active={view === "table"}
                   onClick={() => setSearch({ view: undefined })}
-                  className={cn(
-                    "segment flex items-center gap-1.5",
-                    view === "table" && "segment-active",
-                  )}
+                  className="seg-item focus-ring"
                 >
                   <Rows3 className="size-3.5" /> Таблица
                 </button>
                 <button
                   type="button"
                   aria-pressed={view === "cards"}
+                  data-active={view === "cards"}
                   onClick={() => setSearch({ view: "cards" })}
-                  className={cn(
-                    "segment flex items-center gap-1.5",
-                    view === "cards" && "segment-active",
-                  )}
+                  className="seg-item focus-ring"
                 >
                   <LayoutGrid className="size-3.5" /> Карточки
                 </button>
@@ -443,12 +446,17 @@ function LegacyProjectsPage() {
             }}
           >
             <>
-              <div className={cn("hidden overflow-x-auto", view === "table" && "lg:block")}>
+              <div
+                className={cn(
+                  "card-v3 hidden overflow-x-auto px-2 py-2",
+                  view === "table" && "lg:block",
+                )}
+              >
                 <ProjectsTable rows={rows} onOpen={open} />
               </div>
               <div
                 className={cn(
-                  "grid gap-3 p-3 sm:grid-cols-2 lg:p-4 2xl:grid-cols-3",
+                  "grid gap-x-4 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3",
                   view === "table" && "lg:hidden",
                 )}
               >
@@ -458,7 +466,7 @@ function LegacyProjectsPage() {
               </div>
             </>
           </ScreenGate>
-        </Panel>
+        </div>
       </div>
 
       {screen !== "forbidden" && screen !== "error" && canCreate && (
@@ -493,13 +501,15 @@ const numericHeaders = [
 function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => void }) {
   const { employeeName } = useDirectory();
   return (
-    <table className="w-full min-w-[980px] text-table">
+    <table className="w-full min-w-[900px] text-table">
       <thead>
-        <tr className="h-10 bg-subtle text-left">
+        <tr className="h-11 text-left">
           <th className="w-[3px] p-0" aria-hidden />
           <th className="px-3 text-[13px] font-medium text-text-muted">Объект</th>
           <th className="px-2.5 text-[13px] font-medium text-text-muted">Регион</th>
-          <th className="px-2.5 text-[13px] font-medium text-text-muted">Заказчик</th>
+          <th className="hidden px-2.5 text-[13px] font-medium text-text-muted 2xl:table-cell">
+            Заказчик
+          </th>
           <th className="px-2.5 text-[13px] font-medium text-text-muted">Ответственный</th>
           {numericHeaders.map((header) => (
             <th
@@ -523,7 +533,7 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
               tabIndex={0}
               onClick={() => onOpen(row)}
               onKeyDown={(e) => e.key === "Enter" && onOpen(row)}
-              className="group h-[60px] cursor-pointer border-b border-border transition-fast last:border-0 hover:bg-hover focus-ring"
+              className="group h-[64px] cursor-pointer transition-fast hover:bg-surface-2 focus-ring [&>td:first-child]:rounded-l-[var(--r-md)] [&>td:last-child]:rounded-r-[var(--r-md)]"
             >
               <td className="relative w-[3px] p-0">
                 {attention && (
@@ -550,7 +560,7 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
                 </div>
               </td>
               <td className="px-2.5 text-text-secondary">{row.overview.region}</td>
-              <td className="px-2.5 text-text-secondary">
+              <td className="hidden px-2.5 text-text-secondary 2xl:table-cell">
                 <div className="max-w-[130px] truncate">{row.project.customer}</div>
               </td>
               <td className="px-2.5 whitespace-nowrap text-text-secondary">
@@ -585,10 +595,66 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
   );
 }
 
+/**
+ * Число реестра плиткой v3: подпись сверху, значение крупно под ней. Порядок в тексте
+ * экрана тот же, что у прежней полосы: подпись, затем значение (по нему сверяются цифры).
+ */
+function FigureTiles({
+  items,
+  label,
+}: {
+  items: {
+    icon: typeof Building2;
+    label: string;
+    value: string;
+    tone?: "danger" | "warn" | undefined;
+  }[];
+  label: string;
+}) {
+  return (
+    <section
+      aria-label={label}
+      className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"
+    >
+      {items.map((item, index) => (
+        <div
+          key={item.label}
+          className={cn(
+            "card-v3 flex min-w-0 flex-col gap-3 px-4 py-4 sm:px-5",
+            index === 0 && "col-span-2 sm:col-span-1",
+          )}
+        >
+          <span className="grid size-9 place-items-center rounded-full bg-surface-2">
+            <item.icon className="size-4 text-text-2" strokeWidth={1.75} aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <div className="line-clamp-2 text-[13px] leading-[1.35] text-text-3">{item.label}</div>
+            <div
+              className={cn(
+                "tnum mt-1 truncate text-[28px] leading-[1.1] font-semibold tracking-[-0.02em] text-text",
+                item.tone === "danger" && "text-danger",
+                item.tone === "warn" && "text-warn",
+              )}
+            >
+              {item.value}
+            </div>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+const attentionTone: Record<"critical" | "warning", V3Tone> = {
+  critical: "danger",
+  warning: "warn",
+};
+
 function ProjectCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
   const { employeeName } = useDirectory();
   const attention = attentionOf(row.overview);
   const status = projectStatusMeta[row.project.status];
+  const tone: V3Tone = attention ? attentionTone[attention] : "ok";
   const { overview } = row;
   const verifiedPct = overview.specTotal
     ? Math.round(((overview.specTotal - overview.specUnverified) / overview.specTotal) * 100)
@@ -598,62 +664,62 @@ function ProjectCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="card-surface focus-ring relative w-full overflow-hidden p-4 text-left transition-fast hover:border-border-strong hover:shadow-[var(--shadow-sm)]"
+      className="focus-ring press group flex w-full flex-col gap-3 rounded-[var(--r-2xl)] text-left"
     >
-      {attention && (
-        <span
-          className={cn("absolute inset-y-0 left-0 w-[3px]", attentionBar[attention])}
-          aria-hidden
-        />
-      )}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="truncate text-[15px] font-semibold">{row.project.name}</div>
-          <div className="mt-0.5 truncate text-caption text-text-muted">
-            <span className="mono">{row.project.code}</span> · {overview.region} ·{" "}
-            {row.project.customer}
-          </div>
-        </div>
-        <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-      </div>
-
-      <div className="mt-4">
-        <div className="flex items-baseline justify-between text-caption">
-          <span className="text-text-secondary">
-            Проверено позиций{" "}
-            <span className="tnum text-text-primary">
-              {fmtNum(overview.specTotal - overview.specUnverified)}
-            </span>{" "}
-            из <span className="tnum">{fmtNum(overview.specTotal)}</span>
+      <div className="card-v3 relative w-full overflow-hidden rounded-[var(--r-2xl)] p-5 transition-fast group-hover:shadow-[var(--lift-2)]">
+        <span aria-hidden className={cn("absolute inset-x-0 top-0 h-32", healthField[tone])} />
+        <div className="relative flex items-center justify-between gap-3">
+          <span className="glass inline-flex h-8 items-center gap-2 rounded-full px-3 text-[13px] font-medium text-text">
+            <ToneDot tone={tone} />
+            {status.label}
           </span>
-          <span className="tnum text-text-muted">{overview.docVersion}</span>
+          <span className="mono text-caption text-text-3">{overview.docVersion}</span>
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-subtle">
+        <div className="relative mt-5 flex items-baseline gap-2">
+          <span className="tnum text-[44px] leading-none font-semibold tracking-[-0.03em] text-text">
+            {verifiedPct}%
+          </span>
+          <span className="text-[14px] text-text-3">позиций проверено</span>
+        </div>
+        <div className="relative mt-4 h-1.5 overflow-hidden rounded-full bg-surface-3">
           <div
             className={cn("h-full rounded-full", overview.specUnverified ? "bg-warn" : "bg-ok")}
             style={{ width: `${verifiedPct}%` }}
           />
         </div>
-      </div>
+        <p className="relative mt-2 text-caption text-text-3">
+          Проверено{" "}
+          <span className="tnum text-text-2">
+            {fmtNum(overview.specTotal - overview.specUnverified)}
+          </span>{" "}
+          из <span className="tnum">{fmtNum(overview.specTotal)}</span>
+        </p>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-1.5 border-t border-border pt-3">
-        {[
-          { label: "Непроверено", value: overview.specUnverified, tone: "warn" as const },
-          { label: "Запросов", value: overview.activeRequests },
-          { label: "Просрочено", value: overview.overdueRequests, tone: "danger" as const },
-          { label: "Изменений", value: overview.openChanges },
-        ].map((item) => (
-          <div key={item.label} className="flex min-w-0 items-baseline justify-between gap-2">
-            <dt className="truncate text-caption text-text-muted">{item.label}</dt>
-            <dd className="text-[14px]">
-              <Count value={item.value} tone={item.tone} />
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className="mt-3 text-caption text-text-muted">
-        Ответственный: {employeeName(row.project.manager)}
+        <dl className="relative mt-4 grid grid-cols-4 gap-2">
+          {[
+            { label: "Непроверено", value: overview.specUnverified, tone: "warn" as const },
+            { label: "Запросов", value: overview.activeRequests },
+            { label: "Просрочено", value: overview.overdueRequests, tone: "danger" as const },
+            { label: "Изменений", value: overview.openChanges },
+          ].map((item) => (
+            <div key={item.label} className="min-w-0">
+              <dt className="truncate text-[12px] leading-4 text-text-3">{item.label}</dt>
+              <dd className="mt-0.5 text-[15px] font-medium">
+                <Count value={item.value} tone={item.tone} />
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
+      <span className="block w-full px-1 text-center">
+        <span className="block truncate text-[15px] leading-[1.3] font-medium text-text">
+          {row.project.name}
+        </span>
+        <span className="mt-0.5 block truncate text-[13px] leading-[1.35] text-text-3">
+          <span className="mono">{row.project.code}</span> · {overview.region} ·{" "}
+          {employeeName(row.project.manager)}
+        </span>
+      </span>
     </button>
   );
 }

@@ -1,23 +1,48 @@
-import { useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowUp, Plus } from "lucide-react";
+import type { AgentIntent } from "@/api/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Поле вопроса, прижатое к низу. Свечение под ним — единственный градиент экрана:
- * до диалога 0.55, в диалоге 0.3. Зерно рисуется поверх пятна, поэтому blur его не размывает.
+ * Поле вопроса, прижатое к низу: стеклянная капсула, как у Catalist, «+ · текст · отправить».
+ * «+» открывает готовые вопросы (вложений нет, и кнопки для них нет — ADR-015). Шар под
+ * капсулой — единственный свет экрана: до диалога ярче, в диалоге тише.
  */
 export function AgentComposer({
   dimmed,
   busy,
   onSend,
+  examples,
+  onExample,
 }: {
   dimmed: boolean;
   busy: boolean;
   onSend: (prompt: string) => void;
+  /** Готовые вопросы под «+» */
+  examples: { intent: AgentIntent; prompt: string }[];
+  onExample: (prompt: string, intent: AgentIntent) => void;
 }) {
   const [value, setValue] = useState("");
+  const [menu, setMenu] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const ready = value.trim().length > 0 && !busy;
+
+  // Меню готовых вопросов закрывается касанием вне капсулы и клавишей Escape
+  useEffect(() => {
+    if (!menu) return;
+    const close = (event: Event) => {
+      if (event instanceof window.KeyboardEvent && event.key !== "Escape") return;
+      if (event instanceof PointerEvent && boxRef.current?.contains(event.target as Node)) return;
+      setMenu(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menu]);
 
   const send = () => {
     if (!ready) return;
@@ -35,26 +60,60 @@ export function AgentComposer({
   };
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-8 z-10 flex justify-center px-4">
-      <div className="pointer-events-auto relative isolate w-full sm:w-[90%] lg:w-[680px]">
-        <div
+    <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center px-4 sm:bottom-8">
+      <div
+        ref={boxRef}
+        className="pointer-events-auto relative isolate w-full sm:w-[90%] lg:w-[720px]"
+      >
+        <span
           aria-hidden
           className={cn(
-            "grain pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[200px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] transition-opacity duration-200 sm:h-[280px] sm:w-[720px]",
-            dimmed ? "opacity-30" : "opacity-55",
+            "orb top-1/2 left-1/2 h-[180px] w-[300px] -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200 sm:h-[240px] sm:w-[560px]",
+            dimmed ? "opacity-20" : "",
           )}
-        >
-          {/* На телефоне blur отключён: то же пятно рисуется радиальным градиентом */}
-          <div className="size-full rounded-[50%] bg-[radial-gradient(closest-side,rgba(241,96,1,0.2),rgba(143,29,11,0.1),transparent)] sm:bg-[image:var(--ember-field)] sm:blur-[120px]" />
-        </div>
+        />
+
+        {menu ? (
+          <div
+            id="agent-examples"
+            role="group"
+            aria-label="Готовые вопросы"
+            className="glass absolute inset-x-0 bottom-full mb-3 flex flex-col gap-1 rounded-[var(--r-xl)] p-2 shadow-[var(--lift-2)]"
+          >
+            {examples.map((example) => (
+              <button
+                key={example.prompt}
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setMenu(false);
+                  onExample(example.prompt, example.intent);
+                }}
+                className="focus-ring flex min-h-12 items-center rounded-[var(--r-md)] px-4 text-left text-[15px] text-text transition-fast is-hover:bg-surface-2 disabled:opacity-50"
+              >
+                {example.prompt}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <form
           onSubmit={(event) => {
             event.preventDefault();
             send();
           }}
-          className="flex min-h-[112px] flex-col rounded-[var(--r-lg)] border border-line bg-surface-2 px-4 pt-3 pb-2.5 transition-fast focus-within:border-orange-line focus-within:ring-3 focus-within:ring-[rgba(232,80,2,0.14)] sm:pt-4 sm:pb-3"
+          className="glass flex min-h-16 items-end gap-2 rounded-[32px] p-2 shadow-[var(--lift-2)] ring-1 ring-line ring-inset transition-fast focus-within:ring-line-2"
         >
+          <button
+            type="button"
+            aria-label="Готовые вопросы"
+            aria-expanded={menu}
+            aria-controls={menu ? "agent-examples" : undefined}
+            onClick={() => setMenu((open) => !open)}
+            className="focus-ring grid size-12 shrink-0 place-items-center rounded-full text-text-2 transition-fast is-hover:bg-surface-2 is-hover:text-text"
+          >
+            <Plus className={cn("size-5 transition-transform", menu && "rotate-45")} aria-hidden />
+          </button>
           <label htmlFor="agent-prompt" className="sr-only">
             Вопрос системе
           </label>
@@ -67,20 +126,16 @@ export function AgentComposer({
             placeholder="Спросите систему"
             rows={1}
             maxLength={2000}
-            className="min-h-12 flex-1 resize-none bg-transparent text-[15px] leading-[1.45] text-text outline-none placeholder:text-text-3"
+            className="max-h-40 min-h-12 flex-1 resize-none self-center bg-transparent py-3 text-[16px] leading-6 text-text outline-none [field-sizing:content] placeholder:text-text-3"
           />
-          {/* Вложений нет — и кнопки для них нет: отключённая кнопка «появится позже» была
-              кнопкой без действия (ADR-015) */}
-          <div className="flex items-center justify-end">
-            <button
-              type="submit"
-              disabled={!ready}
-              aria-label="Отправить вопрос"
-              className="accent-fill focus-ring grid size-12 place-items-center rounded-full transition-fast disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none lg:size-9"
-            >
-              <ArrowUp className="size-[18px]" strokeWidth={2} />
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={!ready}
+            aria-label="Отправить вопрос"
+            className="focus-ring grid size-12 shrink-0 place-items-center rounded-full bg-pill text-pill-text transition-fast disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-text-3"
+          >
+            <ArrowUp className="size-5" strokeWidth={2} />
+          </button>
         </form>
       </div>
     </div>
