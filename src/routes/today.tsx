@@ -123,7 +123,7 @@ function TodayPage() {
         </span>
       </PageCaption>
 
-      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 pt-1 lg:gap-5 lg:pt-2">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 pt-1 lg:gap-5 lg:pt-2">
         {screen !== "forbidden" ? (
           <TodayHero
             now={today.now}
@@ -349,11 +349,11 @@ function CaptureCard() {
   return (
     <section
       aria-labelledby="today-capture-title"
-      className="card-v3 rounded-[var(--r-2xl)] p-5 sm:p-7"
+      className="card-v3 rounded-[var(--r-xl)] p-4 sm:p-6"
     >
       <h2
         id="today-capture-title"
-        className="text-[26px] leading-[30px] font-semibold tracking-[-0.02em] sm:text-[30px] sm:leading-[34px]"
+        className="text-[20px] leading-[26px] font-semibold tracking-[-0.015em] sm:text-[26px] sm:leading-[32px]"
       >
         Что произошло на объекте?
       </h2>
@@ -457,7 +457,7 @@ function StatusCards({
               </span>
               <span
                 className={cn(
-                  "shrink-0 text-[30px] leading-none font-semibold tracking-[-0.02em] tnum",
+                  "shrink-0 text-[24px] leading-none font-semibold tracking-[-0.02em] tnum",
                   card.count > 0 ? "text-text" : "text-text-3",
                 )}
               >
@@ -466,7 +466,7 @@ function StatusCards({
             </>
           );
           const className =
-            "card-v3 flex min-h-[84px] items-center gap-4 rounded-[var(--r-xl)] py-4 ps-4 pe-5";
+            "card-v3 flex min-h-[64px] items-center gap-3 rounded-[var(--r-lg)] py-3 ps-3.5 pe-4";
           return (
             <li key={card.key}>
               {projectId ? (
@@ -511,7 +511,7 @@ function WorksSection({ works }: { works: TodayWork[] }) {
           ))}
         </ul>
       ) : (
-        <div className="card-v3 rounded-[var(--r-xl)] p-5">
+        <div className="card-v3 rounded-[var(--r-lg)] p-4">
           <EmptyState
             title="Сегодня ничего не зафиксировано"
             description="Это не значит, что работ не было: расскажите о смене в карточке выше."
@@ -529,7 +529,7 @@ function WorkRow({ work }: { work: TodayWork }) {
       <Link
         to="/projects/$id/field-reports"
         params={{ id: work.projectId }}
-        className="focus-ring press card-v3 flex items-stretch gap-4 rounded-[var(--r-xl)] py-4 ps-4 pe-5"
+        className="focus-ring press card-v3 flex items-stretch gap-3 rounded-[var(--r-lg)] py-3 ps-3.5 pe-4"
       >
         <span aria-hidden className={cn("w-1 shrink-0 rounded-full", tone[work.status].bar)} />
         <span className="min-w-0 flex-1">
@@ -546,7 +546,7 @@ function WorkRow({ work }: { work: TodayWork }) {
           </span>
         </span>
         <span className="shrink-0 text-right">
-          <span className="block text-[26px] leading-7 font-semibold tracking-[-0.02em] tnum">
+          <span className="block text-[22px] leading-7 font-semibold tracking-[-0.02em] tnum">
             {fmtNum(work.qty)}
           </span>
           <span className="mt-1 block text-[13px] text-text-3">{work.unit}</span>
@@ -621,7 +621,7 @@ function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
   return (
     <section
       aria-labelledby="today-shift-title"
-      className="card-v3 rounded-[var(--r-2xl)] p-5 sm:p-7"
+      className="card-v3 rounded-[var(--r-xl)] p-4 sm:p-6"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -645,16 +645,16 @@ function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
         <>
           <dl className="mt-6 grid grid-cols-2 gap-3">
             {summary.totals.map((total) => (
-              <div key={total.unit} className="rounded-[var(--r-lg)] bg-surface-2 p-4">
+              <div key={total.unit} className="rounded-[var(--r-md)] bg-surface-2 p-3">
                 <dt className="text-[13px] leading-5 text-text-2">Принято, {total.unit}</dt>
-                <dd className="mt-1 text-[30px] leading-9 font-semibold tracking-[-0.02em] tnum">
+                <dd className="mt-0.5 text-[24px] leading-8 font-semibold tracking-[-0.02em] tnum">
                   {fmtNum(total.qty)}
                 </dd>
               </div>
             ))}
-            <div className="rounded-[var(--r-lg)] bg-surface-2 p-4">
+            <div className="rounded-[var(--r-md)] bg-surface-2 p-3">
               <dt className="text-[13px] leading-5 text-text-2">Людей на сменах</dt>
-              <dd className="mt-1 text-[30px] leading-9 font-semibold tracking-[-0.02em] tnum">
+              <dd className="mt-0.5 text-[24px] leading-8 font-semibold tracking-[-0.02em] tnum">
                 {fmtNum(summary.people)}
               </dd>
             </div>
