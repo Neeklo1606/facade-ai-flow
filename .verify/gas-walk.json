@@ -1,8 +1,147 @@
 {
   "stats": {
-    "screens": 30,
-    "elements": 534,
-    "clicked": 51
+    "screens": 112,
+    "elements": 3236,
+    "clicked": 309
   },
-  "problems": []
+  "problems": [
+    {
+      "screen": "/gas",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Войти как…» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/reports",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Развернуть всё» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/reports",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/brigades",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Добавить бригаду» не нажимается"
+    },
+    {
+      "screen": "/gas/admin",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Проверять только с замечаниями» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/admin",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Без проверки, итоговая проверка перед от» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/admin",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Сначала деньги» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/admin",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Сначала время» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Сохранить инструкцию в PDF» нажалась, но ничего не изменилось"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    },
+    {
+      "screen": "/gas/guide",
+      "view": "1440",
+      "kind": "dead",
+      "detail": "«Показать на экране» не нажимается"
+    }
+  ]
 }
