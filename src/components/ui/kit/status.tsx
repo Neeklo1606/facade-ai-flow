@@ -4,7 +4,7 @@
  */
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { STATUS_WORD, splitChips, type EntryStatus } from "@/lib/ui/kit-logic";
+import { STATUS_WORD, type EntryStatus } from "@/lib/ui/kit-logic";
 import { cn } from "@/lib/utils";
 
 export type { EntryStatus };
@@ -111,49 +111,81 @@ export function ChipRow({
   className?: string;
 }) {
   /*
-   * Метки не сжимаются и не переносятся: если вторая не влезает в ширину строки, она уходит
-   * в «+N». Ширина меряется после отрисовки и при изменении размера.
+   * Метки не сжимаются и не переносятся: сколько их влезает в ширину строки, столько видно
+   * (не больше `max`), остальные в «+N». Ширина каждой метки меряется заранее: не влезающие
+   * лежат в разметке невидимыми, поэтому при расширении строки они возвращаются.
    */
   const ref = useRef<HTMLUListElement>(null);
-  const width = useRef(0);
-  const [fit, setFit] = useState(max);
-  useLayoutEffect(() => setFit(max), [max, chips.length]);
-  // Не влезает: на одну метку меньше, остальное в «+N»
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (el && el.scrollWidth > el.clientWidth + 1 && fit > 1) setFit(fit - 1);
-  }, [fit]);
-  // Ширина строки изменилась: пересчитать с полного числа
+  const items = chips.slice(0, max);
+  const [fit, setFit] = useState(items.length);
+  const [tick, setTick] = useState(0);
+  // Естественная ширина метки: сжатая единственная метка меряется по прошлому замеру
+  const natural = useRef(new Map<string, number>());
+
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    width.current = el.clientWidth;
+    const width = el.clientWidth;
+    const nodes = [...el.querySelectorAll<HTMLElement>("[data-chip]")];
+    const widths = nodes.map((node) => {
+      const label = node.dataset["chip"] ?? "";
+      const shrunk = node.dataset["shrunk"] === "true";
+      if (!shrunk) natural.current.set(label, node.offsetWidth);
+      return natural.current.get(label) ?? node.offsetWidth;
+    });
+    const plus = el.querySelector<HTMLElement>("[data-chip-more]")?.offsetWidth ?? 36;
+    const gap = 4;
+    let next = 1;
+    for (let k = nodes.length; k >= 1; k--) {
+      const used = widths.slice(0, k).reduce((sum, w) => sum + w, 0) + gap * (k - 1);
+      const more = chips.length > k ? gap + plus : 0;
+      if (used + more <= width + 0.5) {
+        next = k;
+        break;
+      }
+    }
+    setFit(next);
+  }, [chips, max, tick]);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let last = el.clientWidth;
     const observer = new ResizeObserver(() => {
-      if (Math.abs(el.clientWidth - width.current) < 1) return;
-      width.current = el.clientWidth;
-      setFit(max);
+      if (Math.abs(el.clientWidth - last) < 1) return;
+      last = el.clientWidth;
+      setTick((t) => t + 1);
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [max]);
-  const { shown, rest } = splitChips(chips, Math.min(max, fit));
+  }, []);
+
   if (!chips.length) return null;
+  const visible = Math.min(fit, items.length);
+  const rest = chips.length - visible;
   return (
     <ul
       ref={ref}
-      className={cn("flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden", className)}
+      className={cn(
+        "relative flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden",
+        className,
+      )}
     >
-      {shown.map((chip, i) => (
-        // Метки целиком; многоточием сокращается только одна оставшаяся
+      {items.map((chip, i) => (
         <li
           key={chip.label}
-          className={shown.length === 1 && i === 0 ? "min-w-0 shrink" : "shrink-0"}
+          data-chip={chip.label}
+          data-shrunk={i < visible && visible === 1 ? "true" : undefined}
+          aria-hidden={i >= visible || undefined}
+          className={cn(
+            i >= visible ? "invisible absolute" : visible === 1 ? "min-w-0 shrink" : "shrink-0",
+          )}
         >
           <Chip tone={chip.tone ?? "info"}>{chip.label}</Chip>
         </li>
       ))}
-      {rest ? (
-        <li className="shrink-0">
+      {rest > 0 ? (
+        <li className="shrink-0" data-chip-more>
           {onMore ? (
             <Chip tone="neutral" onClick={onMore}>
               +{rest}

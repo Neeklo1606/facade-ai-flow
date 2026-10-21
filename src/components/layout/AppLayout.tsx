@@ -8,7 +8,10 @@ import { BottomTabs } from "./BottomTabs";
 const CommandPalette = lazy(() =>
   import("./CommandPalette").then((module) => ({ default: module.CommandPalette })),
 );
-import { GuideDock } from "@/components/guide/GuideDock";
+// Полоса показа отдельным куском: первому экрану она не нужна (бюджет бандла, ADR-013)
+const GuideDock = lazy(() =>
+  import("@/components/guide/GuideDock").then((module) => ({ default: module.GuideDock })),
+);
 import { useSegScroll } from "@/lib/ui/seg-scroll";
 import { useInstallHint } from "@/lib/ui/pwa";
 import { useRouterState } from "@tanstack/react-router";
@@ -26,7 +29,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
           {/* Полоса показа под шапкой одной строкой 44: не плавает поверх содержимого (4.4) */}
-          <GuideDock />
+          <Suspense fallback={null}>
+            <GuideDock />
+          </Suspense>
           <div className="flex min-h-0 min-w-0 flex-1 items-stretch">
             {/* Нижний отступ из менеджера слоёв: высота нижней панели и 16 (4.4) */}
             <main className="min-w-0 flex-1 overflow-y-auto px-gutter pt-2 pb-inset lg:pt-6 lg:pb-8">

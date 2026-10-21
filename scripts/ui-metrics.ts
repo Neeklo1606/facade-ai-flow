@@ -274,7 +274,13 @@ function measureInPage(): Omit<Measure, "route" | "theme" | "url" | "width"> {
     const r = el.getBoundingClientRect();
     if (r.bottom < 0 || r.top > vh) continue;
     const s = getComputedStyle(el);
-    if (s.boxShadow && s.boxShadow !== "none") shadows += 1;
+    // Тень: внешняя с размытием. Линии внутренней тенью (inset 0 1px 0) и кольца фокуса не тени
+    const casts = (s.boxShadow || "none").split(/,(?![^(]*\))/).some((part) => {
+      if (part.includes("inset") || part.trim() === "none") return false;
+      const lengths = [...part.matchAll(/(-?[\d.]+)px/g)].map((m) => Number(m[1]));
+      return (lengths[2] ?? 0) > 0;
+    });
+    if (casts) shadows += 1;
     const blur =
       s.backdropFilter || (s as unknown as Record<string, string>)["webkitBackdropFilter"];
     if (blur && blur !== "none") blurs += 1;
@@ -432,7 +438,8 @@ writeFileSync(
   и без полосы показа).
 - **Низ**: сколько высоты экрана снизу закрыто фиксированными слоями; **слоёв**: их число.
 - **В экране**: карточек или строк списка целиком до первого нижнего слоя.
-- **Тени, размытие, градиенты**: видимые в первом экране элементы с box-shadow, backdrop-filter,
+- **Тени, размытие, градиенты**: видимые в первом экране элементы с внешней тенью с размытием
+  (линии внутренней тенью и кольца не считаются), backdrop-filter,
   background-image с градиентом. **Крупных чисел**: тексты от 24 px с цифрами.
 
 | Маршрут | Ширина | Тема | Шапка | Контент | Полезное | Низ | Слоёв | В экране | Ср. шрифт | Макс. шрифт | Пересечений | Тени | Размытие | Градиенты | Крупных чисел |

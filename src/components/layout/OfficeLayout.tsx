@@ -88,7 +88,7 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Шапка телефона 52 + safe-area (ADR-045, 4.2), сплошная, с границей снизу */}
-        <header className="sticky top-0 z-30 box-content flex h-header items-center gap-2 border-b border-line bg-surface px-gutter pt-[env(safe-area-inset-top)] lg:hidden">
+        <header className="line-bottom sticky top-0 z-30 box-content flex h-header items-center gap-2 bg-surface px-gutter pt-[env(safe-area-inset-top)] lg:hidden">
           <Link
             to={pathname.replace(/\/$/u, "") === "/office" ? "/" : "/office"}
             aria-label={
@@ -109,7 +109,7 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
           Шапка кабинета с 1024 px: заголовок раздела, его действия и подпись — те же места,
           что у полевой шапки, поэтому экраны пользуются обычным PageHeader (ADR-039).
         */}
-        <header className="hidden h-header items-center gap-4 border-b border-line px-12 lg:flex">
+        <header className="line-bottom hidden h-header items-center gap-4 px-12 lg:flex">
           <div className="min-w-0 flex-1">
             <div className="truncate text-title" aria-hidden="true">
               {screenFor(pathname).name}

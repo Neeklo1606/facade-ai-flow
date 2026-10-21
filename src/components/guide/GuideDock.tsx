@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useRef, useState, type RefObject } from "rea
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, X } from "lucide-react";
-import { notify } from "@/components/ui/kit";
+import { notify } from "@/components/ui/kit/toast";
 import { queries } from "@/api/queries";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";

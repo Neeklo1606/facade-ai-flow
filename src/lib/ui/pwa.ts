@@ -7,7 +7,7 @@
  *   и больше не появляется. Хранилище может быть недоступно: тогда подсказки нет.
  */
 import { useEffect } from "react";
-import { notify } from "@/components/ui/kit";
+import { notify } from "@/components/ui/kit/toast";
 
 export function useAppManifest(href: string, title: string) {
   useEffect(() => {

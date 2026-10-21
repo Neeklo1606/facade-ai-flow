@@ -51,7 +51,7 @@ import { useBottomLayer } from "@/lib/ui/bottom-layers";
 import { useCollapsingTitle } from "@/lib/ui/collapsing-title";
 import { useSegScroll } from "@/lib/ui/seg-scroll";
 import { useAppManifest, useInstallHint } from "@/lib/ui/pwa";
-import { ListGroup, ListRow } from "@/components/ui/kit";
+import { ListGroup, ListRow } from "@/components/ui/kit/list";
 import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
 import { GasShowDock } from "../show/GasShowDock";
