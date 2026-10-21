@@ -19,6 +19,8 @@ import { chromium, type Page } from "@playwright/test";
 
 const base = process.env["GAS_WALK_BASE"] ?? "http://localhost:4631";
 const out = process.env["GAS_WALK_OUT"] ?? ".verify/gas-walk.json";
+/** GAS_WALK_ONLY="/gas/guide,/gas/brigades": пройти только эти экраны */
+const only = process.env["GAS_WALK_ONLY"]?.split(",");
 
 const SCREENS = [
   "/gas",
@@ -107,6 +109,8 @@ function describe(page: Page) {
       const label = (
         el.getAttribute("aria-label") ||
         el.textContent ||
+        // Подпись обёрткой <label>: кнопка-чекбокс внутри неё получает имя от label
+        el.closest("label")?.textContent ||
         el.getAttribute("placeholder") ||
         ""
       )
@@ -165,7 +169,7 @@ for (const view of VIEWS) {
   });
   page.on("pageerror", (error) => consoleErrors.push(String(error).slice(0, 160)));
 
-  for (const screen of SCREENS) {
+  for (const screen of SCREENS.filter((path) => !only || only.includes(path))) {
     stats.screens += 1;
     await openScreen(page, screen);
     const snapshot = await describe(page);
@@ -248,6 +252,8 @@ for (const view of VIEWS) {
       await openScreen(page, screen);
       const fresh = page.locator("main button:not([disabled])").nth(index);
       if ((await fresh.count()) === 0) continue;
+      // Скрытая на этой ширине копия (md:hidden) или кнопка в свёрнутом разделе: не цель нажатия
+      if (!(await fresh.isVisible())) continue;
       const label = ((await fresh.textContent()) ?? (await fresh.getAttribute("aria-label")) ?? "")
         .replace(/\s+/g, " ")
         .trim()
@@ -259,7 +265,8 @@ for (const view of VIEWS) {
       const already =
         (await fresh.getAttribute("aria-selected")) === "true" ||
         (await fresh.getAttribute("data-state")) === "active" ||
-        (await fresh.getAttribute("aria-pressed")) === "true";
+        (await fresh.getAttribute("aria-pressed")) === "true" ||
+        (await fresh.getAttribute("aria-checked")) === "true";
       if (already) continue;
       // Сброс данных уводит состояние: его проверяет сквозной тест, здесь пропускаем
       if (/Сбросить/.test(label)) continue;
@@ -268,16 +275,22 @@ for (const view of VIEWS) {
       const before = {
         url: page.url(),
         text: await page.locator("main").innerText(),
-        dialogs: await page.locator("[role=dialog], [data-sonner-toast]").count(),
+        dialogs: await page.locator("[role=dialog], [role=menu], [data-sonner-toast]").count(),
       };
       try {
         await fresh.click({ timeout: 4000 });
-      } catch {
+      } catch (error) {
+        // Причина из Playwright: кто перехватил нажатие или чего не дождались
+        const reason = String(error)
+          .split("\n")
+          .find((line) => /intercepts|not visible|not stable|outside/.test(line))
+          ?.trim()
+          .slice(0, 120);
         problems.push({
           screen,
           view: view.label,
           kind: "dead",
-          detail: `«${label}» не нажимается`,
+          detail: `«${label}» не нажимается${reason ? `: ${reason}` : ""}`,
         });
         continue;
       }
@@ -286,7 +299,7 @@ for (const view of VIEWS) {
       const after = {
         url: page.url(),
         text: await page.locator("main").innerText(),
-        dialogs: await page.locator("[role=dialog], [data-sonner-toast]").count(),
+        dialogs: await page.locator("[role=dialog], [role=menu], [data-sonner-toast]").count(),
       };
       const changed =
         before.url !== after.url || before.text !== after.text || before.dialogs !== after.dialogs;

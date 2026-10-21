@@ -1819,6 +1819,9 @@ html[data-boot-compact] [data-boot-hero] {
 @utility min-h-control {
   min-height: var(--h-control);
 }
+@utility min-w-control {
+  min-width: var(--h-control);
+}
 @utility h-control-lg {
   height: var(--h-control-lg);
 }

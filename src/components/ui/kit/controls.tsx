@@ -161,7 +161,7 @@ export function ScrollTabs<T extends string>({
             aria-selected={on}
             onClick={() => onChange(tab.value)}
             className={cn(
-              "relative flex h-control shrink-0 items-center gap-1.5 whitespace-nowrap focus-ring",
+              "relative flex h-control min-w-control shrink-0 items-center justify-center gap-1.5 whitespace-nowrap focus-ring",
               on ? "text-body-strong text-text" : "text-body text-text-2 is-hover:text-text",
             )}
           >
