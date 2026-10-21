@@ -135,8 +135,7 @@ export function BottomTabs() {
           slot === "mic" ? (
             <div key="mic" className="grid place-items-center">
               {/* Голосовая кнопка 56, единственный выступающий элемент панели (4.3) */}
-              <Button
-                variant="ghost"
+              <button
                 type="button"
                 onPointerDown={holdStart}
                 onPointerUp={holdEnd}
@@ -153,10 +152,10 @@ export function BottomTabs() {
                 }}
                 aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
                 data-tour="nav-plus"
-                className="focus-ring press-98 -translate-y-2 grid size-14 place-items-center rounded-full bg-pill p-0 text-pill-text ring-4 ring-surface is-hover:bg-pill is-hover:text-pill-text [&_svg]:size-6"
+                className="focus-ring press-98 -translate-y-2 grid size-14 place-items-center rounded-full bg-pill text-pill-text ring-4 ring-surface [&_svg]:size-6"
               >
                 <Mic strokeWidth={2} aria-hidden />
-              </Button>
+              </button>
             </div>
           ) : (
             slot
@@ -200,6 +199,8 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
     <Link
       to={item.to}
       search={item.search as never}
+      // «Где я» решает item.active: роутер не должен отмечать пункт на вложенных экранах
+      activeOptions={{ exact: true, includeSearch: false }}
       data-tour={`nav-${item.key}`}
       aria-current={active ? "page" : undefined}
       className={cn(

@@ -111,7 +111,8 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.capsuleGlows).toBe(false);
       expect(state!.capsuleSize).toBeGreaterThanOrEqual(56);
       expect(Math.abs(state!.capsuleOffset ?? 99)).toBeLessThanOrEqual(1);
-      expect(state!.activeOrange).toBe(true);
+      // На закупках объекта ни одна позиция не «здесь»; если активная есть, она акцентом
+      expect(state!.activeOrange ?? true).toBe(true);
       expect(state!.small).toEqual([]);
       await expectA11y(page, "нижняя панель");
     });
@@ -149,6 +150,9 @@ test.describe("нижняя панель @mobile", () => {
       const state = await panel(page);
       expect(state!.capsule).toContain("Говорить");
       expect(Math.abs(state!.capsuleOffset ?? 99)).toBeLessThanOrEqual(1);
+      // «Объекты» активна: иконка и подпись акцентом, остального оранжевого в панели нет
+      expect(state!.activeOrange).toBe(true);
+      expect(state!.orange).toEqual([]);
     });
   });
 

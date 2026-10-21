@@ -16,7 +16,12 @@ const FILE = "Выработка_бригад_28.09-03.10.2026.xlsx";
 
 test.describe.configure({ timeout: 180_000 });
 
-const dock = (page: Page) => page.locator("[data-gas-show-dock]");
+/*
+ * Полоса показа: под шапкой экрана, а пока открыта карточка записи — строкой под шапкой
+ * карточки (ADR-045, 4.4). Берётся та, что видна сейчас.
+ */
+const dock = (page: Page) =>
+  page.locator("[data-gas-show-dock], [data-gas-show-inline]").filter({ visible: true }).first();
 const plain = (value: string) => value.replace(/[\u00a0\u202f]/g, " ");
 
 /** Ответ на последнее сообщение бота */

@@ -123,22 +123,24 @@ for (const run of WIDTHS) {
     });
 
     if (run.phone) {
-      test("капсула решения не уходит под нижнюю панель", async ({ page }) => {
+      /*
+       * ADR-045 «Финальный интерфейс», 4.4 и 4.13: открытая карточка закрывает нижнюю панель
+       * оболочки, внизу один слой — панель действий 64 у края экрана. Раньше (ADR-044)
+       * капсула решения плавала над панелью и полосой показа: поменялось решение владельца.
+       */
+      test("карточка закрывает нижнюю панель и держит одну панель действий", async ({ page }) => {
         await open(page, "/gas/moderation");
         await card(page, "ГЗ-00096").click();
-        const capsule = await page.getByRole("group", { name: "Решение по записи" }).boundingBox();
-        const nav = await page.getByRole("navigation", { name: "Основные разделы" }).boundingBox();
-        expect(capsule).not.toBeNull();
-        expect(nav).not.toBeNull();
-        expect(capsule!.y + capsule!.height).toBeLessThanOrEqual(nav!.y);
-        const dock = page.locator("[data-gas-show-dock]");
-        if ((await dock.count()) > 0) {
-          const box = (await dock.boundingBox())!;
-          expect(capsule!.y + capsule!.height).toBeLessThanOrEqual(box.y);
-        }
-        // Главная кнопка на телефоне не ниже 56 px
+        const bar = await page.getByRole("group", { name: "Решение по записи" }).boundingBox();
+        expect(bar).not.toBeNull();
+        await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeHidden();
+        await expect(page.locator("[data-gas-show-dock]")).toHaveCount(0);
+        const viewport = page.viewportSize()!;
+        expect(bar!.y + bar!.height).toBeLessThanOrEqual(viewport.height);
+        expect(bar!.height).toBeLessThanOrEqual(65);
+        // «Подтвердить» в карточке — полевое действие: не ниже 48 px
         const confirm = await confirmButton(page).boundingBox();
-        expect(confirm!.height).toBeGreaterThanOrEqual(56);
+        expect(confirm!.height).toBeGreaterThanOrEqual(48);
       });
     } else {
       test("клавиши J, K и Enter", async ({ page }) => {

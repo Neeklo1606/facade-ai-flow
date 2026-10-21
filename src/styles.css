@@ -1919,3 +1919,26 @@ html[data-sheet-open] nav[aria-label="Основная навигация"] {
 @utility line-bottom {
   box-shadow: inset 0 -1px 0 var(--line);
 }
+
+/*
+ * Докрутка к элементу учитывает фиксированные слои (ADR-045, 4.4): фокус и scrollIntoView
+ * не оставляют кнопку под шапкой или под нижней панелью.
+ */
+html,
+main {
+  scroll-padding-top: calc(var(--topbar-h) + env(safe-area-inset-top) + 8px);
+  scroll-padding-bottom: calc(var(--bottom-inset, 0px) + 8px);
+}
+
+/*
+ * Тост не закрывает содержимое под собой (4.5): касание проходит насквозь, нажимаются только
+ * его кнопки («Отменить», закрыть). Иначе тост над строкой списка забирал касание,
+ * а наведение ставило его таймер на паузу.
+ */
+[data-sonner-toast] {
+  pointer-events: none;
+}
+[data-sonner-toast] button,
+[data-sonner-toast] a {
+  pointer-events: auto;
+}

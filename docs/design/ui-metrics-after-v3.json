@@ -28,7 +28,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -67,7 +67,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 8,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 3
@@ -100,7 +100,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 5,
+    "shadows": 1,
     "blurs": 2,
     "gradients": 1,
     "bigNumbers": 0
@@ -137,7 +137,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -173,7 +173,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -208,7 +208,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 1,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -243,7 +243,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 1,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -279,7 +279,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -317,7 +317,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 3
@@ -379,7 +379,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -406,7 +406,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 3,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -441,7 +441,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -477,7 +477,7 @@
     "bottomCoverage": 64,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -513,7 +513,7 @@
     "bottomCoverage": 64,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -548,7 +548,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -583,7 +583,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
@@ -617,7 +617,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -651,7 +651,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -685,7 +685,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -719,7 +719,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -756,7 +756,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -790,7 +790,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -823,7 +823,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -858,7 +858,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -889,7 +889,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
@@ -934,9 +934,9 @@
     "textNodes": 8,
     "avgFont": 16.1,
     "maxFont": 24,
-    "headerHeight": 53,
-    "contentTop": 69,
-    "firstUsefulTop": 203,
+    "headerHeight": 52,
+    "contentTop": 68,
+    "firstUsefulTop": 202,
     "bottomLayers": [],
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
@@ -960,9 +960,9 @@
     "textNodes": 78,
     "avgFont": 13.4,
     "maxFont": 24,
-    "headerHeight": 53,
-    "contentTop": 69,
-    "firstUsefulTop": 107,
+    "headerHeight": 52,
+    "contentTop": 68,
+    "firstUsefulTop": 106,
     "bottomLayers": [],
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
@@ -986,9 +986,9 @@
     "textNodes": 24,
     "avgFont": 14.5,
     "maxFont": 24,
-    "headerHeight": 53,
-    "contentTop": 69,
-    "firstUsefulTop": 107,
+    "headerHeight": 52,
+    "contentTop": 68,
+    "firstUsefulTop": 106,
     "bottomLayers": [],
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
@@ -1027,7 +1027,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1066,7 +1066,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 8,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 3
@@ -1099,7 +1099,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 5,
+    "shadows": 1,
     "blurs": 2,
     "gradients": 1,
     "bigNumbers": 0
@@ -1136,7 +1136,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -1172,7 +1172,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1207,7 +1207,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 1,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -1242,7 +1242,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 1,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -1278,7 +1278,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -1316,7 +1316,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 3
@@ -1378,7 +1378,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -1405,7 +1405,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -1440,7 +1440,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1476,7 +1476,7 @@
     "bottomCoverage": 64,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -1512,7 +1512,7 @@
     "bottomCoverage": 64,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -1547,7 +1547,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1582,7 +1582,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 4,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
@@ -1616,7 +1616,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1650,7 +1650,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1684,7 +1684,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1718,7 +1718,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1755,7 +1755,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -1789,7 +1789,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1822,7 +1822,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -1857,7 +1857,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -1888,7 +1888,7 @@
     "bottomCoverage": 56,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
@@ -1933,9 +1933,9 @@
     "textNodes": 8,
     "avgFont": 16.1,
     "maxFont": 24,
-    "headerHeight": 53,
-    "contentTop": 69,
-    "firstUsefulTop": 203,
+    "headerHeight": 52,
+    "contentTop": 68,
+    "firstUsefulTop": 202,
     "bottomLayers": [],
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
@@ -1959,9 +1959,9 @@
     "textNodes": 78,
     "avgFont": 13.4,
     "maxFont": 24,
-    "headerHeight": 53,
-    "contentTop": 69,
-    "firstUsefulTop": 107,
+    "headerHeight": 52,
+    "contentTop": 68,
+    "firstUsefulTop": 106,
     "bottomLayers": [],
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
@@ -1985,9 +1985,9 @@
     "textNodes": 24,
     "avgFont": 14.5,
     "maxFont": 24,
-    "headerHeight": 53,
-    "contentTop": 69,
-    "firstUsefulTop": 107,
+    "headerHeight": 52,
+    "contentTop": 68,
+    "firstUsefulTop": 106,
     "bottomLayers": [],
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
@@ -2021,7 +2021,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2056,7 +2056,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 12,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 7
@@ -2084,7 +2084,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 1,
     "blurs": 2,
     "gradients": 1,
     "bigNumbers": 0
@@ -2118,7 +2118,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 4
@@ -2148,7 +2148,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2177,7 +2177,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 7
@@ -2206,7 +2206,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 7
@@ -2237,7 +2237,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -2270,7 +2270,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 3
@@ -2301,7 +2301,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -2330,7 +2330,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 1,
     "overlaps": [],
-    "shadows": 5,
+    "shadows": 4,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -2360,7 +2360,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 6,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -2390,7 +2390,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 6,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -2420,7 +2420,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -2448,7 +2448,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 6,
+    "shadows": 4,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2643,7 +2643,7 @@
     "bottomCoverage": 245,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 5,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
@@ -2671,7 +2671,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2699,7 +2699,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2727,7 +2727,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2755,7 +2755,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2786,7 +2786,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 4
@@ -2814,7 +2814,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2842,7 +2842,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 7,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -2871,7 +2871,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -2898,7 +2898,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
@@ -3010,7 +3010,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3045,7 +3045,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 12,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 7
@@ -3073,7 +3073,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 1,
     "blurs": 2,
     "gradients": 1,
     "bigNumbers": 0
@@ -3107,7 +3107,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 4
@@ -3137,7 +3137,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3166,7 +3166,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 7
@@ -3195,7 +3195,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 7
@@ -3226,7 +3226,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -3259,7 +3259,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 3
@@ -3290,7 +3290,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -3319,7 +3319,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 1,
     "overlaps": [],
-    "shadows": 5,
+    "shadows": 2,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 0
@@ -3349,7 +3349,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 6,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -3379,7 +3379,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 6,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -3409,7 +3409,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 2
@@ -3437,7 +3437,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 6,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3632,7 +3632,7 @@
     "bottomCoverage": 245,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 5,
+    "shadows": 1,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
@@ -3660,7 +3660,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 3,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3688,7 +3688,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3716,7 +3716,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3744,7 +3744,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3775,7 +3775,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 5,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 4
@@ -3803,7 +3803,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 2,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3831,7 +3831,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 7,
     "overlaps": [],
-    "shadows": 2,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 0,
     "bigNumbers": 0
@@ -3860,7 +3860,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 4,
     "overlaps": [],
-    "shadows": 3,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 2
@@ -3887,7 +3887,7 @@
     "bottomCoverage": 0,
     "itemsInFirstScreen": 0,
     "overlaps": [],
-    "shadows": 1,
+    "shadows": 0,
     "blurs": 0,
     "gradients": 1,
     "bigNumbers": 1
