@@ -56,6 +56,8 @@ try {
   const mobile: { path: string; persona: string | null }[] = [
     { path: "/", persona: null },
     { path: "/today", persona: "e-gareev" },
+    // Первый экран контура газа (ADR-045, V9): цифры FCP и LCP печатаются для отчёта
+    { path: "/gas", persona: null },
   ];
   /*
    * Производительность телефона печатается, но не держит порог: локальный node-сервер отдаёт
@@ -95,6 +97,15 @@ try {
         .map((audit) => audit.id);
       console.log(`  не прошли: ${broken.join(", ")}`);
     }
+    // Первый экран в секундах при мобильной сети Lighthouse (имитация медленного 4G)
+    const audits = result?.lhr.audits ?? {};
+    const seconds = (id: string) =>
+      audits[id]?.numericValue
+        ? (audits[id]!.numericValue! / 1000).toFixed(1).replace(".", ",")
+        : "—";
+    line.push(
+      `FCP ${seconds("first-contentful-paint")} с · LCP ${seconds("largest-contentful-paint")} с`,
+    );
     console.log(`телефон ${path}: ${line.join(" · ")}`);
   }
 } finally {
