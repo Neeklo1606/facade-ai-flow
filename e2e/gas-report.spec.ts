@@ -71,9 +71,13 @@ test.describe("отчёт, 1440", () => {
     const after = await firstHead.boundingBox();
     expect(Math.round(after!.x)).toBe(Math.round(before!.x));
     expect(Math.round(after!.y)).toBe(Math.round(before!.y));
-    // Шапка дней осталась наверху, хотя таблица прокручена вниз
+    // Шапка дней осталась наверху, хотя таблица прокручена вниз: у внутреннего края
+    // области прокрутки, то есть под границей карточки 1 px (ADR-045, 3.4)
     const tableBox = await table.boundingBox();
-    expect(Math.round((await dayHead.boundingBox())?.y ?? 0)).toBe(Math.round(tableBox!.y));
+    const border = await table.evaluate((el) => el.clientTop);
+    expect(Math.round((await dayHead.boundingBox())?.y ?? 0)).toBe(
+      Math.round(tableBox!.y + border),
+    );
     // Страница не уехала вбок
     const pageScroll = await page.evaluate(
       () => document.scrollingElement!.scrollWidth - window.innerWidth,
