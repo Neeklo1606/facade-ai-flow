@@ -241,7 +241,7 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
         <button
           type="button"
           onClick={() => window.print()}
-          className="text-body-strong inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-full bg-surface-2 px-5 font-medium focus-ring press sm:self-auto"
+          className="text-body-strong inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-control border border-line-2 bg-surface px-5 font-medium focus-ring press sm:self-auto"
         >
           <Download className="size-4" aria-hidden />
           Сохранить инструкцию в PDF
@@ -336,7 +336,7 @@ function RoleSteps({ role, steps }: { role: Role; steps: GuideStep[] }) {
             type="button"
             onClick={() => void show(step)}
             data-testid="guide-show"
-            className="text-body-strong ms-[52px] inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-surface-2 px-4 font-medium text-text focus-ring press sm:ms-auto sm:self-auto print:hidden"
+            className="text-body-strong ms-[52px] inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-start rounded-control border border-line-2 bg-surface px-4 font-medium text-text focus-ring press sm:ms-auto sm:self-auto print:hidden"
           >
             Показать на экране
             <ArrowUpRight className="size-4" aria-hidden />

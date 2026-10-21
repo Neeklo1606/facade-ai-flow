@@ -22,9 +22,9 @@ export function ScreenHint({ screen, className }: { screen: GasScreenKey; classN
         more={
           <Link
             to="/gas/guide"
-            className="inline-flex min-h-11 items-center text-body-strong text-orange focus-ring"
+            className="inline-flex min-h-11 items-center text-meta-strong text-orange focus-ring"
           >
-            Вся инструкция
+            Инструкция
           </Link>
         }
       />

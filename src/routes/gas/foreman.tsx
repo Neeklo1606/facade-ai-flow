@@ -90,11 +90,11 @@ function ForemanPage() {
     <div
       className={cn(
         // Телефон и планшет: диалог во весь экран под шапкой контура
-        "-mx-4 -mt-4 flex flex-col sm:-mx-6",
+        "-mx-gutter -mt-2 flex flex-col",
         // Бригадир: до нижнего края, безопасную зону учитывает лента и поле ответа
         isForeman
-          ? "-mb-[max(16px,env(safe-area-inset-bottom))] h-[calc(100dvh_-_56px)]"
-          : "h-[calc(100dvh_-_56px_-_96px_-_env(safe-area-inset-bottom))]",
+          ? "-mb-[max(16px,env(safe-area-inset-bottom))] h-[calc(100dvh-var(--h-header)-env(safe-area-inset-top))]"
+          : "h-[calc(100dvh-var(--h-header)-env(safe-area-inset-top)-var(--bottom-inset,0px)-42px)]",
         // Десктоп: рамка телефона по центру и панель системы справа
         "lg:mx-0 lg:mt-0 lg:mb-0 lg:grid lg:h-auto lg:grid-cols-[390px_minmax(300px,380px)] lg:items-start lg:justify-center lg:gap-10",
       )}

@@ -198,7 +198,7 @@ export function Composer({
         inputMode={numeric ? "decimal" : "text"}
         autoComplete="off"
         enterKeyHint="send"
-        className="text-body h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-text outline-none placeholder:text-text-3 focus-ring tnum"
+        className="text-body h-12 min-w-0 flex-1 rounded-control border border-line-2 bg-surface px-4 text-text outline-none placeholder:text-text-3 focus-ring tnum"
       />
       <button
         type="submit"

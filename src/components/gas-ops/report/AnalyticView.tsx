@@ -102,7 +102,7 @@ export function AnalyticView({
           <button
             type="button"
             onClick={() => setSheet(true)}
-            className="text-body-strong inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 font-medium focus-ring"
+            className="text-body-strong inline-flex min-h-11 items-center gap-2 rounded-control border border-line-2 bg-surface px-4 font-medium focus-ring"
           >
             <SlidersHorizontal className="size-4" aria-hidden />
             Фильтры ({active})
@@ -200,7 +200,7 @@ function FilterControls({
         <select
           value={filters.brigade}
           onChange={(event) => set({ brigade: event.target.value })}
-          className="text-body min-h-12 flex-1 rounded-full bg-surface-2 px-4 text-text focus-ring lg:min-h-10 lg:flex-none"
+          className="text-body min-h-11 flex-1 rounded-control border border-line-2 bg-surface px-4 text-text focus-ring lg:min-h-10 lg:flex-none"
         >
           <option value="all">Все бригады</option>
           {brigades.map((name) => (

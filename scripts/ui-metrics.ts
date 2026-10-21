@@ -31,6 +31,23 @@ const WIDTHS = (process.env["UI_METRICS_WIDTHS"] ?? "390,1440")
   .split(",")
   .map(Number)
   .filter(Boolean);
+const HINTS_SEEN = process.env["UI_METRICS_HINTS"] !== "first";
+const HINT_SCREENS = [
+  "moderation",
+  "entries",
+  "reports",
+  "brigades",
+  "objects",
+  "estimates",
+  "employees",
+  "summary",
+  "admin",
+  "guide",
+  "questions",
+  "start",
+  "foreman",
+  "finish",
+];
 const viewFor = (width: number) => ({ width, height: width < 768 ? 844 : 900 });
 
 type Theme = "light" | "dark";
@@ -232,6 +249,8 @@ function measureInPage(): Omit<Measure, "route" | "theme" | "url" | "width"> {
   for (const el of document.body.querySelectorAll("*")) {
     const s = getComputedStyle(el);
     if (s.position !== "fixed" && s.position !== "sticky") continue;
+    // Липкое к верху (шапка таблицы, полоса дней, панель деталей) нижним слоем не является
+    if (s.position === "sticky" && s.bottom === "auto") continue;
     if (!visible(el)) continue;
     const r = el.getBoundingClientRect();
     if (r.bottom < vh * 0.6 || r.top > vh || r.height > vh * 0.9) continue;
@@ -361,9 +380,17 @@ for (const width of WIDTHS)
         timezoneId: "Europe/Moscow",
       });
       await context.addInitScript(
-        ({ persona, theme }) => {
+        ({ persona, theme, hintsSeen, HINT_SCREENS }) => {
           try {
             localStorage.setItem("neeklo-fieldops-theme", theme);
+            /*
+             * Подсказки экранов по умолчанию уже видены: так экран выглядит каждый день, и по нему
+             * считается порог раздела 6. UI_METRICS_HINTS=first — как при первом посещении.
+             */
+            if (hintsSeen) {
+              for (const screen of HINT_SCREENS)
+                localStorage.setItem(`neeklo-hint-gas-${screen}`, "1");
+            }
             // Подсказки «Что делать здесь» видны раскрытыми, как при первом посещении
             if (persona) {
               sessionStorage.setItem("neeklo-fieldops-role-chosen", "1");
@@ -374,7 +401,7 @@ for (const width of WIDTHS)
             // без хранилища замер всё равно идёт
           }
         },
-        { persona: route.persona ?? null, theme },
+        { persona: route.persona ?? null, theme, hintsSeen: HINTS_SEEN, HINT_SCREENS },
       );
       const page = await context.newPage();
       try {

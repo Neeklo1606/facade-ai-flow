@@ -214,7 +214,7 @@ function ReportsPage() {
 
       {/* Одна строка управления (5.7) */}
       <div className="flex items-center justify-between gap-2">
-        <div role="tablist" aria-label="Вид отчёта" className="seg">
+        <div role="tablist" aria-label="Вид отчёта" className="seg min-w-0">
           {(
             [
               ["customer", "Формат заказчика"],
@@ -234,11 +234,18 @@ function ReportsPage() {
           ))}
         </div>
         {phone ? (
-          <Button variant="outline" onClick={() => setSettingsOpen(true)}>
+          <Button
+            variant="outline"
+            size="icon"
+            className="relative shrink-0 rounded-control"
+            aria-label={
+              changedSettings ? `Настроить вид, изменено ${changedSettings}` : "Настроить вид"
+            }
+            onClick={() => setSettingsOpen(true)}
+          >
             <SlidersHorizontal aria-hidden />
-            Настроить вид
             {changedSettings ? (
-              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-orange-strong px-1 text-meta-strong text-on-orange tnum">
+              <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-orange-strong px-1 text-meta-strong text-on-orange tnum">
                 {changedSettings}
               </span>
             ) : null}

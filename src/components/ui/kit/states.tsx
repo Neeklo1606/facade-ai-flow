@@ -195,19 +195,23 @@ export function HintRow({
   }, [id]);
   return (
     <section aria-label="Как работать с экраном">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="flex h-control w-full items-center gap-2 text-left text-body text-text-2 focus-ring"
-      >
-        <Lightbulb className="size-5 shrink-0 text-text-3" aria-hidden />
-        <span className="flex-1">Как работать с экраном</span>
-        <ChevronDown
-          className={cn("size-5 shrink-0 text-text-3 transition-fast", open && "rotate-180")}
-          aria-hidden
-        />
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="flex h-control min-w-0 flex-1 items-center gap-2 text-left text-body text-text-2 focus-ring"
+        >
+          <Lightbulb className="size-5 shrink-0 text-text-3" aria-hidden />
+          <span className="truncate">Как работать с экраном</span>
+          <ChevronDown
+            className={cn("size-5 shrink-0 text-text-3 transition-fast", open && "rotate-180")}
+            aria-hidden
+          />
+        </button>
+        {/* Полная инструкция всегда в строке: в раскрытой карточке она не обрезается */}
+        {more ? <div className="shrink-0">{more}</div> : null}
+      </div>
       {open ? (
         <div className="surface-1 max-h-30 overflow-y-auto px-card py-2">
           <ol className="list-decimal space-y-1 ps-5 text-body text-text">
@@ -215,7 +219,6 @@ export function HintRow({
               <li key={step}>{step}</li>
             ))}
           </ol>
-          {more ? <div>{more}</div> : null}
         </div>
       ) : null}
     </section>
