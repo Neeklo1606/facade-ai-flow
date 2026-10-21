@@ -142,15 +142,15 @@ function CheckPage() {
               ) : (
                 <span className="text-hero-num">{fmtNum(count)}</span>
               )}
-              <span className="pb-1 text-[17px] leading-[22px] font-medium text-text lg:text-[19px] lg:leading-[24px]">
+              <span className="text-heading pb-1 text-text">
                 {plural(count, "факт ждёт", "факта ждут", "фактов ждут")}
                 <span className="block text-text-2">вашего решения</span>
               </span>
             </p>
-            <p className="mt-3 max-w-[48ch] text-[14px] leading-5 text-text-2 lg:hidden">
+            <p className="text-body mt-3 max-w-[48ch] text-text-2 lg:hidden">
               Свайп вправо принимает, влево возвращает на уточнение. Кнопки делают то же самое.
             </p>
-            <p className="mt-3 hidden max-w-[52ch] text-[14px] leading-5 text-text-2 lg:block">
+            <p className="text-body mt-3 hidden max-w-[52ch] text-text-2 lg:block">
               Выберите факт в очереди: исходная фраза, поля и решение откроются справа.
             </p>
           </div>
@@ -266,7 +266,7 @@ function Capsules<T extends string>({
             aria-selected={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              "relative inline-flex min-h-12 items-center gap-1.5 rounded-full px-5 text-[15px] font-medium whitespace-nowrap transition-fast focus-ring press lg:min-h-10",
+              "text-body-strong relative inline-flex min-h-12 items-center gap-1.5 rounded-full px-5 font-medium whitespace-nowrap transition-fast focus-ring press lg:min-h-10",
               active ? "bg-pill text-pill-text" : "text-text-2 is-hover:text-text",
               item.dot && "pr-7",
             )}
@@ -363,8 +363,8 @@ function FactsQueue({
                 }
                 className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[20px] bg-surface-2 px-4 text-left transition-fast focus-ring press is-hover:bg-surface-3"
               >
-                <span className="text-[16px] font-semibold">{group.key}</span>
-                <span className="inline-flex items-center gap-1.5 text-[14px] text-text-2 tnum">
+                <span className="text-body-strong font-semibold">{group.key}</span>
+                <span className="text-body inline-flex items-center gap-1.5 text-text-2 tnum">
                   {fmtNum(group.rows.length)} {plural(group.rows.length, "факт", "факта", "фактов")}
                   <ChevronDown
                     aria-hidden
@@ -432,10 +432,10 @@ function PositionsTab({
   return (
     <section aria-labelledby="positions-title" className="flex flex-col gap-2.5">
       <div className="flex min-h-12 items-center justify-between gap-3 rounded-[20px] bg-surface-2 px-4">
-        <h2 id="positions-title" className="text-[16px] font-semibold">
+        <h2 id="positions-title" className="text-body-strong font-semibold">
           Позиции спецификации
         </h2>
-        <span className="text-[14px] text-text-2">сверка с номенклатурой</span>
+        <span className="text-body text-text-2">сверка с номенклатурой</span>
       </div>
       <ul className="flex flex-col gap-2.5">
         {rows.map((row) => (
@@ -447,16 +447,12 @@ function PositionsTab({
             >
               <span aria-hidden className="w-[3px] self-stretch rounded-full bg-warn" />
               <span className="min-w-0 flex-1">
-                <span className="block text-[19px] leading-[25px] font-semibold">
-                  {row.projectName}
-                </span>
-                <span className="mt-1 block text-[14px] text-text-2">
+                <span className="text-heading block">{row.projectName}</span>
+                <span className="text-body mt-1 block text-text-2">
                   из {fmtNum(row.total)} {plural(row.total, "позиции", "позиций", "позиций")}
                 </span>
               </span>
-              <span className="text-[24px] leading-none font-semibold tnum">
-                {fmtNum(row.unverified)}
-              </span>
+              <span className="text-title tnum">{fmtNum(row.unverified)}</span>
               <ChevronRight aria-hidden className="size-5 text-text-3" />
             </Link>
           </li>

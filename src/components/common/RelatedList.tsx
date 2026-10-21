@@ -20,14 +20,12 @@ export function RelatedList({ links, className }: { links: EntityLink[]; classNa
             className="focus-ring group flex items-start gap-2 rounded-[var(--r-sm)] border border-line px-3 py-2 transition-fast is-hover:border-line-2 is-hover:bg-surface-2"
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-[13px] leading-[1.35] text-text-3">{link.label}</span>
-              <span className="mt-0.5 block truncate text-[13px] leading-[1.4] font-medium text-text">
+              <span className="text-meta block text-text-3">{link.label}</span>
+              <span className="text-meta-strong mt-0.5 block truncate font-medium text-text">
                 {link.title}
               </span>
               {link.hint && (
-                <span className="mt-0.5 block truncate text-[13px] leading-[1.35] text-text-3">
-                  {link.hint}
-                </span>
+                <span className="text-meta mt-0.5 block truncate text-text-3">{link.hint}</span>
               )}
             </span>
             <ArrowUpRight
@@ -64,7 +62,7 @@ export function OriginTrail({
       search={search ?? {}}
       aria-label={`Происхождение: ${steps.map((step) => `${step.label} ${step.value}`).join(", ")}`}
       className={cn(
-        "focus-ring flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-[var(--r-sm)] border border-line px-3 py-2 text-[13px] transition-fast is-hover:border-line-2 is-hover:bg-surface-2",
+        "text-meta focus-ring flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-[var(--r-sm)] border border-line px-3 py-2 transition-fast is-hover:border-line-2 is-hover:bg-surface-2",
         className,
       )}
     >

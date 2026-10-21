@@ -33,7 +33,7 @@ export function InfoTip({
           {icon ?? <Info className="size-3.5" strokeWidth={1.5} />}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="max-w-xs text-[13px] leading-[1.45]">{children}</PopoverContent>
+      <PopoverContent className="text-meta max-w-xs">{children}</PopoverContent>
     </Popover>
   );
 }

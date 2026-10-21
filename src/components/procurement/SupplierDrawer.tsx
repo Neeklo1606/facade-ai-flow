@@ -44,7 +44,7 @@ export function SupplierDrawer({
         ) : undefined
       }
     >
-      <div className="grid gap-5 text-[13px]">
+      <div className="text-meta grid gap-5">
         <section aria-labelledby="supplier-stats">
           <h3 id="supplier-stats" className="mb-2 font-medium text-text">
             Как работает с нами
@@ -52,12 +52,12 @@ export function SupplierDrawer({
           <dl className="grid grid-cols-2 gap-3">
             <div className="card-surface px-3 py-2">
               <dt className="text-caption text-text-2">Запросов отправлено</dt>
-              <dd className="tnum mt-0.5 text-[18px] font-semibold">{fmtNum(stats.requests)}</dd>
+              <dd className="text-heading tnum mt-0.5">{fmtNum(stats.requests)}</dd>
               <dd className="text-caption text-text-2">ответил на {fmtNum(stats.answered)}</dd>
             </div>
             <div className="card-surface px-3 py-2">
               <dt className="text-caption text-text-2">Среднее время ответа</dt>
-              <dd className="tnum mt-0.5 text-[18px] font-semibold">
+              <dd className="text-heading tnum mt-0.5">
                 {stats.avgReplyHours === null ? "—" : `${fmtNum(stats.avgReplyHours)} ч`}
               </dd>
               {stats.avgReplyHours === null && (
@@ -66,7 +66,7 @@ export function SupplierDrawer({
             </div>
             <div className="card-surface col-span-2 px-3 py-2">
               <dt className="text-caption text-text-2">Поставки в срок</dt>
-              <dd className="tnum mt-0.5 text-[18px] font-semibold">
+              <dd className="text-heading tnum mt-0.5">
                 {stats.onTimeShare === null ? "—" : `${Math.round(stats.onTimeShare * 100)} %`}
               </dd>
               <dd className="text-caption text-text-2">

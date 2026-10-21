@@ -95,7 +95,7 @@ export function ReportFields({
           value={value.zoneId}
           onChange={(event) => set("zoneId", event.target.value)}
           aria-label="Захватка"
-          className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text lg:h-10"
+          className="text-body focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-text lg:h-10"
         >
           {zones.map((zone) => (
             <option key={zone.id} value={zone.id}>
@@ -161,7 +161,7 @@ export function ReportFields({
           rows={3}
           placeholder="Монтаж облицовки, захватка 2, оси Г–К, этажи 9–11."
           aria-label="Что сделали"
-          className="focus-ring rounded-[var(--r-sm)] border border-line bg-surface-2 p-3 text-[14px] leading-[1.5] text-text"
+          className="text-body focus-ring rounded-[var(--r-sm)] border border-line bg-surface-2 p-3 text-text"
         />
       </Labelled>
 
@@ -188,11 +188,11 @@ function Labelled({
 }) {
   return (
     <label className="grid gap-1.5">
-      <span className="flex flex-wrap items-center gap-1.5 text-[13px] text-text-2">
+      <span className="text-meta flex flex-wrap items-center gap-1.5 text-text-2">
         {label}
         {/* Подставленное значение не молчит: видно, откуда взялось (ADR-029, п. 4) */}
         {source && (
-          <span className="rounded-[var(--r-xs)] bg-surface-2 px-1.5 py-0.5 text-[13px] text-text-3">
+          <span className="text-meta rounded-[var(--r-xs)] bg-surface-2 px-1.5 py-0.5 text-text-3">
             {source}
           </span>
         )}

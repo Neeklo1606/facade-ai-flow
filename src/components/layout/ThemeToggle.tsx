@@ -33,7 +33,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
-        <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
+        <DropdownMenuLabel className="text-meta font-normal text-text-3">
           Тема оформления
         </DropdownMenuLabel>
         <DropdownMenuRadioGroup
@@ -45,7 +45,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             return (
               <DropdownMenuRadioItem key={choice} value={choice} className="gap-2">
                 <ChoiceIcon className="size-4 shrink-0 text-text-3" strokeWidth={1.5} aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-[13px]">{themeLabels[choice]}</span>
+                <span className="text-meta min-w-0 flex-1 truncate">{themeLabels[choice]}</span>
               </DropdownMenuRadioItem>
             );
           })}

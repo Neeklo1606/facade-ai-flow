@@ -447,7 +447,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
 
           {canRequest && selected.size > 0 && (
             <div className="sticky top-0 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line-2 bg-surface-2 px-4 py-2">
-              <span className="text-[13px]">
+              <span className="text-meta">
                 Выбрано <b className="tnum">{fmtNum(selected.size)}</b>
                 {eligibleCount !== selected.size && (
                   <span className="text-text-secondary">
@@ -525,7 +525,7 @@ function MaterialsPage({ project, overview }: ProjectPageProps): React.JSX.Eleme
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[1240px] text-table">
                 <thead className="sticky top-0 z-10">
-                  <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
+                  <tr className="text-tab h-10 bg-subtle text-left font-medium whitespace-nowrap text-text-muted">
                     {canRequest ? (
                       <th className="w-10 pl-4" aria-label="Выделение" />
                     ) : (
@@ -656,7 +656,7 @@ function DesktopGroup({
             type="button"
             aria-expanded={open}
             onClick={() => onOpenChange(!open)}
-            className="focus-ring inline-flex items-center gap-2 rounded-[var(--r-xs)] text-[13px] font-semibold"
+            className="text-meta-strong focus-ring inline-flex items-center gap-2 rounded-[var(--r-xs)] font-semibold"
           >
             <ChevronRight className={cn("size-4 transition-transform", open && "rotate-90")} />
             {group}
@@ -727,7 +727,7 @@ function MobileGroup({
   const rest = total - pages.items.length;
   return (
     <section>
-      <h3 className="sticky top-0 z-10 border-y border-border bg-raised px-4 py-2 text-[13px] font-semibold">
+      <h3 className="text-meta-strong sticky top-0 z-10 border-y border-border bg-raised px-4 py-2 font-semibold">
         {group} <span className="tnum font-normal text-text-muted">{fmtNum(total)}</span>
       </h3>
       <ul className="divide-y divide-border">
@@ -754,7 +754,12 @@ function MobileGroup({
                 onClick={() => onOpen(item.id)}
                 className="min-w-0 flex-1 py-3 text-left"
               >
-                <p className={cn("text-[14px] font-medium", !item.normalizedName && "text-warn")}>
+                <p
+                  className={cn(
+                    "text-body-strong font-medium",
+                    !item.normalizedName && "text-warn",
+                  )}
+                >
                   {item.normalizedName ?? "Требует нормализации"}
                 </p>
                 {item.normalizedName && item.matchStatus !== "confirmed" && (
@@ -764,7 +769,7 @@ function MobileGroup({
                   {item.position} · {item.projectName}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <span className="tnum text-[14px] font-semibold">
+                  <span className="text-body-strong tnum font-semibold">
                     {item.qty ? fmtNum(item.qty) : "—"}{" "}
                     <span className="font-normal text-text-secondary">{item.unit}</span>
                   </span>
@@ -869,7 +874,7 @@ function MaterialRow({
       </td>
       <td className="max-w-[200px] px-2.5">
         <div className="truncate text-text-secondary" title={item.projectName}>
-          <span className="mono mr-1.5 text-[11px] text-text-muted">{item.position}</span>
+          <span className="text-meta mono mr-1.5 text-text-muted">{item.position}</span>
           {item.projectName}
         </div>
       </td>
@@ -908,12 +913,12 @@ function MaterialRow({
             params={{ id: projectId, docId: item.documentId }}
             search={{ position: item.id }}
             title="Открыть позицию в документе"
-            className="focus-ring inline-flex h-12 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[12px] whitespace-nowrap text-info transition-fast hover:bg-info-bg lg:h-6"
+            className="text-meta focus-ring inline-flex h-12 items-center gap-1 rounded-[var(--r-xs)] px-1.5 whitespace-nowrap text-info transition-fast hover:bg-info-bg lg:h-6"
           >
             <FileText className="size-3" /> л. {item.sheetNumber}
           </Link>
         ) : (
-          <span className="px-1.5 text-[12px] whitespace-nowrap text-text-muted">
+          <span className="text-meta px-1.5 whitespace-nowrap text-text-muted">
             л. {item.sheetNumber}
           </span>
         )}

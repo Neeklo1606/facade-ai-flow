@@ -92,7 +92,7 @@ export function DecisionDialog({
           }}
         >
           <fieldset className="grid gap-2">
-            <legend className="mb-2 text-[13px] font-medium">Выбранный поставщик</legend>
+            <legend className="text-meta-strong mb-2 font-medium">Выбранный поставщик</legend>
             {answered.map((c) => {
               const selected = c.supplierId === supplierId;
               return (
@@ -116,7 +116,7 @@ export function DecisionDialog({
                     {selected && <Check className="size-3" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] font-medium">
+                    <span className="text-body-strong block font-medium">
                       {counterpartyById(c.supplierId)?.name}
                       {c.supplierId === bestSupplierId && (
                         <span className="ml-2 text-caption font-normal text-ok">
@@ -129,7 +129,7 @@ export function DecisionDialog({
                       отклонений {c.deviations}
                     </span>
                   </span>
-                  <span className="tnum shrink-0 text-[14px] font-semibold">
+                  <span className="text-body-strong tnum shrink-0 font-semibold">
                     {fmtMoney(c.total)}
                   </span>
                 </button>

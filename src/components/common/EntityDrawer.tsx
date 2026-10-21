@@ -32,8 +32,8 @@ export function EntityDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[520px]">
         <SheetHeader className="gap-1 border-b border-border px-5 py-4">
-          <SheetTitle className="text-[18px] leading-tight font-semibold">{title}</SheetTitle>
-          {subtitle && <SheetDescription className="text-[13px]">{subtitle}</SheetDescription>}
+          <SheetTitle className="text-heading">{title}</SheetTitle>
+          {subtitle && <SheetDescription className="text-meta">{subtitle}</SheetDescription>}
           {badges && <div className="mt-2 flex flex-wrap items-center gap-2">{badges}</div>}
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>

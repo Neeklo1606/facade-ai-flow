@@ -37,7 +37,7 @@ export function DeliveryDetails({
   const who = (id: string | null) => (id ? (employeeById(id)?.name ?? "—") : "Обработка");
 
   return (
-    <div className="grid gap-5 text-[13px]">
+    <div className="text-meta grid gap-5">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
         <dt className="text-text-3">Поставщик</dt>
         <dd>{counterpartyById(delivery.supplierId)?.name ?? "—"}</dd>
@@ -63,7 +63,7 @@ export function DeliveryDetails({
       </dl>
 
       <section aria-labelledby="dl-lines">
-        <h3 id="dl-lines" className="mb-2 text-[13px] font-medium text-text">
+        <h3 id="dl-lines" className="text-meta-strong mb-2 font-medium text-text">
           Состав
         </h3>
         <ul className="divide-y divide-line rounded-[var(--r-md)] border border-line">
@@ -84,7 +84,7 @@ export function DeliveryDetails({
       {/* Куда ведёт эта поставка дальше (ADR-018): запрос и материалы её состава */}
       {links.length > 0 && (
         <section aria-labelledby="dl-links">
-          <h3 id="dl-links" className="mb-2 text-[13px] font-medium text-text">
+          <h3 id="dl-links" className="text-meta-strong mb-2 font-medium text-text">
             Связано
           </h3>
           <RelatedList links={links} />
@@ -92,7 +92,7 @@ export function DeliveryDetails({
       )}
 
       <section aria-labelledby="dl-moves">
-        <h3 id="dl-moves" className="mb-2 text-[13px] font-medium text-text">
+        <h3 id="dl-moves" className="text-meta-strong mb-2 font-medium text-text">
           Движение
         </h3>
         <ol className="grid gap-2">
@@ -111,7 +111,7 @@ export function DeliveryDetails({
 
       {acceptance && (
         <section aria-labelledby="dl-act">
-          <h3 id="dl-act" className="mb-2 text-[13px] font-medium text-text">
+          <h3 id="dl-act" className="text-meta-strong mb-2 font-medium text-text">
             Акт приёмки
           </h3>
           <p className="text-text-2">
@@ -147,7 +147,7 @@ export function DeliveryDetails({
 
       {card.remarks.length > 0 && (
         <section aria-labelledby="dl-remarks">
-          <h3 id="dl-remarks" className="mb-2 text-[13px] font-medium text-text">
+          <h3 id="dl-remarks" className="text-meta-strong mb-2 font-medium text-text">
             Замечания снабжению
           </h3>
           <ul className="grid gap-2">
@@ -160,7 +160,7 @@ export function DeliveryDetails({
 
       {card.photos.length > 0 && (
         <section aria-labelledby="dl-photos">
-          <h3 id="dl-photos" className="mb-2 text-[13px] font-medium text-text">
+          <h3 id="dl-photos" className="text-meta-strong mb-2 font-medium text-text">
             Фото при приёмке
           </h3>
           <ul className="grid grid-cols-3 gap-2">
@@ -218,7 +218,7 @@ export function DeliveryMoves({
           if (reason.trim()) onMove("rejected", reason.trim());
         }}
       >
-        <label className="grid gap-1 text-[13px]">
+        <label className="text-meta grid gap-1">
           <span className="text-text-2">Почему поставку отменяют</span>
           <textarea
             value={reason}
@@ -332,7 +332,7 @@ function RemarkItem({
               placeholder="Чем решено: допоставка, скидка, возврат"
               maxLength={500}
               aria-label="Чем решено замечание"
-              className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
+              className="text-body focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-text placeholder:text-text-3"
             />
             <div className="flex gap-2">
               <Button

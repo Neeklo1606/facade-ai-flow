@@ -59,7 +59,7 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh bg-base text-text">
       <aside className="hidden w-[256px] shrink-0 flex-col gap-1 bg-elevated px-4 py-8 lg:flex">
-        <span className="px-3 text-[20px] leading-none font-semibold tracking-[-0.02em]">
+        <span className="text-heading px-3">
           гайка <span className="text-text-3 font-normal">· кабинет</span>
         </span>
         <nav aria-label="Разделы кабинета" className="mt-8 flex flex-col gap-1">
@@ -69,7 +69,7 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
               to={item.to}
               aria-current={active(item) ? "page" : undefined}
               className={cn(
-                "focus-ring flex min-h-11 items-center gap-3 rounded-[var(--r-sm)] px-3 text-[15px] transition-fast",
+                "text-body focus-ring flex min-h-11 items-center gap-3 rounded-[var(--r-sm)] px-3 transition-fast",
                 active(item) ? "bg-surface text-text font-medium" : "text-text-2 hover:bg-surface",
               )}
             >
@@ -80,7 +80,7 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
         </nav>
         <Link
           to="/"
-          className="focus-ring mt-auto flex min-h-11 items-center gap-2 rounded-[var(--r-sm)] px-3 text-[14px] text-text-2 hover:bg-surface"
+          className="text-body focus-ring mt-auto flex min-h-11 items-center gap-2 rounded-[var(--r-sm)] px-3 text-text-2 hover:bg-surface"
         >
           <ArrowLeft className="size-4" aria-hidden /> В полевое приложение
         </Link>

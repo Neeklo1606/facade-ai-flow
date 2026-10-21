@@ -110,7 +110,7 @@ export function SupplierForm({
   };
 
   const field =
-    "focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-[14px] text-text placeholder:text-text-3";
+    "text-body focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-text placeholder:text-text-3";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,7 +125,7 @@ export function SupplierForm({
         <form id="supplier-form" onSubmit={submit} className="grid min-h-0 gap-4 overflow-y-auto">
           <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
             <div className="grid gap-1.5">
-              <label htmlFor={ids.name} className="text-[13px] text-text-2">
+              <label htmlFor={ids.name} className="text-meta text-text-2">
                 Наименование
               </label>
               <input
@@ -137,7 +137,7 @@ export function SupplierForm({
               />
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.inn} className="text-[13px] text-text-2">
+              <label htmlFor={ids.inn} className="text-meta text-text-2">
                 ИНН — можно позже
               </label>
               <input
@@ -153,7 +153,7 @@ export function SupplierForm({
             </div>
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.region} className="text-[13px] text-text-2">
+            <label htmlFor={ids.region} className="text-meta text-text-2">
               Регион поставки
             </label>
             <input
@@ -165,10 +165,10 @@ export function SupplierForm({
             />
           </div>
           <fieldset className="grid gap-1.5">
-            <legend className="mb-1 text-[13px] text-text-2">Что поставляет</legend>
+            <legend className="text-meta mb-1 text-text-2">Что поставляет</legend>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {tops.map((item) => (
-                <label key={item.id} className="flex items-center gap-2 text-[13px] text-text">
+                <label key={item.id} className="text-meta flex items-center gap-2 text-text">
                   <input
                     type="checkbox"
                     checked={picked.includes(item.id)}
@@ -187,7 +187,7 @@ export function SupplierForm({
           </fieldset>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <label htmlFor={ids.contact} className="text-[13px] text-text-2">
+              <label htmlFor={ids.contact} className="text-meta text-text-2">
                 Контактное лицо
               </label>
               <input
@@ -199,7 +199,7 @@ export function SupplierForm({
               />
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.phone} className="text-[13px] text-text-2">
+              <label htmlFor={ids.phone} className="text-meta text-text-2">
                 Телефон
               </label>
               <input
@@ -213,7 +213,7 @@ export function SupplierForm({
             </div>
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.email} className="text-[13px] text-text-2">
+            <label htmlFor={ids.email} className="text-meta text-text-2">
               Почта для запросов
             </label>
             <input

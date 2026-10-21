@@ -276,7 +276,7 @@ const Page = memo(function Page({
   return (
     <section
       aria-label={`Лист ${sheet.number}`}
-      className="relative shrink-0 overflow-hidden bg-white text-[#1b1f23] shadow-[0_1px_3px_rgba(0,0,0,.12),0_8px_24px_rgba(0,0,0,.08)]"
+      className="relative shrink-0 overflow-hidden bg-white text-[#1b1f23]"
       style={{ width, height, fontSize: u * 0.95 }}
     >
       {/* Рамка чертежа по ГОСТ: отступ слева под подшивку */}
@@ -348,7 +348,7 @@ const Page = memo(function Page({
 
       {active && (
         <div
-          className="pointer-events-none absolute z-10 rounded-[2px] border-2 border-info bg-[color-mix(in_oklab,var(--info)_10%,transparent)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--info)_18%,transparent)] transition-[top] duration-200"
+          className="pointer-events-none absolute z-10 rounded-[2px] border-2 border-info bg-[color-mix(in_oklab,var(--info)_10%,transparent)] transition-[top] duration-200"
           style={{
             left: active.region.x * width - 4,
             top: active.region.y * height - 2,

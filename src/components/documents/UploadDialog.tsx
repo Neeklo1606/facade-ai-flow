@@ -117,9 +117,7 @@ export function UploadDialog({
           <DialogTitle>
             {revisionId ? "Документ обрабатывается" : "Загрузка документа"}
             {queue > 0 && !revisionId && (
-              <span className="ml-2 text-[13px] font-normal text-text-3">
-                ещё в очереди: {queue}
-              </span>
+              <span className="text-meta ml-2 font-normal text-text-3">ещё в очереди: {queue}</span>
             )}
           </DialogTitle>
         </DialogHeader>
@@ -133,8 +131,8 @@ export function UploadDialog({
                 aria-hidden
               />
               <div className="min-w-0">
-                <p className="truncate text-[14px] font-medium">{file.name}</p>
-                <p className="mt-0.5 text-[13px] text-text-3">
+                <p className="text-body-strong truncate font-medium">{file.name}</p>
+                <p className="text-meta mt-0.5 text-text-3">
                   {file.name.split(".").pop()?.toUpperCase()} ·{" "}
                   {fmtNum(Math.max(1, Math.round(file.size / 1024)))} КБ
                 </p>
@@ -143,7 +141,7 @@ export function UploadDialog({
 
             {preview ? (
               <div className="overflow-hidden rounded-[var(--r-sm)] border border-line">
-                <p className="border-b border-line bg-surface-2 px-3 py-1.5 text-[12px] text-text-3">
+                <p className="text-meta border-b border-line bg-surface-2 px-3 py-1.5 text-text-3">
                   Первая страница вашего файла
                 </p>
                 <iframe
@@ -153,7 +151,7 @@ export function UploadDialog({
                 />
               </div>
             ) : (
-              <p className="text-[13px] leading-[1.45] text-text-3">
+              <p className="text-meta text-text-3">
                 {extractsDocuments()
                   ? "Предпросмотр доступен для PDF. Таблицы из DOCX и XLSX система читает при разборе."
                   : "Предпросмотр доступен для PDF."}
@@ -162,11 +160,11 @@ export function UploadDialog({
 
             <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
               <label className="block">
-                <span className="mb-1 block text-[13px] text-text-2">Название документа</span>
+                <span className="text-meta mb-1 block text-text-2">Название документа</span>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[13px] text-text-2">Раздел проекта</span>
+                <span className="text-meta mb-1 block text-text-2">Раздел проекта</span>
                 <Select value={section} onValueChange={setSection}>
                   <SelectTrigger aria-label="Раздел проекта">
                     <SelectValue />
@@ -183,7 +181,7 @@ export function UploadDialog({
             </div>
 
             {/* Обещание разбора — только там, где он есть: иначе абзац спорил сам с собой */}
-            <p className="text-[13px] leading-[1.45] text-text-3">
+            <p className="text-meta text-text-3">
               {extractsDocuments()
                 ? "Система распознает текст, найдёт таблицы и извлечёт позиции. Проверять их будете вы: каждая позиция показана рядом со строкой оригинала."
                 : "Файл ложится в реестр ревизий: его видно в истории объекта, и на него ссылаются позиции."}
@@ -191,7 +189,7 @@ export function UploadDialog({
             </p>
 
             {failure && (
-              <p className="text-[13px] leading-[1.45] text-danger" role="alert">
+              <p className="text-meta text-danger" role="alert">
                 {failure}
               </p>
             )}
@@ -215,8 +213,8 @@ export function UploadDialog({
         {revisionId && !extractsDocuments() && (
           <div className="space-y-4">
             <div className="rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
-              <p className="text-[14px]">Файл в реестре ревизий</p>
-              <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{note("upload")}</p>
+              <p className="text-body">Файл в реестре ревизий</p>
+              <p className="text-meta mt-1 text-text-3">{note("upload")}</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               {queue > 0 && (
@@ -248,7 +246,7 @@ export function UploadDialog({
                 const done = failedJob ? index < stage : ready || index < stage;
                 const current = !failedJob && !ready && index === stage;
                 return (
-                  <li key={name} className="flex items-center gap-2.5 text-[14px]">
+                  <li key={name} className="text-body flex items-center gap-2.5">
                     <span
                       className={cn(
                         "grid size-5 shrink-0 place-items-center rounded-full border",
@@ -275,8 +273,10 @@ export function UploadDialog({
 
             {failedJob && (
               <div className="rounded-[var(--r-sm)] border border-danger/30 bg-danger-bg p-3">
-                <p className="text-[14px] font-medium text-danger">Разобрать документ не вышло</p>
-                <p className="mt-1 text-[13px] leading-[1.45] text-text-2">
+                <p className="text-body-strong font-medium text-danger">
+                  Разобрать документ не вышло
+                </p>
+                <p className="text-meta mt-1 text-text-2">
                   {failedJob} Документ остался в реестре со статусом «Загружен»: попробуйте
                   загрузить его ещё раз или пришлите другой формат.
                 </p>
@@ -285,7 +285,7 @@ export function UploadDialog({
 
             {ready && !failedJob && (
               <div className="rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
-                <p className="text-[14px]">
+                <p className="text-body">
                   Найдено позиций: <span className="font-semibold">{fmtNum(positions)}</span>
                   {attention > 0 && (
                     <>
@@ -294,7 +294,7 @@ export function UploadDialog({
                     </>
                   )}
                 </p>
-                <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{note("upload")}</p>
+                <p className="text-meta mt-1 text-text-3">{note("upload")}</p>
               </div>
             )}
 

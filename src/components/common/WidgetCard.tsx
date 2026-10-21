@@ -69,11 +69,9 @@ export function WidgetCardHeader({
           </span>
         )}
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-          <Heading className="truncate text-[16px] leading-[1.35] font-semibold text-text">
-            {title}
-          </Heading>
+          <Heading className="text-body-strong truncate font-semibold text-text">{title}</Heading>
           {/* Подпись переносится, а не режется многоточием (правило 8 этапа D) */}
-          {hint && <span className="text-[13px] leading-[1.45] text-text-3">{hint}</span>}
+          {hint && <span className="text-meta text-text-3">{hint}</span>}
         </div>
       </div>
       {aside && <div className="flex shrink-0 items-center gap-2">{aside}</div>}
@@ -86,7 +84,7 @@ export function CountPill({ children, className }: { children: ReactNode; classN
   return (
     <span
       className={cn(
-        "inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-surface-3 px-2.5 text-[13px] leading-none font-medium text-text-2",
+        "text-meta-strong inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-surface-3 px-2.5 font-medium text-text-2",
         className,
       )}
     >

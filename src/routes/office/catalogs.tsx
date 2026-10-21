@@ -120,7 +120,7 @@ function CatalogsPage() {
             onClick={() => setCategoryId(null)}
             aria-current={categoryId === null ? "true" : undefined}
             className={cn(
-              "focus-ring flex min-h-12 w-full items-center justify-between rounded-[var(--r-sm)] px-3 text-left text-[13px] lg:min-h-9",
+              "text-meta focus-ring flex min-h-12 w-full items-center justify-between rounded-[var(--r-sm)] px-3 text-left lg:min-h-9",
               categoryId === null ? "bg-surface-2 text-text" : "text-text-2 hover:bg-surface-2",
             )}
           >
@@ -158,7 +158,7 @@ function CatalogsPage() {
                       <button
                         type="button"
                         onClick={() => setCategory({ item: null, parentId: top.id })}
-                        className="focus-ring flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-[13px] text-text-3 hover:bg-surface-2 lg:min-h-9"
+                        className="text-meta focus-ring flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-text-3 hover:bg-surface-2 lg:min-h-9"
                       >
                         <Plus className="size-3.5" aria-hidden /> Подкатегория
                       </button>
@@ -172,7 +172,7 @@ function CatalogsPage() {
             <button
               type="button"
               onClick={() => setCategory({ item: null, parentId: null })}
-              className="focus-ring mt-1 flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-[13px] text-text-2 hover:bg-surface-2 lg:min-h-9"
+              className="text-meta focus-ring mt-1 flex min-h-12 w-full items-center gap-1.5 rounded-[var(--r-sm)] px-3 text-left text-text-2 hover:bg-surface-2 lg:min-h-9"
             >
               <Plus className="size-4" aria-hidden /> Категория верхнего уровня
             </button>
@@ -191,7 +191,7 @@ function CatalogsPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Название, синоним или написание в проекте"
-                className="focus-ring h-12 w-full rounded-[var(--r-md)] border border-line bg-surface-2 pr-3 pl-9 text-[14px] text-text placeholder:text-text-3"
+                className="text-body focus-ring h-12 w-full rounded-[var(--r-md)] border border-line bg-surface-2 pr-3 pl-9 text-text placeholder:text-text-3"
               />
             </label>
             {/* Журнал доступен на любой ширине: в шапке экрана его на телефоне не видно */}
@@ -220,7 +220,7 @@ function CatalogsPage() {
                 <table className="w-full text-table">
                   <caption className="sr-only">Номенклатура материалов</caption>
                   <thead>
-                    <tr className="h-10 border-b border-line text-left text-[13px] text-text-3">
+                    <tr className="text-meta h-10 border-b border-line text-left text-text-3">
                       <th scope="col" className="px-4 font-normal">
                         Наименование
                       </th>
@@ -269,7 +269,7 @@ function CatalogsPage() {
                       onClick={() => setOpenId(material.id)}
                       className="focus-ring card-surface block w-full px-4 py-3 text-left"
                     >
-                      <span className="block text-[14px] font-medium text-text">
+                      <span className="text-body-strong block font-medium text-text">
                         {material.name}
                       </span>
                       <span className="mt-0.5 block text-caption text-text-3">
@@ -347,13 +347,13 @@ function CategoryButton({
         onClick={onClick}
         aria-current={active ? "true" : undefined}
         className={cn(
-          "focus-ring grid min-h-12 flex-1 grid-cols-[1fr_auto] items-center gap-x-2 rounded-[var(--r-sm)] px-3 py-1 text-left text-[13px] lg:min-h-9",
+          "text-meta focus-ring grid min-h-12 flex-1 grid-cols-[1fr_auto] items-center gap-x-2 rounded-[var(--r-sm)] px-3 py-1 text-left lg:min-h-9",
           active ? "bg-surface-2 text-text" : "text-text-2 hover:bg-surface-2",
         )}
       >
         <span>{label}</span>
         <span className="tnum text-text-3">{fmtNum(count)}</span>
-        {hint && <span className="col-span-2 text-[13px] text-text-3">{hint}</span>}
+        {hint && <span className="text-meta col-span-2 text-text-3">{hint}</span>}
       </button>
       {onEdit && (
         <button
@@ -381,11 +381,11 @@ function JournalDrawer({ onOpenChange }: { onOpenChange: (open: boolean) => void
       subtitle="Изменения категорий и поставщиков, свежие сверху"
     >
       {rows.length === 0 ? (
-        <p className="text-[13px] text-text-2">
+        <p className="text-meta text-text-2">
           Записей пока нет: журнал наполняется при правке категорий и поставщиков.
         </p>
       ) : (
-        <ol className="grid gap-3 text-[13px]">
+        <ol className="text-meta grid gap-3">
           {rows.map((row) => (
             <li key={row.id} className="grid gap-0.5">
               <span className="text-text">
@@ -438,7 +438,7 @@ function MaterialDrawer({
         ) : undefined
       }
     >
-      <div className="grid gap-5 text-[13px]">
+      <div className="text-meta grid gap-5">
         <p className="text-text-2">
           Сопоставлено позиций: <b className="tnum text-text">{fmtNum(card.usage.positions)}</b> на{" "}
           <b className="tnum text-text">{fmtNum(card.usage.projects)}</b>{" "}

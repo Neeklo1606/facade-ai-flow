@@ -89,7 +89,7 @@ export function CategoryDialog({
   };
 
   const field =
-    "focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-[14px] text-text placeholder:text-text-3";
+    "text-body focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-text placeholder:text-text-3";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,7 +103,7 @@ export function CategoryDialog({
         </DialogHeader>
         <form id="category-form" onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <label htmlFor={ids.name} className="text-[13px] text-text-2">
+            <label htmlFor={ids.name} className="text-meta text-text-2">
               Название
             </label>
             <input
@@ -115,7 +115,7 @@ export function CategoryDialog({
             />
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.parent} className="text-[13px] text-text-2">
+            <label htmlFor={ids.parent} className="text-meta text-text-2">
               Где находится
             </label>
             <select
@@ -141,7 +141,7 @@ export function CategoryDialog({
             )}
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.rules} className="text-[13px] text-text-2">
+            <label htmlFor={ids.rules} className="text-meta text-text-2">
               Правила определения по наименованию — по строке
             </label>
             <textarea

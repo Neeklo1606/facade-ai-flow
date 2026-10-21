@@ -50,14 +50,14 @@ export const DocumentTree = memo(function DocumentTree({
                     : [...prev, group.title],
                 )
               }
-              className="focus-ring flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[12px] font-semibold text-text-secondary transition-fast hover:text-text-primary"
+              className="text-meta-strong focus-ring flex w-full items-center gap-1.5 px-3 py-1.5 text-left font-semibold text-text-secondary transition-fast hover:text-text-primary"
             >
               <ChevronRight
                 className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")}
               />
               <span className="min-w-0 flex-1 truncate">{group.title}</span>
               {groupTotal > 0 && (
-                <span className="tnum text-[11px] font-normal text-text-muted">
+                <span className="text-meta tnum font-normal text-text-muted">
                   {fmtNum(groupTotal)}
                 </span>
               )}
@@ -94,23 +94,23 @@ export const DocumentTree = memo(function DocumentTree({
                         <span className="min-w-0 flex-1">
                           <span
                             className={cn(
-                              "block truncate text-[12px]",
+                              "text-meta block truncate",
                               current ? "font-medium text-text-primary" : "text-text-secondary",
                             )}
                           >
                             Лист {sheet.number}
                           </span>
-                          <span className="block truncate text-[11px] text-text-muted">
+                          <span className="text-meta block truncate text-text-muted">
                             {sheet.title}
                           </span>
                         </span>
                         <span className="flex shrink-0 flex-col items-end gap-0.5">
-                          <span className="tnum text-[11px] text-text-secondary">
+                          <span className="text-meta tnum text-text-secondary">
                             {count?.total ? fmtNum(count.total) : "—"}
                           </span>
                           {count && count.attention > 0 && (
                             <span
-                              className="tnum rounded-full bg-warn-bg px-1.5 text-[10px] font-semibold text-warn"
+                              className="text-tab tnum rounded-full bg-warn-bg px-1.5 font-semibold text-warn"
                               title="Требуют разбора"
                             >
                               {count.attention}

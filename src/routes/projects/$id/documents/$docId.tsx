@@ -618,7 +618,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           <ArrowLeft className="size-4" />
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-semibold" title={document.title}>
+          <p className="text-body-strong truncate font-semibold" title={document.title}>
             {document.title}
           </p>
           <p className="truncate text-caption text-text-muted">
@@ -648,7 +648,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               aria-selected={mobilePanel === tab.id}
               onClick={() => setMobilePanel(tab.id)}
               className={cn(
-                "segment min-h-12 flex-1 items-center justify-center gap-1.5 text-[12px] lg:min-h-8",
+                "text-meta segment min-h-12 flex-1 items-center justify-center gap-1.5 lg:min-h-8",
                 mobilePanel === tab.id && "segment-active",
               )}
             >
@@ -736,7 +736,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           >
             {processing ? (
               <div className="p-5">
-                <p className="text-[14px] font-medium">Документ обрабатывается</p>
+                <p className="text-body-strong font-medium">Документ обрабатывается</p>
                 <p className="mt-1 text-caption text-text-muted">
                   Позиции появятся здесь после извлечения таблиц. Страницу можно не обновлять.
                 </p>
@@ -749,7 +749,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               // Но тупик с выходом: строки заводят руками или загружают из файла (ADR-025)
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                 <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
-                <p className="text-[14px] font-medium">Позиций из этого файла нет</p>
+                <p className="text-body-strong font-medium">Позиций из этого файла нет</p>
                 <p className="text-caption text-text-muted">{note("extractionEmpty")}</p>
                 {canEdit && (
                   <div className="mt-1 grid w-full max-w-[280px] gap-2">
@@ -765,7 +765,9 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             ) : totalPositions === 0 && document.positionsTotal ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                 <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
-                <p className="mt-3 text-[14px] font-medium">Позиции ревизии не загружены в демо</p>
+                <p className="text-body-strong mt-3 font-medium">
+                  Позиции ревизии не загружены в демо
+                </p>
                 <p className="mt-1 text-caption text-text-muted">
                   Извлечено {fmtNum(document.positionsTotal)}, проверено{" "}
                   {fmtNum(document.positionsVerified ?? 0)}. В демо построчно загружена только
@@ -775,7 +777,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
             ) : totalPositions === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                 <FileSearch className="size-8 text-text-muted" strokeWidth={1.5} />
-                <p className="mt-3 text-[14px] font-medium">Таблиц спецификации не найдено</p>
+                <p className="text-body-strong mt-3 font-medium">Таблиц спецификации не найдено</p>
                 <p className="mt-1 text-caption text-text-muted">
                   В документе {document.sheetCount} листов чертежей без таблиц материалов. Позиции
                   для закупки берутся из спецификаций.
@@ -785,7 +787,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               <>
                 <div className="shrink-0 border-b border-border px-4 py-3">
                   <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-[15px]">
+                    <p className="text-body">
                       Проверено <b className="tnum font-semibold">{fmtNum(verifiedCount)}</b> из{" "}
                       <b className="tnum font-semibold">{fmtNum(activeTotal)}</b>
                     </p>
@@ -820,7 +822,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                   </div>
                   {/* Пометка под результатом разбора, а не только в шапке (ADR-018, п. 6):
                       человек смотрит на свои позиции из своего файла */}
-                  <p data-demo-extraction className="mt-2 text-[12px] leading-[1.4] text-text-3">
+                  <p data-demo-extraction className="text-meta mt-2 text-text-3">
                     {note("extraction")}
                   </p>
                   {canEdit && (
@@ -875,7 +877,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                         aria-pressed={filter === key}
                         onClick={() => setFilter(key)}
                         className={cn(
-                          "focus-ring inline-flex h-12 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] transition-fast lg:h-7",
+                          "text-meta focus-ring inline-flex h-12 shrink-0 items-center gap-1 rounded-full px-2.5 transition-fast lg:h-7",
                           filter === key
                             ? "bg-ink text-primary-foreground"
                             : "text-text-secondary hover:bg-hover",
@@ -972,7 +974,7 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
 
                 <div className="shrink-0 border-t border-border p-3">
                   {allHandedOver ? (
-                    <div className="flex items-center justify-between gap-3 rounded-[var(--r-md)] bg-ok-bg px-3 py-2.5 text-[13px] text-ok">
+                    <div className="text-meta flex items-center justify-between gap-3 rounded-[var(--r-md)] bg-ok-bg px-3 py-2.5 text-ok">
                       <span>
                         Проверенные позиции переданы в закупку
                         {sentAt ? ` · ${fmtDateTime(sentAt)}` : ""}
@@ -1048,13 +1050,13 @@ function ExtractionPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           : [["J", "K", "следующая и предыдущая"]]
         ).map(([a, b, label]) => (
           <span key={label} className="inline-flex items-center gap-1.5">
-            <kbd className="rounded-[var(--r-xs)] border border-border bg-subtle px-1.5 py-px font-sans text-[11px] text-text-secondary">
+            <kbd className="text-meta rounded-[var(--r-xs)] border border-border bg-subtle px-1.5 py-px font-sans text-text-secondary">
               {a}
             </kbd>
             {b && (
               <>
                 {a === "Ctrl" ? "+" : ""}
-                <kbd className="rounded-[var(--r-xs)] border border-border bg-subtle px-1.5 py-px font-sans text-[11px] text-text-secondary">
+                <kbd className="text-meta rounded-[var(--r-xs)] border border-border bg-subtle px-1.5 py-px font-sans text-text-secondary">
                   {b}
                 </kbd>
               </>

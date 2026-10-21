@@ -191,10 +191,8 @@ function SidebarInner({
             а не нарисованный логотип. Вторая строка — категория из позиционирования.
           */}
           <span className="min-w-0">
-            <span className="block truncate text-[17px] leading-tight font-semibold text-text">
-              гайка
-            </span>
-            <span className="block truncate text-[13px] leading-tight text-text-3">с объекта</span>
+            <span className="text-heading block truncate text-text">гайка</span>
+            <span className="text-meta block truncate text-text-3">с объекта</span>
           </span>
         </div>
         <button
@@ -210,7 +208,7 @@ function SidebarInner({
       {/* Селектор объекта */}
       {!collapsed && (
         <label className="scope-card mt-1 mb-4 shrink-0" title={siteLabel}>
-          <span className="block text-[13px] leading-tight text-text-2">Текущий объект</span>
+          <span className="text-meta block text-text-2">Текущий объект</span>
           <select
             value={projectId ?? ALL_PROJECTS}
             onChange={(e) => changeProject(e.target.value)}
@@ -241,7 +239,7 @@ function SidebarInner({
         className={cn("mb-3 w-full justify-start px-3", collapsed && "lg:justify-center lg:px-0")}
       >
         <Search aria-hidden />
-        <span className={cn("text-[13px]", collapsed && "lg:hidden")}>Найти в системе</span>
+        <span className={cn("text-meta", collapsed && "lg:hidden")}>Найти в системе</span>
       </Button>
 
       <nav ref={navRef} className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
@@ -395,9 +393,7 @@ function SidebarInner({
               <span className="nav-icon-circle">{initials}</span>
               <span className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
                 <span className="block truncate">{user?.name}</span>
-                <span className="block truncate text-[13px] leading-[1.35] text-text-3">
-                  {user?.roleLabel}
-                </span>
+                <span className="text-meta block truncate text-text-3">{user?.roleLabel}</span>
               </span>
               <ChevronsUpDown
                 className={cn("size-3.5 shrink-0 text-text-3", collapsed && "lg:hidden")}
@@ -410,7 +406,7 @@ function SidebarInner({
             {/* Персону выбирают только в демонстрации: в рабочем контуре роль даёт учётная
                 запись, за которую вошли (ADR-021, п. 7) */}
             {dataSource === "demo" && (
-              <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
+              <DropdownMenuLabel className="text-meta font-normal text-text-3">
                 Роль в демонстрации
               </DropdownMenuLabel>
             )}
@@ -422,8 +418,10 @@ function SidebarInner({
                   className="gap-2"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium">{person.name}</span>
-                    <span className="block truncate text-[13px] text-text-3">
+                    <span className="text-meta-strong block truncate font-medium">
+                      {person.name}
+                    </span>
+                    <span className="text-meta block truncate text-text-3">
                       {employeeRoleLabel[person.role]}
                     </span>
                   </span>
@@ -437,7 +435,7 @@ function SidebarInner({
                 </DropdownMenuItem>
               ))}
             <DropdownMenuSeparator />
-            <p className="px-2 py-1.5 text-[13px] leading-[1.4] text-text-3">
+            <p className="text-meta px-2 py-1.5 text-text-3">
               У каждой роли свои права: закрытые разделы не показываются, сервер отклоняет действия
               без права. Матрица — в разделе «Права доступа».
             </p>
@@ -446,13 +444,13 @@ function SidebarInner({
               <>
                 <DropdownMenuItem onSelect={() => void signOut()} className="gap-2">
                   <LogOut className="size-4 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
-                  <span className="text-[13px]">Выйти</span>
+                  <span className="text-meta">Выйти</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
             {/* Тема здесь же: на телефоне переключателя в шапке нет (ADR-017, п. 5) */}
-            <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
+            <DropdownMenuLabel className="text-meta font-normal text-text-3">
               Тема оформления
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup
@@ -461,7 +459,7 @@ function SidebarInner({
             >
               {themeChoices.map((choice) => (
                 <DropdownMenuRadioItem key={choice} value={choice} className="gap-2">
-                  <span className="min-w-0 flex-1 truncate text-[13px]">{themeLabels[choice]}</span>
+                  <span className="text-meta min-w-0 flex-1 truncate">{themeLabels[choice]}</span>
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>

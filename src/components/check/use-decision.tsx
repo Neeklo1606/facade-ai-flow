@@ -62,7 +62,7 @@ export function useFactDecision({ card, zoneName }: FactRow, onDone?: () => void
     >
       <div className="space-y-4 p-4 pt-0">
         <label className="block">
-          <span className="text-[13px] text-text-3">Объём, {report.unit}</span>
+          <span className="text-meta text-text-3">Объём, {report.unit}</span>
           <Input
             autoFocus
             inputMode="decimal"
@@ -73,7 +73,7 @@ export function useFactDecision({ card, zoneName }: FactRow, onDone?: () => void
         </label>
         <Button
           variant="accent"
-          className="h-14 w-full rounded-full text-[16px] lg:h-12"
+          className="text-body h-14 w-full rounded-full lg:h-12"
           onClick={() => {
             const value = Number(qty.replace(",", "."));
             if (!Number.isFinite(value) || value < 0) {

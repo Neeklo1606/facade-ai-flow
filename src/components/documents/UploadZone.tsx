@@ -68,7 +68,7 @@ export const UploadZone = forwardRef<
         <FileUp className="size-5" strokeWidth={1.5} />
       </span>
       <span className="min-w-0">
-        <span className="block text-[14px] font-medium">
+        <span className="text-body-strong block font-medium">
           {dragging
             ? "Отпустите, чтобы загрузить"
             : "Перетащите документы сюда или выберите на диске"}

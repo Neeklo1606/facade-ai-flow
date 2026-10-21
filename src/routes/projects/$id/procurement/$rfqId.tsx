@@ -356,7 +356,7 @@ function CellLines({
           className="-mt-1 -mr-1"
         />
       </div>
-      <dl className="grid gap-0.5 text-[13px]">
+      <dl className="text-meta grid gap-0.5">
         {rows.map(([label, value, warn]) => (
           <div key={label} className="flex items-baseline justify-between gap-3">
             <dt className="text-text-muted">{label}</dt>
@@ -392,7 +392,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
       >
         <thead>
           <tr className="text-left align-top">
-            <th className="sticky left-0 z-10 w-[260px] border-r border-b border-border bg-subtle px-4 py-3 text-[11px] font-medium text-text-muted">
+            <th className="text-tab sticky left-0 z-10 w-[260px] border-r border-b border-border bg-subtle px-4 py-3 font-medium text-text-muted">
               Материал и требование
             </th>
             {columns.map((c) => {
@@ -406,11 +406,11 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-semibold text-text-primary">
+                    <span className="text-body-strong font-semibold text-text-primary">
                       {counterpartyById(c.supplierId)?.name}
                     </span>
                     {best && (
-                      <span className="inline-flex h-5 items-center gap-1 rounded-full bg-sand-dim px-2 text-[11px] font-medium text-sand">
+                      <span className="text-tab inline-flex h-5 items-center gap-1 rounded-full bg-sand-dim px-2 font-medium text-sand">
                         <Crown className="size-3" /> Лучшее
                       </span>
                     )}
@@ -435,7 +435,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
                 scope="row"
                 className="sticky left-0 z-10 border-r border-b border-border bg-surface px-4 py-3 text-left font-normal"
               >
-                <p className="text-[13px] font-medium">{item.name}</p>
+                <p className="text-meta-strong font-medium">{item.name}</p>
                 <p className="tnum mt-0.5 text-caption text-text-muted">
                   Нужно {fmtNum(item.qty)} {item.unit}
                 </p>
@@ -472,7 +472,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
               scope="row"
               className="sticky left-0 z-10 border-r border-border bg-raised px-4 py-3 text-left"
             >
-              <p className="text-[13px] font-semibold">Итого с доставкой и НДС</p>
+              <p className="text-meta-strong font-semibold">Итого с доставкой и НДС</p>
             </th>
             {columns.map((c) => (
               <td
@@ -484,12 +484,7 @@ function DesktopMatrix({ request, columns, bestId, decidedId, onSource }: Matrix
               >
                 {c.offerId ? (
                   <>
-                    <p
-                      className={cn(
-                        "tnum text-[20px] leading-tight font-semibold",
-                        c.supplierId === bestId && "text-ok",
-                      )}
-                    >
+                    <p className={cn("text-heading tnum", c.supplierId === bestId && "text-ok")}>
                       {fmtMoney(c.total)}
                     </p>
                     <p className="tnum mt-1 text-caption text-text-muted">
@@ -518,7 +513,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
   return (
     <div className="space-y-3 lg:hidden">
       <section className="card-surface divide-y divide-border">
-        <h2 className="px-4 py-3 text-[14px] font-semibold">Итог по поставщикам</h2>
+        <h2 className="text-body-strong px-4 py-3 font-semibold">Итог по поставщикам</h2>
         {columns.map((c) => (
           <div
             key={c.supplierId}
@@ -528,7 +523,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
             )}
           >
             <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-1.5 text-[14px] font-medium">
+              <p className="text-body-strong flex flex-wrap items-center gap-1.5 font-medium">
                 {counterpartyById(c.supplierId)?.name}
                 {c.supplierId === bestId && <Crown className="size-3.5 text-ok" />}
                 {decidedId === c.supplierId && (
@@ -543,7 +538,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
             </div>
             <p
               className={cn(
-                "tnum shrink-0 text-[15px] font-semibold",
+                "text-body-strong tnum shrink-0 font-semibold",
                 c.supplierId === bestId && "text-ok",
               )}
             >
@@ -555,7 +550,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
       {request.items.map((item) => (
         <section key={item.id} className="card-surface">
           <header className="border-b border-border px-4 py-3">
-            <p className="text-[14px] font-semibold">{item.name}</p>
+            <p className="text-body-strong font-semibold">{item.name}</p>
             <p className="tnum text-caption text-text-muted">
               Нужно {fmtNum(item.qty)} {item.unit}
             </p>
@@ -572,7 +567,7 @@ function MobileMatrix({ request, columns, bestId, decidedId, onSource }: MatrixP
                       "bg-[color-mix(in_oklab,var(--ok-bg)_45%,transparent)]",
                   )}
                 >
-                  <p className="mb-1 text-[13px] font-medium">
+                  <p className="text-meta-strong mb-1 font-medium">
                     {counterpartyById(c.supplierId)?.name}
                   </p>
                   {cell ? (

@@ -15,13 +15,15 @@ export function StatList({
     <dl className={cn("min-w-0", className)}>
       {items.map((item) => (
         <div key={item.label} className="flex h-10 min-w-0 items-center">
-          <dt className="min-w-0 truncate text-[13px] text-text-2">{item.label}</dt>
+          <dt className="text-meta min-w-0 truncate text-text-2">{item.label}</dt>
           {leader === "dots" ? (
             <span aria-hidden className="leader-dots" />
           ) : (
             <span aria-hidden className="min-w-4 flex-1" />
           )}
-          <dd className="shrink-0 text-[14px] font-medium text-text tabular-nums">{item.value}</dd>
+          <dd className="text-body-strong shrink-0 font-medium text-text tabular-nums">
+            {item.value}
+          </dd>
         </div>
       ))}
     </dl>

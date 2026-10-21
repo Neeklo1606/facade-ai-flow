@@ -104,7 +104,7 @@ export function SegTabs<T extends string>({
               {tab.count !== undefined && tab.count > 0 ? (
                 <span
                   className={cn(
-                    "tnum grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[12px] leading-none",
+                    "text-meta tnum grid h-5 min-w-5 place-items-center rounded-full px-1.5",
                     active ? "bg-pill-text/15" : "bg-surface-3 text-text-2",
                   )}
                 >
@@ -151,15 +151,11 @@ export function EventCard({
     >
       <span aria-hidden className={cn("w-1 shrink-0 self-stretch rounded-full", stripe[tone])} />
       <div className="min-w-0 flex-1">
-        <div className="text-[16px] leading-[1.3] font-medium text-text">{title}</div>
-        {meta ? <div className="mt-1 text-[13px] leading-[1.45] text-text-3">{meta}</div> : null}
+        <div className="text-body-strong font-medium text-text">{title}</div>
+        {meta ? <div className="text-meta mt-1 text-text-3">{meta}</div> : null}
         {footer ? <div className="mt-3 flex flex-wrap items-center gap-2">{footer}</div> : null}
       </div>
-      {aside ? (
-        <div className="tnum shrink-0 text-right text-[14px] leading-[1.35] text-text-2">
-          {aside}
-        </div>
-      ) : null}
+      {aside ? <div className="text-body tnum shrink-0 text-right text-text-2">{aside}</div> : null}
       {action}
     </div>
   );
@@ -183,16 +179,14 @@ export function SectionTitle({
     <div className={cn("mb-3 flex min-w-0 items-end justify-between gap-3", className)}>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h2 className="text-[20px] leading-[1.2] font-semibold tracking-[-0.01em] text-text">
-            {children}
-          </h2>
+          <h2 className="text-heading text-text">{children}</h2>
           {count !== undefined ? (
-            <span className="tnum grid h-6 min-w-6 place-items-center rounded-full bg-surface-2 px-2 text-[13px] font-medium text-text-2">
+            <span className="text-meta-strong tnum grid h-6 min-w-6 place-items-center rounded-full bg-surface-2 px-2 font-medium text-text-2">
               {count}
             </span>
           ) : null}
         </div>
-        {hint ? <p className="mt-0.5 text-[13px] leading-[1.4] text-text-3">{hint}</p> : null}
+        {hint ? <p className="text-meta mt-0.5 text-text-3">{hint}</p> : null}
       </div>
       {aside}
     </div>
@@ -206,7 +200,7 @@ export function TipContent({ children }: { children: ReactNode }) {
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface">
         <Sparkles className="size-[18px] text-text-2" strokeWidth={1.75} aria-hidden />
       </span>
-      <span className="min-w-0 flex-1 text-[14px] leading-[1.35] text-text">{children}</span>
+      <span className="text-body min-w-0 flex-1 text-text">{children}</span>
       <ChevronRight className="size-4 shrink-0 text-text-3" aria-hidden />
     </>
   );

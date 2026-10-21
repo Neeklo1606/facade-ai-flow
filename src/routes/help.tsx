@@ -62,7 +62,7 @@ function HelpPage() {
     <div className="grid gap-4">
       <div>
         <h1 className="mb-2 text-page-title lg:sr-only">Справка</h1>
-        <p className="text-[13px] leading-[1.5] text-text-2">
+        <p className="text-meta text-text-2">
           Как работать в системе — по задачам, а не по экранам. Шаги ведут на живой экран
           демонстрации: можно читать и сразу делать. Если экран закрыт вашей роли, шаг говорит об
           этом прямо, а не приводит в отказ.
@@ -113,10 +113,8 @@ function HelpPage() {
                     : "border-line is-hover:bg-surface-2",
                 )}
               >
-                <span className="block text-[14px] leading-[1.35] font-medium text-text">
-                  {item.title}
-                </span>
-                <span className="mt-0.5 block text-[13px] leading-[1.4] text-text-3">
+                <span className="text-body-strong block font-medium text-text">{item.title}</span>
+                <span className="text-meta mt-0.5 block text-text-3">
                   {item.roles.map((role) => employeeRoleLabel[role]).join(", ")}
                 </span>
               </Link>
@@ -135,12 +133,12 @@ function ArticleView({ article }: { article: HelpArticle }) {
     <WidgetCard>
       <article className="grid gap-4">
         <header>
-          <h2 className="text-[18px] leading-[1.25] font-semibold text-text">{article.title}</h2>
-          <p className="mt-1 text-[14px] leading-[1.45] text-text-2">{article.goal}</p>
+          <h2 className="text-heading text-text">{article.title}</h2>
+          <p className="text-body mt-1 text-text-2">{article.goal}</p>
         </header>
 
         {article.limit && (
-          <p className="flex gap-2 rounded-[var(--r-sm)] border border-line bg-warn-bg p-3 text-[13px] leading-[1.45] text-text">
+          <p className="text-meta flex gap-2 rounded-[var(--r-sm)] border border-line bg-warn-bg p-3 text-text">
             <AlertTriangle
               className="mt-0.5 size-4 shrink-0 text-warn"
               strokeWidth={1.75}
@@ -153,11 +151,11 @@ function ArticleView({ article }: { article: HelpArticle }) {
         <ol className="grid gap-2.5">
           {article.steps.map((step, index) => (
             <li key={step.text} className="flex gap-3">
-              <span className="tnum mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border border-line text-[13px] text-text-3">
+              <span className="text-meta tnum mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border border-line text-text-3">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[14px] leading-[1.5] text-text">{step.text}</span>
+                <span className="text-body block text-text">{step.text}</span>
                 {step.to && <StepTarget to={step.to} />}
               </span>
             </li>
@@ -167,14 +165,14 @@ function ArticleView({ article }: { article: HelpArticle }) {
         {article.compare && <Comparison />}
 
         <div className="grid gap-2 rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
-          <p className="flex gap-2 text-[13px] leading-[1.45] text-text">
+          <p className="text-meta flex gap-2 text-text">
             <Check className="mt-0.5 size-4 shrink-0 text-ok" strokeWidth={2} aria-hidden />
             <span>
               <span className="font-medium">Что проверить: </span>
               {article.check}
             </span>
           </p>
-          <p className="text-[13px] leading-[1.45] text-text-2">
+          <p className="text-meta text-text-2">
             <span className="font-medium text-text">Куда дальше: </span>
             {article.next}
           </p>

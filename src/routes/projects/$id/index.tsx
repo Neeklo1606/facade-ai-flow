@@ -534,7 +534,7 @@ function UploadDialog({
                     : "border-line bg-surface-2 hover:border-line-2",
                 )}
               >
-                <span className="block text-[13px] font-medium text-text">{title}</span>
+                <span className="text-meta-strong block font-medium text-text">{title}</span>
                 <span className="block truncate text-caption text-text-muted">{hint}</span>
               </button>
             ))}
@@ -554,7 +554,7 @@ function UploadDialog({
           )}
         >
           <FileUp className="size-8 text-text-muted" strokeWidth={1.5} />
-          <span className="mt-3 text-[14px] font-medium">
+          <span className="text-body-strong mt-3 font-medium">
             {revision
               ? "Перетащите файл или выберите на диске"
               : "Перетащите файлы или выберите на диске"}
@@ -580,7 +580,7 @@ function UploadDialog({
             {files.map((file) => (
               <li
                 key={file.name}
-                className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
+                className="text-meta flex items-center justify-between gap-3 px-3 py-2"
               >
                 <span className="min-w-0 truncate">{file.name}</span>
                 <span className="tnum shrink-0 text-caption text-text-muted">

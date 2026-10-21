@@ -482,7 +482,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
       <div className="hidden overflow-x-auto lg:block">
         <table data-tour="requests-list" className="w-full min-w-[980px] text-table">
           <thead>
-            <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
+            <tr className="text-tab h-10 bg-subtle text-left font-medium whitespace-nowrap text-text-muted">
               <th className="px-4">Номер</th>
               <th className="px-2.5">Дата</th>
               <th className="px-2.5 text-right">Позиций</th>
@@ -583,7 +583,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[15px] font-semibold">{row.request.number}</p>
+                    <p className="text-body-strong font-semibold">{row.request.number}</p>
                     <p className="truncate text-caption text-text-muted">
                       {fmtDate(row.request.createdAt)} · {row.request.items.length} поз. ·{" "}
                       {row.request.items.map((i) => i.name).join(", ")}
@@ -594,13 +594,13 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
                 <dl className="mt-2 grid grid-cols-3 gap-2 text-caption">
                   <div>
                     <dt className="text-text-muted">Ответили</dt>
-                    <dd className="tnum text-[14px] font-medium">
+                    <dd className="text-body-strong tnum font-medium">
                       {row.answered} из {row.request.sentTo.length}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-text-muted">Лучшая цена</dt>
-                    <dd className="tnum text-[14px] font-medium">
+                    <dd className="text-body-strong tnum font-medium">
                       {row.bestTotal ? fmtMoney(row.bestTotal) : "—"}
                     </dd>
                   </div>
@@ -608,7 +608,7 @@ function RequestsView({ rows, projectId }: { rows: RequestRow[]; projectId: stri
                     <dt className="text-text-muted">Ждём до</dt>
                     <dd
                       className={cn(
-                        "tnum text-[14px] font-medium",
+                        "text-body-strong tnum font-medium",
                         row.replyDue?.overdue && "text-danger",
                       )}
                     >
@@ -646,21 +646,21 @@ function RequestDetails({ row, projectId }: { row: RequestRow; projectId: string
         ]}
       />
       {row.replyDue && (
-        <p className={cn("text-[13px]", row.replyDue.overdue ? "text-danger" : "text-text-2")}>
+        <p className={cn("text-meta", row.replyDue.overdue ? "text-danger" : "text-text-2")}>
           {fmtReplyDue(row.replyDue)}
         </p>
       )}
       <section>
-        <h3 className="text-[12px] text-text-3">Что запрошено</h3>
-        <ul className="mt-2 space-y-1.5 text-[14px] text-text">
+        <h3 className="text-meta text-text-3">Что запрошено</h3>
+        <ul className="text-body mt-2 space-y-1.5 text-text">
           {row.request.items.map((item) => (
             <li key={item.id ?? item.name}>{item.name}</li>
           ))}
         </ul>
       </section>
       <section>
-        <h3 className="text-[12px] text-text-3">Кому отправлено</h3>
-        <ul className="mt-2 space-y-1.5 text-[14px] text-text">
+        <h3 className="text-meta text-text-3">Кому отправлено</h3>
+        <ul className="text-body mt-2 space-y-1.5 text-text">
           {row.request.sentTo.map((id) => (
             <li key={id}>{counterpartyById(id)?.name ?? "—"}</li>
           ))}
@@ -668,7 +668,7 @@ function RequestDetails({ row, projectId }: { row: RequestRow; projectId: string
       </section>
       {links.length > 0 && (
         <section>
-          <h3 className="mb-2 text-[12px] text-text-3">Связано</h3>
+          <h3 className="text-meta mb-2 text-text-3">Связано</h3>
           <RelatedList links={links} />
         </section>
       )}
@@ -708,7 +708,7 @@ function SuppliersView({
       <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[1180px] text-table">
           <thead>
-            <tr className="h-10 bg-subtle text-left text-[11px] font-medium whitespace-nowrap text-text-muted">
+            <tr className="text-tab h-10 bg-subtle text-left font-medium whitespace-nowrap text-text-muted">
               <th className="px-4">Поставщик</th>
               <th className="px-2.5">Регион</th>
               <th className="px-2.5">Категории</th>
@@ -748,7 +748,7 @@ function SuppliersView({
                     {profile.categories.map((c) => (
                       <span
                         key={c}
-                        className="rounded-full bg-subtle px-2 py-0.5 text-[11px] text-text-secondary"
+                        className="text-meta rounded-full bg-subtle px-2 py-0.5 text-text-secondary"
                       >
                         {categoryName(c)}
                       </span>
@@ -828,7 +828,7 @@ function SuppliersView({
                 <button
                   type="button"
                   onClick={() => setOpenId(profile.supplierId)}
-                  className="focus-ring min-h-12 rounded-[var(--r-xs)] text-left text-[15px] font-semibold"
+                  className="text-body-strong focus-ring min-h-12 rounded-[var(--r-xs)] text-left font-semibold"
                 >
                   {supplier?.name}
                 </button>
@@ -841,7 +841,7 @@ function SuppliersView({
               </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="text-[14px]">{profile.contactName}</span>
+              <span className="text-body">{profile.contactName}</span>
               <ContactFreshnessBadge status={profile.contactStatus} />
             </div>
             <p className="mt-0.5 text-caption text-text-muted">

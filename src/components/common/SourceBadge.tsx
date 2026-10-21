@@ -53,7 +53,7 @@ export function SourceBadge({
         <div className="text-caption text-text-secondary">{fmtDateTime(at)}</div>
         <div className="text-caption text-text-secondary">Источник: {source}</div>
         <ConfidenceIndicator value={confidence} />
-        <div className="text-[13px] text-text-muted">Нажмите, чтобы открыть источник</div>
+        <div className="text-meta text-text-muted">Нажмите, чтобы открыть источник</div>
       </TooltipContent>
     </Tooltip>
   );

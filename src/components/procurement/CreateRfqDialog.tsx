@@ -239,7 +239,7 @@ export function CreateRfqDialog({
                   />
                   <span
                     className={cn(
-                      "mt-1 block truncate text-[11px]",
+                      "text-meta mt-1 block truncate",
                       index === step ? "font-semibold text-text-primary" : "text-text-muted",
                     )}
                   >
@@ -255,7 +255,7 @@ export function CreateRfqDialog({
           {step === 0 && (
             <>
               {eligible.length === 0 ? (
-                <p className="rounded-[var(--r-md)] bg-subtle px-4 py-6 text-center text-[13px] text-text-secondary">
+                <p className="text-meta rounded-[var(--r-md)] bg-subtle px-4 py-6 text-center text-text-secondary">
                   Нет позиций, готовых к запросу. Проверьте позиции на экране извлечения и передайте
                   их в закупку — они появятся здесь.
                 </p>
@@ -297,14 +297,14 @@ export function CreateRfqDialog({
                             }
                           />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13px] font-medium">
+                            <span className="text-meta-strong block truncate font-medium">
                               {item.normalizedName ?? item.projectName}
                             </span>
                             <span className="block truncate text-caption text-text-muted">
                               {item.group} · поз. {item.position} · лист {item.sheetNumber}
                             </span>
                           </span>
-                          <span className="tnum shrink-0 text-[13px]">
+                          <span className="text-meta tnum shrink-0">
                             {fmtNum(item.qty)} {item.unit}
                           </span>
                         </label>
@@ -359,7 +359,7 @@ export function CreateRfqDialog({
                     aria-pressed={templateId === template.id}
                     onClick={() => pickTemplate(template.id)}
                     className={cn(
-                      "min-h-12 rounded-[var(--r-md)] border px-3 py-2 text-left text-[13px] transition-fast",
+                      "text-meta min-h-12 rounded-[var(--r-md)] border px-3 py-2 text-left transition-fast",
                       templateId === template.id
                         ? "border-line-2 bg-surface-3 font-medium"
                         : "border-border hover:bg-hover",
@@ -379,7 +379,7 @@ export function CreateRfqDialog({
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   rows={9}
-                  className="font-[inherit] text-[13px] leading-relaxed"
+                  className="text-meta font-[inherit]"
                 />
               </label>
               <div className="flex flex-wrap items-end gap-3">
@@ -410,7 +410,7 @@ export function CreateRfqDialog({
                     aria-pressed={id === currentPreview}
                     onClick={() => setPreviewFor(id)}
                     className={cn(
-                      "min-h-12 shrink-0 rounded-full border px-3 text-[13px] lg:min-h-8",
+                      "text-meta min-h-12 shrink-0 rounded-full border px-3 lg:min-h-8",
                       id === currentPreview
                         ? "border-ink bg-ink text-primary-foreground"
                         : "border-border text-text-secondary hover:bg-hover",
@@ -421,7 +421,7 @@ export function CreateRfqDialog({
                 ))}
               </div>
               <article className="rounded-[var(--r-md)] border border-border">
-                <dl className="grid gap-1 border-b border-border px-4 py-3 text-[13px]">
+                <dl className="text-meta grid gap-1 border-b border-border px-4 py-3">
                   <div className="flex gap-2">
                     <dt className="w-16 shrink-0 text-text-muted">Кому</dt>
                     <dd className="min-w-0 truncate">
@@ -437,7 +437,7 @@ export function CreateRfqDialog({
                     <dd>Перечень_{selectedItems.length}_поз.xlsx</dd>
                   </div>
                 </dl>
-                <p className="px-4 py-3 text-[13px] leading-relaxed whitespace-pre-line">
+                <p className="text-meta px-4 py-3 whitespace-pre-line">
                   {fill(body, values(currentPreview))}
                 </p>
               </article>
@@ -528,13 +528,13 @@ function SupplierList({
               />
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-medium">{supplier?.name}</span>
+                  <span className="text-meta-strong font-medium">{supplier?.name}</span>
                   <ContactFreshnessBadge status={profile.contactStatus} />
                 </span>
                 <span className="mt-1 flex flex-wrap gap-1">
                   <span
                     className={cn(
-                      "inline-flex h-5 items-center gap-1 rounded-full px-2 text-[11px]",
+                      "text-meta inline-flex h-5 items-center gap-1 rounded-full px-2",
                       regionMatch ? "bg-ok-bg text-ok" : "bg-subtle text-text-secondary",
                     )}
                   >
@@ -543,7 +543,7 @@ function SupplierList({
                   {categoryMatch.map((c) => (
                     <span
                       key={c}
-                      className="inline-flex h-5 items-center gap-1 rounded-full bg-ok-bg px-2 text-[11px] text-ok"
+                      className="text-meta inline-flex h-5 items-center gap-1 rounded-full bg-ok-bg px-2 text-ok"
                     >
                       <Check className="size-3" /> {c}
                     </span>

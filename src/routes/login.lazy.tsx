@@ -95,17 +95,17 @@ function LoginPage() {
   return (
     <main className="mx-auto grid min-h-[100dvh] max-w-[420px] place-items-center px-4">
       <section className="w-full rounded-[var(--r-lg)] border border-line bg-surface p-6">
-        <span className="grid size-9 place-items-center rounded-[10px] bg-orange text-[15px] font-semibold text-on-orange">
+        <span className="text-body-strong grid size-9 place-items-center rounded-[10px] bg-orange font-semibold text-on-orange">
           F
         </span>
         <h1 className="mt-5 text-page-title">Вход в систему</h1>
-        <p className="mt-2 text-[14px] leading-[1.5] text-text-2">
+        <p className="text-body mt-2 text-text-2">
           ГАЙКА AI. Введите телефон, который завёл руководитель: пароля в системе нет.
         </p>
 
         {invite ? (
           <div className="mt-6 grid gap-3">
-            <p className="text-[14px] leading-[1.5] text-text-2">
+            <p className="text-body text-text-2">
               Вас пригласили в систему. Нажмите, чтобы войти — ссылка одноразовая.
             </p>
             <Button onClick={accept} loading={busy}>
@@ -115,7 +115,7 @@ function LoginPage() {
         ) : (
           <div className="mt-6 grid gap-3">
             <label className="grid gap-1.5">
-              <span className="text-[13px] text-text-2">Телефон</span>
+              <span className="text-meta text-text-2">Телефон</span>
               <span className="relative block">
                 <Phone
                   className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-3"
@@ -137,7 +137,7 @@ function LoginPage() {
 
             {stage === "code" && (
               <label className="grid gap-1.5">
-                <span className="text-[13px] text-text-2">Код из сообщения</span>
+                <span className="text-meta text-text-2">Код из сообщения</span>
                 <span className="relative block">
                   <KeyRound
                     className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-3"
@@ -158,14 +158,14 @@ function LoginPage() {
             )}
 
             {shown && (
-              <p className="rounded-[var(--r-sm)] border border-line bg-warn-bg p-3 text-[13px] leading-[1.45] text-text">
+              <p className="text-meta rounded-[var(--r-sm)] border border-line bg-warn-bg p-3 text-text">
                 Отправка сообщений ещё не подключена: код показан здесь и записан в журнал сервера.
                 Ваш код — <span className="tnum font-semibold">{shown}</span>
               </p>
             )}
 
             {failure && (
-              <p className="text-[13px] leading-[1.45] text-danger" role="alert">
+              <p className="text-meta text-danger" role="alert">
                 {failure}
               </p>
             )}
@@ -197,7 +197,7 @@ function LoginPage() {
               </div>
             )}
 
-            <p className="text-[13px] leading-[1.45] text-text-3">
+            <p className="text-meta text-text-3">
               Если код не приходит, попросите руководителя прислать ссылку для входа: она действует
               трое суток.
             </p>

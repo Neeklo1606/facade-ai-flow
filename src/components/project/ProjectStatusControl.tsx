@@ -68,7 +68,7 @@ export function ProjectStatusControl({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[220px]">
-        <DropdownMenuLabel className="text-[13px] font-normal text-text-3">
+        <DropdownMenuLabel className="text-meta font-normal text-text-3">
           Сменить статус объекта
         </DropdownMenuLabel>
         {next.map((status) => (

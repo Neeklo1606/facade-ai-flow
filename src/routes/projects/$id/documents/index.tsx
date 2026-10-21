@@ -283,7 +283,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                   <div className="flex min-w-0 items-center gap-2.5">
                     <Icon className="size-4 shrink-0 text-text-muted" strokeWidth={1.5} />
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium">{doc.fileName}</p>
+                      <p className="text-meta-strong truncate font-medium">{doc.fileName}</p>
                       <p className="text-caption text-text-muted">{fmtNum(doc.sizeKb)} КБ</p>
                     </div>
                   </div>
@@ -356,7 +356,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
               <div className="hidden overflow-x-auto lg:block">
                 <table data-tour="documents-list" className="w-full min-w-[1040px] text-table">
                   <thead>
-                    <tr className="h-10 bg-subtle text-left text-[11px] font-medium text-text-muted">
+                    <tr className="text-tab h-10 bg-subtle text-left font-medium text-text-muted">
                       <th className="px-4">Название</th>
                       <th className="px-2.5">Раздел</th>
                       <th className="px-2.5">Версия</th>
@@ -485,7 +485,7 @@ function DocumentsPage({ project }: ProjectPageProps): React.JSX.Element {
                           strokeWidth={1.5}
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="text-[14px] font-medium">{doc.title}</p>
+                          <p className="text-body-strong font-medium">{doc.title}</p>
                           <p className="mt-0.5 text-caption text-text-muted">
                             {doc.section} · {doc.version} · {doc.sheetCount} л. ·{" "}
                             {employeeName(doc.uploadedBy)}

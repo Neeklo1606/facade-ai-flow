@@ -27,7 +27,7 @@ export function ObjectsList({ items }: { items: ProjectListItem[] }) {
   const shown = filter === "risk" ? atRisk : filter === "missing" ? missingItems : items;
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-[20px] leading-[1.3] font-semibold tracking-[-0.015em] text-balance text-text sm:text-[24px]">
+      <p className="text-heading text-balance text-text">
         {fmtNum(items.length)} {plural(items.length, "объект", "объекта", "объектов")} в работе.{" "}
         <span className="tone-2">
           {atRisk.length > 0 ? `${fmtNum(atRisk.length)} под риском` : "Под риском ни одного"}
@@ -54,7 +54,7 @@ export function ObjectsList({ items }: { items: ProjectListItem[] }) {
           ))}
         </ul>
       ) : (
-        <p className="card-v3 px-5 py-8 text-center text-[15px] text-text-2">
+        <p className="text-body card-v3 px-5 py-8 text-center text-text-2">
           По этому условию объектов нет.
         </p>
       )}
@@ -87,10 +87,10 @@ function ObjectTile({ item }: { item: ProjectListItem }) {
         params={{ id: item.project.id }}
         className="focus-ring press group flex h-full flex-col gap-3 rounded-[var(--r-2xl)]"
       >
-        <div className="card-v3 relative flex flex-1 flex-col overflow-hidden rounded-[var(--r-2xl)] p-5 transition-fast group-hover:shadow-[var(--lift-2)]">
+        <div className="card-v3 relative flex flex-1 flex-col overflow-hidden rounded-[var(--r-2xl)] p-5 transition-fast">
           <span aria-hidden className={cn("absolute inset-x-0 top-0 h-36", healthField[tone])} />
           <div className="relative flex items-center justify-between gap-3">
-            <span className="glass inline-flex h-8 items-center gap-2 rounded-full px-3 text-[13px] font-medium text-text">
+            <span className="text-meta-strong glass inline-flex h-8 items-center gap-2 rounded-full px-3 font-medium text-text">
               <ToneDot tone={tone} />
               {status.label}
             </span>
@@ -99,10 +99,8 @@ function ObjectTile({ item }: { item: ProjectListItem }) {
             </span>
           </div>
           <div className="relative mt-6 flex items-baseline gap-2">
-            <span className="tnum text-[48px] leading-none font-semibold tracking-[-0.03em] text-text">
-              {pct === null ? "—" : `${pct}%`}
-            </span>
-            <span className="text-[14px] text-text-3">выполнено</span>
+            <span className="text-hero tnum text-text">{pct === null ? "—" : `${pct}%`}</span>
+            <span className="text-body text-text-3">выполнено</span>
           </div>
           <div
             className="relative mt-4 h-1.5 overflow-hidden rounded-full bg-surface-3"
@@ -122,10 +120,10 @@ function ObjectTile({ item }: { item: ProjectListItem }) {
           </dl>
         </div>
         <span className="block px-1 text-center">
-          <span className="block truncate text-[15px] leading-[1.3] font-medium text-text">
+          <span className="text-body-strong block truncate font-medium text-text">
             {shortName(item.project.name)}
           </span>
-          <span className="mt-0.5 block truncate text-[13px] leading-[1.35] text-text-3">
+          <span className="text-meta mt-0.5 block truncate text-text-3">
             {item.overview.region} · {item.overview.stage}
           </span>
         </span>
@@ -147,10 +145,10 @@ function Indicator({
 }) {
   return (
     <div className={cn("min-w-0", wide && "col-span-3")}>
-      <dt className="text-[12px] leading-4 text-text-3">{label}</dt>
+      <dt className="text-meta text-text-3">{label}</dt>
       <dd
         className={cn(
-          "tnum mt-0.5 truncate text-[14px] leading-5 font-medium text-text",
+          "text-body-strong tnum mt-0.5 truncate font-medium text-text",
           tone === "warn" && "text-warn",
         )}
       >

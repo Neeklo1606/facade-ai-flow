@@ -58,12 +58,8 @@ export function EmptyState({
           strokeWidth={1.5}
         />
       </span>
-      <h3 className="mt-4 text-[16px] leading-[1.35] font-semibold text-text">
-        {title ?? defaults.title}
-      </h3>
-      <p className="mt-1.5 max-w-md text-[13px] leading-[1.45] text-text-2">
-        {description ?? defaults.description}
-      </p>
+      <h3 className="text-body-strong mt-4 font-semibold text-text">{title ?? defaults.title}</h3>
+      <p className="text-meta mt-1.5 max-w-md text-text-2">{description ?? defaults.description}</p>
       {label && onAction && (
         <Button
           className="mt-5"

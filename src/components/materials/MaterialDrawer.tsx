@@ -34,7 +34,7 @@ function Section({
 }) {
   return (
     <section className={cn("border-t border-border pt-4 first:border-0 first:pt-0", className)}>
-      <h3 className="text-[12px] font-semibold text-text-muted">{title}</h3>
+      <h3 className="text-meta-strong font-semibold text-text-muted">{title}</h3>
       <div className="mt-2">{children}</div>
     </section>
   );
@@ -98,7 +98,7 @@ export function MaterialDrawer({
         <Section title="Наименование">
           <dl className="space-y-2.5">
             <div>
-              <dt className="text-[11px] text-text-muted">Нормализованное, по справочнику</dt>
+              <dt className="text-meta text-text-muted">Нормализованное, по справочнику</dt>
               <dd className="mt-0.5">
                 <MatchLine
                   item={item}
@@ -107,8 +107,8 @@ export function MaterialDrawer({
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] text-text-muted">Проектное, как в документе</dt>
-              <dd className="mt-0.5 text-[13px] text-text-secondary">{item.projectName}</dd>
+              <dt className="text-meta text-text-muted">Проектное, как в документе</dt>
+              <dd className="text-meta mt-0.5 text-text-secondary">{item.projectName}</dd>
             </div>
           </dl>
         </Section>
@@ -117,12 +117,12 @@ export function MaterialDrawer({
           {item.characteristics.length ? (
             <dl className="divide-y divide-border rounded-[var(--r-md)] border border-border">
               {item.characteristics.map((c) => (
-                <div key={c.label} className="grid grid-cols-[40%_1fr] gap-3 px-3 py-2 text-[13px]">
+                <div key={c.label} className="text-meta grid grid-cols-[40%_1fr] gap-3 px-3 py-2">
                   <dt className="text-text-muted">{c.label}</dt>
                   <dd>{c.value}</dd>
                 </div>
               ))}
-              <div className="grid grid-cols-[40%_1fr] gap-3 px-3 py-2 text-[13px]">
+              <div className="text-meta grid grid-cols-[40%_1fr] gap-3 px-3 py-2">
                 <dt className="text-text-muted">Количество</dt>
                 <dd className="tnum font-medium">
                   {fmtNum(item.qty)} {item.unit}
@@ -130,7 +130,7 @@ export function MaterialDrawer({
               </div>
             </dl>
           ) : (
-            <p className="rounded-[var(--r-md)] bg-warn-bg px-3 py-2 text-[13px] text-warn">
+            <p className="text-meta rounded-[var(--r-md)] bg-warn-bg px-3 py-2 text-warn">
               В документе характеристики не указаны. Уточните марку, толщину и покрытие до запроса
               поставщикам. Количество:{" "}
               <span className="tnum font-medium">
@@ -150,7 +150,7 @@ export function MaterialDrawer({
         <Section title="Источник">
           <div className="flex items-start justify-between gap-3 rounded-[var(--r-md)] border border-border px-3 py-2.5">
             <div className="min-w-0">
-              <p className="text-[13px] font-medium">
+              <p className="text-meta-strong font-medium">
                 Лист {item.sheetNumber}, поз. {item.position}
               </p>
               <p className="mt-0.5 truncate text-caption text-text-muted">{documentTitle}</p>
@@ -185,7 +185,7 @@ export function MaterialDrawer({
                 />
                 <p
                   className={cn(
-                    "mt-1 truncate text-[10px]",
+                    "text-meta mt-1 truncate",
                     index === stage ? "font-semibold text-text-primary" : "text-text-muted",
                   )}
                 >
@@ -196,7 +196,7 @@ export function MaterialDrawer({
           </ol>
           {/* Заказано, поставлено по актам приёмки и остаток (ADR-011) */}
           {(item.purchase === "ordered" || item.purchase === "delivered") && (
-            <p className="tnum mt-3 text-[13px] text-text-secondary">
+            <p className="text-meta tnum mt-3 text-text-secondary">
               Заказано {fmtNum(item.qty)} {item.unit} · поставлено {fmtNum(item.deliveredQty ?? 0)}{" "}
               {item.unit} · остаток{" "}
               <span className={cn(positionRemainder(item) > 0 && "font-medium text-text")}>
@@ -209,7 +209,7 @@ export function MaterialDrawer({
         {can("procurement") && (
           <Section title="Запросы и предложения">
             {related.length === 0 ? (
-              <p className="text-[13px] text-text-muted">
+              <p className="text-meta text-text-muted">
                 Позиция ещё не входила в запросы поставщикам.
               </p>
             ) : (
@@ -224,7 +224,7 @@ export function MaterialDrawer({
 
         <Section title="Предложенные замены">
           {replacements.length === 0 ? (
-            <p className="text-[13px] text-text-muted">Замен не предлагалось.</p>
+            <p className="text-meta text-text-muted">Замен не предлагалось.</p>
           ) : (
             <ul className="space-y-2">
               {replacements.map((r) => (
@@ -236,7 +236,7 @@ export function MaterialDrawer({
                   <div className="min-w-0 flex-1">
                     {/* Статуса замены здесь нет: он всегда «Предложена» — согласование замен
                         появится в блоке B вместе с решением (TASK-A2, п. 5) */}
-                    <p className="text-[13px] font-medium">{r.name}</p>
+                    <p className="text-meta-strong font-medium">{r.name}</p>
                     <p className="mt-0.5 text-caption text-text-secondary">{r.reason}</p>
                     <p
                       className={cn(
@@ -262,7 +262,7 @@ export function MaterialDrawer({
 
         <Section title="История изменений">
           {history.length === 0 ? (
-            <p className="text-[13px] text-text-muted">
+            <p className="text-meta text-text-muted">
               Изменений не было: значение взято из документа как есть.
             </p>
           ) : (
@@ -275,7 +275,7 @@ export function MaterialDrawer({
                       {person ? <UserRound className="size-3.5" /> : <Bot className="size-3.5" />}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[13px]">
+                      <p className="text-meta">
                         {change.action}
                         {change.before && change.after && (
                           <>
@@ -310,7 +310,7 @@ function RelatedRequest({ requestId }: { requestId: string }) {
   return (
     <li className="rounded-[var(--r-md)] border border-border">
       <div className="flex items-center justify-between gap-3 px-3 py-2">
-        <span className="text-[13px] font-medium">{request.number}</span>
+        <span className="text-meta-strong font-medium">{request.number}</span>
         <span className="text-caption text-text-muted">
           {rfqStatusMeta[card.summary.status].label} ·{" "}
           {request.sentTo.map(counterpartyName).join(", ")}
@@ -321,7 +321,7 @@ function RelatedRequest({ requestId }: { requestId: string }) {
           {offers.map((offer) => (
             <li
               key={offer.supplierId}
-              className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
+              className="text-meta flex items-center justify-between gap-3 px-3 py-2"
             >
               <span className="min-w-0 truncate">
                 {counterpartyName(offer.supplierId)}

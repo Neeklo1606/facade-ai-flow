@@ -50,14 +50,12 @@ export function FactDetail({
       aria-label="Решение по факту"
       className={cn(
         "flex items-center gap-1.5",
-        sheet
-          ? "rounded-full bg-surface p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.32)] ring-1 ring-line-2"
-          : "gap-2",
+        sheet ? "rounded-full bg-surface p-1.5 ring-1 ring-line-2" : "gap-2",
       )}
     >
       <Button
         variant="accent"
-        className="h-14 min-w-0 flex-1 rounded-full text-[16px] font-semibold lg:h-12"
+        className="text-body-strong h-14 min-w-0 flex-1 rounded-full font-semibold lg:h-12"
         onClick={() => decision.accept()}
       >
         <Check className="size-5" /> Принять
@@ -86,7 +84,7 @@ export function FactDetail({
       </Button>
     </div>
   ) : (
-    <p className="px-2 text-center text-[13px] text-text-3">
+    <p className="text-meta px-2 text-center text-text-3">
       Решение принимают ПТО и руководитель проекта.
     </p>
   );
@@ -115,55 +113,47 @@ export function FactDetail({
           ) : (
             <span />
           )}
-          <span className="text-[13px] text-text-3 tnum">{position}</span>
+          <span className="text-meta text-text-3 tnum">{position}</span>
         </div>
 
         <header className="mt-2 text-center">
           <span
             className={cn(
-              "inline-flex h-7 items-center rounded-full px-3 text-[13px] font-medium",
+              "text-meta-strong inline-flex h-7 items-center rounded-full px-3 font-medium",
               tone.chip,
             )}
           >
             {source ? sourceMarker(source) : "Отчёт с площадки"}
           </span>
-          <h2
-            id="fact-detail-title"
-            className="mx-auto mt-3 max-w-[22ch] text-[28px] leading-[32px] font-semibold tracking-[-0.025em] text-balance lg:text-[30px] lg:leading-[34px]"
-          >
+          <h2 id="fact-detail-title" className="text-title mx-auto mt-3 max-w-[22ch] text-balance">
             {report.workType}
           </h2>
           <p className="mt-4 flex items-baseline justify-center gap-2">
-            <span
-              className={cn(
-                "font-semibold tracking-[-0.03em] tnum",
-                sheet ? "text-[48px] leading-[52px]" : "text-[40px] leading-[44px]",
-              )}
-            >
+            <span className={cn("font-semibold tnum", sheet ? "text-hero" : "text-hero")}>
               {fmtNum(report.declaredQty ?? 0)}
             </span>
-            <span className="text-[20px] font-medium text-text-2">{report.unit}</span>
+            <span className="text-heading text-text-2">{report.unit}</span>
           </p>
-          <p className="mt-1 text-[14px] text-text-3">заявлено с площадки</p>
+          <p className="text-body mt-1 text-text-3">заявлено с площадки</p>
         </header>
 
         <ul className="mt-6 flex flex-col gap-2">
           <DetailRow icon={MessageSquareQuote} label={source ? source.title : "Исходная фраза"}>
-            <span className="block text-[16px] leading-[23px] text-text">«{quote}»</span>
+            <span className="text-body block text-text">«{quote}»</span>
             {source ? (
-              <span className="mt-1 block text-[13px] text-text-3">
+              <span className="text-meta mt-1 block text-text-3">
                 {source.author} · {fmtDateTime(source.receivedAt)}
               </span>
             ) : null}
           </DetailRow>
           <DetailRow icon={MapPin} label="Где">
             {zoneName}
-            <span className="block text-[14px] text-text-2">{projectName}</span>
+            <span className="text-body block text-text-2">{projectName}</span>
           </DetailRow>
           <DetailRow icon={CalendarClock} label="Смена">
             <span className="tnum">{fmtDate(report.date)}</span>
             {report.sentAt ? (
-              <span className="block text-[14px] text-text-2 tnum">
+              <span className="text-body block text-text-2 tnum">
                 отправлено {fmtDateTime(report.sentAt)}
               </span>
             ) : null}
@@ -171,7 +161,7 @@ export function FactDetail({
           <DetailRow icon={UsersRound} label="Кто сдал">
             {employeeName(report.authorId)}
             {report.headcount > 0 ? (
-              <span className="block text-[14px] text-text-2 tnum">
+              <span className="text-body block text-text-2 tnum">
                 в бригаде {fmtNum(report.headcount)}{" "}
                 {plural(report.headcount, "человек", "человека", "человек")}
               </span>
@@ -182,7 +172,7 @@ export function FactDetail({
               <span className="tnum">
                 {fmtNum(evidence.length)} {plural(evidence.length, "фото", "фото", "фото")}
               </span>
-              <span className="block text-[14px] text-text-2">
+              <span className="text-body block text-text-2">
                 {evidence
                   .slice(0, 3)
                   .map((item) => item.caption)
@@ -219,8 +209,8 @@ function DetailRow({
         <Icon className="size-[18px]" aria-hidden />
       </span>
       <span className="min-w-0 flex-1 pt-0.5">
-        <span className="block text-[13px] leading-4 text-text-3">{label}</span>
-        <span className="mt-1 block text-[16px] leading-[22px] text-text">{children}</span>
+        <span className="text-meta block text-text-3">{label}</span>
+        <span className="text-body mt-1 block text-text">{children}</span>
       </span>
     </li>
   );

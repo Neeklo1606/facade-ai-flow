@@ -269,7 +269,7 @@ function TodayHero({
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:gap-10">
         <div className="min-w-0">
-          <p className="text-[14px] leading-5 text-text-2 tnum">
+          <p className="text-body text-text-2 tnum">
             {WEEKDAYS[(day.getDay() + 6) % 7]} {format(day, "dd.MM")}
             {greetingName ? ` · ${greetingName}` : ""}
           </p>
@@ -289,10 +289,10 @@ function TodayHero({
                 aria-current={current ? "date" : undefined}
                 className="flex flex-col items-center gap-2"
               >
-                <span className="text-[12px] leading-4 text-text-3">{label}</span>
+                <span className="text-meta text-text-3">{label}</span>
                 <span
                   className={cn(
-                    "grid size-10 place-items-center rounded-full text-[15px] font-medium tnum lg:size-11",
+                    "text-body-strong grid size-10 place-items-center rounded-full font-medium tnum lg:size-11",
                     current ? "bg-pill text-pill-text" : "text-text-2",
                   )}
                 >
@@ -312,14 +312,10 @@ function TodayHero({
         ) : main ? (
           <>
             <p className="flex items-baseline gap-2">
-              <span className="text-[72px] leading-[64px] font-semibold tracking-[-0.045em] tnum sm:text-[88px] sm:leading-[80px] lg:text-[104px] lg:leading-[92px]">
-                {fmtNum(main.qty)}
-              </span>
-              <span className="text-[24px] leading-none font-medium text-text-2 lg:text-[30px]">
-                {main.unit}
-              </span>
+              <span className="text-hero tnum">{fmtNum(main.qty)}</span>
+              <span className="text-title text-text-2">{main.unit}</span>
             </p>
-            <p className="mt-3 text-[15px] leading-5 text-text-2">
+            <p className="text-body mt-3 text-text-2">
               заявлено за смену
               {rest.length > 0
                 ? ` · ещё ${rest.map((item) => `${fmtNum(item.qty)} ${item.unit}`).join(", ")}`
@@ -329,10 +325,8 @@ function TodayHero({
           </>
         ) : (
           <>
-            <p className="text-[72px] leading-[64px] font-semibold tracking-[-0.045em] tnum lg:text-[104px] lg:leading-[92px]">
-              0
-            </p>
-            <p className="mt-3 text-[15px] leading-5 text-text-2">записей за смену пока нет</p>
+            <p className="text-hero tnum">0</p>
+            <p className="text-body mt-3 text-text-2">записей за смену пока нет</p>
           </>
         )}
       </div>
@@ -351,13 +345,10 @@ function CaptureCard() {
       aria-labelledby="today-capture-title"
       className="card-v3 rounded-[var(--r-xl)] p-4 sm:p-6"
     >
-      <h2
-        id="today-capture-title"
-        className="text-[20px] leading-[26px] font-semibold tracking-[-0.015em] sm:text-[26px] sm:leading-[32px]"
-      >
+      <h2 id="today-capture-title" className="text-heading">
         Что произошло на объекте?
       </h2>
-      <p className="mt-2 text-[15px] leading-[21px] text-text-2">
+      <p className="text-body mt-2 text-text-2">
         Скажите или напишите своими словами, гайка разложит по отчёту.
       </p>
       <Link
@@ -366,7 +357,7 @@ function CaptureCard() {
         className="focus-ring press mt-5 flex min-h-16 items-center gap-3 rounded-full bg-surface-2 py-2 ps-5 pe-2"
       >
         <Plus className="size-5 shrink-0 text-text-3" aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-[16px] text-text-3">
+        <span className="text-body min-w-0 flex-1 truncate text-text-3">
           Смена, объём, нехватка…
         </span>
         <span className="grid size-12 shrink-0 place-items-center rounded-full bg-pill text-pill-text">
@@ -377,7 +368,7 @@ function CaptureCard() {
         <Link
           to="/capture"
           search={{ scenario: "demo-shift" }}
-          className="focus-ring press inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 text-[15px] font-medium text-text"
+          className="text-body-strong focus-ring press inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 font-medium text-text"
         >
           <ClipboardList className="size-4 text-text-2" aria-hidden />
           Отчёт
@@ -385,7 +376,7 @@ function CaptureCard() {
         <Link
           to="/capture"
           search={{ scenario: "demo-supply" }}
-          className="focus-ring press inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 text-[15px] font-medium text-text"
+          className="text-body-strong focus-ring press inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 font-medium text-text"
         >
           <TriangleAlert className="size-4 text-risk" aria-hidden />
           Проблема
@@ -450,14 +441,12 @@ function StatusCards({
                 )}
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-[19px] leading-6 font-semibold tracking-[-0.01em] text-text">
-                  {card.title}
-                </span>
-                <span className="mt-0.5 block text-[14px] leading-5 text-text-2">{card.hint}</span>
+                <span className="text-heading block text-text">{card.title}</span>
+                <span className="text-body mt-0.5 block text-text-2">{card.hint}</span>
               </span>
               <span
                 className={cn(
-                  "shrink-0 text-[24px] leading-none font-semibold tracking-[-0.02em] tnum",
+                  "text-title shrink-0 tnum",
                   card.count > 0 ? "text-text" : "text-text-3",
                 )}
               >
@@ -494,13 +483,10 @@ function WorksSection({ works }: { works: TodayWork[] }) {
   return (
     <section aria-labelledby="today-works-title" className="pt-2">
       <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
-        <h2
-          id="today-works-title"
-          className="text-[22px] leading-7 font-semibold tracking-[-0.02em]"
-        >
+        <h2 id="today-works-title" className="text-title">
           Зафиксировано сегодня
         </h2>
-        <span className="text-[14px] text-text-3 tnum">
+        <span className="text-body text-text-3 tnum">
           {fmtNum(works.length)} {plural(works.length, "запись", "записи", "записей")}
         </span>
       </div>
@@ -533,23 +519,19 @@ function WorkRow({ work }: { work: TodayWork }) {
       >
         <span aria-hidden className={cn("w-1 shrink-0 rounded-full", tone[work.status].bar)} />
         <span className="min-w-0 flex-1">
-          <span className="block text-[19px] leading-6 font-semibold tracking-[-0.01em] text-text">
-            {work.workType}
-          </span>
+          <span className="text-heading block text-text">{work.workType}</span>
           {/* Метаданные одной строкой (правило 8 этапа D; заменяет чипы ADR-028, п. 5) */}
-          <span className="mt-1 block text-[14px] leading-5 text-text-2">
+          <span className="text-body mt-1 block text-text-2">
             {metaLine(work.zoneName, shortName(work.projectName))}
           </span>
-          <span className="mt-2 inline-flex items-center gap-2 text-[13px] leading-5 text-text-2">
+          <span className="text-meta mt-2 inline-flex items-center gap-2 text-text-2">
             <span aria-hidden className={cn("size-2 rounded-full", tone[work.status].dot)} />
             {reportStatusLabel[work.status]}
           </span>
         </span>
         <span className="shrink-0 text-right">
-          <span className="block text-[22px] leading-7 font-semibold tracking-[-0.02em] tnum">
-            {fmtNum(work.qty)}
-          </span>
-          <span className="mt-1 block text-[13px] text-text-3">{work.unit}</span>
+          <span className="text-title block tnum">{fmtNum(work.qty)}</span>
+          <span className="text-meta mt-1 block text-text-3">{work.unit}</span>
         </span>
       </Link>
     </li>
@@ -577,7 +559,7 @@ function DeliveryRow({ delivery }: { delivery: TodayDelivery }) {
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <div className="tnum text-[13px] font-medium">{fmtDate(delivery.expectedAt)}</div>
+            <div className="text-meta-strong tnum font-medium">{fmtDate(delivery.expectedAt)}</div>
             <div className="mt-1.5">
               <StatusBadge tone={delivery.overdue ? "danger" : "neutral"}>
                 {delivery.overdue ? "Срок прошёл" : deliveryStatusLabel[delivery.status]}
@@ -592,7 +574,7 @@ function DeliveryRow({ delivery }: { delivery: TodayDelivery }) {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
+    <span className="text-meta inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-text-2">
       {children}
     </span>
   );
@@ -625,13 +607,10 @@ function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2
-            id="today-shift-title"
-            className="text-[22px] leading-7 font-semibold tracking-[-0.02em]"
-          >
+          <h2 id="today-shift-title" className="text-title">
             Сводка смены
           </h2>
-          <p className="mt-1 text-[14px] leading-5 text-text-2">
+          <p className="text-body mt-1 text-text-2">
             {summary && summary.date !== date
               ? `последняя смена с принятыми записями: ${fmtDate(summary.date)}`
               : "только принятые записи"}
@@ -646,21 +625,17 @@ function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
           <dl className="mt-6 grid grid-cols-2 gap-3">
             {summary.totals.map((total) => (
               <div key={total.unit} className="rounded-[var(--r-md)] bg-surface-2 p-3">
-                <dt className="text-[13px] leading-5 text-text-2">Принято, {total.unit}</dt>
-                <dd className="mt-0.5 text-[24px] leading-8 font-semibold tracking-[-0.02em] tnum">
-                  {fmtNum(total.qty)}
-                </dd>
+                <dt className="text-meta text-text-2">Принято, {total.unit}</dt>
+                <dd className="text-title mt-0.5 tnum">{fmtNum(total.qty)}</dd>
               </div>
             ))}
             <div className="rounded-[var(--r-md)] bg-surface-2 p-3">
-              <dt className="text-[13px] leading-5 text-text-2">Людей на сменах</dt>
-              <dd className="mt-0.5 text-[24px] leading-8 font-semibold tracking-[-0.02em] tnum">
-                {fmtNum(summary.people)}
-              </dd>
+              <dt className="text-meta text-text-2">Людей на сменах</dt>
+              <dd className="text-title mt-0.5 tnum">{fmtNum(summary.people)}</dd>
             </div>
           </dl>
           {summary.pending > 0 ? (
-            <p className="mt-3 text-[13px] leading-5 text-text-3">
+            <p className="text-meta mt-3 text-text-3">
               Ещё {fmtNum(summary.pending)} на проверке: в сводку они попадут после приёмки.
             </p>
           ) : null}
@@ -668,7 +643,7 @@ function ShiftCard({ projectId, date }: { projectId: string; date: string }) {
             type="button"
             onClick={download}
             disabled={saving}
-            className="focus-ring press mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-surface-2 px-5 text-[15px] font-medium text-text disabled:opacity-60 sm:w-auto"
+            className="text-body-strong focus-ring press mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-surface-2 px-5 font-medium text-text disabled:opacity-60 sm:w-auto"
           >
             <FileSpreadsheet className="size-4" aria-hidden /> Скачать Excel
           </button>

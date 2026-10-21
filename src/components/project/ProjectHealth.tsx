@@ -52,10 +52,10 @@ export function ProjectHealth({
         className="orb -top-20 -left-16 size-[240px] sm:-top-24 sm:-left-10 sm:size-[340px]"
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="project-health-title" className="text-[14px] font-medium text-text-2">
+        <h2 id="project-health-title" className="text-body-strong font-medium text-text-2">
           Здоровье объекта
         </h2>
-        <span className="glass inline-flex h-8 items-center gap-2 rounded-full px-3 text-[13px] font-medium text-text">
+        <span className="text-meta-strong glass inline-flex h-8 items-center gap-2 rounded-full px-3 font-medium text-text">
           <ToneDot tone={tone} />
           {status.label}
         </span>
@@ -65,9 +65,9 @@ export function ProjectHealth({
         <div className="min-w-0">
           <p className="flex items-baseline gap-3">
             <span className="text-hero-num text-text">{pending ? "—" : (done?.value ?? "—")}</span>
-            <span className="text-[16px] leading-6 text-text-2">выполнено</span>
+            <span className="text-body text-text-2">выполнено</span>
           </p>
-          <p className="tnum mt-2 text-[14px] leading-5 text-text-3">
+          <p className="text-body tnum mt-2 text-text-3">
             {pending ? "Считаем по захваткам…" : (done?.note ?? "Захватки не заведены")}
           </p>
         </div>
@@ -115,16 +115,13 @@ function Indicator({
 }) {
   return (
     <div className="glass min-w-0 rounded-[var(--r-lg)] px-4 py-3">
-      <dt className="truncate text-[12px] leading-4 text-text-3">{label}</dt>
+      <dt className="text-meta truncate text-text-3">{label}</dt>
       <dd
-        className={cn(
-          "tnum mt-1 truncate text-[20px] leading-6 font-semibold tracking-[-0.01em] text-text",
-          tone === "warn" && "text-warn",
-        )}
+        className={cn("text-heading tnum mt-1 truncate text-text", tone === "warn" && "text-warn")}
       >
         {value}
       </dd>
-      {note ? <dd className="mt-0.5 truncate text-[12px] leading-4 text-text-3">{note}</dd> : null}
+      {note ? <dd className="text-meta mt-0.5 truncate text-text-3">{note}</dd> : null}
     </div>
   );
 }

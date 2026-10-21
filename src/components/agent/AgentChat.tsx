@@ -189,7 +189,7 @@ export function AgentChat() {
                     {firstName ? "," : null}
                     {firstName ? <span className="tone-2 block">{firstName}</span> : null}
                   </h1>
-                  <p className="mt-4 max-w-[460px] text-[15px] leading-[1.5] text-text-2">
+                  <p className="text-body mt-4 max-w-[460px] text-text-2">
                     Спросите о любом объекте, документе или поставке. Ответ будет со ссылкой на
                     источник
                   </p>
@@ -200,7 +200,7 @@ export function AgentChat() {
                         type="button"
                         onClick={() => void send(action.prompt, action.intent)}
                         disabled={phase !== "empty"}
-                        className="card-v3 focus-ring press flex min-h-[112px] w-full flex-col items-start justify-between gap-4 p-4 text-left text-[15px] leading-[1.3] font-medium text-text transition-fast is-hover:bg-surface-2 is-hover:shadow-[var(--lift-2)] sm:min-h-[128px]"
+                        className="text-body-strong card-v3 focus-ring press flex min-h-[112px] w-full flex-col items-start justify-between gap-4 p-4 text-left font-medium text-text transition-fast is-hover:bg-surface-2 sm:min-h-[128px]"
                       >
                         <span
                           className={cn(
@@ -310,7 +310,7 @@ function SourceOriginal({ sourceId }: { sourceId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone="info">{sourceKindLabel[card.source.kind]}</StatusBadge>
-        <span className="text-[13px] text-text-3">
+        <span className="text-meta text-text-3">
           {card.source.author} · {fmtDateTime(card.source.receivedAt)}
         </span>
       </div>

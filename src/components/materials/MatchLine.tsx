@@ -52,7 +52,7 @@ export function MatchLine({
 
   return (
     <div
-      className={cn("grid gap-1.5 text-[13px]", className)}
+      className={cn("text-meta grid gap-1.5", className)}
       data-match={item.matchStatus}
       onClick={(event) => event.stopPropagation()}
     >
@@ -82,7 +82,7 @@ export function MatchLine({
             <Button
               size="sm"
               variant="secondary"
-              className="h-12 px-2.5 text-[12px] lg:h-7"
+              className="text-meta h-12 px-2.5 lg:h-7"
               disabled={confirm.isPending}
               onClick={() => save(item.materialId!)}
             >
@@ -97,7 +97,7 @@ export function MatchLine({
             value=""
             disabled={confirm.isPending}
             onChange={(event) => event.target.value && save(event.target.value)}
-            className="focus-ring h-12 max-w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-2 text-[12px] text-text lg:h-7"
+            className="text-meta focus-ring h-12 max-w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-2 text-text lg:h-7"
           >
             <option value="">
               {item.matchStatus === "none" ? "Выбрать материал…" : "Другой материал…"}

@@ -226,17 +226,17 @@ export function TeamTab({ project }: { project: Project }) {
                   {person.telegram}
                 </ContactButton>
               ) : (
-                <p className="text-[13px] text-text-3">Telegram не указан</p>
+                <p className="text-meta text-text-3">Telegram не указан</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[13px] text-text-3">Объектов в работе</p>
-                <p className="tnum mt-0.5 text-[14px] text-text">{fmtNum(person.projectCount)}</p>
+                <p className="text-meta text-text-3">Объектов в работе</p>
+                <p className="text-body tnum mt-0.5 text-text">{fmtNum(person.projectCount)}</p>
               </div>
               <div>
-                <p className="text-[13px] text-text-3">Последний отчёт</p>
-                <p className="mt-0.5 text-[14px] text-text">
+                <p className="text-meta text-text-3">Последний отчёт</p>
+                <p className="text-body mt-0.5 text-text">
                   {person.lastReport
                     ? `${fmtAgoFrom(person.lastReport.at, now)} · ${person.lastReport.zoneName}`
                     : gap
@@ -245,7 +245,7 @@ export function TeamTab({ project }: { project: Project }) {
                 </p>
               </div>
             </div>
-            <p className="text-[13px] leading-[1.5] text-text-3">
+            <p className="text-meta text-text-3">
               Допуски и удостоверения появятся в карточке после загрузки кадровых документов — в
               модели данных их пока нет.
             </p>
@@ -285,15 +285,13 @@ function PersonRow({
       >
         <InitialsAvatar name={row.name} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] leading-[1.35] font-medium text-text">
-            {row.name}
-          </span>
-          <span className="block truncate text-[13px] leading-[1.4] text-text-3">
+          <span className="text-body-strong block truncate font-medium text-text">{row.name}</span>
+          <span className="text-meta block truncate text-text-3">
             {row.position}
             {row.crewName ? ` · ${row.crewName}` : ""}
           </span>
         </span>
-        <span className="hidden shrink-0 text-right text-[13px] text-text-3 lg:block">
+        <span className="text-meta hidden shrink-0 text-right text-text-3 lg:block">
           {row.lastReport ? fmtAgoFrom(row.lastReport.at, now) : gap ? "—" : "без отчётов"}
         </span>
       </button>
@@ -356,7 +354,7 @@ function ContactButton({
     <a
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-      className="focus-ring flex min-h-12 items-center gap-3 rounded-[var(--r-sm)] border border-line bg-surface-2 px-4 text-[14px] text-text transition-fast is-hover:border-line-2"
+      className="text-body focus-ring flex min-h-12 items-center gap-3 rounded-[var(--r-sm)] border border-line bg-surface-2 px-4 text-text transition-fast is-hover:border-line-2"
     >
       <Icon className="size-4 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
       {children}
@@ -386,12 +384,12 @@ function CrewCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-medium text-text">{crew.name}</p>
-          <p className="mt-0.5 truncate text-[13px] text-text-3">
+          <p className="text-body-strong truncate font-medium text-text">{crew.name}</p>
+          <p className="text-meta mt-0.5 truncate text-text-3">
             {crew.specialization} · прораб {crew.foremanName}
           </p>
         </div>
-        <span className="tnum shrink-0 text-[13px] text-text-2">{crew.headcount} чел.</span>
+        <span className="text-meta tnum shrink-0 text-text-2">{crew.headcount} чел.</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {/* Захватка приходит из отчётов, поэтому со ссылкой на них: без них ветка недостижима */}
@@ -400,13 +398,13 @@ function CrewCard({
             to="/projects/$id/field-reports"
             params={{ id: projectId }}
             search={{ zone: crew.lastZone.id }}
-            className="focus-ring inline-flex min-h-12 min-w-0 items-center gap-1.5 text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+            className="text-meta-strong focus-ring inline-flex min-h-12 min-w-0 items-center gap-1.5 font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
           >
             <span className="truncate">{crew.lastZone.name}</span>
             <ArrowRight className="size-3.5 shrink-0" aria-hidden />
           </Link>
         ) : (
-          <span className="text-[13px] text-text-3">
+          <span className="text-meta text-text-3">
             {gap ? reportsGapLine("Последняя захватка", gap) : "Отчётов от бригады не было"}
           </span>
         )}

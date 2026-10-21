@@ -84,7 +84,7 @@ export function ProjectFeed({ project }: { project: Project }) {
             className="mb-2"
             hint={`${fmtNum(list.length)} ${plural(list.length, "событие", "события", "событий")}`}
           >
-            <span className="text-[16px] font-medium">{fmtDayTitle(day, now)}</span>
+            <span className="text-body-strong font-medium">{fmtDayTitle(day, now)}</span>
           </SectionTitle>
           <ul className="space-y-2.5">
             {list.map(({ report }) => {
@@ -100,13 +100,13 @@ export function ProjectFeed({ project }: { project: Project }) {
                         <span className="block font-medium text-text">
                           {fmtTime(report.sentAt)}
                         </span>
-                        <span className="block text-[13px] text-text-3">
+                        <span className="text-meta block text-text-3">
                           {fmtNum(report.acceptedQty ?? report.declaredQty)} {report.unit}
                         </span>
                       </>
                     }
                     footer={
-                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-text-2">
+                      <span className="text-meta flex flex-wrap items-center gap-x-2 gap-y-1 text-text-2">
                         <span className="inline-flex items-center gap-2">
                           <ToneDot tone={statusTone[report.status]} />
                           {statusLabel[report.status]}
@@ -140,7 +140,7 @@ export function ProjectFeed({ project }: { project: Project }) {
         <Link
           to="/projects/$id/field-reports"
           params={{ id: project.id }}
-          className="focus-ring inline-flex min-h-12 items-center rounded-full bg-surface-2 px-5 text-[14px] font-medium text-text transition-fast is-hover:bg-surface-3"
+          className="text-body-strong focus-ring inline-flex min-h-12 items-center rounded-full bg-surface-2 px-5 font-medium text-text transition-fast is-hover:bg-surface-3"
         >
           Все отчёты объекта
         </Link>

@@ -182,7 +182,12 @@ export function StateBanner({
         )}
       />
       <div className="min-w-0 flex-1">
-        <p className={cn("text-[13px] font-medium", tone === "warn" ? "text-warn" : "text-info")}>
+        <p
+          className={cn(
+            "text-meta-strong font-medium",
+            tone === "warn" ? "text-warn" : "text-info",
+          )}
+        >
           {title}
         </p>
         {children && <div className="mt-0.5 text-caption text-text-secondary">{children}</div>}

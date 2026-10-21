@@ -71,14 +71,14 @@ export function PillTabs<T extends string>({
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
-              "h-12 shrink-0 gap-2 px-3 lg:h-9 text-[13px] leading-none font-medium whitespace-nowrap",
+              "text-meta-strong h-12 shrink-0 gap-2 px-3 lg:h-9 font-medium whitespace-nowrap",
               !active && "bg-transparent text-text-2 is-hover:bg-surface-2",
               active && "border-line-2 bg-surface text-text",
             )}
           >
             {tab.label}
             {tab.count != null && (
-              <span className={cn("text-[13px] font-normal", "text-text-3")}>{tab.count}</span>
+              <span className={cn("text-meta font-normal", "text-text-3")}>{tab.count}</span>
             )}
           </Button>
         );

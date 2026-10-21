@@ -253,7 +253,7 @@ function LegacyProjectsPage() {
           className="mb-6 flex flex-wrap items-center gap-3 rounded-[var(--r-md)] border border-line-2 bg-surface px-4 py-3"
         >
           <ArrowRight className="size-4 shrink-0 text-info" />
-          <p className="min-w-0 flex-1 text-[13px]">
+          <p className="text-meta min-w-0 flex-1">
             Выберите объект, чтобы открыть раздел «{sectionLabels[search.section]}».
           </p>
           <Button
@@ -505,22 +505,22 @@ function ProjectsTable({ rows, onOpen }: { rows: Row[]; onOpen: (row: Row) => vo
       <thead>
         <tr className="h-11 text-left">
           <th className="w-[3px] p-0" aria-hidden />
-          <th className="px-3 text-[13px] font-medium text-text-muted">Объект</th>
-          <th className="px-2.5 text-[13px] font-medium text-text-muted">Регион</th>
-          <th className="hidden px-2.5 text-[13px] font-medium text-text-muted 2xl:table-cell">
+          <th className="text-meta-strong px-3 font-medium text-text-muted">Объект</th>
+          <th className="text-meta-strong px-2.5 font-medium text-text-muted">Регион</th>
+          <th className="text-meta-strong hidden px-2.5 font-medium text-text-muted 2xl:table-cell">
             Заказчик
           </th>
-          <th className="px-2.5 text-[13px] font-medium text-text-muted">Ответственный</th>
+          <th className="text-meta-strong px-2.5 font-medium text-text-muted">Ответственный</th>
           {numericHeaders.map((header) => (
             <th
               key={header.label}
               title={header.title}
-              className="px-2 text-right text-[13px] font-medium whitespace-nowrap text-text-muted"
+              className="text-meta-strong px-2 text-right font-medium whitespace-nowrap text-text-muted"
             >
               {header.label}
             </th>
           ))}
-          <th className="px-3 text-[13px] font-medium text-text-muted">Статус</th>
+          <th className="text-meta-strong px-3 font-medium text-text-muted">Статус</th>
         </tr>
       </thead>
       <tbody>
@@ -628,10 +628,10 @@ function FigureTiles({
             <item.icon className="size-4 text-text-2" strokeWidth={1.75} aria-hidden />
           </span>
           <div className="min-w-0">
-            <div className="line-clamp-2 text-[13px] leading-[1.35] text-text-3">{item.label}</div>
+            <div className="text-meta line-clamp-2 text-text-3">{item.label}</div>
             <div
               className={cn(
-                "tnum mt-1 truncate text-[28px] leading-[1.1] font-semibold tracking-[-0.02em] text-text",
+                "text-title tnum mt-1 truncate text-text",
                 item.tone === "danger" && "text-danger",
                 item.tone === "warn" && "text-warn",
               )}
@@ -666,20 +666,18 @@ function ProjectCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
       onClick={onOpen}
       className="focus-ring press group flex w-full flex-col gap-3 rounded-[var(--r-2xl)] text-left"
     >
-      <div className="card-v3 relative w-full overflow-hidden rounded-[var(--r-2xl)] p-5 transition-fast group-hover:shadow-[var(--lift-2)]">
+      <div className="card-v3 relative w-full overflow-hidden rounded-[var(--r-2xl)] p-5 transition-fast">
         <span aria-hidden className={cn("absolute inset-x-0 top-0 h-32", healthField[tone])} />
         <div className="relative flex items-center justify-between gap-3">
-          <span className="glass inline-flex h-8 items-center gap-2 rounded-full px-3 text-[13px] font-medium text-text">
+          <span className="text-meta-strong glass inline-flex h-8 items-center gap-2 rounded-full px-3 font-medium text-text">
             <ToneDot tone={tone} />
             {status.label}
           </span>
           <span className="mono text-caption text-text-3">{overview.docVersion}</span>
         </div>
         <div className="relative mt-5 flex items-baseline gap-2">
-          <span className="tnum text-[44px] leading-none font-semibold tracking-[-0.03em] text-text">
-            {verifiedPct}%
-          </span>
-          <span className="text-[14px] text-text-3">позиций проверено</span>
+          <span className="text-hero tnum text-text">{verifiedPct}%</span>
+          <span className="text-body text-text-3">позиций проверено</span>
         </div>
         <div className="relative mt-4 h-1.5 overflow-hidden rounded-full bg-surface-3">
           <div
@@ -703,8 +701,8 @@ function ProjectCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
             { label: "Изменений", value: overview.openChanges },
           ].map((item) => (
             <div key={item.label} className="min-w-0">
-              <dt className="truncate text-[12px] leading-4 text-text-3">{item.label}</dt>
-              <dd className="mt-0.5 text-[15px] font-medium">
+              <dt className="text-meta truncate text-text-3">{item.label}</dt>
+              <dd className="text-body-strong mt-0.5 font-medium">
                 <Count value={item.value} tone={item.tone} />
               </dd>
             </div>
@@ -712,10 +710,10 @@ function ProjectCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
         </dl>
       </div>
       <span className="block w-full px-1 text-center">
-        <span className="block truncate text-[15px] leading-[1.3] font-medium text-text">
+        <span className="text-body-strong block truncate font-medium text-text">
           {row.project.name}
         </span>
-        <span className="mt-0.5 block truncate text-[13px] leading-[1.35] text-text-3">
+        <span className="text-meta mt-0.5 block truncate text-text-3">
           <span className="mono">{row.project.code}</span> · {overview.region} ·{" "}
           {employeeName(row.project.manager)}
         </span>

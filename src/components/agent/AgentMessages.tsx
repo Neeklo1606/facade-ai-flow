@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <p className="max-w-[70%] rounded-[var(--r-md)] rounded-br-[6px] bg-surface-2 px-[18px] py-[14px] text-[15px] leading-[1.5] break-words whitespace-pre-wrap text-text">
+      <p className="text-body max-w-[70%] rounded-[var(--r-md)] rounded-br-[6px] bg-surface-2 px-[18px] py-[14px] break-words whitespace-pre-wrap text-text">
         {text}
       </p>
     </div>
@@ -23,8 +23,8 @@ function SystemHeader({ time }: { time?: string }) {
       <span className="grid size-6 place-items-center rounded-[var(--r-sm)] bg-surface-3">
         <Sparkles className="size-[13px] text-text-2" strokeWidth={1.75} aria-hidden />
       </span>
-      <span className="text-[13px] text-text-3">Система</span>
-      {time && <span className="text-[13px] text-text-3 tabular-nums">{time}</span>}
+      <span className="text-meta text-text-3">Система</span>
+      {time && <span className="text-meta text-text-3 tabular-nums">{time}</span>}
     </div>
   );
 }
@@ -42,7 +42,7 @@ export function SourceChip({
       type="button"
       onClick={() => onOpen(source)}
       title={`${source.title} · ${source.location}`}
-      className="focus-ring inline-flex h-8 max-w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-3 text-[13px] text-text-2 transition-fast is-hover:border-line-2 is-hover:bg-surface-3 is-hover:text-text"
+      className="text-meta focus-ring inline-flex h-8 max-w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-3 text-text-2 transition-fast is-hover:border-line-2 is-hover:bg-surface-3 is-hover:text-text"
     >
       <Icon className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
       <span className="max-w-[240px] truncate">{source.title}</span>
@@ -99,10 +99,8 @@ export function AgentAnswer({
   return (
     <article className="group">
       <SystemHeader time={time} />
-      {reply.scopeNote && (
-        <p className="mt-2 text-[13px] leading-[1.45] text-text-3">{reply.scopeNote}</p>
-      )}
-      <div className="mt-2.5 space-y-2 text-[15px] leading-[1.6] text-text">
+      {reply.scopeNote && <p className="text-meta mt-2 text-text-3">{reply.scopeNote}</p>}
+      <div className="text-body mt-2.5 space-y-2 text-text">
         {reply.text.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}
@@ -111,7 +109,7 @@ export function AgentAnswer({
       {next && (
         <Link
           to={next.to as string}
-          className="focus-ring mt-3 inline-flex min-h-12 items-center gap-1.5 text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+          className="text-meta-strong focus-ring mt-3 inline-flex min-h-12 items-center gap-1.5 font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
         >
           {next.label} <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
         </Link>
@@ -187,7 +185,7 @@ export function TypingIndicator() {
 export function AgentNotice({ text, children }: { text: string; children?: React.ReactNode }) {
   return (
     <div className="rounded-[var(--r-md)] border border-line px-[18px] py-[14px]">
-      <p className="text-[14px] leading-[1.5] text-text-2">{text}</p>
+      <p className="text-body text-text-2">{text}</p>
       {children && <div className="mt-3 flex flex-wrap gap-2">{children}</div>}
     </div>
   );

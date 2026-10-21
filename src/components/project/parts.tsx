@@ -27,7 +27,7 @@ export function Block({
     <section className={cn("card-surface flex min-w-0 flex-col", className)}>
       <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <h2 className="truncate text-[14px] font-semibold">{title}</h2>
+          <h2 className="text-body-strong truncate font-semibold">{title}</h2>
           {count != null && <span className="tnum text-caption text-text-muted">{count}</span>}
         </div>
         {!to && onLinkClick && (
@@ -81,5 +81,5 @@ export function Bar({
 
 /** Пустое состояние внутри блока — короткое, без иллюстрации. */
 export function BlockEmpty({ children }: { children: ReactNode }) {
-  return <p className="px-4 py-6 text-center text-[13px] text-text-muted">{children}</p>;
+  return <p className="text-meta px-4 py-6 text-center text-text-muted">{children}</p>;
 }

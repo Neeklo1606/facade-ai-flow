@@ -108,7 +108,7 @@ export function XlsxWizard({
   if (report) {
     return (
       <div className="grid gap-3">
-        <p className="text-[14px]">
+        <p className="text-body">
           Добавлено <span className="tnum font-semibold">{fmtNum(report.added)}</span>
           {report.updated > 0 && (
             <>
@@ -119,10 +119,10 @@ export function XlsxWizard({
         </p>
         {report.refused.length > 0 && (
           <div className="grid gap-1.5">
-            <span className="text-[13px] font-medium">
+            <span className="text-meta-strong font-medium">
               Не принято строк: {fmtNum(report.refused.length)}
             </span>
-            <ul className="grid max-h-48 gap-1 overflow-y-auto text-[13px] text-text-2">
+            <ul className="text-meta grid max-h-48 gap-1 overflow-y-auto text-text-2">
               {report.refused.map((item) => (
                 <li key={item.row}>
                   строка {item.row} — {item.reason}
@@ -154,7 +154,7 @@ export function XlsxWizard({
         >
           <FileUp className="size-5 text-text-3" strokeWidth={1.5} aria-hidden />
           <span>
-            <span className="block text-[14px] font-medium">Выберите файл .xlsx</span>
+            <span className="text-body-strong block font-medium">Выберите файл .xlsx</span>
             <span className="block text-caption text-text-muted">{hint}</span>
           </span>
         </button>
@@ -167,7 +167,7 @@ export function XlsxWizard({
           onChange={(event) => void accept(event.target.files?.[0])}
         />
         {failure && (
-          <p className="text-[13px] text-danger" role="alert">
+          <p className="text-meta text-danger" role="alert">
             {failure}
           </p>
         )}
@@ -177,15 +177,15 @@ export function XlsxWizard({
 
   return (
     <div className="grid gap-4">
-      <p className="text-[13px] text-text-2">
+      <p className="text-meta text-text-2">
         {fileName} · строк в файле: <span className="tnum">{fmtNum(total - 1)}</span>
       </p>
 
       <div className="grid gap-2">
-        <span className="text-[13px] font-medium">Какая колонка чем является</span>
+        <span className="text-meta-strong font-medium">Какая колонка чем является</span>
         <div className="grid gap-1.5">
           {(rows[0] ?? []).map((header, index) => (
-            <label key={index} className="flex items-center gap-2 text-[13px]">
+            <label key={index} className="text-meta flex items-center gap-2">
               <span className="min-w-0 flex-1 truncate text-text-2">
                 {header || `Колонка ${index + 1}`}
               </span>
@@ -197,7 +197,7 @@ export function XlsxWizard({
                   )
                 }
                 aria-label={`Колонка «${header || index + 1}»`}
-                className="focus-ring h-9 w-[200px] rounded-[var(--r-sm)] border border-line bg-surface-2 px-2 text-[13px]"
+                className="text-meta focus-ring h-9 w-[200px] rounded-[var(--r-sm)] border border-line bg-surface-2 px-2"
               >
                 {[...fields, { id: SKIP, label: "не загружать" }].map((field) => (
                   <option key={field.id} value={field.id}>
@@ -212,8 +212,8 @@ export function XlsxWizard({
 
       {ready ? (
         <div className="grid gap-2">
-          <span className="text-[13px] font-medium">Так это будет загружено</span>
-          <table className="w-full text-[13px]">
+          <span className="text-meta-strong font-medium">Так это будет загружено</span>
+          <table className="text-meta w-full">
             <thead className="text-caption text-text-muted">
               <tr className="border-b border-line">
                 {shown.map((field) => (
@@ -237,7 +237,7 @@ export function XlsxWizard({
           </table>
         </div>
       ) : (
-        <p className="text-[13px] text-text-3">
+        <p className="text-meta text-text-3">
           Укажите обязательные колонки: {shown.map((field) => field.label.toLowerCase()).join(", ")}
           . Без них строку загрузить не во что.
         </p>

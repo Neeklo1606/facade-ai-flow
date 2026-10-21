@@ -50,7 +50,7 @@ export function PagePlaceholder({
             {planned.map((item) => (
               <li
                 key={item}
-                className="flex items-start gap-2 rounded-md border border-border bg-subtle px-3 py-2 text-[13px]"
+                className="text-meta flex items-start gap-2 rounded-md border border-border bg-subtle px-3 py-2"
               >
                 <span className="mt-2 size-1.5 shrink-0 rounded-full bg-text-3" aria-hidden />
                 <span className="min-w-0">{item}</span>
@@ -70,10 +70,10 @@ export function PagePlaceholder({
                 >
                   <Compass className="size-4 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium text-text">{route.label}</span>
-                    <span className="block text-[13px] leading-[1.4] text-text-3">
-                      {route.note}
+                    <span className="text-meta-strong block font-medium text-text">
+                      {route.label}
                     </span>
+                    <span className="text-meta block text-text-3">{route.note}</span>
                   </span>
                   <ArrowRight
                     className="size-4 shrink-0 text-text-3 transition-fast group-hover:text-text-2"

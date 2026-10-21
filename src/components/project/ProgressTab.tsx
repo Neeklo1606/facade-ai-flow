@@ -118,7 +118,7 @@ export function ProgressTab({
             </Button>
           </div>
         ) : (
-          <p className="text-center text-[13px] text-text-3">
+          <p className="text-meta text-center text-text-3">
             Заводит захватки тот, кто ведёт объект: руководитель проекта.
           </p>
         )}
@@ -273,8 +273,8 @@ export function ProgressTab({
             </div>
             {zone.lastFact ? (
               <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-4 py-3">
-                <p className="text-[13px] text-text-3">Последний принятый объём</p>
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-[14px] text-text">
+                <p className="text-meta text-text-3">Последний принятый объём</p>
+                <p className="text-body mt-1 flex flex-wrap items-center gap-2 text-text">
                   <span className="tnum font-medium">
                     {fmtNum(zone.lastFact.qty)} {zone.unit}
                   </span>
@@ -287,11 +287,11 @@ export function ProgressTab({
               </div>
             ) : progress.reportsGap ? (
               // Отчётов нет на руках — и про них говорится, а не молчится (`lib/reports-gap`)
-              <p className="text-[13px] text-text-3">
+              <p className="text-meta text-text-3">
                 {reportsGapLine("Последний принятый объём", progress.reportsGap)}.
               </p>
             ) : (
-              <p className="text-[13px] text-text-3">
+              <p className="text-meta text-text-3">
                 Принятых отчётов по захватке ещё не было: факт равен объёму, зафиксированному при
                 заведении захватки.
               </p>
@@ -379,7 +379,7 @@ export function ProgressTab({
                 sourceId={milestone.sourceId}
                 onOpen={() => milestone.sourceId && onSource(milestone.sourceId)}
               />
-              <span className="text-[13px] text-text-3">
+              <span className="text-meta text-text-3">
                 {milestone.sourceId ? "Открыть пункт договора" : "Пункт договора не привязан"}
               </span>
             </div>
@@ -394,8 +394,8 @@ export function ProgressTab({
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[13px] leading-[1.4] text-text-3">{label}</p>
-      <p className="mt-0.5 text-[14px] leading-[1.45] text-text">{children}</p>
+      <p className="text-meta text-text-3">{label}</p>
+      <p className="text-body mt-0.5 text-text">{children}</p>
     </div>
   );
 }
@@ -423,15 +423,13 @@ function ZoneItem({
       />
       <div className="pointer-events-none relative">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <span className="min-w-0 text-[15px] leading-[1.35] font-medium text-text">
-            {row.name}
-          </span>
-          <span className="tnum shrink-0 text-[14px] text-text-2">
+          <span className="text-body-strong min-w-0 font-medium text-text">{row.name}</span>
+          <span className="text-body tnum shrink-0 text-text-2">
             {fmtNum(row.factQty)} / {fmtNum(row.planQty)} {row.unit}
             <span className="ml-2 font-semibold text-text">{row.donePct}%</span>
           </span>
         </div>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] leading-[1.45] text-text-3">
+        <p className="text-meta mt-0.5 flex flex-wrap items-center gap-x-2 text-text-3">
           <span className="min-w-0">
             {[row.axes && `оси ${row.axes}`, row.floors && `этажи ${row.floors}`, row.workType]
               .filter(Boolean)
@@ -455,7 +453,7 @@ function ZoneItem({
             label={`${row.name}: выполнено ${row.donePct}% при плане ${row.planPct ?? 0}%`}
             className="flex-1"
           />
-          <span className={cn("tnum shrink-0 text-[13px]", deviationText(row.deviationPp))}>
+          <span className={cn("text-meta tnum shrink-0", deviationText(row.deviationPp))}>
             {deviationLabel(row.deviationPp)}
           </span>
         </div>
@@ -498,8 +496,8 @@ function MilestoneTimeline({
                 className={cn("mt-1 size-2.5 shrink-0 rotate-45", diamondClass(point))}
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-medium text-text">{point.name}</span>
-                <span className="mt-0.5 block text-[13px] text-text-3">
+                <span className="text-body-strong block font-medium text-text">{point.name}</span>
+                <span className="text-meta mt-0.5 block text-text-3">
                   {fmtDate(point.dueDate)} · {point.statusLabel}
                 </span>
               </span>
@@ -518,7 +516,7 @@ function MilestoneTimeline({
               className="absolute top-4 bottom-8 w-px bg-sand/60"
               style={{ left: `calc(1rem + ${todayOffset * 100}% - ${todayOffset * 2}rem)` }}
             >
-              <span className="absolute -top-4 -left-6 text-[13px] whitespace-nowrap text-text-3">
+              <span className="text-meta absolute -top-4 -left-6 whitespace-nowrap text-text-3">
                 сегодня
               </span>
             </span>
@@ -532,8 +530,8 @@ function MilestoneTimeline({
                   className="focus-ring flex min-h-12 flex-col items-center gap-2 rounded-[var(--r-sm)] px-2 py-1 text-center transition-fast is-hover:bg-surface-2"
                 >
                   <span aria-hidden className={cn("size-3 rotate-45", diamondClass(point))} />
-                  <span className="tnum text-[13px] text-text-2">{fmtDate(point.dueDate)}</span>
-                  <span className="line-clamp-2 max-w-[160px] text-[13px] leading-[1.35] text-text">
+                  <span className="text-meta tnum text-text-2">{fmtDate(point.dueDate)}</span>
+                  <span className="text-meta line-clamp-2 max-w-[160px] text-text">
                     {point.name}
                   </span>
                   <StatusBadge tone={milestoneTone[point.status]}>{point.statusLabel}</StatusBadge>

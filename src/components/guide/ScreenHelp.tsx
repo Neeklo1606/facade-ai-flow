@@ -25,8 +25,8 @@ export function ScreenHelp() {
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(340px,calc(100vw-32px))] p-4">
-        <p className="text-[13px] leading-[1.4] font-medium text-text">{screen.name}</p>
-        <ul className="mt-2 flex flex-col gap-1.5 text-[13px] leading-[1.45] text-text-2">
+        <p className="text-meta-strong font-medium text-text">{screen.name}</p>
+        <ul className="text-meta mt-2 flex flex-col gap-1.5 text-text-2">
           {screen.help.map((sentence) => (
             <li key={sentence}>{sentence}</li>
           ))}
@@ -35,7 +35,7 @@ export function ScreenHelp() {
           <Link
             to="/help"
             search={{ article: article.id }}
-            className="focus-ring mt-3 inline-flex min-h-12 items-center gap-1.5 rounded-[var(--r-xs)] text-[13px] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
+            className="text-meta-strong focus-ring mt-3 inline-flex min-h-12 items-center gap-1.5 rounded-[var(--r-xs)] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
           >
             {article.title} — в справке
             <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />

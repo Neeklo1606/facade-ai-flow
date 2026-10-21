@@ -68,15 +68,11 @@ export function ProgressRing({
             opacity={ratio === 0 ? 0 : 1}
           />
         </svg>
-        <span className="absolute inset-0 grid place-items-center text-[44px] leading-none font-semibold tracking-[-0.025em] text-text tabular-nums">
+        <span className="text-hero absolute inset-0 grid place-items-center text-text tabular-nums">
           {display ?? value}
         </span>
       </div>
-      {caption && (
-        <figcaption className="text-center text-[13px] leading-[1.45] text-text-3">
-          {caption}
-        </figcaption>
-      )}
+      {caption && <figcaption className="text-meta text-center text-text-3">{caption}</figcaption>}
     </figure>
   );
 }

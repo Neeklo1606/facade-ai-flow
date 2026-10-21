@@ -177,13 +177,10 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
       <div className="relative mx-auto flex min-h-full w-full max-w-[1200px] flex-col px-5 pt-5 pb-10 sm:px-10 sm:pt-8 lg:px-16 lg:pt-10 lg:pb-14">
         <div className="flex min-h-10 items-center justify-between gap-3">
           {/* Знак «гайка» строчными: фирменный знак ещё не утверждён, это рабочее начертание */}
-          <span
-            aria-hidden
-            className="text-[24px] leading-none font-semibold tracking-[-0.02em] text-text"
-          >
+          <span aria-hidden className="text-title text-text">
             гайка
           </span>
-          <span className="glass inline-flex min-h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-text-2">
+          <span className="text-meta-strong glass inline-flex min-h-9 items-center rounded-full px-3.5 font-medium text-text-2">
             Демо-показ
           </span>
         </div>
@@ -191,11 +188,11 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
           <>
             <h1
               id="role-picker-title"
-              className="mt-14 max-w-[980px] text-[44px] leading-[46px] font-semibold tracking-[-0.035em] text-balance text-text sm:mt-20 sm:text-[64px] sm:leading-[64px] lg:mt-24 lg:text-[88px] lg:leading-[86px]"
+              className="text-hero mt-14 max-w-[980px] text-balance text-text sm:mt-20 lg:mt-24"
             >
               Говорите с объекта. <span className="tone-2 block">Гайка соберёт остальное.</span>
             </h1>
-            <p className="mt-5 max-w-[560px] text-[17px] leading-6 text-text-2 sm:mt-6 sm:text-[19px] sm:leading-7">
+            <p className="text-heading mt-5 max-w-[560px] text-text-2 sm:mt-6">
               Голос с площадки становится отчётом, документом и заявкой. Человек только
               подтверждает.
             </p>
@@ -213,21 +210,17 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
                       className={cn("absolute inset-x-0 top-0 h-28 md:h-36", tile.glow)}
                     />
                     <span className="relative flex items-center justify-between gap-3">
-                      <span className="mono text-[13px] text-text-3">
+                      <span className="text-meta mono text-text-3">
                         {String(index + 1).padStart(2, "0")}
                       </span>
-                      <span className="inline-flex min-h-7 items-center rounded-full bg-surface-2 px-3 text-[13px] text-text-2">
+                      <span className="text-meta inline-flex min-h-7 items-center rounded-full bg-surface-2 px-3 text-text-2">
                         1 минута
                       </span>
                     </span>
                     <span className="relative mt-auto grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 pt-6">
                       <span className="min-w-0">
-                        <span className="block text-[24px] leading-[28px] font-semibold tracking-[-0.02em] text-text md:text-[26px] md:leading-[30px]">
-                          {tile.title}
-                        </span>
-                        <span className="mt-1.5 block text-[15px] leading-[21px] text-text-2">
-                          {tile.hint}
-                        </span>
+                        <span className="text-title block text-text">{tile.title}</span>
+                        <span className="text-body mt-1.5 block text-text-2">{tile.hint}</span>
                       </span>
                       <span
                         aria-hidden
@@ -247,12 +240,12 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
               <button
                 type="button"
                 onClick={() => setPickRole(true)}
-                className="focus-ring press glass inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 text-[15px] font-medium text-text ring-1 ring-line-2 ring-inset"
+                className="text-body-strong focus-ring press glass inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 font-medium text-text ring-1 ring-line-2 ring-inset"
               >
                 Выбрать роль самому
                 <ArrowRight className="size-4 text-text-2" aria-hidden />
               </button>
-              <p className="max-w-[520px] text-[13px] leading-5 text-text-3 sm:text-right">
+              <p className="text-meta max-w-[520px] text-text-3 sm:text-right">
                 Демонстрация на вымышленных данных: речь и разбор подготовлены заранее, ничего не
                 заказывается и не отправляется.
               </p>
@@ -260,13 +253,10 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
           </>
         ) : (
           <>
-            <h1
-              id="role-picker-title"
-              className="mt-14 text-[44px] leading-[46px] font-semibold tracking-[-0.035em] text-text sm:mt-20 sm:text-[64px] sm:leading-[64px] lg:mt-24 lg:text-[72px] lg:leading-[72px]"
-            >
+            <h1 id="role-picker-title" className="text-hero mt-14 text-text sm:mt-20 lg:mt-24">
               Выберите роль
             </h1>
-            <p className="tone-2 mt-3 max-w-[620px] text-[19px] leading-7 font-medium sm:text-[22px] sm:leading-8">
+            <p className="text-heading tone-2 mt-3 max-w-[620px]">
               Роль задаёт стартовый экран и сценарий подсказок. Сменить её можно в «Ещё».
             </p>
             <ul className="mt-10 grid gap-3 sm:mt-14 md:grid-cols-2 md:gap-4">
@@ -284,15 +274,13 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
                         <Icon className="size-5" strokeWidth={1.75} aria-hidden />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[22px] leading-[28px] font-semibold tracking-[-0.02em] text-text">
+                        <span className="text-title block text-text">
                           {employeeRoleLabel[person.role]}
                         </span>
-                        <span className="mt-1 block text-[15px] leading-[21px] text-text-2">
+                        <span className="text-body mt-1 block text-text-2">
                           {hint?.text ?? person.position}
                         </span>
-                        <span className="mt-2 block text-[13px] leading-5 text-text-3">
-                          {person.name}
-                        </span>
+                        <span className="text-meta mt-2 block text-text-3">{person.name}</span>
                       </span>
                       <ArrowUpRight className="mt-1 size-5 shrink-0 text-text-3" aria-hidden />
                     </button>
@@ -304,7 +292,7 @@ export function RolePicker({ entry = false }: { entry?: boolean } = {}) {
               <button
                 type="button"
                 onClick={() => setPickRole(false)}
-                className="focus-ring press glass mt-6 inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 text-[15px] font-medium text-text ring-1 ring-line-2 ring-inset"
+                className="text-body-strong focus-ring press glass mt-6 inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 font-medium text-text ring-1 ring-line-2 ring-inset"
               >
                 <ArrowLeft className="size-4 text-text-2" aria-hidden />К сценариям показа
               </button>

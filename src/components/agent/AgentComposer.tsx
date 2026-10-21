@@ -78,7 +78,7 @@ export function AgentComposer({
             id="agent-examples"
             role="group"
             aria-label="Готовые вопросы"
-            className="glass absolute inset-x-0 bottom-full mb-3 flex flex-col gap-1 rounded-[var(--r-xl)] p-2 shadow-[var(--lift-2)]"
+            className="glass absolute inset-x-0 bottom-full mb-3 flex flex-col gap-1 rounded-[var(--r-xl)] p-2"
           >
             {examples.map((example) => (
               <button
@@ -89,7 +89,7 @@ export function AgentComposer({
                   setMenu(false);
                   onExample(example.prompt, example.intent);
                 }}
-                className="focus-ring flex min-h-12 items-center rounded-[var(--r-md)] px-4 text-left text-[15px] text-text transition-fast is-hover:bg-surface-2 disabled:opacity-50"
+                className="text-body focus-ring flex min-h-12 items-center rounded-[var(--r-md)] px-4 text-left text-text transition-fast is-hover:bg-surface-2 disabled:opacity-50"
               >
                 {example.prompt}
               </button>
@@ -102,7 +102,7 @@ export function AgentComposer({
             event.preventDefault();
             send();
           }}
-          className="glass flex min-h-16 items-end gap-2 rounded-[32px] p-2 shadow-[var(--lift-2)] ring-1 ring-line ring-inset transition-fast focus-within:ring-line-2"
+          className="glass flex min-h-16 items-end gap-2 rounded-[32px] p-2 ring-1 ring-line ring-inset transition-fast focus-within:ring-line-2"
         >
           <button
             type="button"
@@ -126,7 +126,7 @@ export function AgentComposer({
             placeholder="Спросите систему"
             rows={1}
             maxLength={2000}
-            className="max-h-40 min-h-12 flex-1 resize-none self-center bg-transparent py-3 text-[16px] leading-6 text-text outline-none [field-sizing:content] placeholder:text-text-3"
+            className="text-body max-h-40 min-h-12 flex-1 resize-none self-center bg-transparent py-3 text-text outline-none [field-sizing:content] placeholder:text-text-3"
           />
           <button
             type="submit"

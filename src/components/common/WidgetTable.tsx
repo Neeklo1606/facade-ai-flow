@@ -33,7 +33,7 @@ export function WidgetTable<T extends { id: string }>({
   return (
     // Таблица выходит на поля карточки (24px), чтобы подсветка строки шла от края до края
     <div className={cn("relative -mx-6 overflow-x-auto", className)}>
-      <table className="w-full border-collapse text-[13px] leading-[1.45]">
+      <table className="text-meta w-full border-collapse">
         <thead>
           <tr className="h-10 border-b border-line text-left">
             {columns.map((column) => (
@@ -41,7 +41,7 @@ export function WidgetTable<T extends { id: string }>({
                 key={column.key}
                 scope="col"
                 className={cn(
-                  "px-4 text-[13px] font-normal whitespace-nowrap text-text-3 first:pl-6 last:pr-6",
+                  "text-meta px-4 font-normal whitespace-nowrap text-text-3 first:pl-6 last:pr-6",
                   column.align === "right" && "text-right",
                   column.className,
                 )}
@@ -126,8 +126,8 @@ export function PrimaryCell({
     <div className="flex min-w-0 items-center gap-3">
       {avatarName && <InitialsAvatar name={avatarName} />}
       <div className="min-w-0">
-        <div className="truncate text-[14px] leading-[1.35] font-medium text-text">{title}</div>
-        {caption && <div className="truncate text-[13px] leading-[1.4] text-text-3">{caption}</div>}
+        <div className="text-body-strong truncate font-medium text-text">{title}</div>
+        {caption && <div className="text-meta truncate text-text-3">{caption}</div>}
       </div>
     </div>
   );
@@ -146,7 +146,7 @@ export function NumberValue({
   return (
     <span className={cn("whitespace-nowrap tabular-nums", className)}>
       {value}
-      {unit && <span className="ml-1 text-[13px] text-text-3">{unit}</span>}
+      {unit && <span className="text-meta ml-1 text-text-3">{unit}</span>}
     </span>
   );
 }

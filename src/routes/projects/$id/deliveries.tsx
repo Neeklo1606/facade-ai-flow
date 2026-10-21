@@ -177,10 +177,8 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
           { label: "Открытых замечаний", value: overview.openRemarks },
         ].map((tile) => (
           <li key={tile.label} className="card-surface px-4 py-3">
-            <span className="block text-[13px] text-text-2">{tile.label}</span>
-            <span className="tnum mt-1 block text-[22px] font-semibold text-text">
-              {fmtNum(tile.value)}
-            </span>
+            <span className="text-meta block text-text-2">{tile.label}</span>
+            <span className="text-title tnum mt-1 block text-text">{fmtNum(tile.value)}</span>
           </li>
         ))}
       </ul>
@@ -216,7 +214,7 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
               <section key={group.id} aria-labelledby={`dl-group-${group.id}`}>
                 <h2
                   id={`dl-group-${group.id}`}
-                  className="mb-2 text-[13px] font-medium text-text-2"
+                  className="text-meta-strong mb-2 font-medium text-text-2"
                 >
                   {group.title} · {items.length}
                 </h2>
@@ -236,10 +234,10 @@ function DeliveriesPage({ project, overview }: ProjectPageProps): React.JSX.Elem
                         )}
                       >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[14px] text-text">
+                          <span className="text-body block truncate text-text">
                             {item.items.map((line) => line.name).join(", ")}
                           </span>
-                          <span className="block truncate text-[13px] text-text-3">
+                          <span className="text-meta block truncate text-text-3">
                             {counterpartyById(item.supplierId)?.name ?? "—"} ·{" "}
                             {item.receivedAt
                               ? `принята ${fmtDate(item.receivedAt)}`

@@ -143,7 +143,7 @@ function InboxPage() {
                   aria-selected={active}
                   onClick={() => setFilter(item.value)}
                   className={cn(
-                    "relative inline-flex min-h-12 min-w-[104px] items-center justify-center gap-1.5 rounded-full px-5 text-[15px] font-medium whitespace-nowrap transition-fast focus-ring press lg:min-h-10",
+                    "text-body-strong relative inline-flex min-h-12 min-w-[104px] items-center justify-center gap-1.5 rounded-full px-5 font-medium whitespace-nowrap transition-fast focus-ring press lg:min-h-10",
                     active ? "bg-pill text-pill-text" : "text-text-2 is-hover:text-text",
                     item.value === "new" && item.count > 0 && "pr-7",
                   )}
@@ -198,16 +198,16 @@ function InboxPage() {
                       title={row.card.report.workType}
                       aside={
                         <>
-                          <span className="block text-[22px] leading-[26px] font-semibold tracking-[-0.02em] tnum">
+                          <span className="text-title block tnum">
                             {fmtNum(row.card.report.declaredQty ?? 0)}
                           </span>
-                          <span className="block text-[13px] text-text-3">
+                          <span className="text-meta block text-text-3">
                             {row.card.report.unit}
                           </span>
                         </>
                       }
                     />
-                    <p className="mt-1 text-[14px] leading-5 text-text-2">
+                    <p className="text-body mt-1 text-text-2">
                       {metaLine(row.zoneName, shortName(row.projectName))}
                     </p>
                   </EventLink>
@@ -232,10 +232,10 @@ function InboxPage() {
                     status="Требует уточнения"
                   >
                     <EventHead title={row.workType} />
-                    <p className="mt-1 text-[14px] leading-5 text-text-2">
+                    <p className="text-body mt-1 text-text-2">
                       {metaLine(row.zoneName, shortName(row.projectName))}
                     </p>
-                    <p className="mt-2 line-clamp-2 rounded-[16px] bg-surface-2 px-3 py-2.5 text-[14px] leading-5 text-text">
+                    <p className="text-body mt-2 line-clamp-2 rounded-[16px] bg-surface-2 px-3 py-2.5 text-text">
                       «{row.summary}»
                     </p>
                   </EventLink>
@@ -312,10 +312,10 @@ function Group({
           className="flex min-h-14 w-full items-center justify-between gap-3 rounded-[20px] bg-surface-2 px-4 py-2 text-left transition-fast focus-ring press is-hover:bg-surface-3"
         >
           <span className="min-w-0">
-            <span className="block text-[17px] leading-[22px] font-semibold">{title}</span>
-            <span className="block text-[13px] leading-[18px] font-normal text-text-2">{hint}</span>
+            <span className="text-heading block">{title}</span>
+            <span className="text-meta block font-normal text-text-2">{hint}</span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1.5 text-[14px] font-normal text-text-2 tnum">
+          <span className="text-body inline-flex shrink-0 items-center gap-1.5 font-normal text-text-2 tnum">
             {count}
             <ChevronDown
               aria-hidden
@@ -337,7 +337,7 @@ function Group({
 /** Статус один, текстом с цветной точкой (v3, правило 8) */
 function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[13px] leading-4 font-medium text-text-2">
+    <span className="text-meta-strong inline-flex items-center gap-1.5 font-medium text-text-2">
       <span aria-hidden className={cn("size-2 rounded-full", TONE_BAR[tone])} />
       {children}
     </span>
@@ -348,9 +348,7 @@ function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
 function EventHead({ title, aside }: { title: string; aside?: ReactNode }) {
   return (
     <div className="flex min-w-0 items-start gap-3">
-      <h3 className="min-w-0 flex-1 text-[19px] leading-[25px] font-semibold tracking-[-0.01em] text-balance">
-        {title}
-      </h3>
+      <h3 className="text-heading min-w-0 flex-1 text-balance">{title}</h3>
       {aside ? <div className="shrink-0 text-right">{aside}</div> : null}
     </div>
   );
@@ -402,8 +400,8 @@ function Answer({
         <Icon className="size-4" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[12px] leading-4 text-text-3">{label}</span>
-        <span className="mt-0.5 block text-[15px] leading-[20px] text-text">{children}</span>
+        <span className="text-meta block text-text-3">{label}</span>
+        <span className="text-body mt-0.5 block text-text">{children}</span>
       </span>
     </li>
   );
@@ -466,7 +464,7 @@ function MaterialRequests({ rows }: { rows: MaterialRequest[] }) {
       hint={mayDecide ? "решение за снабжением" : "что с вашими заявками"}
       count={`${fmtNum(rows.length)} ${plural(rows.length, "заявка", "заявки", "заявок")}`}
       footer={
-        <p className="px-1 text-[13px] leading-[18px] text-text-3">
+        <p className="text-meta px-1 text-text-3">
           Ничего не заказывается автоматически: статус меняет человек, и решение записывается с
           автором.
         </p>
@@ -486,10 +484,8 @@ function MaterialRequests({ rows }: { rows: MaterialRequest[] }) {
                 title={row.name}
                 aside={
                   <>
-                    <span className="block text-[22px] leading-[26px] font-semibold tracking-[-0.02em] tnum">
-                      {fmtNum(row.qty)}
-                    </span>
-                    <span className="block text-[13px] text-text-3 tnum">
+                    <span className="text-title block tnum">{fmtNum(row.qty)}</span>
+                    <span className="text-meta block text-text-3 tnum">
                       {row.unit} · к {fmtDate(row.neededBy).slice(0, 5)}
                     </span>
                   </>
@@ -583,7 +579,7 @@ function MaterialRequests({ rows }: { rows: MaterialRequest[] }) {
           />
           <Button
             variant="accent"
-            className="h-14 rounded-full text-[16px] lg:h-12"
+            className="text-body h-14 rounded-full lg:h-12"
             disabled={reason.trim().length < 3 || decide.isPending}
             onClick={() => {
               if (!declining) return;

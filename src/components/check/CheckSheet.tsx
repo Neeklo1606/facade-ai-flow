@@ -77,7 +77,7 @@ export function CheckSheet({
         style={shift ? { transform: `translateY(${shift}px)` } : undefined}
         className={cn(
           "fixed inset-x-0 bottom-0 z-[35] mx-auto max-w-[680px] overflow-y-auto overscroll-contain rounded-t-[32px] bg-surface outline-none",
-          "top-[max(12px,env(safe-area-inset-top))] shadow-[0_-12px_48px_rgba(0,0,0,0.3)]",
+          "top-[max(12px,env(safe-area-inset-top))]",
           !shift && "transition-transform duration-200",
           "animate-in slide-in-from-bottom-8 fade-in-0 duration-300",
         )}

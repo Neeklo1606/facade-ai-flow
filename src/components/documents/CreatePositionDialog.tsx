@@ -79,7 +79,7 @@ export function CreatePositionDialog({
   };
 
   const field =
-    "focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-[14px] text-text placeholder:text-text-3";
+    "text-body focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-text placeholder:text-text-3";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -93,7 +93,7 @@ export function CreatePositionDialog({
         </DialogHeader>
         <form id="position-form" onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <label htmlFor={ids.name} className="text-[13px] text-text-2">
+            <label htmlFor={ids.name} className="text-meta text-text-2">
               Наименование как в проекте
             </label>
             <input
@@ -117,7 +117,7 @@ export function CreatePositionDialog({
           </div>
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
             <div className="grid gap-1.5">
-              <label htmlFor={ids.qty} className="text-[13px] text-text-2">
+              <label htmlFor={ids.qty} className="text-meta text-text-2">
                 Количество
               </label>
               <input
@@ -129,7 +129,7 @@ export function CreatePositionDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.unit} className="text-[13px] text-text-2">
+              <label htmlFor={ids.unit} className="text-meta text-text-2">
                 Единица
               </label>
               <input
@@ -141,7 +141,7 @@ export function CreatePositionDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.position} className="text-[13px] text-text-2">
+              <label htmlFor={ids.position} className="text-meta text-text-2">
                 Номер — можно не задавать
               </label>
               <input

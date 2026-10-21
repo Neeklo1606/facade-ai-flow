@@ -269,7 +269,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
             <ol className="px-4 py-4 md:px-6">
               {days.map(([day, list]) => (
                 <li key={day} className="mb-5 last:mb-0">
-                  <h3 className="sticky top-0 z-[1] -mx-4 mb-2 bg-surface/95 px-4 py-1.5 text-[12px] font-semibold text-text-secondary backdrop-blur md:-mx-6 md:px-6">
+                  <h3 className="text-meta-strong sticky top-0 z-[1] -mx-4 mb-2 bg-surface/95 px-4 py-1.5 font-semibold text-text-secondary backdrop-blur md:-mx-6 md:px-6">
                     {fmtDayTitle(day, now)}
                   </h3>
                   <ol className="relative">
@@ -295,7 +295,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
                           </span>
                           <div className="min-w-0 flex-1 pt-0.5">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-[14px] leading-snug font-medium">{event.title}</p>
+                              <p className="text-body-strong font-medium">{event.title}</p>
                               <SourceRef
                                 sourceId={event.sourceId}
                                 onOpen={() => event.sourceId && setSource(event.sourceId)}
@@ -303,7 +303,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
                               />
                             </div>
                             {event.details && (
-                              <p className="mt-0.5 text-[13px] text-text-secondary">
+                              <p className="text-meta mt-0.5 text-text-secondary">
                                 {event.details}
                               </p>
                             )}
@@ -318,7 +318,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
                             {event.link && canOpen(event.link.to) && (
                               <Link
                                 to={event.link.to}
-                                className="mt-1.5 inline-flex min-h-12 items-center gap-1 text-[13px] font-medium text-info hover:underline lg:min-h-0"
+                                className="text-meta-strong mt-1.5 inline-flex min-h-12 items-center gap-1 font-medium text-info hover:underline lg:min-h-0"
                               >
                                 {event.link.label} <ArrowRight className="size-3.5" />
                               </Link>
@@ -360,7 +360,7 @@ function TimelinePage({ project }: ProjectPageProps): React.JSX.Element {
                 )}
               </div>
             ) : (
-              <p className="text-[13px] text-text-2">Решений по объекту пока нет.</p>
+              <p className="text-meta text-text-2">Решений по объекту пока нет.</p>
             )}
           </WidgetCard>
 
@@ -465,7 +465,7 @@ function DecisionCard({
       <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <p className="text-caption font-medium text-ok">{decisionKind[decision.kind]}</p>
-          <h3 className="mt-0.5 text-[14px] leading-snug font-semibold">{decision.title}</h3>
+          <h3 className="text-body-strong mt-0.5 font-semibold">{decision.title}</h3>
         </div>
         {decision.link && canOpenLink(decision.link.to) && (
           <Link
@@ -483,7 +483,7 @@ function DecisionCard({
             className="grid gap-1 px-4 py-2.5 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-3"
           >
             <dt className="text-caption text-text-muted">{row.label}</dt>
-            <dd className="text-[13px] text-text-secondary">{row.content}</dd>
+            <dd className="text-meta text-text-secondary">{row.content}</dd>
           </div>
         ))}
       </dl>

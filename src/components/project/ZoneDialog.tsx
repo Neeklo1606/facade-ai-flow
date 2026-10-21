@@ -116,7 +116,7 @@ export function ZoneDialog({
   };
 
   const field =
-    "focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-[14px] text-text placeholder:text-text-3";
+    "text-body focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-text placeholder:text-text-3";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,7 +131,7 @@ export function ZoneDialog({
         <form id="zone-form" onSubmit={submit} className="grid min-h-0 gap-4 overflow-y-auto">
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
             <div className="grid gap-1.5">
-              <label htmlFor={ids.level} className="text-[13px] text-text-2">
+              <label htmlFor={ids.level} className="text-meta text-text-2">
                 Уровень
               </label>
               <select
@@ -148,7 +148,7 @@ export function ZoneDialog({
               </select>
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.parent} className="text-[13px] text-text-2">
+              <label htmlFor={ids.parent} className="text-meta text-text-2">
                 Внутри чего
               </label>
               <select
@@ -167,7 +167,7 @@ export function ZoneDialog({
             </div>
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.name} className="text-[13px] text-text-2">
+            <label htmlFor={ids.name} className="text-meta text-text-2">
               Название
             </label>
             <input
@@ -181,7 +181,7 @@ export function ZoneDialog({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <label htmlFor={ids.axes} className="text-[13px] text-text-2">
+              <label htmlFor={ids.axes} className="text-meta text-text-2">
                 Оси — можно позже
               </label>
               <input
@@ -194,7 +194,7 @@ export function ZoneDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.floors} className="text-[13px] text-text-2">
+              <label htmlFor={ids.floors} className="text-meta text-text-2">
                 Этажи — можно позже
               </label>
               <input
@@ -209,7 +209,7 @@ export function ZoneDialog({
           </div>
           <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
             <div className="grid gap-1.5">
-              <label htmlFor={ids.plan} className="text-[13px] text-text-2">
+              <label htmlFor={ids.plan} className="text-meta text-text-2">
                 План
               </label>
               <input
@@ -222,7 +222,7 @@ export function ZoneDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.unit} className="text-[13px] text-text-2">
+              <label htmlFor={ids.unit} className="text-meta text-text-2">
                 Единица
               </label>
               <input
@@ -235,7 +235,7 @@ export function ZoneDialog({
             </div>
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.fact} className="text-[13px] text-text-2">
+            <label htmlFor={ids.fact} className="text-meta text-text-2">
               Выполнено до начала учёта
             </label>
             <input

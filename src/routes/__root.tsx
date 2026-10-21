@@ -52,7 +52,7 @@ function NotFoundComponent() {
         <p className="mt-2 text-text-secondary">Проверьте адрес или вернитесь к списку объектов.</p>
         <Link
           to="/projects"
-          className="mt-6 inline-flex h-[38px] items-center justify-center rounded-full bg-primary px-[18px] text-[13px] font-medium text-primary-foreground hover:bg-[var(--ink-hover)]"
+          className="text-meta-strong mt-6 inline-flex h-[38px] items-center justify-center rounded-full bg-primary px-[18px] font-medium text-primary-foreground hover:bg-[var(--ink-hover)]"
         >
           К объектам
         </Link>
@@ -81,7 +81,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
             router.invalidate();
             reset();
           }}
-          className="mt-6 inline-flex h-[38px] items-center justify-center rounded-full bg-primary px-[18px] text-[13px] font-medium text-primary-foreground hover:bg-[var(--ink-hover)]"
+          className="text-meta-strong mt-6 inline-flex h-[38px] items-center justify-center rounded-full bg-primary px-[18px] font-medium text-primary-foreground hover:bg-[var(--ink-hover)]"
         >
           Повторить
         </button>

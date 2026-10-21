@@ -80,12 +80,12 @@ export const PositionRow = memo(function PositionRow({
       {active && <span className="absolute inset-y-0 left-0 w-[3px] bg-text" aria-hidden />}
 
       <div className="flex items-center gap-2">
-        <span className="mono w-10 shrink-0 text-[11px] text-text-muted">{item.position}</span>
+        <span className="text-meta mono w-10 shrink-0 text-text-muted">{item.position}</span>
         <ConfidenceLabel value={item.confidence} />
         {badge && (
           <span
             className={cn(
-              "inline-flex h-5 items-center gap-1 rounded-full px-2 text-[11px] font-medium",
+              "text-tab inline-flex h-5 items-center gap-1 rounded-full px-2 font-medium",
               badge.className,
             )}
           >
@@ -105,7 +105,7 @@ export const PositionRow = memo(function PositionRow({
               onAction(item.id, "source");
             }}
             title={`Показать на листе ${item.sheetNumber}`}
-            className="focus-ring ml-auto inline-flex h-12 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-[11px] text-info transition-fast hover:bg-info-bg md:h-6"
+            className="text-meta focus-ring ml-auto inline-flex h-12 shrink-0 items-center gap-1 rounded-[var(--r-xs)] px-1.5 text-info transition-fast hover:bg-info-bg md:h-6"
           >
             <FileText className="size-3" strokeWidth={1.75} />
             <span className="tnum">л. {item.sheetNumber}</span>
@@ -125,7 +125,7 @@ export const PositionRow = memo(function PositionRow({
             <div className="min-w-0 flex-1">
               <p
                 className={cn(
-                  "text-[13px] leading-snug font-medium",
+                  "text-meta-strong font-medium",
                   inactive && "text-text-muted line-through",
                   item.review === "header" && "font-semibold no-underline",
                 )}
@@ -148,7 +148,7 @@ export const PositionRow = memo(function PositionRow({
               <div className="shrink-0 text-right">
                 <span
                   className={cn(
-                    "tnum text-[14px] font-semibold",
+                    "text-body-strong tnum font-semibold",
                     level === "low" && pending && "text-danger",
                     inactive && "text-text-muted",
                   )}
@@ -190,7 +190,7 @@ export const PositionRow = memo(function PositionRow({
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="h-12 px-2.5 text-[12px] lg:h-7"
+                  className="text-meta h-12 px-2.5 lg:h-7"
                   onClick={() => onAction(item.id, "restore")}
                 >
                   <Undo2 className="size-3.5" /> Вернуть
@@ -201,7 +201,7 @@ export const PositionRow = memo(function PositionRow({
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="h-12 px-2.5 text-[12px] lg:h-7"
+                      className="text-meta h-12 px-2.5 lg:h-7"
                       onClick={() => onAction(item.id, "confirm")}
                     >
                       <Check className="size-3.5" /> Подтвердить
@@ -210,7 +210,7 @@ export const PositionRow = memo(function PositionRow({
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-12 px-2.5 text-[12px] lg:h-7"
+                    className="text-meta h-12 px-2.5 lg:h-7"
                     onClick={() => onAction(item.id, "edit")}
                   >
                     <Pencil className="size-3.5" /> Исправить
@@ -218,7 +218,7 @@ export const PositionRow = memo(function PositionRow({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-12 px-2.5 text-[12px] lg:h-7"
+                    className="text-meta h-12 px-2.5 lg:h-7"
                     onClick={() => onAction(item.id, "exclude")}
                   >
                     <Ban className="size-3.5" /> Исключить
@@ -334,21 +334,21 @@ function EditForm({
       }}
       className="mt-2 grid gap-2"
     >
-      <label className="grid gap-1 text-[11px] text-text-muted">
+      <label className="text-meta grid gap-1 text-text-muted">
         Проектное наименование
-        <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-[13px]" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} className="text-meta h-8" />
       </label>
-      <label className="grid gap-1 text-[11px] text-text-muted">
+      <label className="text-meta grid gap-1 text-text-muted">
         Характеристики, через точку с запятой
         <Input
           value={chars}
           onChange={(e) => setChars(e.target.value)}
           placeholder="Толщина: 2 мм; Покрытие: Zn 275"
-          className="h-8 text-[13px]"
+          className="text-meta h-8"
         />
       </label>
       <div className="grid grid-cols-[1fr_96px] gap-2">
-        <label className="grid gap-1 text-[11px] text-text-muted">
+        <label className="text-meta grid gap-1 text-text-muted">
           Количество
           <Input
             autoFocus
@@ -356,17 +356,13 @@ function EditForm({
             value={qty}
             onChange={(e) => setQty(e.target.value)}
             aria-invalid={!qty}
-            className="tnum h-8 text-[13px]"
+            className="text-meta tnum h-8"
             placeholder={item.qty === 0 ? "в документе не указано" : undefined}
           />
         </label>
-        <label className="grid gap-1 text-[11px] text-text-muted">
+        <label className="text-meta grid gap-1 text-text-muted">
           Единица
-          <Input
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            className="h-8 text-[13px]"
-          />
+          <Input value={unit} onChange={(e) => setUnit(e.target.value)} className="text-meta h-8" />
         </label>
       </div>
       <div className="flex items-center gap-2">
@@ -374,7 +370,7 @@ function EditForm({
           type="submit"
           size="sm"
           variant="secondary"
-          className="h-12 px-2.5 text-[12px] lg:h-7"
+          className="text-meta h-12 px-2.5 lg:h-7"
         >
           <Check className="size-3.5" /> Сохранить и подтвердить
         </Button>
@@ -382,12 +378,12 @@ function EditForm({
           type="button"
           size="sm"
           variant="ghost"
-          className="h-12 px-2.5 text-[12px] lg:h-7"
+          className="text-meta h-12 px-2.5 lg:h-7"
           onClick={onCancel}
         >
           Отмена
         </Button>
-        <span className="ml-auto text-[11px] text-text-muted">Enter · Esc</span>
+        <span className="text-meta ml-auto text-text-muted">Enter · Esc</span>
       </div>
     </form>
   );

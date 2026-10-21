@@ -203,7 +203,7 @@ function UsersPage() {
       <div data-main-zone className="space-y-4">
         <Panel>
           {/* Таблица — от планшета: на телефоне её колонки уводили действия за край экрана */}
-          <table className="hidden w-full text-[13px] lg:table">
+          <table className="text-meta hidden w-full lg:table">
             <thead className="text-caption text-text-muted">
               <tr className="border-b border-line">
                 <th className="py-2 text-left font-normal">Сотрудник</th>
@@ -241,11 +241,13 @@ function UsersPage() {
           <ul className="grid gap-3 lg:hidden">
             {employees.map((employee) => (
               <li key={employee.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
-                <span className="block text-[15px] font-medium text-text">{employee.name}</span>
+                <span className="text-body-strong block font-medium text-text">
+                  {employee.name}
+                </span>
                 <span className="block text-caption text-text-muted">
                   {employee.position} · {employeeRoleLabel[employee.role]}
                 </span>
-                <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[13px]">
+                <dl className="text-meta mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
                   <dt className="text-text-3">Объекты</dt>
                   <dd className="text-text-2">{projectNames(employee)}</dd>
                   <dt className="text-text-3">Телефон</dt>
@@ -263,7 +265,7 @@ function UsersPage() {
           </ul>
         </Panel>
 
-        <p className="text-[13px] leading-[1.5] text-text-3">
+        <p className="text-meta text-text-3">
           Роль решает, что человек видит; объекты — по каким из них. Матрица прав целиком — в
           разделе «Права доступа». Приглашение действует трое суток, живое приглашение на сотрудника
           всегда одно: новое гасит прежнее.
@@ -340,11 +342,11 @@ function EmployeeDialog({
 
         <div className="grid gap-3">
           <label className="grid gap-1.5">
-            <span className="text-[13px] text-text-2">ФИО</span>
+            <span className="text-meta text-text-2">ФИО</span>
             <Input value={name} onChange={(e) => setName(e.target.value)} aria-label="ФИО" />
           </label>
           <label className="grid gap-1.5">
-            <span className="text-[13px] text-text-2">Должность</span>
+            <span className="text-meta text-text-2">Должность</span>
             <Input
               value={position}
               onChange={(e) => setPosition(e.target.value)}
@@ -352,12 +354,12 @@ function EmployeeDialog({
             />
           </label>
           <label className="grid gap-1.5">
-            <span className="text-[13px] text-text-2">Роль</span>
+            <span className="text-meta text-text-2">Роль</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as EmployeeRole)}
               aria-label="Роль"
-              className="focus-ring h-10 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text"
+              className="text-body focus-ring h-10 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-text"
             >
               {ROLES.map((item) => (
                 <option key={item} value={item}>
@@ -368,7 +370,7 @@ function EmployeeDialog({
           </label>
           <div className="grid grid-cols-2 gap-2">
             <label className="grid gap-1.5">
-              <span className="text-[13px] text-text-2">Телефон</span>
+              <span className="text-meta text-text-2">Телефон</span>
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -378,7 +380,7 @@ function EmployeeDialog({
               />
             </label>
             <label className="grid gap-1.5">
-              <span className="text-[13px] text-text-2">Telegram</span>
+              <span className="text-meta text-text-2">Telegram</span>
               <Input
                 value={telegram}
                 onChange={(e) => setTelegram(e.target.value)}
@@ -388,7 +390,7 @@ function EmployeeDialog({
             </label>
           </div>
           <label className="grid gap-1.5">
-            <span className="text-[13px] text-text-2">Почта — если есть</span>
+            <span className="text-meta text-text-2">Почта — если есть</span>
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -398,7 +400,7 @@ function EmployeeDialog({
           </label>
 
           <fieldset className="grid gap-1.5">
-            <legend className="text-[13px] text-text-2">Объекты</legend>
+            <legend className="text-meta text-text-2">Объекты</legend>
             <span className="text-caption text-text-muted">
               Пусто — все объекты компании. Для прораба и его ролей это граница доступа.
             </span>
@@ -408,7 +410,7 @@ function EmployeeDialog({
                 return (
                   <label
                     key={project.id}
-                    className="focus-ring inline-flex cursor-pointer items-center gap-1.5 rounded-[var(--r-sm)] border border-line px-2.5 py-1.5 text-[13px]"
+                    className="text-meta focus-ring inline-flex cursor-pointer items-center gap-1.5 rounded-[var(--r-sm)] border border-line px-2.5 py-1.5"
                   >
                     <input
                       type="checkbox"

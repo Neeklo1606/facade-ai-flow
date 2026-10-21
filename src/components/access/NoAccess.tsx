@@ -41,7 +41,7 @@ export function NoAccess({
           ? "Нет доступа к этому объекту"
           : `Нет доступа к разделу «${sectionShortLabel[section]}»`}
       </h1>
-      <p className="mt-2 text-[14px] text-text-2">
+      <p className="text-body mt-2 text-text-2">
         Вы вошли как {userName}, {inSentence(roleLabel)}.{" "}
         {reason === "project"
           ? "Прорабу открыты только объекты, где он в команде или ведёт бригаду."
@@ -49,7 +49,7 @@ export function NoAccess({
             ? `Раздел открыт ролям: ${roles.join(", ")}.`
             : "Раздел не открыт ни одной роли."}
       </p>
-      <p className="mt-1 text-[13px] text-text-3">
+      <p className="text-meta mt-1 text-text-3">
         Если раздел нужен для работы, обратитесь к руководителю проекта.
       </p>
       <Button asChild className="mt-6">

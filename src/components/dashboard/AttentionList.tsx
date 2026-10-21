@@ -121,7 +121,7 @@ function Chip({
   return (
     <span
       className={cn(
-        "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] leading-none",
+        "text-meta inline-flex h-7 max-w-full items-center gap-1.5 rounded-full px-3",
         tone === "danger" ? "bg-danger-bg text-danger" : "bg-surface-2 text-text-2",
       )}
     >

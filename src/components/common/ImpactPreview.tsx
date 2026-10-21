@@ -32,15 +32,17 @@ export function ImpactPreview({
       <ul className="divide-y divide-border">
         {changes.map((c) => (
           <li key={c.label} className="px-4 py-3">
-            <p className="text-[13px] font-medium">{c.label}</p>
+            <p className="text-meta-strong font-medium">{c.label}</p>
             {c.before != null ? (
-              <p className="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
+              <p className="text-meta mt-1 flex flex-wrap items-center gap-2">
                 <span className="tnum text-text-muted line-through">{c.before}</span>
                 <ArrowRight className="size-3.5 text-text-muted" aria-hidden />
                 <span className="tnum font-medium text-text-primary">{c.after}</span>
               </p>
             ) : (
-              <p className="tnum mt-0.5 text-[15px] font-semibold text-text-primary">{c.after}</p>
+              <p className="text-body-strong tnum mt-0.5 font-semibold text-text-primary">
+                {c.after}
+              </p>
             )}
             {c.hint && <p className="mt-1 text-caption text-text-muted">{c.hint}</p>}
           </li>

@@ -101,7 +101,7 @@ export function MaterialForm({
   };
 
   const field =
-    "focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-[14px] text-text placeholder:text-text-3";
+    "text-body focus-ring w-full rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-text placeholder:text-text-3";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,7 +115,7 @@ export function MaterialForm({
         </DialogHeader>
         <form id="material-form" onSubmit={submit} className="grid min-h-0 gap-4 overflow-y-auto">
           <div className="grid gap-1.5">
-            <label htmlFor={ids.name} className="text-[13px] text-text-2">
+            <label htmlFor={ids.name} className="text-meta text-text-2">
               Нормализованное наименование
             </label>
             <input
@@ -128,7 +128,7 @@ export function MaterialForm({
           </div>
           <div className="grid grid-cols-[1fr_2fr] gap-3">
             <div className="grid gap-1.5">
-              <label htmlFor={ids.unit} className="text-[13px] text-text-2">
+              <label htmlFor={ids.unit} className="text-meta text-text-2">
                 Единица
               </label>
               <input
@@ -140,7 +140,7 @@ export function MaterialForm({
               />
             </div>
             <div className="grid gap-1.5">
-              <label htmlFor={ids.category} className="text-[13px] text-text-2">
+              <label htmlFor={ids.category} className="text-meta text-text-2">
                 Категория
               </label>
               <select
@@ -179,7 +179,7 @@ export function MaterialForm({
             </p>
           )}
           <div className="grid gap-1.5">
-            <label htmlFor={ids.chars} className="text-[13px] text-text-2">
+            <label htmlFor={ids.chars} className="text-meta text-text-2">
               Характеристики — по строке, «Название: значение»
             </label>
             <textarea
@@ -191,7 +191,7 @@ export function MaterialForm({
             />
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.syn} className="text-[13px] text-text-2">
+            <label htmlFor={ids.syn} className="text-meta text-text-2">
               Синонимы — по строке
             </label>
             <textarea
@@ -203,7 +203,7 @@ export function MaterialForm({
             />
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor={ids.spell} className="text-[13px] text-text-2">
+            <label htmlFor={ids.spell} className="text-meta text-text-2">
               Типичные написания в проектах — по строке
             </label>
             <textarea

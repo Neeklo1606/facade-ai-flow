@@ -64,7 +64,7 @@ export function GuideSheet({
           <button
             type="button"
             onClick={() => setFeedbackOpen(true)}
-            className="focus-ring flex min-h-12 items-center gap-2 self-start rounded-full px-3 text-[13px] text-text-2 hover:text-text"
+            className="text-meta focus-ring flex min-h-12 items-center gap-2 self-start rounded-full px-3 text-text-2 hover:text-text"
           >
             <MessageCircleQuestion className="size-4" strokeWidth={1.5} aria-hidden />
             Непонятно на этом экране
@@ -87,10 +87,10 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
 
   return (
     <div className="mt-2">
-      <p className="text-[14px] leading-[1.45] text-text">{step.text}</p>
-      {step.note && <p className="mt-1 text-[13px] leading-[1.45] text-text-3">{step.note}</p>}
+      <p className="text-body text-text">{step.text}</p>
+      {step.note && <p className="text-meta mt-1 text-text-3">{step.note}</p>}
       {done ? (
-        <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-text-2">
+        <p className="text-meta mt-3 inline-flex items-center gap-1.5 text-text-2">
           <Check className="size-4 text-ok" strokeWidth={2} aria-hidden />
           Сделано
         </p>
@@ -99,7 +99,7 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
         href && (
           <Link
             to={href}
-            className="focus-ring mt-3 inline-flex min-h-12 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] text-text transition-fast hover:border-line-2 lg:min-h-9"
+            className="text-meta focus-ring mt-3 inline-flex min-h-12 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-text transition-fast hover:border-line-2 lg:min-h-9"
           >
             Перейти: {screenFor(href.split("?")[0] ?? href, href.split("?")[1] ?? "").name}
           </Link>
@@ -109,7 +109,7 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
         <button
           type="button"
           onClick={skipStep}
-          className="focus-ring min-h-12 rounded-[var(--r-pill)] px-3 text-[13px] text-text-2 transition-fast hover:text-text lg:min-h-9"
+          className="text-meta focus-ring min-h-12 rounded-[var(--r-pill)] px-3 text-text-2 transition-fast hover:text-text lg:min-h-9"
         >
           Пропустить
         </button>
@@ -118,7 +118,7 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
           onClick={nextStep}
           disabled={!done}
           title={done ? undefined : "Шаг засчитается, когда вы выполните действие"}
-          className="focus-ring min-h-12 rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] font-medium text-text transition-fast hover:border-line-2 disabled:cursor-not-allowed disabled:opacity-45 lg:min-h-9"
+          className="text-meta-strong focus-ring min-h-12 rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 font-medium text-text transition-fast hover:border-line-2 disabled:cursor-not-allowed disabled:opacity-45 lg:min-h-9"
         >
           Дальше
         </button>
@@ -130,14 +130,14 @@ function StepBody({ step, done }: { step: GuideStep; done: boolean }) {
 function Finished({ skipped }: { skipped: number }) {
   return (
     <div className="mt-2">
-      <p className="text-[14px] leading-[1.45] text-text">
+      <p className="text-body text-text">
         {skipped > 0
           ? `Сценарий закончен. Пропущено шагов: ${skipped} — они не выполнены. Сценарий можно открыть заново и пройти их.`
           : "Сценарий пройден. Можно сменить роль в карточке пользователя внизу меню и пройти другой."}
       </p>
       <Link
         to="/demo-stats"
-        className="focus-ring mt-3 inline-flex min-h-12 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-[13px] text-text transition-fast hover:border-line-2 lg:min-h-9"
+        className="text-meta focus-ring mt-3 inline-flex min-h-12 items-center rounded-[var(--r-pill)] border border-line bg-surface-2 px-4 text-text transition-fast hover:border-line-2 lg:min-h-9"
       >
         Статистика сессии
       </Link>
@@ -222,7 +222,7 @@ function FeedbackForm({ stepId, onClose }: { stepId: string | null; onClose: () 
   return (
     <form
       onSubmit={submit}
-      className="flex w-full items-center gap-2 rounded-[var(--r-md)] border border-line bg-surface p-2 shadow-[var(--shadow-md)]"
+      className="flex w-full items-center gap-2 rounded-[var(--r-md)] border border-line bg-surface p-2"
       aria-label="Что непонятно на этом экране"
     >
       <input
@@ -232,7 +232,7 @@ function FeedbackForm({ stepId, onClose }: { stepId: string | null; onClose: () 
         maxLength={300}
         placeholder="Что непонятно на этом экране?"
         aria-label="Что непонятно на этом экране"
-        className="focus-ring min-h-12 min-w-0 flex-1 rounded-[var(--r-sm)] bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3 lg:min-h-9"
+        className="text-body focus-ring min-h-12 min-w-0 flex-1 rounded-[var(--r-sm)] bg-surface-2 px-3 text-text placeholder:text-text-3 lg:min-h-9"
       />
       <button
         type="submit"

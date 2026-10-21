@@ -58,14 +58,14 @@ export function DetailsLayout({
           ref={panelRef}
           tabIndex={-1}
           aria-labelledby={titleId}
-          className="fixed inset-0 z-50 flex flex-col bg-surface outline-none lg:relative lg:inset-auto lg:z-auto lg:ml-4 lg:w-[480px] lg:shrink-0 lg:rounded-l-[var(--r-lg)] lg:border-l lg:border-line lg:shadow-[var(--lift-3)] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150"
+          className="fixed inset-0 z-50 flex flex-col bg-surface outline-none lg:relative lg:inset-auto lg:z-auto lg:ml-4 lg:w-[480px] lg:shrink-0 lg:rounded-l-[var(--r-lg)] lg:border-l lg:border-line motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150"
         >
           <header className="flex items-start gap-3 border-b border-line px-6 py-5">
             <div className="min-w-0 flex-1">
-              <h2 id={titleId} className="text-[20px] leading-[1.25] font-semibold text-text">
+              <h2 id={titleId} className="text-heading text-text">
                 {title}
               </h2>
-              {subtitle && <div className="mt-1 text-[13px] text-text-2">{subtitle}</div>}
+              {subtitle && <div className="text-meta mt-1 text-text-2">{subtitle}</div>}
             </div>
             <button
               type="button"

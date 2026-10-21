@@ -32,7 +32,7 @@ export function ShiftFiles({ projectId }: { projectId: string }) {
   };
 
   const capsule =
-    "glass inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-medium text-text transition-fast focus-ring press is-hover:bg-surface disabled:pointer-events-none disabled:opacity-50 sm:flex-none";
+    "text-body-strong glass inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 font-medium text-text transition-fast focus-ring press is-hover:bg-surface disabled:pointer-events-none disabled:opacity-50 sm:flex-none";
 
   return (
     <div className="flex min-w-0 flex-col gap-2 lg:items-end">
@@ -56,7 +56,7 @@ export function ShiftFiles({ projectId }: { projectId: string }) {
           <Download className="size-4" aria-hidden /> Ведомость
         </button>
       </div>
-      <span className="text-[13px] leading-[18px] text-text-2 lg:text-right">
+      <span className="text-meta text-text-2 lg:text-right">
         {rows > 0
           ? `В документ ${plural(rows, "войдёт", "войдут", "войдут")} ${fmtNum(rows)} ${plural(rows, "принятая запись", "принятые записи", "принятых записей")} за ${fmtDate(shift.data?.date ?? date)}`
           : "Принятых записей пока нет: примите факт, и документ соберётся"}

@@ -179,9 +179,9 @@ function nameOf(events: readonly TelemetryEvent[], screen: string) {
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string | undefined }) {
   return (
     <WidgetCard>
-      <p className="text-[13px] text-text-2">{label}</p>
-      <p className="mt-1 text-[24px] leading-[1.2] font-semibold text-text tnum">{value}</p>
-      {hint && <p className="mt-1 text-[12px] leading-[1.4] text-text-3">{hint}</p>}
+      <p className="text-meta text-text-2">{label}</p>
+      <p className="text-title mt-1 text-text tnum">{value}</p>
+      {hint && <p className="text-meta mt-1 text-text-3">{hint}</p>}
     </WidgetCard>
   );
 }
@@ -195,10 +195,10 @@ function Table({
   rows: string[][];
   empty: string;
 }) {
-  if (!rows.length) return <p className="py-4 text-[13px] text-text-3">{emptyText}</p>;
+  if (!rows.length) return <p className="text-meta py-4 text-text-3">{emptyText}</p>;
   return (
     <div className="-mx-1 overflow-x-auto">
-      <table className="w-full text-left text-[13px]">
+      <table className="text-meta w-full text-left">
         <thead>
           <tr className="border-b border-line text-text-3">
             {head.map((cell, i) => (

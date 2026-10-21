@@ -27,7 +27,7 @@ export function ProcessingStages({ stage, compact }: { stage: number; compact?: 
             </div>
             <p
               className={cn(
-                "mt-1.5 flex items-center gap-1 truncate text-[11px]",
+                "text-meta mt-1.5 flex items-center gap-1 truncate",
                 done
                   ? "text-text-secondary"
                   : current

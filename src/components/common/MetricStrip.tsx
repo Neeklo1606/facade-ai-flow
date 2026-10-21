@@ -50,7 +50,7 @@ export function DeltaPill({
   return (
     <span
       className={cn(
-        "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-[13px] leading-none font-medium whitespace-nowrap",
+        "text-meta-strong inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 font-medium whitespace-nowrap",
         effectClass[delta.effect],
         className,
       )}
@@ -107,7 +107,7 @@ export function MetricStripItem({
           <div className="flex min-w-0 items-center gap-1">
             <div
               className={cn(
-                "text-[13px] leading-[1.35] text-text-3",
+                "text-meta text-text-3",
                 // В полосе из трёх ячейка на 375 px шириной 95: слова переносим целиком,
                 // иначе «Просроченных ответов» ломается посреди слова. Высота подписи
                 // фиксирована в две строки, чтобы числа в соседних ячейках стояли на одной линии
@@ -122,11 +122,11 @@ export function MetricStripItem({
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span
               className={cn(
-                "truncate text-[22px] leading-[1.15] font-semibold text-text",
+                "text-title truncate text-text",
                 // В полосе из шести ячеек значение занимает строку целиком: иначе капсула дельты
                 // отбирает ширину и деньги обрезаются
-                compactValue ? "basis-full" : "md:text-[26px]",
-                tight && "basis-full text-[20px]",
+                compactValue ? "basis-full" : "",
+                tight && "text-heading basis-full",
               )}
             >
               {value}
@@ -142,9 +142,7 @@ export function MetricStripItem({
             )}
             {delta && !tight && <DeltaPill delta={delta} className="@3xs:hidden" />}
           </div>
-          {note && (
-            <div className="mt-0.5 line-clamp-2 text-[13px] leading-[1.35] text-text-3">{note}</div>
-          )}
+          {note && <div className="text-meta mt-0.5 line-clamp-2 text-text-3">{note}</div>}
         </div>
         {delta && !tight && <DeltaPill delta={delta} className="hidden @3xs:inline-flex" />}
       </div>
@@ -157,7 +155,7 @@ export type MetricStripLayout = "default" | "six" | "three";
 
 /** Карточка полосы: в ряд с 1440px, ниже — сетка */
 const stripBase =
-  "grid overflow-hidden rounded-[var(--r-md)] border border-line bg-surface shadow-[var(--lift-1)] min-[1440px]:flex min-[1440px]:h-[104px] min-[1440px]:items-center min-[1440px]:px-6";
+  "grid overflow-hidden rounded-[var(--r-md)] border border-line bg-surface min-[1440px]:flex min-[1440px]:h-[104px] min-[1440px]:items-center min-[1440px]:px-6";
 const stripCols: Record<MetricStripLayout, string> = {
   // До 640 px — одна колонка: в половине ширины 390 подписи и даты резались многоточием (ADR-041)
   default: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",

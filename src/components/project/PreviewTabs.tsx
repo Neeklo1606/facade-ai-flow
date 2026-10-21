@@ -170,7 +170,7 @@ export function DocumentsPreview(props: Props) {
               return (
                 <li key={version.id} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="flex items-center gap-2 text-[13px] font-medium">
+                    <span className="text-meta-strong flex items-center gap-2 font-medium">
                       {version.version}
                       {index === 0 && <StatusBadge tone="ok">Актуальная</StatusBadge>}
                     </span>
@@ -381,7 +381,7 @@ export function PurchasesPreview({ projectId, overview, scope }: Props) {
               {deliveries.slice(0, PREVIEW).map((delivery) => (
                 <li key={delivery.id} className="flex items-start justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium">
+                    <p className="text-meta-strong truncate font-medium">
                       {delivery.items.map((item) => item.name).join(", ")}
                     </p>
                     <p className="mt-0.5 text-caption text-text-muted">
@@ -434,7 +434,9 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
               return (
                 <li key={zone.id} className="px-4 py-3">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate text-[13px] font-medium">{zone.name}</span>
+                    <span className="text-meta-strong min-w-0 truncate font-medium">
+                      {zone.name}
+                    </span>
                     <span className="tnum shrink-0 text-caption text-text-secondary">
                       {fmtNum(zone.factQty)} / {fmtNum(zone.planQty)} {zone.unit} ·{" "}
                       <b className="font-semibold text-text-primary">{pct}%</b>
@@ -463,7 +465,7 @@ export function ProgressPreview({ projectId, scope, onSource }: Props) {
             {milestones.map((milestone) => (
               <li key={milestone.id} className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
-                  <p className="text-[13px] font-medium">{milestone.name}</p>
+                  <p className="text-meta-strong font-medium">{milestone.name}</p>
                   <p className="mt-0.5 text-caption text-text-muted">
                     до {fmtDate(milestone.dueDate)} · {milestone.requirement}
                   </p>
@@ -510,11 +512,11 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
               <li key={item.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   {canOpen(item.link) ? (
-                    <Link to={item.link} className="text-[13px] font-medium hover:text-text">
+                    <Link to={item.link} className="text-meta-strong font-medium hover:text-text">
                       {item.title}
                     </Link>
                   ) : (
-                    <span className="text-[13px] font-medium">{item.title}</span>
+                    <span className="text-meta-strong font-medium">{item.title}</span>
                   )}
                   <StatusBadge tone="warn">Сравнение готово</StatusBadge>
                 </div>
@@ -541,7 +543,7 @@ export function DecisionsPreview({ projectId, scope, onSource }: Props) {
                   <Check className="size-3.5" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium">{decision.title}</p>
+                  <p className="text-meta-strong font-medium">{decision.title}</p>
                   <p className="mt-0.5 text-caption text-text-secondary">
                     {decision.choice}. {decision.reason}
                   </p>
@@ -634,7 +636,7 @@ export function TeamPreview({ projectId }: Props) {
         <ul className="divide-y divide-border">
           {people.map((person) => (
             <li key={person.id} className="flex items-center gap-3 px-4 py-2.5">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-pastel-slate text-[13px] font-medium text-pastel-slate-fg">
+              <span className="text-meta-strong grid size-8 shrink-0 place-items-center rounded-full bg-pastel-slate font-medium text-pastel-slate-fg">
                 {person.name
                   .split(" ")
                   .slice(0, 2)
@@ -642,7 +644,7 @@ export function TeamPreview({ projectId }: Props) {
                   .join("")}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">{person.name}</p>
+                <p className="text-meta-strong truncate font-medium">{person.name}</p>
                 <p className="truncate text-caption text-text-muted">{person.position}</p>
               </div>
               <span className="hidden text-caption text-text-secondary sm:inline">
@@ -664,7 +666,7 @@ export function TeamPreview({ projectId }: Props) {
             {crews.map((crew) => (
               <li key={crew.id} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[13px] font-medium">{crew.name}</p>
+                  <p className="text-meta-strong font-medium">{crew.name}</p>
                   <span className="tnum text-caption text-text-secondary">
                     {crew.headcount} чел.
                   </span>

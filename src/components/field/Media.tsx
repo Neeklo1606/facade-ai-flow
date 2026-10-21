@@ -87,7 +87,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
                 caption={photo.caption}
                 className="transition-opacity duration-150 group-hover:opacity-90"
               />
-              <span className="absolute inset-x-0 bottom-0 bg-black/65 px-2 pt-1.5 pb-1.5 text-left text-[13px] leading-tight text-white">
+              <span className="text-meta absolute inset-x-0 bottom-0 bg-black/65 px-2 pt-1.5 pb-1.5 text-left text-white">
                 {photo.caption}
               </span>
             </button>
@@ -104,7 +104,7 @@ export function PhotoGallery({ photos }: { photos: Evidence[] }) {
                 <PhotoArt caption={current.caption} />
               </div>
               <div className="flex items-center gap-2 px-3 py-2">
-                <p className="min-w-0 flex-1 text-[13px]">
+                <p className="text-meta min-w-0 flex-1">
                   {current.caption}
                   <span className="ml-2 text-white/60">
                     {open! + 1} из {photos.length}
@@ -182,7 +182,7 @@ export function VoiceReport({
           Голосовое сообщение прораба · {fmt(duration)}
         </p>
         <p className="mt-1 text-caption text-text-muted">{note("audio")}</p>
-        <p className="mt-3 text-[13px] leading-relaxed text-text-secondary">
+        <p className="text-meta mt-3 text-text-secondary">
           «{highlight(transcript, activeField?.quote ?? null)}»
         </p>
       </div>
@@ -213,7 +213,7 @@ export function VoiceReport({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-caption text-text-muted">{field.label}</span>
-                  <span className={cn("block text-[14px] font-medium", low && "text-warn")}>
+                  <span className={cn("text-body-strong block font-medium", low && "text-warn")}>
                     {field.value}
                   </span>
                 </span>

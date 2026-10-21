@@ -159,12 +159,12 @@ export function AcceptanceDialog({
 
         <div className="grid min-h-0 gap-5 overflow-y-auto pb-2">
           <fieldset className="grid gap-3">
-            <legend className="mb-1 text-[13px] font-medium">Фактическое количество</legend>
+            <legend className="text-meta-strong mb-1 font-medium">Фактическое количество</legend>
             {delivery.items.map((line) => {
               const diff = discrepancies.find((item) => item.lineId === line.id);
               return (
                 <div key={line.id} className="grid gap-1.5">
-                  <label className="grid gap-1 text-[13px]">
+                  <label className="text-meta grid gap-1">
                     <span className="text-text">{line.name}</span>
                     <span className="flex items-center gap-2">
                       <input
@@ -174,7 +174,7 @@ export function AcceptanceDialog({
                           setFacts((prev) => ({ ...prev, [line.id]: event.target.value }))
                         }
                         aria-label={`Принято, ${line.unit}: ${line.name}`}
-                        className="tnum focus-ring h-12 w-36 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[16px] text-text"
+                        className="text-body tnum focus-ring h-12 w-36 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-text"
                       />
                       <span className="text-text-2">
                         {line.unit} из {fmtNum(line.qty)} заявленных
@@ -183,7 +183,7 @@ export function AcceptanceDialog({
                   </label>
                   {diff && (
                     <>
-                      <p className="text-[13px] text-warn">
+                      <p className="text-meta text-warn">
                         {diff.kind === "shortage" ? "Недостача" : "Излишек"}{" "}
                         {fmtNum(Math.abs(diff.declared - diff.accepted))} {line.unit} — станет
                         замечанием снабжению
@@ -196,7 +196,7 @@ export function AcceptanceDialog({
                         placeholder="Что с расхождением: не довезли, пересорт, брак"
                         maxLength={500}
                         aria-label={`Замечание: ${line.name}`}
-                        className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
+                        className="text-body focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-text placeholder:text-text-3"
                       />
                     </>
                   )}
@@ -206,11 +206,11 @@ export function AcceptanceDialog({
           </fieldset>
 
           <fieldset className="grid gap-2">
-            <legend className="mb-1 text-[13px] font-medium">Входной контроль</legend>
+            <legend className="text-meta-strong mb-1 font-medium">Входной контроль</legend>
             {rules.checklist.map((item) => (
               <div key={item.id} className="grid gap-1.5">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-[14px] text-text">{item.label}</span>
+                  <span className="text-body text-text">{item.label}</span>
                   <div role="radiogroup" aria-label={item.label} className="flex shrink-0 gap-1">
                     {(["ok", "fail"] as const).map((value) => (
                       <button
@@ -247,7 +247,7 @@ export function AcceptanceDialog({
                     placeholder="Что не так"
                     maxLength={300}
                     aria-label={`Что не так: ${item.label}`}
-                    className="focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-[14px] text-text placeholder:text-text-3"
+                    className="text-body focus-ring h-12 rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 text-text placeholder:text-text-3"
                   />
                 )}
               </div>
@@ -255,7 +255,7 @@ export function AcceptanceDialog({
           </fieldset>
 
           <fieldset className="grid gap-2">
-            <legend className="mb-1 text-[13px] font-medium">
+            <legend className="text-meta-strong mb-1 font-medium">
               Фото {discrepancy ? "— обязательно при расхождении" : ""}
             </legend>
             <div className="flex flex-wrap gap-2">
@@ -278,7 +278,7 @@ export function AcceptanceDialog({
               ))}
               {photos.length < MAX_PHOTOS && (
                 <label className="focus-within:ring-2 focus-within:ring-orange-line grid size-20 cursor-pointer place-items-center rounded-[var(--r-sm)] border border-dashed border-line-2 bg-surface-2 text-text-2">
-                  <span className="grid place-items-center gap-1 text-[12px]">
+                  <span className="text-meta grid place-items-center gap-1">
                     <Camera className="size-5" strokeWidth={1.5} />
                     {compressing ? "Сжимаем…" : "Снять"}
                   </span>
@@ -300,19 +300,19 @@ export function AcceptanceDialog({
           </fieldset>
 
           {rejecting && (
-            <label className="grid gap-1 text-[13px]">
+            <label className="text-meta grid gap-1">
               <span className="font-medium">Причина отклонения</span>
               <textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 rows={3}
                 maxLength={1000}
-                className="focus-ring rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-[14px] text-text"
+                className="text-body focus-ring rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-text"
               />
             </label>
           )}
 
-          <label className="flex items-start gap-3 text-[13px]">
+          <label className="text-meta flex items-start gap-3">
             <input
               type="checkbox"
               checked={confirmed}
@@ -327,9 +327,7 @@ export function AcceptanceDialog({
         </div>
 
         <DialogFooter className="grid gap-2 sm:flex">
-          {problem && (
-            <p className="text-[13px] text-text-3 sm:mr-auto sm:self-center">{problem}</p>
-          )}
+          {problem && <p className="text-meta text-text-3 sm:mr-auto sm:self-center">{problem}</p>}
           {rejecting ? (
             <Button variant="ghost" onClick={() => setRejecting(false)}>
               Не отклонять

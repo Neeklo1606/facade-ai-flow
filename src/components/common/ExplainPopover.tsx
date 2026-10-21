@@ -44,8 +44,8 @@ export function ExplainPopover({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[340px] p-0">
         <div className="border-b border-line px-4 py-3">
-          <p className="text-[13px] font-medium text-text">{title}</p>
-          <p className="mt-1.5 rounded-[var(--r-xs)] bg-surface-2 px-2 py-1 text-[13px] leading-[1.45] text-text-2">
+          <p className="text-meta-strong font-medium text-text">{title}</p>
+          <p className="text-meta mt-1.5 rounded-[var(--r-xs)] bg-surface-2 px-2 py-1 text-text-2">
             {formula}
           </p>
         </div>
@@ -57,9 +57,9 @@ export function ExplainPopover({
                 <>
                   <FileText className="mt-0.5 size-3.5 shrink-0 text-text-3" strokeWidth={1.5} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] text-text">{source.label}</span>
+                    <span className="text-meta block truncate text-text">{source.label}</span>
                     {source.hint && (
-                      <span className="block truncate text-[13px] text-text-3">{source.hint}</span>
+                      <span className="text-meta block truncate text-text-3">{source.hint}</span>
                     )}
                   </span>
                 </>

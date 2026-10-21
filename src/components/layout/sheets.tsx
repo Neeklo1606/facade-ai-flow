@@ -226,7 +226,7 @@ function ReportChannel({
 
   if (!zones.length) {
     return (
-      <p className="px-1 pb-3 text-[13px] leading-[1.45] text-text-2">
+      <p className="text-meta px-1 pb-3 text-text-2">
         У объекта нет захваток — отчёт не к чему привязать. Заведите захватку на экране объекта, и
         форма появится здесь.
       </p>
@@ -290,15 +290,15 @@ function ConfirmationCard({
       <dl className="divide-y divide-line">
         {rows.map(([label, text, source]) => (
           <div key={label} className="flex items-start justify-between gap-3 py-2.5">
-            <dt className="shrink-0 text-[13px] text-text-3">{label}</dt>
+            <dt className="text-meta shrink-0 text-text-3">{label}</dt>
             <dd className="min-w-0 text-right">
-              <span className="block text-[14px] text-text">{text}</span>
-              <span className="block text-[13px] text-text-3">{source}</span>
+              <span className="text-body block text-text">{text}</span>
+              <span className="text-meta block text-text-3">{source}</span>
             </dd>
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-[13px] leading-[1.45] text-text-3">
+      <p className="text-meta mt-3 text-text-3">
         Отчёт в ленте со статусом «На проверке»: объём принимает руководитель или ПТО.
       </p>
       <div className="mt-4 flex gap-2">
@@ -363,7 +363,7 @@ export function MoreSheet({
         */}
         {quickReport ? (
           <>
-            <p className="text-text-3 px-3 pb-1 text-[13px] leading-[1.4]">Создать</p>
+            <p className="text-meta text-text-3 px-3 pb-1">Создать</p>
             <SheetRow
               icon={<quickReport.icon className="size-5" strokeWidth={1.75} aria-hidden />}
               label={quickReport.label}
@@ -374,9 +374,7 @@ export function MoreSheet({
         ) : null}
         {create.length > 0 ? (
           <>
-            {!quickReport ? (
-              <p className="text-text-3 px-3 pb-1 text-[13px] leading-[1.4]">Создать</p>
-            ) : null}
+            {!quickReport ? <p className="text-meta text-text-3 px-3 pb-1">Создать</p> : null}
             {create.map((action) => (
               <SheetRow
                 key={action.key}
@@ -386,7 +384,7 @@ export function MoreSheet({
                 onSelect={() => go(action.to, (action.search ?? {}) as Record<string, string>)}
               />
             ))}
-            <p className="text-text-3 mt-2 px-3 pb-1 text-[13px] leading-[1.4]">Разделы</p>
+            <p className="text-meta text-text-3 mt-2 px-3 pb-1">Разделы</p>
           </>
         ) : null}
         {rest.map((item) => {
@@ -404,7 +402,7 @@ export function MoreSheet({
         {/* Показ: вернуть полосу шагов и начать заново (ADR-038, ADR-041) */}
         {dataSource === "demo" && (
           <div className="mt-2 border-t border-line pt-2">
-            <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Показ</p>
+            <p className="text-meta px-3 pb-1 text-text-3">Показ</p>
             {guide.scenarioId && guide.closed ? (
               <SheetRow
                 icon={<MessageCircleQuestion className="size-5" strokeWidth={1.75} aria-hidden />}
@@ -421,12 +419,12 @@ export function MoreSheet({
               trigger={
                 <button
                   type="button"
-                  className="focus-ring flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] px-3 text-left text-[15px] text-text transition-fast hover:bg-surface-2"
+                  className="text-body focus-ring flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] px-3 text-left text-text transition-fast hover:bg-surface-2"
                 >
                   <RotateCcw className="size-5 text-text-2" strokeWidth={1.75} aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className="block">Сбросить демо-данные</span>
-                    <span className="block text-[13px] text-text-3">Начать показ заново</span>
+                    <span className="text-meta block text-text-3">Начать показ заново</span>
                   </span>
                 </button>
               }
@@ -435,7 +433,7 @@ export function MoreSheet({
         )}
 
         <div className="mt-2 border-t border-line pt-2">
-          <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Тема оформления</p>
+          <p className="text-meta px-3 pb-1 text-text-3">Тема оформления</p>
           <div className="grid grid-cols-3 gap-1 px-1">
             {themeChoices.map((choice) => (
               <button
@@ -444,7 +442,7 @@ export function MoreSheet({
                 onClick={() => setThemeChoice(choice as ThemeChoice)}
                 aria-pressed={themeChoice === choice}
                 className={cn(
-                  "focus-ring min-h-12 rounded-[var(--r-md)] border px-2 text-[13px] transition-fast",
+                  "text-meta focus-ring min-h-12 rounded-[var(--r-md)] border px-2 transition-fast",
                   themeChoice === choice
                     ? "border-line-2 bg-surface-2 text-text"
                     : "border-line text-text-2",
@@ -459,7 +457,7 @@ export function MoreSheet({
         {/* Роль в демонстрации меняют здесь же: в рабочем контуре её даёт учётная запись */}
         {dataSource === "demo" && personas.length > 0 && (
           <div className="mt-2 border-t border-line pt-2">
-            <p className="px-3 pb-1 text-[13px] leading-[1.4] text-text-3">Роль в демонстрации</p>
+            <p className="text-meta px-3 pb-1 text-text-3">Роль в демонстрации</p>
             {personas.map((person) => (
               <SheetRow
                 key={person.id}

@@ -587,7 +587,7 @@ function CapturePage() {
               examples.length > 0 ? (
                 <>
                   <Marker className="order-1 lg:order-3">Скажите, например</Marker>
-                  <p className="order-2 text-[24px] leading-[30px] font-semibold tracking-[-0.02em] sm:text-[32px] sm:leading-[38px] lg:order-4 lg:max-w-[36ch] lg:text-[38px] lg:leading-[44px]">
+                  <p className="text-title order-2 lg:order-4 lg:max-w-[36ch]">
                     «<span className="text-text">{phraseLead}</span>
                     {phraseRest ? " " : null}
                     {phraseRest ? <span className="tone-2">{phraseRest}</span> : null}»
@@ -606,7 +606,7 @@ function CapturePage() {
                             aria-pressed={example.id === scenario?.id}
                             data-active={example.id === scenario?.id}
                             onClick={() => send({ type: "pick", scenario: example.id })}
-                            className="seg-item focus-ring press min-h-12 px-5 text-[15px]"
+                            className="text-body seg-item focus-ring press min-h-12 px-5"
                           >
                             {example.label}
                           </button>
@@ -618,7 +618,7 @@ function CapturePage() {
               ) : (
                 <>
                   <Marker className="order-1">Скажите</Marker>
-                  <p className="order-2 text-[24px] leading-[30px] font-semibold tracking-[-0.02em] sm:text-[32px] sm:leading-[38px] lg:text-[38px] lg:leading-[44px]">
+                  <p className="text-title order-2">
                     <span className="text-text">Что сделали и где.</span>{" "}
                     <span className="tone-2">Сколько, сколько людей и что нужно на завтра.</span>
                   </p>
@@ -630,7 +630,7 @@ function CapturePage() {
             {flow.step === "no-mic" ? (
               <div className="order-1 flex flex-col gap-3">
                 <Marker>Нет микрофона</Marker>
-                <p className="text-[24px] leading-[30px] font-semibold tracking-[-0.02em] sm:text-[30px] sm:leading-[36px]">
+                <p className="text-title">
                   {flow.noMic === "denied"
                     ? "Доступ к микрофону запрещён. Его возвращают в настройках браузера."
                     : flow.noMic === "unsupported"
@@ -644,9 +644,7 @@ function CapturePage() {
             {flow.step === "error" && flow.error ? (
               <div className="order-1 flex flex-col gap-4">
                 <Marker>{flow.error.refused ? "Не разобрали" : "Не получилось"}</Marker>
-                <p className="text-[24px] leading-[30px] font-semibold tracking-[-0.02em] sm:text-[30px] sm:leading-[36px]">
-                  {flow.error.message}
-                </p>
+                <p className="text-title">{flow.error.message}</p>
                 {flow.error.refused && examples.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {examples.map((example) => (
@@ -654,7 +652,7 @@ function CapturePage() {
                         key={example.id}
                         type="button"
                         onClick={() => runExample(example.id, example.message)}
-                        className="focus-ring press bg-surface/70 text-text is-hover:bg-surface min-h-12 rounded-full px-5 text-[15px] font-medium backdrop-blur-md"
+                        className="text-body-strong focus-ring press bg-surface/70 text-text is-hover:bg-surface min-h-12 rounded-full px-5 font-medium backdrop-blur-md"
                       >
                         Пример: {example.label}
                       </button>
@@ -665,7 +663,7 @@ function CapturePage() {
                   <button
                     type="button"
                     onClick={() => send({ type: "retry" })}
-                    className="focus-ring press bg-surface/70 text-text is-hover:bg-surface inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 text-[15px] font-medium backdrop-blur-md"
+                    className="text-body-strong focus-ring press bg-surface/70 text-text is-hover:bg-surface inline-flex min-h-12 items-center gap-2 self-start rounded-full px-5 font-medium backdrop-blur-md"
                   >
                     <RotateCcw className="size-4" /> Повторить
                   </button>
@@ -677,7 +675,7 @@ function CapturePage() {
             <div className="order-4 mt-auto flex flex-col items-center gap-2 pt-4 lg:order-2 lg:my-auto lg:py-6">
               {/* Текст: строка ввода над капсулой, отправка круглой кнопкой, как у Catalist */}
               {textOpen ? (
-                <div className="bg-surface/85 ring-line mb-1 flex w-full max-w-[560px] items-end gap-2 rounded-[28px] p-2 pl-4 shadow-[var(--lift-2)] ring-1 backdrop-blur-xl">
+                <div className="bg-surface/85 ring-line mb-1 flex w-full max-w-[560px] items-end gap-2 rounded-[28px] p-2 pl-4 ring-1 backdrop-blur-xl">
                   <Textarea
                     value={text}
                     onChange={(event) => setText(event.target.value)}
@@ -707,7 +705,7 @@ function CapturePage() {
                     <button
                       type="button"
                       onClick={() => send({ type: "simulate" })}
-                      className="pill-action focus-ring press glow-ember w-full max-w-[420px] text-[17px] lg:min-h-14"
+                      className="text-heading pill-action focus-ring press glow-ember w-full max-w-[420px] lg:min-h-14"
                     >
                       <Play className="size-5" /> Показать без микрофона
                     </button>
@@ -741,7 +739,7 @@ function CapturePage() {
                     }}
                     className="focus-ring press flex min-h-14 min-w-0 flex-1 touch-none items-center justify-between gap-3 rounded-full py-1 pr-1 pl-3 text-left select-none disabled:opacity-45"
                   >
-                    <span className="text-[16px] leading-[20px] font-medium sm:text-[17px]">
+                    <span className="text-body-strong font-medium">
                       Удерживайте, чтобы говорить
                     </span>
                     <span
@@ -803,7 +801,7 @@ function CapturePage() {
                 </span>
                 <span
                   className={cn(
-                    "tnum text-[64px] leading-[72px] font-semibold tracking-[-0.04em] sm:text-[80px] sm:leading-[88px] lg:text-[96px] lg:leading-[104px]",
+                    "text-hero tnum",
                     nearLimit(elapsedMs) && !simulated && "text-risk",
                   )}
                 >
@@ -884,7 +882,7 @@ function CapturePage() {
             {flow.step === "uploading" ? (
               <div className="flex flex-col gap-3" aria-live="polite">
                 <Marker>{flow.input === "text" ? "Сохраняем" : "Отправляем запись"}</Marker>
-                <p className="text-[28px] leading-[34px] font-semibold tracking-[-0.02em] sm:text-[36px] sm:leading-[42px]">
+                <p className="text-title">
                   {flow.input === "text" ? "Сохраняем текст" : "Запись ушла на расшифровку"}
                 </p>
               </div>
@@ -898,7 +896,7 @@ function CapturePage() {
                     <button
                       type="button"
                       onClick={() => setInstant(true)}
-                      className="focus-ring press bg-surface/60 text-text is-hover:bg-surface min-h-12 rounded-full px-4 text-[14px] font-medium backdrop-blur-md"
+                      className="text-body-strong focus-ring press bg-surface/60 text-text is-hover:bg-surface min-h-12 rounded-full px-4 font-medium backdrop-blur-md"
                     >
                       Показать сразу
                     </button>
@@ -909,7 +907,7 @@ function CapturePage() {
                   schedule={schedule}
                   instant={instant}
                   onDone={onHeard}
-                  className="text-[24px] leading-[32px] font-medium tracking-[-0.01em] sm:text-[30px] sm:leading-[38px] lg:max-w-[38ch] lg:text-[34px] lg:leading-[42px]"
+                  className="text-title lg:max-w-[38ch]"
                 />
                 {heard.demo ? (
                   <p className="text-caption text-text-2">Демо: расшифровка подготовлена заранее</p>
@@ -922,7 +920,7 @@ function CapturePage() {
                 <div className="flex flex-col gap-3">
                   <Marker>Разбираю</Marker>
                   {sourceText ? (
-                    <p className="text-[20px] leading-[28px] font-medium tracking-[-0.01em] sm:text-[24px] sm:leading-[32px] lg:max-w-[44ch]">
+                    <p className="text-heading lg:max-w-[44ch]">
                       <span className="tone-2">«{sourceText}»</span>
                     </p>
                   ) : null}
@@ -947,7 +945,7 @@ function CapturePage() {
                     <span aria-hidden="true" className="bg-warn size-2 rounded-full" />
                     Черновик
                   </span>
-                  <h2 className="text-[32px] leading-[36px] font-semibold tracking-[-0.03em] lg:text-[40px] lg:leading-[44px]">
+                  <h2 className="text-hero">
                     Разбор. <span className="tone-2">Проверьте, что поняли верно</span>
                   </h2>
                   {outcome?.by?.demo ? (
@@ -1012,11 +1010,11 @@ function CapturePage() {
             {/* Закреплено над плавающей панелью оболочки: место под капсулой оставлено */}
             <div className="h-20 lg:hidden" aria-hidden="true" />
             <div className="fixed inset-x-4 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+16px)] z-30 sm:inset-x-0 sm:mx-auto sm:w-[480px] lg:sticky lg:bottom-6 lg:-mt-2">
-              <div className="glass ring-line flex items-center gap-2 rounded-full p-2 shadow-[var(--lift-3)] ring-1">
+              <div className="glass ring-line flex items-center gap-2 rounded-full p-2 ring-1">
                 <button
                   type="button"
                   onClick={clarify}
-                  className="focus-ring press bg-surface-2 text-text is-hover:bg-surface-3 inline-flex min-h-14 shrink-0 items-center gap-2 rounded-full px-4 text-[15px] font-medium sm:px-5"
+                  className="text-body-strong focus-ring press bg-surface-2 text-text is-hover:bg-surface-3 inline-flex min-h-14 shrink-0 items-center gap-2 rounded-full px-4 font-medium sm:px-5"
                 >
                   <Mic className="size-4" /> Уточнить голосом
                 </button>
@@ -1024,7 +1022,7 @@ function CapturePage() {
                   type="button"
                   onClick={onConfirm}
                   disabled={nothingToCreate || confirm.isPending || !canWrite}
-                  className="pill-action focus-ring press min-h-14 flex-1 px-4 text-[16px] disabled:opacity-45 lg:min-h-14"
+                  className="text-body pill-action focus-ring press min-h-14 flex-1 px-4 disabled:opacity-45 lg:min-h-14"
                 >
                   <Check className="size-5" strokeWidth={2.25} /> Верно
                 </button>
@@ -1044,10 +1042,8 @@ function CapturePage() {
                 <Check className="size-8" strokeWidth={2.25} />
               </span>
               <div className="flex flex-col gap-1">
-                <h1 className="text-[48px] leading-[52px] font-semibold tracking-[-0.03em] sm:text-[56px] sm:leading-[60px] lg:text-[64px] lg:leading-[68px]">
-                  Готово
-                </h1>
-                <p className="text-[20px] leading-[28px] font-medium tracking-[-0.01em] sm:text-[24px] sm:leading-[32px]">
+                <h1 className="text-hero">Готово</h1>
+                <p className="text-heading">
                   Создано: <span className="tnum">{flow.created.length}</span>.{" "}
                   <span className="tone-2">Касание строки откроет её</span>
                 </p>
@@ -1100,7 +1096,7 @@ function CapturePage() {
                   type="button"
                   onClick={onUndo}
                   disabled={retract.isPending}
-                  className="focus-ring press bg-surface/75 text-text is-hover:bg-surface relative isolate inline-flex min-h-14 items-center gap-2 overflow-hidden rounded-full px-5 text-[15px] font-medium backdrop-blur-md disabled:opacity-45"
+                  className="text-body-strong focus-ring press bg-surface/75 text-text is-hover:bg-surface relative isolate inline-flex min-h-14 items-center gap-2 overflow-hidden rounded-full px-5 font-medium backdrop-blur-md disabled:opacity-45"
                 >
                   <Undo2 className="size-4" /> Отменить · <span className="tnum">{undoLeft}</span>
                   <span
@@ -1113,7 +1109,7 @@ function CapturePage() {
               <button
                 type="button"
                 onClick={startOver}
-                className="focus-ring press text-text-2 is-hover:text-text inline-flex min-h-14 items-center gap-2 rounded-full px-4 text-[15px] font-medium"
+                className="text-body-strong focus-ring press text-text-2 is-hover:text-text inline-flex min-h-14 items-center gap-2 rounded-full px-4 font-medium"
               >
                 <Mic className="size-4" /> Записать ещё
               </button>
@@ -1225,7 +1221,7 @@ const STAGE_HEIGHT =
  * с размытием, в светлой — тёмная капсула главной кнопки на светлом поле.
  */
 const CAPSULE =
-  "flex w-full max-w-[560px] items-center gap-1 rounded-full p-1.5 pl-1.5 shadow-[var(--lift-3)] ring-1 ring-line-2 backdrop-blur-xl bg-[color-mix(in_oklab,var(--void)_70%,transparent)] text-text [[data-theme=light]_&]:bg-pill [[data-theme=light]_&]:text-pill-text [[data-theme=light]_&]:ring-transparent";
+  "flex w-full max-w-[560px] items-center gap-1 rounded-full p-1.5 pl-1.5 ring-1 ring-line-2 backdrop-blur-xl bg-[color-mix(in_oklab,var(--void)_70%,transparent)] text-text [[data-theme=light]_&]:bg-pill [[data-theme=light]_&]:text-pill-text [[data-theme=light]_&]:ring-transparent";
 
 /** Круглая кнопка записи: «Фото», «Пауза», «Продолжить» — круг 56 px и подпись под ним */
 const ROUND_ACTION =

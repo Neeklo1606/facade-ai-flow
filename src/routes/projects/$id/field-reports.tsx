@@ -280,7 +280,7 @@ function FieldReportsPage({ project, zones }: ProjectPageProps): React.JSX.Eleme
           <ol ref={feed} className="space-y-5">
             {days.map(([day, list]) => (
               <li key={day}>
-                <h2 className="mb-2 text-[13px] font-semibold text-text-secondary">
+                <h2 className="text-meta-strong mb-2 font-semibold text-text-secondary">
                   {fmtDayTitle(day, now)}
                 </h2>
                 <ol className="space-y-3">
@@ -370,7 +370,7 @@ function ReportCard({
         )}
       >
         <header className="flex items-start gap-3 px-4 pt-4">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-pastel-slate text-[13px] font-semibold text-pastel-slate-fg">
+          <span className="text-meta-strong grid size-10 shrink-0 place-items-center rounded-full bg-pastel-slate font-semibold text-pastel-slate-fg">
             {author?.name
               .split(" ")
               .slice(0, 2)
@@ -378,7 +378,7 @@ function ReportCard({
               .join("")}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold">{author?.name}</p>
+            <p className="text-body-strong font-semibold">{author?.name}</p>
             <p className="flex flex-wrap items-center gap-x-1.5 text-caption text-text-muted">
               {author?.position} · <span className="tnum">{fmtTime(report.sentAt)}</span> ·
               <span className="inline-flex items-center gap-1">
@@ -416,24 +416,24 @@ function ReportCard({
               ) : (
                 <p className="text-caption text-text-muted">Захватка не указана</p>
               )}
-              <p className="text-[14px] font-medium">{report.workType}</p>
+              <p className="text-body-strong font-medium">{report.workType}</p>
             </div>
             <div className="text-right">
               <p className="text-caption text-text-muted">
                 {report.acceptedQty != null ? "Принято" : "Заявлено"}
               </p>
-              <p className="tnum text-[24px] leading-none font-semibold">
+              <p className="text-title tnum">
                 {report.declaredQty || report.acceptedQty
                   ? fmtNum(report.acceptedQty ?? report.declaredQty)
                   : "—"}
-                <span className="ml-1 text-[13px] font-normal text-text-secondary">
+                <span className="text-meta ml-1 font-normal text-text-secondary">
                   {report.unit}
                 </span>
               </p>
             </div>
           </div>
 
-          <p className="text-[13px] leading-relaxed text-text-secondary">{report.summary}</p>
+          <p className="text-meta text-text-secondary">{report.summary}</p>
 
           {audio && fields.length > 0 && (
             <VoiceReport duration={duration} transcript={transcript} fields={fields} />
@@ -452,7 +452,7 @@ function ReportCard({
                 <li
                   key={issue.id}
                   className={cn(
-                    "flex gap-2 rounded-[var(--r-sm)] px-3 py-2 text-[13px]",
+                    "text-meta flex gap-2 rounded-[var(--r-sm)] px-3 py-2",
                     issue.severity === "blocker"
                       ? "bg-danger-bg text-danger"
                       : "bg-warn-bg text-warn",

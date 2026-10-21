@@ -49,7 +49,7 @@ export function FactCard({
         <div
           aria-hidden
           className={cn(
-            "absolute inset-0 flex items-center rounded-[var(--r-xl)] px-6 text-[15px] font-semibold",
+            "text-body-strong absolute inset-0 flex items-center rounded-[var(--r-xl)] px-6 font-semibold",
             swipe.shift > 0
               ? "justify-start bg-ok-bg text-ok"
               : "justify-end bg-danger-bg text-danger",
@@ -92,18 +92,14 @@ export function FactCard({
           <div className="flex min-w-0 items-stretch gap-3">
             <span aria-hidden className={cn("w-[3px] shrink-0 rounded-full", tone.bar)} />
             <div className="min-w-0 flex-1">
-              <h3 className="text-[19px] leading-[25px] font-semibold tracking-[-0.01em] text-balance sm:text-[20px] sm:leading-[26px]">
-                {report.workType}
-              </h3>
-              <p className="mt-1 text-[14px] leading-5 text-text-2">
+              <h3 className="text-heading text-balance">{report.workType}</h3>
+              <p className="text-body mt-1 text-text-2">
                 {metaLine(zoneName, shortName(projectName), employeeName(report.authorId))}
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-[24px] leading-[28px] font-semibold tracking-[-0.02em] tnum">
-                {fmtNum(report.declaredQty ?? 0)}
-              </div>
-              <div className="mt-0.5 text-[13px] leading-4 text-text-3">
+              <div className="text-title tnum">{fmtNum(report.declaredQty ?? 0)}</div>
+              <div className="text-meta mt-0.5 text-text-3">
                 {report.unit}
                 {report.sentAt ? <span className="tnum"> · {fmtTime(report.sentAt)}</span> : null}
               </div>
@@ -112,7 +108,7 @@ export function FactCard({
 
           {/* Источник значения рядом с ним: откуда пришло и что сказано (правило 2) */}
           <div className="mt-3 rounded-[18px] bg-surface-2 px-3.5 py-3">
-            <div className="flex items-center gap-2 text-[13px] leading-4 text-text-3">
+            <div className="text-meta flex items-center gap-2 text-text-3">
               {source ? (
                 <span data-marker="" className="text-marker">
                   {sourceMarker(source)}
@@ -125,12 +121,7 @@ export function FactCard({
                 </span>
               ) : null}
             </div>
-            <p
-              className={cn(
-                "mt-1.5 text-[15px] leading-[21px] text-text",
-                !current && "line-clamp-2",
-              )}
-            >
+            <p className={cn("text-body mt-1.5 text-text", !current && "line-clamp-2")}>
               «{report.summary}»
             </p>
           </div>
@@ -140,7 +131,7 @@ export function FactCard({
           <div className="relative mt-4 flex items-center gap-2">
             <Button
               variant={accent ? "accent" : "secondary"}
-              className="h-12 min-w-0 flex-1 rounded-full text-[16px] font-semibold"
+              className="text-body-strong h-12 min-w-0 flex-1 rounded-full font-semibold"
               onClick={() => decision.accept()}
             >
               <Check className="size-5" /> Принять
@@ -168,7 +159,7 @@ export function FactCard({
           </div>
         ) : null}
         {current && !mayDecide ? (
-          <p className="mt-4 text-[13px] text-text-3">
+          <p className="text-meta mt-4 text-text-3">
             Решение принимают ПТО и руководитель проекта.
           </p>
         ) : null}

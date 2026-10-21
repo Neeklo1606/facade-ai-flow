@@ -80,7 +80,9 @@ export function ProgressCell({
         {...(tone ? { tone } : {})}
         {...(reference != null ? { reference } : {})}
       />
-      <span className="shrink-0 text-[13px] font-medium text-text tabular-nums">{valueLabel}</span>
+      <span className="text-meta-strong shrink-0 font-medium text-text tabular-nums">
+        {valueLabel}
+      </span>
       {badge}
     </div>
   );

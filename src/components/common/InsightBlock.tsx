@@ -45,8 +45,8 @@ export function InsightBlock({
         />
       </span>
       <div className="relative z-[2] min-w-0 flex-1 basis-[calc(100%-46px)] sm:basis-auto">
-        <p className="text-[14px] leading-[1.45] font-medium text-text">{title}</p>
-        <p className="text-[13px] leading-[1.45] text-text-2">{text}</p>
+        <p className="text-body-strong font-medium text-text">{title}</p>
+        <p className="text-meta text-text-2">{text}</p>
       </div>
       {/* На узком экране действие уходит под текст, с отступом на ширину иконки */}
       {action && <div className="relative z-[2] shrink-0 pl-[46px] sm:pl-0">{action}</div>}

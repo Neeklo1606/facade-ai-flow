@@ -168,7 +168,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
                 <span className="min-w-0 flex-1">
                   <span
                     className={cn(
-                      "block text-[13px] font-medium sm:truncate",
+                      "text-meta-strong block font-medium sm:truncate",
                       !active && "text-text-secondary",
                     )}
                   >
@@ -180,7 +180,7 @@ function AttentionBlock({ projectId, overview, scope }: Props) {
                 </span>
                 <span
                   className={cn(
-                    "tnum shrink-0 text-[16px] leading-none font-semibold",
+                    "text-body-strong tnum shrink-0 font-semibold",
                     !active && "text-text-muted",
                     active && row.tone === "danger" && "text-danger",
                     active && row.tone === "warn" && "text-text-primary",
@@ -230,7 +230,7 @@ function DocumentationBlock({ projectId, overview, scope, onSource }: Props) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-caption text-text-muted">Последняя версия</p>
-              <p className="mt-0.5 flex items-center gap-2 text-[20px] leading-tight font-semibold">
+              <p className="text-heading mt-0.5 flex items-center gap-2">
                 {latest.version}
                 {latest.sourceId && (
                   <SourceRef sourceId={latest.sourceId} onOpen={() => onSource(latest.sourceId)} />
@@ -257,8 +257,8 @@ function DocumentationBlock({ projectId, overview, scope, onSource }: Props) {
               { label: "Проверено", value: latest.verified },
             ].map((item) => (
               <div key={item.label} className="bg-surface px-3 py-2.5">
-                <dt className="truncate text-[13px] text-text-muted">{item.label}</dt>
-                <dd className="tnum mt-0.5 text-[18px] font-semibold">{fmtNum(item.value)}</dd>
+                <dt className="text-meta truncate text-text-muted">{item.label}</dt>
+                <dd className="text-heading tnum mt-0.5">{fmtNum(item.value)}</dd>
               </div>
             ))}
           </dl>
@@ -333,8 +333,8 @@ function MaterialsBlock({ projectId, overview, scope }: Props) {
               key={stage.label}
               className="grid grid-cols-[minmax(0,172px)_minmax(0,1fr)_88px] items-center gap-3"
             >
-              <span className="flex min-w-0 items-center gap-2 text-[13px] text-text-secondary">
-                <span className="mono w-3 shrink-0 text-[13px] text-text-muted">{index + 1}</span>
+              <span className="text-meta flex min-w-0 items-center gap-2 text-text-secondary">
+                <span className="text-meta mono w-3 shrink-0 text-text-muted">{index + 1}</span>
                 <span className="truncate">{stage.label}</span>
               </span>
               <div className="h-5 overflow-hidden rounded-[var(--r-xs)] bg-subtle">
@@ -350,7 +350,7 @@ function MaterialsBlock({ projectId, overview, scope }: Props) {
                 />
               </div>
               <span className="text-right">
-                <span className="tnum text-[13px] font-semibold">{fmtNum(stage.value)}</span>
+                <span className="text-meta-strong tnum font-semibold">{fmtNum(stage.value)}</span>
                 <span className="tnum ml-1.5 text-caption text-text-muted">{pct}%</span>
               </span>
             </li>
@@ -416,7 +416,7 @@ function ActivityBlock({ projectId, onSource, onTab }: Props) {
                   <Icon className="size-3.5" strokeWidth={1.75} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] leading-snug">{item.title}</p>
+                  <p className="text-meta">{item.title}</p>
                   <p className="mt-0.5 text-caption text-text-muted">
                     {timelineTypeLabel[item.type]} · {employeeName(item.actorId)} ·{" "}
                     {fmtDateTime(item.at)}

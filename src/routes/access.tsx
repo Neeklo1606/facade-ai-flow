@@ -48,7 +48,7 @@ function AccessPage() {
     <div className="grid gap-4">
       <div>
         <h1 className="mb-2 text-page-title lg:sr-only">Права доступа</h1>
-        <p className="text-[13px] text-text-2">
+        <p className="text-meta text-text-2">
           Что может каждая роль в каждом разделе. Эту же таблицу проверяет сервер при каждом
           действии: без права запись отклоняется, раздел не открывается, кнопка не показывается.
         </p>
@@ -65,11 +65,11 @@ function AccessPage() {
           <caption className="sr-only">Права ролей по разделам</caption>
           <thead>
             <tr className="h-10 border-b border-line text-left">
-              <th scope="col" className="px-4 text-[13px] font-normal text-text-3">
+              <th scope="col" className="text-meta px-4 font-normal text-text-3">
                 Раздел
               </th>
               {MATRIX_ROLES.map((role) => (
-                <th key={role} scope="col" className="px-4 text-[13px] font-normal text-text-3">
+                <th key={role} scope="col" className="text-meta px-4 font-normal text-text-3">
                   {employeeRoleLabel[role]}
                 </th>
               ))}
@@ -101,8 +101,8 @@ function AccessPage() {
       >
         {SECTIONS.map((section) => (
           <li key={section} className="card-surface px-4 py-3">
-            <h2 className="text-[14px] font-medium text-text">{sectionLabel[section]}</h2>
-            <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-[13px]">
+            <h2 className="text-body-strong font-medium text-text">{sectionLabel[section]}</h2>
+            <dl className="text-meta mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5">
               {MATRIX_ROLES.map((role) => (
                 <div key={role} className="contents">
                   <dt className="text-text-2">{employeeRoleLabel[role]}</dt>

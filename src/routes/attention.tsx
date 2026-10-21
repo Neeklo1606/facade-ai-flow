@@ -225,7 +225,7 @@ function AttentionPage() {
 
       {/* Период меняет только дельты и ленту: значения метрик — состояние на сейчас */}
       <div className="mb-4 flex items-center justify-between gap-3">
-        <span className="hidden text-[13px] text-text-3 sm:inline">Изменения за период</span>
+        <span className="text-meta hidden text-text-3 sm:inline">Изменения за период</span>
         <SegTabs
           stretch
           className="w-full sm:w-auto"
@@ -253,21 +253,23 @@ function AttentionPage() {
             aria-hidden
             className="orb -top-16 -right-12 size-[220px] sm:-top-20 sm:right-4 sm:size-[300px]"
           />
-          <p className="text-[14px] font-medium text-text-2">Незакрытый объём работ по договорам</p>
+          <p className="text-body-strong font-medium text-text-2">
+            Незакрытый объём работ по договорам
+          </p>
           <div className="mt-6">
             <p className="flex flex-wrap items-baseline gap-x-3">
               <span className="text-hero-num text-text">
                 {dash.headPending ? "—" : heroValue(dash.volume.rub)}
               </span>
-              <span className="text-[18px] font-medium text-text-2">млн ₽</span>
+              <span className="text-heading text-text-2">млн ₽</span>
               {volumeDelta ? <DeltaPill delta={volumeDelta} className="self-center" /> : null}
             </p>
-            <p className="tnum mt-2 text-[14px] leading-5 text-text-2">
+            <p className="text-body tnum mt-2 text-text-2">
               {dash.headPending
                 ? "Считаем по договорам и захваткам…"
                 : `${fmtNum(dash.volume.qty)} ${dash.volume.unit} осталось выполнить`}
             </p>
-            <p className="mt-3 line-clamp-3 max-w-[560px] text-[13px] leading-[1.45] text-text-3">
+            <p className="text-meta mt-3 line-clamp-3 max-w-[560px] text-text-3">
               {heroNote(dash)}
             </p>
           </div>
@@ -320,7 +322,7 @@ function AttentionPage() {
                     <Link
                       to="/projects"
                       search={{ section: "timeline" }}
-                      className="focus-ring inline-flex min-h-12 items-center rounded-full px-3 text-[13px] font-medium text-text-2 transition-fast is-hover:bg-surface-2 is-hover:text-text lg:min-h-10"
+                      className="text-meta-strong focus-ring inline-flex min-h-12 items-center rounded-full px-3 font-medium text-text-2 transition-fast is-hover:bg-surface-2 is-hover:text-text lg:min-h-10"
                     >
                       Все решения
                     </Link>
@@ -345,13 +347,13 @@ function AttentionPage() {
                           <span className="block font-medium text-text">
                             {fmtTime(card.report.sentAt)}
                           </span>
-                          <span className="block text-[13px] text-text-3">
+                          <span className="text-meta block text-text-3">
                             {fmtNum(card.report.declaredQty)} {card.report.unit}
                           </span>
                         </>
                       }
                       footer={
-                        <span className="inline-flex items-center gap-2 text-[13px] text-text-2">
+                        <span className="text-meta inline-flex items-center gap-2 text-text-2">
                           <ToneDot tone="warn" />
                           Ожидает проверки
                         </span>
@@ -371,7 +373,7 @@ function AttentionPage() {
 
             <aside className="min-w-0 space-y-6 lg:col-span-5 xl:col-span-4">
               <section className="card-v3 p-5">
-                <h2 className="text-[16px] font-semibold text-text">Кратко</h2>
+                <h2 className="text-body-strong font-semibold text-text">Кратко</h2>
                 <ul className="mt-3 space-y-1">
                   {brief.map((item) => (
                     <li key={item.label}>
@@ -380,12 +382,10 @@ function AttentionPage() {
                         className="focus-ring flex min-h-12 items-center gap-3 rounded-[var(--r-md)] px-2 -mx-2 transition-fast is-hover:bg-surface-2"
                       >
                         <ToneDot tone={item.value > 0 ? item.tone : "neutral"} />
-                        <span className="min-w-0 flex-1 truncate text-[14px] text-text-2">
+                        <span className="text-body min-w-0 flex-1 truncate text-text-2">
                           {item.label}
                         </span>
-                        <span className="tnum text-[18px] font-semibold text-text">
-                          {fmtNum(item.value)}
-                        </span>
+                        <span className="text-heading tnum text-text">{fmtNum(item.value)}</span>
                       </Link>
                     </li>
                   ))}
@@ -412,7 +412,7 @@ function AttentionPage() {
                   count={dash.progress.length}
                   hint="готовность и отклонение"
                 >
-                  <span className="text-[16px]">Объекты</span>
+                  <span className="text-body">Объекты</span>
                 </SectionTitle>
                 <ProjectsMini rows={dash.progress} pending={dash.headPending} />
               </section>
@@ -503,10 +503,8 @@ function NumberTile({ icon: Icon, label, value, delta, to, search }: NumberTileP
         {to ? <ArrowUpRight className="size-4 text-text-3" aria-hidden /> : null}
       </span>
       <span className="mt-auto block pt-6">
-        <span className="block text-[13px] leading-[1.35] text-text-3">{label}</span>
-        <span className="tnum mt-1 block text-[36px] leading-[1.05] font-semibold tracking-[-0.025em] text-text">
-          {value}
-        </span>
+        <span className="text-meta block text-text-3">{label}</span>
+        <span className="text-hero tnum mt-1 block text-text">{value}</span>
       </span>
       {delta && delta.direction !== "flat" ? (
         <span className="mt-2 block">
