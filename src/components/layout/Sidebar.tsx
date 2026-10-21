@@ -177,21 +177,9 @@ function SidebarInner({
     <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
       {/* Шапка сайдбара, 60px */}
       <div className={cn("sidebar-header", collapsed && "lg:justify-center lg:px-0")}>
-        {collapsed && canToggle ? (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-label="Развернуть меню"
-            title="Развернуть меню"
-            className="focus-ring hidden size-[30px] place-items-center rounded-[var(--r-xs)] bg-surface-2 text-text-2 hover:bg-surface-3 hover:text-text lg:grid"
-          >
-            <ChevronsRight className="size-4" strokeWidth={1.5} />
-          </button>
-        ) : null}
         <span
           className={cn(
             "grid size-[26px] shrink-0 place-items-center rounded-[var(--r-xs)] bg-surface-3 text-text",
-            collapsed && canToggle && "lg:hidden",
           )}
         >
           <Hexagon className="size-[15px]" strokeWidth={1.5} />
@@ -209,17 +197,6 @@ function SidebarInner({
             <span className="block truncate text-[13px] leading-tight text-text-3">с объекта</span>
           </span>
         </div>
-        {!collapsed && canToggle && (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-label="Свернуть меню"
-            title="Свернуть меню"
-            className="focus-ring hidden size-[30px] shrink-0 place-items-center rounded-[var(--r-xs)] text-text-3 hover:bg-surface-2 hover:text-text lg:grid"
-          >
-            <ChevronsLeft className="size-4" strokeWidth={1.5} />
-          </button>
-        )}
         <button
           type="button"
           onClick={onClose}
@@ -358,6 +335,28 @@ function SidebarInner({
 
       {/* Нижний блок: без линии, пункты того же вида */}
       <div className="shrink-0 space-y-1 pt-6">
+        {/*
+          «Свернуть панель» внизу (ADR-045, 4.2): рельс 72 с иконками, подпись пункта видна
+          подсказкой по наведению и фокусу (title дублирует подпись). Состояние запоминается.
+        */}
+        {canToggle ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            title={collapsed ? "Развернуть панель" : "Свернуть панель"}
+            aria-label={collapsed ? "Развернуть панель" : "Свернуть панель"}
+            aria-expanded={!collapsed}
+            className={cn(
+              "nav-item focus-ring hidden w-full text-left transition-fast lg:flex",
+              collapsed && "lg:justify-center lg:px-0",
+            )}
+          >
+            {collapsed ? <ChevronsRight strokeWidth={1.5} /> : <ChevronsLeft strokeWidth={1.5} />}
+            <span className={cn("min-w-0 flex-1 truncate", collapsed && "lg:hidden")}>
+              Свернуть панель
+            </span>
+          </button>
+        ) : null}
         {dataSource === "demo" && (
           <DemoReset
             onDone={onClose}

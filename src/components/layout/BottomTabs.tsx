@@ -12,6 +12,7 @@ import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 import { useKeyboardOpen } from "@/lib/keyboard-open";
 import { bottomNavFor, plusActionsFor, type BottomNavItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import { useBottomLayer } from "@/lib/ui/bottom-layers";
 import { Button } from "@/components/ui/button";
 
 const PlusSheet = lazy(() => import("./sheets").then((module) => ({ default: module.PlusSheet })));
@@ -26,8 +27,11 @@ const MoreSheet = lazy(() => import("./sheets").then((module) => ({ default: mod
  * начинает запись сразу. Запись в браузере работает с G4; чего нет без ключа — расшифровки,
  * и об этом говорит сам экран записи, а не кнопка.
  *
- * Активная позиция без оранжевого: тёмная иконка, подпись и индикатор над иконкой. Оранжевый
- * в панели один — у центральной кнопки, потому что он означает действие, а не «ты здесь».
+ * ADR-045 «Финальный интерфейс», раздел 4.3: панель плоская, на всю ширину, 56 + safe-area,
+ * фон surface и граница сверху. Активный пункт: иконка и подпись акцентом и точка 4 под
+ * подписью, без таблетки. Голосовая кнопка 56 строго по центру экрана, приподнята на 8:
+ * сетка всегда из пяти колонок, 2 + микрофон + 2; когда справа один пункт («Ещё»),
+ * пятая колонка пустая (refs/16, у директора микрофон уезжал вправо).
  */
 export function BottomTabs() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -74,90 +78,90 @@ export function BottomTabs() {
   const overviews = (useQuery(queries.projects()).data ?? []).map((item) => item.overview);
   const counts = badgeCounts(projectId, overviews);
 
-  // Две слева, одна справа: «+» стоит по центру панели, «Ещё» замыкает
+  // Две слева, справа один раздел и «Ещё»: микрофон в средней из пяти колонок
   const left = items.slice(0, 2);
   const right = items.slice(2, 3);
-  const columns = actions.length ? left.length + right.length + 2 : left.length + right.length + 1;
+  const navRef = useRef<HTMLElement>(null);
+  useBottomLayer("tabbar", navRef, !keyboardOpen);
+  const tab = (item: BottomNavItem) => (
+    <Tab
+      key={item.key}
+      item={item}
+      active={item.active(pathname, view, pickSection)}
+      count={item.badge ? counts[item.badge] : 0}
+    />
+  );
+  const more = (
+    <Button
+      key="more"
+      variant="ghost"
+      type="button"
+      onClick={() => setMoreOpen(true)}
+      aria-label="Ещё: разделы, тема, справка"
+      className="focus-ring flex h-tabbar flex-col items-center justify-center gap-1 rounded-none px-0 text-tab text-text-2 is-hover:bg-transparent [&_svg]:size-6"
+    >
+      <Menu strokeWidth={1.75} aria-hidden />
+      Ещё
+    </Button>
+  );
+  const empty = (key: string) => <span key={key} aria-hidden />;
+  const slots = canCapture
+    ? [
+        ...Array.from({ length: 2 - left.length }, (_, i) => empty(`l${i}`)),
+        ...left.map(tab),
+        "mic" as const,
+        ...right.map(tab),
+        more,
+        ...Array.from({ length: 1 - right.length }, (_, i) => empty(`r${i}`)),
+      ]
+    : [...left.map(tab), ...right.map(tab), more];
+  const columns = slots.length;
 
   return (
     <>
       <nav
+        ref={navRef}
         aria-label="Основная навигация"
         data-keyboard={keyboardOpen ? "open" : undefined}
         className={cn(
-          /*
-           * v3 (ADR-044): плавающая стеклянная капсула, как док в референсах. Отступ от краёв
-           * и от полосы жестов, активная позиция залита цветом главной кнопки.
-           */
-          "glass fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 mx-auto grid h-[68px] max-w-[520px] items-center gap-1 rounded-[28px] p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.28)] transition-fast lg:hidden",
+          "line-top fixed inset-x-0 bottom-0 z-40 grid bg-surface pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
           // Пока фокус в поле ввода, панель уходит: место под неё остаётся, чтобы не прыгало
           keyboardOpen && "pointer-events-none translate-y-full opacity-0",
           // Колонок ровно по числу позиций: классы записаны целиком, иначе сборщик их не соберёт
           columns === 5 ? "grid-cols-5" : columns === 4 ? "grid-cols-4" : "grid-cols-3",
         )}
       >
-        {left.map((item) => (
-          <Tab
-            key={item.key}
-            item={item}
-            active={item.active(pathname, view, pickSection)}
-            count={item.badge ? counts[item.badge] : 0}
-          />
-        ))}
-
-        {canCapture && (
-          <div className="grid place-items-center">
-            {/*
-              Голосовая капсула 64 px (дизайн-система, раздел 8): тёплая белая с оранжевым
-              свечением. Свет — единственный в панели; оранжевой заливки больше нет (ADR-041).
-            */}
-            <Button
-              variant="ghost"
-              type="button"
-              onPointerDown={holdStart}
-              onPointerUp={holdEnd}
-              onPointerCancel={holdCancel}
-              onPointerLeave={holdCancel}
-              onKeyDown={(event) => {
-                // Клавиатура: Enter открывает экран, Shift+Enter начинает запись сразу
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                void navigate({
-                  to: "/capture",
-                  ...(event.shiftKey ? { search: { record: true } } : {}),
-                });
-              }}
-              aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
-              data-tour="nav-plus"
-              className={cn(
-                // Тёплая капсула со свечением: единственный свет панели (дизайн-система, раздел 8)
-                "focus-ring press glow-ember bg-pill text-pill-text transition-fast -mt-6 grid size-16 place-items-center rounded-full p-0 hover:bg-pill hover:text-pill-text [&_svg]:size-6",
-              )}
-            >
-              <Mic className="size-6" strokeWidth={2} aria-hidden />
-            </Button>
-          </div>
+        {slots.map((slot) =>
+          slot === "mic" ? (
+            <div key="mic" className="grid place-items-center">
+              {/* Голосовая кнопка 56, единственный выступающий элемент панели (4.3) */}
+              <Button
+                variant="ghost"
+                type="button"
+                onPointerDown={holdStart}
+                onPointerUp={holdEnd}
+                onPointerCancel={holdCancel}
+                onPointerLeave={holdCancel}
+                onKeyDown={(event) => {
+                  // Клавиатура: Enter открывает экран, Shift+Enter начинает запись сразу
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  void navigate({
+                    to: "/capture",
+                    ...(event.shiftKey ? { search: { record: true } } : {}),
+                  });
+                }}
+                aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
+                data-tour="nav-plus"
+                className="focus-ring press-98 -translate-y-2 grid size-14 place-items-center rounded-full bg-pill p-0 text-pill-text ring-4 ring-surface is-hover:bg-pill is-hover:text-pill-text [&_svg]:size-6"
+              >
+                <Mic strokeWidth={2} aria-hidden />
+              </Button>
+            </div>
+          ) : (
+            slot
+          ),
         )}
-
-        {right.map((item) => (
-          <Tab
-            key={item.key}
-            item={item}
-            active={item.active(pathname, view, pickSection)}
-            count={item.badge ? counts[item.badge] : 0}
-          />
-        ))}
-
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={() => setMoreOpen(true)}
-          aria-label="Ещё: разделы, тема, справка"
-          className="focus-ring text-text-2 transition-fast flex h-full min-h-12 flex-col items-center justify-center gap-1 rounded-[22px] px-0 text-[12px] leading-none font-medium [&_svg]:size-5"
-        >
-          <Menu className="size-6" strokeWidth={1.75} aria-hidden />
-          Ещё
-        </Button>
       </nav>
 
       {/* Шторки грузятся по требованию: их разметка и перетаскивание не нужны до нажатия */}
@@ -190,7 +194,7 @@ export function BottomTabs() {
   );
 }
 
-/** Позиция панели: иконка 24 px, подпись 13 px, цель нажатия во всю высоту панели */
+/** Позиция панели: иконка 24, подпись 11, активная акцентом и точкой 4 под подписью */
 function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; count: number }) {
   return (
     <Link
@@ -199,17 +203,16 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
       data-tour={`nav-${item.key}`}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "focus-ring transition-fast press relative flex h-full min-h-12 flex-col items-center justify-center gap-1 rounded-[22px] text-[12px] leading-none font-medium",
-        // «Где я» — капсула цвета главной кнопки, без оранжевого: оранжевый у микрофона
-        active ? "bg-pill text-pill-text" : "text-text-2",
+        "focus-ring transition-fast relative flex h-tabbar flex-col items-center justify-center gap-1 pt-1 text-tab",
+        active ? "text-orange" : "text-text-2",
       )}
     >
       <span className="relative">
-        <item.icon className="size-5" strokeWidth={active ? 2 : 1.75} aria-hidden />
+        <item.icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
         {count > 0 && (
           <span
             className={cn(
-              "absolute -top-2 -right-3 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[13px] leading-none font-medium",
+              "absolute -top-1.5 -right-3 grid h-4 min-w-4 place-items-center rounded-full px-1 text-tab tnum",
               item.badge && CRITICAL_BADGES.includes(item.badge)
                 ? "bg-danger text-on-orange"
                 : "bg-surface-3 text-text-2",
@@ -220,6 +223,10 @@ function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; co
         )}
       </span>
       {item.label}
+      <span
+        aria-hidden
+        className={cn("-mt-0.5 size-1 rounded-full", active ? "bg-orange" : "bg-transparent")}
+      />
     </Link>
   );
 }

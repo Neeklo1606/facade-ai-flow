@@ -1,11 +1,13 @@
 import { expect, expectA11y, open, test } from "./fixtures";
 
 /**
- * Нижняя панель (ADR-026, карта ГАЙКИ — ADR-034, п. 1). Проверяется то, что правило одного
- * оранжевого по содержимому не проверяет: панель — хром. Оранжевой заливки в ней нет с ADR-041,
- * а с 18.10.2026 (правка владельца `032b15b`, поправка к ADR-041) нет и свечения голосовой
- * капсулы. Плюс набор позиций: он одинаков для всех ролей, меняется только первая,
- * и активная позиция обходится без акцентного цвета.
+ * Нижняя панель (ADR-026, карта ГАЙКИ — ADR-034, п. 1; вид ADR-045 «Финальный интерфейс», 4.3).
+ * Решение владельца 21.10.2026: панель плоская, 56 + safe-area, активный пункт иконкой
+ * и подписью акцентом с точкой под подписью, без таблетки. Оранжевый в панели только у
+ * активного пункта: ни заливки, ни свечения у голосовой кнопки (правка `032b15b` от 18.10
+ * про свечение остаётся). Голосовая кнопка строго по центру экрана при любом числе пунктов
+ * (refs/16: у снабжения на «Объектах» она уезжала вправо). Набор позиций одинаков для всех
+ * ролей, меняется только первая.
  */
 
 /** Сколько оранжевых пятен внутри панели и какого цвета активная позиция */
@@ -40,12 +42,14 @@ async function panel(page: import("@playwright/test").Page) {
       const style = getComputedStyle(el);
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) continue;
+      // Акцент разрешён только активному пункту: иконка, подпись и точка «где я»
+      if (el.closest('[aria-current="page"]')) continue;
       if (isOrange(style.backgroundColor) || isOrange(style.color)) {
         orange.push((el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 24));
       }
       if (
         (el.tagName === "A" || el.tagName === "BUTTON") &&
-        (rect.height < 48 || rect.width < 40)
+        (rect.height < 44 || rect.width < 40)
       ) {
         small.push(`${(el.textContent || "").trim().slice(0, 16)}: ${Math.round(rect.height)}px`);
       }
@@ -59,12 +63,16 @@ async function panel(page: import("@playwright/test").Page) {
      */
     const capsule = nav.querySelector('[data-tour="nav-plus"]');
     const glow = capsule ? getComputedStyle(capsule).boxShadow : "";
+    const box = capsule?.getBoundingClientRect();
     return {
+      capsuleOffset: box ? Math.round(box.left + box.width / 2 - window.innerWidth / 2) : null,
+      capsuleSize: box ? Math.round(Math.min(box.width, box.height)) : null,
       capsule: capsule?.getAttribute("aria-label")?.slice(0, 24) ?? null,
       capsuleGlows: /255,\s*122,\s*69/u.test(glow),
-      labels: [...nav.children].map((child) =>
-        (child.textContent || "").replace(/\s+/g, " ").trim().slice(0, 18),
-      ),
+      // Пустые ячейки держат микрофон по центру: в набор позиций они не входят
+      labels: [...nav.children]
+        .filter((child) => child.getAttribute("aria-hidden") !== "true")
+        .map((child) => (child.textContent || "").replace(/\s+/g, " ").trim().slice(0, 18)),
       orange,
       small,
       activeOrange: active ? isOrange(getComputedStyle(active).color) : null,
@@ -80,11 +88,13 @@ test.describe("нижняя панель @mobile", () => {
   test.describe("снабжение", () => {
     test.use({ persona: "e-dorohov" });
 
-    test("позиции роли, панель без оранжевого, активная без акцента @mobile", async ({ page }) => {
+    test("позиции роли, оранжевый только у активной, микрофон по центру @mobile", async ({
+      page,
+    }) => {
       await open(page, "/projects/p-korona/procurement");
       const state = await panel(page);
       expect(state, "панель не найдена").not.toBeNull();
-      expect(state!.height).toBeGreaterThanOrEqual(64);
+      expect(state!.height).toBeGreaterThanOrEqual(56);
       // Обзор, Объект, кнопка записи, Входящие, Ещё — карта ГАЙКИ (ADR-034, п. 1)
       expect(state!.labels).toHaveLength(5);
       expect(state!.labels.join(" ")).toContain("Обзор");
@@ -93,14 +103,15 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       expect(state!.labels.join(" ")).not.toContain("Документ");
       /*
-       * Панель — хром: цветом она не спорит с содержимым. Ни оранжевой заливки, ни свечения
-       * капсулы (решение владельца 18.10.2026, правка `032b15b`; до этого капсула светилась
-       * по ADR-041). Голосовая капсула при этом на месте и называется «Говорить».
+       * Панель — хром: оранжевый только у активной позиции (4.3), у голосовой кнопки нет
+       * ни заливки, ни свечения. Кнопка 56, строго по центру экрана, называется «Говорить».
        */
       expect(state!.orange).toHaveLength(0);
       expect(state!.capsule).toContain("Говорить");
       expect(state!.capsuleGlows).toBe(false);
-      expect(state!.activeOrange).toBe(false);
+      expect(state!.capsuleSize).toBeGreaterThanOrEqual(56);
+      expect(Math.abs(state!.capsuleOffset ?? 99)).toBeLessThanOrEqual(1);
+      expect(state!.activeOrange).toBe(true);
       expect(state!.small).toEqual([]);
       await expectA11y(page, "нижняя панель");
     });
@@ -129,6 +140,15 @@ test.describe("нижняя панель @mobile", () => {
       await expectA11y(page, "шторка «Ещё»");
       await page.keyboard.press("Escape");
       await expect(sheet).toBeHidden();
+    });
+
+    test("на «Объектах» три позиции, микрофон всё равно по центру (refs/16) @mobile", async ({
+      page,
+    }) => {
+      await open(page, "/projects");
+      const state = await panel(page);
+      expect(state!.capsule).toContain("Говорить");
+      expect(Math.abs(state!.capsuleOffset ?? 99)).toBeLessThanOrEqual(1);
     });
   });
 

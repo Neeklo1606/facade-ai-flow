@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Check, X } from "lucide-react";
+import { ArrowRight, Check, X } from "lucide-react";
+import { notify } from "@/components/ui/kit";
 import { queries } from "@/api/queries";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
@@ -9,7 +11,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
 import { useEnterAs } from "@/lib/persona";
 import { useCurrentRole, useProjectId } from "@/lib/project-scope";
-import { Button } from "@/components/ui/button";
 
 // Шторка шага грузится по касанию полосы: в оболочке ей место не нужно (бюджет бандла)
 const GuideSheet = lazy(() =>
@@ -33,8 +34,11 @@ import {
 import { currentScreenKey, onTelemetry, record } from "@/lib/guide/telemetry";
 
 /**
- * Проводка по сценарию роли и кнопка «Непонятно на этом экране» (ADR-010).
- * Правый нижний угол; на телефоне — над закреплённым действием экрана и свёрнута по умолчанию.
+ * Полоса показа ГАЙКИ (ADR-010; вид ADR-045 «Финальный интерфейс», 4.4): живёт под шапкой,
+ * одной строкой 44: «2/5», текст шага в одну строку, кнопка со стрелкой и «Скрыть».
+ * Касание «2/5» сворачивает полосу в таблетку в шапке (видимая 32, касание 44).
+ * Пройденный сценарий сообщается тостом на 4 секунды, а не висит плашкой: в полосе остаётся
+ * одна строка со следующим действием («Дальше: ПТО → документ», «Итоги показа»).
  */
 export function GuideDock() {
   const chosen = useRoleChosen();
@@ -91,13 +95,21 @@ export function GuideDock() {
     } else completeStep(active.id);
   }, [guide.scenarioId, guide.stepIndex, role, scenario]);
 
-  // На телефоне панель начинает свёрнутой: она не должна закрывать экран
-  const collapsedDefaultApplied = useRef(false);
+  void mobile;
+  // Сценарий пройден: короткий тост вместо плашки над экраном (4.4)
+  const announced = useRef<string | null>(null);
   useEffect(() => {
-    if (collapsedDefaultApplied.current || !mobile || !scenario) return;
-    collapsedDefaultApplied.current = true;
-    if (guide.stepIndex === 0 && !guide.collapsed) setCollapsed(true);
-  }, [mobile, scenario, guide.stepIndex, guide.collapsed]);
+    if (!finished || !scenario || announced.current === scenario.id) return;
+    announced.current = scenario.id;
+    notify(
+      skipped > 0
+        ? `${scenario.title} · пропущено шагов: ${skipped}`
+        : `${scenario.title} · пройден`,
+    );
+  }, [finished, scenario, skipped]);
+  // Таблетка свёрнутой полосы встаёт в шапку
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setSlot(document.getElementById("show-slot")), []);
 
   const stepDone = !!step && guide.status[step.id] === "done";
   const highlight = !!step && !guide.closed && !stepDone;
@@ -159,56 +171,75 @@ export function GuideDock() {
     action = { label: "Перейти", run: () => void navigate({ to: stepHref }) };
   }
 
+  const total = scenario.steps.length;
+  const position = finished ? `${total}/${total}` : `${guide.stepIndex + 1}/${total}`;
+  const text = finished
+    ? next
+      ? `Следующий сценарий: ${next.title}`
+      : `${scenario.title} · пройден`
+    : (step?.text ?? "");
+
+  if (guide.collapsed && slot) {
+    return createPortal(
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        aria-label={`Показ: шаг ${position}. Развернуть подсказки`}
+        className="touch-target inline-flex h-8 shrink-0 items-center rounded-full bg-orange-dim px-3 text-meta-strong text-orange tnum focus-ring"
+      >
+        {position}
+      </button>,
+      slot,
+    );
+  }
+
   return (
     <div
       ref={dockRef}
-      /*
-       * Полоса шагов под шапкой (правило 7 этапа D, ADR-041): не плавает поверх, не закрывает
-       * кнопки. Живёт между шапкой и содержимым, поэтому контент под ней не уходит.
-       */
-      className="mx-[var(--content-pad)] mb-4 flex min-h-12 shrink-0 items-center gap-2 rounded-[24px] bg-surface ps-4 pe-1 shadow-[var(--lift-1)] ring-1 ring-orange-line"
+      data-show-strip
+      className="line-bottom flex h-show shrink-0 items-center gap-2 bg-surface px-gutter"
     >
       <section
         aria-label="Подсказки по сценарию"
-        className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex"
+        className="flex min-w-0 flex-1 items-center gap-2"
       >
         <button
           type="button"
-          onClick={() => setSheetOpen(true)}
-          aria-label="Открыть шаг сценария"
-          className="focus-ring col-start-1 flex min-h-12 min-w-0 flex-1 items-center gap-2 py-2 text-left text-[13px] leading-[1.45]"
+          onClick={() => setCollapsed(true)}
+          aria-label={`Шаг ${position}. Свернуть подсказки`}
+          className="touch-target inline-flex h-chip shrink-0 items-center gap-1 rounded-full bg-orange-dim px-2 text-meta-strong text-orange tnum focus-ring"
         >
           {stepDone || finished ? (
-            <Check className="size-4 shrink-0 text-ok" strokeWidth={2} aria-hidden />
+            <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
           ) : null}
-          <span className="min-w-0">
-            <span className="block text-text-2">
-              {finished
-                ? skipped > 0
-                  ? `${scenario.title} · пропущено ${skipped}`
-                  : `${scenario.title} · пройден`
-                : `${scenario.title} · шаг ${guide.stepIndex + 1} из ${scenario.steps.length}`}
-            </span>
-            {step && !finished ? <span className="block text-text">{step.text}</span> : null}
-          </span>
+          {position}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-label={`Открыть шаг сценария: ${scenario.title}`}
+          className="flex h-control min-w-0 flex-1 items-center text-left text-meta text-text focus-ring"
+        >
+          <span className="sr-only">{`${scenario.title} · `}</span>
+          <span className="truncate">{text}</span>
         </button>
         {action ? (
-          <Button
-            variant="outline"
+          <button
             type="button"
             onClick={action.run}
-            className="focus-ring col-start-1 row-start-2 mb-2 min-h-12 justify-self-start px-4 text-[13px] sm:mb-0 sm:min-h-10"
+            className="touch-target inline-flex h-8 max-w-[45%] shrink-0 items-center gap-1 rounded-full bg-pill px-3 text-meta-strong text-pill-text focus-ring press-98"
           >
-            {action.label}
-          </Button>
+            <span className="truncate">{action.label}</span>
+            <ArrowRight className="size-4 shrink-0" aria-hidden />
+          </button>
         ) : null}
         <button
           type="button"
           onClick={closeGuide}
           aria-label="Скрыть подсказки"
-          className="focus-ring col-start-2 row-start-1 grid size-12 shrink-0 place-items-center text-text-3 hover:text-text"
+          className="touch-target grid size-8 shrink-0 place-items-center rounded-full text-text-3 focus-ring is-hover:bg-surface-2"
         >
-          <X className="size-4" strokeWidth={1.5} />
+          <X className="size-4" strokeWidth={1.75} aria-hidden />
         </button>
       </section>
 

@@ -116,7 +116,25 @@ export function AppProvider({
     const saved = restoreProjectId();
     if (saved) setProjectIdState(saved);
   }, []);
+  /*
+   * Свёрнутый сайдбар запоминается (ADR-045, 4.2): заказчик просил уметь скрывать левую
+   * панель. Хранилище может быть недоступно, тогда панель просто развёрнута.
+   */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("neeklo-sidebar-collapsed") === "1") setSidebarCollapsed(true);
+    } catch {
+      // приватный режим: состояние не запоминается
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("neeklo-sidebar-collapsed", sidebarCollapsed ? "1" : "0");
+    } catch {
+      // приватный режим
+    }
+  }, [sidebarCollapsed]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   // Персона живёт в модуле слоя данных: оттуда её берёт актор действий

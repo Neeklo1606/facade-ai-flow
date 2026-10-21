@@ -151,7 +151,7 @@ export function Sheet({
             {children}
           </div>
           {actions ? (
-            <div className="flex h-action shrink-0 items-center gap-2 border-t border-line bg-surface px-4 pb-[env(safe-area-inset-bottom)] box-content">
+            <div className="line-top flex h-action shrink-0 items-center gap-2 bg-surface px-4 pb-[env(safe-area-inset-bottom)] box-content">
               {actions}
             </div>
           ) : (

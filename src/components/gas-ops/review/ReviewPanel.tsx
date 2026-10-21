@@ -204,7 +204,11 @@ export function ReviewPanel({
   );
 }
 
-/** Кнопки решения: внизу панели на десктопе, плавающая капсула на телефоне */
+/**
+ * Кнопки решения: внизу панели на десктопе. На телефоне липкая панель действий 64 + safe-area
+ * у нижнего края (ADR-045, 4.4 и 4.13): открытая карточка закрывает нижнюю панель оболочки,
+ * поэтому внизу один слой. Кнопки решения полевые: 48.
+ */
 function ActionBar({
   sheet,
   floatingBottom,
@@ -220,7 +224,7 @@ function ActionBar({
         <div
           role="group"
           aria-label="Решение по записи"
-          className="flex items-center gap-1.5 rounded-[30px] bg-surface p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.28)] ring-1 ring-line"
+          className="box-content line-top flex h-action items-center gap-2 bg-surface px-gutter pb-[env(safe-area-inset-bottom)] [&_button]:h-12 [&_button]:min-h-12 [&_button]:min-w-12"
         >
           {children}
         </div>
@@ -239,17 +243,15 @@ function ActionBar({
 }
 
 /**
- * Плавающая капсула листа на телефоне. Рисуется в body, а не внутри листа: у листа есть
+ * Панель действий листа на телефоне. Рисуется в body, а не внутри листа: у листа есть
  * анимация сдвига, и `fixed` внутри него считался бы от листа, а не от экрана.
+ * Нижней панели оболочки под листом нет, поэтому панель стоит у самого края.
  */
 function Floating({ bottom, children }: { bottom: number; children: ReactNode }) {
+  void bottom;
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div
-      data-review-floating
-      className="fixed inset-x-3 z-[36] mx-auto max-w-[520px]"
-      style={{ bottom }}
-    >
+    <div data-review-floating className="fixed inset-x-0 bottom-0 z-[46]">
       {children}
     </div>,
     document.body,
@@ -413,7 +415,7 @@ function ReasonForm({
 
       {sheet ? (
         <Floating bottom={floatingBottom}>
-          <div className="flex items-center gap-2 rounded-[30px] bg-surface p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.28)] ring-1 ring-line">
+          <div className="box-content line-top flex h-action items-center gap-2 bg-surface px-gutter pb-[env(safe-area-inset-bottom)] [&_button]:h-12 [&_button]:min-h-12">
             {buttons}
           </div>
         </Floating>

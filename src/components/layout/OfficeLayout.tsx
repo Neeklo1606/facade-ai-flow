@@ -87,7 +87,8 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-3 border-b border-line px-5 lg:hidden">
+        {/* Шапка телефона 52 + safe-area (ADR-045, 4.2), сплошная, с границей снизу */}
+        <header className="sticky top-0 z-30 box-content flex h-header items-center gap-2 border-b border-line bg-surface px-gutter pt-[env(safe-area-inset-top)] lg:hidden">
           <Link
             to={pathname.replace(/\/$/u, "") === "/office" ? "/" : "/office"}
             aria-label={
@@ -95,11 +96,11 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
                 ? "В полевое приложение"
                 : "К разделам кабинета"
             }
-            className="focus-ring -ml-2 grid size-12 place-items-center rounded-[var(--r-sm)]"
+            className="focus-ring -ml-2 grid size-11 place-items-center rounded-full"
           >
             <ArrowLeft className="size-5" aria-hidden />
           </Link>
-          <span className="text-[17px] font-semibold">Кабинет компании</span>
+          <span className="text-body-strong">Кабинет компании</span>
           <span className="ml-auto">
             <DemoMark />
           </span>
@@ -108,20 +109,20 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
           Шапка кабинета с 1024 px: заголовок раздела, его действия и подпись — те же места,
           что у полевой шапки, поэтому экраны пользуются обычным PageHeader (ADR-039).
         */}
-        <header className="hidden min-h-[80px] items-center gap-4 border-b border-line px-12 lg:flex">
+        <header className="hidden h-header items-center gap-4 border-b border-line px-12 lg:flex">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-page-title" aria-hidden="true">
+            <div className="truncate text-title" aria-hidden="true">
               {screenFor(pathname).name}
             </div>
             <div
               id="page-caption"
-              className="flex min-w-0 items-center gap-2 text-[13px] text-text-2 empty:hidden"
+              className="flex min-w-0 items-center gap-2 text-meta text-text-2 empty:hidden"
             />
           </div>
           <div id="page-actions" className="flex items-center gap-2.5" />
           <DemoMark />
         </header>
-        <main className="min-w-0 flex-1 px-5 py-8 lg:px-12 lg:py-10">
+        <main className="min-w-0 flex-1 px-gutter pt-4 pb-inset lg:px-12 lg:py-10">
           <div className="mx-auto w-full max-w-[1200px]">{children}</div>
         </main>
       </div>

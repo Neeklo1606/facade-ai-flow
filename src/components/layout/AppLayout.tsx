@@ -9,19 +9,27 @@ const CommandPalette = lazy(() =>
   import("./CommandPalette").then((module) => ({ default: module.CommandPalette })),
 );
 import { GuideDock } from "@/components/guide/GuideDock";
+import { useSegScroll } from "@/lib/ui/seg-scroll";
+import { useInstallHint } from "@/lib/ui/pwa";
+import { useRouterState } from "@tanstack/react-router";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { commandOpen } = useApp();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Ряды капсул, которые не влезают, прокручиваются с затуханием и докручивают активную (4.11)
+  useSegScroll(pathname);
+  useInstallHint();
   return (
     <div className="app-window">
       <div className="app-shell">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
-          {/* Полоса шагов показа под шапкой: не плавает поверх содержимого (ADR-041) */}
+          {/* Полоса показа под шапкой одной строкой 44: не плавает поверх содержимого (4.4) */}
           <GuideDock />
           <div className="flex min-h-0 min-w-0 flex-1 items-stretch">
-            <main className="min-w-0 flex-1 overflow-y-auto px-[var(--content-pad)] pt-0 pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+24px)] lg:pb-8">
+            {/* Нижний отступ из менеджера слоёв: высота нижней панели и 16 (4.4) */}
+            <main className="min-w-0 flex-1 overflow-y-auto px-gutter pt-2 pb-inset lg:pt-6 lg:pb-8">
               <div className="mx-auto w-full max-w-[1440px]">{children}</div>
             </main>
           </div>

@@ -111,7 +111,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // viewport-fit=cover: экран с «Домой» занимает весь экран, отступы через safe-area (4.20)
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "Гайка" },
       // Умолчание демо — тёмная тема (ADR-041); дальше значение ставит applyTheme
       { name: "theme-color", content: "#0a0908" },
       // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
@@ -246,8 +251,17 @@ function RootComponent() {
               <RolePicker />
             </Suspense>
           )}
-          {/* Сверху, под шапкой: снизу уведомления перекрывали основные действия экранов и нижнюю навигацию */}
-          <Toaster position="top-center" offset={{ top: 64 }} mobileOffset={{ top: 64 }} />
+          {/*
+            Тосты внизу над нижним слоем (ADR-045, 4.5): отступ берётся из менеджера слоёв,
+            поэтому тост не закрывает ни нижнюю панель, ни панель действий шторки.
+            Сверху они закрывали заголовок экрана (refs/02, 04).
+          */}
+          <Toaster
+            position="bottom-center"
+            swipeDirections={["bottom"]}
+            offset={{ bottom: "calc(var(--bottom-inset, 0px) + 8px)" }}
+            mobileOffset={{ bottom: "calc(var(--bottom-inset, 0px) + 8px)" }}
+          />
         </TooltipProvider>
       </AppProvider>
     </QueryClientProvider>

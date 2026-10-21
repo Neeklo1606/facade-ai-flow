@@ -37,9 +37,13 @@ test.describe("контур газа открывается в своей обо
   for (const path of GAS_SCREENS) {
     test(`экран ${path} без ошибок и без ГАЙКИ`, async ({ page }) => {
       await open(page, path);
-      await expect(page.locator("header h1")).toBeVisible();
-      // Один заголовок на экран: h1 только в шапке оболочки
-      expect(await page.locator("h1").count()).toBe(1);
+      // Один видимый заголовок на экран (ADR-045, 4.2): на телефоне он в контенте под шапкой,
+      // на компьютере в шапке оболочки 56
+      const headings = page.locator("h1").filter({ visible: true });
+      await expect(headings).toHaveCount(1);
+      await expect(
+        page.locator("header h1, main > div > h1").filter({ visible: true }),
+      ).toHaveCount(1);
       const text = await page.locator("body").innerText();
       for (const marker of GAIKA_MARKERS)
         expect(text, `${marker} на ${path}`).not.toContain(marker);

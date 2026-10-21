@@ -2,12 +2,22 @@
  * Рабочий контур газа (ADR-044, F1). На `/gas/*` вместо оболочки ГАЙКИ: своё меню, своя шапка,
  * своя нижняя панель по роли, без персон ГАЙКИ, выбора объектов и микрофона.
  *
- * Десктоп от 1024: сайдбар 248 px и шапка 64 px. Телефон и планшет: стеклянная шапка 56 px
- * и плавающая нижняя панель из четырёх пунктов. Бригадир видит экран бота во весь экран.
+ * Вид ADR-045 «Финальный интерфейс», раздел 4: телефон и планшет — шапка 52 + safe-area
+ * без логотипа и стекла, заголовок экрана 24/30 в контенте уходит в шапку при прокрутке,
+ * полоса показа под шапкой, плоская нижняя панель 56 из четырёх пунктов по роли. Компьютер
+ * от 1024 — сайдбар 248 (сворачивается до 72, состояние запоминается) и шапка 56.
+ * Бригадир видит экран бота во весь экран, без нижней панели.
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { CircleHelp, MoreHorizontal, RotateCcw, Search } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  CircleHelp,
+  MoreHorizontal,
+  RotateCcw,
+  Search,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import {
@@ -37,6 +47,11 @@ import {
 import { resetGasShow } from "@/lib/gas-ops/show";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useBottomLayer } from "@/lib/ui/bottom-layers";
+import { useCollapsingTitle } from "@/lib/ui/collapsing-title";
+import { useSegScroll } from "@/lib/ui/seg-scroll";
+import { useAppManifest, useInstallHint } from "@/lib/ui/pwa";
+import { ListGroup, ListRow } from "@/components/ui/kit";
 import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
 import { GasShowDock } from "../show/GasShowDock";
@@ -58,25 +73,69 @@ export function GasShell({ children }: { children: ReactNode }) {
   // Бригадир живёт в боте: без нижней панели и без меню, как в мессенджере
   const botOnly = actor.role === "foreman" && screen.key === "foreman";
 
+  const [rail, setRail] = useRail();
+  useSegScroll(pathname);
+  // На «Домой» контур ставится своим приложением «Учёт выработки» (4.20)
+  useAppManifest("/manifest-gas.webmanifest", "Учёт выработки");
+  useInstallHint();
+  // Крупный заголовок в контенте; когда он ушёл под шапку, его текст встаёт в шапку (4.2)
+  const { ref: titleRef, collapsed } = useCollapsingTitle(pathname);
+
   return (
     <div className="gas-shell flex min-h-dvh bg-void text-text">
-      <GasSidebar pathname={pathname} />
+      <GasSidebar pathname={pathname} rail={rail} onRail={setRail} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <GasTopbar screen={screen} />
+        {/* Шапка и полоса показа липкие вместе: полоса живёт под шапкой (4.4) */}
+        <div className="sticky top-0 z-30">
+          <GasTopbar screen={screen} collapsed={collapsed} />
+          <GasShowDock />
+        </div>
         <main
           id="gas-main"
           className={cn(
-            "min-w-0 flex-1 px-4 pt-4 sm:px-6 lg:px-8 lg:pt-6",
-            botOnly ? "pb-safe" : "pb-[calc(96px+env(safe-area-inset-bottom))] lg:pb-12",
+            "min-w-0 flex-1 px-gutter pt-2 lg:px-8 lg:pt-6",
+            botOnly ? "pb-safe" : "pb-inset lg:pb-12",
           )}
         >
-          <div className="mx-auto w-full max-w-[1280px]">{children}</div>
+          <div className="mx-auto w-full max-w-[1280px]">
+            {/* Заголовок экрана на телефоне и планшете: 24/30, отступ 8 сверху и 12 снизу */}
+            {botOnly ? null : (
+              <h1
+                ref={titleRef}
+                // Стартовый экран и финал показа рисуют свой крупный заголовок
+                className={cn("mb-3 text-title lg:hidden", screen.key === "start" && "sr-only")}
+              >
+                {screen.title}
+              </h1>
+            )}
+            {children}
+          </div>
         </main>
       </div>
       {botOnly ? null : <GasBottomNav pathname={pathname} />}
-      <GasShowDock lifted={!botOnly} />
     </div>
   );
+}
+
+/** Сайдбар компьютера свёрнут до рельса 72: запоминается, хранилище может быть недоступно */
+function useRail(): [boolean, (next: boolean) => void] {
+  const [rail, setRailState] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("neeklo-gas-sidebar-collapsed") === "1") setRailState(true);
+    } catch {
+      // приватный режим: сайдбар развёрнут
+    }
+  }, []);
+  const setRail = useCallback((next: boolean) => {
+    setRailState(next);
+    try {
+      localStorage.setItem("neeklo-gas-sidebar-collapsed", next ? "1" : "0");
+    } catch {
+      // приватный режим
+    }
+  }, []);
+  return [rail, setRail];
 }
 
 /**
@@ -117,7 +176,7 @@ function BrandMark({ className }: { className?: string }) {
     <span
       aria-hidden
       className={cn(
-        "grid size-9 shrink-0 place-items-center rounded-[12px] bg-[radial-gradient(circle_at_30%_30%,#ff9a62,#f16001_55%,#8f1d0b)] text-[15px] font-semibold text-white shadow-[0_6px_18px_rgba(241,96,1,0.35)]",
+        "grid size-9 shrink-0 place-items-center rounded-control bg-orange-strong text-body-strong text-on-orange",
         className,
       )}
     >
@@ -126,44 +185,55 @@ function BrandMark({ className }: { className?: string }) {
   );
 }
 
-function GasSidebar({ pathname }: { pathname: string }) {
+function GasSidebar({
+  pathname,
+  rail,
+  onRail,
+}: {
+  pathname: string;
+  rail: boolean;
+  onRail: (next: boolean) => void;
+}) {
   const actor = useGasActor();
   const screens = screensFor(actor.role);
   return (
     <aside
       aria-label="Меню учёта выработки"
-      className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col gap-4 bg-base px-3 py-4 lg:flex"
+      data-rail={rail ? "true" : undefined}
+      className={cn(
+        "sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-e border-line bg-base py-4 transition-[width] duration-150 ease-out lg:flex",
+        rail ? "w-[72px] px-2" : "w-[248px] px-3",
+      )}
     >
+      {/* Логотип только здесь, в меню, и на стартовом экране (4.2) */}
       <Link
         to="/gas"
-        className="flex items-center gap-3 rounded-[var(--r-md)] px-2 py-1 focus-ring"
+        title={GAS_BRAND.product}
+        className={cn(
+          "flex items-center gap-3 rounded-control py-1 focus-ring",
+          rail ? "justify-center px-0" : "px-2",
+        )}
       >
         <BrandMark />
-        <span className="min-w-0">
-          <span className="block truncate text-[14px] leading-5 font-semibold text-text">
-            {GAS_BRAND.product}
-          </span>
-          <span className="block truncate text-[12px] leading-4 text-text-3">
-            {GAS_BRAND.clientShort}
-          </span>
+        <span className={cn("min-w-0", rail && "sr-only")}>
+          <span className="block truncate text-body-strong text-text">{GAS_BRAND.product}</span>
+          <span className="block truncate text-meta text-text-3">{GAS_BRAND.clientShort}</span>
         </span>
       </Link>
 
       <nav
         aria-label="Разделы"
-        className="nav-scroll -mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1"
+        className="nav-scroll -mx-1 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-1"
       >
         {GROUPS.map((group) => {
           const items = screens.filter((s) => s.group === group);
           if (items.length === 0) return null;
           return (
             <div key={group} className="flex flex-col gap-0.5">
-              <p className="px-3 pb-1 text-[12px] leading-4 text-text-3">
+              <p className={cn("px-3 pt-2 pb-1 text-meta text-text-3", rail && "sr-only")}>
                 {GAS_GROUP_LABEL[group]}
                 {group === "growth" ? (
-                  <span className="ms-1.5 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-text-3">
-                    {OUT_OF_SCOPE_LABEL}
-                  </span>
+                  <span className="ms-1.5 text-text-3">· {OUT_OF_SCOPE_LABEL}</span>
                 ) : null}
               </p>
               {items.map((item) => {
@@ -172,12 +242,13 @@ function GasSidebar({ pathname }: { pathname: string }) {
                   <Link
                     key={item.key}
                     to={item.to}
+                    title={item.title}
                     data-active={isActive(item, pathname) ? "true" : undefined}
                     data-tour={`nav-${item.key}`}
-                    className="nav-item focus-ring"
+                    className={cn("nav-item focus-ring", rail && "justify-center px-0")}
                   >
-                    <Icon strokeWidth={1.6} aria-hidden />
-                    <span className="truncate">{item.title}</span>
+                    <Icon strokeWidth={1.75} aria-hidden />
+                    <span className={cn("truncate", rail && "sr-only")}>{item.title}</span>
                   </Link>
                 );
               })}
@@ -187,12 +258,25 @@ function GasSidebar({ pathname }: { pathname: string }) {
       </nav>
 
       <div className="flex flex-col gap-2">
-        <RoleButton variant="wide" />
-        <div className="flex items-center gap-1">
-          <ResetButton />
-          <ThemeToggle className="ms-auto" />
-        </div>
-        <p className="px-2 text-[11px] leading-4 text-text-3">{GAS_BRAND.credit}</p>
+        {rail ? null : <RoleButton variant="wide" />}
+        {rail ? null : (
+          <div className="flex items-center gap-1">
+            <ResetButton />
+            <ThemeToggle className="ms-auto" />
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => onRail(!rail)}
+          title={rail ? "Развернуть панель" : "Свернуть панель"}
+          aria-label={rail ? "Развернуть панель" : "Свернуть панель"}
+          aria-expanded={!rail}
+          className={cn("nav-item focus-ring w-full text-left", rail && "justify-center px-0")}
+        >
+          {rail ? <ChevronsRight strokeWidth={1.75} /> : <ChevronsLeft strokeWidth={1.75} />}
+          <span className={cn("truncate", rail && "sr-only")}>Свернуть панель</span>
+        </button>
+        {rail ? null : <p className="px-2 text-meta text-text-3">{GAS_BRAND.credit}</p>}
       </div>
     </aside>
   );
@@ -200,27 +284,21 @@ function GasSidebar({ pathname }: { pathname: string }) {
 
 /* ------------------------------------------------------------ Шапка */
 
-function GasTopbar({ screen }: { screen: GasScreen }) {
+function GasTopbar({ screen, collapsed }: { screen: GasScreen; collapsed: boolean }) {
   return (
-    <header className="glass sticky top-0 z-30 flex h-14 items-center gap-2 px-4 sm:px-6 lg:static lg:h-16 lg:bg-transparent lg:px-8 lg:backdrop-blur-none">
-      <Link
-        to="/gas"
-        aria-label="На главную учёта"
-        className="shrink-0 rounded-[12px] focus-ring lg:hidden"
-      >
-        <BrandMark className="size-8 rounded-[10px] text-[13px]" />
-      </Link>
+    <header data-collapsed={collapsed ? "true" : undefined} className="content-header lg:px-8">
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[17px] leading-6 font-semibold tracking-[-0.01em] lg:text-[22px] lg:leading-7">
-          {screen.title}
-        </h1>
-        <p className="truncate text-[12px] leading-4 text-text-3 lg:hidden">
-          {GAS_BRAND.periodLabel}
+        {/* Телефон: период, а когда заголовок ушёл под шапку, его текст. Компьютер: заголовок */}
+        <p className="truncate text-body-strong lg:hidden" aria-hidden={collapsed || undefined}>
+          {collapsed ? screen.title : GAS_BRAND.periodLabel}
         </p>
+        <h1 className="hidden truncate text-title lg:block">{screen.title}</h1>
       </div>
-      <span className="hidden h-9 items-center rounded-full bg-surface-2 px-3 text-[13px] text-text-2 tnum lg:inline-flex">
+      <span className="hidden h-8 items-center rounded-full bg-surface-2 px-3 text-meta text-text-2 tnum lg:inline-flex">
         {GAS_BRAND.periodLabel}
       </span>
+      {/* Свёрнутая полоса показа встаёт сюда таблеткой «4/6» */}
+      <div id="gas-show-slot" className="contents" />
       <HeaderSearch />
       <HelpButton screen={screen} />
       <div className="lg:hidden">
@@ -423,14 +501,33 @@ function GasBottomNav({ pathname }: { pathname: string }) {
   const tabs = ROLE_TABS[actor.role].map(gasScreen);
   const rest = screensFor(actor.role).filter((s) => !tabs.includes(s));
   const moreActive = rest.some((s) => isActive(s, pathname));
+  const ref = useRef<HTMLElement>(null);
+  useBottomLayer("tabbar", ref);
+
+  /*
+   * Нижняя панель ADR-045, 4.3: плоская, на всю ширину, 56 + safe-area, граница сверху.
+   * Активный пункт: иконка и подпись акцентом и точка 4 под подписью, без таблетки.
+   */
+  const item = (active: boolean) =>
+    cn(
+      "flex h-tabbar w-full flex-col items-center justify-center gap-1 pt-1 text-tab focus-ring",
+      active ? "text-orange" : "text-text-2",
+    );
+  const dot = (active: boolean) => (
+    <span
+      aria-hidden
+      className={cn("-mt-0.5 size-1 rounded-full", active ? "bg-orange" : "bg-transparent")}
+    />
+  );
 
   return (
     <>
       <nav
+        ref={ref}
         aria-label="Основные разделы"
-        className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(10px,env(safe-area-inset-bottom))] lg:hidden"
+        className="line-top fixed inset-x-0 bottom-0 z-40 bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        <ul className="glass mx-auto flex max-w-[520px] items-stretch gap-1 rounded-[28px] p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.28)]">
+        <ul className="flex items-stretch">
           {tabs.map((tab) => {
             const Icon = SCREEN_ICON[tab.key];
             const active = isActive(tab, pathname);
@@ -440,13 +537,11 @@ function GasBottomNav({ pathname }: { pathname: string }) {
                   to={tab.to}
                   aria-current={active ? "page" : undefined}
                   data-tour={`tab-${tab.key}`}
-                  className={cn(
-                    "flex h-14 flex-col items-center justify-center gap-0.5 rounded-[22px] text-[11px] leading-4 font-medium focus-ring press",
-                    active ? "bg-pill text-pill-text" : "text-text-2",
-                  )}
+                  className={item(active)}
                 >
-                  <Icon className="size-5" strokeWidth={1.7} aria-hidden />
+                  <Icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
                   <span className="max-w-full truncate px-1">{tab.short}</span>
+                  {dot(active)}
                 </Link>
               </li>
             );
@@ -456,13 +551,11 @@ function GasBottomNav({ pathname }: { pathname: string }) {
               type="button"
               onClick={() => setMore(true)}
               aria-haspopup="dialog"
-              className={cn(
-                "flex h-14 w-full flex-col items-center justify-center gap-0.5 rounded-[22px] text-[11px] leading-4 font-medium focus-ring press",
-                moreActive ? "bg-pill text-pill-text" : "text-text-2",
-              )}
+              className={item(moreActive)}
             >
-              <MoreHorizontal className="size-5" strokeWidth={1.7} aria-hidden />
+              <MoreHorizontal className="size-6" strokeWidth={1.75} aria-hidden />
               Ещё
+              {dot(moreActive)}
             </button>
           </li>
         </ul>
@@ -488,47 +581,43 @@ function MorePanel({
   pathname: string;
   onDone: () => void;
 }) {
+  /* «Ещё» ADR-045, 5.17: группы строк 52, а не плитки */
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-section">
       {GROUPS.map((group) => {
         const items = rest.filter((s) => s.group === group);
         if (items.length === 0) return null;
         return (
-          <section key={group}>
-            <p className="pb-1 text-[12px] text-text-3">
-              {GAS_GROUP_LABEL[group]}
-              {group === "growth" ? ` · ${OUT_OF_SCOPE_LABEL}` : ""}
-            </p>
-            <ul className="grid grid-cols-2 gap-2">
-              {items.map((item) => {
-                const Icon = SCREEN_ICON[item.key];
-                return (
-                  <li key={item.key}>
-                    <Link
-                      to={item.to}
-                      onClick={onDone}
-                      data-active={isActive(item, pathname) ? "true" : undefined}
-                      className="flex min-h-[64px] flex-col justify-center gap-1 rounded-[var(--r-lg)] bg-surface-2 px-3 py-2 text-[14px] font-medium focus-ring press data-[active=true]:bg-pill data-[active=true]:text-pill-text"
-                    >
-                      <Icon className="size-5 opacity-80" strokeWidth={1.7} aria-hidden />
-                      {item.title}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+          <ListGroup
+            key={group}
+            title={`${GAS_GROUP_LABEL[group]}${group === "growth" ? ` · ${OUT_OF_SCOPE_LABEL}` : ""}`}
+          >
+            {items.map((item) => {
+              const Icon = SCREEN_ICON[item.key];
+              return (
+                <li key={item.key}>
+                  <ListRow
+                    compact
+                    leading={<Icon className="size-5" strokeWidth={1.75} aria-hidden />}
+                    title={item.title}
+                    current={isActive(item, pathname)}
+                    renderLink={(props) => <Link to={item.to} onClick={onDone} {...props} />}
+                  />
+                </li>
+              );
+            })}
+          </ListGroup>
         );
       })}
       <section>
-        <p className="pb-1 text-[12px] text-text-3">Роль</p>
+        <p className="flex h-7 items-center text-meta text-text-3">Роль</p>
         <RoleList onDone={onDone} />
       </section>
       <div className="flex items-center gap-2">
         <ResetButton onDone={onDone} />
         <ThemeToggle className="ms-auto" />
       </div>
-      <p className="text-[12px] text-text-3">{GAS_BRAND.credit}</p>
+      <p className="text-meta text-text-3">{GAS_BRAND.credit}</p>
     </div>
   );
 }

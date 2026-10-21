@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useCollapsingTitle } from "@/lib/ui/collapsing-title";
 import { useAccess } from "@/api/access";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Search } from "lucide-react";
@@ -60,6 +61,21 @@ export function Topbar() {
     if (detailProject) setProjectId(detailProject.id);
   }, [detailProject, setProjectId]);
 
+  /*
+   * Шапка телефона (ADR-045, 4.2): заголовок экрана живёт в контенте (24/30), а когда уходит
+   * под шапку при прокрутке, его текст встаёт сюда вместо выбора объекта. Тогда же шапка
+   * получает сплошной фон и границу снизу.
+   */
+  const { ref: titleRef, collapsed } = useCollapsingTitle(pathname);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const heading = document.querySelector("main h1");
+      const rect = heading?.getBoundingClientRect();
+      titleRef(heading instanceof HTMLElement && rect && rect.height > 12 ? heading : null);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [pathname, titleRef]);
+
   // Заголовок шапки — последнее звено пути, подпись — звенья до него
   const crumbs: { label: string; to?: string }[] = detailProject
     ? [
@@ -85,7 +101,7 @@ export function Topbar() {
           screenFor(pathname).name;
 
   return (
-    <header className="content-header">
+    <header className="content-header" data-collapsed={collapsed ? "true" : undefined}>
       <Button
         variant="ghost"
         size="icon"
@@ -109,17 +125,24 @@ export function Topbar() {
             снова в шапке рядом с крошками.
           */}
           <div
-            className="hidden min-w-0 lg:block lg:truncate lg:text-page-title"
+            className="hidden min-w-0 lg:block lg:truncate lg:text-title"
             title={title}
             aria-hidden="true"
           >
             {title}
           </div>
-          <ProjectChip />
+          {collapsed ? (
+            <span className="min-w-0 truncate text-body-strong lg:hidden" aria-hidden>
+              {title}
+            </span>
+          ) : null}
+          <div className={collapsed ? "hidden lg:contents" : "contents"}>
+            <ProjectChip />
+          </div>
           {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
           {dataSource === "demo" && (
             <span
-              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-[13px] leading-none font-medium text-text-2"
+              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-meta-strong text-text-2"
               title={DEMO_ONLY_NOTES.mark.text}
             >
               {/* Видимая метка — отдельным элементом: её ищет проверка честности */}
@@ -131,11 +154,11 @@ export function Topbar() {
         {/* Подпись экрана: страница может заменить путь своей строкой (код, статус объекта) */}
         <div
           id="page-caption"
-          className="hidden min-w-0 items-center gap-2 text-[13px] leading-[1.45] text-text-2 lg:flex lg:empty:hidden"
+          className="hidden min-w-0 items-center gap-2 text-meta text-text-2 lg:flex lg:empty:hidden"
         />
         <nav
           aria-label="Хлебные крошки"
-          className="hidden min-w-0 items-center gap-1.5 text-[13px] leading-[1.45] text-text-2 lg:flex"
+          className="hidden min-w-0 items-center gap-1.5 text-meta text-text-2 lg:flex"
         >
           {crumbs.length ? (
             crumbs.map((crumb, index) => (
@@ -159,7 +182,9 @@ export function Topbar() {
         </nav>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 xl:gap-2.5">
+      <div className="flex shrink-0 items-center gap-1 xl:gap-2.5">
+        {/* Свёрнутая полоса показа встаёт сюда таблеткой «2/5» (4.4) */}
+        <div id="show-slot" className="contents" />
         <Button
           variant="ghost"
           type="button"
@@ -222,7 +247,7 @@ export function DemoMark() {
   if (dataSource !== "demo") return null;
   return (
     <span
-      className="inline-flex h-6 items-center rounded-full border border-line px-2 text-[13px] text-text-2"
+      className="inline-flex h-6 items-center rounded-full border border-line px-2 text-meta text-text-2"
       title={DEMO_ONLY_NOTES.mark.text}
     >
       <span>Демо</span>

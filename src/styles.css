@@ -196,11 +196,12 @@
   /* Размеры оболочки */
   --shell-gap: 0px;
   --sidebar-w: 248px;
-  --topbar-h: 56px;
+  /* Шапка и нижняя панель ADR-045: 52 и 56 на телефоне */
+  --topbar-h: 52px;
   /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
-  --bottom-nav-h: 80px;
-  /* Отступ контента от краёв оболочки */
-  --content-pad: 20px;
+  --bottom-nav-h: 56px;
+  /* Отступ контента от краёв оболочки: поле экрана 3.2 */
+  --content-pad: var(--space-gutter);
 
   /* Зерно: шум feTurbulence, накладывается поверх градиента */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -380,7 +381,6 @@
 
 @media (min-width: 768px) {
   :root {
-    --content-pad: 24px;
     --space-gutter: 24px;
   }
 }
@@ -393,8 +393,7 @@
 }
 @media (min-width: 1024px) {
   :root {
-    --topbar-h: 80px;
-    --content-pad: 32px;
+    --topbar-h: 56px;
     --space-gutter: 32px;
     --space-block: 16px;
     --space-section: 32px;
@@ -1023,8 +1022,8 @@
 @utility main-bleed {
   margin-inline: calc(var(--content-pad) * -1);
   margin-top: 0;
-  margin-bottom: calc((var(--bottom-nav-h) + 24px) * -1);
-  height: calc(100dvh - var(--topbar-h) - var(--bottom-nav-h));
+  margin-bottom: calc((var(--bottom-inset, 0px) + 16px) * -1);
+  height: calc(100dvh - var(--topbar-h) - env(safe-area-inset-top) - var(--bottom-inset, 0px));
   @media (min-width: 1024px) {
     margin-bottom: -32px;
     height: calc(100vh - var(--shell-gap) * 2 - var(--topbar-h));
@@ -1040,7 +1039,7 @@
 
 @utility sidebar-header {
   display: flex;
-  height: 80px;
+  height: var(--h-header-desk);
   flex-shrink: 0;
   align-items: center;
   gap: 10px;
@@ -1067,9 +1066,9 @@
   width: 100%;
   align-items: center;
   gap: 6px;
-  padding: 22px 12px 8px;
-  font-size: 13px; /* не мельче 13 px (правило 6) */
-  line-height: 1.4;
+  padding: 16px 12px 4px;
+  font-size: 13px; /* text-meta, ADR-045 */
+  line-height: 18px;
   font-weight: 400;
   color: var(--text-3);
   &:hover {
@@ -1077,24 +1076,28 @@
   }
 }
 @utility nav-item {
+  /*
+   * Строка сайдбара ADR-045, 4.2: 44, иконка 20, text-body. Активная: полоса 3 px слева
+   * цветом акцента и фон surface-2, без заливки цветом главной кнопки.
+   */
   position: relative;
   display: flex;
   height: 44px;
   align-items: center;
   gap: 12px;
   padding-inline: 12px;
-  border-radius: var(--r-pill);
-  font-size: 14px;
-  line-height: 1;
+  border-radius: var(--r-control);
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 400;
   font-variant-numeric: proportional-nums;
   color: var(--text-2);
   background: transparent;
   & svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
-    color: var(--text-2);
+    color: var(--text-3);
   }
   &:hover {
     background: var(--surface-2);
@@ -1103,20 +1106,24 @@
   &:hover svg {
     color: var(--text);
   }
-  /* На телефоне цель касания не меньше 44px */
-  @media (max-width: 1023px) {
-    height: 48px;
-  }
-  /* Активный: оранжевая заливка на всю ширину, без полосы слева */
-  /* v3 (ADR-044): активный пункт залит цветом главной кнопки, как капсула «All» в референсе */
   &[data-active="true"] {
-    background: var(--pill-bg);
-    color: var(--pill-text);
+    background: var(--surface-2);
+    color: var(--text);
     font-weight: 500;
     box-shadow: none;
   }
+  &[data-active="true"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--orange);
+  }
   &[data-active="true"] svg {
-    color: var(--pill-text);
+    color: var(--orange);
   }
 }
 @utility nav-badge {
@@ -1166,24 +1173,35 @@
 /* ---------------------------------------------------------------- Шапка контента */
 
 @utility content-header {
+  /*
+   * Шапка ADR-045, 4.2: телефон 52 + safe-area, компьютер 56. Без стекла: в покое фон экрана,
+   * когда заголовок ушёл под шапку при прокрутке, сплошной --surface и граница снизу.
+   */
   position: sticky;
   top: 0;
   z-index: 30;
   display: flex;
-  min-height: var(--topbar-h);
+  box-sizing: content-box;
+  height: var(--h-header);
   flex-shrink: 0;
-  padding-block: 8px;
+  padding-top: env(safe-area-inset-top);
   align-items: center;
-  gap: 12px;
-  padding-inline: var(--content-pad);
-  /* v3 (ADR-044): стекло без линии, как шапка календаря в референсах */
-  background: color-mix(in oklab, var(--base) 78%, transparent);
-  backdrop-filter: saturate(1.4) blur(20px);
-  -webkit-backdrop-filter: saturate(1.4) blur(20px);
-  border-bottom: 1px solid transparent;
-  margin-bottom: 20px;
-  @media (min-width: 768px) {
-    padding-inline: var(--content-pad);
+  gap: 8px;
+  padding-inline: var(--space-gutter);
+  background: var(--base);
+  /* Линия снизу внутренней тенью: высота шапки ровно 52, без лишнего пикселя границы */
+  box-shadow: inset 0 -1px 0 transparent;
+  transition:
+    background-color var(--dur-in) var(--ease-out),
+    box-shadow var(--dur-in) var(--ease-out);
+  &[data-collapsed="true"] {
+    background: var(--surface);
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+  @media (min-width: 1024px) {
+    height: var(--h-header-desk);
+    gap: 12px;
+    box-shadow: inset 0 -1px 0 var(--line);
   }
 }
 @utility header-search {
@@ -1227,18 +1245,18 @@
   font-variant-numeric: tabular-nums;
 }
 @utility icon-button {
+  /* Кнопка-иконка шапки (4.6): 44 на телефоне, 40 на компьютере */
   display: grid;
-  /* 48px до 1024px: минимальная область нажатия ГАЙКИ (правило 6, ADR-034, п. 6) */
-  width: 48px;
-  height: 48px;
+  width: var(--touch);
+  height: var(--touch);
   flex-shrink: 0;
   place-items: center;
   border-radius: var(--r-pill);
   background: transparent;
   color: var(--text-2);
   & svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
   &:hover {
     background: var(--surface-2);
@@ -1250,7 +1268,6 @@
     height: 40px;
   }
 }
-/* Главное действие: оранжевая капсула */
 @utility btn-primary {
   display: inline-flex;
   height: 40px;
@@ -1271,9 +1288,14 @@
   }
 }
 @utility avatar {
+  /* Аватар роли 32 (4.2), на компьютере 36 */
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  @media (min-width: 1024px) {
+    width: 36px;
+    height: 36px;
+  }
   flex-shrink: 0;
   place-items: center;
   border-radius: 50%;
@@ -1567,10 +1589,6 @@ html[data-boot-compact] [data-boot-hero] {
 }
 
 @media (max-width: 1023px) {
-  .content-header {
-    margin-bottom: 20px;
-    gap: 8px;
-  }
   input,
   select,
   textarea {
@@ -1625,26 +1643,65 @@ html[data-boot-compact] [data-boot-hero] {
   background: var(--surface);
 }
 
-/* Капсульные вкладки: активная тёмная в светлой теме и светлая в тёмной, как «All / New» */
+/*
+ * Сегменты ADR-045, 4.11: высота 36, область касания 44, pill. Активный на фоне surface
+ * с тонкой границей, без заливки цветом главной кнопки. Ряд, который не влезает,
+ * прокручивается пальцем, края затухают на 16 px (seg-scroll ставит src/lib/ui/seg-scroll.ts).
+ */
 @utility seg {
   display: inline-flex;
-  gap: 4px;
-  padding: 4px;
+  max-width: 100%;
+  gap: 2px;
+  padding: 2px;
   border-radius: var(--r-pill);
   background: var(--surface-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  & > * {
+    flex-shrink: 0;
+  }
+}
+@utility seg-scroll {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent 100%
+  );
 }
 @utility seg-item {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 40px;
-  padding-inline: 16px;
+  min-height: var(--h-segment);
+  padding-inline: 14px;
   border-radius: var(--r-pill);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 400;
   color: var(--text-2);
   white-space: nowrap;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: var(--touch);
+    transform: translateY(-50%);
+  }
   @media (hover: hover) {
     &:hover {
       color: var(--text);
@@ -1652,9 +1709,12 @@ html[data-boot-compact] [data-boot-hero] {
   }
   &[aria-selected="true"],
   &[aria-current="page"],
-  &[data-active="true"] {
-    background: var(--pill-bg);
-    color: var(--pill-text);
+  &[data-active="true"],
+  &[aria-pressed="true"] {
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 500;
+    box-shadow: 0 0 0 1px var(--line);
   }
 }
 
@@ -1841,4 +1901,21 @@ html[data-boot-compact] [data-boot-hero] {
   .press-98[data-force~="press"] {
     transform: none;
   }
+}
+
+/*
+ * Открытая шторка или карточка закрывает нижнюю панель (ADR-045, 4.4): атрибут ставит
+ * менеджер слоёв src/lib/ui/bottom-layers.ts.
+ */
+html[data-sheet-open] nav[aria-label="Основные разделы"],
+html[data-sheet-open] nav[aria-label="Основная навигация"] {
+  display: none;
+}
+
+/* Линия сверху у нижних слоёв внутренней тенью: панель 56, панель действий 64 ровно */
+@utility line-top {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+@utility line-bottom {
+  box-shadow: inset 0 -1px 0 var(--line);
 }

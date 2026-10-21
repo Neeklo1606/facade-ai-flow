@@ -34,6 +34,12 @@ export interface ListRowProps {
   onSelect?: (next: boolean) => void;
   onClick?: () => void;
   href?: string;
+  /** Ссылка роутера: экран отдаёт свою обёртку (TanStack Link) с готовыми классами */
+  renderLink?: (props: {
+    className: string;
+    children: ReactNode;
+    "aria-current"?: "page";
+  }) => ReactNode;
   current?: boolean;
   className?: string;
   "data-testid"?: string;
@@ -54,11 +60,12 @@ export function ListRow({
   onSelect,
   onClick,
   href,
+  renderLink,
   current = false,
   className,
   ...rest
 }: ListRowProps) {
-  const interactive = !!(onClick || href);
+  const interactive = !!(onClick || href || renderLink);
   const showArrow = arrow ?? interactive;
   const content = (
     <>
@@ -102,7 +109,13 @@ export function ListRow({
     className,
   );
 
-  const body = href ? (
+  const body = renderLink ? (
+    renderLink({
+      className: cls,
+      children: content,
+      ...(current ? { "aria-current": "page" as const } : {}),
+    })
+  ) : href ? (
     <a href={href} className={cls} aria-current={current ? "true" : undefined} {...rest}>
       {content}
     </a>

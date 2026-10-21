@@ -1,0 +1,32 @@
+{
+  "name": "Учёт выработки",
+  "short_name": "Учёт выработки",
+  "description": "Учёт выработки бригад: бригадир вносит время, менеджер проверяет, система собирает недельный отчёт",
+  "id": "/gas",
+  "start_url": "/gas",
+  "scope": "/gas",
+  "display": "standalone",
+  "background_color": "#0b0a09",
+  "theme_color": "#0b0a09",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
