@@ -23,6 +23,7 @@ import {
 } from "@/components/common";
 import { WidgetGallery } from "@/components/design-system/WidgetGallery";
 import { GaikaGallery } from "@/components/design-system/GaikaGallery";
+import { ScaleGallery } from "@/components/design-system/ScaleGallery";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/design-system")({
@@ -183,8 +184,9 @@ function DesignSystemPage() {
     <div className="space-y-12 pb-8">
       <PageHeader
         title="Дизайн-система ГАЙКИ"
-        description="Версия 2: тёплая тёмная основа, оранжевый свет как состояние, воздух вместо линий. Один большой градиент и одно светящееся место в кадре. Витрина доступна только в сборке для проверки."
+        description="Финальный интерфейс (ADR-045): одна шкала, два уровня поверхностей, один акцент на экран. Ниже прежние витрины версии 2 и v3: их приёмы на рабочих экранах отменены. Витрина доступна только в сборке для проверки."
       />
+      <ScaleGallery />
       <GaikaGallery />
 
       {/* ---------------------------------------------------------- Палитра */}

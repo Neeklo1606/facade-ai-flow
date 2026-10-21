@@ -36,6 +36,8 @@ const steps: Step[] = [
   { name: "Фикстуры против схемы", cmd: ["bun", "run", "check:fixtures"] },
   // Ссылки в документах: README уже вёл на ADR, которого в main не было (аудит соответствия)
   { name: "Ссылки в документах", cmd: ["bun", "run", "check:links"] },
+  // Шкала ADR-045: ручные размеры мимо токенов только уменьшаются
+  { name: "Шкала размеров", cmd: ["bun", "run", "check:typography"] },
   {
     name: "PostgreSQL: миграции, паритет с демо, версия данных",
     cmd: ["bun", "run", "check:db"],

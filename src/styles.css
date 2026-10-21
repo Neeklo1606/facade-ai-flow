@@ -129,22 +129,68 @@
   --glow-risk: 0 0 28px rgba(255, 90, 95, 0.26);
   --glow-orange: none;
   --glow-soft: 0 0 80px rgba(241, 96, 1, 0.18);
+  /* Единственная тень рабочих экранов (ADR-045, 3.4): шторка, меню, тост */
+  --shadow-pop: 0 0 0 1px var(--line), 0 12px 32px rgba(0, 0, 0, 0.5);
 
-  /* Движение: 160-280 мс, та же кривая у всех переходов */
+  /* Движение (ADR-045, 3.6): нажатие 100 мс, появление 150, шторка 250, ease-out */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --dur: 160ms;
-  --dur-2: 280ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-press: 100ms;
+  --dur-in: 150ms;
+  --dur-sheet: 250ms;
+  --dur: var(--dur-in);
+  --dur-2: var(--dur-sheet);
 
-  /* Радиусы ГАЙКИ: сетка 4 px, воздух вместо обводок */
-  /* v3 (ADR-044): крупнее, как у виджетов и карточек референсов */
-  --r-xs: 8px; /* плашки клавиш, мелкие метки, чипы */
-  --r-sm: 12px;
-  --r-md: 16px;
-  --r-lg: 20px;
-  --r-xl: 24px;
-  --r-2xl: 28px;
-  --r-sheet: 32px;
+  /*
+   * Радиусы ADR-045, раздел 3.3: карточка, группа строк и поиск 12, кнопка и поле 10,
+   * пузырь бота 16, шторка 16, метка pill. Радиусы 20-32 на рабочих экранах не используются:
+   * прежние имена r-lg, r-xl, r-2xl ведут на 12 и 16, чтобы экраны не ломались до перевёрстки.
+   */
+  --r-control: 10px;
+  --r-card: 12px;
+  --r-bubble: 16px;
+  --r-xs: 8px; /* плашки клавиш, мелкие метки */
+  --r-sm: var(--r-control);
+  --r-md: var(--r-card);
+  --r-lg: var(--r-card);
+  --r-xl: var(--r-card);
+  --r-2xl: var(--r-bubble);
+  --r-sheet: 16px;
   --r-pill: 999px;
+
+  /* Отступы ADR-045, раздел 3.2: шаг 4. Телефон здесь, планшет и компьютер медиазапросами */
+  --space-gutter: 16px;
+  --space-block: 12px;
+  --space-section: 24px;
+  --space-card: 16px;
+  --space-row-y: 12px;
+  --space-row-x: 16px;
+
+  /* Высоты ADR-045, разделы 3 и 4 */
+  --h-header: 52px;
+  --h-header-desk: 56px;
+  --h-tabbar: 56px;
+  --h-action: 64px;
+  --h-row: 64px;
+  --h-row-compact: 52px;
+  --h-control: 44px;
+  --h-control-lg: 48px;
+  --h-field: 48px;
+  --h-segment: 36px;
+  --h-chip: 24px;
+  --h-show: 44px;
+  --touch: 44px;
+  --touch-field: 48px;
+
+  /*
+   * Статусы записи точкой 8 и словом (ADR-045, 3.5): цвет точки по статусу.
+   * Сумма и доходность в цвет статуса не красятся.
+   */
+  --status-pending: var(--warn);
+  --status-ok: var(--ok);
+  --status-clarify: var(--info);
+  --status-rejected: var(--danger);
+  --status-draft: var(--text-3);
 
   /* Размеры оболочки */
   --shell-gap: 0px;
@@ -324,6 +370,7 @@
   --glow-risk: 0 0 20px rgba(179, 40, 55, 0.22);
   --glow-orange: none;
   --glow-soft: 0 8px 32px rgba(28, 24, 20, 0.07);
+  --shadow-pop: 0 0 0 1px var(--line), 0 12px 32px rgba(28, 24, 20, 0.14);
 
   /* Инверсный текст: на светлой теме это белый по тёмному, а не наоборот */
   --text-inverse: #ffffff;
@@ -333,6 +380,7 @@
 @media (min-width: 768px) {
   :root {
     --content-pad: 24px;
+    --space-gutter: 24px;
   }
 }
 
@@ -346,6 +394,11 @@
   :root {
     --topbar-h: 80px;
     --content-pad: 32px;
+    --space-gutter: 32px;
+    --space-block: 16px;
+    --space-section: 32px;
+    --space-card: 20px;
+    --space-row-y: 8px;
   }
 }
 
@@ -491,8 +544,8 @@
     margin: 0;
     background: var(--void);
     color: var(--text);
-    font-size: 17px;
-    line-height: 24px;
+    font-size: 15px;
+    line-height: 20px;
     font-weight: 400;
     /* Числа моноширинные везде без исключений */
     font-variant-numeric: tabular-nums;
@@ -509,13 +562,6 @@
     line-height: 1.25;
     letter-spacing: 0;
   }
-  /* Десктоп: основной текст плотнее, как в шкале ГАЙКИ (15/22) */
-  @media (min-width: 1024px) {
-    body {
-      font-size: 15px;
-      line-height: 22px;
-    }
-  }
   /*
    * В Inter признак tnum расширяет не только цифры, но и дефис, двоеточие и косую черту
    * («Дизайн-система» разъезжается). Заголовкам выравнивание цифр в столбец не нужно —
@@ -525,6 +571,28 @@
   h2,
   h3 {
     font-variant-numeric: proportional-nums;
+  }
+  /*
+   * Правка Lovable от 21.10 (e07e212) в токенах ADR-045: заголовок без класса шкалы получает
+   * text-title и text-heading, поле ввода 48 (раздел 4.7). В базовом слое, чтобы утилиты
+   * шкалы на конкретном заголовке были сильнее.
+   */
+  h1 {
+    font-size: 24px;
+    line-height: 30px;
+  }
+  h2 {
+    font-size: 17px;
+    line-height: 22px;
+  }
+  @media (max-width: 1023px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select {
+      min-height: 48px;
+    }
+    textarea {
+      min-height: 72px;
+    }
   }
   /* Вес выше 600 и капса в системе не используются: у th браузерный bold = 700 */
   b,
@@ -575,84 +643,133 @@
 
 /* ---------------------------------------------------------------- Типографика */
 /*
- * Шкала ГАЙКИ (дизайн-система, раздел 5). Трекинг −0.02em от 32 px, 0 ниже.
- * Служебный текст не мельче 13 px. Вес 400, 500, 600; тонких начертаний нет.
+ * Шкала ADR-045 «Финальный интерфейс», раздел 3.1: одна на все ширины. С шириной меняется
+ * плотность раскладки, а не размер шрифта. Вес не выше 600, без капса, трекинг 0, кроме
+ * text-hero и text-display. Ниже 11 нельзя, 11 только в подписях нижней панели и рельса.
  */
-
-@utility text-greeting {
+@utility text-title {
   font-variant-numeric: proportional-nums;
-  font-size: 40px;
-  line-height: 44px;
+  font-size: 24px;
+  line-height: 30px;
   font-weight: 600;
   letter-spacing: 0;
 }
-@utility text-page-title {
+@utility text-heading {
   font-variant-numeric: proportional-nums;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+@utility text-body {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 400;
+}
+@utility text-body-strong {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+}
+@utility text-meta {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+}
+@utility text-meta-strong {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+@utility text-tab {
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+/* Одно главное число экрана, не больше одного */
+@utility text-hero {
+  font-variant-numeric: tabular-nums;
   font-size: 32px;
   line-height: 36px;
   font-weight: 600;
-  letter-spacing: 0;
-  @media (min-width: 1024px) {
-    font-size: 32px;
-    line-height: 40px;
-  }
+  letter-spacing: -0.02em;
 }
-/* Крупная цифра: сводка, показатель объекта */
+/* Только стартовый экран и финал показа */
+@utility text-display {
+  font-variant-numeric: proportional-nums;
+  font-size: 32px;
+  line-height: 38px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+/* Ячейки таблиц на компьютере */
+@utility text-table {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+/* Расшифровка речи в ГАЙКЕ: её читают вслух */
+@utility text-transcript {
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/*
+ * Устарело (ADR-045): прежние имена шкалы. Это псевдонимы новых токенов, чтобы экраны
+ * не сломались до перевёрстки. В новом коде не использовать.
+ */
+@utility text-greeting {
+  font-variant-numeric: proportional-nums;
+  font-size: 32px;
+  line-height: 38px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+@utility text-page-title {
+  font-variant-numeric: proportional-nums;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
 @utility text-metric {
   font-variant-numeric: tabular-nums;
-  font-size: 48px;
-  line-height: 52px;
+  font-size: 24px;
+  line-height: 30px;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-section-title {
   font-variant-numeric: proportional-nums;
-  font-size: 24px;
-  line-height: 32px;
+  font-size: 17px;
+  line-height: 22px;
   font-weight: 600;
   letter-spacing: 0;
 }
-/* Крупный читаемый текст: подсказка «Скажите, например», расшифровка — её читают вслух */
 @utility text-lead {
-  font-size: 22px;
-  line-height: 30px;
+  font-size: 17px;
+  line-height: 24px;
   font-weight: 400;
   letter-spacing: 0;
 }
 @utility text-card-title {
   font-variant-numeric: proportional-nums;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 17px;
+  line-height: 22px;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-list {
-  font-size: 17px;
-  line-height: 24px;
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 500;
-  @media (min-width: 1024px) {
-    font-size: 15px;
-    line-height: 22px;
-  }
-}
-@utility text-body {
-  font-size: 17px;
-  line-height: 24px;
-  font-weight: 400;
-  @media (min-width: 1024px) {
-    font-size: 15px;
-    line-height: 22px;
-  }
-}
-/* Таблицы: самый плотный текст системы, ниже 13 px не опускаемся */
-@utility text-table {
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 400;
 }
 @utility text-caption {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 18px;
   font-weight: 400;
 }
 @utility text-badge {
@@ -660,7 +777,6 @@
   line-height: 18px;
   font-weight: 500;
 }
-/* Подписи полей и шапки таблиц: обычный регистр, без капса */
 @utility text-overline {
   font-size: 13px;
   line-height: 18px;
@@ -1241,13 +1357,9 @@
 @utility widget-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-card);
   box-shadow: none;
-  padding: 24px;
-  :root[data-theme="light"] & {
-    border-color: transparent;
-    box-shadow: var(--lift-1);
-  }
+  padding: var(--space-card);
 }
 @utility widget-card-interactive {
   cursor: pointer;
@@ -1458,9 +1570,6 @@ html[data-boot-compact] [data-boot-hero] {
     margin-bottom: 20px;
     gap: 8px;
   }
-  .widget-card {
-    padding: 20px;
-  }
   input,
   select,
   textarea {
@@ -1507,11 +1616,12 @@ html[data-boot-compact] [data-boot-hero] {
   }
 }
 
-/* Стекло: шапка телефона, плавающая панель, капсула шага. Слой различается фоном, не линией */
+/*
+ * Бывшее стекло v3. ADR-045, 3.4: на рабочих экранах размытия нет, шапка и панели
+ * сплошные --surface. Имя оставлено, чтобы разметка не ломалась до перевёрстки.
+ */
 @utility glass {
-  background: color-mix(in oklab, var(--surface) 78%, transparent);
-  backdrop-filter: saturate(1.4) blur(20px);
-  -webkit-backdrop-filter: saturate(1.4) blur(20px);
+  background: var(--surface);
 }
 
 /* Капсульные вкладки: активная тёмная в светлой теме и светлая в тёмной, как «All / New» */
@@ -1547,46 +1657,23 @@ html[data-boot-compact] [data-boot-hero] {
   }
 }
 
-/* Карточка v3: белая в светлой, тёплый уголь в тёмной, без обводки */
+/* Карточка: уровень 1 (ADR-045, 3.4), --surface с границей 1 px, без тени, радиус 12 */
 @utility card-v3 {
-  border-radius: var(--r-xl);
+  border-radius: var(--r-card);
   background: var(--surface);
-  box-shadow: var(--lift-1);
+  border: 1px solid var(--line);
+  box-shadow: none;
 }
 
-/* Крупная цифра экрана: 48/52 на телефоне, 64/64 на десктопе */
+/* Устарело (ADR-045): псевдоним text-hero */
 @utility text-hero-num {
-  font-size: 44px;
-  line-height: 48px;
+  font-size: 32px;
+  line-height: 36px;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  @media (min-width: 768px) {
-    font-size: 56px;
-    line-height: 60px;
-  }
-  @media (min-width: 1280px) {
-    font-size: 64px;
-    line-height: 64px;
-  }
 }
 
-/* Заголовок стартового экрана: крупно, плотный трекинг. Продолжение строки тише (.tone-2) */
-@utility text-display {
-  font-size: 34px;
-  line-height: 38px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  font-variant-numeric: proportional-nums;
-  @media (min-width: 768px) {
-    font-size: 48px;
-    line-height: 52px;
-  }
-  @media (min-width: 1280px) {
-    font-size: 56px;
-    line-height: 60px;
-  }
-}
 @utility tone-2 {
   color: var(--text-3);
 }
@@ -1596,10 +1683,151 @@ html[data-boot-compact] [data-boot-hero] {
   padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
-/* Компактнее на телефоне: поля и кнопки 48 px, плотнее заголовки (ADR-042) */
-@media (max-width: 1023px) {
-  input:not([type=checkbox]):not([type=radio]), select { min-height: 48px; }
-  textarea { min-height: 72px; }
-  h1 { font-size: 24px; line-height: 30px; letter-spacing: -0.015em; }
-  h2 { font-size: 18px; line-height: 24px; }
+/* ---------------------------------------------------------------- Шкала ADR-045: утилиты */
+/*
+ * Отступы, высоты, радиусы и поверхности финального интерфейса. Экраны берут размеры только
+ * отсюда: ручные text-[Npx], p-[Npx], m-[Npx], gap-[Npx], h-[Npx], rounded-[Npx] в новом коде
+ * запрещены воротами scripts/check-typography.ts.
+ */
+@utility px-gutter {
+  padding-inline: var(--space-gutter);
+}
+@utility mx-gutter {
+  margin-inline: var(--space-gutter);
+}
+@utility -mx-gutter {
+  margin-inline: calc(var(--space-gutter) * -1);
+}
+@utility gap-block {
+  gap: var(--space-block);
+}
+@utility gap-section {
+  gap: var(--space-section);
+}
+@utility space-y-block {
+  & > :not(:last-child) {
+    margin-bottom: var(--space-block);
+  }
+}
+@utility space-y-section {
+  & > :not(:last-child) {
+    margin-bottom: var(--space-section);
+  }
+}
+@utility mt-block {
+  margin-top: var(--space-block);
+}
+@utility mt-section {
+  margin-top: var(--space-section);
+}
+@utility p-card {
+  padding: var(--space-card);
+}
+@utility px-card {
+  padding-inline: var(--space-card);
+}
+@utility py-card {
+  padding-block: var(--space-card);
+}
+@utility px-row {
+  padding-inline: var(--space-row-x);
+}
+@utility py-row {
+  padding-block: var(--space-row-y);
+}
+
+@utility h-header {
+  height: var(--h-header);
+  @media (min-width: 1024px) {
+    height: var(--h-header-desk);
+  }
+}
+@utility h-tabbar {
+  height: var(--h-tabbar);
+}
+@utility h-action {
+  height: var(--h-action);
+}
+@utility min-h-row {
+  min-height: var(--h-row);
+}
+@utility min-h-row-compact {
+  min-height: var(--h-row-compact);
+}
+@utility h-control {
+  height: var(--h-control);
+}
+@utility min-h-control {
+  min-height: var(--h-control);
+}
+@utility h-control-lg {
+  height: var(--h-control-lg);
+}
+@utility min-h-control-lg {
+  min-height: var(--h-control-lg);
+}
+@utility h-field {
+  height: var(--h-field);
+}
+@utility h-segment {
+  height: var(--h-segment);
+}
+@utility h-chip {
+  height: var(--h-chip);
+}
+@utility h-show {
+  height: var(--h-show);
+}
+/* Видимый элемент меньше 44: область касания добирается невидимой рамкой вокруг */
+@utility touch-target {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, var(--touch));
+    height: max(100%, var(--touch));
+    transform: translate(-50%, -50%);
+  }
+}
+
+@utility rounded-control {
+  border-radius: var(--r-control);
+}
+@utility rounded-card {
+  border-radius: var(--r-card);
+}
+@utility rounded-bubble {
+  border-radius: var(--r-bubble);
+}
+@utility rounded-sheet {
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+}
+@utility shadow-pop {
+  box-shadow: var(--shadow-pop);
+}
+/* Поверхность уровня 1: карточка, группа строк, панель */
+@utility surface-1 {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+}
+/* Отклик на нажатие (3.6): фон темнее и сжатие 0,98 за 100 мс, только касанием */
+@utility press-98 {
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-press) var(--ease-out);
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+/* Отступ снизу под фиксированный слой: менеджер слоёв пишет --bottom-inset */
+@utility pb-inset {
+  padding-bottom: calc(var(--bottom-inset, 0px) + 16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .press-98:active:not(:disabled) {
+    transform: none;
+  }
 }

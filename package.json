@@ -30,7 +30,8 @@
     "lighthouse": "bun scripts/lighthouse.ts",
     "ci": "bun scripts/ci.ts",
     "ui:metrics": "bun scripts/ui-metrics.ts",
-    "ui:taps": "bun scripts/ui-taps.ts"
+    "ui:taps": "bun scripts/ui-taps.ts",
+    "check:typography": "bun scripts/check-typography.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
