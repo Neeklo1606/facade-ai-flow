@@ -42,7 +42,9 @@ export function useFloatingBottom(): number {
           const element = document.querySelector(selector);
           if (!element) continue;
           const rect = element.getBoundingClientRect();
-          if (rect.height > 0 && rect.top < height) top = Math.min(top, rect.top);
+          // Слой у нижней кромки: полоса показа с ADR-045 живёт под шапкой и сюда не входит
+          if (rect.height > 0 && rect.top < height && rect.top > height / 2)
+            top = Math.min(top, rect.top);
         }
         setBottom(Math.max(8, Math.round(height - top + 8)));
       });

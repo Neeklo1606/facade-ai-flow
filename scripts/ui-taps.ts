@@ -86,7 +86,6 @@ const FLOWS: Flow[] = [
       await tap(page.getByRole("button", { name: "Ещё действия" }).first());
       await tap(page.getByRole("menuitem", { name: "Отклонить" }));
       await tap(page.getByRole("button", { name: "Дубль записи" }));
-      await tap(page.getByRole("button", { name: "Отклонить запись" }));
       await page.locator("[data-sonner-toast]", { hasText: "Отклонено" }).waitFor();
     },
   },
@@ -100,7 +99,6 @@ const FLOWS: Flow[] = [
       await tap(card(page, "ГЗ-00098"));
       await tap(page.getByRole("button", { name: /на уточнение/i }).first());
       await tap(page.getByRole("button", { name: "Уточните объект" }));
-      await tap(page.getByRole("button", { name: "Вернуть бригадиру" }));
       await page.locator("[data-sonner-toast]").first().waitFor();
     },
   },

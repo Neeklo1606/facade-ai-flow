@@ -64,7 +64,7 @@ export function WeekStrip({
             aria-label={`${d.weekday} ${d.day}${isToday ? ", сегодня" : ""}${d.count !== undefined ? `, записей ${d.count}` : ""}`}
             onClick={() => onChange(d.date)}
             className={cn(
-              "relative flex min-h-control min-w-11 flex-1 flex-col items-center justify-center rounded-control focus-ring transition-fast",
+              "relative flex min-h-control min-w-10 flex-1 flex-col items-center justify-center rounded-control focus-ring transition-fast",
               on ? "bg-orange-strong text-on-orange" : "text-text is-hover:bg-surface-2",
             )}
           >

@@ -1,7 +1,11 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Maximize2, Minimize2, SlidersHorizontal } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/ui/kit/controls";
+import { FiltersSheet } from "@/components/ui/kit/sheet";
 import { CustomerReport } from "@/components/gas-ops/CustomerReport";
 import { ScreenHint } from "@/components/gas-ops/page";
 import { AnalyticView } from "@/components/gas-ops/report/AnalyticView";
@@ -17,7 +21,9 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { downloadCustomerXlsx } from "@/lib/gas-ops/export";
 import { gasShowEvent } from "@/lib/gas-ops/show";
+import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 /**
  * Недельный отчёт (ТЗ, п. 9; ADR-044, F6). Итог недели крупно, сверка с файлом заказчика,
@@ -59,6 +65,18 @@ function ReportsPage() {
   const [hideEmpty, setHideEmpty] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const order = useMetricOrder();
+  // «Во весь экран»: Esc возвращает (5.7)
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
   // На телефоне нет «Итого недели»: неделя там и есть итог
   const period: ReportPeriod = phone && rawPeriod === "total" ? "week" : rawPeriod;
 
@@ -132,8 +150,55 @@ function ReportsPage() {
       ? { label: selectedDay.label, cell: report.total.days[period]! }
       : null;
 
+  const collapseToBrigades = () =>
+    setCollapsed(new Set(report.allRows.filter((r) => r.kind === "brigade").map((r) => r.id)));
+  const changedSettings =
+    Number(mode !== "confirmed") + Number(hideEmpty) + Number(order !== "money");
+
+  /* Настройки вида: на телефоне в шторке «Настроить вид», на компьютере строкой над таблицей */
+  const settings = (
+    <>
+      <Segmented
+        label="Что включено"
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: "confirmed", label: "Подтверждённые" },
+          { value: "preliminary", label: "Предварительный" },
+        ]}
+      />
+      <Segmented
+        label="Порядок показателей"
+        value={order}
+        onChange={setMetricOrder}
+        options={[
+          { value: "money", label: "Сначала деньги" },
+          { value: "time", label: "Сначала время" },
+        ]}
+      />
+      {view === "customer" ? (
+        <span className="flex flex-wrap items-center gap-1">
+          <Button variant="quiet" className="px-2" onClick={() => setCollapsed(new Set())}>
+            Развернуть всё
+          </Button>
+          <Button variant="quiet" className="px-2" onClick={collapseToBrigades}>
+            Свернуть до бригад
+          </Button>
+          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 px-2 text-body text-text-2">
+            <Checkbox
+              checked={hideEmpty}
+              onCheckedChange={(value) => setHideEmpty(value === true)}
+              className="size-5 rounded-[var(--r-xs)] border-line-2"
+            />
+            Скрыть пустые
+          </label>
+        </span>
+      ) : null}
+    </>
+  );
+
   return (
-    <div className="flex flex-col gap-4 md:gap-5">
+    <div className="flex flex-col gap-block">
       <ScreenHint screen="reports" className="mb-0" />
 
       <ReportHero
@@ -147,61 +212,83 @@ function ReportsPage() {
 
       <ReconcileBlock />
 
-      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-between">
-        <Segments
-          label="Вид отчёта"
-          value={view}
-          onChange={setView}
-          items={[
-            ["customer", "Формат заказчика"],
-            ["analytic", "Аналитическая таблица"],
-          ]}
-        />
-        <Segments
-          label="Что включено"
-          value={mode}
-          onChange={setMode}
-          items={[
-            ["confirmed", "Только подтверждённые"],
-            ["preliminary", "Предварительный"],
-          ]}
-        />
+      {/* Одна строка управления (5.7) */}
+      <div className="flex items-center justify-between gap-2">
+        <div role="tablist" aria-label="Вид отчёта" className="seg">
+          {(
+            [
+              ["customer", "Формат заказчика"],
+              ["analytic", "Аналитика"],
+            ] as const
+          ).map(([key, text]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => setView(key)}
+              className="seg-item focus-ring"
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+        {phone ? (
+          <Button variant="outline" onClick={() => setSettingsOpen(true)}>
+            <SlidersHorizontal aria-hidden />
+            Настроить вид
+            {changedSettings ? (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-orange-strong px-1 text-meta-strong text-on-orange tnum">
+                {changedSettings}
+              </span>
+            ) : null}
+          </Button>
+        ) : view === "customer" ? (
+          <Button variant="outline" onClick={() => setFullscreen(true)}>
+            <Maximize2 aria-hidden />
+            Во весь экран
+          </Button>
+        ) : null}
       </div>
+      {phone ? null : <div className="flex flex-wrap items-center gap-2">{settings}</div>}
 
       {mode === "preliminary" ? (
-        <p className="flex items-start gap-3 rounded-[var(--r-lg)] bg-warn-bg px-4 py-3 text-[14px] leading-5 text-text-2">
+        <p className="flex items-start gap-2 text-meta text-text-2">
           <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-warn" />
-          <span>
-            <span className="font-medium text-text">Предварительный отчёт.</span> В него включены
-            записи, которые ещё ожидают проверки. В утверждённый отчёт идут только подтверждённые.
-          </span>
+          Предварительный: включены записи, которые ещё ждут проверки. В утверждённый отчёт идут
+          только подтверждённые.
         </p>
       ) : null}
 
       {view === "customer" ? (
-        <section aria-labelledby="customer-title" className="flex flex-col gap-3">
-          <h2 id="customer-title" className="sr-only">
+        <section
+          aria-labelledby="customer-title"
+          className={cn(
+            "flex flex-col gap-block",
+            fullscreen && "fixed inset-0 z-[60] overflow-auto bg-void p-8",
+          )}
+        >
+          <h2 id="customer-title" className={fullscreen ? "text-title" : "sr-only"}>
             Формат заказчика
           </h2>
-          <PeriodSwitch days={report.days} value={period} onChange={choosePeriod} compact={phone} />
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <ToolButton onClick={() => setCollapsed(new Set())} label="Развернуть всё" />
-            <ToolButton
-              onClick={() =>
-                setCollapsed(
-                  new Set(report.allRows.filter((r) => r.kind === "brigade").map((r) => r.id)),
-                )
-              }
-              label="Свернуть до бригад"
+          {fullscreen ? (
+            <Button
+              variant="outline"
+              className="absolute top-6 right-8"
+              onClick={() => setFullscreen(false)}
+            >
+              <Minimize2 aria-hidden />
+              Свернуть, Esc
+            </Button>
+          ) : null}
+          {/* Липкая полоса дней (5.7) */}
+          <div className="sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top))] z-20 -mx-gutter bg-void px-gutter py-1 lg:static lg:mx-0 lg:px-0">
+            <PeriodSwitch
+              days={report.days}
+              value={period}
+              onChange={choosePeriod}
+              compact={phone}
             />
-            <label className="inline-flex min-h-12 cursor-pointer items-center gap-3 rounded-full px-2 text-[14px] text-text-2 is-hover:text-text">
-              <Checkbox
-                checked={hideEmpty}
-                onCheckedChange={(value) => setHideEmpty(value === true)}
-                className="size-5 rounded-[6px] border-line-2"
-              />
-              Скрыть строки без значений в выбранном периоде
-            </label>
           </div>
           {phone ? (
             <ReportTree
@@ -229,49 +316,19 @@ function ReportsPage() {
       ) : (
         <AnalyticView rows={report.analytic} days={report.days} phone={phone} />
       )}
-    </div>
-  );
-}
 
-function Segments<T extends string>({
-  label,
-  value,
-  onChange,
-  items,
-}: {
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  items: [T, string][];
-}) {
-  return (
-    <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0">
-      <div role="tablist" aria-label={label} className="seg">
-        {items.map(([key, text]) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={value === key}
-            onClick={() => onChange(key)}
-            className="seg-item focus-ring"
-          >
-            {text}
-          </button>
-        ))}
-      </div>
+      <FiltersSheet
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        count={report.count}
+        onReset={() => {
+          setMode("confirmed");
+          setHideEmpty(false);
+          setMetricOrder("money");
+        }}
+      >
+        <div className="flex flex-col items-start gap-block">{settings}</div>
+      </FiltersSheet>
     </div>
-  );
-}
-
-function ToolButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex min-h-12 items-center rounded-full bg-surface-2 px-4 text-[14px] font-medium text-text-2 focus-ring is-hover:text-text lg:min-h-10"
-    >
-      {label}
-    </button>
   );
 }

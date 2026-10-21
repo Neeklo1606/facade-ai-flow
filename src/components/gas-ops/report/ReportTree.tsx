@@ -1,11 +1,13 @@
 /**
  * Отчёт на телефоне (ADR-044, F6): не таблица, а дерево группа → бригада → адреса.
  * У строки три числа выбранного периода в одну линию: «44 847 ₽ · 6,58 ч · 6 812 ₽/ч».
- * Уровень сворачивается касанием всей строки: цель нажатия во всю ширину, от 56 px.
+ * Уровень сворачивается касанием всей строки (ADR-045, 5.7): строка от 64, название
+ * text-body-strong, под ним три числа text-meta в выбранном порядке показателей.
  */
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReportRow } from "@/api/gas-ops";
 import type { ReportPeriod } from "@/api/gas-report";
+import { useMetricOrder } from "@/lib/gas-ops/report-view";
 import { cn } from "@/lib/utils";
 import { hasValue, isNewRow, tripleText } from "./cell-text";
 import { DemoMark, NewDot } from "./cells";
@@ -27,6 +29,7 @@ export function ReportTree({
   flashRowId: string | null;
   tourRowId: string | null;
 }) {
+  const order = useMetricOrder();
   const byId = new Map(rows.map((r) => [r.id, r]));
   const parents = new Set(rows.map((r) => r.parentId).filter(Boolean));
   const hidden = (row: ReportRow): boolean => {
@@ -48,7 +51,7 @@ export function ReportTree({
   const total = rows.find((row) => row.kind === "total");
 
   return (
-    <div className="card-v3 overflow-hidden" data-testid="report-tree">
+    <div className="surface-1 overflow-hidden" data-testid="report-tree">
       <ul className="flex flex-col">
         {body.map((row) => {
           const expandable = parents.has(row.id) && row.kind !== "frame";
@@ -65,7 +68,7 @@ export function ReportTree({
             row.kind === "frame"
               ? (frameText ?? "нет рамки")
               : hasValue(cell)
-                ? tripleText(cell!)
+                ? tripleText(cell!, order)
                 : "нет значений";
           const content = (
             <>
@@ -83,10 +86,9 @@ export function ReportTree({
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <span
                       className={cn(
-                        "text-[15px] leading-5",
+                        "text-body-strong",
                         row.kind === "group" && "font-semibold",
-                        row.kind === "brigade" && "font-medium",
-                        row.kind === "frame" && "text-[13px] text-text-3",
+                        row.kind === "frame" && "text-meta text-text-3",
                       )}
                     >
                       {row.kind === "frame" ? "Рамка смены" : row.label}
@@ -96,7 +98,7 @@ export function ReportTree({
                   </span>
                   <span
                     className={cn(
-                      "mt-1 block text-[13px] leading-5 tnum",
+                      "mt-0.5 block text-meta tnum",
                       hasValue(cell) || frameText ? "text-text-2" : "text-text-3",
                       row.kind === "group" && hasValue(cell) && "text-text",
                     )}
@@ -108,7 +110,7 @@ export function ReportTree({
             </>
           );
           const shared = cn(
-            "flex min-h-14 w-full items-center px-4 py-2.5 text-start transition-colors duration-500",
+            "flex min-h-row w-full items-center px-4 py-row text-start transition-colors duration-500",
             row.kind === "group" ? "bg-surface-2" : "bg-surface",
             flash && "bg-[color-mix(in_oklab,var(--orange)_16%,var(--surface))]",
           );
@@ -144,11 +146,11 @@ export function ReportTree({
       {total ? (
         <div
           data-report-row="total"
-          className="flex min-h-14 flex-col justify-center gap-0.5 bg-surface-3 px-4 py-2.5"
+          className="flex min-h-row flex-col justify-center gap-0.5 bg-surface-2 px-4 py-row"
         >
-          <span className="text-[15px] font-semibold">Итого</span>
-          <span className="text-[13px] text-text tnum">
-            {hasValue(cellOf(total)) ? tripleText(cellOf(total)!) : "нет значений"}
+          <span className="text-body-strong">Итого</span>
+          <span className="text-meta text-text tnum">
+            {hasValue(cellOf(total)) ? tripleText(cellOf(total)!, order) : "нет значений"}
           </span>
         </div>
       ) : null}

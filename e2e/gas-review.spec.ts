@@ -57,36 +57,42 @@ for (const run of WIDTHS) {
       await expect(card(page, "ГЗ-00096")).toBeVisible();
     });
 
-    test("пачка «Без замечаний» с подтверждением и отменой", async ({ page }) => {
+    /*
+     * Пачка «Без замечаний» (ADR-045, 5.4 и принцип 8): выполняется сразу, без диалога,
+     * тост «Подтверждено N записей на … ₽» с отменой 6 секунд.
+     */
+    test("пачка «Без замечаний» сразу и с отменой из тоста", async ({ page }) => {
       await open(page, "/gas/moderation");
-      const button = page.getByRole("button", { name: /Подтвердить все \(\d+\)/ });
+      const button = page.getByRole("button", { name: /Подтвердить все \d+/ });
       const label = (await button.innerText()).trim();
-      const count = Number(label.match(/\((\d+)\)/)?.[1]);
+      const count = Number(label.match(/(\d+)/)?.[1]);
       expect(count).toBeGreaterThan(0);
       await button.click();
-      const dialog = page.getByRole("alertdialog");
-      await expect(dialog).toContainText(`Подтвердить ${count}`);
-      await dialog.getByRole("button", { name: `Подтвердить ${count}` }).click();
+      await expect(page.getByRole("alertdialog")).toHaveCount(0);
 
-      await expect(toast(page, `Подтверждено: ${count}`)).toBeVisible();
+      const done = toast(
+        page,
+        new RegExp(`Подтверждено ${count} запис[а-я]* на [\\d\\s\u00a0\u202f]+₽`),
+      );
+      await expect(done).toBeVisible();
       await expect(page.getByRole("heading", { name: "Без замечаний" })).toHaveCount(0);
 
-      await toast(page, `Подтверждено: ${count}`).getByRole("button", { name: "Отменить" }).click();
+      await done.getByRole("button", { name: "Отменить" }).click();
       await expect(page.getByRole("heading", { name: "Без замечаний" })).toBeVisible();
-      await expect(page.getByRole("button", { name: `Подтвердить все (${count})` })).toBeVisible();
+      await expect(page.getByRole("button", { name: `Подтвердить все ${count}` })).toBeVisible();
     });
 
-    test("отклонение требует причину: кнопка причины и отправка", async ({ page }) => {
+    test("отклонение требует причину: частая причина отклоняет сразу", async ({ page }) => {
       await open(page, "/gas/moderation");
       await card(page, "ГЗ-00098").click();
       await page.getByRole("button", { name: "Ещё действия" }).click();
       await page.getByRole("menuitem", { name: "Отклонить" }).click();
 
+      // Без причины отправить нельзя: свой текст пуст, кнопка недоступна
       const submit = page.getByRole("button", { name: "Отклонить запись" });
       await expect(submit).toBeDisabled();
+      // Частая причина применяется сразу: отклонение за 4 касания (ADR-045, раздел 6)
       await page.getByRole("button", { name: "Дубль записи" }).click();
-      await expect(submit).toBeEnabled();
-      await submit.click();
 
       await expect(toast(page, "Отклонено")).toBeVisible();
       await expect(card(page, "ГЗ-00098")).toHaveCount(0);

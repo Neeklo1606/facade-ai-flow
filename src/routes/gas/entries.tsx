@@ -1,30 +1,31 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
-import { WidgetTable, type WidgetColumn } from "@/components/common/WidgetTable";
-import { BottomSheet } from "@/components/common/BottomSheet";
-import {
-  EntryStatusBadge,
-  HoursCell,
-  MarkList,
-  MoneyCell,
-  Num,
-  RateCell,
-  SourceMark,
-} from "@/components/gas-ops/marks";
+import { CalendarDays, SearchX } from "lucide-react";
+import { EntryStatusBadge, SourceMark } from "@/components/gas-ops/marks";
 import { QueueCard } from "@/components/gas-ops/review/QueueCard";
-import { entryFrame, fmtShortDay, marksOf, type Mark } from "@/components/gas-ops/review/rules";
+import { fmtShortDay, marksOf, type Mark } from "@/components/gas-ops/review/rules";
+import { Button } from "@/components/ui/button";
+import { FiltersButton, SearchBar } from "@/components/ui/kit/controls";
+import { CalendarSheet, FiltersSheet } from "@/components/ui/kit/sheet";
+import { Chip } from "@/components/ui/kit/status";
+import { DataTable, type TableColumn } from "@/components/ui/kit/data";
+import { WeekStrip } from "@/components/ui/kit/date";
+import { EmptyBlock } from "@/components/ui/kit/states";
 import { ReviewPanel } from "@/components/gas-ops/review/ReviewPanel";
 import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
 import { useFloatingBottom, useIsDesktop } from "@/components/gas-ops/review/use-layout";
 import { ScreenHint } from "@/components/gas-ops/page";
 import {
   ENTRY_STATUS_LABEL,
+  fmtHours,
+  fmtRub,
+  formatClock,
   useGasActor,
   useGasDirectory,
   useGasEntries,
   useGasEntry,
+  useGasWeek,
   type EntryStatus,
   type EntryView,
 } from "@/api/gas-ops";
@@ -32,9 +33,10 @@ import { plural } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
- * Журнал записей времени (ADR-044): всё, что заведено, с поиском, фильтрами и историей.
- * Строка поиска в шапке ведёт сюда с `?q=`. На телефоне карточки вместо таблицы, фильтры
- * в шторке. Бригадир видит только свою бригаду и без сумм.
+ * Журнал записей времени (ADR-044; вид ADR-045, 5.6): всё, что заведено, с поиском, полосой
+ * недели, календарём и фильтрами. Строка поиска в шапке ведёт сюда с `?q=`. Телефон: список
+ * по дням с липким заголовком «Сб 03.10 · 18 записей · 312 450 ₽», фильтры в шторке.
+ * Компьютер: таблица, деталь панелью справа. Бригадир видит только свою бригаду и без сумм.
  */
 interface EntriesSearch {
   q?: string | undefined;
@@ -58,7 +60,8 @@ export const Route = createFileRoute("/gas/entries")({
 type StatusFilter = EntryStatus | "all";
 type SourceFilter = "all" | "fact-report" | "mock";
 
-const STATUS_TABS: StatusFilter[] = ["all", "pending", "confirmed", "clarify", "rejected", "draft"];
+const STATUSES: EntryStatus[] = ["pending", "confirmed", "clarify", "rejected", "draft"];
+const WEEKDAY = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
 interface Row {
   id: string;
@@ -69,6 +72,7 @@ interface Row {
 function EntriesPage() {
   const actor = useGasActor();
   const directory = useGasDirectory();
+  const week = useGasWeek();
   const desktop = useIsDesktop();
   const floatingBottom = useFloatingBottom();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -77,9 +81,11 @@ function EntriesPage() {
   const [search, setSearch] = useState(q ?? "");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [brigade, setBrigade] = useState("all");
-  const [day, setDay] = useState("all");
+  const [object, setObject] = useState("all");
+  const [day, setDay] = useState<string | null>(null);
   const [source, setSource] = useState<SourceFilter>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
 
   // Поиск из шапки: новый запрос заменяет строку поиска экрана
@@ -88,135 +94,138 @@ function EntriesPage() {
   const views = useGasEntries({
     brigadeId: brigade === "all" ? undefined : brigade,
     status: status === "all" ? undefined : status,
-    day: day === "all" ? undefined : day,
+    day: day ?? undefined,
     source: source === "all" ? undefined : source,
     search,
     ownBrigadeOnly: actor.role === "foreman",
   });
 
   const rows: Row[] = useMemo(
-    () => views.map((view) => ({ id: view.entry.id, view, marks: marksOf(view) })),
-    [views],
+    () =>
+      views
+        .filter((view) => object === "all" || view.entry.objectId === object)
+        .map((view) => ({ id: view.entry.id, view, marks: marksOf(view) })),
+    [views, object],
   );
 
-  const extraFilters = Number(brigade !== "all") + Number(day !== "all") + Number(source !== "all");
+  // Список по дням: свежий день сверху, итог дня в липком заголовке
+  const byDay = useMemo(() => {
+    const groups = new Map<string, Row[]>();
+    for (const row of rows)
+      groups.set(row.view.entry.day, [...(groups.get(row.view.entry.day) ?? []), row]);
+    return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [rows]);
 
-  const reset = () => {
+  const active =
+    Number(brigade !== "all") +
+    Number(object !== "all") +
+    Number(status !== "all") +
+    Number(source !== "all");
+
+  const resetFilters = () => {
     setBrigade("all");
+    setObject("all");
     setStatus("all");
-    setDay("all");
     setSource("all");
+  };
+  const reset = () => {
+    resetFilters();
+    setDay(null);
     setSearch("");
     if (q) void navigate({ search: {}, replace: true });
   };
 
-  /*
-   * Колонок меньше, чем полей: смена и время, статус и признаки идут парами в одной ячейке.
-   * Одиннадцать столбцов ломали числа на две строки, а читать таблицу нужно взглядом.
-   */
-  const columns: WidgetColumn<Row>[] = [
-    {
-      key: "number",
-      header: "Номер и день",
-      cell: ({ view }) => (
-        <span className="whitespace-nowrap">
-          <Num className="block">{view.entry.number}</Num>
-          <Num className="block text-text-3">{fmtShortDay(view.entry.day)}</Num>
-        </span>
-      ),
-    },
+  const days = week.days.map((d) => ({
+    date: d,
+    weekday: WEEKDAY[new Date(`${d}T00:00:00`).getDay()] ?? "",
+    day: d.slice(8, 10),
+  }));
+
+  const brigadeName = (id: string) => directory.brigades.find((b) => b.id === id)?.name ?? id;
+  const objectName = (id: string) => directory.objects.find((o) => o.id === id)?.label ?? id;
+
+  /* Активные фильтры метками под поиском, крестик снимает (4.12) */
+  const chips = [
+    brigade !== "all"
+      ? { key: "b", label: brigadeName(brigade), clear: () => setBrigade("all") }
+      : null,
+    object !== "all"
+      ? { key: "o", label: objectName(object), clear: () => setObject("all") }
+      : null,
+    status !== "all"
+      ? { key: "s", label: ENTRY_STATUS_LABEL[status], clear: () => setStatus("all") }
+      : null,
+    source !== "all"
+      ? {
+          key: "src",
+          label: source === "fact-report" ? "Факт" : "Демо",
+          clear: () => setSource("all"),
+        }
+      : null,
+  ].filter((c): c is { key: string; label: string; clear: () => void } => !!c);
+
+  const current = useGasEntry(open);
+
+  const columns: TableColumn<Row>[] = [
+    { key: "day", title: "Дата", cell: ({ view }) => fmtShortDay(view.entry.day) },
+    { key: "number", title: "Номер", cell: ({ view }) => view.entry.number },
+    { key: "brigade", title: "Бригада", cell: ({ view }) => view.brigade?.name ?? "—" },
     {
       key: "object",
-      header: "Объект и бригада",
+      title: "Объект",
       cell: ({ view }) => (
-        <span className="block min-w-[220px]">
-          <span className="block font-medium">{view.object?.label ?? "—"}</span>
-          <span className="block text-text-3">
-            {view.brigade?.name ?? "—"}
-            {view.employee ? ` · ${view.employee.name}` : ""}
-          </span>
+        <span className="block max-w-[320px] truncate" title={view.object?.label}>
+          {view.object?.label ?? "—"}
         </span>
       ),
     },
     {
-      key: "time",
-      header: "Смена и время",
-      align: "right",
-      cell: ({ view }) => (
-        <span className="block whitespace-nowrap">
-          <Num className="block">{entryFrame(view) ?? "—"}</Num>
-          <Num className="block text-text-3">
-            {view.entry.minutes} мин · <HoursCell minutes={view.entry.minutes} />
-          </Num>
-        </span>
-      ),
+      key: "start",
+      title: "Начало",
+      numeric: true,
+      cell: ({ view }) =>
+        view.entry.startMinutes === null ? "—" : formatClock(view.entry.startMinutes),
     },
+    {
+      key: "end",
+      title: "Окончание",
+      numeric: true,
+      cell: ({ view }) =>
+        view.entry.endMinutes === null ? "—" : formatClock(view.entry.endMinutes),
+    },
+    {
+      key: "break",
+      title: "Перерыв",
+      numeric: true,
+      cell: ({ view }) => (view.entry.breakMinutes ? `${view.entry.breakMinutes} мин` : "—"),
+    },
+    { key: "hours", title: "Часы", numeric: true, cell: ({ view }) => fmtHours(view.hours) },
     ...(actor.canSeeMoney
       ? [
           {
-            key: "money",
-            header: "Сумма и доходность",
-            align: "right" as const,
-            cell: ({ view }: Row) => (
-              <span className="block whitespace-nowrap">
-                <MoneyCell value={view.entry.amountRub} />
-                <span className="block text-text-3">
-                  <RateCell value={view.revenue} />
-                </span>
-              </span>
-            ),
+            key: "sum",
+            title: "Сумма",
+            numeric: true,
+            cell: ({ view }: Row) =>
+              view.entry.amountRub === null ? (
+                <span className="text-text-3">нет суммы</span>
+              ) : (
+                fmtRub(view.entry.amountRub)
+              ),
           },
         ]
       : []),
     {
       key: "status",
-      header: "Статус и признаки",
-      cell: ({ view, marks }) => (
-        <span className="flex flex-col items-start gap-1.5">
-          <span className="flex items-center gap-2">
-            <EntryStatusBadge status={view.entry.status} />
-            <SourceMark source={view.entry.source} />
-          </span>
-          <MarkList marks={marks} />
+      title: "Статус",
+      cell: ({ view }) => (
+        <span className="inline-flex items-center gap-2">
+          <EntryStatusBadge status={view.entry.status} />
+          <SourceMark source={view.entry.source} />
         </span>
       ),
     },
   ];
-
-  const current = useGasEntry(open);
-
-  const filters = (
-    <>
-      <Select
-        label="Бригада"
-        value={brigade}
-        onChange={setBrigade}
-        options={[
-          { value: "all", label: "Все бригады" },
-          ...directory.brigades.map((b) => ({ value: b.id, label: b.name })),
-        ]}
-      />
-      <Select
-        label="День"
-        value={day}
-        onChange={setDay}
-        options={[
-          { value: "all", label: "Вся неделя" },
-          ...directory.days.map((d) => ({ value: d, label: fmtShortDay(d) })),
-        ]}
-      />
-      <Select
-        label="Данные"
-        value={source}
-        onChange={(value) => setSource(value as SourceFilter)}
-        options={[
-          { value: "all", label: "Факт и демо" },
-          { value: "fact-report", label: "Факт из отчёта" },
-          { value: "mock", label: "Демо-сценарии" },
-        ]}
-      />
-    </>
-  );
 
   const panel = current ? (
     <ReviewPanel
@@ -233,124 +242,136 @@ function EntriesPage() {
     />
   ) : null;
 
+  const option = (on: boolean, label: string, pick: () => void) => (
+    <button
+      key={label}
+      type="button"
+      aria-pressed={on}
+      onClick={pick}
+      className={cn(
+        "inline-flex min-h-11 items-center rounded-full border px-3 text-body focus-ring",
+        on ? "border-orange-strong bg-orange-dim text-text" : "border-line-2 text-text-2",
+      )}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className="min-w-0">
       <ScreenHint screen="entries" />
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-        <label className="relative block min-w-0 flex-1">
-          <span className="sr-only">Поиск по журналу</span>
-          <Search
-            className="pointer-events-none absolute start-4 top-1/2 size-[18px] -translate-y-1/2 text-text-3"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+      {/* Поиск липкий при прокрутке списка (4.12) */}
+      <div className="sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top))] z-20 -mx-gutter bg-void px-gutter pt-1 pb-2 lg:static lg:mx-0 lg:bg-transparent lg:px-0">
+        <div className="flex items-center gap-2">
+          <SearchBar
+            className="min-w-0 flex-1"
+            label="Поиск по журналу"
             placeholder="Номер, объект, бригада"
-            className="h-12 w-full rounded-[14px] bg-surface ps-11 pe-11 text-[16px] text-text shadow-[var(--lift-1)] focus-ring lg:text-[15px]"
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              if (!value && q) void navigate({ search: {}, replace: true });
+            }}
           />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                if (q) void navigate({ search: {}, replace: true });
-              }}
-              aria-label="Очистить поиск"
-              className="absolute end-0 top-0 grid size-12 place-items-center rounded-full text-text-3 focus-ring is-hover:text-text"
-            >
-              <X className="size-4" aria-hidden />
-            </button>
-          ) : null}
-        </label>
-        {desktop ? <div className="flex items-end gap-2">{filters}</div> : null}
-      </div>
-
-      <div className="mt-3 flex items-center gap-2">
-        <div className="-mx-4 min-w-0 flex-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none]">
-          <div role="tablist" aria-label="Статус записи" className="seg">
-            {STATUS_TABS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={status === value}
-                onClick={() => setStatus(value)}
-                className="seg-item focus-ring"
-              >
-                {value === "all" ? "Все" : ENTRY_STATUS_LABEL[value]}
-              </button>
-            ))}
-          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Календарь"
+            className="size-11 rounded-control"
+            onClick={() => setCalendarOpen(true)}
+          >
+            <CalendarDays aria-hidden />
+          </Button>
         </div>
-        {desktop ? null : (
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            aria-haspopup="dialog"
-            className="relative inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-surface-2 px-4 text-[14px] font-medium text-text focus-ring press"
-          >
-            <SlidersHorizontal className="size-4" aria-hidden />
-            Фильтры
-            {extraFilters > 0 ? (
-              <span className="grid size-5 place-items-center rounded-full bg-pill text-[11px] text-pill-text tnum">
-                {extraFilters}
-              </span>
-            ) : null}
-          </button>
-        )}
-      </div>
-
-      <div className="mt-4 mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[17px] leading-6 font-semibold tracking-[-0.01em]">
-          {rows.length} {plural(rows.length, "запись", "записи", "записей")}
-          <span className="font-normal text-text-3">
-            {search || status !== "all" || extraFilters > 0 ? " по фильтрам" : " за неделю"}
-          </span>
-        </h2>
-        {search || status !== "all" || extraFilters > 0 ? (
-          <button
-            type="button"
-            onClick={reset}
-            className="min-h-12 rounded-full px-3 text-[14px] text-text-2 focus-ring is-hover:text-text"
-          >
-            Сбросить
-          </button>
+        {chips.length ? (
+          <ul className="mt-2 flex flex-wrap gap-1" aria-label="Активные фильтры">
+            {chips.map((chip) => (
+              <li key={chip.key}>
+                <Chip tone="neutral" onRemove={chip.clear}>
+                  {chip.label}
+                </Chip>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </div>
 
+      {/* Полоса недели на всю ширину; повторное касание выбранного дня возвращает неделю */}
+      <WeekStrip
+        days={days}
+        value={day}
+        today={week.today}
+        onChange={(next) => setDay(next === day ? null : next)}
+        className="gap-0"
+      />
+
+      <div className="mt-block flex min-h-7 items-center justify-between gap-3">
+        <p className="text-meta text-text-2 tnum">
+          {rows.length} {plural(rows.length, "запись", "записи", "записей")}
+          {search || active || day ? " по фильтрам" : " за неделю"}
+        </p>
+        <span className="flex items-center gap-1">
+          {search || active || day ? (
+            <Button variant="quiet" className="px-2" onClick={reset}>
+              Сбросить
+            </Button>
+          ) : null}
+          <FiltersButton active={active} onClick={() => setFiltersOpen(true)} />
+        </span>
+      </div>
+
       {rows.length === 0 ? (
-        <div className="card-v3 px-6 py-10 text-center">
-          <h3 className="text-[17px] font-semibold">Ничего не найдено</h3>
-          <p className="mx-auto mt-1 max-w-[340px] text-[14px] leading-5 text-text-2">
-            Проверьте номер записи или адрес. Можно сбросить фильтры и увидеть всю неделю.
-          </p>
-          <button type="button" onClick={reset} className="pill-action mt-5 focus-ring press">
-            Сбросить фильтры
-          </button>
-        </div>
+        <EmptyBlock
+          icon={SearchX}
+          title={search ? `Ничего не найдено по «${search}»` : "Ничего не найдено"}
+          text="Проверьте номер записи или адрес. Можно сбросить фильтры и увидеть всю неделю"
+          action={
+            <Button variant="outline" onClick={reset}>
+              Сбросить поиск
+            </Button>
+          }
+        />
       ) : desktop ? (
-        <div className="card-v3 overflow-hidden px-2 py-1">
-          <WidgetTable columns={columns} rows={rows} onRowClick={(row) => setOpen(row.id)} />
-        </div>
+        <DataTable
+          label="Журнал записей"
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.id}
+          activeKey={open}
+          onRowClick={(row) => setOpen(row.id)}
+        />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {rows.map((row) => (
-            <li key={row.id}>
-              <QueueCard
-                view={row.view}
-                marks={row.marks}
-                active={false}
-                fresh={false}
-                highlight={false}
-                showStatus
-                onOpen={() => setOpen(row.id)}
-              />
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-block">
+          {byDay.map(([d, list]) => {
+            const sum = list.reduce((acc, row) => acc + (row.view.entry.amountRub ?? 0), 0);
+            return (
+              <section key={d} aria-label={fmtShortDay(d)}>
+                <h2 className="sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top)+52px)] z-10 flex h-7 items-center bg-void text-meta text-text-3 tnum">
+                  {fmtShortDay(d)} · {list.length}{" "}
+                  {plural(list.length, "запись", "записи", "записей")}
+                  {actor.canSeeMoney ? ` · ${fmtRub(sum)}` : ""}
+                </h2>
+                <ul className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
+                  {list.map((row) => (
+                    <li key={row.id}>
+                      <QueueCard
+                        view={row.view}
+                        marks={row.marks}
+                        active={false}
+                        fresh={false}
+                        highlight={false}
+                        showStatus
+                        showNumber
+                        onOpen={() => setOpen(row.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
       )}
 
       {desktop ? (
@@ -363,36 +384,62 @@ function EntriesPage() {
         </PhoneSheet>
       )}
 
-      <BottomSheet open={filtersOpen} onOpenChange={setFiltersOpen} title="Фильтры журнала">
-        <div className="flex flex-col gap-3 pt-1">
-          {filters}
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(false)}
-              className="pill-action flex-1 focus-ring press"
-            >
-              Показать {rows.length}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setBrigade("all");
-                setDay("all");
-                setSource("all");
-              }}
-              className="inline-flex min-h-14 items-center rounded-full bg-surface-2 px-5 text-[15px] font-medium focus-ring press"
-            >
-              Сбросить
-            </button>
+      <FiltersSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        count={rows.length}
+        onReset={resetFilters}
+      >
+        <section>
+          <h3 className="text-meta-strong text-text-2">Бригада</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {option(brigade === "all", "Все", () => setBrigade("all"))}
+            {directory.brigades.map((b) =>
+              option(brigade === b.id, b.name, () => setBrigade(b.id)),
+            )}
           </div>
-        </div>
-      </BottomSheet>
+        </section>
+        <section>
+          <h3 className="text-meta-strong text-text-2">Статус</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {option(status === "all", "Все", () => setStatus("all"))}
+            {STATUSES.map((value) =>
+              option(status === value, ENTRY_STATUS_LABEL[value], () => setStatus(value)),
+            )}
+          </div>
+        </section>
+        <section>
+          <h3 className="text-meta-strong text-text-2">Источник</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {option(source === "all", "Факт и демо", () => setSource("all"))}
+            {option(source === "fact-report", "Факт", () => setSource("fact-report"))}
+            {option(source === "mock", "Демо", () => setSource("mock"))}
+          </div>
+        </section>
+        <section>
+          <h3 className="text-meta-strong text-text-2">Объект</h3>
+          <div className="mt-2 flex flex-col">
+            {option(object === "all", "Все объекты", () => setObject("all"))}
+            {directory.objects
+              .slice(0, 40)
+              .map((o) => option(object === o.id, o.label, () => setObject(o.id)))}
+          </div>
+        </section>
+      </FiltersSheet>
+
+      <CalendarSheet
+        open={calendarOpen}
+        onOpenChange={setCalendarOpen}
+        value={day}
+        today={week.today}
+        onPick={setDay}
+        onWeek={() => setDay(null)}
+      />
     </div>
   );
 }
 
-/** Детали записи на десктопе: панель справа поверх журнала, Esc и щелчок мимо закрывают */
+/** Деталь записи на компьютере: панель справа 420 поверх журнала, Esc закрывает (4.16) */
 function SidePanel({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -402,51 +449,12 @@ function SidePanel({ onClose, children }: { onClose: () => void; children: React
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <>
-      <div
-        aria-hidden
-        onClick={onClose}
-        className="fixed inset-0 z-[34] bg-[var(--overlay)] animate-in fade-in-0"
-      />
-      <aside
-        role="dialog"
-        aria-labelledby="review-title"
-        className="card-v3 fixed top-4 right-4 bottom-4 z-[35] flex w-[min(520px,calc(100vw-32px))] flex-col overflow-hidden rounded-[var(--r-2xl)] animate-in slide-in-from-right-8 fade-in-0 duration-300"
-      >
-        {children}
-      </aside>
-    </>
-  );
-}
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <label className="block min-w-0 text-[13px] text-text-3">
-      <span className="mb-1 block">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          "h-12 w-full min-w-[150px] rounded-[14px] bg-surface px-4 text-[15px] text-text shadow-[var(--lift-1)] focus-ring",
-          value !== "all" && "ring-1 ring-text/40",
-        )}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <aside
+      role="dialog"
+      aria-labelledby="review-title"
+      className="fixed inset-y-0 right-0 z-[35] flex w-[min(420px,100vw)] flex-col overflow-hidden border-s border-line bg-surface shadow-pop animate-in slide-in-from-right-8 fade-in-0 duration-[250ms]"
+    >
+      {children}
+    </aside>
   );
 }

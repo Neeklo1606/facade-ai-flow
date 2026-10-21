@@ -1,7 +1,8 @@
 /**
  * Карточка записи времени (ADR-044, F5, п. 4): что ввёл бригадир, что посчитала система,
  * почему запись помечена и что с ней делали. Используется в проверке и в журнале, чтобы
- * цифры и пояснения были одни и те же. Строки с иконками, как лист деталей в референсе.
+ * цифры и пояснения были одни и те же. Вид ADR-045, 4.15: строки 48-52 с иконкой 20 без круга,
+ * подпись text-meta над значением text-body, группы с заголовком text-meta без заливки.
  */
 import {
   Building2,
@@ -46,16 +47,11 @@ function Row({
   children: ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 py-2.5">
-      <span
-        aria-hidden
-        className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-text-2"
-      >
-        <Icon className="size-[18px]" strokeWidth={1.7} />
-      </span>
+    <div className="flex min-h-12 items-start gap-3 py-1.5">
+      <Icon aria-hidden className="mt-2.5 size-5 shrink-0 text-text-3" strokeWidth={1.75} />
       <div className="min-w-0 flex-1">
-        <dt className="text-[12px] leading-4 text-text-3">{label}</dt>
-        <dd className="mt-0.5 text-[15px] leading-5 text-text tnum">{children}</dd>
+        <dt className="text-meta text-text-3">{label}</dt>
+        <dd className="text-body text-text tnum">{children}</dd>
       </div>
     </div>
   );
@@ -63,8 +59,8 @@ function Row({
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-[var(--r-lg)] bg-surface-2 px-4 py-3">
-      <h3 className="text-[13px] leading-5 font-semibold text-text-2">{title}</h3>
+    <section className="border-t border-line pt-3 first:border-t-0 first:pt-0">
+      <h3 className="text-meta-strong text-text-2">{title}</h3>
       {children}
     </section>
   );
@@ -96,7 +92,7 @@ export function EntryDetails({ view }: { view: EntryView }) {
   const history = [...view.history].reverse();
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <Block title="Ввёл бригадир">
         <dl className="mt-1">
           <Row icon={MapPin} label="Объект">
@@ -171,9 +167,10 @@ export function EntryDetails({ view }: { view: EntryView }) {
         </dl>
       </Block>
 
+      <div id="entry-why" className="scroll-mt-4" />
       <Block title="Почему помечено">
         {marks.length === 0 ? (
-          <p className="mt-2 pb-1 text-[14px] leading-5 text-text-2">
+          <p className="mt-2 pb-1 text-body text-text-2">
             Замечаний нет: время не пересекается, дублей нет, сумма на месте.
           </p>
         ) : (
@@ -185,13 +182,11 @@ export function EntryDetails({ view }: { view: EntryView }) {
                   className={cn("mt-1.5 size-2 shrink-0 rounded-full", LEVEL_DOT[mark.level])}
                 />
                 <div className="min-w-0">
-                  <p className="text-[14px] leading-5 font-medium text-text">
+                  <p className="text-body-strong text-text">
                     {mark.label}
-                    <span className="ms-2 text-[12px] font-normal text-text-3">
-                      {LEVEL_LABEL[mark.level]}
-                    </span>
+                    <span className="ms-2 text-meta text-text-3">{LEVEL_LABEL[mark.level]}</span>
                   </p>
-                  <p className="mt-0.5 text-[13px] leading-5 text-text-2">{mark.why}</p>
+                  <p className="mt-0.5 text-meta text-text-2">{mark.why}</p>
                 </div>
               </li>
             ))}
@@ -199,7 +194,19 @@ export function EntryDetails({ view }: { view: EntryView }) {
         )}
       </Block>
 
-      <Block title="История">
+      {entry.comment ? (
+        <Block title="Решение проверки">
+          <p className="mt-1 text-body text-text">{entry.comment}</p>
+        </Block>
+      ) : null}
+
+      <details className="group border-t border-line pt-3">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-meta-strong text-text-2 focus-ring [&::-webkit-details-marker]:hidden">
+          История
+          <span className="text-meta font-normal text-text-3 group-open:hidden">
+            {history.length ? `${history.length + 1} события` : "Внесено"}, показать
+          </span>
+        </summary>
         <ol className="mt-2 flex flex-col">
           <HistoryItem
             title={entry.source === "fact-report" ? "Перенесено из отчёта заказчика" : "Внесено"}
@@ -217,13 +224,10 @@ export function EntryDetails({ view }: { view: EntryView }) {
             />
           ))}
         </ol>
-        {entry.comment && history.length === 0 ? (
-          <p className="pb-2 text-[13px] text-text-2">{entry.comment}</p>
-        ) : null}
-        <p className="pb-1 text-[12px] leading-4 text-text-3">
+        <p className="pb-1 text-meta text-text-3">
           Сейчас: {ENTRY_STATUS_LABEL[entry.status].toLowerCase()}
         </p>
-      </Block>
+      </details>
     </div>
   );
 }
@@ -248,12 +252,12 @@ function HistoryItem({
         {last ? null : <span className="absolute top-4 bottom-[-6px] w-px bg-line-2" />}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[14px] leading-5 text-text">
-          {title} <span className="text-[12px] text-text-3 tnum">· {fmtAt(at)}</span>
+        <p className="text-body text-text">
+          {title} <span className="text-meta text-text-3 tnum">· {fmtAt(at)}</span>
         </p>
-        {comment ? <p className="mt-0.5 text-[13px] leading-5 text-text-2">{comment}</p> : null}
+        {comment ? <p className="mt-0.5 text-meta text-text-2">{comment}</p> : null}
         {changes.length > 0 ? (
-          <ul className="mt-0.5 text-[12px] leading-4 text-text-3 tnum">
+          <ul className="mt-0.5 text-meta text-text-3 tnum">
             {changes.map((change) => (
               <li key={change.field}>
                 {change.field}: {change.from} → {change.to}

@@ -16,6 +16,7 @@ import {
   type EntryStatus,
 } from "@/api/gas-ops";
 import { FLAG_LEVEL, LEVEL_ORDER, MARK_BASE, type Mark, type MarkLevel } from "./review/rules";
+import { ChipRow, type ChipTone } from "@/components/ui/kit/status";
 import { cn } from "@/lib/utils";
 
 /* ---------------------------------------------------------------- Статус */
@@ -39,7 +40,7 @@ export function EntryStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-[13px] leading-5 font-medium whitespace-nowrap text-text-2",
+        "inline-flex items-center gap-1.5 text-meta whitespace-nowrap text-text-2",
         className,
       )}
     >
@@ -59,11 +60,7 @@ export function SourceMark({
 }) {
   if (source === null) return null;
   const text = source === "fact-report" ? "Факт" : source === "mock" ? "Демо" : "Факт и демо";
-  return (
-    <span className={cn("text-[12px] leading-4 whitespace-nowrap text-text-3", className)}>
-      {text}
-    </span>
-  );
+  return <span className={cn("text-meta whitespace-nowrap text-text-3", className)}>{text}</span>;
 }
 
 /* ---------------------------------------------------------------- Признаки */
@@ -78,7 +75,7 @@ export function MarkChip({ mark }: { mark: Pick<Mark, "label" | "level"> }) {
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded-full px-2.5 text-[12px] leading-none font-medium whitespace-nowrap",
+        "inline-flex h-chip items-center rounded-full px-2 text-meta-strong whitespace-nowrap",
         LEVEL_TONE[mark.level],
       )}
     >
@@ -87,7 +84,12 @@ export function MarkChip({ mark }: { mark: Pick<Mark, "label" | "level"> }) {
   );
 }
 
-/** Признаки строкой: первые `max`, остальные «+N» (полный список в деталях) */
+const CHIP_TONE: Record<MarkLevel, ChipTone> = { block: "block", decide: "decide", info: "info" };
+
+/**
+ * Признаки одной строкой (ADR-045, 4.10): сколько влезает, не больше `max`, остальные «+N»,
+ * без переноса на новую строку (refs/02). Полный список в «Почему помечено».
+ */
 export function MarkList({
   marks,
   max = 2,
@@ -98,27 +100,12 @@ export function MarkList({
   className?: string | undefined;
 }) {
   if (marks.length === 0) return null;
-  const shown = marks.slice(0, max);
-  const rest = marks.slice(max);
   return (
-    <ul className={cn("flex flex-wrap items-center gap-1.5", className)}>
-      {shown.map((mark) => (
-        <li key={mark.key}>
-          <MarkChip mark={mark} />
-        </li>
-      ))}
-      {rest.length > 0 ? (
-        <li>
-          <span
-            className="inline-flex h-6 items-center rounded-full bg-surface-2 px-2 text-[12px] leading-none font-medium text-text-2 tnum"
-            title={rest.map((m) => m.label).join(", ")}
-          >
-            +{rest.length}
-            <span className="sr-only">: {rest.map((m) => m.label).join(", ")}</span>
-          </span>
-        </li>
-      ) : null}
-    </ul>
+    <ChipRow
+      max={max}
+      {...(className ? { className } : {})}
+      chips={marks.map((mark) => ({ label: mark.label, tone: CHIP_TONE[mark.level] }))}
+    />
   );
 }
 
@@ -174,7 +161,7 @@ export function RateCell({ value }: { value: number | null }) {
 /** Текст «что требует согласования»: открытый вопрос показывается рядом со значением */
 export function NeedsAgreement({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5 text-[13px]">
+    <span className="inline-flex flex-wrap items-center gap-1.5 text-meta">
       <MarkChip mark={{ label: "Требует согласования", level: "info" }} />
       <span className="text-text-2">{children}</span>
     </span>

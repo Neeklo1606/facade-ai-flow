@@ -200,7 +200,7 @@ test.describe("отчёт, 390", () => {
     await openReport(page);
     const { name } = await downloadName(page);
     expect(name).toBe(FILE);
-    await page.getByRole("tab", { name: "Аналитическая таблица" }).click();
+    await page.getByRole("tab", { name: "Аналитика" }).click();
     await page.getByRole("button", { name: "Фильтры (0)" }).click();
     const sheet = page.getByRole("dialog");
     await sheet.getByRole("button", { name: "Демо", exact: true }).click();

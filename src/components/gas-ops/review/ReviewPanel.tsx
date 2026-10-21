@@ -71,9 +71,9 @@ export function ReviewPanel({
 
   return (
     <div className={cn("flex min-h-0 flex-col", !sheet && "h-full")}>
-      <header className={cn("shrink-0", sheet ? "px-5 pt-1" : "px-6 pt-6")}>
+      <header className={cn("shrink-0", sheet ? "px-gutter pt-1" : "px-6 pt-5")}>
         <div className="flex items-center gap-3">
-          <p className="min-w-0 flex-1 truncate text-[13px] leading-5 text-text-3">
+          <p className="min-w-0 flex-1 truncate text-meta text-text-3">
             {entry.number} · {sheet ? fmtShortDay(entry.day) : fmtEntryDay(entry.day)}
           </p>
           <EntryStatusBadge status={entry.status} />
@@ -82,31 +82,30 @@ export function ReviewPanel({
               type="button"
               onClick={onClose}
               aria-label="Закрыть"
-              className="-me-2 grid size-12 shrink-0 place-items-center rounded-full text-text-2 focus-ring is-hover:bg-surface-2"
+              className="-me-2 grid size-11 shrink-0 place-items-center rounded-full text-text-2 focus-ring is-hover:bg-surface-2"
             >
               <X className="size-5" aria-hidden />
             </button>
           ) : null}
         </div>
-        <h2
-          id="review-title"
-          className="mt-2 text-[24px] leading-[30px] font-semibold tracking-[-0.02em] text-balance"
-        >
+        <h2 id="review-title" className="mt-1 line-clamp-2 text-heading text-balance">
           {view.object?.label ?? "Объект не указан"}
         </h2>
-        <p className="mt-1 text-[14px] leading-5 text-text-2 tnum">{entryLine(view)}</p>
+        <p className="mt-0.5 text-meta text-text-2 tnum">{entryLine(view)}</p>
         {money ? (
-          <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
-            <p
-              className={cn(
-                "text-[34px] leading-[38px] font-semibold tracking-[-0.03em] tnum",
-                entry.amountRub === null && "text-text-3",
-              )}
-            >
-              {entry.amountRub === null ? "Нет суммы" : fmtRub(entry.amountRub)}
-            </p>
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            {entry.amountRub === null ? (
+              <p className="text-body text-text-3">
+                Нет суммы{" "}
+                <a href="#entry-why" className="text-body-strong text-orange focus-ring">
+                  Почему
+                </a>
+              </p>
+            ) : (
+              <p className="text-title tnum">{fmtRub(entry.amountRub)}</p>
+            )}
             {view.revenue !== null ? (
-              <p className="pb-1 text-[14px] leading-5 text-text-2 tnum">{fmtRate(view.revenue)}</p>
+              <p className="text-body text-text-2 tnum">{fmtRate(view.revenue)}</p>
             ) : null}
             {/* Сумма есть, а стоимость объекта не подтверждена: говорим об этом у самой суммы */}
             {entry.amountRub !== null && view.flags.includes("no-estimate") ? (
@@ -116,11 +115,14 @@ export function ReviewPanel({
             ) : null}
           </div>
         ) : null}
-        <MarkList marks={marks} className="mt-3" />
+        <MarkList marks={marks} className="mt-2" />
       </header>
 
       <div
-        className={cn("min-h-0 flex-1", sheet ? "px-3 pt-4" : "overflow-y-auto px-4 pt-5 pb-4")}
+        className={cn(
+          "min-h-0 flex-1",
+          sheet ? "px-gutter pt-4" : "overflow-y-auto px-6 pt-4 pb-4",
+        )}
         style={sheet ? { paddingBottom: floatingBottom + 88 } : undefined}
       >
         {mode ? (
@@ -149,7 +151,7 @@ export function ReviewPanel({
       {mode || !canDecide ? null : (
         <ActionBar sheet={sheet} floatingBottom={floatingBottom}>
           {decided ? (
-            <p className="flex min-h-12 flex-1 items-center px-3 text-[14px] leading-5 text-text-2">
+            <p className="flex min-h-12 flex-1 items-center px-3 text-body text-text-2">
               Подтверждено и учтено в недельном отчёте.
             </p>
           ) : (
@@ -158,12 +160,12 @@ export function ReviewPanel({
                 type="button"
                 data-tour="review-confirm"
                 onClick={onConfirm}
-                className="inline-flex min-h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-orange-strong px-5 text-[16px] font-semibold text-on-orange transition-fast focus-ring press is-hover:bg-orange-strong-hover lg:min-h-12"
+                className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-control bg-orange-strong px-5 text-body-strong text-on-orange transition-fast focus-ring press-98 is-hover:bg-orange-strong-hover"
               >
                 <Check className="size-5 shrink-0" aria-hidden />
                 Подтвердить
                 {showKeys ? (
-                  <kbd className="ms-1 rounded-[6px] bg-white/20 px-1.5 text-[11px] leading-5 font-medium">
+                  <kbd className="ms-1 rounded-[var(--r-xs)] bg-white/20 px-1.5 text-tab">
                     Enter
                   </kbd>
                 ) : null}
@@ -172,30 +174,30 @@ export function ReviewPanel({
                 type="button"
                 onClick={() => setMode("clarify")}
                 aria-label="Вернуть на уточнение"
-                className="inline-flex min-h-14 shrink-0 items-center justify-center gap-2 rounded-full bg-surface-2 px-4 text-[15px] font-medium text-text transition-fast focus-ring press is-hover:bg-surface-3 lg:min-h-12"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-4 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2"
               >
-                <MessageCircleQuestion className="hidden size-[18px] sm:block" aria-hidden />
+                <MessageCircleQuestion className="hidden size-5 sm:block" aria-hidden />
                 <span className="lg:hidden">На уточнение</span>
                 <span className="hidden lg:inline">Вернуть на уточнение</span>
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label="Ещё действия"
-                  className="grid size-14 shrink-0 place-items-center rounded-full bg-surface-2 text-text transition-fast focus-ring press is-hover:bg-surface-3 lg:size-12"
+                  className="grid size-12 shrink-0 place-items-center rounded-control border border-line-2 bg-surface text-text transition-fast focus-ring press-98 is-hover:bg-surface-2"
                 >
                   <MoreHorizontal className="size-5" aria-hidden />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" side="top" className="min-w-[200px]">
                   <DropdownMenuItem
                     onSelect={() => setMode("correct")}
-                    className="min-h-12 gap-2 text-[15px]"
+                    className="min-h-12 gap-2 text-body"
                   >
                     <Pencil className="size-4" aria-hidden />
                     Исправить
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => setMode("reject")}
-                    className="min-h-12 gap-2 text-[15px] text-danger"
+                    className="min-h-12 gap-2 text-body text-danger"
                   >
                     <X className="size-4" aria-hidden />
                     Отклонить
@@ -298,14 +300,23 @@ function ReasonForm({
   const noFrame = mode === "correct" && entry.startMinutes === null;
   const ready = comment.length > 0 && !noFrame && !busy;
 
-  const submit = async () => {
-    if (!ready) return;
+  const send = async (text: string) => {
     setBusy(true);
     setError(null);
-    const result = await onSubmit(comment, { start, end, breakMinutes: breaks });
+    const result = await onSubmit(text, { start, end, breakMinutes: breaks });
     setBusy(false);
     if (!result.ok) setError(result.message);
   };
+  const submit = async () => {
+    if (!ready) return;
+    await send(comment);
+  };
+  /*
+   * Отклонение и уточнение обратимы: частая причина применяется сразу, отмена в тосте
+   * 6 секунд (ADR-045, принцип 8; отклонение за 4 касания, раздел 6). Свой текст по кнопке.
+   * Исправлению нужно время, поэтому там причина только выбирается.
+   */
+  const instant = mode !== "correct";
 
   const buttons = (
     <>
@@ -313,14 +324,14 @@ function ReasonForm({
         type="button"
         onClick={() => void submit()}
         disabled={!ready}
-        className="pill-action min-w-0 flex-1 text-[16px] font-semibold transition-fast focus-ring press disabled:opacity-40"
+        className="inline-flex h-12 min-w-0 flex-1 items-center justify-center rounded-control bg-orange-strong px-5 text-body-strong text-on-orange transition-fast focus-ring press-98 disabled:opacity-45"
       >
         {REASON_SUBMIT[mode]}
       </button>
       <button
         type="button"
         onClick={onCancel}
-        className="inline-flex min-h-14 shrink-0 items-center rounded-full bg-surface-2 px-5 text-[15px] font-medium text-text focus-ring press is-hover:bg-surface-3 lg:min-h-12"
+        className="inline-flex h-12 shrink-0 items-center rounded-control border border-line-2 bg-surface px-5 text-body-strong text-text focus-ring press-98 is-hover:bg-surface-2"
       >
         Отмена
       </button>
@@ -328,26 +339,23 @@ function ReasonForm({
   );
 
   const field =
-    "mt-1 h-12 w-full rounded-[14px] bg-surface px-3 text-[16px] text-text tnum focus-ring";
+    "mt-1 h-12 w-full rounded-control border border-line-2 bg-surface px-3 text-body text-text tnum focus-ring";
 
   return (
-    <section
-      aria-labelledby="reason-title"
-      className="rounded-[var(--r-xl)] bg-surface-2 p-4 ring-1 ring-line-2"
-    >
-      <h3 id="reason-title" className="text-[16px] leading-6 font-semibold">
+    <section aria-labelledby="reason-title" className="surface-1 p-card">
+      <h3 id="reason-title" className="text-heading">
         {REASON_TITLE[mode]}
       </h3>
 
       {mode === "correct" ? (
         noFrame ? (
-          <p className="mt-2 text-[14px] leading-5 text-warn">
+          <p className="mt-2 text-body text-warn">
             У записи из выгрузки нет начала и окончания смены: в файле заказчика стоят только
             минуты.
           </p>
         ) : (
           <div className="mt-3 grid grid-cols-3 gap-2">
-            <label className="text-[13px] text-text-2">
+            <label className="text-meta text-text-2">
               Начало
               <input
                 value={start}
@@ -357,7 +365,7 @@ function ReasonForm({
                 className={field}
               />
             </label>
-            <label className="text-[13px] text-text-2">
+            <label className="text-meta text-text-2">
               Окончание
               <input
                 value={end}
@@ -367,7 +375,7 @@ function ReasonForm({
                 className={field}
               />
             </label>
-            <label className="text-[13px] text-text-2">
+            <label className="text-meta text-text-2">
               Перерыв, мин
               <input
                 value={breaks}
@@ -381,8 +389,10 @@ function ReasonForm({
         )
       ) : null}
 
-      <p className="mt-3 text-[13px] leading-5 text-text-3">
-        {mode === "correct" ? "Почему исправлено" : "Выберите причину или напишите свою"}
+      <p className="mt-3 text-meta text-text-3">
+        {mode === "correct"
+          ? "Почему исправлено"
+          : "Причина применяется сразу, отменить можно 6 секунд. Или напишите свою"}
       </p>
       <div role="group" aria-label="Частые причины" className="mt-2 flex flex-wrap gap-2">
         {REASONS[mode].map((reason) => {
@@ -391,10 +401,14 @@ function ReasonForm({
             <button
               key={reason}
               type="button"
-              aria-pressed={on}
-              onClick={() => setChip(on ? null : reason)}
+              aria-pressed={instant ? undefined : on}
+              disabled={busy}
+              onClick={() => {
+                if (instant) void send(reasonText(reason, own));
+                else setChip(on ? null : reason);
+              }}
               className={cn(
-                "inline-flex min-h-12 items-center rounded-full px-4 text-[14px] leading-5 font-medium transition-fast focus-ring press",
+                "inline-flex min-h-12 items-center rounded-full px-4 text-body-strong transition-fast focus-ring press-98",
                 on ? "bg-pill text-pill-text" : "bg-surface text-text is-hover:bg-surface-3",
               )}
             >
@@ -403,18 +417,18 @@ function ReasonForm({
           );
         })}
       </div>
-      <label className="mt-3 block text-[13px] text-text-2">
+      <label className="mt-3 block text-meta text-text-2">
         Свой текст
         <textarea
           value={own}
           onChange={(event) => setOwn(event.target.value)}
           rows={2}
           placeholder={mode === "clarify" ? "Что спросить у бригадира" : "Что не так"}
-          className="mt-1 block min-h-[72px] w-full resize-none rounded-[14px] bg-surface px-3 py-3 text-[16px] leading-6 text-text focus-ring"
+          className="mt-1 block min-h-18 w-full resize-none rounded-control border border-line-2 bg-surface px-3 py-3 text-body text-text focus-ring"
         />
       </label>
       {error ? (
-        <p role="alert" className="mt-2 text-[14px] leading-5 text-danger">
+        <p role="alert" className="mt-2 text-body text-danger">
           {error}
         </p>
       ) : null}

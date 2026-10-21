@@ -213,7 +213,7 @@ function measureInPage(): Omit<Measure, "route" | "theme" | "url" | "width"> {
     // Подсказка экрана и полоса показа не считаются полезным содержимым (раздел 6)
     if (
       el.closest(
-        "[aria-label='Что делать здесь'],[aria-label='Подсказки по сценарию'],[data-gas-show-dock],[data-gas-show-inline],[data-show-strip]",
+        "[aria-label='Что делать здесь'],[aria-label='Как работать с экраном'],[aria-label='Подсказки по сценарию'],[data-gas-show-dock],[data-gas-show-inline],[data-show-strip]",
       )
     )
       return false;

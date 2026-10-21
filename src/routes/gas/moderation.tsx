@@ -1,7 +1,7 @@
 import { completePageHead } from "@/lib/page-head";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCheck, ClipboardCheck } from "lucide-react";
+import { CheckCheck, ClipboardCheck, Inbox } from "lucide-react";
 import { QueueCard } from "@/components/gas-ops/review/QueueCard";
 import {
   ReviewPanel,
@@ -12,18 +12,12 @@ import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
 import { useFloatingBottom, useIsDesktop } from "@/components/gas-ops/review/use-layout";
 import { marksOf, needsAttention, type Mark } from "@/components/gas-ops/review/rules";
 import { ScreenHint, SectionTitle } from "@/components/gas-ops/page";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollTabs } from "@/components/ui/kit/controls";
+import { EmptyBlock } from "@/components/ui/kit/states";
 import {
   ENTRY_STATUS_LABEL,
+  fmtRub,
   useGasActions,
   useGasActor,
   useGasEntry,
@@ -36,7 +30,6 @@ import {
 import { gasShowConfirmed, useGasShow } from "@/lib/gas-ops/show";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
-import { cn } from "@/lib/utils";
 
 /**
  * Очередь проверки (ADR-044, F5). Менеджер с первого взгляда видит, что требует внимания,
@@ -90,7 +83,6 @@ function ModerationPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
-  const [confirmAll, setConfirmAll] = useState(false);
 
   const counts = useGasQueueCounts();
   const rows = useGasQueue(tab);
@@ -217,9 +209,13 @@ function ModerationPage() {
   );
 
   /* ---------- Пачка «Без замечаний» ---------- */
+  /*
+   * «Подтвердить все N» выполняется сразу, без диалога (ADR-045, принцип 8 и 5.4): действие
+   * обратимое, отмена живёт в тосте 6 секунд.
+   */
   const confirmClean = async () => {
-    setConfirmAll(false);
     const ids = clean.map((item) => item.view.entry.id);
+    const sum = clean.reduce((acc, item) => acc + (item.view.entry.amountRub ?? 0), 0);
     const done: string[] = [];
     for (const id of ids) {
       const result = await actions.review({ id, action: "confirm" });
@@ -231,7 +227,7 @@ function ModerationPage() {
     }
     for (const id of done) gasShowConfirmed(id);
     toastUndo(
-      `Подтверждено: ${done.length} ${plural(done.length, "запись", "записи", "записей")}`,
+      `Подтверждено ${done.length} ${plural(done.length, "запись", "записи", "записей")} на ${fmtRub(sum)}`,
       () => {
         void (async () => {
           for (const id of done) await actions.undoReview(id);
@@ -296,7 +292,7 @@ function ModerationPage() {
   };
 
   const renderGroup = (items: Item[]) => (
-    <ul className="flex flex-col gap-2">
+    <ul className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
       {items.map((item) => {
         const id = item.view.entry.id;
         return (
@@ -336,40 +332,48 @@ function ModerationPage() {
   ) : null;
 
   const total = counts.pending + counts.clarify + counts.draft + counts.rejected;
+  const withMarks = attention.length;
 
   return (
     <div className="min-w-0">
+      {/* Сначала итог одной строкой (принцип 2, 5.4) */}
+      <p className="text-body text-text-2 tnum" data-testid="queue-summary">
+        {counts.pending} {plural(counts.pending, "ждёт", "ждут", "ждут")} проверки
+        {tab === "pending" && withMarks ? `, ${withMarks} с замечаниями` : ""}
+      </p>
+      {/* Режим проверки: интерфейс развития, логика не меняется (5.4, разговор 21.10) */}
+      <p className="mt-0.5 mb-2 flex min-w-0 items-center gap-2 text-meta text-text-3">
+        <span className="truncate">Режим: проверяет менеджер · Развитие</span>
+        <Link
+          to="/gas/admin"
+          hash="review-mode"
+          className="inline-flex min-h-11 shrink-0 items-center text-meta-strong text-orange focus-ring"
+        >
+          Настроить
+        </Link>
+      </p>
+
       <ScreenHint screen="moderation" />
 
-      <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none]">
-        <div role="tablist" aria-label="Статус записи" className="seg">
-          {TABS.map((value) => {
-            const count = value === "all" ? total : counts[value];
-            return (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={tab === value}
-                onClick={() => {
-                  setTab(value);
-                  setSelected(null);
-                  setSheetOpen(false);
-                }}
-                className="seg-item focus-ring"
-              >
-                {value === "all" ? "Все" : ENTRY_STATUS_LABEL[value]}
-                <span className="text-[12px] opacity-70 tnum">{count}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <ScrollTabs
+        label="Статус записи"
+        value={tab}
+        onChange={(value) => {
+          setTab(value);
+          setSelected(null);
+          setSheetOpen(false);
+        }}
+        tabs={TABS.map((value) => ({
+          value,
+          label: value === "all" ? "Все" : ENTRY_STATUS_LABEL[value],
+          count: value === "all" ? total : counts[value],
+        }))}
+      />
 
-      <div className="mt-5 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col gap-6">
+      <div className="mt-block grid min-w-0 gap-section lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-section">
           {desktop && ordered.length > 0 ? (
-            <p className="flex items-center gap-2 text-[13px] leading-5 text-text-3">
+            <p className="flex items-center gap-2 text-meta text-text-3">
               <kbd className="kbd">J</kbd>
               <kbd className="kbd">K</kbd>
               по списку
@@ -380,28 +384,26 @@ function ModerationPage() {
           ) : null}
 
           {ordered.length === 0 ? (
-            <div className="card-v3 px-6 py-10 text-center">
-              <CheckCheck className="mx-auto size-8 text-ok" aria-hidden />
-              <h2 className="mt-3 text-[18px] font-semibold">
-                {tab === "pending" ? "Очередь пуста" : "Здесь пусто"}
-              </h2>
-              <p className="mx-auto mt-1 max-w-[340px] text-[14px] leading-5 text-text-2">
-                {tab === "pending"
-                  ? "Новые записи бригадиров появятся здесь. Подтверждённые уже в журнале и отчёте."
-                  : "В этом состоянии записей нет."}
-              </p>
-              <Link to="/gas/entries" className="pill-action mt-5 text-[15px] focus-ring press">
-                Открыть журнал
-              </Link>
-            </div>
+            <EmptyBlock
+              icon={tab === "pending" ? CheckCheck : Inbox}
+              title={tab === "pending" ? "Очередь пуста" : "Здесь пусто"}
+              text={
+                tab === "pending"
+                  ? "Новые записи бригадиров появятся здесь"
+                  : "В этом состоянии записей нет"
+              }
+              action={
+                <Button variant="outline" asChild>
+                  <Link to="/gas/entries">Открыть журнал</Link>
+                </Button>
+              }
+            />
           ) : null}
 
           {attention.length > 0 ? (
             <section aria-labelledby="group-attention">
               <SectionTitle
-                aside={
-                  <span className="pb-0.5 text-[13px] text-text-3 tnum">{attention.length}</span>
-                }
+                aside={<span className="text-meta text-text-3 tnum">{attention.length}</span>}
               >
                 <span id="group-attention">Требуют внимания</span>
               </SectionTitle>
@@ -414,16 +416,16 @@ function ModerationPage() {
               <SectionTitle
                 aside={
                   tab === "pending" ? (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmAll(true)}
-                      className="inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 text-[14px] font-medium text-text transition-fast focus-ring press is-hover:bg-surface-3"
+                    <Button
+                      variant="quiet"
+                      className="-me-2 px-2"
+                      onClick={() => void confirmClean()}
                     >
-                      <CheckCheck className="size-4" aria-hidden />
-                      Подтвердить все ({clean.length})
-                    </button>
+                      <CheckCheck aria-hidden />
+                      Подтвердить все {clean.length}
+                    </Button>
                   ) : (
-                    <span className="pb-0.5 text-[13px] text-text-3 tnum">{clean.length}</span>
+                    <span className="text-meta text-text-3 tnum">{clean.length}</span>
                   )
                 }
               >
@@ -438,11 +440,12 @@ function ModerationPage() {
           <aside
             aria-labelledby={current ? "review-title" : undefined}
             aria-label={current ? undefined : "Детали записи"}
-            className="card-v3 sticky top-6 flex flex-col overflow-hidden rounded-[var(--r-2xl)]"
-            style={{ maxHeight: `calc(100dvh - 48px - ${Math.max(0, floatingBottom - 8)}px)` }}
+            className="surface-1 sticky top-20 flex flex-col overflow-hidden"
+            // Высота ровно до низа экрана: детали прокручиваются внутри, кнопки решения видны
+            style={{ height: `calc(100dvh - 104px - ${Math.max(0, floatingBottom - 8)}px)` }}
           >
             {panel ?? (
-              <p className="px-6 py-10 text-center text-[14px] text-text-2">
+              <p className="px-6 py-10 text-center text-body text-text-2">
                 Выберите запись слева, чтобы увидеть, что ввёл бригадир и что посчитала система.
               </p>
             )}
@@ -459,26 +462,6 @@ function ModerationPage() {
           {panel}
         </PhoneSheet>
       )}
-
-      <AlertDialog open={confirmAll} onOpenChange={setConfirmAll}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Подтвердить {clean.length} {plural(clean.length, "запись", "записи", "записей")} без
-              замечаний?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Записи уйдут в недельный отчёт. Отменить можно в течение 6 секунд в уведомлении.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className={cn("min-h-12")}>Не сейчас</AlertDialogCancel>
-            <AlertDialogAction className="min-h-12" onClick={() => void confirmClean()}>
-              Подтвердить {clean.length}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -1,13 +1,15 @@
 /**
- * Итог недели крупно над таблицей (визуал v3: `hero-field` и `text-hero-num`).
- * Одна главная вещь экрана — сумма недели; часы, доходность и записи тише.
- * Здесь же главная кнопка экрана «Выгрузить Excel».
+ * Итог недели одной карточкой над отчётом (ADR-045, 5.7): поверхность уровня 1 без градиента,
+ * сумма text-hero (одно главное число экрана), под ней строка «389,08 ч · 4 160 ₽/ч ·
+ * 100 записей». Порядок «сначала время» ставит часы главным числом, сумму во вторую строку.
+ * «Выгрузить Excel» вторичная 44: подпись меняется на «Готовлю файл...», ширина не прыгает.
  */
 import { Download } from "lucide-react";
 import { fmtHours, fmtRate, fmtRub, type ReportRow } from "@/api/gas-ops";
+import { Button } from "@/components/ui/button";
 import { GAS_BRAND } from "@/lib/gas-ops/brand";
+import { useMetricOrder } from "@/lib/gas-ops/report-view";
 import { plural } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { hasValue, tripleText } from "./cell-text";
 
 export function ReportHero({
@@ -26,61 +28,44 @@ export function ReportHero({
   busy: boolean;
   onExport: () => void;
 }) {
+  const order = useMetricOrder();
   const week = total?.total ?? { amountRub: null, minutes: null, revenue: null };
+  const money = fmtRub(week.amountRub ?? 0);
+  const hours = fmtHours((week.minutes ?? 0) / 60);
+  const records = `${count} ${plural(count, "запись", "записи", "записей")}`;
   return (
-    <section
-      aria-labelledby="report-total"
-      className="hero-field px-5 pt-5 pb-5 md:px-8 md:pt-7 md:pb-7"
-    >
-      <span aria-hidden className="orb -top-16 left-10 size-56 md:left-24" />
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <section aria-labelledby="report-total" className="surface-1 p-card">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <h2 id="report-total" className="text-[14px] leading-5 font-medium text-text-2">
-            Итог недели {GAS_BRAND.periodLabel}
-            <span className="block text-text-3 sm:inline">
-              <span className="hidden sm:inline">{" · "}</span>
-              {preliminary ? "предварительный" : "только подтверждённые"}
-            </span>
+          <h2 id="report-total" className="text-meta text-text-2">
+            Итог недели {GAS_BRAND.periodLabel} ·{" "}
+            {preliminary ? "предварительный" : "только подтверждённые"}
           </h2>
-          <p className="mt-2 text-hero-num" data-testid="report-total-amount">
-            {fmtRub(week.amountRub ?? 0)}
+          <p className="mt-1 text-hero" data-testid="report-total-amount">
+            {order === "time" ? hours : money}
           </p>
-          <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[15px] leading-6">
-            <Stat label="Часы" value={fmtHours((week.minutes ?? 0) / 60)} />
-            <Stat label="Доходность" value={fmtRate(week.revenue)} />
-            <Stat
-              label="Записей"
-              value={`${count} ${plural(count, "запись", "записи", "записей")}`}
-              hideLabel
-            />
-          </dl>
+          <p className="mt-1 text-body text-text-2 tnum" data-testid="report-total-line">
+            {order === "time" ? money : hours} · {fmtRate(week.revenue)} · {records}
+          </p>
           {day ? (
-            <p className="mt-3 inline-flex flex-wrap items-center gap-2 rounded-full bg-[color-mix(in_oklab,var(--surface)_70%,transparent)] px-3 py-1.5 text-[13px] text-text-2 tnum">
-              <span className="font-medium text-text">{day.label}</span>
-              {hasValue(day.cell) ? tripleText(day.cell) : "нет значений"}
+            <p className="mt-1 text-meta text-text-2 tnum">
+              <span className="text-meta-strong text-text">{day.label}:</span>{" "}
+              {hasValue(day.cell) ? tripleText(day.cell, order) : "нет значений"}
             </p>
           ) : null}
         </div>
-        <button
-          type="button"
+        <Button
+          variant="outline"
           data-tour="export"
-          disabled={busy}
+          loading={busy}
+          loadingText="Готовлю файл..."
           onClick={onExport}
-          className={cn("pill-action w-full shrink-0 focus-ring lg:w-auto", busy && "opacity-60")}
+          className="w-full shrink-0 md:w-auto"
         >
-          <Download className="size-5" aria-hidden />
-          {busy ? "Готовлю файл" : "Выгрузить Excel"}
-        </button>
+          <Download aria-hidden />
+          Выгрузить Excel
+        </Button>
       </div>
     </section>
-  );
-}
-
-function Stat({ label, value, hideLabel }: { label: string; value: string; hideLabel?: boolean }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <dt className={cn("text-text-3", hideLabel && "sr-only")}>{label}</dt>
-      <dd className="font-semibold tnum">{value}</dd>
-    </div>
   );
 }

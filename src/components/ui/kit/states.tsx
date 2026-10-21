@@ -209,13 +209,13 @@ export function HintRow({
         />
       </button>
       {open ? (
-        <div className="surface-1 max-h-30 overflow-y-auto px-card py-3">
+        <div className="surface-1 max-h-30 overflow-y-auto px-card py-2">
           <ol className="list-decimal space-y-1 ps-5 text-body text-text">
             {steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
-          {more ? <div className="mt-1">{more}</div> : null}
+          {more ? <div>{more}</div> : null}
         </div>
       ) : null}
     </section>

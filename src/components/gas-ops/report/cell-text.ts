@@ -20,9 +20,14 @@ export function rateText(cell: ReportCellValue): string {
   return fmtRate(cell.revenue);
 }
 
-/** Три числа строки в одну линию: «44 847 ₽ · 6,58 ч · 6 812 ₽/ч» */
-export function tripleText(cell: ReportCellValue): string {
-  return `${amountText(cell)} · ${hoursText(cell)} · ${rateText(cell)}`;
+/**
+ * Три числа строки в одну линию: «44 847 ₽ · 6,58 ч · 6 812 ₽/ч». Порядок «сначала время»
+ * ставит часы первыми: «6,58 ч · 44 847 ₽ · 6 812 ₽/ч» (ADR-045, 5.7).
+ */
+export function tripleText(cell: ReportCellValue, order: "money" | "time" = "money"): string {
+  return order === "time"
+    ? `${hoursText(cell)} · ${amountText(cell)} · ${rateText(cell)}`
+    : `${amountText(cell)} · ${hoursText(cell)} · ${rateText(cell)}`;
 }
 
 export function hasValue(cell: ReportCellValue | undefined): cell is ReportCellValue {
