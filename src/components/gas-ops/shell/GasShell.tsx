@@ -56,6 +56,9 @@ import { ListGroup, ListRow } from "@/components/ui/kit/list";
 import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
 import { GasShowDock } from "../show/GasShowDock";
+import { ScreenStateGate } from "../ScreenStateGate";
+import { OfflineBar } from "@/components/ui/kit/states";
+import { useOffline } from "@/lib/ui/offline";
 
 const GROUPS: readonly GasGroup[] = ["work", "catalogs", "growth", "help"];
 
@@ -84,6 +87,7 @@ export function GasShell({ children }: { children: ReactNode }) {
   useInstallHint();
   // Крупный заголовок в контенте; когда он ушёл под шапку, его текст встаёт в шапку (4.2)
   const { ref: titleRef, collapsed } = useCollapsingTitle(pathname);
+  const network = useOffline();
 
   return (
     <div className="gas-shell flex min-h-dvh bg-void text-text">
@@ -92,6 +96,7 @@ export function GasShell({ children }: { children: ReactNode }) {
         {/* Шапка и полоса показа липкие вместе: полоса живёт под шапкой (4.4) */}
         <div className="sticky top-0 z-30">
           <GasTopbar screen={screen} collapsed={collapsed} />
+          {network.offline ? <OfflineBar demo={network.simulated} /> : null}
           <GasShowDock />
         </div>
         <main
@@ -112,7 +117,7 @@ export function GasShell({ children }: { children: ReactNode }) {
                 {screen.title}
               </h1>
             )}
-            {children}
+            <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
           </div>
         </main>
       </div>
