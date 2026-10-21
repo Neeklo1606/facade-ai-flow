@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Check, ChevronDown, Lightbulb, WifiOff } from "lucide-react";
+import { Check, ChevronDown, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -99,19 +99,7 @@ export function ErrorBlock({ what, onRetry }: { what: string; onRetry: () => voi
   );
 }
 
-/** Полоса 32 под шапкой: изменения сохранятся и отправятся позже. В демо помечена имитацией */
-export function OfflineBar({ demo = false }: { demo?: boolean }) {
-  return (
-    <div
-      role="status"
-      className="flex h-8 items-center gap-2 bg-warn-bg px-gutter text-meta text-warn"
-    >
-      <WifiOff className="size-4 shrink-0" aria-hidden />
-      <span className="truncate">Нет связи. Изменения сохранятся и отправятся позже</span>
-      {demo ? <span className="ms-auto shrink-0 text-text-3">имитация</span> : null}
-    </div>
-  );
-}
+export { OfflineBar } from "./offline-bar";
 
 /* ---------------------------------------------------------------- Работа модели */
 

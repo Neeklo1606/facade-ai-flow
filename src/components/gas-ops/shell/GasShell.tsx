@@ -57,7 +57,7 @@ import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
 import { GasShowDock } from "../show/GasShowDock";
 import { ScreenStateGate } from "../ScreenStateGate";
-import { OfflineBar } from "@/components/ui/kit/states";
+import { OfflineBar } from "@/components/ui/kit/offline-bar";
 import { useOffline } from "@/lib/ui/offline";
 
 const GROUPS: readonly GasGroup[] = ["work", "catalogs", "growth", "help"];

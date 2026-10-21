@@ -7,7 +7,6 @@
  *   и больше не появляется. Хранилище может быть недоступно: тогда подсказки нет.
  */
 import { useEffect } from "react";
-import { notify } from "@/components/ui/kit/toast";
 
 export function useAppManifest(href: string, title: string) {
   useEffect(() => {
@@ -40,10 +39,12 @@ export function useInstallHint() {
     } catch {
       return;
     }
-    const timer = window.setTimeout(
-      () => notify("Добавьте на экран «Домой»: «Поделиться», затем «На экран „Домой“»"),
-      2500,
-    );
+    // Тост грузится только здесь: первому экрану модуль тостов не нужен (бюджет бандла)
+    const timer = window.setTimeout(() => {
+      void import("@/components/ui/kit/toast").then(({ notify }) =>
+        notify("Добавьте на экран «Домой»: «Поделиться», затем «На экран „Домой“»"),
+      );
+    }, 2500);
     return () => window.clearTimeout(timer);
   }, []);
 }

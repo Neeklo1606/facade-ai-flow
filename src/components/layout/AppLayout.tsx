@@ -15,7 +15,7 @@ const GuideDock = lazy(() =>
 import { useSegScroll } from "@/lib/ui/seg-scroll";
 import { useInstallHint } from "@/lib/ui/pwa";
 import { useOffline } from "@/lib/ui/offline";
-import { OfflineBar } from "@/components/ui/kit/states";
+import { OfflineBar } from "@/components/ui/kit/offline-bar";
 import { useRouterState } from "@tanstack/react-router";
 
 export function AppLayout({ children }: { children: ReactNode }) {

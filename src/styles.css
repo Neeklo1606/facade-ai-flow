@@ -544,8 +544,9 @@
     margin: 0;
     background: var(--void);
     color: var(--text);
-    font-size: 15px;
-    line-height: 20px;
+    /* rem: текст растёт с настройкой размера шрифта браузера (ADR-045, 3.1) */
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
     font-weight: 400;
     /* Числа моноширинные везде без исключений */
     font-variant-numeric: tabular-nums;
@@ -578,12 +579,12 @@
    * шкалы на конкретном заголовке были сильнее.
    */
   h1 {
-    font-size: 24px;
-    line-height: 30px;
+    font-size: 1.5rem;
+    line-height: 1.875rem;
   }
   h2 {
-    font-size: 17px;
-    line-height: 22px;
+    font-size: 1.0625rem;
+    line-height: 1.375rem;
   }
   @media (max-width: 1023px) {
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
@@ -649,70 +650,70 @@
  */
 @utility text-title {
   font-variant-numeric: proportional-nums;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 1.5rem;
+  line-height: 1.875rem;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-heading {
   font-variant-numeric: proportional-nums;
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-body {
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
   font-weight: 400;
 }
 @utility text-body-strong {
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
   font-weight: 500;
 }
 @utility text-meta {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 400;
 }
 @utility text-meta-strong {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 500;
 }
 @utility text-tab {
-  font-size: 11px;
-  line-height: 13px;
+  font-size: 0.6875rem;
+  line-height: 0.8125rem;
   font-weight: 500;
   letter-spacing: 0;
 }
 /* Одно главное число экрана, не больше одного */
 @utility text-hero {
   font-variant-numeric: tabular-nums;
-  font-size: 32px;
-  line-height: 36px;
+  font-size: 2rem;
+  line-height: 2.25rem;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 /* Только стартовый экран и финал показа */
 @utility text-display {
   font-variant-numeric: proportional-nums;
-  font-size: 32px;
-  line-height: 38px;
+  font-size: 2rem;
+  line-height: 2.375rem;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 /* Ячейки таблиц на компьютере */
 @utility text-table {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   font-weight: 400;
 }
 /* Расшифровка речи в ГАЙКЕ: её читают вслух */
 @utility text-transcript {
-  font-size: 17px;
-  line-height: 24px;
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -723,70 +724,70 @@
  */
 @utility text-greeting {
   font-variant-numeric: proportional-nums;
-  font-size: 32px;
-  line-height: 38px;
+  font-size: 2rem;
+  line-height: 2.375rem;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 @utility text-page-title {
   font-variant-numeric: proportional-nums;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 1.5rem;
+  line-height: 1.875rem;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-metric {
   font-variant-numeric: tabular-nums;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 1.5rem;
+  line-height: 1.875rem;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-section-title {
   font-variant-numeric: proportional-nums;
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-lead {
-  font-size: 17px;
-  line-height: 24px;
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
   font-weight: 400;
   letter-spacing: 0;
 }
 @utility text-card-title {
   font-variant-numeric: proportional-nums;
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
   font-weight: 600;
   letter-spacing: 0;
 }
 @utility text-list {
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
   font-weight: 500;
 }
 @utility text-caption {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 400;
 }
 @utility text-badge {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 500;
 }
 @utility text-overline {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
 }
 @utility text-micro {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   letter-spacing: 0;
 }
 @utility tnum {
@@ -799,8 +800,8 @@
  */
 @utility text-marker {
   font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 16px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
@@ -965,8 +966,8 @@
   border-radius: var(--r-control);
   background: var(--orange-strong);
   color: var(--on-orange);
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
   font-weight: 500;
   &:hover {
     background: var(--orange-strong-hover);
@@ -1048,8 +1049,8 @@
   align-items: center;
   gap: 6px;
   padding: 16px 12px 4px;
-  font-size: 13px; /* text-meta, ADR-045 */
-  line-height: 18px;
+  font-size: 0.8125rem; /* text-meta, ADR-045 */
+  line-height: 1.125rem;
   font-weight: 400;
   color: var(--text-3);
   &:hover {
@@ -1068,8 +1069,8 @@
   gap: 12px;
   padding-inline: 12px;
   border-radius: var(--r-control);
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
   font-weight: 400;
   font-variant-numeric: proportional-nums;
   color: var(--text-2);
@@ -1195,7 +1196,7 @@
   border: 1px solid transparent;
   border-radius: var(--r-pill);
   background: var(--surface-2);
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-3);
   & > svg {
     width: 16px;
@@ -1281,7 +1282,7 @@
   place-items: center;
   border-radius: 50%;
   background: var(--pill-bg);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--pill-text);
 }
@@ -1573,7 +1574,7 @@ html[data-boot-compact] [data-boot-hero] {
   input,
   select,
   textarea {
-    font-size: 16px;
+    font-size: max(16px, 1rem);
   }
 }
 
@@ -1686,8 +1687,8 @@ html[data-boot-compact] [data-boot-hero] {
   min-height: var(--h-segment);
   padding-inline: 14px;
   border-radius: var(--r-pill);
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
   font-weight: 400;
   color: var(--text-2);
   white-space: nowrap;
@@ -1725,8 +1726,8 @@ html[data-boot-compact] [data-boot-hero] {
 
 /* Устарело (ADR-045): псевдоним text-hero */
 @utility text-hero-num {
-  font-size: 32px;
-  line-height: 36px;
+  font-size: 2rem;
+  line-height: 2.25rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
