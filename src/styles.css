@@ -1595,3 +1595,11 @@ html[data-boot-compact] [data-boot-hero] {
 @utility pb-safe {
   padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
+
+/* Компактнее на телефоне: поля и кнопки 48 px, плотнее заголовки (ADR-042) */
+@media (max-width: 1023px) {
+  input:not([type=checkbox]):not([type=radio]), select { min-height: 48px; }
+  textarea { min-height: 72px; }
+  h1 { font-size: 24px; line-height: 30px; letter-spacing: -0.015em; }
+  h2 { font-size: 18px; line-height: 24px; }
+}
