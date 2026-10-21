@@ -35,11 +35,13 @@ export function SourceSheet({
     >
       <div className="flex flex-col gap-3 pb-2">
         <Marker>{origin}</Marker>
-        <p className="text-body text-text-2">
+        <p
+          className={`text-lead bg-surface-2 rounded-[var(--r-xl)] px-5 py-4 ${range ? "text-text-3" : "text-text-2"}`}
+        >
           {range ? (
             <>
               {text.slice(0, range.start)}
-              <mark className="bg-sand/25 text-text rounded-[4px] px-0.5">
+              <mark className="bg-sand/25 text-text rounded-[6px] px-1 py-0.5 font-medium [box-decoration-break:clone]">
                 {text.slice(range.start, range.end)}
               </mark>
               {text.slice(range.end)}

@@ -16,7 +16,7 @@ const view: Record<
   VoiceState,
   { label: string; icon: typeof Mic; glow: boolean; breathe: boolean; disabled: boolean }
 > = {
-  idle: { label: "Говорить", icon: Mic, glow: false, breathe: false, disabled: false },
+  idle: { label: "Говорить", icon: Mic, glow: true, breathe: false, disabled: false },
   recording: { label: "Идёт запись", icon: Square, glow: true, breathe: true, disabled: false },
   paused: { label: "Пауза", icon: Pause, glow: false, breathe: false, disabled: false },
   uploading: {
