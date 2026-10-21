@@ -37,15 +37,20 @@ const SCREENS = [
   "/gas/finish",
 ];
 
+/** Ширины ADR-045, 4.1: телефоны, планшет в обе стороны, компьютеры */
 const VIEWS = [
+  { label: "1920", width: 1920, height: 1080 },
   { label: "1440", width: 1440, height: 980 },
+  { label: "1280", width: 1280, height: 800 },
+  { label: "1024", width: 1024, height: 768 },
   { label: "768", width: 768, height: 1024 },
+  { label: "430", width: 430, height: 932 },
   { label: "390", width: 390, height: 844 },
   { label: "375", width: 375, height: 812 },
 ];
 
 /** Ширины телефона: на них цель касания не меньше 44 px */
-const PHONE = new Set([375, 390]);
+const PHONE = new Set([375, 390, 430]);
 
 /**
  * Элементы раздела и оболочки контура (ADR-044): main, шапка и нижняя панель. Нажатия делаются

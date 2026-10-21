@@ -40,7 +40,7 @@ export function PeriodSwitch({
   return (
     <div
       ref={strip}
-      className={cn("-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0", className)}
+      className={cn("overflow-x-auto [scrollbar-width:none]", className)}
     >
       <div role="tablist" aria-label="Период отчёта" className="seg">
         {items.map((item) => (

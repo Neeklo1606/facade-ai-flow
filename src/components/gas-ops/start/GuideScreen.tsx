@@ -220,7 +220,7 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
-        <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+        <div className="-mx-gutter overflow-x-auto px-gutter pb-1 sm:mx-0 sm:px-0">
           <div role="tablist" aria-label="Роли инструкции" className="seg">
             {GUIDE_TABS.map((item) => (
               <button

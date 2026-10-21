@@ -58,8 +58,8 @@ export function SourceLegend() {
 /** Заголовок секции внутри экрана: шапка экрана остаётся единственным h1 */
 export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
-    <div className="mb-2 flex min-h-7 items-end justify-between gap-3">
-      <h2 className="text-heading">{children}</h2>
+    <div className="mb-2 flex min-h-7 flex-wrap items-end justify-between gap-x-3">
+      <h2 className="min-w-0 text-heading">{children}</h2>
       {aside}
     </div>
   );

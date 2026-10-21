@@ -179,7 +179,7 @@ function FilterControls({
   const set = (part: Partial<Filters>) => onChange({ ...filters, ...part });
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-      <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+      <div className="-mx-gutter overflow-x-auto px-gutter lg:mx-0 lg:px-0">
         <div role="group" aria-label="День" className="seg">
           {[{ iso: "all", label: "Все дни" }, ...days].map((day) => (
             <button
