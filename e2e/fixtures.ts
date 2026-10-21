@@ -221,7 +221,7 @@ export async function expectA11y(page: Page, screen: string) {
 
 /**
  * Мобильная версия и честность экрана (ADR-015): пометка демонстрации видна в первом экране
- * на любой ширине; на телефоне — без переполнения, с областями нажатия от 48 px, без действий
+ * на любой ширине; на телефоне — без переполнения, с областями нажатия от 44 px (ADR-045), без действий
  * только по наведению и без фокуса за краем экрана
  */
 export async function expectMobile(page: Page, screen: string) {
@@ -230,7 +230,7 @@ export async function expectMobile(page: Page, screen: string) {
   expect(check.demoMarked, `${screen}: пометка демонстрации не видна`).toBe(true);
   if ((page.viewportSize()?.width ?? 1440) >= 768) return;
   expect(check.overflow.offenders, `${screen}: страница шире экрана`).toEqual([]);
-  expect(check.small, `${screen}: области нажатия меньше 48 px`).toEqual([]);
+  expect(check.small, `${screen}: области нажатия меньше 44 px`).toEqual([]);
   expect(check.hoverOnly, `${screen}: действия только по наведению`).toEqual([]);
   expect(check.offscreenFocusable, `${screen}: фокус уходит за край экрана`).toEqual([]);
 }

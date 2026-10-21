@@ -179,6 +179,7 @@
   --h-segment: 36px;
   --h-chip: 24px;
   --h-show: 44px;
+  --h-sheet-head: 52px;
   --touch: 44px;
   --touch-field: 48px;
 
@@ -1778,6 +1779,9 @@ html[data-boot-compact] [data-boot-hero] {
 @utility h-show {
   height: var(--h-show);
 }
+@utility h-sheet-head {
+  height: var(--h-sheet-head);
+}
 /* Видимый элемент меньше 44: область касания добирается невидимой рамкой вокруг */
 @utility touch-target {
   position: relative;
@@ -1813,13 +1817,19 @@ html[data-boot-compact] [data-boot-hero] {
   border: 1px solid var(--line);
   border-radius: var(--r-card);
 }
-/* Отклик на нажатие (3.6): фон темнее и сжатие 0,98 за 100 мс, только касанием */
+/*
+ * Отклик на нажатие (3.6): фон темнее на 5% и сжатие 0,98 за 100 мс, без задержки.
+ * data-force="press" показывает состояние на /design-system.
+ */
 @utility press-98 {
   transition:
     transform var(--dur-press) var(--ease-out),
+    filter var(--dur-press) var(--ease-out),
     background-color var(--dur-press) var(--ease-out);
-  &:active:not(:disabled) {
+  &:active:not(:disabled),
+  &[data-force~="press"] {
     transform: scale(0.98);
+    filter: brightness(0.95);
   }
 }
 /* Отступ снизу под фиксированный слой: менеджер слоёв пишет --bottom-inset */
@@ -1827,7 +1837,8 @@ html[data-boot-compact] [data-boot-hero] {
   padding-bottom: calc(var(--bottom-inset, 0px) + 16px);
 }
 @media (prefers-reduced-motion: reduce) {
-  .press-98:active:not(:disabled) {
+  .press-98:active:not(:disabled),
+  .press-98[data-force~="press"] {
     transform: none;
   }
 }

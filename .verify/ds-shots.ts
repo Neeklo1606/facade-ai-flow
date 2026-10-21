@@ -23,6 +23,7 @@ for (const width of [390, 1440])
     await page.addStyleTag({ content: `.app-window,.app-shell,main{height:auto!important;max-height:none!important;overflow:visible!important} nav[aria-label="Основная навигация"]{display:none!important} header{position:static!important}` });
     await page.waitForTimeout(300);
     await page.locator('[data-testid="scale-gallery"]').screenshot({ path: `${out}/design-system-${width}-${theme}.jpg`, type: "jpeg", quality: 82 });
+    await page.locator('[data-testid="kit-gallery"]').screenshot({ path: `${out}/kit-${width}-${theme}.jpg`, type: "jpeg", quality: 82 });
     console.log(width, theme, "ok");
     await ctx.close();
   }

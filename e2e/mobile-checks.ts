@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 
 /**
- * Проверки мобильной версии (Q8, ADR-015; порог 48 px — ADR-034, п. 6): переполнение, действия
+ * Проверки мобильной версии (Q8, ADR-015; порог касания 44 px по ADR-045 «Финальный интерфейс»,
+ * полевые действия от 48 проверяются в своих тестах): переполнение, действия
  * только по наведению, фокус за краем экрана и пометка демонстрации в первом экране.
  * Общие для сквозных тестов экранов (375) и обхода продукта (375, 390, 430).
  */
@@ -79,14 +80,23 @@ export function mobileCheck(page: Page): Promise<MobileCheck> {
       [...el.parentElement.childNodes].some(
         (node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim().length > 0,
       );
+    /*
+     * Область касания: сам элемент или его label, а если у элемента невидимая рамка
+     * touch-target (::before, ADR-045), то она: видимая кнопка 40, нажимается 44.
+     */
     const targetRect = (el: Element) => {
       const label = el.closest("label");
-      return (label ?? el).getBoundingClientRect();
+      const rect = (label ?? el).getBoundingClientRect();
+      const before = getComputedStyle(el, "::before");
+      if (before.content === "none" || before.position !== "absolute") return rect;
+      const w = parseFloat(before.width) || 0;
+      const h = parseFloat(before.height) || 0;
+      return { width: Math.max(rect.width, w), height: Math.max(rect.height, h) };
     };
     const small = [...document.querySelectorAll(selector)]
       .filter((el) => shown(el) && !inlineInText(el) && el.getBoundingClientRect().left < vw)
       .map((el) => ({ el, rect: targetRect(el) }))
-      .filter(({ rect }) => rect.width < 48 - 0.5 || rect.height < 48 - 0.5)
+      .filter(({ rect }) => rect.width < 44 - 0.5 || rect.height < 44 - 0.5)
       .map(({ el, rect }) => ({
         element: describe(el),
         width: Math.round(rect.width),

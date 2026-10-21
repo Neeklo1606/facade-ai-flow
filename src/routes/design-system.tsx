@@ -24,6 +24,7 @@ import {
 import { WidgetGallery } from "@/components/design-system/WidgetGallery";
 import { GaikaGallery } from "@/components/design-system/GaikaGallery";
 import { ScaleGallery } from "@/components/design-system/ScaleGallery";
+import { KitGallery } from "@/components/design-system/KitGallery";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/design-system")({
@@ -187,6 +188,7 @@ function DesignSystemPage() {
         description="Финальный интерфейс (ADR-045): одна шкала, два уровня поверхностей, один акцент на экран. Ниже прежние витрины версии 2 и v3: их приёмы на рабочих экранах отменены. Витрина доступна только в сборке для проверки."
       />
       <ScaleGallery />
+      <KitGallery />
       <GaikaGallery />
 
       {/* ---------------------------------------------------------- Палитра */}

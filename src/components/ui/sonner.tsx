@@ -2,21 +2,26 @@ import { Toaster as Sonner } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+/**
+ * Тосты ADR-045, раздел 4.5: один за раз, ширина экрана минус 32 (до 400), высота от 48,
+ * текст text-body, действие «Отменить» text-body-strong акцентом, одна мягкая тень.
+ * Место (внизу над нижним слоем) задаёт оболочка в __root.
+ */
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
-      visibleToasts={3}
-      style={{ width: 340 }}
+      visibleToasts={1}
+      style={{ width: "min(400px, calc(100vw - 32px))" }}
       toastOptions={{
         classNames: {
           toast:
-            "group toast w-[340px] rounded-[var(--r-md)] border border-border bg-[var(--bg-surface)] text-[13px] text-text-primary shadow-[var(--shadow-md)]",
-          description: "text-caption text-text-secondary",
+            "group toast flex min-h-12 w-full items-center gap-3 rounded-card border border-line bg-surface px-4 py-2 text-body text-text shadow-pop",
+          title: "text-body",
+          description: "text-meta text-text-2",
           actionButton:
-            "rounded-[var(--r-pill)] bg-ink px-3 py-1 text-[13px] font-medium text-primary-foreground",
-          cancelButton:
-            "rounded-[var(--r-pill)] bg-subtle px-3 py-1 text-[13px] text-text-secondary",
+            "!ms-auto !h-11 !shrink-0 !bg-transparent !px-2 !text-body-strong !text-orange",
+          cancelButton: "!h-11 !bg-transparent !px-2 !text-body !text-text-2",
         },
       }}
       {...props}

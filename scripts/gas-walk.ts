@@ -5,8 +5,8 @@
  *
  * Что проверяется на каждом экране:
  * 1. Переполнение страницы вбок — его быть не должно ни на одной ширине.
- * 2. Размер области нажатия: на телефоне от 48 px по короткой стороне
- *    (ADR-034, п. 6 и ADR-042: премиальный интерфейс требует 48).
+ * 2. Размер области нажатия: на телефоне от 44 px по короткой стороне (ADR-045 «Финальный
+ *    интерфейс»; полевые действия от 48 проверяют их тесты).
  * 3. Подпись: у каждой кнопки и ссылки есть текст или aria-label.
  * 4. Нажатие: кнопка что-то меняет — адрес, разметку или появившийся слой.
  *    Кнопка без последствий это обещание, которого система не выполняет.
@@ -44,7 +44,7 @@ const VIEWS = [
   { label: "375", width: 375, height: 812 },
 ];
 
-/** Ширины телефона: на них цель касания не меньше 48 px */
+/** Ширины телефона: на них цель касания не меньше 44 px */
 const PHONE = new Set([375, 390]);
 
 /**
@@ -89,6 +89,12 @@ function describe(page: Page) {
       disabled: boolean;
     }[] = [];
     for (const el of document.querySelectorAll(selector)) {
+      const touchOf = (node: Element) => {
+        const before = getComputedStyle(node, "::before");
+        if (before.content === "none" || before.position !== "absolute")
+          return { width: 0, height: 0 };
+        return { width: parseFloat(before.width) || 0, height: parseFloat(before.height) || 0 };
+      };
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) continue;
       const style = getComputedStyle(el);
@@ -117,8 +123,9 @@ function describe(page: Page) {
       items.push({
         label: label.slice(0, 48),
         tag: el.tagName.toLowerCase(),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
+        // Область касания с невидимой рамкой touch-target (::before, ADR-045)
+        width: Math.round(Math.max(rect.width, touchOf(el).width)),
+        height: Math.round(Math.max(rect.height, touchOf(el).height)),
         right: Math.round(rect.right),
         scrollable,
         active:
@@ -211,7 +218,7 @@ for (const view of VIEWS) {
         });
       }
       const short = Math.min(item.width, item.height);
-      if (PHONE.has(view.width) && short < 48 && item.tag !== "input" && item.tag !== "textarea") {
+      if (PHONE.has(view.width) && short < 44 && item.tag !== "input" && item.tag !== "textarea") {
         problems.push({
           screen,
           view: view.label,
