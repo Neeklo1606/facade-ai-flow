@@ -1,48 +1,40 @@
 import { completePageHead } from "@/lib/page-head";
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ClipboardCheck, FileSearch, FileSpreadsheet, Image, Undo2 } from "lucide-react";
-import {
-  CountPill,
-  EmptyState,
-  PageHeader,
-  PillTabs,
-  WidgetCard,
-  WidgetCardHeader,
-} from "@/components/common";
-import { BottomSheet } from "@/components/common/BottomSheet";
+import { ChevronDown, ChevronRight, ClipboardCheck, FileSearch } from "lucide-react";
+import { EmptyState, PageHeader } from "@/components/common";
 import { ScreenGate, ScreenSkeleton } from "@/components/common/ScreenStates";
 import { PageCaption } from "@/components/layout/PageActions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CheckSheet } from "@/components/check/CheckSheet";
+import { FactCard } from "@/components/check/FactCard";
+import { FactDetail } from "@/components/check/FactDetail";
+import { ShiftFiles } from "@/components/check/ShiftFiles";
+import { dayLabel, useIsDesktop, type FactRow } from "@/components/check/model";
 import { useCheckQueue } from "@/api/check";
-import { useDirectory } from "@/api/directory";
-import { useReviewReport } from "@/api/mutations";
 import { queries } from "@/api/queries";
 import { prefetch } from "@/api/prefetch";
 import { useAccess } from "@/api/access";
-import type { ReportCard } from "@/api/types";
-import { sourceKindLabel } from "@/contracts";
-import { fmtDate, fmtNum, metaLine, plural, shortName } from "@/lib/format";
+import { useNow } from "@/api/clock";
+import { fmtDayTitle, fmtNum, plural } from "@/lib/format";
 import { useScreenState } from "@/lib/screen-state";
 import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { useGuide } from "@/lib/guide/store";
-import { recordAction } from "@/lib/guide/telemetry";
-import { saveShiftFile, useShift } from "@/api/capture";
-import { useNow } from "@/api/clock";
 import { useProjectId } from "@/lib/project-scope";
-import { useSwipe } from "@/hooks/use-swipe";
-import { toast, toastRetry, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type Tab = "facts" | "positions";
+type Filter = "all" | "new";
+
+/** Новым считается факт, пришедший за последние сутки по часам источника данных */
+const FRESH_MS = 24 * 60 * 60 * 1000;
 
 /**
  * «Проверка» — рабочий экран ПТО (ADR-028, п. 3): очередь фактов с площадки и объекты,
  * где ждут проверки позиции спецификации.
  *
- * Решение применяется сразу, отмена живёт 6 секунд: отчёт возвращается в очередь, а принятый
- * объём снимается из «Хода работ» той же операцией.
+ * Вид v3 (ADR-044): главная цифра очереди в тёплой шапке, вкладки капсулами, карточки фактов
+ * как события календаря, детали — листом с плавающей капсулой решения (на десктопе — панелью
+ * справа). Решение применяется сразу, отмена живёт 6 секунд.
  */
 export const Route = createFileRoute("/check")({
   validateSearch: (search: Record<string, unknown>): { tab?: Tab | undefined } => ({
@@ -74,7 +66,9 @@ function CheckPage() {
   const projectId = useProjectId();
   const data = useCheckQueue(projectId);
   const guide = useGuide();
+  const now = useNow();
   const { can } = useAccess();
+  const [filter, setFilter] = useState<Filter>("all");
   const queueProject = data.queue[0]?.card.report.projectId ?? null;
   const [lastProject, setLastProject] = useState<string | null>(null);
   useEffect(() => {
@@ -91,258 +85,330 @@ function CheckPage() {
       (!legacyModulesEnabled() || data.positions.length === 0),
   });
 
+  const rows = chainFirst(data.queue, guide.chain.reportId);
+  const nowMs = Date.parse(now);
+  const fresh = rows.filter((row) => {
+    const sent = Date.parse(row.card.report.sentAt);
+    return Number.isFinite(sent) && nowMs - sent <= FRESH_MS;
+  });
+  const showTabs = can("documents") && legacyModulesEnabled();
+  const count = data.queue.length;
+  const shown = filter === "new" ? fresh : rows;
+
+  /*
+   * Десктоп: панель деталей справа на всю высоту, рядом с шапкой и очередью. Решённый факт
+   * уходит из очереди, и панель сама переходит к следующему.
+   */
+  const desktop = useIsDesktop();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const factsTab = !(tab === "positions" && legacyModulesEnabled());
+  const selected = shown.find((row) => row.card.report.id === selectedId) ?? shown[0] ?? null;
+  const panel = desktop && factsTab && screen === "normal" ? selected : null;
+
   return (
-    <>
-      <PageHeader title="Проверка" />
-      {/*
-        Черновик ведомости объёмов: файл результата ПТО (ADR-037, сценарий 2).
-        Объект берётся из чипа, а когда чип молчит — из очереди: ПТО обычно смотрит все объекты,
-        и прятать от него файл только из-за этого неправильно. Последний объект запоминается,
-        иначе кнопка исчезала ровно после приёмки последнего факта.
-      */}
-      {statementProject ? <StatementButton projectId={statementProject} /> : null}
-
-      <PageCaption>
-        <span className="truncate">
-          {data.queue.length > 0
-            ? `Осталось ${fmtNum(data.queue.length)} ${plural(data.queue.length, "факт", "факта", "фактов")}`
-            : "Очередь фактов пуста"}
-        </span>
-      </PageCaption>
-
-      {/* Позиции спецификации живут в документации — модуле за флагом (ADR-034, п. 4) */}
-      {can("documents") && legacyModulesEnabled() && (
-        <div className="mb-4">
-          <PillTabs
-            label="Что проверяем"
-            value={tab}
-            onChange={(next) =>
-              navigate({
-                search: () => ({ tab: next === "positions" ? "positions" : undefined }),
-                replace: true,
-                resetScroll: false,
-              })
-            }
-            tabs={[
-              { value: "facts", label: `Факты · ${fmtNum(data.queue.length)}` },
-              { value: "positions", label: `Позиции · ${fmtNum(data.positions.length)}` },
-            ]}
-          />
-        </div>
+    <div
+      className={cn(
+        "min-w-0",
+        panel &&
+          "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,500px)]",
       )}
+    >
+      <div className="min-w-0">
+        <PageHeader title="Проверка" />
 
-      <ScreenGate
-        state={screen}
-        onRetry={data.refetch}
-        skeleton={<ScreenSkeleton kind="feed" />}
-        copy={{
-          section: "Проверка",
-          roles: "ПТО, руководителю проекта и директору",
-          errorTitle: "Не удалось загрузить очередь",
-          empty: {
-            icon: ClipboardCheck,
-            title: "Проверять нечего",
-            description:
-              "Факты с площадки и позиции спецификации, ждущие решения, появятся здесь сразу после поступления.",
-          },
-        }}
-      >
-        {tab === "positions" && legacyModulesEnabled() ? (
-          <PositionsTab rows={data.positions} />
-        ) : (
-          <FactsTab rows={chainFirst(data.queue, guide.chain.reportId)} />
-        )}
-      </ScreenGate>
-    </>
-  );
-}
+        <PageCaption>
+          <span className="truncate">
+            {count > 0
+              ? `Осталось ${fmtNum(count)} ${plural(count, "факт", "факта", "фактов")}`
+              : "Очередь фактов пуста"}
+          </span>
+        </PageCaption>
 
-/** Очередь фактов: карточка за карточкой, свайп и кнопки делают одно и то же */
-function FactsTab({
-  rows,
-}: {
-  rows: { card: ReportCard; projectName: string; zoneName: string }[];
-}) {
-  if (!rows.length) {
-    return (
-      <WidgetCard>
-        <EmptyState
-          icon={ClipboardCheck}
-          title="Фактов на проверке нет"
-          description="Как только прораб сдаст смену, отчёт появится здесь."
-        />
-      </WidgetCard>
-    );
-  }
-  return (
-    <ul className="space-y-3">
-      {rows.map((row, index) => (
-        // Главное действие на экране одно: его несёт карточка, до которой очередь дошла.
-        // У остальных «Принять» вторичная — иначе на экране столько акцентов, сколько карточек
-        <FactCard key={row.card.report.id} current={index === 0} {...row} />
-      ))}
-    </ul>
-  );
-}
-
-function FactCard({
-  card,
-  projectName,
-  zoneName,
-  current,
-}: {
-  card: ReportCard;
-  projectName: string;
-  zoneName: string;
-  /** Карточка, до которой дошла очередь: только у неё главное действие акцентное */
-  current: boolean;
-}) {
-  const { report, source, evidence } = card;
-  const { employeeName } = useDirectory();
-  const { can } = useAccess();
-  const [qtyOpen, setQtyOpen] = useState(false);
-  const [qty, setQty] = useState(String(report.declaredQty ?? ""));
-  const review = useReviewReport({
-    onFailed: () => toastRetry("Решение не сохранилось", () => undefined),
-  });
-  // Директор видит очередь, но решений не принимает (ADR-012)
-  const mayDecide = can("field-reports", "write");
-
-  const undo = () => review.mutate({ id: report.id, status: "review", acceptedQty: null });
-
-  const accept = (value: number) => {
-    review.mutate(
-      { id: report.id, status: "accepted", acceptedQty: value },
-      {
-        onSuccess: () =>
-          toastUndo(
-            `Принято ${fmtNum(value)} ${report.unit}`,
-            undo,
-            `${report.workType} · ${zoneName}`,
-          ),
-      },
-    );
-  };
-
-  const back = () => {
-    review.mutate(
-      { id: report.id, status: "returned", acceptedQty: null },
-      {
-        onSuccess: () =>
-          toastUndo("Возвращено на уточнение", undo, `${report.workType} · ${zoneName}`),
-      },
-    );
-  };
-
-  const swipe = useSwipe({
-    ...(mayDecide ? { onRight: () => accept(report.declaredQty ?? 0), onLeft: back } : {}),
-  });
-
-  return (
-    <li>
-      <article
-        {...(mayDecide ? swipe.handlers : {})}
-        style={swipe.shift ? { transform: `translateX(${swipe.shift}px)` } : undefined}
-        className={cn(
-          "rounded-[var(--r-lg)] border border-transparent bg-surface p-5",
-          !swipe.shift && "transition-fast",
-          // Пока палец ведёт карточку, подсказываем, что произойдёт при отпускании
-          swipe.shift > 0 && "border-ok",
-          swipe.shift < 0 && "border-danger",
-        )}
-      >
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-card-title">{report.workType}</h3>
-            {/* Метаданные одной строкой, а не чипами в столбик (правило 8 этапа D) */}
-            <p className="mt-1 text-caption text-text-2">
-              {metaLine(
-                zoneName,
-                shortName(projectName),
-                employeeName(report.authorId),
-                evidence.length > 0 &&
-                  `${fmtNum(evidence.length)} ${plural(evidence.length, "фото", "фото", "фото")}`,
+        {/*
+        Главная цифра экрана — сколько фактов ждёт решения. Рядом файлы смены: черновик
+        ведомости объёмов — результат ПТО (ADR-037, сценарий 2). Объект берётся из чипа,
+        а когда чип молчит — из очереди; последний объект запоминается, иначе кнопки
+        исчезали ровно после приёмки последнего факта.
+      */}
+        <section
+          aria-label="Очередь проверки"
+          className="hero-field mb-5 p-5 sm:p-6 lg:p-7 xl:flex xl:items-end xl:justify-between xl:gap-8"
+        >
+          <div className="relative min-w-0">
+            <span aria-hidden className="orb -top-14 -left-12 size-48" />
+            <p className="flex items-end gap-3">
+              {data.pending ? (
+                <span aria-hidden className="h-12 w-20 animate-pulse rounded-[14px] bg-surface-2" />
+              ) : (
+                <span className="text-hero-num">{fmtNum(count)}</span>
               )}
+              <span className="pb-1 text-[17px] leading-[22px] font-medium text-text lg:text-[19px] lg:leading-[24px]">
+                {plural(count, "факт ждёт", "факта ждут", "фактов ждут")}
+                <span className="block text-text-2">вашего решения</span>
+              </span>
+            </p>
+            <p className="mt-3 max-w-[48ch] text-[14px] leading-5 text-text-2 lg:hidden">
+              Свайп вправо принимает, влево возвращает на уточнение. Кнопки делают то же самое.
+            </p>
+            <p className="mt-3 hidden max-w-[52ch] text-[14px] leading-5 text-text-2 lg:block">
+              Выберите факт в очереди: исходная фраза, поля и решение откроются справа.
             </p>
           </div>
-          <div className="shrink-0 text-right">
-            <div className="tnum text-[24px] leading-none font-semibold">
-              {fmtNum(report.declaredQty ?? 0)}
+          {statementProject ? (
+            <div className="mt-5 xl:mt-0">
+              <ShiftFiles projectId={statementProject} />
             </div>
-            <div className="mt-1 text-[13px] text-text-3">{report.unit}</div>
-          </div>
-        </div>
-
-        {/* Источник значения рядом с ним: откуда пришло и что сказано (правило 2) */}
-        <div className="mt-4">
-          {source ? (
-            <span data-marker="" className="text-marker block">
-              {sourceMarker(source)}
-            </span>
           ) : null}
-          <p className="mt-1 text-[15px] leading-[1.45] text-text-2">«{report.summary}»</p>
+        </section>
+
+        <div className="-mx-[var(--content-pad)] mb-5 overflow-x-auto px-[var(--content-pad)] [scrollbar-width:none] lg:mx-0 lg:px-0">
+          <div className="flex w-max items-center gap-2">
+            {/* Позиции спецификации живут в документации — модуле за флагом (ADR-034, п. 4) */}
+            {showTabs ? (
+              <Capsules
+                label="Что проверяем"
+                value={tab}
+                onChange={(next) =>
+                  navigate({
+                    search: () => ({ tab: next === "positions" ? "positions" : undefined }),
+                    replace: true,
+                    resetScroll: false,
+                  })
+                }
+                items={[
+                  { value: "facts", label: "Факты", count: count },
+                  { value: "positions", label: "Позиции", count: data.positions.length },
+                ]}
+              />
+            ) : null}
+            {tab === "facts" || !legacyModulesEnabled() ? (
+              <Capsules
+                label="Какие факты"
+                value={filter}
+                onChange={setFilter}
+                items={[
+                  { value: "all", label: "Все", count: rows.length },
+                  { value: "new", label: "Новые", count: fresh.length, dot: fresh.length > 0 },
+                ]}
+              />
+            ) : null}
+          </div>
         </div>
 
-        {/* Решение по карточке в одно касание; «Вернуть» тише — это не главный путь */}
-        {mayDecide ? (
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <Button
-              variant={current ? "accent" : "secondary"}
-              onClick={() => accept(report.declaredQty ?? 0)}
-            >
-              <Check className="size-4" /> Принять
-            </Button>
-            <Button variant="secondary" onClick={() => setQtyOpen(true)}>
-              Исправить объём
-            </Button>
-            <Button variant="ghost" className="col-span-2 justify-self-start" onClick={back}>
-              <Undo2 className="size-4" /> Вернуть на уточнение
-            </Button>
-          </div>
-        ) : (
-          <p className="mt-4 text-[13px] text-text-3">
-            Решение принимают ПТО и руководитель проекта.
-          </p>
-        )}
-      </article>
-
-      {qtyOpen && (
-        <BottomSheet
-          open
-          onOpenChange={setQtyOpen}
-          title="Принятый объём"
-          description={`${report.workType} · ${zoneName}`}
+        <ScreenGate
+          state={screen}
+          onRetry={data.refetch}
+          skeleton={<ScreenSkeleton kind="feed" />}
+          copy={{
+            section: "Проверка",
+            roles: "ПТО, руководителю проекта и директору",
+            errorTitle: "Не удалось загрузить очередь",
+            empty: {
+              icon: ClipboardCheck,
+              title: "Проверять нечего",
+              description:
+                "Факты с площадки и позиции спецификации, ждущие решения, появятся здесь сразу после поступления.",
+            },
+          }}
         >
-          <div className="space-y-4 p-4 pt-0">
-            <label className="block">
-              <span className="text-[13px] text-text-3">Объём, {report.unit}</span>
-              <Input
-                autoFocus
-                inputMode="decimal"
-                value={qty}
-                onChange={(event) => setQty(event.target.value)}
-                className="mt-1.5"
+          {tab === "positions" && legacyModulesEnabled() ? (
+            <PositionsTab rows={data.positions} />
+          ) : (
+            <FactsQueue
+              rows={shown}
+              filtered={filter === "new"}
+              onShowAll={() => setFilter("all")}
+              selected={panel}
+              onSelect={setSelectedId}
+            />
+          )}
+        </ScreenGate>
+      </div>
+
+      {panel ? (
+        <aside
+          aria-labelledby="fact-detail-title"
+          className="card-v3 sticky top-0 hidden max-h-[calc(100dvh-var(--topbar-h)-32px)] flex-col overflow-hidden rounded-[var(--r-2xl)] lg:flex"
+        >
+          <FactDetail
+            key={panel.card.report.id}
+            row={panel}
+            layout="panel"
+            position={`${fmtNum(shown.indexOf(panel) + 1)} из ${fmtNum(shown.length)}`}
+          />
+        </aside>
+      ) : null}
+    </div>
+  );
+}
+
+/** Капсульные вкладки, как «All / New (3)» в референсе: активная в цвет главной кнопки */
+function Capsules<T extends string>({
+  label,
+  value,
+  onChange,
+  items,
+}: {
+  label: string;
+  value: T;
+  onChange: (next: T) => void;
+  items: { value: T; label: string; count: number; dot?: boolean }[];
+}) {
+  return (
+    <div role="tablist" aria-label={label} className="flex gap-1 rounded-full bg-surface-2 p-1">
+      {items.map((item) => {
+        const active = item.value === value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(item.value)}
+            className={cn(
+              "relative inline-flex min-h-12 items-center gap-1.5 rounded-full px-5 text-[15px] font-medium whitespace-nowrap transition-fast focus-ring press lg:min-h-10",
+              active ? "bg-pill text-pill-text" : "text-text-2 is-hover:text-text",
+              item.dot && "pr-7",
+            )}
+          >
+            {item.label}
+            <span className="tnum">{item.value === "new" ? `(${item.count})` : item.count}</span>
+            {item.dot ? (
+              <span
+                aria-hidden
+                className="absolute top-2.5 right-3.5 size-2 rounded-full bg-warn"
               />
-            </label>
-            <Button
-              variant="accent"
-              className="w-full"
-              onClick={() => {
-                const value = Number(qty.replace(",", "."));
-                if (!Number.isFinite(value) || value < 0) {
-                  toast.error("Объём — положительное число");
-                  return;
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Очередь фактов группами по дню, как «Earlier today · 2 events» в календаре. На телефоне
+ * касание карточки открывает лист деталей, на десктопе — панель справа.
+ */
+function FactsQueue({
+  rows,
+  filtered,
+  onShowAll,
+  selected,
+  onSelect,
+}: {
+  rows: FactRow[];
+  filtered: boolean;
+  onShowAll: () => void;
+  /** Факт в панели деталей; null — панели нет (телефон, планшет) */
+  selected: FactRow | null;
+  onSelect: (id: string) => void;
+}) {
+  const now = useNow();
+  const desktop = !!selected;
+  const [sheetId, setSheetId] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+
+  if (!rows.length) {
+    return (
+      <div className="card-v3">
+        <EmptyState
+          icon={ClipboardCheck}
+          title={filtered ? "Новых фактов нет" : "Фактов на проверке нет"}
+          description={
+            filtered
+              ? "За последние сутки с площадки ничего не пришло. Остальная очередь — во вкладке «Все»."
+              : "Как только прораб сдаст смену, отчёт появится здесь."
+          }
+          {...(filtered ? { actionLabel: "Показать все", onAction: onShowAll } : {})}
+        />
+      </div>
+    );
+  }
+
+  const idOf = (row: FactRow) => row.card.report.id;
+  // Решённый факт уходит из очереди: лист закрывается сам
+  const sheetRow = rows.find((row) => idOf(row) === sheetId) ?? null;
+  const position = (row: FactRow) => `${fmtNum(rows.indexOf(row) + 1)} из ${fmtNum(rows.length)}`;
+
+  // Порядок очереди сохраняется: группа встаёт туда, где появился её первый факт
+  const groups: { key: string; rows: FactRow[] }[] = [];
+  for (const row of rows) {
+    const key = dayLabel(fmtDayTitle(row.card.report.date, now));
+    const group = groups.find((item) => item.key === key);
+    if (group) group.rows.push(row);
+    else groups.push({ key, rows: [row] });
+  }
+
+  const open = (row: FactRow) => {
+    onSelect(idOf(row));
+    if (!desktop) setSheetId(idOf(row));
+  };
+
+  return (
+    <>
+      <div className="flex min-w-0 flex-col gap-5">
+        {" "}
+        {groups.map((group) => {
+          const shut = collapsed.includes(group.key);
+          return (
+            <section key={group.key} aria-label={group.key} className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                aria-expanded={!shut}
+                onClick={() =>
+                  setCollapsed((list) =>
+                    shut ? list.filter((key) => key !== group.key) : [...list, group.key],
+                  )
                 }
-                setQtyOpen(false);
-                accept(value);
-              }}
-            >
-              Принять {qty || "—"} {report.unit}
-            </Button>
-          </div>
-        </BottomSheet>
+                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[20px] bg-surface-2 px-4 text-left transition-fast focus-ring press is-hover:bg-surface-3"
+              >
+                <span className="text-[16px] font-semibold">{group.key}</span>
+                <span className="inline-flex items-center gap-1.5 text-[14px] text-text-2 tnum">
+                  {fmtNum(group.rows.length)} {plural(group.rows.length, "факт", "факта", "фактов")}
+                  <ChevronDown
+                    aria-hidden
+                    className={cn("size-4 transition-fast", shut && "-rotate-90")}
+                  />
+                </span>
+              </button>
+              {shut ? null : (
+                <ul className="flex flex-col gap-2.5">
+                  {group.rows.map((row) => (
+                    <FactCard
+                      key={idOf(row)}
+                      row={row}
+                      current={row === rows[0]}
+                      selected={row === selected}
+                      accent={!desktop}
+                      onOpen={() => open(row)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      {desktop ? null : (
+        <CheckSheet
+          open={!!sheetRow}
+          onClose={() => setSheetId(null)}
+          labelledBy="fact-detail-title"
+        >
+          {sheetRow ? (
+            <FactDetail
+              key={idOf(sheetRow)}
+              row={sheetRow}
+              layout="sheet"
+              position={position(sheetRow)}
+              onClose={() => setSheetId(null)}
+            />
+          ) : null}
+        </CheckSheet>
       )}
-    </li>
+    </>
   );
 }
 
@@ -354,127 +420,50 @@ function PositionsTab({
 }) {
   if (!rows.length) {
     return (
-      <WidgetCard>
+      <div className="card-v3">
         <EmptyState
           icon={FileSearch}
           title="Позиций на проверке нет"
           description="Загруженная спецификация попадает сюда, пока её позиции не сверены с номенклатурой."
         />
-      </WidgetCard>
+      </div>
     );
   }
   return (
-    <WidgetCard>
-      <WidgetCardHeader
-        level={2}
-        icon={FileSearch}
-        title="Позиции спецификации"
-        hint="сверка с номенклатурой"
-        aside={<CountPill>{fmtNum(rows.length)}</CountPill>}
-      />
-      <ul className="mt-2 divide-y divide-line">
+    <section aria-labelledby="positions-title" className="flex flex-col gap-2.5">
+      <div className="flex min-h-12 items-center justify-between gap-3 rounded-[20px] bg-surface-2 px-4">
+        <h2 id="positions-title" className="text-[16px] font-semibold">
+          Позиции спецификации
+        </h2>
+        <span className="text-[14px] text-text-2">сверка с номенклатурой</span>
+      </div>
+      <ul className="flex flex-col gap-2.5">
         {rows.map((row) => (
-          <li key={row.projectId} className="py-3">
+          <li key={row.projectId}>
             <Link
               to="/projects/$id/documents"
               params={{ id: row.projectId }}
-              className="focus-ring -mx-2 flex items-center justify-between gap-3 rounded-[var(--r-sm)] px-2 py-1 transition-fast is-hover:bg-surface-2"
+              className="card-v3 flex min-h-12 items-center gap-3 px-4 py-4 transition-fast focus-ring press is-hover:bg-surface-2 sm:px-5"
             >
-              <span className="min-w-0">
-                <span className="block truncate text-card-title">{row.projectName}</span>
-                <span className="mt-1 block text-[13px] text-text-3">
+              <span aria-hidden className="w-[3px] self-stretch rounded-full bg-warn" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[19px] leading-[25px] font-semibold">
+                  {row.projectName}
+                </span>
+                <span className="mt-1 block text-[14px] text-text-2">
                   из {fmtNum(row.total)} {plural(row.total, "позиции", "позиций", "позиций")}
                 </span>
               </span>
-              <span className="tnum shrink-0 text-[20px] leading-none font-semibold">
+              <span className="text-[24px] leading-none font-semibold tnum">
                 {fmtNum(row.unverified)}
               </span>
+              <ChevronRight aria-hidden className="size-5 text-text-3" />
             </Link>
           </li>
         ))}
       </ul>
-    </WidgetCard>
+    </section>
   );
-}
-
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex h-6 max-w-full items-center truncate rounded-[var(--r-xs)] bg-surface-2 px-2 text-[13px] leading-none text-text-2">
-      {children}
-    </span>
-  );
-}
-
-/**
- * Черновик ведомости объёмов (ADR-037, сценарий 2). Файл собирается из принятых записей
- * смены и прямо подписан черновиком: исполнительную документацию демонстрация не выпускает.
- */
-function StatementButton({ projectId }: { projectId: string }) {
-  const now = useNow();
-  const date = now.slice(0, 10);
-  /*
-   * Ведомость собирается за последнюю смену с принятыми записями: факт, который ПТО принял
-   * сегодня, может быть позавчерашним, и прятать от него документ из-за этого неправильно.
-   * Дата документа названа рядом с кнопкой, поэтому подмены не происходит.
-   */
-  const shift = useShift(projectId, date, true);
-  const [saving, setSaving] = useState(false);
-  const rows = shift.data?.rows.length ?? 0;
-
-  const save = (kind: "shift" | "statement") => {
-    setSaving(true);
-    void saveShiftFile({ projectId, date: shift.data?.date ?? date }, kind)
-      .then(() => recordAction(kind === "statement" ? "downloadStatement" : "downloadShift"))
-      .catch((error: Error) => toast.error("Документ не собрался", { description: error.message }))
-      .finally(() => setSaving(false));
-  };
-
-  return (
-    /* Файлы смены — тихой строкой: главное на экране — карточка проверки (правило 1) */
-    <div className="mb-6 flex flex-col gap-2">
-      <span data-marker="" className="text-marker">
-        Файлы смены
-      </span>
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-label="Скачать сводку смены"
-          disabled={saving || rows === 0}
-          onClick={() => save("shift")}
-        >
-          <FileSpreadsheet className="size-4" /> Сводка
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-label="Скачать черновик ведомости"
-          disabled={saving || rows === 0}
-          onClick={() => save("statement")}
-        >
-          <FileSpreadsheet className="size-4" /> Ведомость
-        </Button>
-      </div>
-      <span className="text-caption text-text-3">
-        {rows > 0
-          ? `В документ ${plural(rows, "войдёт", "войдут", "войдут")} ${fmtNum(rows)} ${plural(rows, "принятая запись", "принятые записи", "принятых записей")} за ${fmtDate(shift.data?.date ?? date)}`
-          : "Принятых записей пока нет: примите факт, и документ соберётся"}
-      </span>
-    </div>
-  );
-}
-
-/**
- * Маркер источника до двух слов: запись с экрана «Запись» — «Голосовое» или «Текст»
- * (ADR-036 хранит её как ручной источник с ключом отправки), остальное — по виду источника.
- */
-function sourceMarker(source: {
-  kind: keyof typeof sourceKindLabel;
-  captureKey: string | null;
-  location: string;
-}) {
-  if (source.captureKey) return source.location === "текст" ? "Текст" : "Голосовое";
-  return source.kind === "telegram" ? "С площадки" : sourceKindLabel[source.kind];
 }
 
 /**
