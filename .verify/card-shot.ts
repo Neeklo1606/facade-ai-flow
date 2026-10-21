@@ -1,0 +1,12 @@
+import { chromium } from "@playwright/test";
+const b = await chromium.launch();
+const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })).newPage();
+await p.goto("http://localhost:5273/gas/moderation?open=mk-3", { waitUntil: "domcontentloaded" });
+await p.waitForSelector("[data-review-sheet]", { timeout: 60000 });
+await p.waitForTimeout(1200);
+await p.screenshot({ path: process.argv[2] + "/card-top.jpg", type: "jpeg", quality: 80 });
+const why = await p.locator("[data-review-sheet]").getByText(/Время пересекается/).first();
+await why.scrollIntoViewIfNeeded();
+await p.waitForTimeout(300);
+await p.screenshot({ path: process.argv[2] + "/card-why.jpg", type: "jpeg", quality: 80 });
+await b.close();

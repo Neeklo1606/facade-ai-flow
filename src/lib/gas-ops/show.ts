@@ -50,6 +50,22 @@ export function gasShowEvent(action: GasShowAction, chain?: GuideState["chain"])
   if (index >= 0) completeThrough(index);
 }
 
+/**
+ * Подтверждённая запись засчитывает шаг показа, только если это запись зрителя: та, что он
+ * создал в боте в этой вкладке (V4, refs/01 и refs/10). Подтверждение заготовки шаг
+ * не засчитывает и цепочку не переписывает, иначе финал показывал чужую запись.
+ */
+export function isShowEntry(chain: GuideState["chain"], id: string): boolean {
+  return !!chain.gasEntryId && chain.gasEntryId === id;
+}
+
+/** Решение по записи в проверке: засчитать шаг показа, если подтверждена запись зрителя */
+export function gasShowConfirmed(id: string) {
+  const state = getGuideState();
+  if (!isGasShow(state) || !isShowEntry(state.chain, id)) return;
+  gasShowEvent("gasEntryConfirmed");
+}
+
 /** Адрес шага: запись и файл берутся из цепочки вкладки */
 export function gasStepPath(step: GuideStep, chain: GuideState["chain"]): string {
   switch (step.id) {

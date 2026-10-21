@@ -33,7 +33,7 @@ import {
   type EntryStatus,
   type EntryView,
 } from "@/api/gas-ops";
-import { gasShowEvent, useGasShow } from "@/lib/gas-ops/show";
+import { gasShowConfirmed, useGasShow } from "@/lib/gas-ops/show";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -188,7 +188,7 @@ function ModerationPage() {
         toast.error(result.message);
         return { ok: false, message: result.message };
       }
-      if (action === "confirm") gasShowEvent("gasEntryConfirmed", { gasEntryId: id });
+      if (action === "confirm") gasShowConfirmed(id);
       toastUndo(
         DONE_TEXT[action],
         () => void undo(id),
@@ -229,8 +229,7 @@ function ModerationPage() {
       toast.error("Не получилось подтвердить записи. Повторите.");
       return;
     }
-    const showId = show.state.chain.gasEntryId;
-    if (showId && done.includes(showId)) gasShowEvent("gasEntryConfirmed", { gasEntryId: showId });
+    for (const id of done) gasShowConfirmed(id);
     toastUndo(
       `Подтверждено: ${done.length} ${plural(done.length, "запись", "записи", "записей")}`,
       () => {

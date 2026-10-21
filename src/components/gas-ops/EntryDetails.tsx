@@ -148,7 +148,9 @@ export function EntryDetails({ view }: { view: EntryView }) {
                 )}
               </Row>
               <Row icon={FileText} label="Откуда сумма">
-                {ORIGIN_TEXT[view.amountOrigin]}
+                {view.amountOrigin === "manual" && estimate?.status === "manual-pending"
+                  ? "Ручная стоимость менеджера, ждёт подтверждения"
+                  : ORIGIN_TEXT[view.amountOrigin]}
               </Row>
               {estimate ? (
                 <Row icon={Receipt} label="Стоимость работ объекта">

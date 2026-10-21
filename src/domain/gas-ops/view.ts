@@ -3,7 +3,14 @@
  * а не в компонентах: карточка проверки, журнал, бригады, объекты и сводка считаются
  * из одного снимка, поэтому цифры на экранах не расходятся.
  */
-import { flagsOf, hoursOfMinutes, revenuePerHour, totalsOf, type Totals } from "./calc";
+import {
+  findOverlaps,
+  flagsOf,
+  hoursOfMinutes,
+  revenuePerHour,
+  totalsOf,
+  type Totals,
+} from "./calc";
 import type {
   Assignment,
   AuditLog,
@@ -52,6 +59,12 @@ export interface EntryView {
   hours: number;
   revenue: number | null;
   flags: EntryFlag[];
+  /**
+   * С какими записями пересекается время: только той же бригады за тот же день (ТЗ, п. 7).
+   * Карточка называет вторую запись, иначе пересечение выглядит как спор разных бригад
+   * на одном объекте (V4, refs/02).
+   */
+  overlaps: { id: string; number: string; minutes: number }[];
   history: Review[];
 }
 
@@ -101,6 +114,12 @@ export function entryView(data: GasData, entry: TimeEntry): EntryView {
       hasEstimate: estimate?.status === "confirmed" || entry.source === "fact-report",
       objectDays: objectDays(data, entry.objectId),
     }),
+    overlaps: findOverlaps(data.entries)
+      .filter((o) => o.a.id === entry.id || o.b.id === entry.id)
+      .map((o) => {
+        const other = o.a.id === entry.id ? o.b : o.a;
+        return { id: other.id, number: other.number, minutes: o.minutes };
+      }),
     history: data.reviews.filter((r) => r.entryId === entry.id),
   };
 }

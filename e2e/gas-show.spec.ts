@@ -98,3 +98,58 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+/*
+ * Дефекты показа V4 (ADR-045; refs/01, refs/10): зритель посреди показа подтверждает чужую
+ * запись. Шаг не засчитывается, цепочка не переписывается, финал показывает его запись
+ * по ОБ-200: 150 мин = 2,50 ч, 14 700 ₽, 5 880 ₽/ч.
+ */
+test.describe("показ ведёт по записи зрителя 390", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("подтверждение заготовки не подменяет запись зрителя в финале", async ({ page }) => {
+    await open(page, "/gas");
+    await page.getByRole("button", { name: /Пройти показ/ }).click();
+    const bot = page.locator('[data-tour="bot"]');
+    await answer(bot, "Внести время");
+    await answer(bot, /ул\. Демо, 200/);
+    await answer(bot, /^Сегодня, 03\.10/);
+    await answer(bot, /^12:00/);
+    await answer(bot, /^14:30/);
+    await answer(bot, /^0 мин/);
+    await answer(bot, "Отправить");
+    const accepted = bot.getByText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+    await expect(accepted).toBeVisible();
+    const number = (await accepted.innerText()).match(/ГЗ-\d{5}/)![0];
+
+    await dock(page)
+      .getByRole("button", { name: /Как менеджер проверки/ })
+      .click();
+    await expect(page).toHaveURL(/\/gas\/moderation\?open=/);
+    // Карточка открыта на записи зрителя; закрываем и подтверждаем чужую ГЗ-00096
+    await expect(page.locator("[data-review-sheet]")).toContainText(number);
+    await page.getByRole("button", { name: "Закрыть" }).first().click();
+    await page.locator("[data-queue-card]", { hasText: "ГЗ-00096" }).click();
+    await page.locator('[data-tour="review-confirm"]:visible').first().click();
+    await expect(page.locator("[data-sonner-toast]", { hasText: "Подтверждено" })).toBeVisible();
+    await expect(dock(page)).toContainText("3/6");
+
+    // Своя запись: подтверждение засчитывает шаг
+    if (await page.locator("[data-review-sheet]").count()) {
+      await page.getByRole("button", { name: "Закрыть" }).first().click();
+    }
+    await page.locator("[data-queue-card]", { hasText: number }).click();
+    await page.locator('[data-tour="review-confirm"]:visible').first().click();
+    await expect(dock(page)).toContainText("4/6");
+
+    await open(page, "/gas/finish");
+    const main = page.locator("main");
+    await expect(main).toContainText(number);
+    await expect(main).not.toContainText("ГЗ-00096");
+    await expect(main).toContainText("ст. Петровская, ул. Демо, 200 - котел");
+    const text = plain(await main.innerText());
+    expect(text).toContain("150 мин · 2,50 ч");
+    expect(text).toContain("14 700 ₽");
+    expect(plain(await page.getByTestId("finish-rate").innerText())).toBe("5 880 ₽/ч");
+  });
+});

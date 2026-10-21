@@ -118,8 +118,24 @@ export function marksOf(view: EntryView): Mark[] {
   if (view.amountOrigin === "manual") keys.add("manual-amount");
   if (view.estimate?.status === "manual-pending") keys.add("needs-agreement");
   return [...keys]
-    .map((key) => ({ key, ...MARK_BASE[key] }))
+    .map((key) => ({ key, ...MARK_BASE[key], why: whyOf(key, view) }))
     .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
+}
+
+/**
+ * Объяснение с подробностями записи. Пересечение называет вторую запись той же бригады
+ * и минуты (V4, refs/02): без этого его принимали за спор разных бригад на одном объекте.
+ */
+function whyOf(key: MarkKey, view: EntryView): string {
+  if (key === "overlap" && view.overlaps.length) {
+    const list = view.overlaps.map((o) => `${o.number} на ${o.minutes} мин`).join(", ");
+    const brigade = view.brigade?.name ?? "этой бригады";
+    return `Время пересекается с записью ${list}: та же ${brigade}, тот же день. Одна из записей неверна.`;
+  }
+  if (key === "manual-amount" && view.estimate?.status === "manual-pending") {
+    return "Сумма взята из стоимости, которую менеджер ввёл вручную: у объекта нет сметы, и эта стоимость ещё не подтверждена.";
+  }
+  return MARK_BASE[key].why;
 }
 
 /** Запись требует внимания, если есть признак не только информационный */

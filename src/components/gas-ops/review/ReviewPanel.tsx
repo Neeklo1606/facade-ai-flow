@@ -108,6 +108,12 @@ export function ReviewPanel({
             {view.revenue !== null ? (
               <p className="pb-1 text-[14px] leading-5 text-text-2 tnum">{fmtRate(view.revenue)}</p>
             ) : null}
+            {/* Сумма есть, а стоимость объекта не подтверждена: говорим об этом у самой суммы */}
+            {entry.amountRub !== null && view.flags.includes("no-estimate") ? (
+              <p className="w-full text-meta text-warn" data-testid="amount-unconfirmed">
+                Сумма по стоимости, которая ещё не подтверждена
+              </p>
+            ) : null}
           </div>
         ) : null}
         <MarkList marks={marks} className="mt-3" />
