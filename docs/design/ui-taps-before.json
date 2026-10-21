@@ -1,0 +1,30 @@
+{
+  "gas-bot": {
+    "taps": 6,
+    "error": null
+  },
+  "gas-confirm": {
+    "taps": 2,
+    "error": null
+  },
+  "gas-reject": {
+    "taps": 5,
+    "error": null
+  },
+  "gas-clarify": {
+    "taps": 4,
+    "error": null
+  },
+  "gas-batch": {
+    "taps": 2,
+    "error": null
+  },
+  "gas-show": {
+    "taps": 13,
+    "error": null
+  },
+  "gaika-canon": {
+    "taps": 19,
+    "error": null
+  }
+}
