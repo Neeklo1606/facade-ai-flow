@@ -12,6 +12,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       className="toaster group"
       visibleToasts={1}
+      containerAriaLabel="Уведомления"
       style={{ width: "min(400px, calc(100vw - 32px))" }}
       toastOptions={{
         classNames: {

@@ -38,10 +38,7 @@ export function PeriodSwitch({
     box.scrollTo({ left: Math.max(0, left) });
   }, [value]);
   return (
-    <div
-      ref={strip}
-      className={cn("overflow-x-auto [scrollbar-width:none]", className)}
-    >
+    <div ref={strip} className={cn("overflow-x-auto [scrollbar-width:none]", className)}>
       <div role="tablist" aria-label="Период отчёта" className="seg">
         {items.map((item) => (
           <button
