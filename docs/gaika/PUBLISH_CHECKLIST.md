@@ -23,23 +23,18 @@ main на GitHub: слияние 381e9bb (feature/gaika-polish, этап D, D0�
 
 ## 3. Ссылка для клиента
 
-```
-https://facade-ai-flow.lovable.app/?k=<ключ>
-```
-
-`?key=` тоже работает. После первого входа кука держится 30 дней, дальше ссылка без ключа.
-Ключ в чат и в репозиторий не пишется.
-
-### Ссылка для заказчика газа (ADR-044, F2)
+Решение владельца 21.10.2026: демонстрация открывается по простой ссылке, без ключа.
 
 ```
-https://facade-ai-flow.lovable.app/gas?k=<ключ>
+https://facade-ai-flow.lovable.app/gas     — учёт выработки бригад (газ)
+https://facade-ai-flow.lovable.app/        — ГАЙКА
 ```
 
-Шлюз (`src/server.ts` → `grantResponse` в `src/lib/access.ts`) ставит куку и отвечает 302
-на тот же путь без ключа: `/gas?k=…` → `/gas`, `/gas/guide?key=…&tab=calc` → `/gas/guide?tab=calc`.
-Заказчик попадает на стартовый экран контура, а не на лендинг ГАЙКИ. Проверено тестом
-`tests/domain/gas-start.test.ts` («ссылка заказчика /gas?k=КЛЮЧ»).
+Шлюз ключа остаётся в коде (`src/server.ts` → `accessGate`, `src/lib/access.ts`) и выключен.
+Включить обратно: переменные окружения `DEMO_ACCESS_GATE=on` и `DEMO_ACCESS_KEY=<ключ>`,
+затем Publish. Тогда ссылка вида `/gas?k=<ключ>` ставит куку на 30 дней и отвечает 302 на тот же
+путь без ключа (тест `tests/domain/gas-start.test.ts`). Поисковики не индексируют адрес и без шлюза:
+ответы идут с `x-robots-tag: noindex`.
 
 ## 4. Проверка на телефоне за 2 минуты
 

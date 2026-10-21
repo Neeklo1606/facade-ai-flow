@@ -105,7 +105,17 @@ async function requireLogin(request: Request): Promise<Response | null> {
  * а содержимое остаётся закрытым.
  */
 function accessGate(request: Request, env: unknown): Response | null {
-  const key = accessKey((env ?? {}) as Record<string, string | undefined>);
+  /*
+   * Решение владельца 21.10.2026: демонстрация открывается по простой ссылке, без ключа.
+   * Шлюз остаётся в коде и включается переменной окружения DEMO_ACCESS_GATE=on вместе
+   * с DEMO_ACCESS_KEY. Запрет индексации (x-robots-tag) работает и без шлюза.
+   */
+  const vars = (env ?? {}) as Record<string, string | undefined>;
+  const gate =
+    vars["DEMO_ACCESS_GATE"] ??
+    (typeof process !== "undefined" ? process.env["DEMO_ACCESS_GATE"] : undefined);
+  if (gate?.trim() !== "on") return null;
+  const key = accessKey(vars);
   if (!key) return null;
 
   const url = new URL(request.url);
