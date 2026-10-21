@@ -339,9 +339,9 @@ function HeaderSearch() {
             onChange={(event) => setText(event.target.value)}
             placeholder="Номер, объект или бригада"
             aria-label="Что найти"
-            className="h-12 min-w-0 flex-1 rounded-[var(--r-md)] bg-surface-2 px-3 text-[15px] text-text outline-none focus-ring"
+            className="text-body h-12 min-w-0 flex-1 rounded-[var(--r-md)] bg-surface-2 px-3 text-text outline-none focus-ring"
           />
-          <button type="submit" className="pill-action min-h-12 px-4 text-[14px] focus-ring">
+          <button type="submit" className="text-body pill-action min-h-12 px-4 focus-ring">
             Найти
           </button>
         </form>
@@ -367,15 +367,15 @@ function HelpButton({ screen }: { screen: GasScreen }) {
         align="end"
         className="w-[min(340px,calc(100vw-32px))] rounded-[var(--r-lg)] p-4"
       >
-        <p className="text-[13px] text-text-3">Что делать здесь</p>
-        <ol className="mt-2 flex list-decimal flex-col gap-2 ps-5 text-[14px] leading-5 text-text">
+        <p className="text-meta text-text-3">Что делать здесь</p>
+        <ol className="text-body mt-2 flex list-decimal flex-col gap-2 ps-5 text-text">
           {screen.steps.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
         <Link
           to="/gas/guide"
-          className="mt-3 inline-flex min-h-12 items-center text-[14px] font-medium text-orange focus-ring"
+          className="text-body-strong mt-3 inline-flex min-h-12 items-center font-medium text-orange focus-ring"
         >
           Открыть инструкцию
         </Link>
@@ -397,12 +397,12 @@ function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
         data-tour="role"
         className="flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] bg-surface px-3 py-2 text-left focus-ring press is-hover:bg-surface-2"
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-pill text-[13px] font-semibold text-pill-text">
+        <span className="text-meta-strong grid size-8 shrink-0 place-items-center rounded-full bg-pill font-semibold text-pill-text">
           {roleInitial(actor.role)}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[11px] leading-4 text-text-3">Вы смотрите как</span>
-          <span className="block truncate text-[14px] leading-5 font-medium">
+          <span className="text-meta block text-text-3">Вы смотрите как</span>
+          <span className="text-body-strong block truncate font-medium">
             {ROLE_LABEL[actor.role]}
           </span>
         </span>
@@ -415,7 +415,7 @@ function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
         onClick={() => setOpen(true)}
         className="grid size-12 place-items-center rounded-full focus-ring press"
       >
-        <span className="grid size-9 place-items-center rounded-full bg-pill text-[14px] font-semibold text-pill-text">
+        <span className="text-body-strong grid size-9 place-items-center rounded-full bg-pill font-semibold text-pill-text">
           {roleInitial(actor.role)}
         </span>
       </button>
@@ -440,7 +440,7 @@ function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent side="right" align="end" className="w-[340px] rounded-[var(--r-lg)] p-2">
-        <p className="px-3 pt-2 pb-1 text-[13px] text-text-3">Чьими глазами смотреть</p>
+        <p className="text-meta px-3 pt-2 pb-1 text-text-3">Чьими глазами смотреть</p>
         <RoleList onDone={() => setOpen(false)} />
       </PopoverContent>
     </Popover>
@@ -457,7 +457,7 @@ function ResetButton({ onDone, wide = false }: { onDone?: () => void; wide?: boo
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex min-h-12 items-center gap-2 rounded-[var(--r-md)] px-3 text-[14px] text-text-2 focus-ring is-hover:bg-surface-2 is-hover:text-text",
+          "inline-flex min-h-11 items-center gap-2 rounded-control px-3 text-body text-text-2 focus-ring is-hover:bg-surface-2 is-hover:text-text",
           wide && "w-full",
         )}
       >

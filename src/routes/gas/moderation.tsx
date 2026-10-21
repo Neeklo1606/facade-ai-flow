@@ -28,6 +28,7 @@ import {
   type EntryView,
 } from "@/api/gas-ops";
 import { gasShowConfirmed, useGasShow } from "@/lib/gas-ops/show";
+import { REVIEW_MODE_LINE, useReviewMode } from "@/lib/gas-ops/review-mode";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 
@@ -77,6 +78,7 @@ function ModerationPage() {
   const desktop = useIsDesktop();
   const floatingBottom = useFloatingBottom();
   const show = useGasShow();
+  const reviewMode = useReviewMode();
   const { open: openParam } = Route.useSearch();
 
   const [tab, setTab] = useState<Tab>("pending");
@@ -343,7 +345,7 @@ function ModerationPage() {
       </p>
       {/* Режим проверки: интерфейс развития, логика не меняется (5.4, разговор 21.10) */}
       <p className="mt-0.5 mb-2 flex min-w-0 items-center gap-2 text-meta text-text-3">
-        <span className="truncate">Режим: проверяет менеджер · Развитие</span>
+        <span className="truncate">Режим: {REVIEW_MODE_LINE[reviewMode]} · Развитие</span>
         <Link
           to="/gas/admin"
           hash="review-mode"

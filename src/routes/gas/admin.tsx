@@ -1,17 +1,26 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
-import { History, PlugZap, ShieldCheck, SlidersHorizontal } from "lucide-react";
-import { WidgetCard, WidgetCardHeader } from "@/components/common/WidgetCard";
-import { WidgetTable, type WidgetColumn } from "@/components/common/WidgetTable";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { Num } from "@/components/gas-ops/marks";
+import { Check } from "lucide-react";
+import { ListRow } from "@/components/ui/kit/list";
+import { Segmented } from "@/components/ui/kit/controls";
 import { GrowthLine, ScreenHint } from "@/components/gas-ops/page";
 import { ROLE_LABEL, useGasAudit, useGasUsers, type Role } from "@/api/gas-ops";
+import { roleInitial } from "@/lib/gas-ops/screens";
+import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
+import {
+  REVIEW_MODE_LABEL,
+  setReviewMode,
+  useReviewMode,
+  type ReviewMode,
+} from "@/lib/gas-ops/review-mode";
+import { cn } from "@/lib/utils";
 
 /**
  * Настройка направления. По ТЗ v1.0 отдельная веб-админка в договор не входит:
  * экран помечен как развитие и показывает только то, что действительно есть —
  * роли, согласованные правила расчёта, открытые вопросы, состояние подключений и журнал.
+ * Вид ADR-045, 5.11: группы строк. Режим проверки и порядок показателей — демо «Развитие»,
+ * логика проверки и расчёт не меняются.
  */
 export const Route = createFileRoute("/gas/admin")({
   head: () =>
@@ -64,113 +73,158 @@ const CONNECTIONS = [
   { name: "VPS Ubuntu 24.04 и Docker", detail: "Размещение", state: "не развёрнут" },
 ];
 
+function Group({
+  id,
+  title,
+  note,
+  children,
+}: {
+  id?: string;
+  title: string;
+  note?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} aria-label={title} className="scroll-mt-28">
+      <h2 className="flex min-h-7 items-center text-meta text-text-3">{title}</h2>
+      {note ? <p className="mb-2 text-meta text-text-3">{note}</p> : null}
+      {children}
+    </section>
+  );
+}
+
+const LIST = "surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line";
+
 function AdminPage() {
   const users = useGasUsers();
   const audit = useGasAudit();
-
-  const columns: WidgetColumn<{
-    id: string;
-    at: string;
-    actor: string;
-    action: string;
-    detail: string;
-  }>[] = [
-    {
-      key: "at",
-      header: "Когда",
-      cell: (row) => <Num>{row.at.replace("T", " ").slice(0, 16)}</Num>,
-    },
-    { key: "actor", header: "Кто", cell: (row) => row.actor },
-    { key: "action", header: "Действие", cell: (row) => row.action },
-    { key: "detail", header: "Подробности", cell: (row) => row.detail },
-  ];
+  const reviewMode = useReviewMode();
+  const order = useMetricOrder();
 
   return (
-    <div className="flex flex-col gap-6">
-      <ScreenHint screen="admin" className="mb-0" />
-      <GrowthLine />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <WidgetCard>
-          <WidgetCardHeader icon={ShieldCheck} title="Пользователи и роли" level={2} />
-          <ul className="mt-4 flex flex-col gap-3">
-            {RIGHTS.map((item) => {
-              const user = users.find((u) => u.role === item.role);
-              return (
-                <li key={item.role} className="rounded-[var(--r-sm)] bg-surface-2 p-3">
-                  <p className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
-                    {ROLE_LABEL[item.role]}
-                    {user && <span className="text-text-3">{user.name}</span>}
-                  </p>
-                  <p className="mt-1 text-[13px] text-text-2">{item.rights}</p>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-3 text-[13px] text-text-3">
-            Переключатель роли в шапке раздела — удобство показа. Права проверяет сервер: скрытый
-            пункт меню защитой не является.
-          </p>
-        </WidgetCard>
-
-        <WidgetCard>
-          <WidgetCardHeader
-            icon={SlidersHorizontal}
-            title="Правила расчёта"
-            hint="Только просмотр: правила меняются решением заказчика"
-            level={2}
-          />
-          <ul className="mt-4 flex list-disc flex-col gap-1 ps-5 text-[13px] text-text-2">
-            {RULES.map((rule) => (
-              <li key={rule}>{rule}</li>
-            ))}
-          </ul>
-          <p className="mt-4 text-[13px] font-medium">Открытые вопросы</p>
-          <ul className="mt-2 flex flex-col gap-1 text-[13px] text-text-2">
-            {OPEN_QUESTIONS.map((question) => (
-              <li key={question} className="flex gap-2">
-                <StatusBadge tone="warn">?</StatusBadge>
-                <span>{question}</span>
-              </li>
-            ))}
-          </ul>
-        </WidgetCard>
+    <div className="flex flex-col gap-section">
+      <div>
+        <ScreenHint screen="admin" className="mb-0" />
+        <GrowthLine />
       </div>
 
-      <WidgetCard>
-        <WidgetCardHeader
-          icon={PlugZap}
-          title="Подключения"
-          hint="Ни одно не подключено: прототип работает на моках"
-          level={2}
+      <Group
+        title="Пользователи и роли"
+        note="Права проверяет сервер: скрытый пункт меню защитой не является."
+      >
+        <ul className={LIST}>
+          {RIGHTS.map((item) => {
+            const user = users.find((u) => u.role === item.role);
+            return (
+              <li key={item.role}>
+                <ListRow
+                  leading={
+                    <span className="avatar" aria-hidden>
+                      {roleInitial(item.role)}
+                    </span>
+                  }
+                  title={ROLE_LABEL[item.role]}
+                  meta={item.rights}
+                  valueMeta={user?.name}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      </Group>
+
+      <Group
+        id="review-mode"
+        title="Режим проверки · Развитие"
+        note="Сейчас проверку ведёт менеджер. Выбор показывает, как система может работать дальше: логика проверки не меняется."
+      >
+        <ul className={LIST} role="radiogroup" aria-label="Режим проверки">
+          {(Object.keys(REVIEW_MODE_LABEL) as ReviewMode[]).map((key) => {
+            const on = reviewMode === key;
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setReviewMode(key)}
+                  className={cn(
+                    "flex min-h-row-compact w-full items-center gap-3 px-row text-left text-body focus-ring",
+                    on && "bg-surface-2",
+                  )}
+                >
+                  <span className="flex-1">{REVIEW_MODE_LABEL[key]}</span>
+                  {on ? <Check className="size-5 text-orange" aria-hidden /> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Group>
+
+      <Group title="Порядок показателей" note="Как отчёт показывает три числа строки.">
+        <Segmented
+          label="Порядок показателей"
+          value={order}
+          onChange={setMetricOrder}
+          options={[
+            { value: "money", label: "Сначала деньги" },
+            { value: "time", label: "Сначала время" },
+          ]}
         />
-        <ul className="mt-4 grid gap-3 md:grid-cols-2">
-          {CONNECTIONS.map((item) => (
-            <li
-              key={item.name}
-              className="flex items-center justify-between gap-3 rounded-[var(--r-sm)] border border-line p-3"
-            >
-              <span>
-                <span className="block text-[13px] font-medium">{item.name}</span>
-                <span className="block text-[13px] text-text-3">{item.detail}</span>
-              </span>
-              <StatusBadge tone="neutral">{item.state}</StatusBadge>
+      </Group>
+
+      <Group title="Правила расчёта" note="Только просмотр: правила меняются решением заказчика.">
+        <ul className={LIST}>
+          {RULES.map((rule) => (
+            <li key={rule} className="px-row py-row text-body">
+              {rule}
             </li>
           ))}
         </ul>
-      </WidgetCard>
+      </Group>
 
-      <WidgetCard>
-        <WidgetCardHeader
-          icon={History}
-          title="Журнал действий"
-          hint={`${audit.length} записей в этой вкладке`}
-          level={2}
-        />
-        <div className="mt-4">
-          <WidgetTable columns={columns} rows={audit} />
-        </div>
-      </WidgetCard>
+      <Group title="Открытые вопросы">
+        <ul className={LIST}>
+          {OPEN_QUESTIONS.map((question) => (
+            <li key={question} className="px-row py-row text-body">
+              {question}
+            </li>
+          ))}
+        </ul>
+      </Group>
+
+      <Group title="Подключения" note="Ни одно не подключено: прототип работает на моках.">
+        <ul className={LIST}>
+          {CONNECTIONS.map((item) => (
+            <li key={item.name}>
+              <ListRow title={item.name} meta={item.detail} valueMeta={item.state} compact />
+            </li>
+          ))}
+        </ul>
+      </Group>
+
+      <Group title={`Журнал действий · ${audit.length} в этой вкладке`}>
+        {audit.length ? (
+          <ul className={LIST}>
+            {audit.map((row) => (
+              <li key={row.id} className="flex items-start justify-between gap-3 px-row py-row">
+                <span className="min-w-0">
+                  <span className="block text-body">{row.action}</span>
+                  <span className="block text-meta text-text-3">
+                    {row.actor} · {row.detail}
+                  </span>
+                </span>
+                <span className="shrink-0 text-meta text-text-3 tnum">
+                  {row.at.replace("T", " ").slice(5, 16)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-body text-text-3">Действий в этой вкладке ещё не было</p>
+        )}
+      </Group>
     </div>
   );
 }

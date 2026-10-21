@@ -101,14 +101,14 @@ function ForemanPage() {
     >
       <div className="flex min-h-0 flex-1 flex-col lg:flex-none">
         {!isForeman ? (
-          <p className="flex min-h-10 shrink-0 items-center justify-center gap-2 bg-surface-2 px-4 text-[13px] text-text-2 lg:mb-3 lg:rounded-full">
+          <p className="text-meta flex min-h-10 shrink-0 items-center justify-center gap-2 bg-surface-2 px-4 text-text-2 lg:mb-3 lg:rounded-full">
             <Eye className="size-4" aria-hidden />
             Так выглядит бот бригадира
           </p>
         ) : null}
         <div
           data-tour="bot"
-          className="hero-field flex min-h-0 flex-1 flex-col rounded-none lg:h-[min(780px,calc(100dvh_-_150px))] lg:min-h-[600px] lg:flex-none lg:rounded-[44px] lg:shadow-[0_24px_64px_rgba(0,0,0,0.22)] lg:ring-[10px] lg:ring-surface-3"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none bg-void lg:w-[390px] lg:h-[min(780px,calc(100dvh_-_150px))] lg:min-h-[600px] lg:flex-none lg:rounded-[44px] lg:ring-[10px] lg:ring-surface-3"
         >
           <BotChat
             brigadeId={brigadeId}
@@ -128,7 +128,7 @@ function ForemanPage() {
             }}
           />
         </div>
-        <p className="mt-4 hidden text-center text-[13px] text-text-3 lg:block">
+        <p className="text-meta mt-4 hidden text-center text-text-3 lg:block">
           Так будет выглядеть бот в MAX. Канал не подключён.
         </p>
       </div>

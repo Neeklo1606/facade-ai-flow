@@ -31,7 +31,7 @@ export function ReconcileLines({
         <li
           key={line.id}
           data-line={line.id}
-          className="rounded-[var(--r-lg)] bg-surface-2 px-4 py-3 text-[14px] leading-6 text-text-2"
+          className="text-body rounded-[var(--r-lg)] bg-surface-2 px-4 py-3 text-text-2"
         >
           {line.text}
           {line.question ? <> {link(line, line.question.label)}</> : null}
@@ -55,13 +55,13 @@ export function ReconcileBlock({ className }: { className?: string }) {
           aria-expanded={open}
           aria-controls="reconcile-body"
           onClick={() => setOpen((value) => !value)}
-          className="flex min-h-12 w-full items-center gap-3 text-start text-[16px] font-semibold focus-ring"
+          className="text-body-strong flex min-h-12 w-full items-center gap-3 text-start font-semibold focus-ring"
         >
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-text-2">
             <FileCheck2 className="size-4" aria-hidden />
           </span>
           <span className="flex-1">Сверка с вашим файлом</span>
-          <span className="hidden text-[13px] font-normal text-text-3 sm:inline">
+          <span className="text-meta hidden font-normal text-text-3 sm:inline">
             {open ? "Свернуть" : "Показать"}
           </span>
           <ChevronDown

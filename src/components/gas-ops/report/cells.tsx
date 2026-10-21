@@ -11,7 +11,7 @@ export function Value({ text, className }: { text: string; className?: string })
 /** Точка «новая»: запись по строке создана или изменена в этой вкладке */
 export function NewDot() {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-orange">
+    <span className="text-meta-strong inline-flex shrink-0 items-center gap-1 font-medium text-orange">
       <span aria-hidden className="size-2 rounded-full bg-orange" />
       новая
     </span>
@@ -20,5 +20,5 @@ export function NewDot() {
 
 /** «Демо» тихой серой подписью рядом со значением (визуал v3, п. 8) */
 export function DemoMark() {
-  return <span className="shrink-0 text-[12px] text-text-3">Демо</span>;
+  return <span className="text-meta shrink-0 text-text-3">Демо</span>;
 }

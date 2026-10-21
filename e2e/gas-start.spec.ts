@@ -68,11 +68,14 @@ for (const [name, viewport] of [
     test("вопросы сохраняют ответ после перезагрузки", async ({ page }) => {
       await open(page, "/gas/questions");
       await expect(page.locator("[data-testid^='question-']")).toHaveCount(10);
+      // Вопрос открывается деталью: ответ и статус в ней (ADR-045, 5.11)
+      await page.getByTestId("question-1").click();
       await page.getByTestId("answer-1").fill("Делим по дням поровну");
       await page.getByTestId("status-1-answered").click();
       await expect(page.getByTestId("questions-progress")).toContainText("1");
       await page.reload();
       await page.locator("main").waitFor();
+      await page.getByTestId("question-1").click();
       await expect(page.getByTestId("answer-1")).toHaveValue("Делим по дням поровну");
       await expect(page.getByTestId("status-1-answered")).toHaveAttribute("aria-checked", "true");
       await expect(page.getByTestId("questions-progress")).toContainText("1");

@@ -976,19 +976,22 @@
 }
 
 /* Главная кнопка экрана: тёплая капсула. Размер 56 px, с 1024 px — 48 */
+/* Главная кнопка ADR-045, 4.6: заливка акцентом, белый текст 15/500, высота 48, радиус 10 */
 @utility pill-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 56px;
-  padding-inline: 24px;
-  border-radius: var(--r-pill);
-  background: var(--pill-bg);
-  color: var(--pill-text);
+  min-height: var(--h-control-lg);
+  padding-inline: 20px;
+  border-radius: var(--r-control);
+  background: var(--orange-strong);
+  color: var(--on-orange);
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 500;
-  @media (min-width: 1024px) {
-    min-height: 48px;
+  &:hover {
+    background: var(--orange-strong-hover);
   }
 }
 

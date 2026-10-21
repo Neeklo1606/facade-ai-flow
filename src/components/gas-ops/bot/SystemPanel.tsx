@@ -30,13 +30,13 @@ export function SystemPanel({ entryId }: { entryId: string | null }) {
 
       <div className="rounded-[var(--r-lg)] bg-surface-2 p-4" data-testid="bot-system-status">
         {!entry ? (
-          <p className="text-[15px] leading-[21px] text-text-2">
+          <p className="text-body text-text-2">
             Пока ничего не отправлено. Когда бригадир нажмёт «Отправить», здесь появится номер
             записи.
           </p>
         ) : entry.status === "confirmed" ? (
           <>
-            <p className="text-[15px] leading-[21px] font-medium">
+            <p className="text-body-strong font-medium">
               <span className="tnum">{entry.number}</span> подтверждена, в отчёте за{" "}
               <span className="tnum">{shortDay(entry.day)}</span>
             </p>
@@ -44,20 +44,18 @@ export function SystemPanel({ entryId }: { entryId: string | null }) {
           </>
         ) : entry.status === "pending" ? (
           <>
-            <p className="text-[15px] leading-[21px] font-medium">
+            <p className="text-body-strong font-medium">
               <span className="tnum">{entry.number}</span> создана, ждёт проверки
             </p>
             <PanelLink href={`/gas/moderation?open=${entry.id}`}>Открыть в проверке</PanelLink>
           </>
         ) : (
           <>
-            <p className="text-[15px] leading-[21px] font-medium">
+            <p className="text-body-strong font-medium">
               <span className="tnum">{entry.number}</span>:{" "}
               {ENTRY_STATUS_LABEL[entry.status].toLowerCase()}
             </p>
-            {entry.comment ? (
-              <p className="mt-1 text-[13px] leading-[18px] text-text-3">{entry.comment}</p>
-            ) : null}
+            {entry.comment ? <p className="text-meta mt-1 text-text-3">{entry.comment}</p> : null}
             <PanelLink href={`/gas/moderation?open=${entry.id}`}>Открыть в проверке</PanelLink>
           </>
         )}
@@ -75,7 +73,7 @@ export function SystemPanel({ entryId }: { entryId: string | null }) {
         </Phase>
       </ol>
 
-      <p className="mt-4 text-[13px] leading-[18px] text-text-3">
+      <p className="text-meta mt-4 text-text-3">
         Сумму и доходность бригадир не видит: он вводит только время.
       </p>
     </section>
@@ -100,7 +98,7 @@ function Phase({
       <span
         aria-hidden
         className={cn(
-          "mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-semibold tnum",
+          "mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-meta-strong tnum",
           active
             ? "bg-pill text-pill-text"
             : done
@@ -111,12 +109,12 @@ function Phase({
         {index + 1}
       </span>
       <span className="min-w-0">
-        <span className={cn("block text-[14px] leading-5 font-medium", !active && "text-text-2")}>
+        <span className={cn("block text-body-strong", !active && "text-text-2")}>
           {title}
           {done ? <span className="sr-only"> (сделано)</span> : null}
           {active ? <span className="sr-only"> (сейчас)</span> : null}
         </span>
-        <span className="block text-[13px] leading-[18px] text-text-3">{children}</span>
+        <span className="text-meta block text-text-3">{children}</span>
       </span>
     </li>
   );
@@ -132,7 +130,7 @@ function PanelLink({ href, children }: { href: string; children: ReactNode }) {
         event.preventDefault();
         void navigate({ href });
       }}
-      className="mt-3 inline-flex min-h-12 items-center gap-1.5 rounded-full bg-pill px-4 text-[14px] font-medium text-pill-text focus-ring press"
+      className="text-body-strong mt-3 inline-flex min-h-12 items-center gap-1.5 rounded-full bg-pill px-4 font-medium text-pill-text focus-ring press"
     >
       {children}
       <ArrowUpRight className="size-4" aria-hidden />

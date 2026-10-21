@@ -2,11 +2,16 @@
  * Вопросы к согласованию (ADR-044, F7, п. 1): рабочий лист встречи. Десять вопросов в порядке
  * важности для расчёта, у каждого пример из данных, на что влияет, экран, ответ и статус.
  * Ответы живут только в этом браузере (localStorage в try/catch): это не данные системы.
+ * Вид ADR-045, 5.11: строки с номером, вопросом и статусом; нажатие открывает деталь с примером
+ * из данных и полем ответа; «Скопировать список» внизу.
  */
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Check, Copy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ScreenHint } from "@/components/gas-ops/page";
+import { useIsDesktop } from "@/components/gas-ops/review/use-layout";
+import { Button } from "@/components/ui/button";
+import { Sheet, SidePanel } from "@/components/ui/kit/sheet";
 import {
   GAS_QUESTIONS,
   questionsText,
@@ -71,6 +76,9 @@ export function QuestionsScreen() {
   };
 
   const answered = GAS_QUESTIONS.filter((q) => answers[q.n]?.status === "answered").length;
+  const desktop = useIsDesktop();
+  const [open, setOpen] = useState<number | null>(null);
+  const current = GAS_QUESTIONS.find((q) => q.n === open) ?? null;
 
   const copy = async () => {
     const ok = await copyText(questionsText(answers));
@@ -78,121 +86,138 @@ export function QuestionsScreen() {
     else toast.error("Не удалось скопировать. Выделите текст вопросов вручную.");
   };
 
-  return (
-    <div className="flex flex-col gap-6">
-      <ScreenHint screen="questions" className="mb-0" />
-
-      <section className="hero-field flex flex-col gap-5 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-8">
-        <span aria-hidden className="orb -top-24 -left-16 size-[260px]" />
-        <div>
-          <p className="text-[13px] text-text-3">Ответ получен</p>
-          <p className="text-hero-num mt-1" data-testid="questions-progress">
-            {answered}
-            <span className="tone-2"> из {GAS_QUESTIONS.length}</span>
-          </p>
-          <p className="mt-3 max-w-[520px] text-[14px] leading-5 text-text-2">
-            Вопросы идут в порядке важности для расчёта. Ответы сохраняются только в этом браузере.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void copy()}
-          className="pill-action press focus-ring w-full sm:w-auto"
+  const detail = (q: (typeof GAS_QUESTIONS)[number]): ReactNode => {
+    const a = answers[q.n];
+    const status: QuestionStatus = a?.status ?? "open";
+    return (
+      <div className="flex flex-col gap-block">
+        <h3 className="text-heading text-balance">{q.question}</h3>
+        <p className="text-body text-text-2">
+          <span className="text-text-3">Пример из данных. </span>
+          {q.example}
+        </p>
+        <p className="text-body text-text-2">
+          <span className="text-text-3">Влияет на. </span>
+          {q.impact}
+        </p>
+        <Link
+          to={q.screen.to}
+          className="inline-flex min-h-11 items-center gap-1.5 text-body-strong text-orange focus-ring"
         >
-          <Copy className="size-4" aria-hidden />
-          Скопировать список
-        </button>
-      </section>
-
-      <ol className="flex flex-col gap-3">
-        {GAS_QUESTIONS.map((q) => {
-          const a = answers[q.n];
-          const status: QuestionStatus = a?.status ?? "open";
-          return (
-            <li
-              key={q.n}
-              id={`q-${q.n}`}
-              data-testid={`question-${q.n}`}
-              className="card-v3 scroll-mt-24 p-5 target:ring-2 target:ring-orange-line sm:p-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:gap-8"
+          Где видно: {q.screen.label}
+          <ArrowUpRight className="size-4" aria-hidden />
+        </Link>
+        <label className="flex flex-col gap-1">
+          <span className="text-meta text-text-2">Ответ заказчика</span>
+          <textarea
+            value={a?.answer ?? ""}
+            onChange={(event) => update(q.n, { answer: event.target.value })}
+            disabled={!loaded}
+            rows={3}
+            placeholder="Запишите ответ на встрече"
+            data-testid={`answer-${q.n}`}
+            className="min-h-18 w-full resize-y rounded-control border border-line-2 bg-surface px-3 py-2.5 text-body text-text placeholder:text-text-3 focus-ring"
+          />
+        </label>
+        <div role="radiogroup" aria-label={`Статус вопроса ${q.n}`} className="seg self-start">
+          {(
+            [
+              { key: "open", label: "Открыт" },
+              { key: "answered", label: "Ответ получен" },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              role="radio"
+              aria-checked={status === option.key}
+              data-active={status === option.key}
+              onClick={() => update(q.n, { status: option.key })}
+              disabled={!loaded}
+              data-testid={`status-${q.n}-${option.key}`}
+              className="seg-item focus-ring"
             >
-              <div className="flex gap-4">
-                <span className="tnum grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-[14px] font-semibold text-text-2">
+              {option.key === "answered" && status === "answered" ? (
+                <Check className="size-4" aria-hidden />
+              ) : null}
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-meta text-text-3">Сохраняется только в этом браузере</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-block">
+      <ScreenHint screen="questions" className="mb-0" />
+      <p className="text-body text-text-2 tnum">
+        Ответ получен: <span data-testid="questions-progress">{answered}</span> из{" "}
+        {GAS_QUESTIONS.length}
+        <span className="block text-meta text-text-3">
+          В порядке важности для расчёта. Ответы сохраняются только в этом браузере.
+        </span>
+      </p>
+
+      <ol className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
+        {GAS_QUESTIONS.map((q) => {
+          const done = answers[q.n]?.status === "answered";
+          return (
+            <li key={q.n} id={`q-${q.n}`} className="scroll-mt-28">
+              <button
+                type="button"
+                data-testid={`question-${q.n}`}
+                onClick={() => setOpen(q.n)}
+                className="flex min-h-row w-full items-start gap-3 px-row py-row text-left focus-ring is-hover:bg-surface-2"
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-meta-strong text-text-2 tnum">
                   {q.n}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-[17px] leading-6 font-semibold tracking-[-0.01em] text-balance">
-                    {q.question}
-                  </h2>
-                  <p className="mt-2 text-[14px] leading-5 text-text-2">
-                    <span className="text-text-3">Пример из данных. </span>
-                    {q.example}
-                  </p>
-                  <p className="mt-2 text-[14px] leading-5 text-text-2">
-                    <span className="text-text-3">Влияет на. </span>
-                    {q.impact}
-                  </p>
-                  <Link
-                    to={q.screen.to}
-                    className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-[14px] font-medium text-text focus-ring"
-                  >
-                    Где видно: {q.screen.label}
-                    <ArrowUpRight className="size-4" aria-hidden />
-                  </Link>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-col gap-3 self-start rounded-[var(--r-lg)] bg-surface-2 p-3 sm:p-4 lg:mt-0">
-                <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-text-2">Ответ заказчика</span>
-                  <textarea
-                    value={a?.answer ?? ""}
-                    onChange={(event) => update(q.n, { answer: event.target.value })}
-                    disabled={!loaded}
-                    rows={2}
-                    placeholder="Запишите ответ на встрече"
-                    data-testid={`answer-${q.n}`}
-                    className="min-h-[72px] w-full resize-y rounded-[var(--r-sm)] bg-surface px-3 py-2.5 text-[15px] leading-6 text-text placeholder:text-text-3 focus-ring"
-                  />
-                </label>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div
-                    role="radiogroup"
-                    aria-label={`Статус вопроса ${q.n}`}
-                    className="seg bg-surface!"
-                  >
-                    {(
-                      [
-                        { key: "open", label: "Открыт" },
-                        { key: "answered", label: "Ответ получен" },
-                      ] as const
-                    ).map((option) => (
-                      <button
-                        key={option.key}
-                        type="button"
-                        role="radio"
-                        aria-checked={status === option.key}
-                        data-active={status === option.key}
-                        onClick={() => update(q.n, { status: option.key })}
-                        disabled={!loaded}
-                        data-testid={`status-${q.n}-${option.key}`}
-                        className="seg-item focus-ring min-h-11"
-                      >
-                        {option.key === "answered" && status === "answered" ? (
-                          <Check className="size-4" aria-hidden />
-                        ) : null}
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  <span className={cn("text-[12px] text-text-3")}>
-                    Сохраняется только в этом браузере
+                <span className="min-w-0 flex-1">
+                  <span className="line-clamp-2 text-heading">{q.question}</span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-meta text-text-3">
+                    <span
+                      aria-hidden
+                      className={cn("size-2 rounded-full", done ? "bg-ok" : "bg-warn")}
+                    />
+                    {done ? "Ответ получен" : "Открыт"} · {q.screen.label}
                   </span>
-                </div>
-              </div>
+                </span>
+              </button>
             </li>
           );
         })}
       </ol>
+
+      <Button variant="outline" size="lg" onClick={() => void copy()} className="self-start">
+        <Copy aria-hidden />
+        Скопировать список
+      </Button>
+
+      {current ? (
+        desktop ? (
+          <SidePanel
+            open
+            onOpenChange={(next) => (next ? undefined : setOpen(null))}
+            eyebrow={`Вопрос ${current.n} из ${GAS_QUESTIONS.length}`}
+            title={current.question}
+          >
+            {detail(current)}
+          </SidePanel>
+        ) : (
+          <Sheet
+            open
+            onOpenChange={(next) => (next ? undefined : setOpen(null))}
+            id="question"
+            size="full"
+            eyebrow={`Вопрос ${current.n} из ${GAS_QUESTIONS.length}`}
+            title={current.question}
+          >
+            {detail(current)}
+          </Sheet>
+        )
+      ) : null}
     </div>
   );
 }

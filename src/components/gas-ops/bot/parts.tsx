@@ -13,16 +13,16 @@ const APPEAR =
 
 export function ChatHeader() {
   return (
-    <div className="glass z-10 flex h-16 shrink-0 items-center gap-3 px-4">
+    <div className="line-bottom z-10 flex h-sheet-head shrink-0 items-center gap-3 bg-surface px-4">
       <span
         aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-[radial-gradient(circle_at_30%_30%,#ff9a62,#f16001_55%,#8f1d0b)] text-[15px] font-semibold text-white"
+        className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-strong text-body-strong text-on-orange"
       >
         г
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[16px] leading-5 font-semibold">Учёт времени</p>
-        <p className="truncate text-[12px] leading-4 text-text-3">бот · {GAS_BRAND.clientShort}</p>
+        <p className="truncate text-heading">Учёт времени</p>
+        <p className="text-meta truncate text-text-3">бот · {GAS_BRAND.clientShort}</p>
       </div>
     </div>
   );
@@ -31,7 +31,7 @@ export function ChatHeader() {
 /** Служебная строка посреди ленты: дата, пометка о канале */
 export function SystemNote({ children }: { children: ReactNode }) {
   return (
-    <p className="mx-auto max-w-[300px] rounded-full bg-surface/70 px-3 py-1 text-center text-[12px] leading-4 text-text-2">
+    <p className="text-meta mx-auto max-w-[300px] rounded-full bg-surface/70 px-3 py-1 text-center text-text-2">
       {children}
     </p>
   );
@@ -55,7 +55,7 @@ export function BotBubble({
         animate && APPEAR,
       )}
     >
-      <div className="self-start rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3 text-[15px] leading-[21px] text-text shadow-[var(--lift-1)]">
+      <div className="self-start rounded-bubble rounded-bl-[var(--r-xs)] border border-line bg-surface px-3 py-3 text-body text-text">
         {children}
       </div>
       {keys}
@@ -67,7 +67,7 @@ export function MyBubble({ children }: { children: ReactNode }) {
   return (
     <div
       className={cn(
-        "max-w-[80%] self-end rounded-[20px] rounded-br-[6px] bg-pill px-4 py-2.5 text-[15px] leading-[21px] text-pill-text",
+        "max-w-[80%] self-end rounded-bubble rounded-br-[var(--r-xs)] bg-orange-dim px-3 py-2.5 text-body text-text",
         APPEAR,
       )}
     >
@@ -129,7 +129,7 @@ export function Key({
       data-recommended={recommended ? "true" : undefined}
       aria-label={label}
       className={cn(
-        "flex min-h-12 min-w-0 flex-col justify-center rounded-[24px] px-4 py-1.5 text-[15px] leading-5 font-medium transition-[background-color,box-shadow,transform] duration-150 focus-ring press",
+        "flex min-h-12 min-w-0 flex-col justify-center rounded-control px-4 py-1.5 text-body-strong transition-[background-color,box-shadow,transform] duration-150 focus-ring press",
         align === "center" ? "items-center text-center" : "items-start text-start",
         tone === "primary"
           ? "bg-orange-strong text-on-orange is-hover:bg-orange-strong-hover"
@@ -144,7 +144,7 @@ export function Key({
       {note ? (
         <span
           className={cn(
-            "text-[11px] leading-[14px] font-normal",
+            "text-meta font-normal",
             recommended && !disabled ? "text-orange" : "text-text-3",
             align === "start" && "w-full",
           )}
@@ -198,7 +198,7 @@ export function Composer({
         inputMode={numeric ? "decimal" : "text"}
         autoComplete="off"
         enterKeyHint="send"
-        className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-[16px] text-text outline-none placeholder:text-text-3 focus-ring tnum"
+        className="text-body h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-text outline-none placeholder:text-text-3 focus-ring tnum"
       />
       <button
         type="submit"

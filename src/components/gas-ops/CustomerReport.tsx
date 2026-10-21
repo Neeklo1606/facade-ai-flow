@@ -121,10 +121,7 @@ export function CustomerReport({
       )}
     >
       <table
-        className={cn(
-          "border-separate border-spacing-0 text-[13px]",
-          wide ? "min-w-max" : "w-full",
-        )}
+        className={cn("border-separate border-spacing-0 text-table", wide ? "min-w-max" : "w-full")}
       >
         <thead>
           <tr>
@@ -144,7 +141,7 @@ export function CustomerReport({
                 scope="colgroup"
                 colSpan={3}
                 className={cn(
-                  "sticky top-0 z-20 h-11 border-s border-b border-line bg-surface px-4 text-center text-[14px] font-semibold whitespace-nowrap tnum",
+                  "sticky top-0 z-20 h-11 border-s border-b border-line bg-surface px-4 text-center text-meta-strong whitespace-nowrap tnum",
                   column.key === "total" && "bg-surface-2",
                 )}
               >
@@ -160,7 +157,7 @@ export function CustomerReport({
                   scope="col"
                   title={head.full}
                   className={cn(
-                    "sticky top-11 z-20 h-10 border-b border-line bg-surface px-4 text-end text-[12px] font-normal whitespace-nowrap text-text-3",
+                    "sticky top-11 z-20 h-10 border-b border-line bg-surface px-4 text-end text-meta whitespace-nowrap text-text-3",
                     index === 0 && "border-s",
                     column.key === "total" && "bg-surface-2",
                   )}
@@ -188,7 +185,7 @@ export function CustomerReport({
                 className={cn(
                   strong && "font-semibold",
                   row.kind === "brigade" && "font-medium",
-                  row.kind === "frame" && "text-[12px] text-text-3",
+                  row.kind === "frame" && "text-meta text-text-3",
                 )}
               >
                 <th

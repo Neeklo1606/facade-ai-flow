@@ -66,7 +66,7 @@ export function AnalyticView({
           <span className="max-w-[320px] truncate" title={row.objectLabel}>
             {row.objectLabel}
           </span>
-          {row.source === "mock" ? <span className="text-[12px] text-text-3">Демо</span> : null}
+          {row.source === "mock" ? <span className="text-meta text-text-3">Демо</span> : null}
         </span>
       ),
     },
@@ -95,14 +95,14 @@ export function AnalyticView({
   return (
     <section aria-labelledby="analytic-title" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="analytic-title" className="text-[17px] leading-6 font-semibold">
+        <h2 id="analytic-title" className="text-heading">
           Записи недели <span className="font-normal text-text-3 tnum">{shown.length}</span>
         </h2>
         {phone ? (
           <button
             type="button"
             onClick={() => setSheet(true)}
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 text-[14px] font-medium focus-ring"
+            className="text-body-strong inline-flex min-h-12 items-center gap-2 rounded-full bg-surface-2 px-4 font-medium focus-ring"
           >
             <SlidersHorizontal className="size-4" aria-hidden />
             Фильтры ({active})
@@ -117,7 +117,7 @@ export function AnalyticView({
             <button
               type="button"
               onClick={() => setFilters(NONE)}
-              className="min-h-12 flex-1 rounded-full bg-surface-2 text-[15px] font-medium focus-ring"
+              className="text-body-strong min-h-12 flex-1 rounded-full bg-surface-2 font-medium focus-ring"
             >
               Сбросить
             </button>
@@ -138,18 +138,18 @@ export function AnalyticView({
         <ul className="flex flex-col gap-2">
           {shown.map((row) => (
             <li key={row.entryId} className="card-v3 px-4 py-3">
-              <div className="flex items-center justify-between gap-2 text-[13px] text-text-3 tnum">
+              <div className="text-meta flex items-center justify-between gap-2 text-text-3 tnum">
                 <span>
                   {row.number} · {fmtDate(row.day)}
                 </span>
                 <EntryStatusBadge status={row.status} />
               </div>
-              <p className="mt-1 text-[15px] leading-5 font-medium">{row.objectLabel}</p>
-              <p className="mt-0.5 text-[13px] text-text-2">
+              <p className="text-body-strong mt-1 font-medium">{row.objectLabel}</p>
+              <p className="text-meta mt-0.5 text-text-2">
                 {row.brigadeName}
                 {row.source === "mock" ? <span className="text-text-3"> · Демо</span> : null}
               </p>
-              <p className="mt-1.5 text-[14px] tnum">
+              <p className="text-body mt-1.5 tnum">
                 {row.amountRub === null ? "—" : fmtRub(row.amountRub)} ·{" "}
                 {fmtHours(row.minutes / 60)} · {fmtRate(row.revenue)}
               </p>
@@ -195,12 +195,12 @@ function FilterControls({
           ))}
         </div>
       </div>
-      <label className="flex items-center gap-2 text-[14px] text-text-2">
+      <label className="text-body flex items-center gap-2 text-text-2">
         <span className="shrink-0">Бригада</span>
         <select
           value={filters.brigade}
           onChange={(event) => set({ brigade: event.target.value })}
-          className="min-h-12 flex-1 rounded-full bg-surface-2 px-4 text-[14px] text-text focus-ring lg:min-h-10 lg:flex-none"
+          className="text-body min-h-12 flex-1 rounded-full bg-surface-2 px-4 text-text focus-ring lg:min-h-10 lg:flex-none"
         >
           <option value="all">Все бригады</option>
           {brigades.map((name) => (

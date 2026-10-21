@@ -213,8 +213,8 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
       </div>
 
       <div className="hidden print:block">
-        <p className="text-[22px] font-semibold">Инструкция: {GAS_BRAND.product}</p>
-        <p className="mt-1 text-[13px] text-text-3">
+        <p className="text-title">Инструкция: {GAS_BRAND.product}</p>
+        <p className="text-meta mt-1 text-text-3">
           {GAS_BRAND.client}. Демонстрация на данных за {GAS_BRAND.periodLabel}.
         </p>
       </div>
@@ -241,7 +241,7 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
         <button
           type="button"
           onClick={() => window.print()}
-          className="inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-full bg-surface-2 px-5 text-[15px] font-medium focus-ring press sm:self-auto"
+          className="text-body-strong inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-full bg-surface-2 px-5 font-medium focus-ring press sm:self-auto"
         >
           <Download className="size-4" aria-hidden />
           Сохранить инструкцию в PDF
@@ -259,7 +259,7 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
             "print:block print:break-before-page first-of-type:print:break-before-auto",
           )}
         >
-          <h2 className="mb-4 hidden text-[20px] font-semibold print:block">
+          <h2 className="text-heading mb-4 hidden print:block">
             {GUIDE_TABS.find((t) => t.key === key)?.label}
           </h2>
           <RoleIntro role={ROLE_STEPS[key].role} count={ROLE_STEPS[key].steps.length} />
@@ -273,7 +273,7 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
         aria-labelledby="guide-tab-calc"
         className={cn(tab === "calc" ? "block" : "hidden", "print:block print:break-before-page")}
       >
-        <h2 className="mb-4 hidden text-[20px] font-semibold print:block">Как считается</h2>
+        <h2 className="text-heading mb-4 hidden print:block">Как считается</h2>
         <CalcPanel />
       </section>
     </div>
@@ -286,11 +286,11 @@ function RoleIntro({ role, count }: { role: Role; count: number }) {
     <div className="mb-4 flex items-center gap-4 px-1">
       <span
         aria-hidden
-        className="grid size-12 shrink-0 place-items-center rounded-full bg-pill text-[17px] font-semibold text-pill-text print:hidden"
+        className="text-heading grid size-12 shrink-0 place-items-center rounded-full bg-pill text-pill-text print:hidden"
       >
         {roleInitial(role)}
       </span>
-      <p className="min-w-0 text-[15px] leading-6 text-text-2">
+      <p className="text-body min-w-0 text-text-2">
         <span className="font-semibold text-text">{ROLE_LABEL[role]}.</span> {ROLE_ABOUT[role]}{" "}
         <span className="text-text-3">
           {count} шагов, экран «{gasScreen(ROLE_HOME[role]).title}».
@@ -324,19 +324,19 @@ function RoleSteps({ role, steps }: { role: Role; steps: GuideStep[] }) {
           className="gas-guide-step card-v3 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5 print:shadow-none"
         >
           <span className="flex min-w-0 flex-1 gap-4">
-            <span className="tnum grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-[14px] font-semibold text-text-2">
+            <span className="text-body-strong tnum grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 font-semibold text-text-2">
               {index + 1}
             </span>
             <span className="min-w-0">
-              <span className="block text-[16px] leading-6 font-semibold">{step.title}</span>
-              <span className="mt-1 block text-[14px] leading-5 text-text-2">{step.text}</span>
+              <span className="text-body-strong block font-semibold">{step.title}</span>
+              <span className="text-body mt-1 block text-text-2">{step.text}</span>
             </span>
           </span>
           <button
             type="button"
             onClick={() => void show(step)}
             data-testid="guide-show"
-            className="ms-[52px] inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-surface-2 px-4 text-[14px] font-medium text-text focus-ring press sm:ms-auto sm:self-auto print:hidden"
+            className="text-body-strong ms-[52px] inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-surface-2 px-4 font-medium text-text focus-ring press sm:ms-auto sm:self-auto print:hidden"
           >
             Показать на экране
             <ArrowUpRight className="size-4" aria-hidden />
@@ -378,22 +378,21 @@ function CalcPanel() {
             key={item.name}
             className="gas-guide-step card-v3 flex flex-col gap-2 p-5 print:shadow-none"
           >
-            <span className="tnum text-[13px] font-semibold text-orange">0{index + 1}</span>
-            <span className="text-[17px] leading-6 font-semibold">{item.name}</span>
-            <span className="text-[14px] leading-5 text-text-2">{item.formula}</span>
-            <span className="tnum mt-2 rounded-[var(--r-md)] bg-surface-2 px-3 py-2.5 text-[15px] leading-6 font-medium">
+            <span className="text-meta-strong tnum font-semibold text-orange">0{index + 1}</span>
+            <span className="text-heading">{item.name}</span>
+            <span className="text-body text-text-2">{item.formula}</span>
+            <span className="text-body-strong tnum mt-2 rounded-[var(--r-md)] bg-surface-2 px-3 py-2.5 font-medium">
               {item.example}
             </span>
           </li>
         ))}
       </ol>
 
-      <article className="gas-guide-step hero-field p-5 sm:p-7 print:bg-none">
-        <span aria-hidden className="orb -right-16 -bottom-24 size-[260px] print:hidden" />
-        <h3 className="text-[19px] leading-6 font-semibold tracking-[-0.01em]">
+      <article className="gas-guide-step surface-1 p-card">
+        <h3 className="text-heading">
           Почему не {fmtRub(EXAMPLE_AMOUNT)} / {fmtHours(calc.shownHours).replace(" ч", "")}
         </h3>
-        <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-text-2">
+        <p className="text-body mt-2 max-w-[720px] text-text-2">
           {fmtHours(calc.shownHours)} это округление: за ним{" "}
           {calc.minutesBehindShown.toLocaleString("ru-RU")} мин, а не {EXAMPLE_MINUTES}. Деление на
           округлённые часы даёт {fmtRate(calc.naiveRate)} вместо {fmtRate(calc.rate)}, разница{" "}
@@ -402,14 +401,12 @@ function CalcPanel() {
         </p>
         <dl className="mt-5 grid gap-3 sm:grid-cols-2">
           <div className="rounded-[var(--r-lg)] bg-surface p-4">
-            <dt className="text-[13px] text-text-3">От минут, так считает система</dt>
-            <dd className="text-hero-num mt-1 !text-[36px] !leading-[40px]">
-              {fmtRate(calc.rate)}
-            </dd>
+            <dt className="text-meta text-text-3">От минут, так считает система</dt>
+            <dd className="mt-1 text-hero">{fmtRate(calc.rate)}</dd>
           </div>
           <div className="rounded-[var(--r-lg)] bg-surface/60 p-4">
-            <dt className="text-[13px] text-text-3">От округлённых часов</dt>
-            <dd className="tnum mt-1 text-[36px] leading-[40px] font-semibold tracking-[-0.03em] text-text-3 line-through decoration-2">
+            <dt className="text-meta text-text-3">От округлённых часов</dt>
+            <dd className="text-title tnum mt-1 text-text-3 line-through decoration-2">
               {fmtRate(calc.naiveRate)}
             </dd>
           </div>
@@ -417,8 +414,8 @@ function CalcPanel() {
       </article>
 
       <article className="gas-guide-step card-v3 p-5 sm:p-7 print:shadow-none">
-        <h3 className="text-[17px] leading-6 font-semibold">Итоги снизу вверх</h3>
-        <ul className="mt-3 flex flex-col gap-2 text-[15px] leading-6 text-text-2">
+        <h3 className="text-heading">Итоги снизу вверх</h3>
+        <ul className="text-body mt-3 flex flex-col gap-2 text-text-2">
           <li>Адрес → бригада → группа → день → неделя. Каждый уровень это сумма уровня ниже.</li>
           <li>
             Группа это сумма своих бригад. Если в бригаде несколько сотрудников, сумма бригады не

@@ -123,7 +123,7 @@ export function StartScreen() {
       <Flow onRole={(role) => void switchRole(role, { stay: true })} />
       <Roles onPick={(role) => void switchRole(role)} />
       <Contract />
-      <footer className="flex flex-col gap-2 border-t border-line pt-6 text-[13px] leading-5 text-text-3 sm:flex-row sm:items-start sm:justify-between">
+      <footer className="text-meta flex flex-col gap-2 border-t border-line pt-6 text-text-3 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-[640px]">
           Демонстрация на обезличенных данных из вашего отчёта за {GAS_BRAND.periodLabel}. Бот MAX и
           таблицы пока не подключены.
@@ -154,7 +154,7 @@ function Hero({
         aria-hidden
         className="orb -top-24 -right-20 size-[300px] sm:-top-28 sm:-right-10 sm:size-[420px] lg:right-10 lg:size-[520px]"
       />
-      <p className="glass inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium text-text-2">
+      <p className="text-meta-strong glass inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 font-medium text-text-2">
         <Sparkles className="size-4 text-orange" aria-hidden />
         Для {GAS_BRAND.client}
       </p>
@@ -166,7 +166,7 @@ function Hero({
         Учёт выработки бригад.{" "}
         <span className="tone-2 block">От сообщения бригадира до недельного Excel.</span>
       </h2>
-      <p className="mt-5 max-w-[620px] text-[16px] leading-6 text-text-2 sm:text-[17px] sm:leading-7">
+      <p className="mt-3 max-w-[620px] text-body text-text-2">
         Бригадир отмечает время в MAX, менеджер проверяет, система считает выработку по смете и
         собирает недельный отчёт в вашем формате Excel.
       </p>
@@ -177,7 +177,7 @@ function Hero({
           onClick={onStart}
           disabled={busy}
           data-testid="gas-start-show"
-          className="pill-action press focus-ring w-full text-[16px] sm:w-auto"
+          className="text-body pill-action press focus-ring w-full sm:w-auto"
         >
           <Play className="size-4 fill-current" aria-hidden />
           Пройти показ: 3 минуты
@@ -185,7 +185,7 @@ function Hero({
         <button
           type="button"
           onClick={onRoles}
-          className="glass press focus-ring inline-flex min-h-14 w-full ring-1 ring-line-2 ring-inset items-center justify-center gap-2 rounded-full px-6 text-[16px] font-medium text-text sm:w-auto lg:min-h-12"
+          className="text-body-strong glass press focus-ring inline-flex min-h-14 w-full ring-1 ring-line-2 ring-inset items-center justify-center gap-2 rounded-full px-6 font-medium text-text sm:w-auto lg:min-h-12"
         >
           Войти как…
           <ArrowDown className="size-4" aria-hidden />
@@ -194,7 +194,7 @@ function Hero({
 
       {/* Капсула примера, как поле ввода у Catalist: путь одной записи показа в цифрах */}
       <div className="glass mt-10 flex flex-col gap-3 rounded-[var(--r-2xl)] p-4 sm:mt-14 sm:flex-row sm:items-center sm:gap-0 sm:rounded-full sm:p-2 sm:ps-6 lg:max-w-[760px]">
-        <p className="text-[12px] leading-4 text-text-3 sm:w-28 sm:shrink-0">
+        <p className="text-meta text-text-3 sm:w-28 sm:shrink-0">
           Запись показа
           <span className="block text-text-2">ОБ-200 · Демо</span>
         </p>
@@ -214,15 +214,13 @@ function Hero({
             >
               <dt
                 className={cn(
-                  "text-[12px] leading-4 text-text-3",
+                  "text-meta text-text-3",
                   item.main && "sm:opacity-70 sm:text-inherit",
                 )}
               >
                 {item.label}
               </dt>
-              <dd className="tnum text-[17px] leading-6 font-semibold whitespace-nowrap">
-                {item.value}
-              </dd>
+              <dd className="text-heading tnum whitespace-nowrap">{item.value}</dd>
             </div>
           ))}
         </dl>
@@ -252,8 +250,10 @@ function Flow({ onRole }: { onRole: (role: Role) => void }) {
               className="card-v3 press focus-ring group flex flex-1 flex-col gap-2 p-5 lg:min-h-[232px] lg:gap-3 lg:p-6"
             >
               <span className="flex items-center justify-between gap-3">
-                <span className="tnum text-[13px] font-semibold text-orange">0{index + 1}</span>
-                <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px] font-medium text-text-2">
+                <span className="text-meta-strong tnum font-semibold text-orange">
+                  0{index + 1}
+                </span>
+                <span className="text-meta-strong rounded-full bg-surface-2 px-2.5 py-1 font-medium text-text-2">
                   {step.where}
                 </span>
               </span>
@@ -262,11 +262,9 @@ function Flow({ onRole }: { onRole: (role: Role) => void }) {
                 strokeWidth={1.5}
                 aria-hidden
               />
-              <span className="text-[19px] leading-6 font-semibold tracking-[-0.01em] text-balance">
-                {step.title}
-              </span>
-              <span className="text-[14px] leading-5 text-text-3">{step.text}</span>
-              <span className="mt-auto inline-flex items-center gap-1.5 pt-1 text-[14px] lg:pt-2 font-medium text-text-2 group-hover:text-text">
+              <span className="text-heading text-balance">{step.title}</span>
+              <span className="text-body text-text-3">{step.text}</span>
+              <span className="text-body-strong mt-auto inline-flex items-center gap-1.5 pt-1 lg:pt-2 font-medium text-text-2 group-hover:text-text">
                 Открыть экран
                 <ArrowRight className="size-4" aria-hidden />
               </span>
@@ -312,7 +310,7 @@ function Roles({ onPick }: { onPick: (role: Role) => void }) {
                   <span
                     aria-hidden
                     className={cn(
-                      "grid size-11 shrink-0 place-items-center rounded-full text-[16px] font-semibold",
+                      "grid size-11 shrink-0 place-items-center rounded-full text-body-strong",
                       role === "foreman"
                         ? "bg-orange-strong text-on-orange"
                         : "bg-surface-2 text-text",
@@ -320,10 +318,10 @@ function Roles({ onPick }: { onPick: (role: Role) => void }) {
                   >
                     {roleInitial(role)}
                   </span>
-                  <span className="text-[17px] leading-6 font-semibold">{ROLE_LABEL[role]}</span>
+                  <span className="text-heading">{ROLE_LABEL[role]}</span>
                 </span>
-                <span className="text-[14px] leading-5 text-text-2">{ROLE_ABOUT[role]}</span>
-                <span className="mt-auto flex w-full items-center justify-between gap-2 rounded-full bg-surface-2 py-2 ps-4 pe-2 text-[13px] text-text-2">
+                <span className="text-body text-text-2">{ROLE_ABOUT[role]}</span>
+                <span className="text-meta mt-auto flex w-full items-center justify-between gap-2 rounded-full bg-surface-2 py-2 ps-4 pe-2 text-text-2">
                   <span className="min-w-0 truncate">
                     Попадёте: <span className="font-medium text-text">{home.title}</span>
                   </span>
@@ -352,15 +350,15 @@ function Contract() {
       />
       <div className="mt-6 grid gap-3 lg:grid-cols-2">
         <div className="card-v3 p-5 lg:p-7">
-          <h3 className="flex items-center justify-between gap-3 text-[17px] leading-6 font-semibold">
+          <h3 className="text-heading flex items-center justify-between gap-3">
             В договоре
-            <span className="rounded-full bg-orange-dim px-2.5 py-1 text-[12px] font-medium text-orange">
+            <span className="text-meta-strong rounded-full bg-orange-dim px-2.5 py-1 font-medium text-orange">
               v1.0
             </span>
           </h3>
           <ul className="mt-4 flex flex-col gap-3">
             {IN_CONTRACT.map((item) => (
-              <li key={item} className="flex gap-3 text-[15px] leading-6">
+              <li key={item} className="text-body flex gap-3">
                 <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-orange-strong text-on-orange">
                   <Check className="size-3" strokeWidth={3} aria-hidden />
                 </span>
@@ -370,15 +368,15 @@ function Contract() {
           </ul>
         </div>
         <div className="rounded-[var(--r-xl)] bg-surface-2 p-5 lg:p-7">
-          <h3 className="flex items-center justify-between gap-3 text-[17px] leading-6 font-semibold">
+          <h3 className="text-heading flex items-center justify-between gap-3">
             Развитие
-            <span className="rounded-full bg-surface-3 px-2.5 py-1 text-[12px] font-medium text-text-2">
+            <span className="text-meta-strong rounded-full bg-surface-3 px-2.5 py-1 font-medium text-text-2">
               Вне договора v1.0
             </span>
           </h3>
           <ul className="mt-4 flex flex-col gap-3">
             {GROWTH.map((item) => (
-              <li key={item} className="flex gap-3 text-[15px] leading-6 text-text-2">
+              <li key={item} className="text-body flex gap-3 text-text-2">
                 <span
                   aria-hidden
                   className="mt-2 size-2 shrink-0 rounded-full border border-text-3"
@@ -396,10 +394,7 @@ function Contract() {
 /** Двухтоновый подзаголовок секции: название основным цветом, пояснение тише */
 export function SectionHead({ id, title, tone }: { id: string; title: string; tone: string }) {
   return (
-    <h2
-      id={id}
-      className="max-w-[760px] text-[26px] leading-[30px] font-semibold tracking-[-0.02em] text-balance sm:text-[32px] sm:leading-9"
-    >
+    <h2 id={id} className="max-w-[760px] text-title text-balance">
       {title} <span className="tone-2">{tone}</span>
     </h2>
   );

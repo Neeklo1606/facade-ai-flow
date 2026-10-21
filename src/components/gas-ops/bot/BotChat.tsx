@@ -330,7 +330,7 @@ export function BotChat({
         return (
           <>
             Добрый день, {speakerName}. Внесите время по объекту.
-            <span className="mt-1 block text-[13px] leading-[18px] text-text-3">
+            <span className="text-meta mt-1 block text-text-3">
               Сумму и виды работ вводить не нужно, только время.
             </span>
           </>
@@ -339,7 +339,7 @@ export function BotChat({
         return dayObjects.length > 0 ? (
           <>
             Выберите объект.
-            <span className="mt-1 block text-[13px] leading-[18px] text-text-3">
+            <span className="text-meta mt-1 block text-text-3">
               Объекты бригады на сегодня, {shortDay(week.today)}.
             </span>
           </>
@@ -362,7 +362,7 @@ export function BotChat({
             По этому объекту за {shortDay(s.entry.day)} уже есть запись {s.entry.number}. Вторую
             запись на тот же адрес и день система не примет.
             {!s.editable ? (
-              <span className="mt-1 block text-[13px] leading-[18px] text-text-3">
+              <span className="text-meta mt-1 block text-text-3">
                 Запись уже у менеджера: исправления вносит он.
               </span>
             ) : null}
@@ -373,7 +373,7 @@ export function BotChat({
           <>
             Во сколько начали?
             {busy.length > 0 ? (
-              <span className="mt-1 block text-[13px] leading-[18px] text-text-3">
+              <span className="text-meta mt-1 block text-text-3">
                 Время с подписью «занято» уже внесено в{" "}
                 {busy.map((b) => `${b.number} (${intervalLabel(b.start, b.end)})`).join(", ")}.
               </span>
@@ -710,7 +710,7 @@ function Summary({
   return (
     <div>
       <p>{draft.editNumber ? `Проверьте исправление ${draft.editNumber}.` : "Проверьте запись."}</p>
-      <dl className="mt-2 flex flex-col gap-1.5 text-[14px] leading-5">
+      <dl className="text-body mt-2 flex flex-col gap-1.5">
         {rows.map(([term, value]) => (
           <div key={term} className="grid grid-cols-[72px_minmax(0,1fr)] gap-2">
             <dt className="text-text-3">{term}</dt>
@@ -718,7 +718,7 @@ function Summary({
           </div>
         ))}
       </dl>
-      <p className="mt-3 rounded-[14px] bg-surface-2 px-3 py-2 text-[15px] leading-5">
+      <p className="text-body mt-3 rounded-[14px] bg-surface-2 px-3 py-2">
         Итого{" "}
         <b className="font-semibold tnum" data-testid="bot-total">
           {minutes?.ok ? `${minutes.minutes} мин = ${fmtHours(minutes.minutes / 60)}` : "—"}
@@ -733,7 +733,7 @@ function MineList({ items }: { items: EntryView[] }) {
     return (
       <>
         Записей пока нет.
-        <span className="mt-1 block text-[13px] leading-[18px] text-text-3">
+        <span className="text-meta mt-1 block text-text-3">
           Нажмите «Внести время»: запись появится здесь со статусом.
         </span>
       </>
@@ -749,20 +749,20 @@ function MineList({ items }: { items: EntryView[] }) {
           return (
             <li key={e.id} className="rounded-[14px] bg-surface-2 px-3 py-2">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-[14px] font-semibold tnum">{e.number}</span>
-                <span className="text-[13px] text-text-3 tnum">{shortDay(e.day)}</span>
+                <span className="text-body-strong font-semibold tnum">{e.number}</span>
+                <span className="text-meta text-text-3 tnum">{shortDay(e.day)}</span>
                 <SourceMark source={e.source} />
               </div>
-              <p className="mt-1 text-[13px] leading-[18px] text-text-2">
+              <p className="text-meta mt-1 text-text-2">
                 {view.object?.label ?? "Объект не найден"}
               </p>
-              <p className="mt-1 text-[13px] leading-[18px] tnum">
+              <p className="text-meta mt-1 tnum">
                 {timed
                   ? `${intervalLabel(e.startMinutes!, e.endMinutes!)}, ${e.minutes} мин = ${fmtHours(view.hours)}`
                   : `${e.minutes} мин = ${fmtHours(view.hours)}`}
               </p>
               {!timed ? (
-                <p className="text-[12px] leading-4 text-text-3">
+                <p className="text-meta text-text-3">
                   Из файла заказчика: только минуты, без начала и окончания.
                 </p>
               ) : null}

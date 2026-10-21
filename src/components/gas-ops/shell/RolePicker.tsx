@@ -32,19 +32,17 @@ export function RoleList({ onDone }: { onDone?: () => void }) {
               <span
                 aria-hidden
                 className={cn(
-                  "grid size-9 shrink-0 place-items-center rounded-full text-[14px] font-semibold",
+                  "grid size-9 shrink-0 place-items-center rounded-full text-body-strong",
                   active ? "bg-pill text-pill-text" : "bg-surface-3 text-text-2",
                 )}
               >
                 {roleInitial(role)}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] leading-5 font-medium text-text">
+                <span className="text-body-strong block font-medium text-text">
                   {ROLE_LABEL[role]}
                 </span>
-                <span className="block text-[13px] leading-[18px] text-text-3">
-                  {ROLE_ABOUT[role]}
-                </span>
+                <span className="text-meta block text-text-3">{ROLE_ABOUT[role]}</span>
               </span>
               {active ? <Check className="size-4 shrink-0 text-text-2" aria-hidden /> : null}
             </button>
