@@ -48,7 +48,9 @@ const HINT_SCREENS = [
   "foreman",
   "finish",
 ];
-const viewFor = (width: number) => ({ width, height: width < 768 ? 844 : 900 });
+/** Высота экрана по ширине: телефон 844, планшет 1024x768 и 768x1024, компьютер 900 */
+const HEIGHT: Record<number, number> = { 375: 812, 390: 844, 430: 932, 768: 1024, 1024: 768 };
+const viewFor = (width: number) => ({ width, height: HEIGHT[width] ?? 900 });
 
 type Theme = "light" | "dark";
 
@@ -182,6 +184,8 @@ interface Measure {
   blurs: number;
   gradients: number;
   bigNumbers: number;
+  /** Горизонтальное переполнение страницы, px */
+  overflowX: number;
 }
 
 /** Всё, что считается в браузере: одна функция, чтобы до и после мерились одинаково */
@@ -355,6 +359,7 @@ function measureInPage(): Omit<Measure, "route" | "theme" | "url" | "width"> {
     blurs,
     gradients,
     bigNumbers,
+    overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
   };
 }
 
@@ -420,7 +425,7 @@ for (const width of WIDTHS)
         const data = await page.evaluate(measureInPage);
         results.push({ route: route.key, theme, width, url: route.path, ...data });
         console.log(
-          `${width} ${theme} ${route.key}: шапка ${data.headerHeight}, контент ${data.contentTop}, полезное ${data.firstUsefulTop}, низ ${data.bottomCoverage}, в экране ${data.itemsInFirstScreen}, ср. шрифт ${data.avgFont}, макс ${data.maxFont}, пересечений ${data.overlaps.length}, тени ${data.shadows}, размытие ${data.blurs}, градиенты ${data.gradients}, крупных чисел ${data.bigNumbers}`,
+          `${width} ${theme} ${route.key}: шапка ${data.headerHeight}, контент ${data.contentTop}, полезное ${data.firstUsefulTop}, низ ${data.bottomCoverage}, в экране ${data.itemsInFirstScreen}, ср. шрифт ${data.avgFont}, макс ${data.maxFont}, пересечений ${data.overlaps.length}, тени ${data.shadows}, размытие ${data.blurs}, градиенты ${data.gradients}, крупных чисел ${data.bigNumbers}, переполнение ${data.overflowX}`,
         );
       } catch (error) {
         console.log(`${width} ${theme} ${route.key}: ошибка ${String(error).slice(0, 160)}`);

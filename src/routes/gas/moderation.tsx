@@ -9,7 +9,7 @@ import {
   type DecideResult,
 } from "@/components/gas-ops/review/ReviewPanel";
 import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
-import { useFloatingBottom, useIsDesktop } from "@/components/gas-ops/review/use-layout";
+import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
 import { marksOf, needsAttention, type Mark } from "@/components/gas-ops/review/rules";
 import { ScreenHint, SectionTitle } from "@/components/gas-ops/page";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,8 @@ function ModerationPage() {
   const actor = useGasActor();
   const actions = useGasActions();
   const desktop = useIsDesktop();
+  // С 768 список и деталь рядом (ADR-045, V7), клавиши J, K, Enter только на компьютере
+  const wide = useIsWide();
   const floatingBottom = useFloatingBottom();
   const show = useGasShow();
   const reviewMode = useReviewMode();
@@ -110,7 +112,7 @@ function ModerationPage() {
     return { attention, clean, ordered: [...attention, ...clean] };
   }, [rows, userIds]);
 
-  const currentId = desktop
+  const currentId = wide
     ? (ordered.find((item) => item.view.entry.id === selected)?.view.entry.id ??
       ordered[0]?.view.entry.id ??
       null)
@@ -307,7 +309,7 @@ function ModerationPage() {
               view={item.view}
               marks={item.marks}
               fresh={item.fresh}
-              active={desktop && currentId === id}
+              active={wide && currentId === id}
               highlight={highlight === id}
               showStatus={tab === "all"}
               onOpen={() => openEntry(id)}
@@ -322,14 +324,14 @@ function ModerationPage() {
     <ReviewPanel
       key={current.entry.id}
       view={current}
-      layout={desktop ? "panel" : "sheet"}
+      layout={wide ? "panel" : "sheet"}
       floatingBottom={floatingBottom}
       canDecide={actor.canReview}
       showKeys={desktop}
       onConfirm={() => void decide(current, "confirm")}
       onDecide={(action, comment) => decide(current, action, comment)}
       onCorrect={(input) => correct(current, input)}
-      {...(desktop ? {} : { onClose: () => setSheetOpen(false) })}
+      {...(wide ? {} : { onClose: () => setSheetOpen(false) })}
     />
   ) : null;
 
@@ -372,7 +374,7 @@ function ModerationPage() {
         }))}
       />
 
-      <div className="mt-block grid min-w-0 gap-section lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+      <div className="mt-block grid min-w-0 gap-section md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-section">
           {desktop && ordered.length > 0 ? (
             <p className="flex items-center gap-2 text-meta text-text-3">
@@ -438,7 +440,7 @@ function ModerationPage() {
           ) : null}
         </div>
 
-        {desktop ? (
+        {wide ? (
           <aside
             aria-labelledby={current ? "review-title" : undefined}
             aria-label={current ? undefined : "Детали записи"}
@@ -455,7 +457,7 @@ function ModerationPage() {
         ) : null}
       </div>
 
-      {desktop ? null : (
+      {wide ? null : (
         <PhoneSheet
           open={sheetOpen && !!current}
           onClose={() => setSheetOpen(false)}

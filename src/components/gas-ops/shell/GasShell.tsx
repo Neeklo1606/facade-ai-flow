@@ -48,6 +48,7 @@ import { resetGasShow } from "@/lib/gas-ops/show";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useBottomLayer } from "@/lib/ui/bottom-layers";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useCollapsingTitle } from "@/lib/ui/collapsing-title";
 import { useSegScroll } from "@/lib/ui/seg-scroll";
 import { useAppManifest, useInstallHint } from "@/lib/ui/pwa";
@@ -73,7 +74,10 @@ export function GasShell({ children }: { children: ReactNode }) {
   // Бригадир живёт в боте: без нижней панели и без меню, как в мессенджере
   const botOnly = actor.role === "foreman" && screen.key === "foreman";
 
-  const [rail, setRail] = useRail();
+  const [railChoice, setRail] = useRail();
+  // Планшет 768–1023: рельс 72 всегда (ADR-045, V7); с 1024 выбор человека
+  const tablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
+  const rail = tablet || railChoice;
   useSegScroll(pathname);
   // На «Домой» контур ставится своим приложением «Учёт выработки» (4.20)
   useAppManifest("/manifest-gas.webmanifest", "Учёт выработки");
@@ -201,7 +205,7 @@ function GasSidebar({
       aria-label="Меню учёта выработки"
       data-rail={rail ? "true" : undefined}
       className={cn(
-        "sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-e border-line bg-base py-4 transition-[width] duration-150 ease-out lg:flex",
+        "sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-e border-line bg-base py-4 transition-[width] duration-150 ease-out md:flex",
         rail ? "w-[72px] px-2" : "w-[248px] px-3",
       )}
     >
@@ -271,7 +275,10 @@ function GasSidebar({
           title={rail ? "Развернуть панель" : "Свернуть панель"}
           aria-label={rail ? "Развернуть панель" : "Свернуть панель"}
           aria-expanded={!rail}
-          className={cn("nav-item focus-ring w-full text-left", rail && "justify-center px-0")}
+          className={cn(
+            "nav-item focus-ring w-full text-left max-lg:hidden",
+            rail && "justify-center px-0",
+          )}
         >
           {rail ? <ChevronsRight strokeWidth={1.75} /> : <ChevronsLeft strokeWidth={1.75} />}
           <span className={cn("truncate", rail && "sr-only")}>Свернуть панель</span>
@@ -525,7 +532,7 @@ function GasBottomNav({ pathname }: { pathname: string }) {
       <nav
         ref={ref}
         aria-label="Основные разделы"
-        className="line-top fixed inset-x-0 bottom-0 z-40 bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="line-top fixed inset-x-0 bottom-0 z-40 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         <ul className="flex items-stretch">
           {tabs.map((tab) => {

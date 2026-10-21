@@ -41,7 +41,8 @@ export function dayLabel(title: string) {
   return title.split(",")[0] ?? title;
 }
 
-const DESKTOP = "(min-width: 1024px)";
+/** С 768 список фактов и деталь рядом (ADR-045, V7): планшет тоже показывает панель */
+const DESKTOP = "(min-width: 768px)";
 
 function subscribe(listener: () => void) {
   const query = window.matchMedia(DESKTOP);

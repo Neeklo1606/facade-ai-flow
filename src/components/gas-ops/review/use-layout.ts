@@ -22,6 +22,22 @@ export function useIsDesktop(): boolean {
   );
 }
 
+/**
+ * Планшет и шире, от 768 px (ADR-045, V7): список и деталь рядом, деталь панелью,
+ * шторки только для форм. Таблицы и клавиши остаются компьютеру (useIsDesktop).
+ */
+export function useIsWide(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      const query = window.matchMedia("(min-width: 768px)");
+      query.addEventListener("change", listener);
+      return () => query.removeEventListener("change", listener);
+    },
+    () => window.matchMedia("(min-width: 768px)").matches,
+    () => false,
+  );
+}
+
 /** Плавающие слои оболочки внизу экрана: нижняя панель телефона и полоса показа */
 const FLOATING = ['nav[aria-label="Основные разделы"]', "[data-gas-show-dock]"];
 

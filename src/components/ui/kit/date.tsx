@@ -45,7 +45,7 @@ export function WeekStrip({
           className={cn(
             "flex h-control shrink-0 items-center rounded-full px-3 focus-ring transition-fast",
             value === null
-              ? "bg-orange-strong text-body-strong text-on-orange"
+              ? "bg-pill text-body-strong text-pill-text"
               : "text-body text-text-2 is-hover:bg-surface-2",
           )}
         >
@@ -65,10 +65,11 @@ export function WeekStrip({
             onClick={() => onChange(d.date)}
             className={cn(
               "relative flex min-h-control min-w-10 flex-1 flex-col items-center justify-center rounded-control focus-ring transition-fast",
-              on ? "bg-orange-strong text-on-orange" : "text-text is-hover:bg-surface-2",
+              // Выбранный день тёмной заливкой: акцент экрана остаётся у главного действия
+              on ? "bg-pill text-pill-text" : "text-text is-hover:bg-surface-2",
             )}
           >
-            <span className={cn("text-meta", on ? "text-on-orange" : "text-text-3")}>
+            <span className={cn("text-meta", on ? "text-pill-text" : "text-text-3")}>
               {d.weekday}
             </span>
             <span className="text-body-strong tnum">{d.day}</span>
@@ -77,7 +78,7 @@ export function WeekStrip({
                 aria-hidden
                 className={cn(
                   "absolute bottom-0.5 size-1 rounded-full",
-                  on ? "bg-on-orange" : "bg-orange",
+                  on ? "bg-pill-text" : "bg-orange",
                 )}
               />
             ) : null}

@@ -11,7 +11,7 @@ import { FiltersSheet, Sheet, SidePanel } from "@/components/ui/kit/sheet";
 import { Chip } from "@/components/ui/kit/status";
 import { EmptyBlock } from "@/components/ui/kit/states";
 import { FlagList, SourceMark } from "@/components/gas-ops/marks";
-import { useIsDesktop } from "@/components/gas-ops/review/use-layout";
+import { useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
 import { fmtShortDay } from "@/components/gas-ops/review/rules";
 import { fmtHours, fmtRate, fmtRub, useGasObjects, type ObjectCard } from "@/api/gas-ops";
 import { plural } from "@/lib/format";
@@ -46,6 +46,8 @@ function costText(card: ObjectCard): { text: string; missing: boolean } {
 function ObjectsPage() {
   const cards = useGasObjects();
   const desktop = useIsDesktop();
+  // С 768 деталь панелью справа, таблица с 1024 (ADR-045, V7)
+  const wide = useIsWide();
   const [search, setSearch] = useState("");
   const [brigade, setBrigade] = useState("all");
   const [workType, setWorkType] = useState("all");
@@ -236,7 +238,7 @@ function ObjectsPage() {
         </ul>
       )}
 
-      {current ? <Detail desktop={desktop} card={current} onClose={() => setOpen(null)} /> : null}
+      {current ? <Detail desktop={wide} card={current} onClose={() => setOpen(null)} /> : null}
 
       <FiltersSheet
         open={filtersOpen}

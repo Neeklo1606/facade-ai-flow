@@ -124,7 +124,7 @@ export function BottomTabs() {
         aria-label="Основная навигация"
         data-keyboard={keyboardOpen ? "open" : undefined}
         className={cn(
-          "line-top fixed inset-x-0 bottom-0 z-40 grid bg-surface pb-[env(safe-area-inset-bottom)] transition-fast lg:hidden",
+          "line-top fixed inset-x-0 bottom-0 z-40 grid bg-surface pb-[env(safe-area-inset-bottom)] transition-fast md:hidden",
           // Пока фокус в поле ввода, панель уходит: место под неё остаётся, чтобы не прыгало
           keyboardOpen && "pointer-events-none translate-y-full opacity-0",
           // Колонок ровно по числу позиций: классы записаны целиком, иначе сборщик их не соберёт

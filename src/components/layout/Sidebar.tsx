@@ -9,13 +9,20 @@ import {
   ChevronsRight,
   ChevronsUpDown,
   Hexagon,
+  Mic,
   RotateCcw,
   X,
   Search,
 } from "lucide-react";
 import { ALL_PROJECTS, useApp } from "@/lib/app-context";
-import { activeNavKey, navGroupsFor, sectionHref, type BadgeKey } from "@/lib/navigation";
-import { useCurrentUser, useProjectId } from "@/lib/project-scope";
+import {
+  activeNavKey,
+  navGroupsFor,
+  plusActionsFor,
+  sectionHref,
+  type BadgeKey,
+} from "@/lib/navigation";
+import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { useEnterAs } from "@/lib/persona";
 import { signOutFn } from "@/api/auth-functions";
 import { DemoReset } from "./DemoReset";
@@ -55,7 +62,9 @@ export function Sidebar() {
   // 1440 и шире — полный сайдбар (или свёрнутый по выбору), 1024–1439 — всегда 72px,
   // ниже 1024 — выдвижное меню, в нём сайдбар всегда полный
   const desktop = useMediaQuery("(min-width: 1024px)");
-  const collapsed = desktop && sidebarCollapsed;
+  // Планшет 768–1023: рельс 72 вместо нижней панели (ADR-045, 4.1 и V7)
+  const tablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
+  const collapsed = tablet || (desktop && sidebarCollapsed);
 
   return (
     <>
@@ -63,7 +72,7 @@ export function Sidebar() {
         <button
           type="button"
           aria-label="Закрыть меню"
-          className="fixed inset-0 z-40 bg-text/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-text/40 md:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
@@ -72,10 +81,10 @@ export function Sidebar() {
         data-sidebar="app"
         className={cn(
           // На телефоне меню выезжает поверх экрана и нуждается в фоне; в оболочке сайдбар прозрачный
-          "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform,visibility] duration-150 ease-out lg:relative lg:inset-auto lg:h-full lg:translate-x-0 lg:bg-transparent",
-          collapsed ? "lg:w-[72px]" : "lg:w-[var(--sidebar-w)]",
+          "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform,visibility] duration-150 ease-out md:relative md:inset-auto md:h-full md:translate-x-0 md:bg-transparent",
+          collapsed ? "md:w-[72px]" : "md:w-[var(--sidebar-w)]",
           // Закрытое выдвижное меню скрыто от фокуса и диктора; скрытие ждёт конца выезда (ADR-015, п. 3)
-          mobileNavOpen ? "translate-x-0" : "-translate-x-full max-lg:invisible",
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full max-md:invisible",
         )}
       >
         <SidebarInner
@@ -172,11 +181,13 @@ function SidebarInner({
     .slice(0, 2)
     .map((part) => part[0])
     .join("");
+  const role = useCurrentRole();
+  const canRecord = plusActionsFor(role, projectId).length > 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
       {/* Шапка сайдбара, 60px */}
-      <div className={cn("sidebar-header", collapsed && "lg:justify-center lg:px-0")}>
+      <div className={cn("sidebar-header", collapsed && "md:justify-center md:px-0")}>
         <span
           className={cn(
             "grid size-[26px] shrink-0 place-items-center rounded-[var(--r-xs)] bg-surface-3 text-text",
@@ -184,7 +195,7 @@ function SidebarInner({
         >
           <Hexagon className="size-[15px]" strokeWidth={1.5} />
         </span>
-        <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", collapsed && "lg:hidden")}>
+        <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", collapsed && "md:hidden")}>
           {/*
             Марка ГАЙКИ: имя строчными, знак — заглушка шестигранником. Фирменный знак и цвета
             официально не утверждены (дизайн-система, преамбула), поэтому в коде заглушка,
@@ -199,11 +210,25 @@ function SidebarInner({
           type="button"
           onClick={onClose}
           aria-label="Закрыть меню"
-          className="focus-ring grid size-12 shrink-0 place-items-center rounded-full text-text-3 hover:bg-surface-2 hover:text-text lg:hidden"
+          className="focus-ring grid size-12 shrink-0 place-items-center rounded-full text-text-3 hover:bg-surface-2 hover:text-text md:hidden"
         >
           <X className="size-5" strokeWidth={1.5} />
         </button>
       </div>
+
+      {/*
+        Планшет (ADR-045, V7): голосовая кнопка в рельсе сверху, на месте центра нижней панели.
+        С 1024 запись открывается из шапки и меню, рельс компьютера кнопку не дублирует.
+      */}
+      {canRecord ? (
+        <Link
+          to="/capture"
+          aria-label="Говорить: открыть запись"
+          className="focus-ring press-98 mx-auto mb-3 hidden size-14 shrink-0 place-items-center rounded-full bg-pill text-pill-text md:grid lg:hidden"
+        >
+          <Mic className="size-6" strokeWidth={2} aria-hidden />
+        </Link>
+      ) : null}
 
       {/* Селектор объекта */}
       {!collapsed && (
@@ -236,10 +261,10 @@ function SidebarInner({
         }}
         aria-label="Найти в системе"
         title="Найти в системе"
-        className={cn("mb-3 w-full justify-start px-3", collapsed && "lg:justify-center lg:px-0")}
+        className={cn("mb-3 w-full justify-start px-3", collapsed && "md:justify-center md:px-0")}
       >
         <Search aria-hidden />
-        <span className={cn("text-meta", collapsed && "lg:hidden")}>Найти в системе</span>
+        <span className={cn("text-meta", collapsed && "md:hidden")}>Найти в системе</span>
       </Button>
 
       <nav ref={navRef} className="nav-scroll -mx-1 min-h-0 flex-1 px-1">
@@ -300,11 +325,11 @@ function SidebarInner({
                           aria-current={active ? "page" : undefined}
                           className={cn(
                             "nav-item focus-ring transition-fast",
-                            collapsed && "lg:justify-center lg:px-0",
+                            collapsed && "md:justify-center md:px-0",
                           )}
                         >
                           <item.icon strokeWidth={1.5} />
-                          <span className={cn("min-w-0 flex-1 truncate", collapsed && "lg:hidden")}>
+                          <span className={cn("min-w-0 flex-1 truncate", collapsed && "md:hidden")}>
                             {item.label}
                           </span>
                           {count > 0 && (
@@ -314,7 +339,7 @@ function SidebarInner({
                                 item.badge &&
                                   CRITICAL_BADGES.includes(item.badge) &&
                                   "nav-badge-critical",
-                                collapsed && "lg:hidden",
+                                collapsed && "md:hidden",
                               )}
                             >
                               {badgeText(count)}
@@ -346,11 +371,11 @@ function SidebarInner({
             aria-expanded={!collapsed}
             className={cn(
               "nav-item focus-ring hidden w-full text-left transition-fast lg:flex",
-              collapsed && "lg:justify-center lg:px-0",
+              collapsed && "md:justify-center md:px-0",
             )}
           >
             {collapsed ? <ChevronsRight strokeWidth={1.5} /> : <ChevronsLeft strokeWidth={1.5} />}
-            <span className={cn("min-w-0 flex-1 truncate", collapsed && "lg:hidden")}>
+            <span className={cn("min-w-0 flex-1 truncate", collapsed && "md:hidden")}>
               Свернуть панель
             </span>
           </button>
@@ -365,13 +390,13 @@ function SidebarInner({
                 aria-label="Сбросить демо-данные"
                 className={cn(
                   "nav-item focus-ring w-full transition-fast",
-                  collapsed && "lg:justify-center lg:px-0",
+                  collapsed && "md:justify-center md:px-0",
                 )}
               >
                 <span className="nav-icon-circle">
                   <RotateCcw strokeWidth={1.5} />
                 </span>
-                <span className={cn("min-w-0 flex-1 truncate text-left", collapsed && "lg:hidden")}>
+                <span className={cn("min-w-0 flex-1 truncate text-left", collapsed && "md:hidden")}>
                   Сбросить демо
                 </span>
               </button>
@@ -387,16 +412,16 @@ function SidebarInner({
               title={user ? `${user.name}, ${user.roleLabel}` : undefined}
               className={cn(
                 "nav-item focus-ring w-full text-left transition-fast",
-                collapsed && "lg:justify-center lg:px-0",
+                collapsed && "md:justify-center md:px-0",
               )}
             >
               <span className="nav-icon-circle">{initials}</span>
-              <span className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
+              <span className={cn("min-w-0 flex-1", collapsed && "md:hidden")}>
                 <span className="block truncate">{user?.name}</span>
                 <span className="text-meta block truncate text-text-3">{user?.roleLabel}</span>
               </span>
               <ChevronsUpDown
-                className={cn("size-3.5 shrink-0 text-text-3", collapsed && "lg:hidden")}
+                className={cn("size-3.5 shrink-0 text-text-3", collapsed && "md:hidden")}
                 strokeWidth={1.5}
                 aria-hidden
               />

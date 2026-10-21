@@ -108,7 +108,7 @@ export function Topbar() {
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label="Открыть меню"
-        className="icon-button focus-ring -ml-2 lg:hidden"
+        className="icon-button focus-ring -ml-2 md:hidden"
       >
         <Menu strokeWidth={1.5} />
       </Button>

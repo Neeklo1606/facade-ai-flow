@@ -14,7 +14,7 @@ import { WeekStrip } from "@/components/ui/kit/date";
 import { EmptyBlock } from "@/components/ui/kit/states";
 import { ReviewPanel } from "@/components/gas-ops/review/ReviewPanel";
 import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
-import { useFloatingBottom, useIsDesktop } from "@/components/gas-ops/review/use-layout";
+import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
 import { ScreenHint } from "@/components/gas-ops/page";
 import {
   ENTRY_STATUS_LABEL,
@@ -74,6 +74,8 @@ function EntriesPage() {
   const directory = useGasDirectory();
   const week = useGasWeek();
   const desktop = useIsDesktop();
+  // С 768 деталь панелью справа, таблица с 1024 (ADR-045, V7)
+  const wide = useIsWide();
   const floatingBottom = useFloatingBottom();
   const navigate = useNavigate({ from: Route.fullPath });
   const { q } = Route.useSearch();
@@ -231,7 +233,7 @@ function EntriesPage() {
     <ReviewPanel
       key={current.entry.id}
       view={current}
-      layout={desktop ? "panel" : "sheet"}
+      layout={wide ? "panel" : "sheet"}
       floatingBottom={floatingBottom}
       canDecide={false}
       showKeys={false}
@@ -374,7 +376,7 @@ function EntriesPage() {
         </div>
       )}
 
-      {desktop ? (
+      {wide ? (
         current ? (
           <SidePanel onClose={() => setOpen(null)}>{panel}</SidePanel>
         ) : null

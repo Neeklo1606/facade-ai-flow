@@ -110,7 +110,7 @@ function CheckPage() {
       className={cn(
         "min-w-0",
         panel &&
-          "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,500px)]",
+          "md:grid md:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)] md:items-start md:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,500px)]",
       )}
     >
       <div className="min-w-0">
@@ -228,7 +228,7 @@ function CheckPage() {
       {panel ? (
         <aside
           aria-labelledby="fact-detail-title"
-          className="card-v3 sticky top-0 hidden max-h-[calc(100dvh-var(--topbar-h)-32px)] flex-col overflow-hidden rounded-[var(--r-2xl)] lg:flex"
+          className="surface-1 sticky top-0 hidden max-h-[calc(100dvh-var(--topbar-h)-32px)] flex-col overflow-hidden md:flex"
         >
           <FactDetail
             key={panel.card.report.id}

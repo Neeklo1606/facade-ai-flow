@@ -276,10 +276,11 @@ function TodayHero({
               aria-current={current ? "date" : undefined}
               className={cn(
                 "flex min-h-control flex-col items-center justify-center rounded-control",
-                current ? "bg-orange-strong text-on-orange" : "text-text-2",
+                // Один акцент на экран (принцип 5): он у главной кнопки, день — тёмной заливкой
+                current ? "bg-pill text-pill-text" : "text-text-2",
               )}
             >
-              <span className={cn("text-meta", current ? "text-on-orange" : "text-text-3")}>
+              <span className={cn("text-meta", current ? "text-pill-text" : "text-text-3")}>
                 {label}
               </span>
               <span className="text-body-strong tnum">{format(date, "d")}</span>
