@@ -56,7 +56,8 @@ export function TranscriptReveal({
           key={`${word}-${index}`}
           className={cn(
             "transition-opacity duration-200",
-            index < shown ? "opacity-100" : "opacity-0",
+            // Ещё не прозвучавшее слово еле видно: двухтоновая строка, как в референсах v3
+            index < shown ? "opacity-100" : "opacity-[0.14]",
           )}
         >
           {word}{" "}
