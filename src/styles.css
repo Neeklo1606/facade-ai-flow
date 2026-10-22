@@ -196,6 +196,10 @@
   /* Размеры оболочки */
   --shell-gap: 0px;
   --sidebar-w: 248px;
+  --mobile-sidebar-w: min(320px, calc(100vw - 40px));
+  --type-body: 0.9375rem;
+  --type-body-leading: 1.25rem;
+  --type-nav: 0.9375rem;
   /* Шапка и нижняя панель ADR-045: 52 и 56 на телефоне */
   --topbar-h: 52px;
   /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
@@ -551,8 +555,8 @@
     background: var(--void);
     color: var(--text);
     /* rem: текст растёт с настройкой размера шрифта браузера (ADR-045, 3.1) */
-    font-size: 0.9375rem;
-    line-height: 1.25rem;
+    font-size: var(--type-body);
+    line-height: var(--type-body-leading);
     font-weight: 400;
     /* Числа моноширинные везде без исключений */
     font-variant-numeric: tabular-nums;
@@ -669,13 +673,13 @@
   letter-spacing: 0;
 }
 @utility text-body {
-  font-size: 0.9375rem;
-  line-height: 1.25rem;
+  font-size: var(--type-body);
+  line-height: var(--type-body-leading);
   font-weight: 400;
 }
 @utility text-body-strong {
-  font-size: 0.9375rem;
-  line-height: 1.25rem;
+  font-size: var(--type-body);
+  line-height: var(--type-body-leading);
   font-weight: 500;
 }
 @utility text-meta {
@@ -1075,7 +1079,7 @@
   gap: 12px;
   padding-inline: 12px;
   border-radius: var(--r-control);
-  font-size: 0.9375rem;
+  font-size: var(--type-nav);
   line-height: 1.25rem;
   font-weight: 400;
   font-variant-numeric: proportional-nums;
@@ -1574,6 +1578,68 @@
 
 html[data-boot-compact] [data-boot-hero] {
   display: none;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --type-body: 1rem;
+    --type-body-leading: 1.5rem;
+    --type-nav: 1rem;
+  }
+  .mobile-nav-panel {
+    width: var(--mobile-sidebar-w);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: var(--shadow-pop);
+  }
+  .mobile-nav-panel[data-state="open"] {
+    animation: mobile-nav-in var(--dur-sheet) var(--ease-out);
+  }
+  .mobile-nav-panel[data-state="closed"] {
+    animation: mobile-nav-out var(--dur-in) var(--ease-out);
+  }
+  .mobile-nav-panel .nav-item {
+    height: auto;
+    min-height: 48px;
+    padding-block: 8px;
+    line-height: 1.375rem;
+  }
+  .mobile-nav-panel .nav-group-label {
+    min-height: 48px;
+    padding-block: 12px 8px;
+  }
+  .mobile-nav-panel .nav-group-label svg {
+    opacity: 1;
+  }
+  .mobile-nav-panel .scope-card {
+    height: auto;
+    padding-block: 10px;
+  }
+  .mobile-nav-panel .scope-card select {
+    min-height: 48px;
+    height: auto;
+  }
+}
+.mobile-nav-overlay {
+  background: color-mix(in srgb, var(--text) 40%, transparent);
+}
+@keyframes mobile-nav-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes mobile-nav-out {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-panel {
+    animation: none !important;
+  }
 }
 
 @media (max-width: 1023px) {

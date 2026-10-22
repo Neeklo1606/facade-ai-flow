@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
@@ -59,23 +60,53 @@ import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useApp();
-  // 1440 и шире — полный сайдбар (или свёрнутый по выбору), 1024–1439 — всегда 72px,
-  // ниже 1024 — выдвижное меню, в нём сайдбар всегда полный
+  // Компьютер — подписи или сворачивание по выбору, планшет — рельс,
+  // телефон — модальная панель с полными подписями.
   const desktop = useMediaQuery("(min-width: 1024px)");
+  const phone = useMediaQuery("(max-width: 767px)", false);
   // Планшет 768–1023: рельс 72 вместо нижней панели (ADR-045, 4.1 и V7)
   const tablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
   const collapsed = tablet || (desktop && sidebarCollapsed);
 
+  useEffect(() => {
+    if (!phone) setMobileNavOpen(false);
+  }, [phone, setMobileNavOpen]);
+
+  if (phone) {
+    return (
+      <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="mobile-nav-overlay fixed inset-0 z-50" />
+          <Dialog.Content
+            id="mobile-navigation"
+            aria-describedby={undefined}
+            className="mobile-nav-panel fixed inset-y-0 left-0 z-50 flex flex-col bg-base outline-none"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              document.querySelector<HTMLElement>('[aria-label="Открыть меню"]')?.focus();
+            }}
+          >
+            <Dialog.Title className="sr-only">Главное меню</Dialog.Title>
+            <aside
+              aria-label="Главное меню"
+              data-sidebar="app"
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <SidebarInner
+                collapsed={false}
+                canToggle={false}
+                onToggle={toggleSidebar}
+                onClose={() => setMobileNavOpen(false)}
+              />
+            </aside>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    );
+  }
+
   return (
     <>
-      {mobileNavOpen && (
-        <button
-          type="button"
-          aria-label="Закрыть меню"
-          className="fixed inset-0 z-40 bg-text/40 md:hidden"
-          onClick={() => setMobileNavOpen(false)}
-        />
-      )}
       <aside
         aria-label="Главное меню"
         data-sidebar="app"
@@ -105,7 +136,7 @@ function SidebarInner({
   onClose,
 }: {
   collapsed: boolean;
-  /** Сворачивать вручную можно только с 1440px: уже — сайдбар свёрнут всегда */
+  /** Сворачивание вручную доступно на компьютере. */
   canToggle: boolean;
   onToggle: () => void;
   onClose: () => void;
@@ -206,14 +237,16 @@ function SidebarInner({
             <span className="text-meta block truncate text-text-3">с объекта</span>
           </span>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={onClose}
           aria-label="Закрыть меню"
           className="focus-ring grid size-12 shrink-0 place-items-center rounded-full text-text-3 hover:bg-surface-2 hover:text-text md:hidden"
         >
           <X className="size-5" strokeWidth={1.5} />
-        </button>
+        </Button>
       </div>
 
       {/*
@@ -329,7 +362,12 @@ function SidebarInner({
                           )}
                         >
                           <item.icon strokeWidth={1.5} />
-                          <span className={cn("min-w-0 flex-1 truncate", collapsed && "md:hidden")}>
+                          <span
+                            className={cn(
+                              "min-w-0 flex-1 max-md:whitespace-normal max-md:break-words md:truncate",
+                              collapsed && "md:hidden",
+                            )}
+                          >
                             {item.label}
                           </span>
                           {count > 0 && (

@@ -16,4 +16,5 @@
 - Apply shared interface changes through global semantic tokens and existing common components; this keeps every working screen consistent without duplicating UI or altering domain logic.
 - Keep the desktop navigation expanded unless the user collapses it; visible section labels support orientation across laptop and desktop screens.
 - Keep responsive navigation dimensions in shared shell tokens and use them for content clearance; this prevents pinned controls and phone navigation from overlapping.
+- Render phone navigation with the existing SidebarInner inside a modal dialog; shared section content prevents drift and modal focus management protects background controls.
 - Complete leaf page metadata through the shared page-head helper when necessary, preserving dynamic titles; this gives each screen its own share description without root-level images.
