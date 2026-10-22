@@ -540,6 +540,12 @@
     background: var(--void);
     color-scheme: dark;
   }
+  /* Компактнее на компьютере: весь интерфейс в rem уменьшается на 12% */
+  @media (min-width: 1024px) {
+    html {
+      font-size: 87.5%;
+    }
+  }
   body {
     margin: 0;
     background: var(--void);
