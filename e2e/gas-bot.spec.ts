@@ -80,7 +80,7 @@ for (const width of WIDTHS) {
       const number = (await done.innerText()).match(/ГЗ-\d{5}/)?.[0];
       expect(number).toBeTruthy();
       // Выбранные ответы остались в ленте
-      await expect(bot.getByText("ст. Петровская, ул. Демо, 200 - котел").first()).toBeVisible();
+      await expect(bot.getByText("ст. Демо-Северная, ул. Демо, 200 - котел").first()).toBeVisible();
       await expect(done.getByRole("button", { name: "Внести ещё адрес" })).toBeVisible();
 
       if (width.name === "1440") {

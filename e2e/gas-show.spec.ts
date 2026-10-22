@@ -146,7 +146,7 @@ test.describe("показ ведёт по записи зрителя 390", () =
     const main = page.locator("main");
     await expect(main).toContainText(number);
     await expect(main).not.toContainText("ГЗ-00096");
-    await expect(main).toContainText("ст. Петровская, ул. Демо, 200 - котел");
+    await expect(main).toContainText("ст. Демо-Северная, ул. Демо, 200 - котел");
     const text = plain(await main.innerText());
     expect(text).toContain("150 мин · 2,50 ч");
     expect(text).toContain("14 700 ₽");

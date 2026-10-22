@@ -35,7 +35,7 @@ function AnalyticsPage() {
       available={[
         {
           label: "Дашборд",
-          to: "/attention",
+          to: "/app",
           note: "Показатели по всем объектам с дельтами за смену, 7 или 30 дней",
         },
         {

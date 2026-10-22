@@ -25,7 +25,7 @@ test.describe("корень ведёт на рабочий экран роли",
         }
       }, persona);
       const tab = await context.newPage();
-      await tab.goto("/", { waitUntil: "domcontentloaded" });
+      await tab.goto("/app", { waitUntil: "domcontentloaded" });
       await expect(tab).toHaveURL(url);
       await context.close();
       void page;

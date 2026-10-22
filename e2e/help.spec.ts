@@ -51,7 +51,7 @@ test.describe("шаг в закрытый роли раздел", () => {
       await expect(
         article.getByText("Откройте свой рабочий экран", { exact: false }),
       ).toBeVisible();
-      await expect(article.locator('a[href="/"]')).toHaveCount(1);
+      await expect(article.locator('a[href="/app"]')).toHaveCount(1);
     });
   });
 

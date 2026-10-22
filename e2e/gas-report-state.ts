@@ -8,8 +8,9 @@
 import { buildSeed, GAS_TODAY } from "@/data/mock/gas-ops-seed";
 import type { TimeEntry } from "@/domain/gas-ops/model";
 
-export const GAS_STATE_KEY = "neeklo-gas-ops-v1";
-export const GAS_STATE_VERSION = 2;
+/** Отчёт сверяется с файлом заказчика: снимок кладётся в его личный контур (ADR-047) */
+export const GAS_STATE_KEY = "neeklo-gas-ops-v1:client";
+export const GAS_STATE_VERSION = 3;
 export const SHOW_ENTRY_ID = "ent-show-m200";
 
 export function reportState(): string {

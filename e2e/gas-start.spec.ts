@@ -1,4 +1,5 @@
 import { expect, open, test } from "./fixtures";
+import { enterClientContour } from "./gas-helpers";
 
 /**
  * Стартовый экран, инструкция и вопросы контура газа (ADR-044, F2, F7) на 390 и 1440.
@@ -38,6 +39,8 @@ for (const [name, viewport] of [
     });
 
     test("схема шагов ведёт на экраны", async ({ page }) => {
+      // Пример расчёта берётся из недели заказчика: 395 мин и 44 847 ₽ (ADR-047)
+      await enterClientContour(page);
       await open(page, "/gas");
       await page.getByTestId("gas-flow-3").click();
       await expect(page).toHaveURL(/\/gas\/guide\?tab=calc/);
@@ -66,6 +69,8 @@ for (const [name, viewport] of [
     });
 
     test("вопросы сохраняют ответ после перезагрузки", async ({ page }) => {
+      // Вопросы к согласованию только в личном контуре заказчика (ADR-047)
+      await enterClientContour(page);
       await open(page, "/gas/questions");
       await expect(page.locator("[data-testid^='question-']")).toHaveCount(10);
       // Вопрос открывается деталью: ответ и статус в ней (ADR-045, 5.11)

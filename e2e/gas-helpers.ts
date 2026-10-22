@@ -13,3 +13,14 @@ export async function gasRole(page: Page, label: string) {
     .getByRole("button", { name: new RegExp(`^${label}`) })
     .click();
 }
+
+/** Тестовый ключ личной ссылки: им запущен сервер сквозных тестов (playwright.config.ts) */
+export const CLIENT_LINK_KEY = "e2e-client-key";
+
+/**
+ * Войти в личный контур заказчика (ADR-047): личная ссылка ставит куку на вкладку.
+ * Нужен проверкам, которые сверяют экраны с цифрами и файлом заказчика.
+ */
+export async function enterClientContour(page: Page) {
+  await page.goto(`/gas?c=${CLIENT_LINK_KEY}`, { waitUntil: "domcontentloaded" });
+}

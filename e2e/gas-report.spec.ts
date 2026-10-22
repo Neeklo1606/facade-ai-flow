@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { expect, test } from "./fixtures";
+import { enterClientContour } from "./gas-helpers";
 
 /** Совпадают с e2e/gas-report-state.ts: сам модуль тянет набор данных, который Node не читает */
-const GAS_STATE_KEY = "neeklo-gas-ops-v1";
+const GAS_STATE_KEY = "neeklo-gas-ops-v1:client";
 const SHOW_ENTRY_ID = "ent-show-m200";
 
 /**
@@ -22,6 +23,8 @@ const state = prepared.state;
 test.describe.configure({ timeout: 180_000 });
 
 test.beforeEach(async ({ page }) => {
+  // Сверка и цифры недели заказчика: личный контур по тестовому ключу (ADR-047)
+  await enterClientContour(page);
   await page.addInitScript(
     ({ key, value }) => {
       try {

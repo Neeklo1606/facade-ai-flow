@@ -41,7 +41,7 @@ function RisksPage() {
       available={[
         {
           label: "Дашборд",
-          to: "/attention",
+          to: "/app",
           note: "«Требует решения» и метрики риска по всем объектам",
         },
         {

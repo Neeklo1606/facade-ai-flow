@@ -32,7 +32,7 @@ export const Route = createFileRoute("/finish")({
 });
 
 function FinishPage() {
-  if (!demoShow) return <Navigate to="/attention" replace />;
+  if (!demoShow) return <Navigate to="/app" replace />;
   return <Finish />;
 }
 

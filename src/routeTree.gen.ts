@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as AttentionRouteImport } from './routes/attention'
 import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
@@ -94,6 +95,11 @@ const AgentRoute = AgentRouteImport.update({
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AttentionRoute = AttentionRouteImport.update({
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
   '/attention': typeof AttentionRoute
   '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
@@ -484,6 +491,7 @@ export interface FileRoutesByTo {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
   '/attention': typeof AttentionRoute
   '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
@@ -551,6 +559,7 @@ export interface FileRoutesById {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
   '/attention': typeof AttentionRoute
   '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
@@ -621,6 +630,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/app'
     | '/attention'
     | '/capture'
     | '/catalogs'
@@ -689,6 +699,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/app'
     | '/attention'
     | '/capture'
     | '/catalogs'
@@ -755,6 +766,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/app'
     | '/attention'
     | '/capture'
     | '/catalogs'
@@ -824,6 +836,7 @@ export interface RootRouteChildren {
   AccessRoute: typeof AccessRoute
   AgentRoute: typeof AgentRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  AppRoute: typeof AppRoute
   AttentionRoute: typeof AttentionRoute
   CaptureRoute: typeof CaptureRoute
   CatalogsRoute: typeof CatalogsRoute
@@ -899,6 +912,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/analytics'
       preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/attention': {
@@ -1394,6 +1414,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccessRoute: AccessRoute,
   AgentRoute: AgentRoute,
   AnalyticsRoute: AnalyticsRoute,
+  AppRoute: AppRoute,
   AttentionRoute: AttentionRoute,
   CaptureRoute: CaptureRoute,
   CatalogsRoute: CatalogsRoute,

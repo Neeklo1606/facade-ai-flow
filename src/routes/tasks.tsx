@@ -35,7 +35,7 @@ function TasksPage() {
       available={[
         {
           label: "Дашборд",
-          to: "/attention",
+          to: "/app",
           note: "«Требует решения»: просроченные ответы и готовые сравнения по всем объектам",
         },
         {
