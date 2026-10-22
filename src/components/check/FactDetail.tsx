@@ -69,7 +69,7 @@ export function FactDetail({
       <Button
         variant="secondary"
         aria-label="Исправить объём"
-        className="h-14 shrink-0 rounded-full px-4 lg:h-12"
+        className="h-14 shrink-0 rounded-full px-4 lg:h-11 lg:flex-1"
         onClick={decision.openQty}
       >
         <PencilLine className="size-4" />
@@ -79,7 +79,7 @@ export function FactDetail({
       <Button
         variant="secondary"
         aria-label="Вернуть на уточнение"
-        className="h-14 shrink-0 rounded-full px-4 lg:h-12"
+        className="h-14 shrink-0 rounded-full px-4 lg:h-11 lg:flex-1"
         onClick={decision.back}
       >
         <Undo2 className="size-4" />
