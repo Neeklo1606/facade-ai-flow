@@ -87,8 +87,17 @@ export function Sidebar() {
             }}
           >
             <Dialog.Title className="sr-only">Главное меню</Dialog.Title>
-            <aside aria-label="Главное меню" data-sidebar="app" className="flex min-h-0 flex-1 flex-col">
-              <SidebarInner collapsed={false} canToggle={false} onToggle={toggleSidebar} onClose={() => setMobileNavOpen(false)} />
+            <aside
+              aria-label="Главное меню"
+              data-sidebar="app"
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <SidebarInner
+                collapsed={false}
+                canToggle={false}
+                onToggle={toggleSidebar}
+                onClose={() => setMobileNavOpen(false)}
+              />
             </aside>
           </Dialog.Content>
         </Dialog.Portal>
@@ -353,7 +362,12 @@ function SidebarInner({
                           )}
                         >
                           <item.icon strokeWidth={1.5} />
-                          <span className={cn("min-w-0 flex-1 max-md:whitespace-normal max-md:break-words md:truncate", collapsed && "md:hidden")}>
+                          <span
+                            className={cn(
+                              "min-w-0 flex-1 max-md:whitespace-normal max-md:break-words md:truncate",
+                              collapsed && "md:hidden",
+                            )}
+                          >
                             {item.label}
                           </span>
                           {count > 0 && (

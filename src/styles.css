@@ -1624,14 +1624,22 @@ html[data-boot-compact] [data-boot-hero] {
   background: color-mix(in srgb, var(--text) 40%, transparent);
 }
 @keyframes mobile-nav-in {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 @keyframes mobile-nav-out {
-  to { transform: translateX(-100%); }
+  to {
+    transform: translateX(-100%);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mobile-nav-panel { animation: none !important; }
+  .mobile-nav-panel {
+    animation: none !important;
+  }
 }
 
 @media (max-width: 1023px) {
