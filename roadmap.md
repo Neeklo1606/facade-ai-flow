@@ -14,3 +14,9 @@
 - [x] Record decisions, checks and remaining limitations.
 
 Validation limitation: five full-demo tests stop at the Excel download filename (`download` instead of `Сводка…`); export behavior was not changed in this frontend task. Physical-device checks and production publication were not performed.
+
+## Mobile navigation
+
+- [ ] Make the existing phone navigation a focus-managed slide-out panel.
+- [ ] Improve shared mobile typography and readable navigation labels.
+- [ ] Verify opening, closing, section navigation and desktop layout.

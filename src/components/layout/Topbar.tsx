@@ -19,7 +19,7 @@ import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
 import { Button } from "@/components/ui/button";
 
 export function Topbar() {
-  const { setMobileNavOpen, setCommandOpen, setProjectId } = useApp();
+  const { mobileNavOpen, setMobileNavOpen, setCommandOpen, setProjectId } = useApp();
   // Аватар — выбранная персона демонстрации, а не всегда руководитель
   const user = useCurrentUser();
   const initials = user?.name
@@ -108,6 +108,8 @@ export function Topbar() {
         type="button"
         onClick={() => setMobileNavOpen(true)}
         aria-label="Открыть меню"
+        aria-expanded={mobileNavOpen}
+        aria-controls={mobileNavOpen ? "mobile-navigation" : undefined}
         className="icon-button focus-ring -ml-2 md:hidden"
       >
         <Menu strokeWidth={1.5} />
