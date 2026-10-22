@@ -17,6 +17,6 @@ Validation limitation: five full-demo tests stop at the Excel download filename 
 
 ## Mobile navigation
 
-- [ ] Make the existing phone navigation a focus-managed slide-out panel.
-- [ ] Improve shared mobile typography and readable navigation labels.
-- [ ] Verify opening, closing, section navigation and desktop layout.
+- [x] Make the existing phone navigation a focus-managed slide-out panel.
+- [x] Improve shared mobile typography and readable navigation labels.
+- [x] Verify opening, closing, section navigation and desktop layout.
