@@ -11,9 +11,9 @@ import { useMemo } from "react";
 import { ROLE_LABEL, fmtHours, fmtRate, fmtRub, useGasActor, type Role } from "@/api/gas-ops";
 import { ScreenHint } from "@/components/gas-ops/page";
 import { useRoleSwitch } from "@/components/gas-ops/shell/use-role-switch";
-import { GAS_BRAND } from "@/lib/gas-ops/brand";
+import { useGasBrand, useGasContour } from "@/lib/gas-ops/contour";
 import { ROLE_ABOUT, ROLE_HOME, gasScreen, roleInitial } from "@/lib/gas-ops/screens";
-import { calcExample } from "@/lib/gas-ops/start-examples";
+import { calcExample, calcSampleOf } from "@/lib/gas-ops/start-examples";
 import { cn } from "@/lib/utils";
 import { GUIDE_TABS, type GuideTab } from "./guide-tabs";
 
@@ -205,6 +205,7 @@ const SHOW_STYLE = `
 `;
 
 export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideTab) => void }) {
+  const brand = useGasBrand();
   return (
     <div className="gas-guide flex flex-col gap-6">
       <style>{SHOW_STYLE}</style>
@@ -213,9 +214,9 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
       </div>
 
       <div className="hidden print:block">
-        <p className="text-title">Инструкция: {GAS_BRAND.product}</p>
+        <p className="text-title">Инструкция: {brand.product}</p>
         <p className="text-meta mt-1 text-text-3">
-          {GAS_BRAND.client}. Демонстрация на данных за {GAS_BRAND.periodLabel}.
+          {brand.client}. Демонстрация на данных за {brand.periodLabel}.
         </p>
       </div>
 
@@ -348,7 +349,8 @@ function RoleSteps({ role, steps }: { role: Role; steps: GuideStep[] }) {
 }
 
 function CalcPanel() {
-  const calc = useMemo(calcExample, []);
+  const { report } = useGasContour();
+  const calc = useMemo(() => calcExample(calcSampleOf(report.entries)), [report]);
   const EXAMPLE_MINUTES = calc.minutes;
   const EXAMPLE_AMOUNT = calc.amountRub;
 

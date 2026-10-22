@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { buildSeed } from "@/data/mock/gas-ops-seed";
 import { factReportFull as factReport } from "@/data/mock/fact-report.full";
+import { factReport as liteReport } from "@/data/mock/fact-report";
 import {
   analyticRows,
   changedEntryIds,
@@ -363,7 +364,7 @@ describe("сверка с файлом заказчика", () => {
   });
 
   test("текст блока на экране — ровно строки расчёта сверки", () => {
-    const lines = reconcileLinesOf(seed.entries);
+    const lines = reconcileLinesOf(liteReport, seed.entries);
     expect(lines).toEqual(reconcileLines(result));
     const html = renderToStaticMarkup(
       createElement(ReconcileLines, {

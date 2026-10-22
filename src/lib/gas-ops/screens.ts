@@ -247,8 +247,15 @@ export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
   foreman: [],
 };
 
-export function screensFor(role: Role): GasScreen[] {
-  return GAS_SCREENS.filter((screen) => screen.roles.includes(role));
+/** Разделы только личного контура заказчика: рабочий лист встречи с ним (ADR-047) */
+export const CLIENT_ONLY_SCREENS: readonly GasScreenKey[] = ["questions"];
+
+export function screensFor(role: Role, contour: "public" | "client" = "public"): GasScreen[] {
+  return GAS_SCREENS.filter(
+    (screen) =>
+      screen.roles.includes(role) &&
+      (contour === "client" || !CLIENT_ONLY_SCREENS.includes(screen.key)),
+  );
 }
 
 export const ROLE_ORDER: readonly Role[] = ["foreman", "manager", "director", "admin"];

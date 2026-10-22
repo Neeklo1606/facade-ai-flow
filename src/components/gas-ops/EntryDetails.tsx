@@ -67,7 +67,7 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const ORIGIN_TEXT: Record<EntryView["amountOrigin"], string> = {
-  entry: "Начисление из фактического отчёта заказчика",
+  entry: "Начисление из недельного отчёта",
   estimate: "Подтверждённая стоимость работ по объекту",
   manual: "Ручной ввод менеджера: объект без сметы",
   none: "Суммы нет",
@@ -102,7 +102,7 @@ export function EntryDetails({ view }: { view: EntryView }) {
             {fmtEntryDay(entry.day)}
           </Row>
           <Row icon={Clock} label="Начало и окончание">
-            {frame ?? <span className="text-text-3">В выгрузке заказчика нет рамки смены</span>}
+            {frame ?? <span className="text-text-3">В недельном отчёте нет рамки смены</span>}
           </Row>
           <Row icon={Coffee} label="Перерыв">
             {entry.breakMinutes > 0 ? `${entry.breakMinutes} мин` : "Без перерыва"}
@@ -158,7 +158,7 @@ export function EntryDetails({ view }: { view: EntryView }) {
                 </Row>
               ) : null}
               {entry.revenueInFile != null ? (
-                <Row icon={FileText} label="Доходность в файле заказчика">
+                <Row icon={FileText} label="Доходность в недельном отчёте">
                   {fmtRate(entry.revenueInFile)}
                 </Row>
               ) : null}
@@ -209,7 +209,7 @@ export function EntryDetails({ view }: { view: EntryView }) {
         </summary>
         <ol className="mt-2 flex flex-col">
           <HistoryItem
-            title={entry.source === "fact-report" ? "Перенесено из отчёта заказчика" : "Внесено"}
+            title={entry.source === "fact-report" ? "Перенесено из недельного отчёта" : "Внесено"}
             at={entry.createdAt}
             last={history.length === 0}
           />

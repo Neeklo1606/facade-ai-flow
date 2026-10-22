@@ -25,8 +25,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { resetGasShow, startGasShow, useGasShow } from "@/lib/gas-ops/show";
+import { useIsClientContour } from "@/lib/gas-ops/contour";
 
 export function FinishScreen() {
+  const clientContour = useIsClientContour();
   const { state } = useGasShow();
   const entry = useGasEntry(state.chain.gasEntryId ?? null);
   const actions = useGasActions();
@@ -135,13 +137,15 @@ export function FinishScreen() {
           <BookOpen className="size-4" aria-hidden />
           Открыть инструкцию
         </Link>
-        <Link
-          to="/gas/questions"
-          className="inline-flex h-control items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-4 text-body-strong focus-ring press-98"
-        >
-          <MessageCircleQuestion className="size-4" aria-hidden />
-          Вопросы к согласованию
-        </Link>
+        {clientContour ? (
+          <Link
+            to="/gas/questions"
+            className="inline-flex h-control items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-4 text-body-strong focus-ring press-98"
+          >
+            <MessageCircleQuestion className="size-4" aria-hidden />
+            Вопросы к согласованию
+          </Link>
+        ) : null}
       </div>
 
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
@@ -149,7 +153,7 @@ export function FinishScreen() {
           <AlertDialogHeader>
             <AlertDialogTitle>Пройти показ заново?</AlertDialogTitle>
             <AlertDialogDescription>
-              Записи, проверки и правки этой вкладки сотрутся, данные вернутся к отчёту заказчика.
+              Записи, проверки и правки этой вкладки сотрутся, данные вернутся к исходной неделе.
               Отменить это нельзя.
             </AlertDialogDescription>
           </AlertDialogHeader>

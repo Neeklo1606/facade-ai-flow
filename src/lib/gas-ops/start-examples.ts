@@ -21,11 +21,25 @@ export function showExample() {
   };
 }
 
-/** Пример из файла заказчика: 395 минут и 44 847 ₽ */
-export const CALC_EXAMPLE_MINUTES = 395;
-export const CALC_EXAMPLE_AMOUNT_RUB = 44_847;
+/**
+ * Пример расчёта: первая запись недели контура с суммой и минутами (ADR-047). В личном
+ * контуре это строка отчёта заказчика, в публичном строка вымышленного набора той же формы
+ */
+export interface CalcSample {
+  amountRub: number;
+  minutes: number;
+}
 
-export function calcExample() {
+export function calcSampleOf(
+  entries: readonly { amount: number | null; minutes: number | null }[],
+): CalcSample {
+  const first = entries.find((e) => e.amount && e.minutes);
+  return { amountRub: first?.amount ?? 0, minutes: first?.minutes ?? 0 };
+}
+
+export function calcExample({ amountRub, minutes }: CalcSample) {
+  const CALC_EXAMPLE_MINUTES = minutes;
+  const CALC_EXAMPLE_AMOUNT_RUB = amountRub;
   const hours = hoursOfMinutes(CALC_EXAMPLE_MINUTES);
   // Часы, как они записаны в файле: два знака
   const shownHours = Math.round(hours * 100) / 100;

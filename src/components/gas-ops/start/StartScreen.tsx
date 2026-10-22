@@ -20,7 +20,7 @@ import {
 import { useState } from "react";
 import { ROLE_LABEL, fmtHours, fmtRate, fmtRub, useGasActions, type Role } from "@/api/gas-ops";
 import { useRoleSwitch } from "@/components/gas-ops/shell/use-role-switch";
-import { GAS_BRAND } from "@/lib/gas-ops/brand";
+import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 import { ROLE_ABOUT, ROLE_HOME, ROLE_ORDER, gasScreen, roleInitial } from "@/lib/gas-ops/screens";
 import { startGasShow } from "@/lib/gas-ops/show";
 import { showExample } from "@/lib/gas-ops/start-examples";
@@ -91,6 +91,8 @@ const GROWTH = [
 ] as const;
 
 export function StartScreen() {
+  const brand = useGasBrand();
+  const clientContour = useIsClientContour();
   const switchRole = useRoleSwitch();
   const actions = useGasActions();
   const [busy, setBusy] = useState(false);
@@ -125,10 +127,12 @@ export function StartScreen() {
       <Contract />
       <footer className="text-meta flex flex-col gap-2 border-t border-line pt-6 text-text-3 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-[640px]">
-          Демонстрация на обезличенных данных из вашего отчёта за {GAS_BRAND.periodLabel}. Бот MAX и
-          таблицы пока не подключены.
+          {clientContour
+            ? `Демонстрация на обезличенных данных из вашего отчёта за ${brand.periodLabel}.`
+            : "Демонстрация на вымышленных данных: неделя «Демо-подрядчика» в структуре настоящего отчёта."}{" "}
+          Бот MAX и таблицы пока не подключены.
         </p>
-        <p className="shrink-0">{GAS_BRAND.credit}</p>
+        <p className="shrink-0">{brand.credit}</p>
       </footer>
     </div>
   );
@@ -145,6 +149,8 @@ function Hero({
   onRoles: () => void;
   busy: boolean;
 }) {
+  const brand = useGasBrand();
+  const clientContour = useIsClientContour();
   return (
     <section
       aria-labelledby="gas-start-title"
@@ -156,7 +162,7 @@ function Hero({
       />
       <p className="text-meta-strong glass inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 font-medium text-text-2">
         <Sparkles className="size-4 text-orange" aria-hidden />
-        Для {GAS_BRAND.client}
+        {clientContour ? `Для ${brand.client}` : "Пример: Демо-подрядчик"}
       </p>
 
       <h2

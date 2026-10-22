@@ -6,7 +6,8 @@ import { grantResponse } from "@/lib/access";
 
 describe("примеры стартового экрана и инструкции (ADR-044, F2)", () => {
   test("395 мин = 6,58 ч; 44 847 ₽ / (395 / 60) = 6 812 ₽/ч; от 6,58 ч выходит 6 816", () => {
-    const c = calcExample();
+    // Первая строка отчёта заказчика: 395 минут и 44 847 ₽
+    const c = calcExample({ amountRub: 44_847, minutes: 395 });
     expect(fmtHours(c.hours)).toBe("6,58 ч");
     expect(c.rate).toBe(6812);
     expect(fmtRate(c.rate).replace(/\s/g, " ")).toBe("6 812 ₽/ч");

@@ -2,7 +2,8 @@ import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
 import { GrowthLine, ScreenHint, SourceLegend } from "@/components/gas-ops/page";
-import { GAS_BRAND, gasTitle } from "@/lib/gas-ops/brand";
+import { gasTitle } from "@/lib/gas-ops/brand";
+import { useGasBrand } from "@/lib/gas-ops/contour";
 import { EntryStatusBadge } from "@/components/gas-ops/marks";
 import { entryLine, fmtShortDay } from "@/components/gas-ops/review/rules";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/gas/summary")({
 });
 
 function GasDashboard() {
+  const brand = useGasBrand();
   const metrics = useGasDashboard();
   const pending = useGasQueue("pending").slice(0, 6);
   const maxAmount = Math.max(1, ...metrics.byDay.map((d) => d.amountRub));
@@ -46,7 +48,7 @@ function GasDashboard() {
             className="col-span-2 md:col-span-1"
             label="Начислено за неделю"
             value={<span data-testid="summary-amount">{fmtRub(metrics.totals.amountRub)}</span>}
-            note={`подтверждённые за ${GAS_BRAND.periodLabel}`}
+            note={`подтверждённые за ${brand.periodLabel}`}
           />
           <MetricCard
             label="Эффективное время"

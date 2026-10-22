@@ -4,7 +4,7 @@
  */
 import { SendHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { GAS_BRAND } from "@/lib/gas-ops/brand";
+import { useGasBrand } from "@/lib/gas-ops/contour";
 import { cn } from "@/lib/utils";
 
 /** Появление сообщения: снизу и из прозрачности. prefers-reduced-motion выключает сдвиг */
@@ -12,6 +12,7 @@ const APPEAR =
   "animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none";
 
 export function ChatHeader() {
+  const brand = useGasBrand();
   return (
     <div className="line-bottom z-10 flex h-sheet-head shrink-0 items-center gap-3 bg-surface px-4">
       <span
@@ -22,7 +23,7 @@ export function ChatHeader() {
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-heading">Учёт времени</p>
-        <p className="text-meta truncate text-text-3">бот · {GAS_BRAND.clientShort}</p>
+        <p className="text-meta truncate text-text-3">бот · {brand.clientShort}</p>
       </div>
     </div>
   );

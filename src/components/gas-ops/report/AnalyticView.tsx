@@ -10,6 +10,7 @@ import { EntryStatusBadge, HoursCell, MoneyCell, Num, RateCell } from "@/compone
 import { fmtHours, fmtRate, fmtRub, type AnalyticRow } from "@/api/gas-ops";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { sourceLabel, useGasContour } from "@/lib/gas-ops/contour";
 
 type SourceFilter = "all" | "fact-report" | "mock";
 
@@ -177,6 +178,7 @@ function FilterControls({
   brigades: string[];
 }) {
   const set = (part: Partial<Filters>) => onChange({ ...filters, ...part });
+  const kind = useGasContour().kind;
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
       <div className="-mx-gutter overflow-x-auto px-gutter lg:mx-0 lg:px-0">
@@ -214,7 +216,7 @@ function FilterControls({
         {(
           [
             ["all", "Все данные"],
-            ["fact-report", "Факт"],
+            ["fact-report", sourceLabel("fact-report", kind)],
             ["mock", "Демо"],
           ] as const
         ).map(([value, label]) => (

@@ -763,7 +763,7 @@ function MineList({ items }: { items: EntryView[] }) {
               </p>
               {!timed ? (
                 <p className="text-meta text-text-3">
-                  Из файла заказчика: только минуты, без начала и окончания.
+                  Из недельного отчёта: только минуты, без начала и окончания.
                 </p>
               ) : null}
               <div className="mt-1.5">

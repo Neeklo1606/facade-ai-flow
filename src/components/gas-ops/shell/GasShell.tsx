@@ -17,7 +17,7 @@ import {
   RotateCcw,
   Search,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import {
@@ -32,7 +32,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ROLE_LABEL, useGasActions, useGasActor, useGasHydration } from "@/api/gas-ops";
-import { GAS_BRAND } from "@/lib/gas-ops/brand";
+import {
+  contourOf,
+  GasContourProvider,
+  useGasBrand,
+  useGasContour,
+  type GasContourPayload,
+} from "@/lib/gas-ops/contour";
+import { setGasContour } from "@/lib/gas-ops/use-gas-ops";
 import {
   GAS_GROUP_LABEL,
   OUT_OF_SCOPE_LABEL,
@@ -67,7 +74,27 @@ function isActive(screen: GasScreen, pathname: string) {
   return pathname === screen.to || pathname.startsWith(`${screen.to}/`);
 }
 
+/**
+ * Контур данных раздела (ADR-047): ответ загрузчика маршрута `/gas`. Оболочку рисует корень,
+ * поэтому данные загрузчика берутся из совпадений маршрутов, а не из `Route.useLoaderData`
+ */
 export function GasShell({ children }: { children: ReactNode }) {
+  const payload = useRouterState({
+    select: (s) =>
+      s.matches.find((match) => match.routeId === "/gas")?.loaderData as
+        GasContourPayload | undefined,
+  });
+  const contour = useMemo(() => contourOf(payload), [payload]);
+  // Контур вкладки ставится до экранов: они читают снимок своего контура с первого рендера
+  setGasContour(contour);
+  return (
+    <GasContourProvider value={contour}>
+      <GasShellFrame>{children}</GasShellFrame>
+    </GasContourProvider>
+  );
+}
+
+function GasShellFrame({ children }: { children: ReactNode }) {
   // Введённые записи переживают перезагрузку: снимок поднимается после первой отрисовки
   useGasHydration();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -203,8 +230,9 @@ function GasSidebar({
   rail: boolean;
   onRail: (next: boolean) => void;
 }) {
+  const brand = useGasBrand();
   const actor = useGasActor();
-  const screens = screensFor(actor.role);
+  const screens = screensFor(actor.role, useGasContour().kind);
   return (
     <aside
       aria-label="Меню учёта выработки"
@@ -217,7 +245,7 @@ function GasSidebar({
       {/* Логотип только здесь, в меню, и на стартовом экране (4.2) */}
       <Link
         to="/gas"
-        title={GAS_BRAND.product}
+        title={brand.product}
         className={cn(
           "flex items-center gap-3 rounded-control py-1 focus-ring",
           rail ? "justify-center px-0" : "px-2",
@@ -225,8 +253,8 @@ function GasSidebar({
       >
         <BrandMark />
         <span className={cn("min-w-0", rail && "sr-only")}>
-          <span className="block truncate text-body-strong text-text">{GAS_BRAND.product}</span>
-          <span className="block truncate text-meta text-text-3">{GAS_BRAND.clientShort}</span>
+          <span className="block truncate text-body-strong text-text">{brand.product}</span>
+          <span className="block truncate text-meta text-text-3">{brand.clientShort}</span>
         </span>
       </Link>
 
@@ -288,7 +316,7 @@ function GasSidebar({
           {rail ? <ChevronsRight strokeWidth={1.75} /> : <ChevronsLeft strokeWidth={1.75} />}
           <span className={cn("truncate", rail && "sr-only")}>Свернуть панель</span>
         </button>
-        {rail ? null : <p className="px-2 text-meta text-text-3">{GAS_BRAND.credit}</p>}
+        {rail ? null : <p className="px-2 text-meta text-text-3">{brand.credit}</p>}
       </div>
     </aside>
   );
@@ -297,17 +325,18 @@ function GasSidebar({
 /* ------------------------------------------------------------ Шапка */
 
 function GasTopbar({ screen, collapsed }: { screen: GasScreen; collapsed: boolean }) {
+  const brand = useGasBrand();
   return (
     <header data-collapsed={collapsed ? "true" : undefined} className="content-header lg:px-8">
       <div className="min-w-0 flex-1">
         {/* Телефон: период, а когда заголовок ушёл под шапку, его текст. Компьютер: заголовок */}
         <p className="truncate text-body-strong lg:hidden" aria-hidden={collapsed || undefined}>
-          {collapsed ? screen.title : GAS_BRAND.periodLabel}
+          {collapsed ? screen.title : brand.periodLabel}
         </p>
         <h1 className="hidden truncate text-title lg:block">{screen.title}</h1>
       </div>
       <span className="hidden h-8 items-center rounded-full bg-surface-2 px-3 text-meta text-text-2 tnum lg:inline-flex">
-        {GAS_BRAND.periodLabel}
+        {brand.periodLabel}
       </span>
       {/* Свёрнутая полоса показа встаёт сюда таблеткой «4/6» */}
       <div id="gas-show-slot" className="contents" />
@@ -508,10 +537,11 @@ function ResetButton({ onDone, wide = false }: { onDone?: () => void; wide?: boo
 /* ------------------------------------------------------------ Телефон: нижняя панель */
 
 function GasBottomNav({ pathname }: { pathname: string }) {
+  const brand = useGasBrand();
   const actor = useGasActor();
   const [more, setMore] = useState(false);
   const tabs = ROLE_TABS[actor.role].map(gasScreen);
-  const rest = screensFor(actor.role).filter((s) => !tabs.includes(s));
+  const rest = screensFor(actor.role, useGasContour().kind).filter((s) => !tabs.includes(s));
   const moreActive = rest.some((s) => isActive(s, pathname));
   const ref = useRef<HTMLElement>(null);
   useBottomLayer("tabbar", ref);
@@ -576,7 +606,7 @@ function GasBottomNav({ pathname }: { pathname: string }) {
         open={more}
         onOpenChange={setMore}
         title="Ещё"
-        description={`${GAS_BRAND.product} · ${GAS_BRAND.clientShort}`}
+        description={`${brand.product} · ${brand.clientShort}`}
       >
         <MorePanel rest={rest} pathname={pathname} onDone={() => setMore(false)} />
       </BottomSheet>
@@ -593,6 +623,7 @@ function MorePanel({
   pathname: string;
   onDone: () => void;
 }) {
+  const brand = useGasBrand();
   /* «Ещё» ADR-045, 5.17: группы строк 52, а не плитки */
   return (
     <div className="flex flex-col gap-section">
@@ -629,7 +660,7 @@ function MorePanel({
         <ResetButton onDone={onDone} />
         <ThemeToggle className="ms-auto" />
       </div>
-      <p className="text-meta text-text-3">{GAS_BRAND.credit}</p>
+      <p className="text-meta text-text-3">{brand.credit}</p>
     </div>
   );
 }

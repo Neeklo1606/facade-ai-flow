@@ -5,6 +5,7 @@ import { renderErrorPage } from "./lib/error-page";
 import { rememberEnv } from "./lib/runtime-env";
 import { SESSION_PREFIX, sessionFromCookieHeader, verifySession } from "./lib/session-token";
 import { authAvailable, sessionEmployee } from "./api/auth-store";
+import { clientLinkGate } from "./lib/client-link";
 
 /** Экран входа: единственный адрес, открытый без сессии в рабочем контуре (ADR-021) */
 const LOGIN_PATH = "/login";
@@ -140,6 +141,9 @@ export default {
       rememberEnv(env);
       const gate = accessGate(request, env);
       if (gate) return gate;
+      // Личная ссылка заказчика: ключ в адресе /gas меняется на куку контура (ADR-047)
+      const link = await clientLinkGate(request);
+      if (link) return link;
       const login = await requireLogin(request);
       if (login) return login;
       // Витрина дизайн-системы в production не существует. Путь подменяется несуществующим

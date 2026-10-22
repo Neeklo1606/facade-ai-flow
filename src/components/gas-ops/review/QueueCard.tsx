@@ -10,6 +10,7 @@ import { Chip, ChipRow, type ChipTone } from "@/components/ui/kit/status";
 import { EntryStatusBadge } from "../marks";
 import { entryLine, type Mark, type MarkLevel } from "./rules";
 import { cn } from "@/lib/utils";
+import { sourceLabel, useGasContour } from "@/lib/gas-ops/contour";
 
 const TONE: Record<MarkLevel, ChipTone> = { block: "block", decide: "decide", info: "info" };
 
@@ -33,6 +34,7 @@ export const QueueCard = forwardRef<
   const { entry } = view;
   // Суммы бригадир не видит (ТЗ, п. 5.6)
   const money = useGasActor().canSeeMoney;
+  const source = sourceLabel(entry.source, useGasContour().kind);
   return (
     <button
       ref={ref}
@@ -70,7 +72,7 @@ export const QueueCard = forwardRef<
         ) : null}
         {showNumber ? null : (
           <span className="sr-only">
-            {entry.number}, {entry.source === "fact-report" ? "факт" : "демо"}
+            {entry.number}, {source.toLowerCase()}
           </span>
         )}
       </span>
@@ -89,7 +91,7 @@ export const QueueCard = forwardRef<
           ) : null}
           {showNumber ? (
             <span className="mt-0.5 block text-meta text-text-3 tnum">
-              {entry.number} · {entry.source === "fact-report" ? "Факт" : "Демо"}
+              {entry.number} · {source}
             </span>
           ) : null}
         </span>
