@@ -50,12 +50,15 @@ export function FactDetail({
       aria-label="Решение по факту"
       className={cn(
         "flex items-center gap-1.5",
-        sheet ? "rounded-full bg-surface p-1.5 ring-1 ring-line-2" : "gap-2",
+        sheet ? "rounded-full bg-surface p-1.5 ring-1 ring-line-2" : "flex-wrap gap-2",
       )}
     >
       <Button
         variant="accent"
-        className="text-body-strong h-14 min-w-0 flex-1 rounded-full font-semibold lg:h-12"
+        className={cn(
+          "text-body-strong h-14 min-w-0 flex-1 rounded-full font-semibold lg:h-11",
+          !sheet && "basis-full",
+        )}
         onClick={() => decision.accept()}
       >
         <Check className="size-5" /> Принять
@@ -66,7 +69,7 @@ export function FactDetail({
       <Button
         variant="secondary"
         aria-label="Исправить объём"
-        className="h-14 shrink-0 rounded-full px-4 lg:h-12"
+        className="h-14 shrink-0 rounded-full px-4 lg:h-11 lg:flex-1"
         onClick={decision.openQty}
       >
         <PencilLine className="size-4" />
@@ -76,7 +79,7 @@ export function FactDetail({
       <Button
         variant="secondary"
         aria-label="Вернуть на уточнение"
-        className="h-14 shrink-0 rounded-full px-4 lg:h-12"
+        className="h-14 shrink-0 rounded-full px-4 lg:h-11 lg:flex-1"
         onClick={decision.back}
       >
         <Undo2 className="size-4" />
