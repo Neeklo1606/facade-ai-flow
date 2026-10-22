@@ -3,7 +3,9 @@ import { expect, open, test } from "./fixtures";
 test.describe("выдвижная навигация @mobile", () => {
   test.use({ viewport: { width: 375, height: 812 }, persona: "e-sokolov" });
 
-  test("закрытие возвращает фокус, переход открывает выбранный раздел @mobile", async ({ page }) => {
+  test("закрытие возвращает фокус, переход открывает выбранный раздел @mobile", async ({
+    page,
+  }) => {
     await open(page, "/check");
     const trigger = page.getByRole("button", { name: "Открыть меню", exact: true });
     const panel = page.getByRole("dialog", { name: "Главное меню", exact: true });

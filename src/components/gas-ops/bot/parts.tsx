@@ -129,7 +129,7 @@ export function Key({
       data-recommended={recommended ? "true" : undefined}
       aria-label={label}
       className={cn(
-        "flex min-h-12 min-w-0 flex-col justify-center rounded-control px-4 py-1.5 text-body-strong transition-[background-color,box-shadow,transform] duration-150 focus-ring press",
+        "flex min-h-field min-w-0 flex-col justify-center rounded-control px-4 py-1.5 text-body-strong transition-[background-color,box-shadow,transform] duration-150 focus-ring press",
         align === "center" ? "items-center text-center" : "items-start text-start",
         tone === "primary"
           ? "bg-orange-strong text-on-orange is-hover:bg-orange-strong-hover"
@@ -198,7 +198,7 @@ export function Composer({
         inputMode={numeric ? "decimal" : "text"}
         autoComplete="off"
         enterKeyHint="send"
-        className="text-body h-12 min-w-0 flex-1 rounded-control border border-line-2 bg-surface px-4 text-text outline-none placeholder:text-text-3 focus-ring tnum"
+        className="text-body h-field min-w-0 flex-1 rounded-control border border-line-2 bg-surface px-4 text-text outline-none placeholder:text-text-3 focus-ring tnum"
       />
       <button
         type="submit"

@@ -130,7 +130,7 @@ function PanelLink({ href, children }: { href: string; children: ReactNode }) {
         event.preventDefault();
         void navigate({ href });
       }}
-      className="text-body-strong mt-3 inline-flex min-h-12 items-center gap-1.5 rounded-full bg-pill px-4 font-medium text-pill-text focus-ring press"
+      className="text-body-strong mt-3 inline-flex min-h-field items-center gap-1.5 rounded-full bg-pill px-4 font-medium text-pill-text focus-ring press"
     >
       {children}
       <ArrowUpRight className="size-4" aria-hidden />
