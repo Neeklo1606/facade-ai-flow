@@ -32,7 +32,7 @@ export const Route = createFileRoute("/finish")({
 });
 
 function FinishPage() {
-  if (!demoShow) return <Navigate to="/" replace />;
+  if (!demoShow) return <Navigate to="/attention" replace />;
   return <Finish />;
 }
 
@@ -136,7 +136,7 @@ function Finish() {
             <Marker>Осталось</Marker>
             {CANON_SCENARIOS.filter((item) => !guide.finished.includes(item.id)).map((item) => (
               <Button key={item.id} variant="secondary" className="justify-start" asChild>
-                <Link to="/" onClick={() => startScenario(item.id)}>
+                <Link to="/demo" onClick={() => startScenario(item.id)}>
                   {item.title}
                 </Link>
               </Button>

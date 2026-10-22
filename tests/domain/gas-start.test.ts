@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { fmtHours, fmtRate } from "@/domain/gas-ops/calc";
 import { calcExample, showExample } from "@/lib/gas-ops/start-examples";
-import { GAS_QUESTIONS, questionHref, questionsText } from "@/lib/gas-ops/questions";
+import { questionHref, questionsText } from "@/lib/gas-ops/questions";
+import { GAS_QUESTIONS } from "@/server/customer-questions";
 import { grantResponse } from "@/lib/access";
 
 describe("примеры стартового экрана и инструкции (ADR-044, F2)", () => {
@@ -37,7 +38,9 @@ describe("вопросы к согласованию (F7)", () => {
   });
 
   test("текст для мессенджера несёт ответ и статус", () => {
-    const text = questionsText({ 1: { answer: "По дням поровну", status: "answered" } });
+    const text = questionsText(GAS_QUESTIONS, {
+      1: { answer: "По дням поровну", status: "answered" },
+    });
     expect(text).toContain("1. Как делить стоимость");
     expect(text).toContain("Ответ: По дням поровну");
     expect(text).toContain("Статус: Ответ получен");

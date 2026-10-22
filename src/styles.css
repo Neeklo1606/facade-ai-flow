@@ -2019,3 +2019,136 @@ main {
 [data-sonner-toast] a {
   pointer-events: auto;
 }
+
+/* ------------------------------------------------------------------
+ * Публичный сайт (ADR-047, 01_SPEC 5). Шкала: H1 32/38 и 56/60, H2 24/30 и 36/42,
+ * текст 16/24 и 18/28, подпись 14/20. На компьютере html 87,5 % (правка Lovable 22.10),
+ * поэтому значения от 1024 заданы в rem с поправкой: 4rem × 14px = 56px.
+ * ------------------------------------------------------------------ */
+@utility site-h1 {
+  font-size: 2rem;
+  line-height: 2.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  @media (min-width: 1024px) {
+    font-size: 4rem;
+    line-height: 4.2857rem;
+    letter-spacing: -0.03em;
+  }
+}
+@utility site-h2 {
+  font-size: 1.5rem;
+  line-height: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  @media (min-width: 1024px) {
+    font-size: 2.5714rem;
+    line-height: 3rem;
+    letter-spacing: -0.02em;
+  }
+}
+@utility site-h3 {
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  @media (min-width: 1024px) {
+    font-size: 1.4286rem;
+    line-height: 2rem;
+  }
+}
+@utility site-lead {
+  font-size: 1.0625rem;
+  line-height: 1.625rem;
+  @media (min-width: 1024px) {
+    font-size: 1.4286rem;
+    line-height: 2.1429rem;
+  }
+}
+@utility site-body {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  @media (min-width: 1024px) {
+    font-size: 1.2857rem;
+    line-height: 2rem;
+  }
+}
+@utility site-caption {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  @media (min-width: 1024px) {
+    font-size: 1.1429rem;
+    line-height: 1.7143rem;
+  }
+}
+@utility site-wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  @media (min-width: 768px) {
+    padding-inline: 32px;
+  }
+}
+@utility site-section {
+  padding-block: 64px;
+  @media (min-width: 1024px) {
+    padding-block: 112px;
+  }
+}
+/* Главная кнопка сайта: капсула 52, нажатие темнее и 0,98 (01_SPEC 4.2) */
+@utility site-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding-inline: 24px;
+  border-radius: 999px;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  touch-action: manipulation;
+  transition:
+    transform var(--dur-press) var(--ease),
+    background-color var(--dur-in) var(--ease);
+  &:active {
+    transform: scale(0.98);
+  }
+  @media (min-width: 1024px) {
+    min-height: 60px;
+    padding-inline: 30px;
+    font-size: 1.2143rem;
+  }
+}
+/* Свет первого экрана: один, тёплый, только на лендинге и на финале показа (01_SPEC 5) */
+.site-glow {
+  position: absolute;
+  inset: -20% -30% auto auto;
+  width: 120vw;
+  max-width: 900px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--orange) 34%, transparent),
+    transparent 72%
+  );
+  opacity: 0.55;
+  pointer-events: none;
+}
+:root[data-theme="light"] .site-glow {
+  opacity: 0.45;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-rise {
+    animation: site-rise 480ms var(--ease-out) both;
+  }
+}
+@keyframes site-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

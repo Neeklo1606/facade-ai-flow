@@ -79,7 +79,7 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <Link
-          to="/"
+          to="/attention"
           className="text-body focus-ring mt-auto flex min-h-11 items-center gap-2 rounded-[var(--r-sm)] px-3 text-text-2 hover:bg-surface"
         >
           <ArrowLeft className="size-4" aria-hidden /> В полевое приложение

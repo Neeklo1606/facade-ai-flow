@@ -35,7 +35,7 @@ function SettingsPage() {
       available={[
         {
           label: "Дашборд",
-          to: "/",
+          to: "/attention",
           note: "Точка входа и период, за который считаются изменения",
         },
         {

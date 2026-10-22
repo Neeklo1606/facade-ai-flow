@@ -4,7 +4,7 @@
  * в четыре шага, вход ролью, граница договора, подвал. Заголовок экрана (h1) рисует шапка
  * оболочки, здесь секции начинаются с h2.
  */
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   ArrowDown,
   ArrowRight,
@@ -17,7 +17,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ROLE_LABEL, fmtHours, fmtRate, fmtRub, useGasActions, type Role } from "@/api/gas-ops";
 import { useRoleSwitch } from "@/components/gas-ops/shell/use-role-switch";
 import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
@@ -118,6 +118,20 @@ export function StartScreen() {
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
     target?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
   };
+
+  // Пришли с /demo: показ стартует сразу или открывается выбор роли, параметр убирается
+  const search = useSearch({ from: "/gas/" });
+  const navigate = useNavigate();
+  const handled = useRef(false);
+  useEffect(() => {
+    if (handled.current || (!search.start && !search.roles)) return;
+    handled.current = true;
+    void navigate({ to: "/gas", search: {}, replace: true });
+    if (search.start) void startShow();
+    else requestAnimationFrame(openRoles);
+    // Один раз на заход: startShow и openRoles стабильны по смыслу, параметр читается при монтировании
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex flex-col gap-12 pb-4 lg:gap-16">

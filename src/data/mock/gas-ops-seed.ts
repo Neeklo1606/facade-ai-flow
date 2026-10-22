@@ -1,6 +1,6 @@
 /**
  * Стартовый набор /gas на данных заказчика (ADR-043, ADR-047). Только личный контур
- * (`src/server/client-contour.ts`), тесты domain и скрипты сверки: клиентский код
+ * (`src/api/gas-contour.ts`), тесты domain и скрипты сверки: клиентский код
  * строит набор из публичного отчёта (`public/seed.ts`).
  */
 import { factReport } from "./fact-report";

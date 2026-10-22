@@ -5,6 +5,7 @@
  */
 import { factReport } from "@/data/mock/fact-report";
 import { CUSTOMER_SCENARIO_PLACES } from "@/data/mock/gas-ops-seed";
+import { GAS_QUESTIONS } from "./customer-questions";
 import {
   GAS_CREDIT,
   GAS_PRODUCT,
@@ -28,5 +29,6 @@ export function customerContour(): GasContourPayload {
     },
     report: factReport,
     places: CUSTOMER_SCENARIO_PLACES,
+    questions: [...GAS_QUESTIONS],
   };
 }

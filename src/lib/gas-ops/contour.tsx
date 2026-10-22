@@ -9,6 +9,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { FactReport } from "@/data/mock/fact-report-types";
 import { publicReport } from "@/data/mock/public/seed";
 import { PUBLIC_SCENARIO_PLACES, type ScenarioPlaces } from "@/data/mock/public/places";
+import type { GasQuestion } from "@/lib/gas-ops/questions";
 
 export type GasContourKind = "public" | "client";
 
@@ -28,6 +29,8 @@ export interface GasContour {
   brand: GasBrand;
   report: FactReport;
   places: ScenarioPlaces;
+  /** Вопросы к согласованию: только личный контур, в публичном пусто */
+  questions: readonly GasQuestion[];
 }
 
 export const GAS_PRODUCT = "Учёт выработки бригад";
@@ -51,16 +54,29 @@ export const publicContour: GasContour = {
   },
   report: publicReport,
   places: PUBLIC_SCENARIO_PLACES,
+  questions: [],
 };
 
 /** Ответ сервера о контуре: публичный без данных или личный с отчётом и брендом */
 export type GasContourPayload =
   | { kind: "public" }
-  | { kind: "client"; brand: GasBrand; report: FactReport; places: ScenarioPlaces };
+  | {
+      kind: "client";
+      brand: GasBrand;
+      report: FactReport;
+      places: ScenarioPlaces;
+      questions: GasQuestion[];
+    };
 
 export function contourOf(payload: GasContourPayload | null | undefined): GasContour {
   if (payload?.kind !== "client") return publicContour;
-  return { kind: "client", brand: payload.brand, report: payload.report, places: payload.places };
+  return {
+    kind: "client",
+    brand: payload.brand,
+    report: payload.report,
+    places: payload.places,
+    questions: payload.questions,
+  };
 }
 
 const ContourContext = createContext<GasContour>(publicContour);

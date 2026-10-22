@@ -69,7 +69,8 @@ export default defineConfig<Options>({
     },
   ],
   webServer: {
-    command: `PORT=${port} node .output/server/index.mjs`,
+    // Тестовый ключ личной ссылки заказчика (ADR-047): только для e2e, на хостинге свой
+    command: `CLIENT_LINK_KEY=e2e-client-key PORT=${port} node .output/server/index.mjs`,
     url: `http://localhost:${port}/projects`,
     reuseExistingServer: !process.env["CI"],
     timeout: 60_000,

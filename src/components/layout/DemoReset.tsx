@@ -57,7 +57,8 @@ export function DemoReset({
               else resetGuideProgress();
               setProjectId(ALL_PROJECTS);
               onDone?.();
-              void navigate({ to: restart ? "/" : homeRouteFor(role) });
+              // Экран входа показа переехал на /demo (ADR-047)
+              void navigate({ to: restart ? "/demo" : homeRouteFor(role) });
               toast.success("Демо-данные сброшены");
             }}
           >

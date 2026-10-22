@@ -43,6 +43,7 @@ import { api } from "@/api/client";
 import { dataSource, demoShow } from "@/api/config";
 import { useDemoEvents } from "@/api/demo-events";
 import { toast } from "@/lib/toast";
+import { isSitePath } from "@/lib/site/paths";
 
 function NotFoundComponent() {
   return (
@@ -91,12 +92,19 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  /*
+   * Публичный сайт рисуется на сервере (ADR-047): первый HTML несёт текст, кнопки и превью
+   * ссылки. Приложение остаётся как было: в демо-сборке экраны рисуются во вкладке (ADR-004)
+   */
+  ssr: ({ location }) => (isSitePath(location.pathname) ? true : undefined),
   // Часы и справочники нужны почти каждому экрану: без них SSR отдал бы «—» вместо имён и сроков
   // Рабочий контур: персона — из сессии запроса (ADR-012). Сервер и первый рендер клиента
   // начинают с неё, иначе разметка роли по умолчанию и роли вкладки расходились при гидратации
   loader: async ({ context, location }) => {
     // Экран входа ничего не загружает: сессии нет, и каждый запрос вернул бы 403 в журнал
     if (location.pathname === "/login") return { sessionActorId: null };
+    // Сайту не нужны ни сотрудники, ни справочники, ни часы приложения (ADR-047)
+    if (isSitePath(location.pathname)) return { sessionActorId: null };
     const [session] = await Promise.all([
       dataSource === "server" ? api.session() : null,
       prefetch(context.queryClient, queries.now()),
@@ -156,6 +164,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // Сайт приходит готовым HTML: заставка до загрузки скриптов закрыла бы его (ADR-047)
+  const site = useRouterState({ select: (state) => isSitePath(state.location.pathname) });
   return (
     <html lang="ru" suppressHydrationWarning>
       <head>
@@ -165,7 +175,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {/* Экран до загрузки скриптов: в демо первый HTML иначе пуст (D5, Lighthouse) */}
-        {demoShow ? (
+        {demoShow && !site ? (
           <>
             <div
               id="boot-splash"
@@ -201,6 +211,21 @@ function RootComponent() {
    * запросили бы данные и получили отказ. Тот же случай, что и у экрана-шлюза (ADR-021).
    */
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  /*
+   * Публичный сайт (ADR-047): своя оболочка внутри страницы, без меню, выбора роли и полосы
+   * показа. Провайдеры нужны блоку сценариев ГАЙКИ на /demo: он ставит персону и роль
+   */
+  if (isSitePath(pathname)) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AppProvider initialPersona={null}>
+          <TooltipProvider delayDuration={200}>
+            <Outlet />
+          </TooltipProvider>
+        </AppProvider>
+      </QueryClientProvider>
+    );
+  }
   if (pathname === "/login") {
     return (
       <QueryClientProvider client={queryClient}>

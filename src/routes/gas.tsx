@@ -1,7 +1,7 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { GAS_PRODUCT, type GasContourPayload } from "@/lib/gas-ops/contour";
-import { gasContourFn } from "@/server/client-contour";
+import { gasContourFn } from "@/api/gas-contour";
 
 /**
  * Рабочий контур «Учёт выработки бригад» (ADR-043, ADR-044): фактическое время бригад

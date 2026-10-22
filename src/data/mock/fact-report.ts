@@ -3,7 +3,7 @@
  * JSON собирает `scripts/parse-fact-report.ts` из `docs/source/fact-report.xlsx`
  * (реальный файл в git не попадает). Руками JSON не правим: его перезапишет скрипт.
  *
- * Данные заказчика (ADR-047): модуль импортируют только сервер (`src/server/client-contour.ts`),
+ * Данные заказчика (ADR-047): модуль импортируют только сервер (`src/api/gas-contour.ts`),
  * тесты domain и скрипты сверки. Клиентский код работает на публичном наборе.
  */
 import raw from "./fact-report.lite.json";
