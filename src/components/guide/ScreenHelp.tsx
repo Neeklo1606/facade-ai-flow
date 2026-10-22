@@ -1,8 +1,11 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowRight, HelpCircle } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import { HelpCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { screenFor } from "@/lib/guide/screens";
-import { articleForScreen } from "@/lib/help/articles";
+
+// Статьи справки грузятся при открытии подсказки, а не с первым экраном
+const ScreenHelpArticle = lazy(() => import("./ScreenHelpArticle"));
 
 /**
  * Подсказка экрана в шапке (ADR-010): три предложения — что это за экран, на какой вопрос
@@ -11,8 +14,6 @@ import { articleForScreen } from "@/lib/help/articles";
 export function ScreenHelp() {
   const location = useRouterState({ select: (s) => s.location });
   const screen = screenFor(location.pathname, location.searchStr);
-  // Подсказка отвечает «что это за экран», статья — «как этим пользоваться» (ADR-019, п. 5)
-  const article = articleForScreen(screen.key);
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -31,16 +32,10 @@ export function ScreenHelp() {
             <li key={sentence}>{sentence}</li>
           ))}
         </ul>
-        {article && (
-          <Link
-            to="/help"
-            search={{ article: article.id }}
-            className="text-meta-strong focus-ring mt-3 inline-flex min-h-12 items-center gap-1.5 rounded-[var(--r-xs)] font-medium text-text-2 transition-fast is-hover:text-text lg:min-h-0"
-          >
-            {article.title} — в справке
-            <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
-          </Link>
-        )}
+        {/* Подсказка отвечает «что это за экран», статья — «как этим пользоваться» (ADR-019, п. 5) */}
+        <Suspense fallback={null}>
+          <ScreenHelpArticle screen={screen.key} />
+        </Suspense>
       </PopoverContent>
     </Popover>
   );
