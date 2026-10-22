@@ -338,6 +338,8 @@ export function screenFor(
   const path = pathname.replace(/\/+$/, "") || "/";
 
   if (path === "/") return info("attention");
+  // Дверь в приложение (ADR-047): ведёт туда же, куда раньше вёл корень
+  if (path === "/app") return info("attention");
   if (path === "/attention") return info("attention");
   if (path === "/today") return info("today");
   if (path === "/check") return info("check");
