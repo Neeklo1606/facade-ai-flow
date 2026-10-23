@@ -26,6 +26,8 @@ import {
 import { GAS_SHOW_HINT, gasShowEvent, useGasShow } from "@/lib/gas-ops/show";
 import { cn } from "@/lib/utils";
 import { BotBubble, ChatHeader, Composer, Key, Keys, MyBubble, SystemNote } from "./parts";
+import { ParseStages, VoiceRecorder } from "./VoiceInput";
+import { parseTimeMessage, type ParsedTime } from "@/domain/gas-ops/parse-time-message";
 import {
   busyAt,
   endSlots,
@@ -55,7 +57,10 @@ type Stage =
   | { kind: "summary" }
   | { kind: "failed"; message: string }
   | { kind: "done"; number: string; edited: boolean }
-  | { kind: "mine" };
+  | { kind: "mine" }
+  /* Голосовой ввод (ADR-049): запись, затем разбор фразы правилом domain */
+  | { kind: "voice" }
+  | { kind: "parsing"; text: string; voice: boolean };
 
 interface Draft {
   objectId: string | null;
@@ -270,6 +275,121 @@ export function BotChat({
     else pickEnd(value, formatClock(value));
   };
 
+  /*
+   * Голосовой ввод (ADR-049). В демо речь не распознаётся: после «Готово» подставляется
+   * подготовленная фраза по объекту показа, с пометкой рядом. Набранный текст разбирается
+   * тем же правилом. Что не нашлось, спрашивается кнопками следующего шага
+   */
+  const voiceObject =
+    allowed.find((o) => o.id === GAS_SHOW_HINT.objectId) ??
+    dayObjects.find((o) => o.id === GAS_SHOW_HINT.objectId) ??
+    dayObjects[0] ??
+    null;
+  const demoPhrase = () => {
+    const place = (voiceObject?.settlement ?? "").replace(/^(ст|х|г|п|с|СТ)\.?\s+/, "");
+    // Номер дома: число после запятой («…, ул. Демо, 200 - котел»)
+    const house = voiceObject?.label.match(/,\s*(\d+)/)?.[1] ?? "";
+    return `Сегодня, ${place} ${house}, с двенадцати до половины третьего, без перерыва`;
+  };
+
+  const voiceDone = (text: string, demo: boolean) => {
+    answer(
+      <>
+        «{text}»
+        {demo ? (
+          <span className="mt-1 block text-meta opacity-80">Демо: фраза подготовлена заранее</span>
+        ) : null}
+      </>,
+      { kind: "parsing", text, voice: demo },
+    );
+  };
+
+  /** Что нашлось, с источником: каждое значение называет кусок фразы (правило 2) */
+  const foundLine = (parsed: ParsedTime) => {
+    const parts = [
+      parsed.quotes.object && `объект «${parsed.quotes.object}»`,
+      parsed.quotes.day && `день «${parsed.quotes.day}»`,
+      parsed.quotes.start && `начало «${parsed.quotes.start}»`,
+      parsed.quotes.end && `окончание «${parsed.quotes.end}»`,
+      parsed.quotes.break && `перерыв «${parsed.quotes.break}»`,
+    ].filter(Boolean);
+    return parts.length
+      ? `Нашла: ${parts.join(", ")}.`
+      : "Не нашла в фразе ни объекта, ни времени.";
+  };
+
+  const applyParsed = (text: string) => {
+    const candidates = [...dayObjects, ...allowed.filter((o) => !dayObjects.includes(o))];
+    const parsed = parseTimeMessage(
+      text,
+      candidates.map((o) => ({ id: o.id, label: o.label, ...(o.code ? { code: o.code } : {}) })),
+      week.today,
+    );
+    const next: Draft = {
+      ...blank(),
+      objectId: parsed.objectId,
+      day: parsed.day ?? week.today,
+      start: parsed.start,
+      end: parsed.end,
+      breakMinutes: parsed.breakMin,
+    };
+    setDraft(next);
+    const twin =
+      parsed.objectId && parsed.day
+        ? entries.find(
+            (v) =>
+              v.entry.objectId === parsed.objectId &&
+              v.entry.day === parsed.day &&
+              v.entry.status !== "rejected",
+          )
+        : null;
+    const clash =
+      next.start === null
+        ? null
+        : next.end === null
+          ? busyAt(busy, next.start)
+          : (busyAt(busy, next.start) ?? clashOf(busy, next.start, next.end));
+    const missing: Stage = !parsed.objectId
+      ? { kind: "object" }
+      : !parsed.day
+        ? { kind: "day" }
+        : twin
+          ? { kind: "duplicate", entry: twin.entry, editable: editableInBot(twin.entry) }
+          : next.start === null
+            ? { kind: "start" }
+            : clash
+              ? { kind: "clash", with: clash, field: next.end === null ? "start" : "end" }
+              : next.end === null
+                ? { kind: "end" }
+                : next.breakMinutes === null
+                  ? { kind: "break" }
+                  : { kind: "summary" };
+    // Сообщение бота с найденным и источниками, ответа человека нет: бот сам идёт дальше
+    setPast((list) => [
+      ...list,
+      {
+        id: ++counter.current,
+        from: "bot",
+        content: (
+          <>
+            {foundLine(parsed)}
+            {parsed.reasons.object ? (
+              <span className="mt-1 block text-meta text-text-3">
+                Объект не выбран: {parsed.reasons.object}.
+              </span>
+            ) : null}
+            {parsed.reasons.end ? (
+              <span className="mt-1 block text-meta text-text-3">
+                Окончание не принято: {parsed.reasons.end}.
+              </span>
+            ) : null}
+          </>
+        ),
+      },
+    ]);
+    setStage(missing);
+  };
+
   const search = (query: string) => {
     const words = query.toLowerCase().replace(/ё/g, "е").split(/\s+/).filter(Boolean);
     const found = allowed
@@ -357,6 +477,17 @@ export function BotChat({
         return s.ids.length > 0
           ? `Нашёл ${s.ids.length === 1 ? "один объект" : `объектов: ${s.ids.length}`}. Выберите.`
           : `По запросу «${s.query}» среди объектов бригады ничего нет. Напишите иначе или выберите объект на сегодня.`;
+      case "voice":
+        return (
+          <>
+            Говорите: объект, день, начало, окончание и перерыв.
+            <span className="text-meta mt-1 block text-text-3">
+              Например: «{demoPhrase()}». Развитие: голосовой ввод.
+            </span>
+          </>
+        );
+      case "parsing":
+        return "Разбираю фразу.";
       case "day":
         return "За какой день?";
       case "duplicate":
@@ -457,6 +588,11 @@ export function BotChat({
               </Key>
             ))}
             {s.kind === "object" ? (
+              <Key tour="bot-voice" onClick={() => answer("Сказать голосом", { kind: "voice" })}>
+                Сказать голосом
+              </Key>
+            ) : null}
+            {s.kind === "object" ? (
               <Key onClick={() => answer("Другой адрес", { kind: "search" })}>Другой адрес</Key>
             ) : (
               <Key onClick={() => answer("Объекты на сегодня", { kind: "object" })}>
@@ -466,6 +602,15 @@ export function BotChat({
           </Keys>
         );
       }
+      case "voice":
+        return (
+          <VoiceRecorder
+            onDone={() => voiceDone(demoPhrase(), true)}
+            onCancel={() => answer("Отмена", { kind: "object" })}
+          />
+        );
+      case "parsing":
+        return <ParseStages voice={s.voice} onFinish={() => applyParsed(s.text)} />;
       case "day":
         return (
           <Keys>
@@ -633,7 +778,15 @@ export function BotChat({
   };
 
   const composer =
-    stage.kind === "search" || stage.kind === "found" ? (
+    stage.kind === "voice" ? (
+      <Composer
+        key="voice"
+        autoFocus={false}
+        placeholder="Или напишите текстом"
+        label="Сообщение боту: объект, день и время одной фразой"
+        onSend={(text) => voiceDone(text, false)}
+      />
+    ) : stage.kind === "search" || stage.kind === "found" ? (
       <Composer
         key="search"
         placeholder="Адрес или код объекта"

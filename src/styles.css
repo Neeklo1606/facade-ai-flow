@@ -1951,6 +1951,9 @@ html[data-boot-compact] [data-boot-hero] {
 @utility h-field {
   height: var(--h-field);
 }
+@utility min-w-field {
+  min-width: var(--touch-field);
+}
 /* Полевое действие не ниже 48 px и на компьютере, где html 87,5 % уменьшает rem */
 @utility min-h-field {
   min-height: var(--touch-field);

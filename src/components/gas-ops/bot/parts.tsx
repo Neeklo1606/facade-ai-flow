@@ -181,18 +181,21 @@ export function Composer({
   onSend,
   mask,
   numeric = false,
+  autoFocus = true,
 }: {
   placeholder: string;
   label: string;
   onSend: (text: string) => void;
   mask?: (text: string) => string;
   numeric?: boolean;
+  /** Поле рядом с записью голосом не берёт фокус: клавиатура закрыла бы волну (ADR-049) */
+  autoFocus?: boolean;
 }) {
   const [text, setText] = useState("");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    input.current?.focus({ preventScroll: true });
-  }, []);
+    if (autoFocus) input.current?.focus({ preventScroll: true });
+  }, [autoFocus]);
   return (
     <form
       className="glass flex shrink-0 items-center gap-2 px-3 pt-2 pb-[max(8px,env(safe-area-inset-bottom))] lg:pb-3"
