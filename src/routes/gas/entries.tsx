@@ -50,8 +50,8 @@ export const Route = createFileRoute("/gas/entries")({
   },
   head: () =>
     completePageHead(
-      { meta: [{ title: "Журнал записей времени — гайка" }] },
-      "Журнал записей времени — гайка",
+      { meta: [{ title: "Журнал записей времени · гайка" }] },
+      "Журнал записей времени · гайка",
       "Все записи времени с поиском, фильтрами, статусами и историей изменений.",
     ),
   component: EntriesPage,
@@ -171,13 +171,13 @@ function EntriesPage() {
   const columns: TableColumn<Row>[] = [
     { key: "day", title: "Дата", cell: ({ view }) => fmtShortDay(view.entry.day) },
     { key: "number", title: "Номер", cell: ({ view }) => view.entry.number },
-    { key: "brigade", title: "Бригада", cell: ({ view }) => view.brigade?.name ?? "—" },
+    { key: "brigade", title: "Бригада", cell: ({ view }) => view.brigade?.name ?? "–" },
     {
       key: "object",
       title: "Объект",
       cell: ({ view }) => (
         <span className="block max-w-[320px] truncate" title={view.object?.label}>
-          {view.object?.label ?? "—"}
+          {view.object?.label ?? "–"}
         </span>
       ),
     },
@@ -186,20 +186,20 @@ function EntriesPage() {
       title: "Начало",
       numeric: true,
       cell: ({ view }) =>
-        view.entry.startMinutes === null ? "—" : formatClock(view.entry.startMinutes),
+        view.entry.startMinutes === null ? "–" : formatClock(view.entry.startMinutes),
     },
     {
       key: "end",
       title: "Окончание",
       numeric: true,
       cell: ({ view }) =>
-        view.entry.endMinutes === null ? "—" : formatClock(view.entry.endMinutes),
+        view.entry.endMinutes === null ? "–" : formatClock(view.entry.endMinutes),
     },
     {
       key: "break",
       title: "Перерыв",
       numeric: true,
-      cell: ({ view }) => (view.entry.breakMinutes ? `${view.entry.breakMinutes} мин` : "—"),
+      cell: ({ view }) => (view.entry.breakMinutes ? `${view.entry.breakMinutes} мин` : "–"),
     },
     { key: "hours", title: "Часы", numeric: true, cell: ({ view }) => fmtHours(view.hours) },
     ...(actor.canSeeMoney

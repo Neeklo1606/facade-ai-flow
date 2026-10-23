@@ -143,7 +143,7 @@ export function Num({
 export function MoneyCell({ value }: { value: number | null }) {
   return (
     <Num className={value === null ? "text-text-3" : undefined}>
-      {value === null ? "—" : fmtRub(value)}
+      {value === null ? "–" : fmtRub(value)}
     </Num>
   );
 }
@@ -151,7 +151,7 @@ export function MoneyCell({ value }: { value: number | null }) {
 export function HoursCell({ minutes }: { minutes: number | null }) {
   return (
     <Num className={minutes === null || minutes === 0 ? "text-text-3" : undefined}>
-      {minutes === null || minutes === 0 ? "—" : fmtHours(minutes / 60)}
+      {minutes === null || minutes === 0 ? "–" : fmtHours(minutes / 60)}
     </Num>
   );
 }

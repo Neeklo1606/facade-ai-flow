@@ -701,11 +701,11 @@ function Summary({
   minutes: ReturnType<typeof previewMinutes> | null;
 }) {
   const rows: [string, ReactNode][] = [
-    ["Объект", object?.label ?? "—"],
+    ["Объект", object?.label ?? "–"],
     ["День", `${draft.day === today ? "Сегодня" : "Вчера"}, ${shortDay(draft.day)}`],
     [
       "Время",
-      draft.start !== null && draft.end !== null ? intervalLabel(draft.start, draft.end) : "—",
+      draft.start !== null && draft.end !== null ? intervalLabel(draft.start, draft.end) : "–",
     ],
     ["Перерыв", `${draft.breakMinutes ?? 0} мин`],
   ];
@@ -723,7 +723,7 @@ function Summary({
       <p className="text-body mt-3 rounded-[14px] bg-surface-2 px-3 py-2">
         Итого{" "}
         <b className="font-semibold tnum" data-testid="bot-total">
-          {minutes?.ok ? `${minutes.minutes} мин = ${fmtHours(minutes.minutes / 60)}` : "—"}
+          {minutes?.ok ? `${minutes.minutes} мин = ${fmtHours(minutes.minutes / 60)}` : "–"}
         </b>
       </p>
     </div>

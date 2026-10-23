@@ -73,7 +73,7 @@ await page.goto(`${base}/gas`, { waitUntil: "load" });
 await shot(page, "05", "/gas, первый экран");
 const gasText = plain(await page.locator("body").innerText());
 notes.push(`/gas: «СЛАВЯНСК» в тексте? ${gasText.includes("СЛАВЯНСК")}`);
-const startBtn = page.getByRole("button", { name: /Пройти показ/ });
+const startBtn = page.getByRole("button", { name: /Начать показ/ });
 const box = await startBtn.boundingBox();
 notes.push(`/gas: кнопка показа по y=${box ? Math.round(box.y) : "нет"} из 844`);
 
@@ -102,7 +102,7 @@ if (await more.isVisible().catch(() => false)) {
 
 // Показ
 await page.goto(`${base}/gas`, { waitUntil: "load" });
-await page.getByRole("button", { name: /Пройти показ/ }).click();
+await page.getByRole("button", { name: /Начать показ/ }).click();
 await page.waitForURL(/\/gas\/foreman/);
 await shot(page, "09", "показ шаг 1: бот бригадира");
 const bot = page.locator('[data-tour="bot"]');

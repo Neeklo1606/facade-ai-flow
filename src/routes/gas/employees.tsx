@@ -16,8 +16,8 @@ import { plural } from "@/lib/format";
 export const Route = createFileRoute("/gas/employees")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Сотрудники — Учёт выработки бригад" }] },
-      "Сотрудники — Учёт выработки бригад",
+      { meta: [{ title: "Сотрудники · Учёт выработки бригад" }] },
+      "Сотрудники · Учёт выработки бригад",
       "Состав бригад, роли и связанные записи времени.",
     ),
   component: EmployeesPage,
@@ -45,10 +45,10 @@ function EmployeesPage() {
               meta={
                 <>
                   {row.isLead ? "Бригадир" : "В составе"} · {row.brigadeName} · MAX{" "}
-                  {row.maxId ?? "—"} (имитация)
+                  {row.maxId ?? "–"} (имитация)
                 </>
               }
-              value={row.minutes ? fmtHours(row.minutes / 60) : "—"}
+              value={row.minutes ? fmtHours(row.minutes / 60) : "–"}
               valueMeta={
                 <>
                   {row.entries} {plural(row.entries, "запись", "записи", "записей")} ·{" "}

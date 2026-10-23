@@ -151,7 +151,7 @@ export function AnalyticView({
                 {row.source === "mock" ? <span className="text-text-3"> · Демо</span> : null}
               </p>
               <p className="text-body mt-1.5 tnum">
-                {row.amountRub === null ? "—" : fmtRub(row.amountRub)} ·{" "}
+                {row.amountRub === null ? "–" : fmtRub(row.amountRub)} ·{" "}
                 {fmtHours(row.minutes / 60)} · {fmtRate(row.revenue)}
               </p>
             </li>

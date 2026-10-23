@@ -7,5 +7,5 @@ import { GAS_PRODUCT } from "./contour";
 
 /** Заголовок вкладки браузера: экран, продукт */
 export function gasTitle(screen: string): string {
-  return `${screen} — ${GAS_PRODUCT}`;
+  return `${screen} · ${GAS_PRODUCT}`;
 }

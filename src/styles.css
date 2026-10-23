@@ -1961,6 +1961,9 @@ html[data-boot-compact] [data-boot-hero] {
 @utility h-chip {
   height: var(--h-chip);
 }
+@utility min-h-show {
+  min-height: var(--h-show);
+}
 @utility h-show {
   height: var(--h-show);
 }

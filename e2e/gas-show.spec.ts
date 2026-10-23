@@ -38,7 +38,7 @@ for (const width of WIDTHS) {
 
     test("от стартового экрана до файла и «Готово»", async ({ page }) => {
       await open(page, "/gas");
-      await page.getByRole("button", { name: /Пройти показ/ }).click();
+      await page.getByRole("button", { name: /Начать показ/ }).click();
       await expect(page).toHaveURL(/\/gas\/foreman/);
       await expect(dock(page)).toContainText("1/6");
 
@@ -95,6 +95,13 @@ for (const width of WIDTHS) {
       await expect(main).toContainText(/ГЗ-\d{5}/);
       await expect(main).toContainText("14 700");
       await expect(main).toContainText(FILE);
+
+      // Что дальше (01_SPEC 7.2): главное действие ведёт на разбор с отметкой источника
+      await page.getByTestId("finish-razbor").click();
+      await expect(page).toHaveURL(/\/razbor\?from=demo-final$/);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        "Экспресс-разбор учёта выработки",
+      );
     });
   });
 }
@@ -109,7 +116,7 @@ test.describe("показ ведёт по записи зрителя 390", () =
 
   test("подтверждение заготовки не подменяет запись зрителя в финале", async ({ page }) => {
     await open(page, "/gas");
-    await page.getByRole("button", { name: /Пройти показ/ }).click();
+    await page.getByRole("button", { name: /Начать показ/ }).click();
     const bot = page.locator('[data-tour="bot"]');
     await answer(bot, "Внести время");
     await answer(bot, /ул\. Демо, 200/);

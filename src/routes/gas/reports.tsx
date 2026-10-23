@@ -136,7 +136,7 @@ function ReportsPage() {
         mode,
       });
       gasShowEvent("gasExport", { gasFile: name });
-      toast.success("Файл выгружен", { description: name });
+      toast.success("Файл выгружен", { description: name, duration: 2500 });
     } catch (error) {
       toast.error("Выгрузка не удалась", {
         description: error instanceof Error ? error.message : undefined,

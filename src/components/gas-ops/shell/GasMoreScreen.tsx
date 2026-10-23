@@ -49,7 +49,7 @@ export function GasMoreScreen() {
         return (
           <SettingsGroup
             key={group}
-            title={`${GAS_GROUP_LABEL[group]}${group === "growth" ? ` · ${OUT_OF_SCOPE_LABEL}` : ""}`}
+            title={`${GAS_GROUP_LABEL[group]}${group === "growth" && kind === "client" ? ` · ${OUT_OF_SCOPE_LABEL}` : ""}`}
           >
             {items.map((item) => (
               <SettingsLink

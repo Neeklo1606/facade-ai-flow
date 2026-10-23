@@ -104,6 +104,6 @@ test("печать инструкции: все вкладки подряд, б�
 
 test("финал без показа ведёт на старт", async ({ page }) => {
   await open(page, "/gas/finish");
-  await page.getByRole("link", { name: "Пройти показ" }).click();
+  await page.getByRole("link", { name: "Начать показ" }).click();
   await expect(page).toHaveURL(/\/gas$/);
 });

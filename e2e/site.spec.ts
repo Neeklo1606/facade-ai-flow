@@ -86,7 +86,7 @@ test.describe("сайт и вход в демо 390", () => {
 
   test("/gas по старой ссылке открывает старт показа на публичном наборе", async ({ page }) => {
     await page.goto("/gas", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: /Пройти показ/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Начать показ/ })).toBeVisible();
     await expect(page.locator("body")).toContainText("Демо-подрядчик");
     await expect(page.locator("body")).not.toContainText(clientShort);
   });

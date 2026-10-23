@@ -358,7 +358,7 @@ function CalcPanel() {
     {
       name: "Минуты смены",
       formula: "окончание − начало − перерыв",
-      example: `08:30–11:40 без перерыва = ${calc.shiftMinutes ?? "—"} мин`,
+      example: `08:30–11:40 без перерыва = ${calc.shiftMinutes ?? "–"} мин`,
     },
     {
       name: "Часы",

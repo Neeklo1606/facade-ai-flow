@@ -60,6 +60,9 @@ jobs:
       - name: Фикстуры против схемы
         run: bun run check:fixtures
 
+      - name: Тексты интерфейса
+        run: bun run check:copy
+
       - name: PostgreSQL — миграции, паритет с демо, версия данных
         run: bun run check:db
         env:

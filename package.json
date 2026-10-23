@@ -33,7 +33,8 @@
     "ci": "bun scripts/ci.ts",
     "ui:metrics": "bun scripts/ui-metrics.ts",
     "ui:taps": "bun scripts/ui-taps.ts",
-    "check:typography": "bun scripts/check-typography.ts"
+    "check:typography": "bun scripts/check-typography.ts",
+    "check:copy": "bun scripts/check-copy.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

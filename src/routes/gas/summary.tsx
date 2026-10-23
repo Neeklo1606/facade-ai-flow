@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
 import { GrowthLine, ScreenHint, SourceLegend } from "@/components/gas-ops/page";
 import { gasTitle } from "@/lib/gas-ops/brand";
-import { useGasBrand } from "@/lib/gas-ops/contour";
+import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 import { EntryStatusBadge } from "@/components/gas-ops/marks";
 import { entryLine, fmtShortDay } from "@/components/gas-ops/review/rules";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ export const Route = createFileRoute("/gas/summary")({
 
 function GasDashboard() {
   const brand = useGasBrand();
+  const clientContour = useIsClientContour();
   const metrics = useGasDashboard();
   const pending = useGasQueue("pending").slice(0, 6);
   const maxAmount = Math.max(1, ...metrics.byDay.map((d) => d.amountRub));
@@ -94,10 +95,10 @@ function GasDashboard() {
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block text-body-strong tnum">
-                    {day.amountRub === 0 ? "—" : fmtRub(day.amountRub)}
+                    {day.amountRub === 0 ? "–" : fmtRub(day.amountRub)}
                   </span>
                   <span className="block text-meta text-text-3 tnum">
-                    {day.minutes === 0 ? "—" : fmtHours(day.minutes / 60)}
+                    {day.minutes === 0 ? "–" : fmtHours(day.minutes / 60)}
                   </span>
                 </span>
               </Link>
@@ -115,12 +116,15 @@ function GasDashboard() {
             </span>
           </li>
         </ul>
-        <p className="mt-2 flex items-start gap-2 text-meta text-text-3">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
-          Строка «Итого» в файле заказчика больше суммы видимых строк: в выгрузку не попали два
-          подразделения. Система считает по тому, что видит, расхождение вынесено в вопрос
-          заказчику.
-        </p>
+        {/* Расхождение с файлом заказчика есть только в его недельном отчёте (личный контур) */}
+        {clientContour ? (
+          <p className="mt-2 flex items-start gap-2 text-meta text-text-3">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
+            Строка «Итого» в файле заказчика больше суммы видимых строк: в выгрузку не попали два
+            подразделения. Система считает по тому, что видит, расхождение вынесено в вопрос
+            заказчику.
+          </p>
+        ) : null}
       </section>
 
       <section aria-labelledby="in-work">
@@ -165,7 +169,7 @@ function GasDashboard() {
             {pending.map((view) => (
               <li key={view.entry.id}>
                 <ListRow
-                  title={view.object?.label ?? "—"}
+                  title={view.object?.label ?? "–"}
                   meta={
                     <>
                       <EntryStatusBadge status={view.entry.status} /> · {entryLine(view)}

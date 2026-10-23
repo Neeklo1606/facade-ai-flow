@@ -120,12 +120,12 @@ const FLOWS: Flow[] = [
   {
     key: "gas-show",
     title: "Показ /gas от стартового экрана до «Готово»",
-    span: "от «Пройти показ» до экрана финала",
+    span: "от «Начать показ» до экрана финала",
     run: async (page, tap) => {
       await page.goto(`${base}/gas`);
       await page.waitForSelector("html[data-booted]");
       const dock = page.locator("[data-gas-show-dock]:visible, [data-gas-show-inline]:visible");
-      await tap(page.getByRole("button", { name: /Пройти показ/ }));
+      await tap(page.getByRole("button", { name: /Начать показ/ }));
       await page.waitForURL(/\/gas\/foreman/);
       await tap(answer(page, "Внести время"));
       await tap(answer(page, /ул\. Демо, 200/));

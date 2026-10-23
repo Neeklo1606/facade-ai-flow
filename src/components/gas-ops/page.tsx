@@ -35,10 +35,12 @@ export function ScreenHint({ screen, className }: { screen: GasScreenKey; classN
 
 /** Граница договора: одна строка под заголовком экрана группы «Развитие» (F7) */
 export function GrowthLine({ children }: { children?: ReactNode }) {
+  // «Вне договора v1.0» это граница договора газового заказчика: в публичном контуре «Развитие»
+  const client = useGasContour().kind === "client";
   return (
     <p className="mb-block flex flex-wrap items-center gap-2 text-meta text-text-3">
       <span className="inline-flex h-chip items-center rounded-full bg-surface-2 px-2 text-meta-strong text-text-2">
-        Вне договора v1.0
+        {client ? "Вне договора v1.0" : "Развитие"}
       </span>
       {children ?? "Показываем, как система может развиваться."}
     </p>

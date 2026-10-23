@@ -79,8 +79,9 @@ type Model = NonNullable<ReturnType<typeof useShowModel>>;
 /** Строка шага: номер, текст в одну строку, кнопка со стрелкой и закрытие */
 function ShowRow({ model, onFold }: { model: Model; onFold?: () => void }) {
   const { step, index, total, done, action, go } = model;
+  const navigate = useNavigate();
   return (
-    <div className="flex h-show min-w-0 items-center gap-2">
+    <div className="flex min-h-show min-w-0 items-center gap-2 py-1">
       <button
         type="button"
         onClick={onFold}
@@ -91,7 +92,8 @@ function ShowRow({ model, onFold }: { model: Model; onFold?: () => void }) {
         {done ? <Check className="size-3.5" strokeWidth={2.5} aria-label="Шаг выполнен" /> : null}
         {index + 1}/{total}
       </button>
-      <p className="min-w-0 flex-1 truncate text-meta text-text" title={step.text}>
+      {/* Текст шага в две строки, без многоточия посреди фразы (аудит J1) */}
+      <p className="line-clamp-2 min-w-0 flex-1 text-meta text-text" title={step.text}>
         {step.text}
       </p>
       {action ? (
@@ -106,8 +108,13 @@ function ShowRow({ model, onFold }: { model: Model; onFold?: () => void }) {
       ) : null}
       <button
         type="button"
-        aria-label="Закончить показ"
-        onClick={resetGasShow}
+        aria-label="Выйти из показа"
+        title="Выйти из показа"
+        onClick={() => {
+          // Выход из показа ведёт на вход в демо: оттуда второй сценарий и сайт (L3, 01_SPEC 7.2)
+          resetGasShow();
+          void navigate({ to: "/demo" });
+        }}
         className="touch-target grid size-8 shrink-0 place-items-center rounded-full text-text-3 focus-ring is-hover:bg-surface-2"
       >
         <X className="size-4" aria-hidden />

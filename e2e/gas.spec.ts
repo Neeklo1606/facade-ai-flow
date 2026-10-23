@@ -1,6 +1,6 @@
 import { expect, open, test } from "./fixtures";
 import { mobileCheck } from "./mobile-checks";
-import { gasRole } from "./gas-helpers";
+import { enterClientContour, gasRole } from "./gas-helpers";
 
 /**
  * Рабочий контур газа (ADR-043, ADR-044, F1): экраны открываются в своей оболочке без
@@ -52,6 +52,11 @@ test.describe("контур газа открывается в своей обо
   }
 
   test("граница договора подписана в меню один раз", async ({ page }) => {
+    // Договор газового заказчика: граница видна в его личном контуре, в публичном её нет (L3)
+    await open(page, "/gas/moderation");
+    const publicMenu = page.getByRole("navigation", { name: "Разделы" });
+    await expect(publicMenu.getByText("Вне договора v1.0")).toHaveCount(0);
+    await enterClientContour(page);
     await open(page, "/gas/moderation");
     const menu = page.getByRole("navigation", { name: "Разделы" });
     await expect(menu.getByText("Вне договора v1.0")).toHaveCount(1);

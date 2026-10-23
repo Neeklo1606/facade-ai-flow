@@ -257,7 +257,8 @@ function GasSidebar({
 }) {
   const brand = useGasBrand();
   const actor = useGasActor();
-  const screens = screensFor(actor.role, useGasContour().kind);
+  const contourKind = useGasContour().kind;
+  const screens = screensFor(actor.role, contourKind);
   return (
     <aside
       aria-label="Меню учёта выработки"
@@ -294,7 +295,8 @@ function GasSidebar({
             <div key={group} className="flex flex-col gap-0.5">
               <p className={cn("px-3 pt-2 pb-1 text-meta text-text-3", rail && "sr-only")}>
                 {GAS_GROUP_LABEL[group]}
-                {group === "growth" ? (
+                {/* Граница договора заказчика: только в его личном контуре (L3) */}
+                {group === "growth" && contourKind === "client" ? (
                   <span className="ms-1.5 text-text-3">· {OUT_OF_SCOPE_LABEL}</span>
                 ) : null}
               </p>

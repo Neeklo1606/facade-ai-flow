@@ -117,6 +117,16 @@ export function marksOf(view: EntryView): Mark[] {
   if (entry.createdAt.slice(0, 10) > entry.day) keys.add("late-entry");
   if (view.amountOrigin === "manual") keys.add("manual-amount");
   if (view.estimate?.status === "manual-pending") keys.add("needs-agreement");
+  /*
+   * Ждёт проверки, а у объекта подтверждённая стоимость: сумма начислится при подтверждении
+   * (правило адаптера). Метка «Нет суммы» тут сбивала с толку: через шаг в отчёте сумма есть
+   */
+  if (
+    entry.amountRub === null &&
+    entry.status === "pending" &&
+    view.estimate?.status === "confirmed"
+  )
+    keys.delete("no-amount");
   return [...keys]
     .map((key) => ({ key, ...MARK_BASE[key], why: whyOf(key, view) }))
     .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);

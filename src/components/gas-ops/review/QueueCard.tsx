@@ -84,7 +84,11 @@ export const QueueCard = forwardRef<
               entry.amountRub === null && "font-normal text-text-3",
             )}
           >
-            {entry.amountRub === null ? "нет суммы" : fmtRub(entry.amountRub)}
+            {entry.amountRub !== null
+              ? fmtRub(entry.amountRub)
+              : view.estimate?.status === "confirmed"
+                ? `≈ ${fmtRub(view.estimate.amountRub)}`
+                : "нет суммы"}
           </span>
           {showNumber ? null : view.revenue !== null ? (
             <span className="mt-0.5 block text-meta text-text-3 tnum">{fmtRate(view.revenue)}</span>
