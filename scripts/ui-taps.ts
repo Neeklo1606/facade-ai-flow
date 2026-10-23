@@ -151,7 +151,8 @@ const FLOWS: Flow[] = [
     title: "Канон ГАЙКИ: три сценария от экрана входа до итогов",
     span: "от плитки «Смена → учёт» до «Итоги показа», без просмотра источников, со скачиванием двух файлов ПТО",
     run: async (page, tap) => {
-      await page.goto(`${base}/`);
+      // Экран входа показа переехал на /demo (ADR-047)
+      await page.goto(`${base}/demo`);
       await page.waitForSelector("html[data-booted]");
       const strip = page.getByRole("region", { name: "Подсказки по сценарию" });
       const instant = page.getByRole("button", { name: "Показать сразу" });

@@ -539,7 +539,16 @@ function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
 }
 
 /** «Сбросить демо»: необратимо для введённого в этой вкладке, поэтому с подтверждением */
-export function ResetButton({ onDone, wide = false }: { onDone?: () => void; wide?: boolean }) {
+export function ResetButton({
+  onDone,
+  wide = false,
+  row = false,
+}: {
+  onDone?: () => void;
+  wide?: boolean;
+  /** Строка экрана «Ещё»: высота 52, иконка 20, как соседние строки (ADR-048) */
+  row?: boolean;
+}) {
   const actions = useGasActions();
   const [open, setOpen] = useState(false);
   return (
@@ -548,11 +557,17 @@ export function ResetButton({ onDone, wide = false }: { onDone?: () => void; wid
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex min-h-11 items-center gap-2 rounded-control px-3 text-body text-text-2 focus-ring is-hover:bg-surface-2 is-hover:text-text",
+          row
+            ? "flex min-h-row-compact w-full items-center gap-3 px-4 py-2.5 text-left text-body text-text transition-colors duration-100 focus-ring active:bg-surface-2 is-hover:bg-surface-2"
+            : "inline-flex min-h-11 items-center gap-2 rounded-control px-3 text-body text-text-2 focus-ring is-hover:bg-surface-2 is-hover:text-text",
           wide && "w-full",
         )}
       >
-        <RotateCcw className="size-4" aria-hidden />
+        <RotateCcw
+          className={row ? "size-5 shrink-0 text-text-2" : "size-4"}
+          strokeWidth={row ? 1.75 : 2}
+          aria-hidden
+        />
         Сбросить демо
       </button>
       <AlertDialog open={open} onOpenChange={setOpen}>

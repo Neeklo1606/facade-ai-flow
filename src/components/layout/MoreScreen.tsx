@@ -15,12 +15,11 @@ import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scop
 import { bottomNavFor, navItemsFor, plusActionsFor, sectionHref } from "@/lib/navigation";
 import { themeChoices, themeLabels, type ThemeChoice } from "@/lib/theme";
 import { reopenGuide, useGuide } from "@/lib/guide/store";
-import { cn } from "@/lib/utils";
 import {
   RoleCard,
   SettingsButton,
   SettingsGroup,
-  SettingsItem,
+  ThemeSetting,
   SettingsLink,
 } from "@/components/ui/kit/settings-list";
 import { DemoReset } from "./DemoReset";
@@ -134,26 +133,15 @@ export function MoreScreen() {
       ) : null}
 
       <SettingsGroup title="Оформление">
-        <SettingsItem>
-          <Palette className="size-5 shrink-0 text-text-2" strokeWidth={1.75} aria-hidden />
-          <span className="min-w-0 flex-1 text-body text-text">Тема</span>
-          <span role="group" aria-label="Тема оформления" className="flex gap-1">
-            {themeChoices.map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                onClick={() => setThemeChoice(choice as ThemeChoice)}
-                aria-pressed={themeChoice === choice}
-                className={cn(
-                  "min-h-9 rounded-full px-3 text-meta transition-colors duration-100 focus-ring",
-                  themeChoice === choice ? "bg-surface-3 text-text" : "text-text-2",
-                )}
-              >
-                {themeLabels[choice as ThemeChoice]}
-              </button>
-            ))}
-          </span>
-        </SettingsItem>
+        <ThemeSetting
+          icon={Palette}
+          value={themeChoice}
+          options={themeChoices.map((choice) => ({
+            value: choice,
+            label: themeLabels[choice as ThemeChoice],
+          }))}
+          onChange={(choice) => setThemeChoice(choice as ThemeChoice)}
+        />
       </SettingsGroup>
 
       <SettingsGroup>

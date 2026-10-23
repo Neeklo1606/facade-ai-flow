@@ -135,3 +135,47 @@ export function RoleCard({
     </div>
   );
 }
+
+/** Выбор темы: подпись строкой, под ней три капсулы на всю ширину, ничего не наезжает */
+export function ThemeSetting({
+  icon: Icon,
+  value,
+  options,
+  onChange,
+}: {
+  icon: LucideIcon;
+  value: string;
+  options: readonly { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <li className="flex flex-col gap-2.5 px-4 py-3">
+      <span className="flex items-center gap-3 text-body text-text">
+        <Icon className="size-5 shrink-0 text-text-2" strokeWidth={1.75} aria-hidden />
+        Тема
+      </span>
+      <span
+        role="group"
+        aria-label="Тема оформления"
+        className="grid grid-cols-3 gap-1 rounded-full bg-surface-2 p-1"
+      >
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={value === option.value}
+            className={cn(
+              "min-h-10 rounded-full px-2 text-meta-strong transition-colors duration-100 focus-ring",
+              value === option.value
+                ? "bg-surface text-text shadow-none ring-1 ring-line"
+                : "text-text-2",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </span>
+    </li>
+  );
+}
