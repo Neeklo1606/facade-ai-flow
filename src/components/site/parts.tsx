@@ -37,3 +37,41 @@ export function SitePageHead({
     </header>
   );
 }
+
+/**
+ * Загрузка блока сайта скелетом (ADR-045, 4.17; шаг L8): серые плашки по форме будущих
+ * карточек, без спиннеров. reduced-motion гасит пульсацию в CSS
+ */
+export function SiteSkeleton({ blocks = 2, label }: { blocks?: number; label: string }) {
+  return (
+    <div role="status" aria-label={label} className="grid gap-4 lg:grid-cols-2">
+      {Array.from({ length: blocks }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden
+          className="flex flex-col gap-3 rounded-2xl bg-surface p-6 ring-1 ring-line motion-safe:animate-pulse"
+        >
+          <span className="h-5 w-2/5 rounded-full bg-surface-2" />
+          <span className="h-4 w-4/5 rounded-full bg-surface-2" />
+          <span className="h-4 w-3/5 rounded-full bg-surface-2" />
+          <span className="mt-3 h-12 w-48 rounded-full bg-surface-2" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Ошибка блока сайта: что случилось и «Повторить», без извинений */
+export function SiteError({ what, onRetry }: { what: string; onRetry: () => void }) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-col gap-4 rounded-2xl bg-surface p-6 ring-1 ring-line sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p className="site-body text-text">{what}</p>
+      <button type="button" onClick={onRetry} className={siteButton.secondary}>
+        Повторить
+      </button>
+    </div>
+  );
+}

@@ -27,6 +27,7 @@ import { GAS_SHOW_HINT, gasShowEvent, useGasShow } from "@/lib/gas-ops/show";
 import { cn } from "@/lib/utils";
 import { BotBubble, ChatHeader, Composer, Key, Keys, MyBubble, SystemNote } from "./parts";
 import { ParseStages, VoiceRecorder } from "./VoiceInput";
+import { useForcedState } from "@/lib/screen-state";
 import { parseTimeMessage, type ParsedTime } from "@/api/gas-ops";
 import {
   busyAt,
@@ -136,6 +137,8 @@ export function BotChat({
   });
 
   const [stage, setStage] = useState<Stage>({ kind: "hello" });
+  // Сборка проверки макетов: ?state=error показывает сбой записи голоса (ADR-045, 4.17)
+  const forced = useForcedState();
   const [draft, setDraft] = useState<Draft>(blank);
   /** Значения до исправления: на кнопках подпись «было» */
   const [previous, setPrevious] = useState<Draft | null>(null);
@@ -536,12 +539,12 @@ export function BotChat({
       case "done":
         return s.edited ? (
           <>
-            Запись <b className="font-semibold tnum">{s.number}</b> исправлена и отправлена, ждёт
+            Исправлено и отправлено. Запись <b className="font-semibold tnum">{s.number}</b> ждёт
             проверки.
           </>
         ) : (
           <>
-            Запись <b className="font-semibold tnum">{s.number}</b> принята, ждёт проверки.
+            Отправлено. Запись <b className="font-semibold tnum">{s.number}</b> ждёт проверки.
           </>
         );
       case "mine":
@@ -603,6 +606,16 @@ export function BotChat({
         );
       }
       case "voice":
+        if (forced === "error")
+          return (
+            <div role="alert" className="flex flex-col gap-2">
+              <p className="text-body text-text">Не удалось записать голос.</p>
+              <Keys>
+                <Key onClick={() => answer("Повторить", { kind: "voice" })}>Повторить</Key>
+                <Key onClick={() => answer("Кнопками", { kind: "object" })}>Выбрать кнопками</Key>
+              </Keys>
+            </div>
+          );
         return (
           <VoiceRecorder
             onDone={() => voiceDone(demoPhrase(), true)}

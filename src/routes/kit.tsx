@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { SitePageHead } from "@/components/site/parts";
+import { SitePageHead, SiteSkeleton } from "@/components/site/parts";
+import { useForcedState } from "@/lib/screen-state";
 import { KIT } from "@/lib/site/copy";
 import { siteHead } from "@/lib/site/head";
 
@@ -17,13 +18,26 @@ export const Route = createFileRoute("/kit")({
   component: KitPage,
 });
 
+function KitSkeleton() {
+  return (
+    <div className="site-wrap pb-16">
+      <SiteSkeleton blocks={4} label="Загружаю ссылки и QR-коды" />
+    </div>
+  );
+}
+
 function KitPage() {
+  const forced = useForcedState();
   return (
     <SiteLayout>
       <SitePageHead title={KIT.title} lead={KIT.lead} />
-      <Suspense fallback={<div className="site-wrap min-h-dvh" />}>
-        <PartnerKit />
-      </Suspense>
+      {forced === "loading" ? (
+        <KitSkeleton />
+      ) : (
+        <Suspense fallback={<KitSkeleton />}>
+          <PartnerKit />
+        </Suspense>
+      )}
     </SiteLayout>
   );
 }

@@ -62,6 +62,8 @@ export function outcomeOf(status: number | null): LeadOutcome {
  * не подключён, форма не делает вид, что отправила: говорит об этом и даёт кнопку
  * в Telegram с готовым текстом заявки.
  */
+type Field = "name" | "phone" | "crews" | "consent";
+
 export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
   const { lead } = LANDING;
   const id = useId();
@@ -71,7 +73,17 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
   const [crews, setCrews] = useState<string>("");
   const [consent, setConsent] = useState(false);
   const [website, setWebsite] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  /** Ошибка проверки и поле, к которому она относится: читалка объявит её у поля */
+  const [invalid, setInvalid] = useState<{ field: Field; text: string } | null>(null);
+  const error = invalid?.text ?? null;
+  const fail = (field: Field, text: string) => {
+    setInvalid({ field, text });
+    document.getElementById(`${id}-${field}`)?.focus();
+  };
+  const errorFor = (field: Field) =>
+    invalid?.field === field
+      ? { "aria-invalid": true as const, "aria-describedby": `${id}-error` }
+      : {};
   const [sending, setSending] = useState(false);
   const [outcome, setOutcome] = useState<LeadOutcome | null>(null);
 
@@ -83,11 +95,11 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
     event.preventDefault();
     if (sending) return;
     const digits = phone.replace(/\D/g, "");
-    if (!name.trim()) return setError("Напишите имя");
-    if (digits.length !== 11) return setError("Проверьте телефон: нужно 10 цифр после +7");
-    if (!crews) return setError("Выберите, сколько бригад");
-    if (!consent) return setError("Нужно согласие на обработку данных");
-    setError(null);
+    if (!name.trim()) return fail("name", "Напишите имя");
+    if (digits.length !== 11) return fail("phone", "Проверьте телефон: нужно 10 цифр после +7");
+    if (!crews) return fail("crews", "Выберите, сколько бригад");
+    if (!consent) return fail("consent", "Нужно согласие на обработку данных");
+    setInvalid(null);
     setSending(true);
     let status: number | null = null;
     try {
@@ -167,16 +179,12 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      noValidate
-      aria-describedby={error ? `${id}-error` : undefined}
-      aria-busy={sending}
-      className="flex flex-col gap-4"
-    >
+    <form onSubmit={submit} noValidate aria-busy={sending} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1.5">
         <span className="site-caption text-text-2">{lead.name}</span>
         <input
+          id={`${id}-name`}
+          {...errorFor("name")}
           className={field}
           autoComplete="name"
           value={name}
@@ -198,6 +206,8 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
       <label className="flex flex-col gap-1.5">
         <span className="site-caption text-text-2">{lead.phone}</span>
         <input
+          id={`${id}-phone`}
+          {...errorFor("phone")}
           className={cn(field, "tnum")}
           type="tel"
           inputMode="tel"
@@ -208,12 +218,16 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
           required
         />
       </label>
-      <fieldset className="flex flex-col gap-1.5">
+      <fieldset
+        className="flex flex-col gap-1.5"
+        aria-describedby={invalid?.field === "crews" ? `${id}-error` : undefined}
+      >
         <legend className="site-caption mb-1.5 text-text-2">{lead.crews}</legend>
         <div className="grid grid-cols-3 gap-2">
-          {lead.crewOptions.map((option) => (
+          {lead.crewOptions.map((option, index) => (
             <button
               key={option}
+              id={index === 0 ? `${id}-crews` : undefined}
               type="button"
               aria-pressed={crews === option}
               onClick={() => setCrews(option)}
@@ -231,6 +245,8 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
       </fieldset>
       <label className="flex min-h-12 items-start gap-3 py-1">
         <input
+          id={`${id}-consent`}
+          {...errorFor("consent")}
           type="checkbox"
           checked={consent}
           onChange={(event) => setConsent(event.target.checked)}

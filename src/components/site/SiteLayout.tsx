@@ -5,6 +5,8 @@ import { BRAND, NAV } from "@/lib/site/copy";
 import { LEGAL_LINE } from "@/lib/site/config";
 import { analyticsConfigured, track, useConsent } from "@/lib/site/analytics";
 import { rememberPartnerSrc } from "@/lib/site/partner";
+import { useOffline } from "@/lib/ui/offline";
+import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,6 +26,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         К содержанию
       </a>
       <SiteHeader />
+      <SiteOffline />
       <main id="site-main" className="flex-1">
         {children}
       </main>
@@ -139,6 +142,24 @@ function ConsentBar() {
             Согласиться
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Нет связи (ADR-045, 4.17): полоса под шапкой. Страница уже открыта, а демо и заявке нужна
+ * сеть, это и говорим. Имитация в сборке проверки макетов (?offline=1) помечена
+ */
+function SiteOffline() {
+  const { offline, simulated } = useOffline();
+  if (!offline) return null;
+  return (
+    <div role="status" className="bg-warn-bg text-warn">
+      <div className="site-wrap flex min-h-10 items-center gap-2 py-2 text-meta">
+        <WifiOff className="size-4 shrink-0" aria-hidden />
+        <span>Нет связи. Демо и заявка заработают, когда связь вернётся</span>
+        {simulated ? <span className="ms-auto shrink-0 text-text-3">имитация</span> : null}
       </div>
     </div>
   );

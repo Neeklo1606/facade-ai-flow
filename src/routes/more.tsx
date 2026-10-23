@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ListStateGate } from "@/components/ui/kit/state-gate";
 import { MoreScreen } from "@/components/layout/MoreScreen";
 import { completePageHead } from "@/lib/page-head";
 
@@ -6,9 +7,13 @@ import { completePageHead } from "@/lib/page-head";
 export const Route = createFileRoute("/more")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Ещё — гайка" }] },
-      "Ещё — гайка",
+      { meta: [{ title: "Ещё · гайка" }] },
+      "Ещё · гайка",
       "Разделы, тема, смена роли и показ.",
     ),
-  component: MoreScreen,
+  component: () => (
+    <ListStateGate what="разделы">
+      <MoreScreen />
+    </ListStateGate>
+  ),
 });

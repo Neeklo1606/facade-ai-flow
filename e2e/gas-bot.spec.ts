@@ -76,7 +76,7 @@ for (const width of WIDTHS) {
       expect(taps, "касаний от «Внести время» до «Отправить»").toBeLessThanOrEqual(6);
 
       const done = current(bot);
-      await expect(done).toContainText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+      await expect(done).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
       const number = (await done.innerText()).match(/ГЗ-\d{5}/)?.[0];
       expect(number).toBeTruthy();
       // Выбранные ответы остались в ленте
@@ -179,7 +179,7 @@ test.describe("бот бригадира: голосом 390", () => {
     await current(bot).getByRole("button", { name: "Отправить", exact: true }).click();
     taps += 1;
     expect(taps).toBeLessThanOrEqual(3);
-    await expect(current(bot)).toContainText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+    await expect(current(bot)).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
   });
 
   test("набранная фраза разбирается тем же правилом, недостающее спрашивается кнопками", async ({

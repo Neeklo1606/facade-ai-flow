@@ -52,7 +52,7 @@ for (const width of WIDTHS) {
       await answer(bot, /^0 мин/);
       await expect(bot.getByTestId("bot-total")).toHaveText("150 мин = 2,50 ч");
       await answer(bot, "Отправить");
-      await expect(bot).toContainText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+      await expect(bot).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
       await expect(dock(page)).toContainText("3/6");
 
       // 3. Менеджер: полоса переключает роль и открывает запись
@@ -125,7 +125,7 @@ test.describe("показ ведёт по записи зрителя 390", () =
     await answer(bot, /^14:30/);
     await answer(bot, /^0 мин/);
     await answer(bot, "Отправить");
-    const accepted = bot.getByText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+    const accepted = bot.getByText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
     await expect(accepted).toBeVisible();
     const number = (await accepted.innerText()).match(/ГЗ-\d{5}/)![0];
 

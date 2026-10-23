@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ListStateGate } from "@/components/ui/kit/state-gate";
 import { GasMoreScreen } from "@/components/gas-ops/shell/GasMoreScreen";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { completePageHead } from "@/lib/page-head";
@@ -11,5 +12,9 @@ export const Route = createFileRoute("/gas/more")({
       gasTitle("Ещё"),
       "Разделы, роль, показ и тема.",
     ),
-  component: GasMoreScreen,
+  component: () => (
+    <ListStateGate what="разделы">
+      <GasMoreScreen />
+    </ListStateGate>
+  ),
 });

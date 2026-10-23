@@ -4,7 +4,7 @@
  * «удобно», «легко», «инновационный», «революционный», «уникальный».
  *
  * Комментарии не проверяются: сначала они вырезаются, затем ищется в оставшемся коде.
- * Области задаются списком ниже; L8 расширяет его на сайт и экран «Ещё».
+ * Области задаются списком ниже: папки и отдельные файлы.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -16,6 +16,20 @@ const AREAS = [
   // Публичный сайт (ADR-047, ADR-050)
   "src/components/site",
   "src/lib/site",
+  // Страницы сайта и /demo (шаг L8)
+  "src/routes/index.tsx",
+  "src/routes/demo.tsx",
+  "src/routes/case",
+  "src/routes/razbor.tsx",
+  "src/routes/kit.tsx",
+  "src/routes/privacy.tsx",
+  "src/routes/og.$name.tsx",
+  "src/routes/finish.tsx",
+  // Экраны «Ещё» и шторка роли (ADR-048)
+  "src/routes/more.tsx",
+  "src/components/layout/MoreScreen.tsx",
+  "src/components/layout/RoleSheet.tsx",
+  "src/components/ui/kit/settings-list.tsx",
 ];
 
 /** Аббревиатуры и названия, которым капс положен */
@@ -51,6 +65,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
 const CAPS = /(?<![\p{L}-])[\p{Lu}]{4,}(?![\p{L}])/gu;
 
 function files(dir: string): string[] {
+  if (statSync(dir).isFile()) return [dir];
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     return statSync(path).isDirectory() ? files(path) : /\.tsx?$/.test(name) ? [path] : [];
