@@ -3,7 +3,8 @@ import { ArrowRight, Play } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { SiteError, SiteSkeleton, siteButton } from "@/components/site/parts";
 import { useForcedState } from "@/lib/screen-state";
-import { DemoScenarioList } from "@/components/guide/DemoScenarios";
+import { DemoScenarioList, useStartCanonScenario } from "@/components/guide/DemoScenarios";
+import { useEffect } from "react";
 import { restartShow } from "@/lib/guide/store";
 import { DEMO } from "@/lib/site/copy";
 import { siteHead } from "@/lib/site/head";
@@ -15,15 +16,26 @@ import { siteHead } from "@/lib/site/head";
  */
 export const Route = createFileRoute("/demo")({
   ssr: true,
-  validateSearch: (search: Record<string, unknown>): { partner?: "1" } =>
-    search["partner"] === "1" || search["partner"] === 1 ? { partner: "1" } : {},
+  validateSearch: (search: Record<string, unknown>): { partner?: "1"; scenario?: string } => ({
+    ...(search["partner"] === "1" || search["partner"] === 1 ? { partner: "1" as const } : {}),
+    // Сценарий ГАЙКИ из ссылки: касание плитки до загрузки скриптов (DemoScenarioList)
+    ...(typeof search["scenario"] === "string" && search["scenario"].startsWith("canon-")
+      ? { scenario: search["scenario"] }
+      : {}),
+  }),
   head: () => siteHead({ path: "/demo", ...DEMO.meta, image: "/og/demo.jpg" }),
   component: DemoEntry,
 });
 
 function DemoEntry() {
-  const { partner } = Route.useSearch();
+  const { partner, scenario } = Route.useSearch();
   const navigate = useNavigate();
+  const startScenario = useStartCanonScenario();
+  useEffect(() => {
+    if (scenario) startScenario(scenario);
+    // Запуск один раз на адрес: повтор переходом назад запустит заново, и это верно
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenario]);
   // Сборка проверки макетов: ?state=loading и ?state=error (ADR-045, 4.17)
   const forced = useForcedState();
   const pickRole = () => {

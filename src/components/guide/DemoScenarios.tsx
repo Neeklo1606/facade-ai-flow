@@ -49,9 +49,16 @@ export function DemoScenarioList({ className }: { className?: string }) {
     >
       {CANON_TILES.map((tile, index) => (
         <li key={tile.id}>
-          <button
-            type="button"
-            onClick={() => start(tile.id)}
+          {/*
+            Ссылка, а не кнопка: касание до загрузки скриптов тоже работает. Оно открывает
+            /demo?scenario=…, и страница запускает сценарий сама (находка CI на 430, L10)
+          */}
+          <a
+            href={`/demo?scenario=${tile.id}`}
+            onClick={(event) => {
+              event.preventDefault();
+              start(tile.id);
+            }}
             className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-100 focus-ring active:bg-surface-2 is-hover:bg-surface-2 lg:px-5"
           >
             <span
@@ -67,7 +74,7 @@ export function DemoScenarioList({ className }: { className?: string }) {
               </span>
             </span>
             <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
-          </button>
+          </a>
         </li>
       ))}
     </ul>

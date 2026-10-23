@@ -73,7 +73,18 @@ test.describe("сайт и вход в демо 390", () => {
 
   test("сценарий ГАЙКИ с /demo открывает свой первый экран", async ({ page }) => {
     await page.goto("/demo", { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: /Смена → учёт/ }).click();
+    await page.getByRole("link", { name: /Смена → учёт/ }).click();
+    await expect(page).toHaveURL(/\/capture/);
+  });
+
+  test("касание сценария до загрузки скриптов: ссылка открывает его со страницы /demo", async ({
+    page,
+  }) => {
+    // Так выглядит касание до гидратации: обычный переход по href плитки
+    await page.goto("/demo", { waitUntil: "domcontentloaded" });
+    const href = await page.getByRole("link", { name: /Смена → учёт/ }).getAttribute("href");
+    expect(href).toBe("/demo?scenario=canon-shift");
+    await page.goto(href!, { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/\/capture/);
   });
 
