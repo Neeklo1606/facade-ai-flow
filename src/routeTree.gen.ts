@@ -45,6 +45,7 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
+import { Route as ApiLeadsRouteImport } from './routes/api/leads'
 import { Route as CaseGasRouteImport } from './routes/case/gas'
 import { Route as GasIndexRouteImport } from './routes/gas/index'
 import { Route as GasAdminRouteImport } from './routes/gas/admin'
@@ -64,6 +65,7 @@ import { Route as GasSummaryRouteImport } from './routes/gas/summary'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as OfficeCatalogsRouteImport } from './routes/office/catalogs'
 import { Route as OfficeConnectionsRouteImport } from './routes/office/connections'
+import { Route as OgNameRouteImport } from './routes/og.$name'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
@@ -259,6 +261,11 @@ const ApiFeedbackRoute = ApiFeedbackRouteImport.update({
   path: '/api/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLeadsRoute = ApiLeadsRouteImport.update({
+  id: '/api/leads',
+  path: '/api/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CaseGasRoute = CaseGasRouteImport.update({
   id: '/case/gas',
   path: '/case/gas',
@@ -353,6 +360,11 @@ const OfficeConnectionsRoute = OfficeConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
   getParentRoute: () => OfficeRoute,
+} as any)
+const OgNameRoute = OgNameRouteImport.update({
+  id: '/og/$name',
+  path: '/og/$name',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
@@ -466,6 +478,7 @@ export interface FileRoutesByFullPath {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
   '/gas/brigades': typeof GasBrigadesRoute
@@ -483,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/gas/summary': typeof GasSummaryRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
+  '/og/$name': typeof OgNameRoute
   '/gas/': typeof GasIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
@@ -535,6 +549,7 @@ export interface FileRoutesByTo {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
   '/gas/brigades': typeof GasBrigadesRoute
@@ -552,6 +567,7 @@ export interface FileRoutesByTo {
   '/gas/summary': typeof GasSummaryRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
+  '/og/$name': typeof OgNameRoute
   '/gas': typeof GasIndexRoute
   '/office': typeof OfficeIndexRoute
   '/projects': typeof ProjectsIndexRoute
@@ -607,6 +623,7 @@ export interface FileRoutesById {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
   '/gas/brigades': typeof GasBrigadesRoute
@@ -624,6 +641,7 @@ export interface FileRoutesById {
   '/gas/summary': typeof GasSummaryRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
+  '/og/$name': typeof OgNameRoute
   '/gas/': typeof GasIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
@@ -680,6 +698,7 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/api/leads'
     | '/case/gas'
     | '/gas/admin'
     | '/gas/brigades'
@@ -697,6 +716,7 @@ export interface FileRouteTypes {
     | '/gas/summary'
     | '/office/catalogs'
     | '/office/connections'
+    | '/og/$name'
     | '/gas/'
     | '/office/'
     | '/projects/'
@@ -749,6 +769,7 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/api/leads'
     | '/case/gas'
     | '/gas/admin'
     | '/gas/brigades'
@@ -766,6 +787,7 @@ export interface FileRouteTypes {
     | '/gas/summary'
     | '/office/catalogs'
     | '/office/connections'
+    | '/og/$name'
     | '/gas'
     | '/office'
     | '/projects'
@@ -820,6 +842,7 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/api/leads'
     | '/case/gas'
     | '/gas/admin'
     | '/gas/brigades'
@@ -837,6 +860,7 @@ export interface FileRouteTypes {
     | '/gas/summary'
     | '/office/catalogs'
     | '/office/connections'
+    | '/og/$name'
     | '/gas/'
     | '/office/'
     | '/projects/'
@@ -892,7 +916,9 @@ export interface RootRouteChildren {
   ZonesRoute: typeof ZonesRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiFeedbackRoute: typeof ApiFeedbackRoute
+  ApiLeadsRoute: typeof ApiLeadsRoute
   CaseGasRoute: typeof CaseGasRoute
+  OgNameRoute: typeof OgNameRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
@@ -1163,6 +1189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFeedbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/leads': {
+      id: '/api/leads'
+      path: '/api/leads'
+      fullPath: '/api/leads'
+      preLoaderRoute: typeof ApiLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/case/gas': {
       id: '/case/gas'
       path: '/case/gas'
@@ -1295,6 +1328,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/office/connections'
       preLoaderRoute: typeof OfficeConnectionsRouteImport
       parentRoute: typeof OfficeRoute
+    }
+    '/og/$name': {
+      id: '/og/$name'
+      path: '/og/$name'
+      fullPath: '/og/$name'
+      preLoaderRoute: typeof OgNameRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/projects/': {
       id: '/projects/'
@@ -1487,7 +1527,9 @@ const rootRouteChildren: RootRouteChildren = {
   ZonesRoute: ZonesRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiFeedbackRoute: ApiFeedbackRoute,
+  ApiLeadsRoute: ApiLeadsRoute,
   CaseGasRoute: CaseGasRoute,
+  OgNameRoute: OgNameRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,

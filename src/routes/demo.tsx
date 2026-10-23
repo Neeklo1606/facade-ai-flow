@@ -16,7 +16,7 @@ export const Route = createFileRoute("/demo")({
   ssr: true,
   validateSearch: (search: Record<string, unknown>): { partner?: "1" } =>
     search["partner"] === "1" || search["partner"] === 1 ? { partner: "1" } : {},
-  head: () => siteHead({ path: "/demo", ...DEMO.meta }),
+  head: () => siteHead({ path: "/demo", ...DEMO.meta, image: "/og/demo.jpg" }),
   component: DemoEntry,
 });
 

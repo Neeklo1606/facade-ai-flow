@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { track } from "@/lib/site/analytics";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2, SlidersHorizontal } from "lucide-react";
@@ -136,6 +137,7 @@ function ReportsPage() {
         mode,
       });
       gasShowEvent("gasExport", { gasFile: name });
+      track("excel_download");
       toast.success("Файл выгружен", { description: name, duration: 2500 });
     } catch (error) {
       toast.error("Выгрузка не удалась", {

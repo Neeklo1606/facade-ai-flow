@@ -12,6 +12,7 @@ import {
   type GuideState,
 } from "@/lib/guide/store";
 import { gasWeek, type GuideStep } from "@/lib/guide/scenarios";
+import { track } from "@/lib/site/analytics";
 
 export const GAS_SHOW_ID = gasWeek.id;
 
@@ -28,6 +29,7 @@ export type GasShowAction =
 
 export function startGasShow() {
   startScenario(GAS_SHOW_ID);
+  track("demo_start");
 }
 
 export function resetGasShow() {
@@ -47,7 +49,12 @@ export function gasShowEvent(action: GasShowAction, chain?: GuideState["chain"])
   if (!isGasShow(state)) return;
   if (chain) setChain(chain);
   const index = gasWeek.steps.findIndex((step) => step.doneOn.action?.includes(action));
-  if (index >= 0) completeThrough(index);
+  if (index < 0) return;
+  const before = state.stepIndex;
+  completeThrough(index);
+  // Аналитика сайта (01_SPEC 11.2): номер шага с единицы, финал отдельным событием
+  if (index >= before) track("demo_step", { step: index + 1 });
+  if (index === gasWeek.steps.length - 1 && before <= index) track("demo_finish");
 }
 
 /**

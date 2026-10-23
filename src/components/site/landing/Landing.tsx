@@ -26,6 +26,7 @@ import {
   WeekTableFragment,
 } from "./fragments";
 import { LeadForm } from "./LeadForm";
+import { track } from "@/lib/site/analytics";
 
 /**
  * Лендинг ГАЙКИ (ADR-050, 01_SPEC 9): двенадцать секций сверху вниз, тексты из `copy.ts`.
@@ -35,6 +36,7 @@ import { LeadForm } from "./LeadForm";
 export function Landing() {
   const hero = useRef<HTMLElement>(null);
   const lead = useRef<HTMLElement>(null);
+  useEffect(() => track("landing_view"), []);
   return (
     <>
       <Hero ref={hero} />
@@ -67,11 +69,21 @@ function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
           <h1 className="site-h1 site-rise mt-3 max-w-[14ch] text-text lg:mt-5">{hero.title}</h1>
           <p className="site-lead site-rise mt-4 max-w-[640px] text-text-2 lg:mt-6">{hero.lead}</p>
           <div className="site-rise mt-8 flex flex-col gap-3 sm:flex-row lg:mt-10">
-            <Link to="/demo" className={siteButton.primary} data-cta="demo">
+            <Link
+              to="/demo"
+              className={siteButton.primary}
+              data-cta="demo"
+              onClick={() => track("cta_demo", { place: "hero" })}
+            >
               {hero.primary}
               <ArrowRight className="size-5" aria-hidden />
             </Link>
-            <Link to="/razbor" search={{ from: "landing" }} className={siteButton.secondary}>
+            <Link
+              to="/razbor"
+              search={{ from: "landing" }}
+              className={siteButton.secondary}
+              onClick={() => track("cta_razbor", { place: "hero" })}
+            >
               {hero.secondary}
             </Link>
           </div>
@@ -361,6 +373,7 @@ function Start() {
                 <Link
                   to="/razbor"
                   search={{ from: "landing" }}
+                  onClick={() => track("cta_razbor", { place: "steps" })}
                   className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-2 text-body-strong text-orange focus-ring"
                 >
                   Подробнее
@@ -475,6 +488,7 @@ function StickyDemo({
       <Link
         to="/demo"
         tabIndex={hidden ? -1 : undefined}
+        onClick={() => track("cta_demo", { place: "sticky" })}
         className={cn(siteButton.primary, "w-full shadow-[0_8px_24px_rgba(0,0,0,0.18)]")}
       >
         {LANDING.hero.primary}

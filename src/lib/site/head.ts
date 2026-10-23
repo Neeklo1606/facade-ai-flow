@@ -1,7 +1,8 @@
 /**
  * Мета страниц сайта (ADR-047, 01_SPEC 11.3): заголовок, описание, canonical, robots и превью
  * ссылки. Превью важнее заголовка: ссылку пересылают в Telegram, MAX и WhatsApp.
- * Картинки превью по страницам появятся в L6; до тех пор общая /og-preview.jpg.
+ * Картинки превью четырёх страниц в public/og/ снимает scripts/og-images.ts (ADR-051);
+ * остальные страницы берут общую /og-preview.jpg.
  */
 import { NEVER_INDEXED, PUBLIC_URL, seoIndexEnabled } from "./config";
 

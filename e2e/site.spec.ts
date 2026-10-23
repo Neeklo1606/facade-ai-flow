@@ -130,6 +130,12 @@ test.describe("лендинг 390 (ADR-050)", () => {
     await page.getByRole("button", { name: "Отправить заявку" }).scrollIntoViewIfNeeded();
     await expect(sticky).toHaveAttribute("data-hidden", "");
   });
+});
+
+test.describe("заявка с лендинга 390 (ADR-051)", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  // Сервер тестов без приёма заявок отвечает 501: браузер пишет это в консоль сам
+  test.use({ expectedConsole: /^Failed to load resource: .*status of 501\b/ });
 
   test("заявка без приёма на сайте честно ведёт в Telegram, «отправлено» не пишет", async ({
     page,

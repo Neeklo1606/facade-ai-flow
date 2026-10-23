@@ -9,12 +9,21 @@ import { mobileCheck } from "./mobile-checks";
  *   роли и есть сценарий);
  * — проверки EMBER и axe вызываются на экранах явно.
  */
-export type Options = { persona: string | null; theme: "light" | "dark" | null };
+export type Options = {
+  persona: string | null;
+  theme: "light" | "dark" | null;
+  /**
+   * Ожидаемые тестом строки консоли. Только для ответов, которые тест вызывает сам:
+   * браузер пишет «Failed to load resource» на каждый ответ 4xx и 5xx (форма заявки, ADR-051)
+   */
+  expectedConsole: RegExp | null;
+};
 
 export const test = base.extend<Options & { consoleGuard: void }>({
   persona: [null, { option: true }],
   /** Тема вкладки: null — умолчание контура (в демонстрации тёмная) */
   theme: [null, { option: true }],
+  expectedConsole: [null, { option: true }],
 
   // Второй аргумент фикстуры Playwright — функция, отдающая значение тесту
   page: async ({ page, persona, theme }, provide) => {
@@ -43,10 +52,13 @@ export const test = base.extend<Options & { consoleGuard: void }>({
   },
 
   consoleGuard: [
-    async ({ page }, provide) => {
+    async ({ page, expectedConsole }, provide) => {
       const errors: string[] = [];
       page.on("console", (message) => {
-        if (message.type() === "error") errors.push(message.text().slice(0, 200));
+        if (message.type() !== "error") return;
+        const text = message.text();
+        if (expectedConsole?.test(text)) return;
+        errors.push(text.slice(0, 200));
       });
       page.on("pageerror", (error) => errors.push(String(error).slice(0, 200)));
       await provide();

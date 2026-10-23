@@ -1,13 +1,16 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { SitePageHead } from "@/components/site/parts";
 import { KIT } from "@/lib/site/copy";
 import { siteHead } from "@/lib/site/head";
 
 /**
- * Набор партнёра (01_SPEC 10.3). Не индексируется никогда, ссылка нигде на сайте
- * не выводится. Ссылки, QR и сценарий показа появятся в L6.
+ * Набор партнёра (01_SPEC 10.3). Не индексируется никогда, ссылка нигде на сайте не выводится.
+ * Ссылки с кодом партнёра, QR и сценарий показа; QR и копирование работают на клиенте.
  */
+const PartnerKit = lazy(() => import("@/components/site/kit/PartnerKit"));
+
 export const Route = createFileRoute("/kit")({
   ssr: true,
   head: () => siteHead({ path: "/kit", ...KIT.meta }),
@@ -17,27 +20,10 @@ export const Route = createFileRoute("/kit")({
 function KitPage() {
   return (
     <SiteLayout>
-      <SitePageHead title={KIT.title} lead={KIT.lead}>
-        <ul className="mt-8 flex flex-col gap-2">
-          {(
-            [
-              ["/", "Сайт"],
-              ["/demo", "Демо"],
-              ["/case/gas", "Кейс"],
-              ["/razbor", "Экспресс-разбор"],
-            ] as const
-          ).map(([to, label]) => (
-            <li key={to}>
-              <Link
-                to={to}
-                className="site-body inline-flex min-h-12 items-center text-text underline-offset-4 focus-ring is-hover:underline"
-              >
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </SitePageHead>
+      <SitePageHead title={KIT.title} lead={KIT.lead} />
+      <Suspense fallback={<div className="site-wrap min-h-dvh" />}>
+        <PartnerKit />
+      </Suspense>
     </SiteLayout>
   );
 }

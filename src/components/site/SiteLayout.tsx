@@ -3,6 +3,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { BRAND, NAV } from "@/lib/site/copy";
 import { LEGAL_LINE } from "@/lib/site/config";
+import { analyticsConfigured, track, useConsent } from "@/lib/site/analytics";
+import { rememberPartnerSrc } from "@/lib/site/partner";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,6 +13,8 @@ import { cn } from "@/lib/utils";
  * Рисуется на сервере целиком, до загрузки скриптов человек видит текст и кнопки.
  */
 export function SiteLayout({ children }: { children: ReactNode }) {
+  // Код партнёра из ?src= живёт до конца сессии и уходит в заявку (ADR-051)
+  useEffect(() => rememberPartnerSrc(window.location.search), []);
   return (
     <div className="flex min-h-dvh flex-col bg-void text-text">
       <a
@@ -24,6 +28,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <SiteFooter />
+      <ConsentBar />
     </div>
   );
 }
@@ -65,6 +70,7 @@ function SiteHeader() {
         ) : (
           <Link
             to="/demo"
+            onClick={() => track("cta_demo", { place: "header" })}
             className="inline-flex min-h-11 items-center rounded-full bg-text px-4 text-body-strong text-void transition-transform duration-100 focus-ring active:scale-[0.98]"
           >
             {NAV.demo}
@@ -99,5 +105,41 @@ function SiteFooter() {
         </nav>
       </div>
     </footer>
+  );
+}
+
+/**
+ * Согласие на аналитику (ADR-051, 01_SPEC 11.2): строка внизу экрана, пока человек не ответил.
+ * Без заданного счётчика строки нет: спрашивать не о чем
+ */
+function ConsentBar() {
+  const [consent, decide] = useConsent();
+  if (!analyticsConfigured() || consent !== null) return null;
+  return (
+    <div
+      role="region"
+      aria-label="Согласие на аналитику"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="site-wrap flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-body text-text-2">Используем аналитику, чтобы улучшать сайт.</p>
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <button
+            type="button"
+            onClick={() => decide("no")}
+            className="min-h-11 rounded-full px-4 text-body-strong text-text ring-1 ring-line-2 ring-inset focus-ring"
+          >
+            Отказаться
+          </button>
+          <button
+            type="button"
+            onClick={() => decide("yes")}
+            className="min-h-11 rounded-full bg-text px-4 text-body-strong text-void focus-ring"
+          >
+            Согласиться
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

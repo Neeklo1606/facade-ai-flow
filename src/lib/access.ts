@@ -24,6 +24,8 @@ export const DESIGN_SYSTEM_PATH = "/design-system";
 export function isRemovedInProduction(pathname: string) {
   // В разработке витрина нужна: там она и собирается, и открывается
   if (import.meta.env.DEV) return false;
+  // Страницы снимков превью (ADR-051) нужны только скрипту og-images в разработке
+  if (pathname.startsWith("/og/")) return true;
   // Флаг читается дважды: в vite.config.ts при сборке (попадёт ли код витрины в бандл)
   // и здесь при запуске (отвечает ли адрес). Задавать его нужно в обоих местах, иначе
   // получится собранная, но недоступная витрина — или наоборот (находка повторного ревью)

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "og:images": "bun scripts/og-images.ts",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
@@ -81,6 +82,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
     "pg": "8.23.0",
+    "qrcode-generator": "2.0.4",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -114,6 +116,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jsqr": "1.4.0",
     "lighthouse": "13.5.0",
     "nitro": "3.0.260603-beta",
     "prettier": "^3.7.3",

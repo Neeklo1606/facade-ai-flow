@@ -16,7 +16,7 @@ import { siteHead } from "@/lib/site/head";
  */
 export const Route = createFileRoute("/")({
   ssr: demoShow,
-  head: () => siteHead({ path: "/", ...LANDING.meta }),
+  head: () => siteHead({ path: "/", ...LANDING.meta, image: "/og/landing.jpg" }),
   component: Home,
 });
 
