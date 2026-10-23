@@ -14,35 +14,19 @@ import { useEffect, type ReactNode, lazy, Suspense } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { reportClientError, startErrorReporting } from "@/lib/error-report";
-import { AccessBoundary } from "@/components/access/AccessBoundary";
-import { LegacyBoundary } from "@/components/access/LegacyBoundary";
-import { useScreenTelemetry } from "@/lib/guide/use-screen-telemetry";
 import { AppProvider } from "@/lib/app-context";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { BOOT_SPLASH_HTML, BOOT_SPLASH_SCRIPT } from "@/lib/boot-splash";
 // Кабинет компании — отдельная поверхность: его макет грузится, только когда открыт /office
 // Экран входа показа грузится отдельным куском: до загрузки скриптов его повторяет заставка
 // (boot-splash), поэтому первый экран не меняется, а первый кусок держит порог бандла (ADR-044)
-const RolePicker = lazy(() =>
-  import("@/components/guide/RolePicker").then((module) => ({ default: module.RolePicker })),
-);
-// Оболочка газа нужна только на /gas/*: в общий набор первого экрана она не едет (ADR-044)
-const GasShell = lazy(() =>
-  import("@/components/gas-ops/shell/GasShell").then((module) => ({ default: module.GasShell })),
-);
-const OfficeLayout = lazy(() =>
-  import("@/components/layout/OfficeLayout").then((module) => ({ default: module.OfficeLayout })),
-);
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/sonner";
+// Оболочка приложения отдельным куском: публичный сайт её не грузит (ADR-050)
+const AppShell = lazy(() => import("@/components/layout/AppShell"));
 import { prefetch } from "@/api/prefetch";
 import { themeBootScript } from "@/lib/theme";
 import { previewMeta } from "@/lib/access";
 import { queries } from "@/api/queries";
 import { api } from "@/api/client";
 import { dataSource, demoShow } from "@/api/config";
-import { useDemoEvents } from "@/api/demo-events";
-import { toast } from "@/lib/toast";
 import { isSitePath } from "@/lib/site/paths";
 
 function NotFoundComponent() {
@@ -195,17 +179,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const sessionActorId = Route.useLoaderData()?.sessionActorId ?? null;
-  useDemoEvents(queryClient, (notice) =>
-    toast.success(notice.title, { description: notice.description }),
-  );
   // Ловушки необработанных ошибок ставятся один раз на всё приложение (TASK-A5, п. 5)
   useEffect(startErrorReporting, []);
   // Приложение смонтировано: экран до загрузки скриптов уходит (D5)
   useEffect(() => {
     document.documentElement.dataset["booted"] = "";
   }, []);
-  // Телеметрия сессии: открытие экранов и точка выхода (ADR-010)
-  useScreenTelemetry();
   /*
    * Экран входа рисуется без оболочки: сессии ещё нет, а меню, выбор объекта и проводка
    * запросили бы данные и получили отказ. Тот же случай, что и у экрана-шлюза (ADR-021).
@@ -219,9 +198,7 @@ function RootComponent() {
     return (
       <QueryClientProvider client={queryClient}>
         <AppProvider initialPersona={null}>
-          <TooltipProvider delayDuration={200}>
-            <Outlet />
-          </TooltipProvider>
+          <Outlet />
         </AppProvider>
       </QueryClientProvider>
     );
@@ -237,57 +214,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider initialPersona={sessionActorId}>
-        <TooltipProvider delayDuration={200}>
-          {pathname === "/gas" || pathname.startsWith("/gas/") ? (
-            /* Рабочий контур газа: своя оболочка без меню и персон ГАЙКИ (ADR-044, F1) */
-            <Suspense fallback={null}>
-              <GasShell>
-                <Outlet />
-              </GasShell>
-            </Suspense>
-          ) : pathname.startsWith("/office") ? (
-            /* Кабинет компании — отдельная поверхность со своим макетом (ADR-039) */
-            <Suspense fallback={null}>
-              <OfficeLayout>
-                <AccessBoundary>
-                  <Outlet />
-                </AccessBoundary>
-              </OfficeLayout>
-            </Suspense>
-          ) : (
-            <AppLayout>
-              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-              {/* Раздел, закрытый роли, открывается экраном «Нет доступа» (ADR-012) */}
-              {/* Модули прежнего контура за флагом legacy_modules (ADR-034) */}
-              <LegacyBoundary>
-                <AccessBoundary>
-                  <Outlet />
-                </AccessBoundary>
-              </LegacyBoundary>
-            </AppLayout>
-          )}
-          {/*
-            Выбор роли при первом входе (ADR-010); полоса шагов живёт в оболочке (ADR-041).
-            В разделе «Газ: учёт времени» его нет: у направления свой набор ролей и свой
-            переключатель в шапке раздела, два выбора роли подряд только путают (ADR-043).
-          */}
-          {pathname.startsWith("/gas") ? null : (
-            <Suspense fallback={null}>
-              <RolePicker />
-            </Suspense>
-          )}
-          {/*
-            Тосты внизу над нижним слоем (ADR-045, 4.5): отступ берётся из менеджера слоёв,
-            поэтому тост не закрывает ни нижнюю панель, ни панель действий шторки.
-            Сверху они закрывали заголовок экрана (refs/02, 04).
-          */}
-          <Toaster
-            position="bottom-center"
-            swipeDirections={["bottom"]}
-            offset={{ bottom: "calc(var(--bottom-inset, 0px) + 8px)" }}
-            mobileOffset={{ bottom: "calc(var(--bottom-inset, 0px) + 8px)" }}
-          />
-        </TooltipProvider>
+        <Suspense fallback={null}>
+          <AppShell pathname={pathname} queryClient={queryClient}>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </AppShell>
+        </Suspense>
       </AppProvider>
     </QueryClientProvider>
   );

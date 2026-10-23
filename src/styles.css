@@ -2240,3 +2240,54 @@ main {
     opacity: 0;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Лендинг (ADR-050). Тёмная секция «Как это работает» тёмная в любой теме: токены
+ * переопределены на её поддереве. Появление фрагментов один раз, при reduced-motion без него.
+ * ------------------------------------------------------------------ */
+.site-dark {
+  --void: #0b0a09;
+  --base: #0b0a09;
+  --surface: #151311;
+  --surface-2: #1d1a17;
+  --surface-3: #27231f;
+  --line: rgba(255, 244, 235, 0.08);
+  --line-2: rgba(255, 244, 235, 0.14);
+  --text: #f7f3ef;
+  --text-2: #a8a099;
+  --text-3: #9a918a;
+  --orange: #ff7a45;
+  --orange-dim: rgba(255, 122, 69, 0.12);
+  --pill-bg: #f7f3ef;
+  --pill-text: #0a0908;
+  --ok: #6fcf97;
+  --ok-bg: rgba(111, 207, 151, 0.1);
+  --warn: #f2b84b;
+  --danger: #ff5a5f;
+  color-scheme: dark;
+  background: var(--void);
+  color: var(--text);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-booted] [data-reveal]:not([data-shown]) {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  [data-reveal] {
+    transition:
+      opacity 520ms var(--ease-out),
+      transform 520ms var(--ease-out);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+}
+/* Липкая кнопка телефона: над безопасной зоной, прячется сдвигом вниз */
+.site-sticky {
+  transition:
+    transform 220ms var(--ease-out),
+    opacity 220ms var(--ease-out);
+}
+.site-sticky[data-hidden] {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+}

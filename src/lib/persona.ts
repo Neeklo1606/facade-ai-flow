@@ -15,7 +15,12 @@ export function useEnterAs() {
   return useCallback(
     async (personaId: string, role: EmployeeRole) => {
       await setPersonaId(personaId);
-      await queryClient.fetchQuery(queries.projects());
+      /*
+       * Объекты новой роли подгружаются заранее, но это не обязательно для перехода: смена
+       * персоны сбрасывает кеш, и сброс может отменить эту загрузку (CancelledError).
+       * Тогда экран роли сам запросит объекты, а вход не обрывается
+       */
+      await queryClient.fetchQuery(queries.projects()).catch(() => undefined);
       return homeRouteFor(role);
     },
     [setPersonaId, queryClient],

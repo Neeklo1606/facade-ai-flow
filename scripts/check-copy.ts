@@ -9,7 +9,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const AREAS = ["src/components/gas-ops", "src/routes/gas", "src/lib/gas-ops"];
+const AREAS = [
+  "src/components/gas-ops",
+  "src/routes/gas",
+  "src/lib/gas-ops",
+  // Публичный сайт (ADR-047, ADR-050)
+  "src/components/site",
+  "src/lib/site",
+];
 
 /** Аббревиатуры и названия, которым капс положен */
 const CAPS_OK = new Set([

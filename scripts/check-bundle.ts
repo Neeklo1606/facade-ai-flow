@@ -16,7 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dir = join(here, "..", ".output", "public", "assets");
 const budgets = JSON.parse(readFileSync(join(here, "bundle-budget.json"), "utf8")) as Record<
   string,
-  { totalGzipKb: number; largestGzipKb: number }
+  { totalGzipKb: number; largestGzipKb: number; landingGzipKb?: number }
 >;
 const contour = process.argv[2] ?? "demo";
 const budget = budgets[contour];
@@ -50,8 +50,27 @@ console.log(
 );
 for (const file of sizes.slice(0, 5)) console.log(`  ${kb(file.kb).padStart(9)}  ${file.name}`);
 
+/*
+ * Собственный код лендинга (ADR-050): куски с его разметкой и текстами. Общий код React
+ * и роутера сюда не входит: он в главном куске и охраняется порогом самого большого
+ */
+const LANDING_MARKERS = ["Пример из демо", "Знакомо?"];
+const landing = budget.landingGzipKb
+  ? sizes
+      .filter((file) => {
+        const text = readFileSync(join(dir, file.name), "utf8");
+        return LANDING_MARKERS.some((marker) => text.includes(marker));
+      })
+      .reduce((acc, file) => acc + file.kb, 0)
+  : 0;
+if (budget.landingGzipKb)
+  console.log(`Лендинг: ${kb(landing)} (порог ${kb(budget.landingGzipKb)})`);
+
 const over = [
   total > budget.totalGzipKb && `всего ${kb(total)} > ${kb(budget.totalGzipKb)}`,
+  budget.landingGzipKb !== undefined &&
+    (landing === 0 || landing > budget.landingGzipKb) &&
+    `лендинг ${kb(landing)} (порог ${kb(budget.landingGzipKb)}, ноль значит не найден)`,
   largest.kb > budget.largestGzipKb &&
     `самый большой ${kb(largest.kb)} > ${kb(budget.largestGzipKb)}`,
 ].filter(Boolean);

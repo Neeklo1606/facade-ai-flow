@@ -92,6 +92,68 @@ test.describe("сайт и вход в демо 390", () => {
   });
 });
 
+test.describe("лендинг 390 (ADR-050)", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("двенадцать секций, одна тёмная, ни одного запрещённого обещания", async ({ page }) => {
+    await page.goto("/", { waitUntil: "load" });
+    for (const title of [
+      "Знакомо?",
+      "Как это работает",
+      "Бригадиру ничего не нужно устанавливать",
+      "Цифрам можно верить",
+      "Отчёт как ваш",
+      "Кейс",
+      "Что ещё умеет ГАЙКА",
+      "Как начать",
+      "Вопросы",
+      "Покажем на ваших данных",
+    ]) {
+      await expect(page.getByRole("heading", { level: 2, name: title })).toHaveCount(1);
+    }
+    await expect(page.locator("section.site-dark")).toHaveCount(1);
+    const text = await page.locator("main").innerText();
+    // Цен нет, пока не заданы в конфигурации; цифр эффекта и отзывов нет вовсе
+    expect(text).not.toMatch(/₽\s*\/\s*мес|окупаем|экономи[ия]\s+\d|отзыв/i);
+  });
+
+  test("липкая «Открыть демо»: нет на первом экране, есть дальше, прячется у формы", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    const sticky = page.locator(".site-sticky");
+    await expect(sticky).toHaveAttribute("data-hidden", "");
+    await page.getByRole("heading", { name: "Цифрам можно верить" }).scrollIntoViewIfNeeded();
+    await expect(sticky).not.toHaveAttribute("data-hidden", "");
+    await page.getByRole("heading", { name: "Покажем на ваших данных" }).scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: "Отправить заявку" }).scrollIntoViewIfNeeded();
+    await expect(sticky).toHaveAttribute("data-hidden", "");
+  });
+
+  test("заявка без приёма на сайте честно ведёт в Telegram, «отправлено» не пишет", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    const submit = page.getByRole("button", { name: "Отправить заявку" });
+    await submit.click();
+    await expect(page.getByRole("alert")).toHaveText("Напишите имя");
+    await page.getByLabel("Имя").fill("Иван");
+    await page.getByLabel("Телефон").fill("89181234567");
+    await expect(page.getByLabel("Телефон")).toHaveValue("+7 (918) 123-45-67");
+    await page.getByRole("button", { name: "4-10" }).click();
+    await page.getByRole("checkbox").check();
+    await submit.click();
+    const status = page.getByRole("status");
+    await expect(status).toContainText("Заявки с сайта пока не подключены");
+    const link = status.getByRole("link", { name: "Открыть Telegram" });
+    await expect(link).toHaveAttribute("href", /^https:\/\/t\.me\/[^?]+\?text=/);
+    expect(decodeURIComponent((await link.getAttribute("href"))!)).toContain("Источник: landing");
+    await expect(page.locator("body")).not.toContainText(/Заявка отправлена|Спасибо, мы свяжемся/);
+  });
+});
+
 test.describe("личный контур заказчика", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
