@@ -164,6 +164,7 @@ describe("POST /api/leads", () => {
       src: "vasya",
       sink: "webhook",
       ok: true,
+      limited: true,
     });
     for (const secret of ["Иван", "Пример", "900", "000-00"]) expect(line).not.toContain(secret);
   });
@@ -217,6 +218,20 @@ describe("POST /api/leads", () => {
     }
     expect((await leadResponse(request(BODY), d.value)).status).toBe(429);
     expect((await leadResponse(request(BODY, "2.2.2.2"), d.value)).status).toBe(204);
+  });
+
+  test("без адреса отправителя общего счётчика нет: шестая заявка проходит", async () => {
+    const d = deps(ok);
+    const bare = () =>
+      new Request("http://localhost/api/leads", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(BODY),
+      });
+    for (let i = 0; i < 6; i += 1) {
+      expect((await leadResponse(bare(), d.value)).status).toBe(204);
+    }
+    expect(JSON.parse(d.lines[0]!).limited).toBe(false);
   });
 
   test("лимит отпускает через час", () => {

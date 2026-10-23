@@ -45,11 +45,16 @@ const defaults: LeadDeps = {
   log: (line) => console.info(line),
 };
 
-function clientIp(request: Request): string {
+/**
+ * Адрес отправителя: у Cloudflare `cf-connecting-ip`, за прокси `x-forwarded-for`. Без них адрес
+ * неизвестен, и лимит не применяется: общий счётчик на всех «неизвестных» закрыл бы приём
+ * заявок для всех после пятой (находка приёмки L9)
+ */
+function clientIp(request: Request): string | null {
   return (
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown"
+    request.headers.get("cf-connecting-ip")?.trim() ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    null
   );
 }
 
@@ -66,7 +71,8 @@ export async function leadResponse(request: Request, deps: LeadDeps = defaults):
   const now = deps.now();
   // Ловушка: бот получает тот же ответ, что и человек, и не узнаёт, что пойман
   if (website) return new Response(null, { status: 204 });
-  if (!deps.allow(clientIp(request), now.getTime())) return new Response(null, { status: 429 });
+  const ip = clientIp(request);
+  if (ip && !deps.allow(ip, now.getTime())) return new Response(null, { status: 429 });
 
   const lead: Lead = { ...fields, at: now.toISOString() };
   const sink = deps.sink();
@@ -79,6 +85,7 @@ export async function leadResponse(request: Request, deps: LeadDeps = defaults):
       src: lead.src || null,
       sink: sink.kind,
       ok: result.ok,
+      limited: ip !== null,
     }),
   );
   if (result.ok) return new Response(null, { status: 204 });
