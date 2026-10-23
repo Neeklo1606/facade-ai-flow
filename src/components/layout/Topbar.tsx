@@ -224,7 +224,7 @@ export function Topbar() {
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск"
-          className="icon-button focus-ring grid xl:hidden"
+          className="icon-button focus-ring grid size-[var(--touch)] xl:hidden"
         >
           <Search strokeWidth={1.5} />
         </Button>
