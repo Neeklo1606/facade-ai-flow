@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
@@ -59,7 +58,7 @@ import { Button } from "@/components/ui/button";
 import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 
 export function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useApp();
+  const { sidebarCollapsed, toggleSidebar, setMobileNavOpen } = useApp();
   // Компьютер — подписи или сворачивание по выбору, планшет — рельс,
   // телефон — модальная панель с полными подписями.
   const desktop = useMediaQuery("(min-width: 1024px)");
@@ -72,38 +71,11 @@ export function Sidebar() {
     if (!phone) setMobileNavOpen(false);
   }, [phone, setMobileNavOpen]);
 
-  if (phone) {
-    return (
-      <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="mobile-nav-overlay fixed inset-0 z-50" />
-          <Dialog.Content
-            id="mobile-navigation"
-            aria-describedby={undefined}
-            className="mobile-nav-panel fixed inset-y-0 left-0 z-50 flex flex-col bg-base outline-none"
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              document.querySelector<HTMLElement>('[aria-label="Открыть меню"]')?.focus();
-            }}
-          >
-            <Dialog.Title className="sr-only">Главное меню</Dialog.Title>
-            <aside
-              aria-label="Главное меню"
-              data-sidebar="app"
-              className="flex min-h-0 flex-1 flex-col"
-            >
-              <SidebarInner
-                collapsed={false}
-                canToggle={false}
-                onToggle={toggleSidebar}
-                onClose={() => setMobileNavOpen(false)}
-              />
-            </aside>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-    );
-  }
+  /*
+   * Телефон: выдвижного меню нет (ADR-048 заменяет ADR-046 до 767 px). Навигация телефона это
+   * нижняя панель и экран «Ещё»; SidebarInner остаётся для планшета и компьютера.
+   */
+  if (phone) return null;
 
   return (
     <>
@@ -114,8 +86,8 @@ export function Sidebar() {
           // На телефоне меню выезжает поверх экрана и нуждается в фоне; в оболочке сайдбар прозрачный
           "fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-base transition-[width,transform,visibility] duration-150 ease-out md:relative md:inset-auto md:h-full md:translate-x-0 md:bg-transparent",
           collapsed ? "md:w-[72px]" : "md:w-[var(--sidebar-w)]",
-          // Закрытое выдвижное меню скрыто от фокуса и диктора; скрытие ждёт конца выезда (ADR-015, п. 3)
-          mobileNavOpen ? "translate-x-0" : "-translate-x-full max-md:invisible",
+          // До 768 сайдбара нет (ADR-048): первый рендер до замера ширины не показывает его телефону
+          "-translate-x-full max-md:invisible",
         )}
       >
         <SidebarInner

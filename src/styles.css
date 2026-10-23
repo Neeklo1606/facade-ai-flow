@@ -536,6 +536,18 @@
 /* ---------------------------------------------------------------- База */
 
 @layer base {
+  /* Отклик касания без задержки 300 мс и без двойного нажатия-масштаба (ADR-048, 01_SPEC 4.2) */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  summary,
+  label,
+  [role="button"],
+  [role="tab"] {
+    touch-action: manipulation;
+  }
   * {
     border-color: var(--line);
   }
@@ -686,17 +698,29 @@
   font-size: 0.8125rem;
   line-height: 1.125rem;
   font-weight: 400;
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.8125rem, 12px);
+  }
 }
 @utility text-meta-strong {
   font-size: 0.8125rem;
   line-height: 1.125rem;
   font-weight: 500;
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.8125rem, 12px);
+  }
 }
 @utility text-tab {
   font-size: 0.6875rem;
   line-height: 0.8125rem;
   font-weight: 500;
   letter-spacing: 0;
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.6875rem, 12px);
+  }
 }
 /* Одно главное число экрана, не больше одного */
 @utility text-hero {
@@ -782,11 +806,19 @@
   font-size: 0.8125rem;
   line-height: 1.125rem;
   font-weight: 400;
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.8125rem, 12px);
+  }
 }
 @utility text-badge {
   font-size: 0.8125rem;
   line-height: 1.125rem;
   font-weight: 500;
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.8125rem, 12px);
+  }
 }
 @utility text-overline {
   font-size: 0.8125rem;
@@ -794,11 +826,19 @@
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.8125rem, 12px);
+  }
 }
 @utility text-micro {
   font-size: 0.8125rem;
   line-height: 1.125rem;
   letter-spacing: 0;
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.8125rem, 12px);
+  }
 }
 @utility tnum {
   font-variant-numeric: tabular-nums;
@@ -816,6 +856,10 @@
   letter-spacing: 0;
   text-transform: none;
   color: var(--text-3);
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.8125rem, 12px);
+  }
 }
 
 /* Коды и номера: моноширинный JetBrains Mono, цифры одной ширины */
@@ -1295,6 +1339,10 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--pill-text);
+  /* Компьютер: html 87,5 % (правка Lovable 22.10), подпись не мельче 12 px (01_SPEC 4.4) */
+  @media (min-width: 1024px) {
+    font-size: max(0.75rem, 12px);
+  }
 }
 
 /* ---------------------------------------------------------------- Экранные блоки */
@@ -1919,6 +1967,10 @@ html[data-boot-compact] [data-boot-hero] {
 @utility h-sheet-head {
   height: var(--h-sheet-head);
 }
+/* Шапка чата растёт на высоту безопасной зоны, когда она же шапка экрана (ADR-048) */
+@utility min-h-sheet-head {
+  min-height: var(--h-sheet-head);
+}
 /* Видимый элемент меньше 44: область касания добирается невидимой рамкой вокруг */
 @utility touch-target {
   position: relative;
@@ -2150,5 +2202,35 @@ main {
   from {
     opacity: 0;
     transform: translateY(8px);
+  }
+}
+
+/* Переход вглубь из «Ещё» сдвигом 250 мс (ADR-048, 4): только телефон и только где есть
+   View Transitions API; без поддержки браузер просто меняет экран. Между вкладками перехода нет */
+@media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: vt-push-out 250ms var(--ease-out) both;
+  }
+  ::view-transition-new(root) {
+    animation: vt-push-in 250ms var(--ease-out) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+@keyframes vt-push-in {
+  from {
+    transform: translateX(32%);
+    opacity: 0;
+  }
+}
+@keyframes vt-push-out {
+  to {
+    transform: translateX(-12%);
+    opacity: 0;
   }
 }

@@ -30,8 +30,12 @@ for (const [name, viewport] of [
     test("новичок: с /gas за одно касание до экрана любой роли", async ({ page }) => {
       for (const role of Object.keys(ROLE_HOME)) {
         await open(page, "/gas");
+        // Заголовок старта: на телефоне в шапке контура (h1), с планшета в герое (ADR-048, 5)
         await expect(
-          page.getByRole("heading", { level: 2, name: /Учёт выработки бригад/ }),
+          page
+            .getByRole("heading", { name: /^Учёт выработки бригад/ })
+            .filter({ visible: true })
+            .first(),
         ).toBeVisible();
         await page.getByTestId(`gas-role-${role}`).click();
         await expect(page).toHaveURL(ROLE_HOME[role]!);

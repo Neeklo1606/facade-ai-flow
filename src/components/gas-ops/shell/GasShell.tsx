@@ -10,6 +10,7 @@
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  ChevronLeft,
   ChevronsLeft,
   ChevronsRight,
   CircleHelp,
@@ -18,6 +19,7 @@ import {
   Search,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useBack, useTabStack, type TabDef } from "@/lib/ui/tab-stack";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import {
@@ -43,6 +45,7 @@ import { setGasContour } from "@/lib/gas-ops/use-gas-ops";
 import {
   GAS_GROUP_LABEL,
   OUT_OF_SCOPE_LABEL,
+  ROLE_HOME,
   ROLE_TABS,
   gasScreen,
   gasScreenOf,
@@ -67,9 +70,9 @@ import { ScreenStateGate } from "../ScreenStateGate";
 import { OfflineBar } from "@/components/ui/kit/offline-bar";
 import { useOffline } from "@/lib/ui/offline";
 
-const GROUPS: readonly GasGroup[] = ["work", "catalogs", "growth", "help"];
+export const GROUPS: readonly GasGroup[] = ["work", "catalogs", "growth", "help"];
 
-function isActive(screen: GasScreen, pathname: string) {
+export function isActive(screen: GasScreen, pathname: string) {
   if (screen.to === "/gas") return pathname === "/gas" || pathname === "/gas/";
   return pathname === screen.to || pathname.startsWith(`${screen.to}/`);
 }
@@ -95,6 +98,7 @@ export function GasShell({ children }: { children: ReactNode }) {
 }
 
 function GasShellFrame({ children }: { children: ReactNode }) {
+  const brand = useGasBrand();
   // Введённые записи переживают перезагрузку: снимок поднимается после первой отрисовки
   useGasHydration();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -115,14 +119,29 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   // Крупный заголовок в контенте; когда он ушёл под шапку, его текст встаёт в шапку (4.2)
   const { ref: titleRef, collapsed } = useCollapsingTitle(pathname);
   const network = useOffline();
+  // Высота липкого верха (шапка и полоса показа): экран бота занимает остаток высоты
+  const topRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = topRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const set = () =>
+      document.documentElement.style.setProperty("--gas-top-h", `${el.offsetHeight}px`);
+    set();
+    const observer = new ResizeObserver(set);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="gas-shell flex min-h-dvh bg-void text-text">
       <GasSidebar pathname={pathname} rail={rail} onRail={setRail} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Шапка и полоса показа липкие вместе: полоса живёт под шапкой (4.4) */}
-        <div className="sticky top-0 z-30">
-          <GasTopbar screen={screen} collapsed={collapsed} />
+        <div ref={topRef} className="sticky top-0 z-30">
+          {/* Экран бота на телефоне: шапка чата и есть шапка экрана, одна вместо трёх (ADR-048) */}
+          <div className={screen.key === "foreman" ? "max-md:hidden" : undefined}>
+            <GasTopbar screen={screen} collapsed={collapsed} />
+          </div>
           {network.offline ? <OfflineBar demo={network.simulated} /> : null}
           <GasShowDock />
         </div>
@@ -135,20 +154,26 @@ function GasShellFrame({ children }: { children: ReactNode }) {
         >
           <div className="mx-auto w-full max-w-[1280px]">
             {/* Заголовок экрана на телефоне и планшете: 24/30, отступ 8 сверху и 12 снизу */}
-            {botOnly ? null : (
-              <h1
-                ref={titleRef}
-                // Стартовый экран и финал показа рисуют свой крупный заголовок
-                className={cn("mb-3 text-title lg:hidden", screen.key === "start" && "sr-only")}
-              >
-                {screen.title}
-              </h1>
+            {screen.key === "foreman" ? null : (
+              <>
+                <h1
+                  ref={titleRef}
+                  className={cn("text-title lg:hidden", screen.key === "more" ? "mb-3" : "mb-0.5")}
+                >
+                  {screen.title}
+                </h1>
+                {/* Период недели строкой мета под крупным заголовком (ADR-048, 5) */}
+                {screen.key === "more" ? null : (
+                  <p className="mb-3 text-meta text-text-2 tnum lg:hidden">{brand.periodLabel}</p>
+                )}
+              </>
             )}
             <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
           </div>
         </main>
       </div>
-      {botOnly ? null : <GasBottomNav pathname={pathname} />}
+      {/* Бригадир живёт в боте: панели нет ни в боте, ни в «Моих записях» (01_SPEC 4.3) */}
+      {actor.role === "foreman" ? null : <GasBottomNav pathname={pathname} />}
     </div>
   );
 }
@@ -326,12 +351,32 @@ function GasSidebar({
 
 function GasTopbar({ screen, collapsed }: { screen: GasScreen; collapsed: boolean }) {
   const brand = useGasBrand();
+  const actor = useGasActor();
+  // Вложенный экран: не корень вкладки, не «Ещё» и не старт показа (ADR-048, 4)
+  const roots = new Set<string>([...ROLE_TABS[actor.role], "more", "start", ROLE_HOME[actor.role]]);
+  const nested = !roots.has(screen.key);
+  // Бригадиру «Назад» ведёт в бот: это его единственный корень
+  const back = useBack(actor.role === "foreman" ? "/gas/foreman" : "/gas/more");
   return (
     <header data-collapsed={collapsed ? "true" : undefined} className="content-header lg:px-8">
+      {nested ? (
+        <button
+          type="button"
+          onClick={back}
+          aria-label="Назад"
+          className="-ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-full pr-2 pl-1 text-body text-text focus-ring md:hidden [touch-action:manipulation]"
+        >
+          <ChevronLeft className="size-6" strokeWidth={1.75} aria-hidden />
+          {collapsed ? null : "Назад"}
+        </button>
+      ) : null}
       <div className="min-w-0 flex-1">
-        {/* Телефон: период, а когда заголовок ушёл под шапку, его текст. Компьютер: заголовок */}
+        {/*
+          Телефон (ADR-048, 5): заголовок встаёт в шапку, когда крупный ушёл под неё.
+          Период живёт строкой мета под крупным заголовком. Компьютер: заголовок всегда
+        */}
         <p className="truncate text-body-strong lg:hidden" aria-hidden={collapsed || undefined}>
-          {collapsed ? screen.title : brand.periodLabel}
+          {collapsed ? screen.title : null}
         </p>
         <h1 className="hidden truncate text-title lg:block">{screen.title}</h1>
       </div>
@@ -425,6 +470,11 @@ function HelpButton({ screen }: { screen: GasScreen }) {
   );
 }
 
+/** Аватар роли для шапки чата бота: та же шторка «Чьими глазами смотреть» */
+export function GasRoleAvatar() {
+  return <RoleButton variant="avatar" />;
+}
+
 /** Кто я: на десктопе строка в сайдбаре, на телефоне аватар в шапке */
 function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
   const actor = useGasActor();
@@ -489,7 +539,7 @@ function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
 }
 
 /** «Сбросить демо»: необратимо для введённого в этой вкладке, поэтому с подтверждением */
-function ResetButton({ onDone, wide = false }: { onDone?: () => void; wide?: boolean }) {
+export function ResetButton({ onDone, wide = false }: { onDone?: () => void; wide?: boolean }) {
   const actions = useGasActions();
   const [open, setOpen] = useState(false);
   return (
@@ -537,14 +587,24 @@ function ResetButton({ onDone, wide = false }: { onDone?: () => void; wide?: boo
 /* ------------------------------------------------------------ Телефон: нижняя панель */
 
 function GasBottomNav({ pathname }: { pathname: string }) {
-  const brand = useGasBrand();
   const actor = useGasActor();
-  const [more, setMore] = useState(false);
   const tabs = ROLE_TABS[actor.role].map(gasScreen);
-  const rest = screensFor(actor.role, useGasContour().kind).filter((s) => !tabs.includes(s));
-  const moreActive = rest.some((s) => isActive(s, pathname));
   const ref = useRef<HTMLElement>(null);
   useBottomLayer("tabbar", ref);
+
+  /*
+   * Стек вкладок (ADR-048): «Ещё» это вкладка-экран, у каждой вкладки своя история, повторное
+   * касание ведёт наверх и к корню. Экран вне вкладок принадлежит «Ещё»
+   */
+  const defs: TabDef[] = useMemo(
+    () => [...tabs.map((tab) => ({ key: tab.key, root: tab.to })), GAS_MORE_TAB],
+    [tabs],
+  );
+  const ownerOf = useCallback(
+    (path: string) => tabs.find((tab) => isActive(tab, path))?.key ?? "more",
+    [tabs],
+  );
+  const stack = useTabStack("gas", defs, ownerOf, GAS_TRANSIENT);
 
   /*
    * Нижняя панель ADR-045, 4.3: плоская, на всю ширину, 56 + safe-area, граница сверху.
@@ -552,7 +612,7 @@ function GasBottomNav({ pathname }: { pathname: string }) {
    */
   const item = (active: boolean) =>
     cn(
-      "flex h-tabbar w-full flex-col items-center justify-center gap-1 pt-1 text-tab focus-ring",
+      "flex h-tabbar w-full flex-col items-center justify-center gap-1 pt-1 text-tab focus-ring [touch-action:manipulation]",
       active ? "text-orange" : "text-text-2",
     );
   const dot = (active: boolean) => (
@@ -561,106 +621,50 @@ function GasBottomNav({ pathname }: { pathname: string }) {
       className={cn("-mt-0.5 size-1 rounded-full", active ? "bg-orange" : "bg-transparent")}
     />
   );
+  const entries = [
+    ...tabs.map((tab) => ({
+      def: { key: tab.key, root: tab.to },
+      label: tab.short,
+      icon: SCREEN_ICON[tab.key],
+    })),
+    { def: GAS_MORE_TAB, label: "Ещё", icon: MoreHorizontal },
+  ];
 
   return (
-    <>
-      <nav
-        ref={ref}
-        aria-label="Основные разделы"
-        className="line-top fixed inset-x-0 bottom-0 z-40 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
-      >
-        <ul className="flex items-stretch">
-          {tabs.map((tab) => {
-            const Icon = SCREEN_ICON[tab.key];
-            const active = isActive(tab, pathname);
-            return (
-              <li key={tab.key} className="min-w-0 flex-1">
-                <Link
-                  to={tab.to}
-                  aria-current={active ? "page" : undefined}
-                  data-tour={`tab-${tab.key}`}
-                  className={item(active)}
-                >
-                  <Icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
-                  <span className="max-w-full truncate px-1">{tab.short}</span>
-                  {dot(active)}
-                </Link>
-              </li>
-            );
-          })}
-          <li className="min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => setMore(true)}
-              aria-haspopup="dialog"
-              className={item(moreActive)}
-            >
-              <MoreHorizontal className="size-6" strokeWidth={1.75} aria-hidden />
-              Ещё
-              {dot(moreActive)}
-            </button>
-          </li>
-        </ul>
-      </nav>
-      <BottomSheet
-        open={more}
-        onOpenChange={setMore}
-        title="Ещё"
-        description={`${brand.product} · ${brand.clientShort}`}
-      >
-        <MorePanel rest={rest} pathname={pathname} onDone={() => setMore(false)} />
-      </BottomSheet>
-    </>
+    <nav
+      ref={ref}
+      aria-label="Основные разделы"
+      className="line-top fixed inset-x-0 bottom-0 z-40 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+    >
+      <ul className="flex items-stretch">
+        {entries.map(({ def, label, icon: Icon }) => {
+          const active = stack.active === def.key;
+          return (
+            <li key={def.key} className="min-w-0 flex-1">
+              <Link
+                to={def.root}
+                aria-current={active ? "page" : undefined}
+                data-tour={`tab-${def.key}`}
+                onClick={(event) => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0)
+                    return;
+                  event.preventDefault();
+                  stack.select(def);
+                }}
+                className={item(active)}
+              >
+                <Icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
+                <span className="max-w-full truncate px-1">{label}</span>
+                {dot(active)}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 
-function MorePanel({
-  rest,
-  pathname,
-  onDone,
-}: {
-  rest: GasScreen[];
-  pathname: string;
-  onDone: () => void;
-}) {
-  const brand = useGasBrand();
-  /* «Ещё» ADR-045, 5.17: группы строк 52, а не плитки */
-  return (
-    <div className="flex flex-col gap-section">
-      {GROUPS.map((group) => {
-        const items = rest.filter((s) => s.group === group);
-        if (items.length === 0) return null;
-        return (
-          <ListGroup
-            key={group}
-            title={`${GAS_GROUP_LABEL[group]}${group === "growth" ? ` · ${OUT_OF_SCOPE_LABEL}` : ""}`}
-          >
-            {items.map((item) => {
-              const Icon = SCREEN_ICON[item.key];
-              return (
-                <li key={item.key}>
-                  <ListRow
-                    compact
-                    leading={<Icon className="size-5" strokeWidth={1.75} aria-hidden />}
-                    title={item.title}
-                    current={isActive(item, pathname)}
-                    renderLink={(props) => <Link to={item.to} onClick={onDone} {...props} />}
-                  />
-                </li>
-              );
-            })}
-          </ListGroup>
-        );
-      })}
-      <section>
-        <p className="flex h-7 items-center text-meta text-text-3">Роль</p>
-        <RoleList onDone={onDone} />
-      </section>
-      <div className="flex items-center gap-2">
-        <ResetButton onDone={onDone} />
-        <ThemeToggle className="ms-auto" />
-      </div>
-      <p className="text-meta text-text-3">{brand.credit}</p>
-    </div>
-  );
-}
+const GAS_MORE_TAB: TabDef = { key: "more", root: "/gas/more" };
+/** Старт показа не вкладка: возврат на «Ещё» не должен вести на него */
+const GAS_TRANSIENT = ["/gas", "/gas/"] as const;

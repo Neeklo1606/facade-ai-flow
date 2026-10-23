@@ -18,7 +18,8 @@ export type GasScreenKey =
   | "summary"
   | "admin"
   | "guide"
-  | "questions";
+  | "questions"
+  | "more";
 
 export type GasGroup = "work" | "catalogs" | "growth" | "help";
 
@@ -211,7 +212,22 @@ export const GAS_SCREENS: readonly GasScreen[] = [
   },
 ];
 
+/** Вкладка «Ещё» телефона (ADR-048): разделы вне панели, роль, показ, тема */
+const MORE_SCREEN: GasScreen = {
+  key: "more",
+  to: "/gas/more",
+  title: "Ещё",
+  short: "Ещё",
+  group: null,
+  roles: ALL,
+  steps: [
+    "Здесь разделы, которых нет в нижней панели, смена роли, сброс показа и тема.",
+    "Нажмите строку, чтобы открыть раздел. «Назад» вернёт сюда.",
+  ],
+};
+
 export function gasScreenOf(pathname: string): GasScreen {
+  if (pathname.replace(/\/+$/, "") === MORE_SCREEN.to) return MORE_SCREEN;
   const path = pathname.replace(/\/+$/, "") || "/gas";
   const exact = GAS_SCREENS.find((screen) => screen.to === path);
   if (exact) return exact;
@@ -220,6 +236,7 @@ export function gasScreenOf(pathname: string): GasScreen {
 }
 
 export function gasScreen(key: GasScreenKey): GasScreen {
+  if (key === "more") return MORE_SCREEN;
   return GAS_SCREENS.find((s) => s.key === key)!;
 }
 
@@ -239,11 +256,14 @@ export const ROLE_ABOUT: Record<Role, string> = {
   admin: "Ведёт справочники, роли и правила расчёта.",
 };
 
-/** Нижняя панель телефона: четыре пункта по роли, «Ещё» открывает остальное */
+/**
+ * Нижняя панель телефона: три вкладки роли и «Ещё» (01_SPEC 4.3, ADR-048). Наборы руководителя
+ * и администратора приведены к 4.3: прежние в ADR не назывались (audit/ROUTES.md, 2.4)
+ */
 export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
   manager: ["moderation", "entries", "reports"],
-  director: ["reports", "summary", "entries"],
-  admin: ["moderation", "reports", "objects"],
+  director: ["reports", "entries", "brigades"],
+  admin: ["moderation", "objects", "estimates"],
   foreman: [],
 };
 

@@ -124,8 +124,11 @@ test.describe("показ: сброс и пометка", () => {
     await open(page, "/today");
     // Пометка демонстрации в первом экране: её ищет и проверка честности
     await expect(page.getByText("Демо", { exact: true }).first()).toBeVisible();
-    // Сброс живёт в меню: одно касание с любого экрана, и он спрашивает подтверждение
-    await page.getByRole("button", { name: "Открыть меню" }).click();
+    // Сброс живёт в «Ещё»: одно касание с любого экрана, и он спрашивает подтверждение (ADR-048)
+    await page
+      .getByRole("navigation", { name: "Основная навигация" })
+      .getByRole("link", { name: "Ещё" })
+      .click();
     await expect(page.getByRole("button", { name: /Сбросить демо-данные/ })).toBeVisible();
   });
 });

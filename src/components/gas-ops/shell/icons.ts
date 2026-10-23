@@ -13,6 +13,7 @@ import {
   Settings2,
   Users,
   type LucideIcon,
+  MoreHorizontal,
 } from "lucide-react";
 import type { GasScreenKey } from "@/lib/gas-ops/screens";
 
@@ -30,4 +31,5 @@ export const SCREEN_ICON: Record<GasScreenKey, LucideIcon> = {
   admin: Settings2,
   guide: BookOpen,
   questions: MessageCircleQuestion,
+  more: MoreHorizontal,
 };

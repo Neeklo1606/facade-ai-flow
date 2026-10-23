@@ -10,11 +10,14 @@ import { expect, expectA11y, open, test } from "./fixtures";
  */
 
 /**
- * Быстрая форма отчёта (ADR-029) с G4 живёт в шторке «Ещё»: центральная кнопка панели стала
- * «Говорить» и ведёт на экран записи (ADR-036).
+ * Быстрая форма отчёта (ADR-029) открывается из «Ещё»: центральная кнопка панели стала
+ * «Говорить» и ведёт на экран записи (ADR-036). С ADR-048 «Ещё» это вкладка-экран.
  */
 async function openQuickReport(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: /Ещё/ }).click();
+  await page
+    .getByRole("navigation", { name: "Основная навигация" })
+    .getByRole("link", { name: "Ещё" })
+    .click();
   await page.getByRole("button", { name: /Отчёт с площадки/ }).click();
 }
 
@@ -54,7 +57,11 @@ test.describe("шторка ввода", () => {
 
       await sheet.getByRole("button", { name: "Верно" }).click();
       await expect(sheet).toBeHidden();
-      // Запись видна на экране смены
+      // Запись видна на экране смены: форма открыта из «Ещё», смена одной вкладкой (ADR-048)
+      await page
+        .getByRole("navigation", { name: "Основная навигация" })
+        .getByRole("link", { name: "Сегодня" })
+        .click();
       await expect(page.locator("main")).toContainText("Монтаж нащельников");
     });
   });
@@ -99,10 +106,16 @@ test.describe("шторка ввода", () => {
 
     test("создание роли живёт в «Ещё», неработающих каналов там нет @mobile", async ({ page }) => {
       await open(page, "/attention");
-      await page.getByRole("button", { name: /Ещё/ }).click();
-      const sheet = page.getByRole("dialog");
-      await expect(sheet.getByText("Создать")).toBeVisible();
-      const rows = (await sheet.getByRole("button").allInnerTexts()).filter(Boolean);
+      // «Ещё» вкладка-экран (ADR-048): создание в группе «Создать»
+      await page
+        .getByRole("navigation", { name: "Основная навигация" })
+        .getByRole("link", { name: "Ещё" })
+        .click();
+      const sheet = page.getByRole("region", { name: "Создать" });
+      await expect(sheet).toBeVisible();
+      const rows = (
+        await sheet.getByRole("link").or(sheet.getByRole("button")).allInnerTexts()
+      ).filter(Boolean);
       // Первым в создании стоит действие роли: снабжение заводит запрос
       expect(rows[0]).toContain("Запрос поставщикам");
       const text = rows.join(" ").toLowerCase();

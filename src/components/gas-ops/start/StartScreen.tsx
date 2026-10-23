@@ -179,9 +179,10 @@ function Hero({
         {clientContour ? `Для ${brand.client}` : "Пример: Демо-подрядчик"}
       </p>
 
+      {/* На телефоне заголовок экрана в шапке контура, здесь только с планшета (ADR-048, 5) */}
       <h2
         id="gas-start-title"
-        className="text-display mt-8 max-w-[860px] text-balance sm:mt-12 lg:mt-16"
+        className="text-display mt-8 hidden max-w-[860px] text-balance sm:mt-12 md:block lg:mt-16"
       >
         Учёт выработки бригад.{" "}
         <span className="tone-2 block">От сообщения бригадира до недельного Excel.</span>

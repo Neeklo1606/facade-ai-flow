@@ -47,6 +47,40 @@ export function BottomSheet({
     openedAt.current = window.location.href;
   }, [open]);
 
+  /*
+   * Системный «назад» закрывает шторку (ADR-048, 4): открытие кладёт запись в историю
+   * на том же адресе, «назад» снимает её и закрывает шторку. Закрыли сами (крестик, Esc,
+   * подложка) — запись снимаем за собой. Если действие шторки увело на другой экран,
+   * его запись уже сверху, и трогать историю нельзя: «назад» отменил бы переход.
+   */
+  const latest = useRef(onOpenChange);
+  latest.current = onOpenChange;
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    const marker = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const state = (window.history.state ?? {}) as Record<string, unknown>;
+    window.history.pushState({ ...state, __sheet: marker }, "");
+    let popped = false;
+    const onPop = () => {
+      popped = true;
+      latest.current(false);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if (popped) return;
+      /*
+       * Снимаем свою запись чуть позже: действие шторки (смена роли, переход) может увести
+       * на другой экран асинхронно, и «назад» сразу отменил бы этот переход. Если сверху
+       * уже чужая запись, история не трогается
+       */
+      window.setTimeout(() => {
+        const top = window.history.state as { __sheet?: string } | null;
+        if (top?.__sheet === marker) window.history.back();
+      }, 250);
+    };
+  }, [open]);
+
   /* Перетаскивание за ручку: тянем вниз — шторка идёт за пальцем, отпустили далеко — закрылась */
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;

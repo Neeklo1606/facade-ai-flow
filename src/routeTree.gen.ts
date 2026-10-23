@@ -30,6 +30,7 @@ import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KitRouteImport } from './routes/kit'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MoreRouteImport } from './routes/more'
 import { Route as OfficeRouteImport } from './routes/office'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as QualityRouteImport } from './routes/quality'
@@ -55,6 +56,7 @@ import { Route as GasFinishRouteImport } from './routes/gas/finish'
 import { Route as GasForemanRouteImport } from './routes/gas/foreman'
 import { Route as GasGuideRouteImport } from './routes/gas/guide'
 import { Route as GasModerationRouteImport } from './routes/gas/moderation'
+import { Route as GasMoreRouteImport } from './routes/gas/more'
 import { Route as GasObjectsRouteImport } from './routes/gas/objects'
 import { Route as GasQuestionsRouteImport } from './routes/gas/questions'
 import { Route as GasReportsRouteImport } from './routes/gas/reports'
@@ -182,6 +184,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/login.lazy').then((d) => d.Route))
+const MoreRoute = MoreRouteImport.update({
+  id: '/more',
+  path: '/more',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfficeRoute = OfficeRouteImport.update({
   id: '/office',
   path: '/office',
@@ -305,6 +312,11 @@ const GasGuideRoute = GasGuideRouteImport.update({
 const GasModerationRoute = GasModerationRouteImport.update({
   id: '/moderation',
   path: '/moderation',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasMoreRoute = GasMoreRouteImport.update({
+  id: '/more',
+  path: '/more',
   getParentRoute: () => GasRoute,
 } as any)
 const GasObjectsRoute = GasObjectsRouteImport.update({
@@ -439,6 +451,7 @@ export interface FileRoutesByFullPath {
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/more': typeof MoreRoute
   '/office': typeof OfficeRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/quality': typeof QualityRoute
@@ -463,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
@@ -507,6 +521,7 @@ export interface FileRoutesByTo {
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/more': typeof MoreRoute
   '/privacy': typeof PrivacyRoute
   '/quality': typeof QualityRoute
   '/razbor': typeof RazborRoute
@@ -530,6 +545,7 @@ export interface FileRoutesByTo {
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
@@ -576,6 +592,7 @@ export interface FileRoutesById {
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/more': typeof MoreRoute
   '/office': typeof OfficeRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/quality': typeof QualityRoute
@@ -600,6 +617,7 @@ export interface FileRoutesById {
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
@@ -647,6 +665,7 @@ export interface FileRouteTypes {
     | '/kit'
     | '/knowledge'
     | '/login'
+    | '/more'
     | '/office'
     | '/privacy'
     | '/quality'
@@ -671,6 +690,7 @@ export interface FileRouteTypes {
     | '/gas/foreman'
     | '/gas/guide'
     | '/gas/moderation'
+    | '/gas/more'
     | '/gas/objects'
     | '/gas/questions'
     | '/gas/reports'
@@ -715,6 +735,7 @@ export interface FileRouteTypes {
     | '/kit'
     | '/knowledge'
     | '/login'
+    | '/more'
     | '/privacy'
     | '/quality'
     | '/razbor'
@@ -738,6 +759,7 @@ export interface FileRouteTypes {
     | '/gas/foreman'
     | '/gas/guide'
     | '/gas/moderation'
+    | '/gas/more'
     | '/gas/objects'
     | '/gas/questions'
     | '/gas/reports'
@@ -783,6 +805,7 @@ export interface FileRouteTypes {
     | '/kit'
     | '/knowledge'
     | '/login'
+    | '/more'
     | '/office'
     | '/privacy'
     | '/quality'
@@ -807,6 +830,7 @@ export interface FileRouteTypes {
     | '/gas/foreman'
     | '/gas/guide'
     | '/gas/moderation'
+    | '/gas/more'
     | '/gas/objects'
     | '/gas/questions'
     | '/gas/reports'
@@ -853,6 +877,7 @@ export interface RootRouteChildren {
   KitRoute: typeof KitRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LoginRoute: typeof LoginRoute
+  MoreRoute: typeof MoreRoute
   OfficeRoute: typeof OfficeRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   QualityRoute: typeof QualityRoute
@@ -1033,6 +1058,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/more': {
+      id: '/more'
+      path: '/more'
+      fullPath: '/more'
+      preLoaderRoute: typeof MoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/office': {
       id: '/office'
       path: '/office'
@@ -1208,6 +1240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasModerationRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/more': {
+      id: '/gas/more'
+      path: '/more'
+      fullPath: '/gas/more'
+      preLoaderRoute: typeof GasMoreRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/objects': {
       id: '/gas/objects'
       path: '/objects'
@@ -1368,6 +1407,7 @@ interface GasRouteChildren {
   GasForemanRoute: typeof GasForemanRoute
   GasGuideRoute: typeof GasGuideRoute
   GasModerationRoute: typeof GasModerationRoute
+  GasMoreRoute: typeof GasMoreRoute
   GasObjectsRoute: typeof GasObjectsRoute
   GasQuestionsRoute: typeof GasQuestionsRoute
   GasReportsRoute: typeof GasReportsRoute
@@ -1385,6 +1425,7 @@ const GasRouteChildren: GasRouteChildren = {
   GasForemanRoute: GasForemanRoute,
   GasGuideRoute: GasGuideRoute,
   GasModerationRoute: GasModerationRoute,
+  GasMoreRoute: GasMoreRoute,
   GasObjectsRoute: GasObjectsRoute,
   GasQuestionsRoute: GasQuestionsRoute,
   GasReportsRoute: GasReportsRoute,
@@ -1431,6 +1472,7 @@ const rootRouteChildren: RootRouteChildren = {
   KitRoute: KitRoute,
   KnowledgeRoute: KnowledgeRoute,
   LoginRoute: LoginRoute,
+  MoreRoute: MoreRoute,
   OfficeRoute: OfficeRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   QualityRoute: QualityRoute,

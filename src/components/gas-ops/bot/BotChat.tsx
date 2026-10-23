@@ -98,6 +98,8 @@ export interface BotChatProps {
   onSubmitted: (entry: TimeEntry) => void;
   /** Отступ снизу ленты: над полосой показа на телефоне */
   bottomInset?: boolean;
+  /** Своя шапка чата: на телефоне она же шапка экрана (ADR-048, 6) */
+  header?: ReactNode;
 }
 
 export function BotChat({
@@ -109,6 +111,7 @@ export function BotChat({
   objects,
   onSubmitted,
   bottomInset = false,
+  header,
 }: BotChatProps) {
   const week = useGasWeek();
   const actions = useGasActions();
@@ -650,7 +653,7 @@ export function BotChat({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <ChatHeader />
+      {header ?? <ChatHeader />}
       <div
         ref={feed}
         className={cn(
@@ -664,8 +667,7 @@ export function BotChat({
         aria-live="polite"
         aria-relevant="additions"
       >
-        {/* Как в мессенджере: короткая лента прижата к низу, к полю ответа */}
-        <div aria-hidden className="mt-auto" />
+        {/* Лента начинается сверху, без пустоты над первым сообщением (ADR-048, 6) */}
         <SystemNote>
           Сегодня, {shortDay(week.today)}. Так будет выглядеть бот в MAX, канал не подключён.
         </SystemNote>

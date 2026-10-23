@@ -11,10 +11,23 @@ import { cn } from "@/lib/utils";
 const APPEAR =
   "animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none";
 
-export function ChatHeader() {
+/**
+ * Шапка чата. На телефоне это и есть шапка экрана (ADR-048, 6): слева «Назад», справа
+ * «Мои записи» и роль, пометка «Так выглядит бот бригадира» строкой мета, а не плашкой
+ */
+export function ChatHeader({
+  leading,
+  trailing,
+  note,
+}: {
+  leading?: ReactNode;
+  trailing?: ReactNode;
+  note?: string;
+} = {}) {
   const brand = useGasBrand();
   return (
-    <div className="line-bottom z-10 flex h-sheet-head shrink-0 items-center gap-3 bg-surface px-4">
+    <div className="line-bottom z-10 flex min-h-sheet-head shrink-0 items-center gap-3 bg-surface px-4 pt-[env(safe-area-inset-top)] lg:pt-0">
+      {leading}
       <span
         aria-hidden
         className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-strong text-body-strong text-on-orange"
@@ -23,8 +36,9 @@ export function ChatHeader() {
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-heading">Учёт времени</p>
-        <p className="text-meta truncate text-text-3">бот · {brand.clientShort}</p>
+        <p className="text-meta truncate text-text-3">{note ?? `бот · ${brand.clientShort}`}</p>
       </div>
+      {trailing}
     </div>
   );
 }
