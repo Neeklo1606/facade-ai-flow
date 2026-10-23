@@ -7,7 +7,7 @@
 import { Download } from "lucide-react";
 import { fmtHours, fmtRate, fmtRub, type ReportRow } from "@/api/gas-ops";
 import { Button } from "@/components/ui/button";
-import { GAS_BRAND } from "@/lib/gas-ops/brand";
+import { useGasBrand } from "@/lib/gas-ops/contour";
 import { useMetricOrder } from "@/lib/gas-ops/report-view";
 import { plural } from "@/lib/format";
 import { hasValue, tripleText } from "./cell-text";
@@ -28,6 +28,7 @@ export function ReportHero({
   busy: boolean;
   onExport: () => void;
 }) {
+  const brand = useGasBrand();
   const order = useMetricOrder();
   const week = total?.total ?? { amountRub: null, minutes: null, revenue: null };
   const money = fmtRub(week.amountRub ?? 0);
@@ -38,7 +39,7 @@ export function ReportHero({
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           <h2 id="report-total" className="text-meta text-text-2">
-            Итог недели {GAS_BRAND.periodLabel} ·{" "}
+            Итог недели {brand.periodLabel} ·{" "}
             {preliminary ? "предварительный" : "только подтверждённые"}
           </h2>
           <p className="mt-1 text-hero" data-testid="report-total-amount">

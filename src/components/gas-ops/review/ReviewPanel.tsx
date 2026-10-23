@@ -94,7 +94,19 @@ export function ReviewPanel({
         <p className="mt-0.5 text-meta text-text-2 tnum">{entryLine(view)}</p>
         {money ? (
           <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {entry.amountRub === null ? (
+            {entry.amountRub === null && view.estimate?.status === "confirmed" ? (
+              /*
+               * Сумма записи назначается при подтверждении из подтверждённой стоимости объекта.
+               * До этого показываем её как ожидаемую, а не «нет суммы»: иначе на записи показа
+               * ЛПР видел «нет суммы», а через шаг в отчёте 14 700 ₽ (аудит J1)
+               */
+              <p className="flex flex-wrap items-baseline gap-x-2" data-testid="amount-expected">
+                <span className="text-title tnum">{fmtRub(view.estimate.amountRub)}</span>
+                <span className="text-meta text-text-3">
+                  по смете объекта, начислится при подтверждении
+                </span>
+              </p>
+            ) : entry.amountRub === null ? (
               <p className="text-body text-text-3">
                 Нет суммы{" "}
                 <a href="#entry-why" className="text-body-strong text-orange focus-ring">
@@ -350,7 +362,7 @@ function ReasonForm({
       {mode === "correct" ? (
         noFrame ? (
           <p className="mt-2 text-body text-warn">
-            У записи из выгрузки нет начала и окончания смены: в файле заказчика стоят только
+            У записи из выгрузки нет начала и окончания смены: в недельном отчёте стоят только
             минуты.
           </p>
         ) : (

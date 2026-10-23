@@ -1,6 +1,6 @@
 import { expect, open, test } from "./fixtures";
 import { mobileCheck } from "./mobile-checks";
-import { gasRole } from "./gas-helpers";
+import { enterClientContour, gasRole } from "./gas-helpers";
 
 /**
  * Рабочий контур газа (ADR-043, ADR-044, F1): экраны открываются в своей оболочке без
@@ -52,6 +52,11 @@ test.describe("контур газа открывается в своей обо
   }
 
   test("граница договора подписана в меню один раз", async ({ page }) => {
+    // Договор газового заказчика: граница видна в его личном контуре, в публичном её нет (L3)
+    await open(page, "/gas/moderation");
+    const publicMenu = page.getByRole("navigation", { name: "Разделы" });
+    await expect(publicMenu.getByText("Вне договора v1.0")).toHaveCount(0);
+    await enterClientContour(page);
     await open(page, "/gas/moderation");
     const menu = page.getByRole("navigation", { name: "Разделы" });
     await expect(menu.getByText("Вне договора v1.0")).toHaveCount(1);
@@ -108,8 +113,10 @@ test.describe("@mobile телефон", () => {
   test("нижняя панель по роли: три раздела и «Ещё» с остальным", async ({ page }) => {
     await open(page, "/gas/moderation");
     const nav = page.getByRole("navigation", { name: "Основные разделы" });
-    await expect(nav.getByRole("link")).toHaveCount(3);
-    await nav.getByRole("button", { name: "Ещё" }).click();
-    await expect(page.getByRole("dialog").getByRole("link", { name: "Инструкция" })).toBeVisible();
+    // Три раздела роли и «Ещё» вкладкой-экраном (ADR-048)
+    await expect(nav.getByRole("link")).toHaveCount(4);
+    await nav.getByRole("link", { name: "Ещё" }).click();
+    await expect(page).toHaveURL(/\/gas\/more$/);
+    await expect(page.getByRole("main").getByRole("link", { name: "Инструкция" })).toBeVisible();
   });
 });

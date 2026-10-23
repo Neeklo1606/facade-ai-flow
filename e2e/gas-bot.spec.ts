@@ -76,11 +76,11 @@ for (const width of WIDTHS) {
       expect(taps, "касаний от «Внести время» до «Отправить»").toBeLessThanOrEqual(6);
 
       const done = current(bot);
-      await expect(done).toContainText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+      await expect(done).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
       const number = (await done.innerText()).match(/ГЗ-\d{5}/)?.[0];
       expect(number).toBeTruthy();
       // Выбранные ответы остались в ленте
-      await expect(bot.getByText("ст. Петровская, ул. Демо, 200 - котел").first()).toBeVisible();
+      await expect(bot.getByText("ст. Демо-Северная, ул. Демо, 200 - котел").first()).toBeVisible();
       await expect(done.getByRole("button", { name: "Внести ещё адрес" })).toBeVisible();
 
       if (width.name === "1440") {
@@ -147,3 +147,55 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+/*
+ * Голос в боте бригадира (ADR-049, L4). Запись с поддельным микрофоном (проект mic) и путь
+ * текстом: «Сказать голосом» → «Готово» → «Отправить» не больше 3 касаний, разбор этапами,
+ * у каждого значения источник, пометка демо рядом с фразой.
+ */
+test.describe("бот бригадира: голосом 390", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("голосом за 3 касания до записи @mic", async ({ page }) => {
+    const bot = await openBot(page);
+    await current(bot).getByRole("button", { name: "Внести время" }).click();
+    let taps = 0;
+    await current(bot).getByRole("button", { name: "Сказать голосом" }).click();
+    taps += 1;
+    await expect(bot.getByTestId("bot-voice")).toBeVisible();
+    // Поле «или напишите текстом» не забирает фокус у записи: клавиатура не закрывает волну
+    await expect(page.getByPlaceholder("Или напишите текстом")).not.toBeFocused();
+    await current(bot).getByRole("button", { name: "Готово" }).click();
+    taps += 1;
+    await expect(bot.getByText("Демо: фраза подготовлена заранее")).toBeVisible();
+    await expect(bot.getByRole("list", { name: "Разбор фразы" })).toBeVisible();
+    // Сводка шага 7 с источниками найденного
+    await expect(current(bot).getByTestId("bot-total")).toHaveText("150 мин = 2,50 ч", {
+      timeout: 10_000,
+    });
+    await expect(bot).toContainText("Нашла: объект «");
+    await expect(bot).toContainText("начало «с двенадцати»");
+    await expect(bot).not.toContainText("₽");
+    await current(bot).getByRole("button", { name: "Отправить", exact: true }).click();
+    taps += 1;
+    expect(taps).toBeLessThanOrEqual(3);
+    await expect(current(bot)).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
+  });
+
+  test("набранная фраза разбирается тем же правилом, недостающее спрашивается кнопками", async ({
+    page,
+  }) => {
+    const bot = await openBot(page);
+    await current(bot).getByRole("button", { name: "Внести время" }).click();
+    await current(bot).getByRole("button", { name: "Сказать голосом" }).click();
+    // Во фразе нет перерыва: бот спросит его кнопками, а не угадает
+    await page.getByPlaceholder("Или напишите текстом").fill("сегодня северная 200 с 12 до 14:30");
+    await page.getByPlaceholder("Или напишите текстом").press("Enter");
+    await expect(bot).not.toContainText("Демо: фраза подготовлена заранее");
+    await expect(current(bot)).toContainText("Был перерыв?", { timeout: 10_000 });
+    await current(bot)
+      .getByRole("button", { name: /^0 мин/ })
+      .click();
+    await expect(current(bot).getByTestId("bot-total")).toHaveText("150 мин = 2,50 ч");
+  });
+});

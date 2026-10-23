@@ -55,6 +55,8 @@ try {
    */
   const mobile: { path: string; persona: string | null }[] = [
     { path: "/", persona: null },
+    // Вход в демо с сайта (шаг L8): страница сайта, отрисованная на сервере
+    { path: "/demo", persona: null },
     { path: "/today", persona: "e-gareev" },
     // Первый экран контура газа (ADR-045, V9): цифры FCP и LCP печатаются для отчёта
     { path: "/gas", persona: null },
@@ -103,8 +105,9 @@ try {
       audits[id]?.numericValue
         ? (audits[id]!.numericValue! / 1000).toFixed(1).replace(".", ",")
         : "—";
+    const shift = audits["cumulative-layout-shift"]?.numericValue;
     line.push(
-      `FCP ${seconds("first-contentful-paint")} с · LCP ${seconds("largest-contentful-paint")} с`,
+      `FCP ${seconds("first-contentful-paint")} с · LCP ${seconds("largest-contentful-paint")} с · CLS ${shift === undefined ? "—" : shift.toFixed(3).replace(".", ",")}`,
     );
     console.log(`телефон ${path}: ${line.join(" · ")}`);
   }

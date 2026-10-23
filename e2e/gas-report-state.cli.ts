@@ -6,6 +6,7 @@
  */
 import ExcelJS from "exceljs";
 import { reconcileLinesOf } from "@/api/gas-report";
+import { factReport } from "@/data/mock/fact-report";
 import { reportState } from "./gas-report-state";
 
 const [command, path] = process.argv.slice(2);
@@ -26,7 +27,7 @@ if (command === "read" && path) {
 } else {
   const state = reportState();
   const entries = (
-    JSON.parse(state) as { snapshot: { entries: Parameters<typeof reconcileLinesOf>[0] } }
+    JSON.parse(state) as { snapshot: { entries: Parameters<typeof reconcileLinesOf>[1] } }
   ).snapshot.entries;
-  process.stdout.write(JSON.stringify({ state, lines: reconcileLinesOf(entries) }));
+  process.stdout.write(JSON.stringify({ state, lines: reconcileLinesOf(factReport, entries) }));
 }

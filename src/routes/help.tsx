@@ -19,8 +19,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/help")({
   /** Адрес статьи можно отправить коллеге: `/help?article=delivery` */
   validateSearch: (search: Record<string, unknown>): { article?: string } => {
+    // Проверка по форме: список статей грузится с экраном справки, а не с первым экраном
+    // приложения. Неизвестный адрес статьи открывает первую статью (HelpPage)
     const id = typeof search["article"] === "string" ? search["article"] : undefined;
-    return id && visibleHelpArticles().some((item) => item.id === id) ? { article: id } : {};
+    return id && /^[a-z0-9-]{1,40}$/.test(id) ? { article: id } : {};
   },
   head: () =>
     completePageHead(

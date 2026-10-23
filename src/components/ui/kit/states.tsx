@@ -162,8 +162,9 @@ function markSeen(key: string) {
 }
 
 /**
- * Одна строка 44 «Как работать с экраном» со стрелкой. При первом посещении раскрыта
- * одной карточкой не выше 120: шаги нумерованным списком text-body.
+ * Одна строка 44 «Как работать с экраном» со стрелкой. При первом посещении раскрыта,
+ * дальше свёрнута. Раскрытая показывает все шаги целиком: высота по содержимому, текст
+ * не обрезается посреди строки (ADR-048, 6; аудит L0, now-05 и now-07).
  */
 export function HintRow({
   id,
@@ -201,7 +202,7 @@ export function HintRow({
         {more ? <div className="shrink-0">{more}</div> : null}
       </div>
       {open ? (
-        <div className="surface-1 max-h-30 overflow-y-auto px-card py-2">
+        <div className="surface-1 px-card py-2">
           <ol className="list-decimal space-y-1 ps-5 text-body text-text">
             {steps.map((step) => (
               <li key={step}>{step}</li>

@@ -5,6 +5,9 @@ import { renderErrorPage } from "./lib/error-page";
 import { rememberEnv } from "./lib/runtime-env";
 import { SESSION_PREFIX, sessionFromCookieHeader, verifySession } from "./lib/session-token";
 import { authAvailable, sessionEmployee } from "./api/auth-store";
+import { clientLinkGate } from "./lib/client-link";
+import { isSitePath } from "./lib/site/paths";
+import { serverEnv } from "./lib/runtime-env";
 
 /** Экран входа: единственный адрес, открытый без сессии в рабочем контуре (ADR-021) */
 const LOGIN_PATH = "/login";
@@ -60,10 +63,15 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
-/** Ответы страниц не индексируются: демонстрация живёт по ссылке, а не в поиске (TASK-A5, п. 2) */
-function withNoIndex(response: Response) {
+/**
+ * Ответы страниц не индексируются: демонстрация живёт по ссылке, а не в поиске (TASK-A5, п. 2).
+ * Страницы сайта открываются поиску только при SEO_INDEX=on; /kit закрыт всегда (ADR-047)
+ */
+function withNoIndex(response: Response, pathname: string) {
   const type = response.headers.get("content-type") ?? "";
   if (!type.includes("text/html")) return response;
+  const indexable = serverEnv("SEO_INDEX") === "on" && isSitePath(pathname) && pathname !== "/kit";
+  if (indexable) return response;
   const headers = new Headers(response.headers);
   headers.set("x-robots-tag", "noindex, nofollow");
   return new Response(response.body, {
@@ -140,6 +148,9 @@ export default {
       rememberEnv(env);
       const gate = accessGate(request, env);
       if (gate) return gate;
+      // Личная ссылка заказчика: ключ в адресе /gas меняется на куку контура (ADR-047)
+      const link = await clientLinkGate(request);
+      if (link) return link;
       const login = await requireLogin(request);
       if (login) return login;
       // Витрина дизайн-системы в production не существует. Путь подменяется несуществующим
@@ -153,7 +164,7 @@ export default {
       }
       const handler = await getServerEntry();
       const response = await handler.fetch(incoming, env, ctx);
-      return withNoIndex(await normalizeCatastrophicSsrResponse(response));
+      return withNoIndex(await normalizeCatastrophicSsrResponse(response), url.pathname);
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

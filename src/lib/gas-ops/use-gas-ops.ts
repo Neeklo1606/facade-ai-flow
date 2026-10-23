@@ -6,7 +6,14 @@
  */
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { gasOps } from "@/adapters/gas-ops/demo";
-import { getServerSnapshot, getSnapshot, hydrate, subscribe } from "@/adapters/gas-ops/state";
+import {
+  getServerSnapshotFor,
+  getSnapshot,
+  hydrate,
+  setContour,
+  subscribe,
+} from "@/adapters/gas-ops/state";
+import { useGasContour } from "@/lib/gas-ops/contour";
 import type { GasOpsPort, GasOpsSnapshot } from "@/ports/gas-ops";
 import { actorOf, type GasData } from "@/domain/gas-ops/view";
 import type { Role } from "@/domain/gas-ops/model";
@@ -22,12 +29,21 @@ export function useGasOps(): GasOpsPort {
  * в оболочке раздела, иначе разметка сервера и клиента разошлись бы при гидратации.
  */
 export function useGasSnapshot(): GasOpsSnapshot {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const contour = useGasContour();
+  const server = useCallback(() => getServerSnapshotFor(contour), [contour]);
+  return useSyncExternalStore(subscribe, getSnapshot, server);
 }
 
-/** Поднять сохранённый снимок после монтирования. Вызывается один раз, в оболочке раздела */
+/** Контур вкладки (ADR-047): оболочка раздела ставит его до отрисовки экранов */
+export const setGasContour = setContour;
+
+/**
+ * Поднять сохранённый снимок после монтирования. Вызывается в оболочке раздела, повторно
+ * при смене контура: у публичного и личного контура свои записи во вкладке (ADR-047)
+ */
 export function useGasHydration(): void {
-  useEffect(hydrate, []);
+  const kind = useGasContour().kind;
+  useEffect(hydrate, [kind]);
 }
 
 /** Тот же снимок в виде данных для доменных сборок */

@@ -1,22 +1,15 @@
-import { Suspense, lazy, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Menu, Mic } from "lucide-react";
-import { DEMO_PERSONAS, dataSource } from "@/api/config";
-import { signOutFn } from "@/api/auth-functions";
+import { useTabStack, type TabDef } from "@/lib/ui/tab-stack";
 import { queries } from "@/api/queries";
-import { employeeRoleLabel, type EmployeeRole } from "@/contracts";
-import { useApp } from "@/lib/app-context";
-import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scope";
+import { useCurrentRole, useProjectId } from "@/lib/project-scope";
 import { CRITICAL_BADGES, badgeCounts, badgeText } from "@/lib/badges";
 import { useKeyboardOpen } from "@/lib/keyboard-open";
-import { bottomNavFor, plusActionsFor, type BottomNavItem } from "@/lib/navigation";
+import { bottomNavFor, homeRouteFor, plusActionsFor, type BottomNavItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { useBottomLayer } from "@/lib/ui/bottom-layers";
-import { Button } from "@/components/ui/button";
-
-const PlusSheet = lazy(() => import("./sheets").then((module) => ({ default: module.PlusSheet })));
-const MoreSheet = lazy(() => import("./sheets").then((module) => ({ default: module.MoreSheet })));
 
 /**
  * Нижняя панель телефона (ADR-026, карта ГАЙКИ — ADR-034, п. 1): пять позиций — рабочий экран
@@ -44,8 +37,6 @@ export function BottomTabs() {
   const projectId = useProjectId();
   const role = useCurrentRole();
   const keyboardOpen = useKeyboardOpen();
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [plusOpen, setPlusOpen] = useState(false);
 
   const navigate = useNavigate();
   const items = bottomNavFor(role, projectId);
@@ -83,26 +74,50 @@ export function BottomTabs() {
   const right = items.slice(2, 3);
   const navRef = useRef<HTMLElement>(null);
   useBottomLayer("tabbar", navRef, !keyboardOpen);
+  /*
+   * Стек вкладок (ADR-048): у каждой вкладки своя история, повторное касание ведёт наверх
+   * и к корню. Экран вне вкладок принадлежит «Ещё», запись голосом рабочему экрану роли.
+   */
+  const tabs: TabDef[] = useMemo(
+    () => [...items.map((item) => ({ key: item.key, root: item.to })), MORE_TAB],
+    [items],
+  );
+  const home = homeRouteFor(role);
+  const ownerOf = useCallback(
+    (path: string) => {
+      const own = items.find((item) => item.active(path, view, pickSection));
+      if (own) return own.key;
+      if (path === "/capture") return items.find((item) => item.to === home)?.key ?? "more";
+      if (path.startsWith("/projects"))
+        return items.find((i) => i.key === "projects")?.key ?? "more";
+      return "more";
+    },
+    [items, view, pickSection, home],
+  );
+  const stack = useTabStack("app", tabs, ownerOf, TRANSIENT);
   const tab = (item: BottomNavItem) => (
     <Tab
       key={item.key}
       item={item}
-      active={item.active(pathname, view, pickSection)}
+      active={stack.active === item.key}
       count={item.badge ? counts[item.badge] : 0}
+      onSelect={() => stack.select({ key: item.key, root: item.to })}
     />
   );
   const more = (
-    <Button
+    <Tab
       key="more"
-      variant="ghost"
-      type="button"
-      onClick={() => setMoreOpen(true)}
-      aria-label="Ещё: разделы, тема, справка"
-      className="focus-ring flex h-tabbar flex-col items-center justify-center gap-1 rounded-none px-0 text-tab text-text-2 is-hover:bg-transparent [&_svg]:size-6"
-    >
-      <Menu strokeWidth={1.75} aria-hidden />
-      Ещё
-    </Button>
+      item={{
+        key: "more",
+        label: "Ещё",
+        icon: Menu,
+        to: MORE_TAB.root,
+        active: () => false,
+      }}
+      active={stack.active === "more"}
+      count={0}
+      onSelect={() => stack.select(MORE_TAB)}
+    />
   );
   const empty = (key: string) => <span key={key} aria-hidden />;
   const slots = canCapture
@@ -162,49 +177,42 @@ export function BottomTabs() {
           ),
         )}
       </nav>
-
-      {/* Шторки грузятся по требованию: их разметка и перетаскивание не нужны до нажатия */}
-      {plusOpen && (
-        <Suspense fallback={null}>
-          <PlusSheet
-            open
-            onOpenChange={setPlusOpen}
-            role={role}
-            projectId={projectId}
-            initialChannel="report"
-          />
-        </Suspense>
-      )}
-      {moreOpen && (
-        <Suspense fallback={null}>
-          <MoreSheet
-            open
-            onOpenChange={setMoreOpen}
-            role={role}
-            projectId={projectId}
-            onQuickReport={() => {
-              setMoreOpen(false);
-              setPlusOpen(true);
-            }}
-          />
-        </Suspense>
-      )}
     </>
   );
 }
 
+const MORE_TAB: TabDef = { key: "more", root: "/more" };
+/** Дверь /app сразу уводит на экран роли: в истории вкладок её нет */
+const TRANSIENT = ["/app", "/"] as const;
+
 /** Позиция панели: иконка 24, подпись 11, активная акцентом и точкой 4 под подписью */
-function Tab({ item, active, count }: { item: BottomNavItem; active: boolean; count: number }) {
+function Tab({
+  item,
+  active,
+  count,
+  onSelect,
+}: {
+  item: BottomNavItem;
+  active: boolean;
+  count: number;
+  onSelect: () => void;
+}) {
   return (
     <Link
       to={item.to}
       search={item.search as never}
+      // Касание решает стек вкладок: вернуть на сохранённый экран вкладки или наверх (ADR-048)
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+        event.preventDefault();
+        onSelect();
+      }}
       // «Где я» решает item.active: роутер не должен отмечать пункт на вложенных экранах
       activeOptions={{ exact: true, includeSearch: false }}
       data-tour={`nav-${item.key}`}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "focus-ring transition-fast relative flex h-tabbar flex-col items-center justify-center gap-1 pt-1 text-tab",
+        "focus-ring transition-fast relative flex h-tabbar flex-col items-center justify-center gap-1 pt-1 text-tab [touch-action:manipulation]",
         active ? "text-orange" : "text-text-2",
       )}
     >

@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useCollapsingTitle } from "@/lib/ui/collapsing-title";
 import { useAccess } from "@/api/access";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Search } from "lucide-react";
+import { ChevronLeft, Search } from "lucide-react";
 import { useApp } from "@/lib/app-context";
-import { sectionLabels, type ProjectSection } from "@/lib/navigation";
+import { bottomNavFor, homeRouteFor, sectionLabels, type ProjectSection } from "@/lib/navigation";
+import { useBack } from "@/lib/ui/tab-stack";
+import { RoleSheet } from "./RoleSheet";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { screenStatesEnabled } from "@/lib/screen-state";
@@ -13,13 +15,14 @@ import { ScreenHelp } from "@/components/guide/ScreenHelp";
 import { ThemeToggle } from "./ThemeToggle";
 import { ProjectChip } from "./ProjectChip";
 import { screenFor } from "@/lib/guide/screens";
-import { useCurrentUser } from "@/lib/project-scope";
+import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scope";
 import { dataSource } from "@/api/config";
 import { DEMO_ONLY_NOTES } from "@/lib/contour-copy";
 import { Button } from "@/components/ui/button";
 
 export function Topbar() {
-  const { mobileNavOpen, setMobileNavOpen, setCommandOpen, setProjectId } = useApp();
+  const { setCommandOpen, setProjectId } = useApp();
+  const [roles, setRoles] = useState(false);
   // Аватар — выбранная персона демонстрации, а не всегда руководитель
   const user = useCurrentUser();
   const initials = user?.name
@@ -100,20 +103,35 @@ export function Topbar() {
           // заглушки разделов, «не найдено»
           screenFor(pathname).name;
 
+  /*
+   * Вложенный экран телефона (ADR-048, 4): не корень вкладки. Слева «‹ Назад», бургера нет.
+   * «Назад» идёт по истории, если пришли изнутри приложения, иначе к корню вкладки
+   */
+  const role = useCurrentRole();
+  const scopeProject = useProjectId();
+  const roots = new Set([
+    ...bottomNavFor(role, scopeProject).map((item) => item.to),
+    homeRouteFor(role),
+    "/more",
+    "/capture",
+  ]);
+  const nested = !roots.has(pathname);
+  const back = useBack(pathname.startsWith("/projects") ? "/projects" : "/more");
+
   return (
     <header className="content-header" data-collapsed={collapsed ? "true" : undefined}>
-      <Button
-        variant="ghost"
-        size="icon"
-        type="button"
-        onClick={() => setMobileNavOpen(true)}
-        aria-label="Открыть меню"
-        aria-expanded={mobileNavOpen}
-        aria-controls={mobileNavOpen ? "mobile-navigation" : undefined}
-        className="icon-button focus-ring -ml-2 md:hidden"
-      >
-        <Menu strokeWidth={1.5} />
-      </Button>
+      {nested ? (
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={back}
+          aria-label="Назад"
+          className="focus-ring -ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-full pr-2 pl-1 text-body text-text md:hidden [touch-action:manipulation]"
+        >
+          <ChevronLeft className="size-6" strokeWidth={1.75} aria-hidden />
+          Назад
+        </Button>
+      ) : null}
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">
@@ -138,7 +156,8 @@ export function Topbar() {
               {title}
             </span>
           ) : null}
-          <div className={collapsed ? "hidden lg:contents" : "contents"}>
+          {/* На вложенном экране телефона слева «Назад», чип объекта остаётся на корнях вкладок */}
+          <div className={collapsed || nested ? "hidden lg:contents" : "contents"}>
             <ProjectChip />
           </div>
           {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
@@ -205,7 +224,7 @@ export function Topbar() {
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск"
-          className="icon-button focus-ring grid xl:hidden"
+          className="icon-button focus-ring grid size-[var(--touch)] xl:hidden"
         >
           <Search strokeWidth={1.5} />
         </Button>
@@ -232,9 +251,21 @@ export function Topbar() {
         */}
         <div id="page-actions" className="hidden items-center gap-2.5 lg:flex" />
         {user && (
-          <span className="avatar grid" title={`${user.name}, ${user.roleLabel}`}>
-            {initials}
-          </span>
+          <>
+            {/* Аватар открывает шторку «Вы смотрите как» (ADR-048, 5); в рабочем контуре роль из учётной записи */}
+            <button
+              type="button"
+              onClick={dataSource === "demo" ? () => setRoles(true) : undefined}
+              aria-label={`Вы смотрите как ${user.roleLabel}. Сменить роль`}
+              title={`${user.name}, ${user.roleLabel}`}
+              className="-mr-1.5 grid min-h-11 min-w-11 place-items-center rounded-full focus-ring [touch-action:manipulation]"
+            >
+              <span className="avatar grid" aria-hidden>
+                {initials}
+              </span>
+            </button>
+            <RoleSheet open={roles} onOpenChange={setRoles} />
+          </>
         )}
       </div>
     </header>

@@ -49,10 +49,11 @@ const VIEWS = [
   { label: "430", width: 430, height: 932 },
   { label: "390", width: 390, height: 844 },
   { label: "375", width: 375, height: 812 },
+  { label: "360", width: 360, height: 800 },
 ];
 
 /** Ширины телефона: на них цель касания не меньше 44 px */
-const PHONE = new Set([375, 390, 430]);
+const PHONE = new Set([360, 375, 390, 430]);
 
 /**
  * Элементы раздела и оболочки контура (ADR-044): main, шапка и нижняя панель. Нажатия делаются

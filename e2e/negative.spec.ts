@@ -163,7 +163,7 @@ test.describe("корень адреса", () => {
         sessionStorage.setItem("neeklo-fieldops-role-chosen", "1");
         sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
       }, persona);
-      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await page.goto("/app", { waitUntil: "domcontentloaded" });
       await expect(page).toHaveURL(expected);
       await expect(page.locator("[data-screen=no-access]")).toHaveCount(0);
     });

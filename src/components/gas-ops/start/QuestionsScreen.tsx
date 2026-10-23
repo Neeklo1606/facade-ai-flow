@@ -13,7 +13,6 @@ import { useIsDesktop } from "@/components/gas-ops/review/use-layout";
 import { Button } from "@/components/ui/button";
 import { Sheet, SidePanel } from "@/components/ui/kit/sheet";
 import {
-  GAS_QUESTIONS,
   questionsText,
   readAnswers,
   writeAnswers,
@@ -22,6 +21,7 @@ import {
 } from "@/lib/gas-ops/questions";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useGasContour } from "@/lib/gas-ops/contour";
 
 async function copyText(text: string): Promise<boolean> {
   try {
@@ -49,6 +49,8 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 export function QuestionsScreen() {
+  // Вопросы приходят только в личном контуре заказчика (ADR-047)
+  const GAS_QUESTIONS = useGasContour().questions;
   const [answers, setAnswers] = useState<Record<number, QuestionAnswer>>({});
   const [loaded, setLoaded] = useState(false);
 
@@ -81,7 +83,7 @@ export function QuestionsScreen() {
   const current = GAS_QUESTIONS.find((q) => q.n === open) ?? null;
 
   const copy = async () => {
-    const ok = await copyText(questionsText(answers));
+    const ok = await copyText(questionsText(GAS_QUESTIONS, answers));
     if (ok) toast.success("Список скопирован");
     else toast.error("Не удалось скопировать. Выделите текст вопросов вручную.");
   };

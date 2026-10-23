@@ -213,7 +213,7 @@ export function DataTable<T>({
                             event.stopPropagation();
                             onRowClick(row);
                           }}
-                          className="text-left focus-ring"
+                          className="flex min-h-10 w-full items-center text-left focus-ring"
                         >
                           {column.cell(row)}
                         </button>

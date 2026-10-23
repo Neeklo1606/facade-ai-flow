@@ -18,6 +18,7 @@ import {
 import { FLAG_LEVEL, LEVEL_ORDER, MARK_BASE, type Mark, type MarkLevel } from "./review/rules";
 import { ChipRow, type ChipTone } from "@/components/ui/kit/status";
 import { cn } from "@/lib/utils";
+import { sourceLabel, useGasContour } from "@/lib/gas-ops/contour";
 
 /* ---------------------------------------------------------------- Статус */
 
@@ -58,8 +59,9 @@ export function SourceMark({
   source: DataSource | "mixed" | null;
   className?: string;
 }) {
+  const kind = useGasContour().kind;
   if (source === null) return null;
-  const text = source === "fact-report" ? "Факт" : source === "mock" ? "Демо" : "Факт и демо";
+  const text = sourceLabel(source, kind);
   return <span className={cn("text-meta whitespace-nowrap text-text-3", className)}>{text}</span>;
 }
 
@@ -141,7 +143,7 @@ export function Num({
 export function MoneyCell({ value }: { value: number | null }) {
   return (
     <Num className={value === null ? "text-text-3" : undefined}>
-      {value === null ? "—" : fmtRub(value)}
+      {value === null ? "–" : fmtRub(value)}
     </Num>
   );
 }
@@ -149,7 +151,7 @@ export function MoneyCell({ value }: { value: number | null }) {
 export function HoursCell({ minutes }: { minutes: number | null }) {
   return (
     <Num className={minutes === null || minutes === 0 ? "text-text-3" : undefined}>
-      {minutes === null || minutes === 0 ? "—" : fmtHours(minutes / 60)}
+      {minutes === null || minutes === 0 ? "–" : fmtHours(minutes / 60)}
     </Num>
   );
 }

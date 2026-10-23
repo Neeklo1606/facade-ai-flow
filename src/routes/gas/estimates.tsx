@@ -38,8 +38,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/gas/estimates")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Стоимость работ — Учёт выработки бригад" }] },
-      "Стоимость работ — Учёт выработки бригад",
+      { meta: [{ title: "Стоимость работ · Учёт выработки бригад" }] },
+      "Стоимость работ · Учёт выработки бригад",
       "Подтверждённая стоимость работ без материалов, загрузка смет и ручной ввод сумм.",
     ),
   component: EstimatesPage,
@@ -110,7 +110,7 @@ function EstimatesPage() {
       <p className="text-meta text-text-3">
         Стоимость работ без материалов, целые рубли. В фактическом отчёте заказчика подтверждённой
         стоимости нет: здесь только то, что подтвердил человек. Какие статьи сметы входят в
-        стоимость работ — открытый вопрос ТЗ.
+        стоимость работ: открытый вопрос ТЗ.
       </p>
 
       {actor.canManageEstimates ? (
@@ -143,7 +143,7 @@ function EstimatesPage() {
                         className={cn("size-2 shrink-0 rounded-full", status.dot)}
                       />
                       <span className="truncate">
-                        {status.word} · {obj?.code ?? "—"} · версия {estimate.version}
+                        {status.word} · {obj?.code ?? "–"} · версия {estimate.version}
                       </span>
                     </span>
                   }

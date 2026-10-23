@@ -3,7 +3,16 @@
  * Запись и файл берутся из цепочки вкладки, числа записи из порта: те же, что в отчёте.
  */
 import { Link } from "@tanstack/react-router";
-import { BookOpen, FileSpreadsheet, MessageCircleQuestion, Play, RotateCcw } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  FileSpreadsheet,
+  Globe,
+  MessageCircleQuestion,
+  Mic,
+  Play,
+  RotateCcw,
+} from "lucide-react";
 import { useState } from "react";
 import {
   ENTRY_STATUS_LABEL,
@@ -25,8 +34,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { resetGasShow, startGasShow, useGasShow } from "@/lib/gas-ops/show";
+import { useIsClientContour } from "@/lib/gas-ops/contour";
 
 export function FinishScreen() {
+  const clientContour = useIsClientContour();
   const { state } = useGasShow();
   const entry = useGasEntry(state.chain.gasEntryId ?? null);
   const actions = useGasActions();
@@ -44,7 +55,7 @@ export function FinishScreen() {
   if (!state.chain.gasEntryId) {
     return (
       <section className="surface-1 flex flex-col items-start gap-block p-card">
-        <h2 className="text-display">
+        <h2 className="text-title">
           Показ ещё не пройден. <span className="tone-2">Он займёт 3 минуты.</span>
         </h2>
         <p className="max-w-[560px] text-body text-text-2">
@@ -56,24 +67,24 @@ export function FinishScreen() {
           className="inline-flex h-control-lg items-center gap-2 rounded-control bg-orange-strong px-5 text-body-strong text-on-orange focus-ring press-98"
         >
           <Play className="size-4 fill-current" aria-hidden />
-          Пройти показ
+          Начать показ
         </Link>
       </section>
     );
   }
 
   const rows = [
-    { label: "Номер записи", value: entry?.entry.number ?? state.chain.gasEntryNumber ?? "—" },
-    { label: "Объект", value: entry?.object?.label ?? "—" },
+    { label: "Номер записи", value: entry?.entry.number ?? state.chain.gasEntryNumber ?? "–" },
+    { label: "Объект", value: entry?.object?.label ?? "–" },
     {
       label: "Минуты",
-      value: entry ? `${entry.entry.minutes} мин · ${fmtHours(entry.hours)}` : "—",
+      value: entry ? `${entry.entry.minutes} мин · ${fmtHours(entry.hours)}` : "–",
     },
     {
       label: "Сумма",
       value: entry && entry.entry.amountRub !== null ? fmtRub(entry.entry.amountRub) : "нет суммы",
     },
-    { label: "Статус", value: entry ? ENTRY_STATUS_LABEL[entry.entry.status] : "—" },
+    { label: "Статус", value: entry ? ENTRY_STATUS_LABEL[entry.entry.status] : "–" },
   ];
 
   return (
@@ -119,37 +130,73 @@ export function FinishScreen() {
         </dl>
       </section>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <button
-          type="button"
-          onClick={() => setConfirm(true)}
-          className="inline-flex h-control-lg w-full items-center justify-center gap-2 rounded-control bg-orange-strong px-5 text-body-strong text-on-orange focus-ring press-98 sm:w-auto"
-        >
-          <RotateCcw className="size-4" aria-hidden />
-          Пройти заново
-        </button>
-        <Link
-          to="/gas/guide"
-          className="inline-flex h-control items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-4 text-body-strong focus-ring press-98"
-        >
-          <BookOpen className="size-4" aria-hidden />
-          Открыть инструкцию
-        </Link>
-        <Link
-          to="/gas/questions"
-          className="inline-flex h-control items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-4 text-body-strong focus-ring press-98"
-        >
-          <MessageCircleQuestion className="size-4" aria-hidden />
-          Вопросы к согласованию
-        </Link>
-      </div>
+      {/*
+        Что дальше (01_SPEC 7.2): главное действие разобрать свои данные, затем пройти заново.
+        Ниже тихими строками второй сценарий, сайт и, в личном контуре, вопросы к согласованию
+      */}
+      <section aria-labelledby="gas-finish-next" className="flex flex-col gap-3">
+        <h2 id="gas-finish-next" className="text-heading">
+          Покажем на ваших данных
+        </h2>
+        <p className="max-w-[620px] text-body text-text-2">
+          Пришлите сообщения бригадиров за неделю и свой отчёт: через 3 рабочих дня покажем вашу
+          неделю в ГАЙКЕ.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Link
+            to="/razbor"
+            search={{ from: "demo-final" }}
+            data-testid="finish-razbor"
+            className="inline-flex h-control-lg w-full items-center justify-center gap-2 rounded-control bg-orange-strong px-5 text-body-strong text-on-orange focus-ring press-98 sm:w-auto"
+          >
+            Разобрать мои данные
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setConfirm(true)}
+            className="inline-flex h-control-lg w-full items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-5 text-body-strong text-text focus-ring press-98 sm:w-auto"
+          >
+            <RotateCcw className="size-4" aria-hidden />
+            Пройти заново
+          </button>
+        </div>
+      </section>
+
+      <ul className="overflow-hidden rounded-card bg-surface ring-1 ring-line [&>li+li]:border-t [&>li+li]:border-line">
+        {[
+          { to: "/demo", label: "Посмотреть голос с объекта", icon: Mic },
+          { to: "/gas/guide", label: "Открыть инструкцию", icon: BookOpen },
+          ...(clientContour
+            ? [
+                {
+                  to: "/gas/questions",
+                  label: "Вопросы к согласованию",
+                  icon: MessageCircleQuestion,
+                },
+              ]
+            : []),
+          { to: "/", label: "Вернуться на сайт", icon: Globe },
+        ].map((item) => (
+          <li key={item.to}>
+            <Link
+              to={item.to}
+              className="flex min-h-row-compact items-center gap-3 px-4 py-2.5 text-body text-text transition-colors duration-100 focus-ring active:bg-surface-2 is-hover:bg-surface-2"
+            >
+              <item.icon className="size-5 shrink-0 text-text-2" strokeWidth={1.75} aria-hidden />
+              <span className="min-w-0 flex-1">{item.label}</span>
+              <ArrowRight className="size-4 shrink-0 text-text-3" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
 
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Пройти показ заново?</AlertDialogTitle>
             <AlertDialogDescription>
-              Записи, проверки и правки этой вкладки сотрутся, данные вернутся к отчёту заказчика.
+              Записи, проверки и правки этой вкладки сотрутся, данные вернутся к исходной неделе.
               Отменить это нельзя.
             </AlertDialogDescription>
           </AlertDialogHeader>

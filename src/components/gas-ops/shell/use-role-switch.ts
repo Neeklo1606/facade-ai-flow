@@ -22,7 +22,8 @@ export function useRoleSwitch(): (role: Role, options?: { stay?: boolean }) => P
         return false;
       }
       if (!options?.stay) void navigate({ to: gasScreen(ROLE_HOME[role]).to });
-      toast.success(`Вы смотрите как ${ROLE_LABEL[role].toLowerCase()}`);
+      // Короткое подтверждение: полоса показа и аватар и так говорят, чьими глазами смотрим (L3)
+      toast.success(`Вы смотрите как ${ROLE_LABEL[role].toLowerCase()}`, { duration: 2000 });
       return true;
     },
     [users, actions, navigate],

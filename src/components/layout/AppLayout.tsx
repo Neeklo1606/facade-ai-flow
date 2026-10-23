@@ -38,7 +38,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Suspense>
           <div className="flex min-h-0 min-w-0 flex-1 items-stretch">
             {/* Нижний отступ из менеджера слоёв: высота нижней панели и 16 (4.4) */}
-            <main className="min-w-0 flex-1 overflow-y-auto px-gutter pt-2 pb-inset lg:pt-6 lg:pb-8">
+            <main
+              data-scroll-root
+              className="min-w-0 flex-1 overflow-y-auto px-gutter pt-2 pb-inset lg:pt-6 lg:pb-8"
+            >
               <div className="mx-auto w-full max-w-[1440px]">{children}</div>
             </main>
           </div>

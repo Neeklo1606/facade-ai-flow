@@ -16,7 +16,7 @@ export const connectionStateLabel: Record<ConnectionState, string> = {
 
 export const connectionStatus = z
   .object({
-    key: z.enum(["model", "speech", "telegram", "phone-login"]),
+    key: z.enum(["model", "speech", "telegram", "phone-login", "leads", "client-link"]),
     title: z.string(),
     state: connectionState,
     /** Что сейчас работает вместо подключения или чем подключено: провайдер и модель, без ключа */

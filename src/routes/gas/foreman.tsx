@@ -1,7 +1,11 @@
 import { completePageHead } from "@/lib/page-head";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Eye } from "lucide-react";
+import { ChevronLeft, Eye } from "lucide-react";
+import { ChatHeader } from "@/components/gas-ops/bot/parts";
+import { GasRoleAvatar } from "@/components/gas-ops/shell/GasShell";
+import { useGasBrand } from "@/lib/gas-ops/contour";
+import { useBack } from "@/lib/ui/tab-stack";
 import { BotChat } from "@/components/gas-ops/bot/BotChat";
 import { SystemPanel } from "@/components/gas-ops/bot/SystemPanel";
 import {
@@ -56,6 +60,8 @@ function ForemanPage() {
   const employees = useGasEmployees();
   const show = useGasShow();
   const isForeman = actor.role === "foreman";
+  const brand = useGasBrand();
+  const back = useBack("/gas/more");
   const brigadeId = actor.brigadeId ?? VIEW_BRIGADE;
   const brigade = directory.brigades.find((b) => b.id === brigadeId);
   const speakerName = isForeman ? actor.name : (brigade?.leadName ?? "Бригадир");
@@ -92,16 +98,17 @@ function ForemanPage() {
         // Телефон и планшет: диалог во весь экран под шапкой контура
         "-mx-gutter -mt-2 flex flex-col",
         // Бригадир: до нижнего края, безопасную зону учитывает лента и поле ответа
+        // Высота: экран минус липкий верх (полоса показа) и нижняя панель (ADR-048, 6)
         isForeman
-          ? "-mb-[max(16px,env(safe-area-inset-bottom))] h-[calc(100dvh-var(--h-header)-env(safe-area-inset-top))]"
-          : "h-[calc(100dvh-var(--h-header)-env(safe-area-inset-top)-var(--bottom-inset,0px)-42px)]",
+          ? "-mb-[max(16px,env(safe-area-inset-bottom))] h-[calc(100dvh-var(--gas-top-h,0px))]"
+          : "-mb-4 h-[calc(100dvh-var(--gas-top-h,0px)-var(--bottom-inset,0px))]",
         // Десктоп: рамка телефона по центру и панель системы справа
         "lg:mx-0 lg:mt-0 lg:mb-0 lg:grid lg:h-auto lg:grid-cols-[390px_minmax(300px,380px)] lg:items-start lg:justify-center lg:gap-10",
       )}
     >
       <div className="flex min-h-0 flex-1 flex-col lg:flex-none">
         {!isForeman ? (
-          <p className="text-meta flex min-h-10 shrink-0 items-center justify-center gap-2 bg-surface-2 px-4 text-text-2 lg:mb-3 lg:rounded-full">
+          <p className="text-meta hidden min-h-10 shrink-0 items-center justify-center gap-2 bg-surface-2 px-4 text-text-2 lg:mb-3 lg:flex lg:rounded-full">
             <Eye className="size-4" aria-hidden />
             Так выглядит бот бригадира
           </p>
@@ -118,6 +125,44 @@ function ForemanPage() {
             allowed={allowed}
             objects={directory.objects}
             bottomInset={show.active}
+            /*
+              Одна шапка на телефоне (ADR-048, 6): шапка чата и есть шапка экрана. Менеджер
+              смотрит бот изнутри «Ещё», поэтому слева «Назад»; бригадиру сверху «Мои записи»
+            */
+            header={
+              <ChatHeader
+                note={
+                  isForeman
+                    ? `бот · ${brand.clientShort}`
+                    : `Так выглядит бот бригадира · ${brand.clientShort}`
+                }
+                leading={
+                  isForeman ? null : (
+                    <button
+                      type="button"
+                      onClick={back}
+                      aria-label="Назад"
+                      className="-ml-2 grid min-h-11 min-w-11 place-items-center rounded-full text-text focus-ring lg:hidden"
+                    >
+                      <ChevronLeft className="size-6" strokeWidth={1.75} aria-hidden />
+                    </button>
+                  )
+                }
+                trailing={
+                  <span className="flex shrink-0 items-center gap-1 lg:hidden">
+                    {isForeman ? (
+                      <Link
+                        to="/gas/entries"
+                        className="inline-flex min-h-11 items-center rounded-full px-2 text-body-strong text-text focus-ring"
+                      >
+                        Мои записи
+                      </Link>
+                    ) : null}
+                    <GasRoleAvatar />
+                  </span>
+                }
+              />
+            }
             onSubmitted={(entry) => {
               setLastId(entry.id);
               try {

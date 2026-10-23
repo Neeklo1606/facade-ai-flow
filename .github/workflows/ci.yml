@@ -60,6 +60,9 @@ jobs:
       - name: Фикстуры против схемы
         run: bun run check:fixtures
 
+      - name: Тексты интерфейса
+        run: bun run check:copy
+
       - name: PostgreSQL — миграции, паритет с демо, версия данных
         run: bun run check:db
         env:
@@ -82,6 +85,13 @@ jobs:
 
       - name: Размер бандла — демонстрация
         run: bun run check:bundle demo
+
+      - name: Данные заказчика в публичной сборке
+        run: |
+          PORT=4630 node .output/server/index.mjs &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:4630/projects && break; sleep 0.5; done
+          PUBLIC_BUNDLE_BASE=http://localhost:4630 bun run check:public-bundle
+          kill %1
 
       - name: Сквозные тесты — роли, EMBER, axe, консоль
         run: bun run test:e2e

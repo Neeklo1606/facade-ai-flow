@@ -7,7 +7,7 @@ import { expect, expectA11y, expectEmber, open, test } from "./fixtures";
  */
 
 async function chooseRole(page: Page, role: RegExp) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/app", { waitUntil: "domcontentloaded" });
   await page.getByRole("dialog").getByRole("button", { name: role }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await page.locator("main").waitFor();

@@ -13,11 +13,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as AttentionRouteImport } from './routes/attention'
 import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as CheckRouteImport } from './routes/check'
 import { Route as ContractsRouteImport } from './routes/contracts'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as FinishRouteImport } from './routes/finish'
@@ -25,10 +27,14 @@ import { Route as GasRouteImport } from './routes/gas'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as KitRouteImport } from './routes/kit'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MoreRouteImport } from './routes/more'
 import { Route as OfficeRouteImport } from './routes/office'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as QualityRouteImport } from './routes/quality'
+import { Route as RazborRouteImport } from './routes/razbor'
 import { Route as RisksRouteImport } from './routes/risks'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -39,6 +45,8 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
+import { Route as ApiLeadsRouteImport } from './routes/api/leads'
+import { Route as CaseGasRouteImport } from './routes/case/gas'
 import { Route as GasIndexRouteImport } from './routes/gas/index'
 import { Route as GasAdminRouteImport } from './routes/gas/admin'
 import { Route as GasBrigadesRouteImport } from './routes/gas/brigades'
@@ -49,6 +57,7 @@ import { Route as GasFinishRouteImport } from './routes/gas/finish'
 import { Route as GasForemanRouteImport } from './routes/gas/foreman'
 import { Route as GasGuideRouteImport } from './routes/gas/guide'
 import { Route as GasModerationRouteImport } from './routes/gas/moderation'
+import { Route as GasMoreRouteImport } from './routes/gas/more'
 import { Route as GasObjectsRouteImport } from './routes/gas/objects'
 import { Route as GasQuestionsRouteImport } from './routes/gas/questions'
 import { Route as GasReportsRouteImport } from './routes/gas/reports'
@@ -56,6 +65,7 @@ import { Route as GasSummaryRouteImport } from './routes/gas/summary'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as OfficeCatalogsRouteImport } from './routes/office/catalogs'
 import { Route as OfficeConnectionsRouteImport } from './routes/office/connections'
+import { Route as OgNameRouteImport } from './routes/og.$name'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
@@ -91,6 +101,11 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AttentionRoute = AttentionRouteImport.update({
   id: '/attention',
   path: '/attention',
@@ -114,6 +129,11 @@ const CheckRoute = CheckRouteImport.update({
 const ContractsRoute = ContractsRouteImport.update({
   id: '/contracts',
   path: '/contracts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoStatsRoute = DemoStatsRouteImport.update({
@@ -151,6 +171,11 @@ const IntegrationsRoute = IntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KitRoute = KitRouteImport.update({
+  id: '/kit',
+  path: '/kit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KnowledgeRoute = KnowledgeRouteImport.update({
   id: '/knowledge',
   path: '/knowledge',
@@ -161,14 +186,29 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/login.lazy').then((d) => d.Route))
+const MoreRoute = MoreRouteImport.update({
+  id: '/more',
+  path: '/more',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfficeRoute = OfficeRouteImport.update({
   id: '/office',
   path: '/office',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QualityRoute = QualityRouteImport.update({
   id: '/quality',
   path: '/quality',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RazborRoute = RazborRouteImport.update({
+  id: '/razbor',
+  path: '/razbor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RisksRoute = RisksRouteImport.update({
@@ -221,6 +261,16 @@ const ApiFeedbackRoute = ApiFeedbackRouteImport.update({
   path: '/api/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLeadsRoute = ApiLeadsRouteImport.update({
+  id: '/api/leads',
+  path: '/api/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CaseGasRoute = CaseGasRouteImport.update({
+  id: '/case/gas',
+  path: '/case/gas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GasIndexRoute = GasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -271,6 +321,11 @@ const GasModerationRoute = GasModerationRouteImport.update({
   path: '/moderation',
   getParentRoute: () => GasRoute,
 } as any)
+const GasMoreRoute = GasMoreRouteImport.update({
+  id: '/more',
+  path: '/more',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasObjectsRoute = GasObjectsRouteImport.update({
   id: '/objects',
   path: '/objects',
@@ -305,6 +360,11 @@ const OfficeConnectionsRoute = OfficeConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
   getParentRoute: () => OfficeRoute,
+} as any)
+const OgNameRoute = OgNameRouteImport.update({
+  id: '/og/$name',
+  path: '/og/$name',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
@@ -386,11 +446,13 @@ export interface FileRoutesByFullPath {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
   '/attention': typeof AttentionRoute
   '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
+  '/demo': typeof DemoRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/finish': typeof FinishRoute
@@ -398,10 +460,14 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
+  '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/more': typeof MoreRoute
   '/office': typeof OfficeRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/quality': typeof QualityRoute
+  '/razbor': typeof RazborRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
@@ -412,6 +478,8 @@ export interface FileRoutesByFullPath {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/api/leads': typeof ApiLeadsRoute
+  '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/employees': typeof GasEmployeesRoute
@@ -421,12 +489,14 @@ export interface FileRoutesByFullPath {
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/summary': typeof GasSummaryRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
+  '/og/$name': typeof OgNameRoute
   '/gas/': typeof GasIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
@@ -449,20 +519,26 @@ export interface FileRoutesByTo {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
   '/attention': typeof AttentionRoute
   '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
+  '/demo': typeof DemoRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
+  '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/more': typeof MoreRoute
+  '/privacy': typeof PrivacyRoute
   '/quality': typeof QualityRoute
+  '/razbor': typeof RazborRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
@@ -473,6 +549,8 @@ export interface FileRoutesByTo {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/api/leads': typeof ApiLeadsRoute
+  '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/employees': typeof GasEmployeesRoute
@@ -482,12 +560,14 @@ export interface FileRoutesByTo {
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/summary': typeof GasSummaryRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
+  '/og/$name': typeof OgNameRoute
   '/gas': typeof GasIndexRoute
   '/office': typeof OfficeIndexRoute
   '/projects': typeof ProjectsIndexRoute
@@ -511,11 +591,13 @@ export interface FileRoutesById {
   '/access': typeof AccessRoute
   '/agent': typeof AgentRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
   '/attention': typeof AttentionRoute
   '/capture': typeof CaptureRoute
   '/catalogs': typeof CatalogsRoute
   '/check': typeof CheckRoute
   '/contracts': typeof ContractsRoute
+  '/demo': typeof DemoRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
   '/finish': typeof FinishRoute
@@ -523,10 +605,14 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
+  '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
+  '/more': typeof MoreRoute
   '/office': typeof OfficeRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/quality': typeof QualityRoute
+  '/razbor': typeof RazborRoute
   '/risks': typeof RisksRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
@@ -537,6 +623,8 @@ export interface FileRoutesById {
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/feedback': typeof ApiFeedbackRoute
+  '/api/leads': typeof ApiLeadsRoute
+  '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/employees': typeof GasEmployeesRoute
@@ -546,12 +634,14 @@ export interface FileRoutesById {
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
   '/gas/moderation': typeof GasModerationRoute
+  '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/summary': typeof GasSummaryRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
+  '/og/$name': typeof OgNameRoute
   '/gas/': typeof GasIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
@@ -576,11 +666,13 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/app'
     | '/attention'
     | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
+    | '/demo'
     | '/demo-stats'
     | '/design-system'
     | '/finish'
@@ -588,10 +680,14 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/integrations'
+    | '/kit'
     | '/knowledge'
     | '/login'
+    | '/more'
     | '/office'
+    | '/privacy'
     | '/quality'
+    | '/razbor'
     | '/risks'
     | '/schedule'
     | '/settings'
@@ -602,6 +698,8 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/api/leads'
+    | '/case/gas'
     | '/gas/admin'
     | '/gas/brigades'
     | '/gas/employees'
@@ -611,12 +709,14 @@ export interface FileRouteTypes {
     | '/gas/foreman'
     | '/gas/guide'
     | '/gas/moderation'
+    | '/gas/more'
     | '/gas/objects'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/summary'
     | '/office/catalogs'
     | '/office/connections'
+    | '/og/$name'
     | '/gas/'
     | '/office/'
     | '/projects/'
@@ -639,20 +739,26 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/app'
     | '/attention'
     | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
+    | '/demo'
     | '/demo-stats'
     | '/design-system'
     | '/finish'
     | '/help'
     | '/inbox'
     | '/integrations'
+    | '/kit'
     | '/knowledge'
     | '/login'
+    | '/more'
+    | '/privacy'
     | '/quality'
+    | '/razbor'
     | '/risks'
     | '/schedule'
     | '/settings'
@@ -663,6 +769,8 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/api/leads'
+    | '/case/gas'
     | '/gas/admin'
     | '/gas/brigades'
     | '/gas/employees'
@@ -672,12 +780,14 @@ export interface FileRouteTypes {
     | '/gas/foreman'
     | '/gas/guide'
     | '/gas/moderation'
+    | '/gas/more'
     | '/gas/objects'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/summary'
     | '/office/catalogs'
     | '/office/connections'
+    | '/og/$name'
     | '/gas'
     | '/office'
     | '/projects'
@@ -700,11 +810,13 @@ export interface FileRouteTypes {
     | '/access'
     | '/agent'
     | '/analytics'
+    | '/app'
     | '/attention'
     | '/capture'
     | '/catalogs'
     | '/check'
     | '/contracts'
+    | '/demo'
     | '/demo-stats'
     | '/design-system'
     | '/finish'
@@ -712,10 +824,14 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/integrations'
+    | '/kit'
     | '/knowledge'
     | '/login'
+    | '/more'
     | '/office'
+    | '/privacy'
     | '/quality'
+    | '/razbor'
     | '/risks'
     | '/schedule'
     | '/settings'
@@ -726,6 +842,8 @@ export interface FileRouteTypes {
     | '/zones'
     | '/api/client-error'
     | '/api/feedback'
+    | '/api/leads'
+    | '/case/gas'
     | '/gas/admin'
     | '/gas/brigades'
     | '/gas/employees'
@@ -735,12 +853,14 @@ export interface FileRouteTypes {
     | '/gas/foreman'
     | '/gas/guide'
     | '/gas/moderation'
+    | '/gas/more'
     | '/gas/objects'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/summary'
     | '/office/catalogs'
     | '/office/connections'
+    | '/og/$name'
     | '/gas/'
     | '/office/'
     | '/projects/'
@@ -764,11 +884,13 @@ export interface RootRouteChildren {
   AccessRoute: typeof AccessRoute
   AgentRoute: typeof AgentRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  AppRoute: typeof AppRoute
   AttentionRoute: typeof AttentionRoute
   CaptureRoute: typeof CaptureRoute
   CatalogsRoute: typeof CatalogsRoute
   CheckRoute: typeof CheckRoute
   ContractsRoute: typeof ContractsRoute
+  DemoRoute: typeof DemoRoute
   DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
   FinishRoute: typeof FinishRoute
@@ -776,10 +898,14 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
+  KitRoute: typeof KitRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LoginRoute: typeof LoginRoute
+  MoreRoute: typeof MoreRoute
   OfficeRoute: typeof OfficeRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   QualityRoute: typeof QualityRoute
+  RazborRoute: typeof RazborRoute
   RisksRoute: typeof RisksRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
@@ -790,6 +916,9 @@ export interface RootRouteChildren {
   ZonesRoute: typeof ZonesRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiFeedbackRoute: typeof ApiFeedbackRoute
+  ApiLeadsRoute: typeof ApiLeadsRoute
+  CaseGasRoute: typeof CaseGasRoute
+  OgNameRoute: typeof OgNameRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
@@ -836,6 +965,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/attention': {
       id: '/attention'
       path: '/attention'
@@ -869,6 +1005,13 @@ declare module '@tanstack/react-router' {
       path: '/contracts'
       fullPath: '/contracts'
       preLoaderRoute: typeof ContractsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo-stats': {
@@ -920,6 +1063,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kit': {
+      id: '/kit'
+      path: '/kit'
+      fullPath: '/kit'
+      preLoaderRoute: typeof KitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/knowledge': {
       id: '/knowledge'
       path: '/knowledge'
@@ -934,6 +1084,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/more': {
+      id: '/more'
+      path: '/more'
+      fullPath: '/more'
+      preLoaderRoute: typeof MoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/office': {
       id: '/office'
       path: '/office'
@@ -941,11 +1098,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quality': {
       id: '/quality'
       path: '/quality'
       fullPath: '/quality'
       preLoaderRoute: typeof QualityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/razbor': {
+      id: '/razbor'
+      path: '/razbor'
+      fullPath: '/razbor'
+      preLoaderRoute: typeof RazborRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/risks': {
@@ -1018,6 +1189,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFeedbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/leads': {
+      id: '/api/leads'
+      path: '/api/leads'
+      fullPath: '/api/leads'
+      preLoaderRoute: typeof ApiLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/case/gas': {
+      id: '/case/gas'
+      path: '/case/gas'
+      fullPath: '/case/gas'
+      preLoaderRoute: typeof CaseGasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gas/': {
       id: '/gas/'
       path: '/'
@@ -1088,6 +1273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasModerationRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/more': {
+      id: '/gas/more'
+      path: '/more'
+      fullPath: '/gas/more'
+      preLoaderRoute: typeof GasMoreRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/objects': {
       id: '/gas/objects'
       path: '/objects'
@@ -1136,6 +1328,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/office/connections'
       preLoaderRoute: typeof OfficeConnectionsRouteImport
       parentRoute: typeof OfficeRoute
+    }
+    '/og/$name': {
+      id: '/og/$name'
+      path: '/og/$name'
+      fullPath: '/og/$name'
+      preLoaderRoute: typeof OgNameRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/projects/': {
       id: '/projects/'
@@ -1248,6 +1447,7 @@ interface GasRouteChildren {
   GasForemanRoute: typeof GasForemanRoute
   GasGuideRoute: typeof GasGuideRoute
   GasModerationRoute: typeof GasModerationRoute
+  GasMoreRoute: typeof GasMoreRoute
   GasObjectsRoute: typeof GasObjectsRoute
   GasQuestionsRoute: typeof GasQuestionsRoute
   GasReportsRoute: typeof GasReportsRoute
@@ -1265,6 +1465,7 @@ const GasRouteChildren: GasRouteChildren = {
   GasForemanRoute: GasForemanRoute,
   GasGuideRoute: GasGuideRoute,
   GasModerationRoute: GasModerationRoute,
+  GasMoreRoute: GasMoreRoute,
   GasObjectsRoute: GasObjectsRoute,
   GasQuestionsRoute: GasQuestionsRoute,
   GasReportsRoute: GasReportsRoute,
@@ -1294,11 +1495,13 @@ const rootRouteChildren: RootRouteChildren = {
   AccessRoute: AccessRoute,
   AgentRoute: AgentRoute,
   AnalyticsRoute: AnalyticsRoute,
+  AppRoute: AppRoute,
   AttentionRoute: AttentionRoute,
   CaptureRoute: CaptureRoute,
   CatalogsRoute: CatalogsRoute,
   CheckRoute: CheckRoute,
   ContractsRoute: ContractsRoute,
+  DemoRoute: DemoRoute,
   DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
   FinishRoute: FinishRoute,
@@ -1306,10 +1509,14 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,
+  KitRoute: KitRoute,
   KnowledgeRoute: KnowledgeRoute,
   LoginRoute: LoginRoute,
+  MoreRoute: MoreRoute,
   OfficeRoute: OfficeRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   QualityRoute: QualityRoute,
+  RazborRoute: RazborRoute,
   RisksRoute: RisksRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
@@ -1320,6 +1527,9 @@ const rootRouteChildren: RootRouteChildren = {
   ZonesRoute: ZonesRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiFeedbackRoute: ApiFeedbackRoute,
+  ApiLeadsRoute: ApiLeadsRoute,
+  CaseGasRoute: CaseGasRoute,
+  OgNameRoute: OgNameRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,

@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { track } from "@/lib/site/analytics";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2, SlidersHorizontal } from "lucide-react";
@@ -24,6 +25,7 @@ import { gasShowEvent } from "@/lib/gas-ops/show";
 import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useIsClientContour } from "@/lib/gas-ops/contour";
 
 /**
  * Недельный отчёт (ТЗ, п. 9; ADR-044, F6). Итог недели крупно, сверка с файлом заказчика,
@@ -57,6 +59,7 @@ type View = "customer" | "analytic";
 
 function ReportsPage() {
   const { highlight = null } = Route.useSearch();
+  const clientContour = useIsClientContour();
   const phone = useMediaQuery("(max-width: 767px)", false);
 
   const [view, setView] = useState<View>("customer");
@@ -134,7 +137,8 @@ function ReportsPage() {
         mode,
       });
       gasShowEvent("gasExport", { gasFile: name });
-      toast.success("Файл выгружен", { description: name });
+      track("excel_download");
+      toast.success("Файл выгружен", { description: name, duration: 2500 });
     } catch (error) {
       toast.error("Выгрузка не удалась", {
         description: error instanceof Error ? error.message : undefined,
@@ -210,7 +214,8 @@ function ReportsPage() {
         onExport={() => void exportFile()}
       />
 
-      <ReconcileBlock />
+      {/* Сверка с файлом заказчика только в его личном контуре (ADR-047) */}
+      {clientContour ? <ReconcileBlock /> : null}
 
       {/* Одна строка управления (5.7) */}
       <div className="flex items-center justify-between gap-2">

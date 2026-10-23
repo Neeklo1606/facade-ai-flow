@@ -1,0 +1,2454 @@
+{
+  "meta": {
+    "source": "fact-report",
+    "sheet": "Лист_1",
+    "rows": 124,
+    "columns": 25,
+    "week": {
+      "from": "2026-09-28",
+      "to": "2026-10-03"
+    },
+    "days": ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03"],
+    "generatedBy": "scripts/make-public-dataset.ts",
+    "note": "Публичный набор «Демо-подрядчик»: вымышленные населённые пункты, суммы с множителем 0,7-1,3 на объект, итоги пересчитаны из записей. Структура недели взята из реального отчёта."
+  },
+  "groups": [
+    {
+      "id": "grp-1",
+      "name": "1. СТАЛЬНЫЕ",
+      "code": "1",
+      "excelRow": 3
+    },
+    {
+      "id": "grp-3",
+      "name": "3. ДОПОЛНИТЕЛЬНЫЕ БРИГАДЫ",
+      "code": "3",
+      "excelRow": 108
+    },
+    {
+      "id": "grp-5",
+      "name": "5. ОТОПЛЕНИЕ",
+      "code": "5",
+      "excelRow": 116
+    }
+  ],
+  "brigades": [
+    {
+      "id": "brg-1",
+      "groupId": "grp-1",
+      "name": "Бригада 1",
+      "code": "1",
+      "excelRow": 4
+    },
+    {
+      "id": "brg-2",
+      "groupId": "grp-1",
+      "name": "Бригада 2",
+      "code": "2",
+      "excelRow": 14
+    },
+    {
+      "id": "brg-3",
+      "groupId": "grp-1",
+      "name": "Бригада 3",
+      "code": "3",
+      "excelRow": 31
+    },
+    {
+      "id": "brg-4",
+      "groupId": "grp-1",
+      "name": "Бригада 4",
+      "code": "4",
+      "excelRow": 51
+    },
+    {
+      "id": "brg-5",
+      "groupId": "grp-1",
+      "name": "Бригада 5",
+      "code": "5",
+      "excelRow": 63
+    },
+    {
+      "id": "brg-7",
+      "groupId": "grp-1",
+      "name": "Бригада 7",
+      "code": "7",
+      "excelRow": 85
+    },
+    {
+      "id": "brg-3.1",
+      "groupId": "grp-3",
+      "name": "3.1. СЭГ",
+      "code": "3.1",
+      "excelRow": 109
+    },
+    {
+      "id": "brg-3.10",
+      "groupId": "grp-3",
+      "name": "Бригада 3.10",
+      "code": "3.10",
+      "excelRow": 111
+    },
+    {
+      "id": "brg-3.7",
+      "groupId": "grp-3",
+      "name": "Бригада 3.7",
+      "code": "3.7",
+      "excelRow": 114
+    },
+    {
+      "id": "brg-5.1",
+      "groupId": "grp-5",
+      "name": "Бригада 5.1",
+      "code": "5.1",
+      "excelRow": 117
+    }
+  ],
+  "employees": [
+    {
+      "id": "emp-1-1",
+      "brigadeId": "brg-1",
+      "name": "Бригадир 1",
+      "isLead": true,
+      "excelRow": 5
+    },
+    {
+      "id": "emp-2-1",
+      "brigadeId": "brg-2",
+      "name": "Бригадир 2",
+      "isLead": true,
+      "excelRow": 15
+    },
+    {
+      "id": "emp-3-1",
+      "brigadeId": "brg-3",
+      "name": "Бригадир 3",
+      "isLead": true,
+      "excelRow": 32
+    },
+    {
+      "id": "emp-4-1",
+      "brigadeId": "brg-4",
+      "name": "Бригадир 4",
+      "isLead": true,
+      "excelRow": 52
+    },
+    {
+      "id": "emp-5-1",
+      "brigadeId": "brg-5",
+      "name": "Бригадир 5",
+      "isLead": true,
+      "excelRow": 64
+    },
+    {
+      "id": "emp-7-1",
+      "brigadeId": "brg-7",
+      "name": "Бригадир 7",
+      "isLead": true,
+      "excelRow": 86
+    },
+    {
+      "id": "emp-7-2",
+      "brigadeId": "brg-7",
+      "name": "Сотрудник 7.2",
+      "isLead": false,
+      "excelRow": 101
+    },
+    {
+      "id": "emp-3.10-1",
+      "brigadeId": "brg-3.10",
+      "name": "Бригадир 3.10",
+      "isLead": true,
+      "excelRow": 111
+    },
+    {
+      "id": "emp-3.7-1",
+      "brigadeId": "brg-3.7",
+      "name": "Бригадир 3.7",
+      "isLead": true,
+      "excelRow": 114
+    },
+    {
+      "id": "crew-5.1",
+      "brigadeId": "brg-5.1",
+      "name": "Состав бригады 5.1",
+      "isLead": true,
+      "excelRow": 118
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj-1",
+      "label": "СТ Демо-Подгорное, ул. Демо, 1",
+      "settlement": "СТ Демо-Подгорное",
+      "workType": null,
+      "demoNumber": 1
+    },
+    {
+      "id": "obj-2",
+      "label": "ст. Демо-Кленовка, ул. Демо, 2",
+      "settlement": "ст. Демо-Кленовка",
+      "workType": null,
+      "demoNumber": 2
+    },
+    {
+      "id": "obj-3",
+      "label": "ст. Демо-Озёрное, ул. Демо, 3",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": null,
+      "demoNumber": 3
+    },
+    {
+      "id": "obj-4",
+      "label": "ст. Демо-Озёрное, ул. Демо, 4",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": null,
+      "demoNumber": 4
+    },
+    {
+      "id": "obj-5",
+      "label": "х. Демо-Садовое, ул. Демо, 5",
+      "settlement": "х. Демо-Садовое",
+      "workType": null,
+      "demoNumber": 5
+    },
+    {
+      "id": "obj-6",
+      "label": "х. Демо-Высокое, ул. Демо, 6 - котел",
+      "settlement": "х. Демо-Высокое",
+      "workType": "котел",
+      "demoNumber": 6
+    },
+    {
+      "id": "obj-7",
+      "label": "х. Демо-Высокое, ул. Демо, 7 - котел",
+      "settlement": "х. Демо-Высокое",
+      "workType": "котел",
+      "demoNumber": 7
+    },
+    {
+      "id": "obj-8",
+      "label": "г. Демо-Ольховка, ул. Демо, 8 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 8
+    },
+    {
+      "id": "obj-9",
+      "label": "г. Демо-Ольховка, ул. Демо, 9 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 9
+    },
+    {
+      "id": "obj-10",
+      "label": "г. Демо-Ольховка, ул. Демо, 10",
+      "settlement": "г. Демо-Ольховка",
+      "workType": null,
+      "demoNumber": 10
+    },
+    {
+      "id": "obj-11",
+      "label": "г. Демо-Ольховка, ул. Демо, 11 - ввод",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "ввод",
+      "demoNumber": 11
+    },
+    {
+      "id": "obj-12",
+      "label": "г. Демо-Ольховка, ул. Демо, 12",
+      "settlement": "г. Демо-Ольховка",
+      "workType": null,
+      "demoNumber": 12
+    },
+    {
+      "id": "obj-13",
+      "label": "г. Демо-Ольховка, ул. Демо, 13 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 13
+    },
+    {
+      "id": "obj-14",
+      "label": "п. Демо-Сосновка, ул. Демо, 14",
+      "settlement": "п. Демо-Сосновка",
+      "workType": null,
+      "demoNumber": 14
+    },
+    {
+      "id": "obj-15",
+      "label": "п. Демо-Сосновка, ул. Демо, 15 - ввод",
+      "settlement": "п. Демо-Сосновка",
+      "workType": "ввод",
+      "demoNumber": 15
+    },
+    {
+      "id": "obj-16",
+      "label": "п. Демо-Заречье, ул. Демо, 16 - котел",
+      "settlement": "п. Демо-Заречье",
+      "workType": "котел",
+      "demoNumber": 16
+    },
+    {
+      "id": "obj-17",
+      "label": "п. Демо-Луговое, ул. Демо, 17 - котел",
+      "settlement": "п. Демо-Луговое",
+      "workType": "котел",
+      "demoNumber": 17
+    },
+    {
+      "id": "obj-18",
+      "label": "п. Демо-Луговое, ул. Демо, 18 - котел",
+      "settlement": "п. Демо-Луговое",
+      "workType": "котел",
+      "demoNumber": 18
+    },
+    {
+      "id": "obj-19",
+      "label": "ст. Демо-Озёрное, ул. Демо, 19 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 19
+    },
+    {
+      "id": "obj-20",
+      "label": "ст. Демо-Озёрное, ул. Демо, 20 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 20
+    },
+    {
+      "id": "obj-21",
+      "label": "ст. Демо-Озёрное, ул. Демо, 21 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 21
+    },
+    {
+      "id": "obj-22",
+      "label": "г. Демо-Ольховка, ул. Демо, 22 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 22
+    },
+    {
+      "id": "obj-23",
+      "label": "г. Демо-Ольховка, ул. Демо, 23 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 23
+    },
+    {
+      "id": "obj-24",
+      "label": "г. Демо-Ольховка, ул. Демо, 24 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 24
+    },
+    {
+      "id": "obj-25",
+      "label": "г. Демо-Ольховка, ул. Демо, 25 - замена счетчика",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "замена счетчика",
+      "demoNumber": 25
+    },
+    {
+      "id": "obj-26",
+      "label": "г. Демо-Ольховка, ул. Демо, 26",
+      "settlement": "г. Демо-Ольховка",
+      "workType": null,
+      "demoNumber": 26
+    },
+    {
+      "id": "obj-27",
+      "label": "г. Демо-Ольховка, ул. Демо, 27 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 27
+    },
+    {
+      "id": "obj-28",
+      "label": "г. Демо-Ольховка, ул. Демо, 28 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 28
+    },
+    {
+      "id": "obj-29",
+      "label": "г. Демо-Ольховка, ул. Демо, 29 - котел, насос",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел, насос",
+      "demoNumber": 29
+    },
+    {
+      "id": "obj-30",
+      "label": "г. Демо-Ольховка, ул. Демо, 30 - демонтаж котла",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "демонтаж котла",
+      "demoNumber": 30
+    },
+    {
+      "id": "obj-31",
+      "label": "г. Демо-Ольховка, ул. Демо, 31 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 31
+    },
+    {
+      "id": "obj-32",
+      "label": "г. Демо-Ольховка, ул. Демо, 32 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 32
+    },
+    {
+      "id": "obj-33",
+      "label": "п. Демо-Каменка, ул. Демо, 33 - котел",
+      "settlement": "п. Демо-Каменка",
+      "workType": "котел",
+      "demoNumber": 33
+    },
+    {
+      "id": "obj-34",
+      "label": "ст. Демо-Озёрное, ул. Демо, 34 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 34
+    },
+    {
+      "id": "obj-35",
+      "label": "ст. Демо-Озёрное, ул. Демо, 35 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 35
+    },
+    {
+      "id": "obj-36",
+      "label": "ст. Демо-Рябиновка, ул. Демо, 36 - котел",
+      "settlement": "ст. Демо-Рябиновка",
+      "workType": "котел",
+      "demoNumber": 36
+    },
+    {
+      "id": "obj-37",
+      "label": "х. Демо-Лесное, ул. Демо, 37 - котел",
+      "settlement": "х. Демо-Лесное",
+      "workType": "котел",
+      "demoNumber": 37
+    },
+    {
+      "id": "obj-38",
+      "label": "х. Демо-Полевое, ул. Демо, 38 - котел",
+      "settlement": "х. Демо-Полевое",
+      "workType": "котел",
+      "demoNumber": 38
+    },
+    {
+      "id": "obj-39",
+      "label": "г. Демо-Ольховка, ул. Демо, 39",
+      "settlement": "г. Демо-Ольховка",
+      "workType": null,
+      "demoNumber": 39
+    },
+    {
+      "id": "obj-40",
+      "label": "г. Демо-Ольховка, ул. Демо, 40",
+      "settlement": "г. Демо-Ольховка",
+      "workType": null,
+      "demoNumber": 40
+    },
+    {
+      "id": "obj-41",
+      "label": "п. Демо-Сосновка, ул. Демо, 41 - котел",
+      "settlement": "п. Демо-Сосновка",
+      "workType": "котел",
+      "demoNumber": 41
+    },
+    {
+      "id": "obj-42",
+      "label": "п. Демо-Заречье, ул. Демо, 42",
+      "settlement": "п. Демо-Заречье",
+      "workType": null,
+      "demoNumber": 42
+    },
+    {
+      "id": "obj-43",
+      "label": "х. Демо-Тополи, ул. Демо, 43 - котел",
+      "settlement": "х. Демо-Тополи",
+      "workType": "котел",
+      "demoNumber": 43
+    },
+    {
+      "id": "obj-44",
+      "label": "х. Демо-Вишнёвое, ул. Демо, 44 - котел",
+      "settlement": "х. Демо-Вишнёвое",
+      "workType": "котел",
+      "demoNumber": 44
+    },
+    {
+      "id": "obj-45",
+      "label": "х. Демо-Вишнёвое, ул. Демо, 45 - котел",
+      "settlement": "х. Демо-Вишнёвое",
+      "workType": "котел",
+      "demoNumber": 45
+    },
+    {
+      "id": "obj-46",
+      "label": "х. Демо-Родники, ул. Демо, 46 - котел",
+      "settlement": "х. Демо-Родники",
+      "workType": "котел",
+      "demoNumber": 46
+    },
+    {
+      "id": "obj-47",
+      "label": "х. Демо-Дубки, ул. Демо, 47 - котел",
+      "settlement": "х. Демо-Дубки",
+      "workType": "котел",
+      "demoNumber": 47
+    },
+    {
+      "id": "obj-48",
+      "label": "г. Демо-Ольховка, ул. Демо, 48 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 48
+    },
+    {
+      "id": "obj-49",
+      "label": "г. Демо-Ольховка, ул. Демо, 49 - котел, насос",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел, насос",
+      "demoNumber": 49
+    },
+    {
+      "id": "obj-50",
+      "label": "г. Демо-Ольховка, ул. Демо, 50 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 50
+    },
+    {
+      "id": "obj-51",
+      "label": "г. Демо-Ольховка, ул. Демо, 51 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 51
+    },
+    {
+      "id": "obj-52",
+      "label": "п. Демо-Сосновка, ул. Демо, 52 - котел",
+      "settlement": "п. Демо-Сосновка",
+      "workType": "котел",
+      "demoNumber": 52
+    },
+    {
+      "id": "obj-53",
+      "label": "СТ Демо-Степное, ул. Демо, 53 - ввод",
+      "settlement": "СТ Демо-Степное",
+      "workType": "ввод",
+      "demoNumber": 53
+    },
+    {
+      "id": "obj-54",
+      "label": "СТ Демо-Степное, ул. Демо, 54 - ввод",
+      "settlement": "СТ Демо-Степное",
+      "workType": "ввод",
+      "demoNumber": 54
+    },
+    {
+      "id": "obj-55",
+      "label": "СТ Демо-Степное, ул. Демо, 55 - ввод",
+      "settlement": "СТ Демо-Степное",
+      "workType": "ввод",
+      "demoNumber": 55
+    },
+    {
+      "id": "obj-56",
+      "label": "СТ Демо-Степное, ул. Демо, 56 - ввод",
+      "settlement": "СТ Демо-Степное",
+      "workType": "ввод",
+      "demoNumber": 56
+    },
+    {
+      "id": "obj-57",
+      "label": "ст. Демо-Кленовка, ул. Демо, 57 - котел",
+      "settlement": "ст. Демо-Кленовка",
+      "workType": "котел",
+      "demoNumber": 57
+    },
+    {
+      "id": "obj-58",
+      "label": "ст. Демо-Кленовка, ул. Демо, 58 - устранение утечки",
+      "settlement": "ст. Демо-Кленовка",
+      "workType": "устранение утечки",
+      "demoNumber": 58
+    },
+    {
+      "id": "obj-59",
+      "label": "ст. Демо-Кленовка, ул. Демо, 59 - котел",
+      "settlement": "ст. Демо-Кленовка",
+      "workType": "котел",
+      "demoNumber": 59
+    },
+    {
+      "id": "obj-60",
+      "label": "ст. Демо-Озёрное, ул. Демо, 60 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 60
+    },
+    {
+      "id": "obj-61",
+      "label": "х. Демо-Ясенево, ул. Демо, 61 - котел",
+      "settlement": "х. Демо-Ясенево",
+      "workType": "котел",
+      "demoNumber": 61
+    },
+    {
+      "id": "obj-62",
+      "label": "х. Демо-Вишнёвое, ул. Демо, 62 - котел",
+      "settlement": "х. Демо-Вишнёвое",
+      "workType": "котел",
+      "demoNumber": 62
+    },
+    {
+      "id": "obj-63",
+      "label": "г. Демо-Ольховка, ул. Демо, 63 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 63
+    },
+    {
+      "id": "obj-64",
+      "label": "г. Демо-Ольховка, ул. Демо, 64 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 64
+    },
+    {
+      "id": "obj-65",
+      "label": "г. Демо-Ольховка, ул. Демо, 65 - демонтаж котла",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "демонтаж котла",
+      "demoNumber": 65
+    },
+    {
+      "id": "obj-66",
+      "label": "г. Демо-Ольховка, ул. Демо, 66 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 66
+    },
+    {
+      "id": "obj-67",
+      "label": "г. Демо-Ольховка, ул. Демо, 67 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 67
+    },
+    {
+      "id": "obj-68",
+      "label": "г. Демо-Ольховка, ул. Демо, 68 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 68
+    },
+    {
+      "id": "obj-69",
+      "label": "г. Демо-Ольховка, ул. Демо, 69 - котел",
+      "settlement": "г. Демо-Ольховка",
+      "workType": "котел",
+      "demoNumber": 69
+    },
+    {
+      "id": "obj-70",
+      "label": "п. Демо-Луговое, ул. Демо, 70 - котел",
+      "settlement": "п. Демо-Луговое",
+      "workType": "котел",
+      "demoNumber": 70
+    },
+    {
+      "id": "obj-71",
+      "label": "п. Демо-Луговое, ул. Демо, 71 - котел, насос",
+      "settlement": "п. Демо-Луговое",
+      "workType": "котел, насос",
+      "demoNumber": 71
+    },
+    {
+      "id": "obj-72",
+      "label": "п. Демо-Берёзовка, ул. Демо, 72 - котел",
+      "settlement": "п. Демо-Берёзовка",
+      "workType": "котел",
+      "demoNumber": 72
+    },
+    {
+      "id": "obj-73",
+      "label": "ст. Демо-Озёрное, ул. Демо, 73 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 73
+    },
+    {
+      "id": "obj-74",
+      "label": "ст. Демо-Рябиновка, ул. Демо, 74 - котел",
+      "settlement": "ст. Демо-Рябиновка",
+      "workType": "котел",
+      "demoNumber": 74
+    },
+    {
+      "id": "obj-75",
+      "label": "ст. Демо-Рябиновка, ул. Демо, 75 - котел",
+      "settlement": "ст. Демо-Рябиновка",
+      "workType": "котел",
+      "demoNumber": 75
+    },
+    {
+      "id": "obj-76",
+      "label": "с. Демо-Ключи, ул. Демо, 76",
+      "settlement": "с. Демо-Ключи",
+      "workType": null,
+      "demoNumber": 76
+    },
+    {
+      "id": "obj-77",
+      "label": "ул. Демо, 77 - КНС",
+      "settlement": null,
+      "workType": "КНС",
+      "demoNumber": 77
+    },
+    {
+      "id": "obj-78",
+      "label": "п. Демо-Луговое, ул. Демо, 78",
+      "settlement": "п. Демо-Луговое",
+      "workType": null,
+      "demoNumber": 78
+    },
+    {
+      "id": "obj-79",
+      "label": "ст. Демо-Озёрное, ул. Демо, 79 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 79
+    },
+    {
+      "id": "obj-80",
+      "label": "ст. Демо-Озёрное, ул. Демо, 80 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 80
+    },
+    {
+      "id": "obj-81",
+      "label": "ст. Демо-Озёрное, ул. Демо, 81 - котел",
+      "settlement": "ст. Демо-Озёрное",
+      "workType": "котел",
+      "demoNumber": 81
+    },
+    {
+      "id": "obj-82",
+      "label": "ст. Демо-Кленовка, ул. Демо, 82",
+      "settlement": "ст. Демо-Кленовка",
+      "workType": null,
+      "demoNumber": 82
+    }
+  ],
+  "entries": [
+    {
+      "id": "fr-7-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "objectId": "obj-1",
+      "amount": 34600,
+      "hours": 6.58,
+      "minutes": 395,
+      "revenueInFile": 5258,
+      "excelRow": 7,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-8-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "objectId": "obj-2",
+      "amount": 47300,
+      "hours": 6.42,
+      "minutes": 385,
+      "revenueInFile": 7368,
+      "excelRow": 8,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-9-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "objectId": "obj-3",
+      "amount": 53400,
+      "hours": 0.33,
+      "minutes": 20,
+      "revenueInFile": 161818,
+      "excelRow": 9,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-10-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "objectId": "obj-4",
+      "amount": 44350,
+      "hours": 6.5,
+      "minutes": 390,
+      "revenueInFile": 6823,
+      "excelRow": 10,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-11-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "objectId": "obj-5",
+      "amount": 46150,
+      "hours": 4.83,
+      "minutes": 290,
+      "revenueInFile": 9555,
+      "excelRow": 11,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-12-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "objectId": "obj-6",
+      "amount": 15750,
+      "hours": 3.75,
+      "minutes": 225,
+      "revenueInFile": 4200,
+      "excelRow": 12,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-13-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "objectId": "obj-7",
+      "amount": 12250,
+      "hours": 2.58,
+      "minutes": 155,
+      "revenueInFile": 4748,
+      "excelRow": 13,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-17-5",
+      "day": "2026-10-03",
+      "dayIndex": 5,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-8",
+      "amount": 13700,
+      "hours": 1.83,
+      "minutes": 110,
+      "revenueInFile": 7486,
+      "excelRow": 17,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-18-5",
+      "day": "2026-10-03",
+      "dayIndex": 5,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-9",
+      "amount": 14750,
+      "hours": 3.33,
+      "minutes": 200,
+      "revenueInFile": 4429,
+      "excelRow": 18,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-19-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-10",
+      "amount": 66700,
+      "hours": 7,
+      "minutes": 420,
+      "revenueInFile": 9529,
+      "excelRow": 19,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-20-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-11",
+      "amount": null,
+      "hours": 0.5,
+      "minutes": 30,
+      "revenueInFile": null,
+      "excelRow": 20,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-21-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-12",
+      "amount": 67750,
+      "hours": 7.83,
+      "minutes": 470,
+      "revenueInFile": 8653,
+      "excelRow": 21,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-22-5",
+      "day": "2026-10-03",
+      "dayIndex": 5,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-13",
+      "amount": 11500,
+      "hours": 3.17,
+      "minutes": 190,
+      "revenueInFile": 3628,
+      "excelRow": 22,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-23-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-14",
+      "amount": 40900,
+      "hours": 4.33,
+      "minutes": 260,
+      "revenueInFile": 9446,
+      "excelRow": 23,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-24-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-15",
+      "amount": 7400,
+      "hours": 0.5,
+      "minutes": 30,
+      "revenueInFile": 14800,
+      "excelRow": 24,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-25-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-16",
+      "amount": 14300,
+      "hours": 3.42,
+      "minutes": 205,
+      "revenueInFile": 4181,
+      "excelRow": 25,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-26-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-17",
+      "amount": 18250,
+      "hours": 1.33,
+      "minutes": 80,
+      "revenueInFile": 13722,
+      "excelRow": 26,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-27-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-18",
+      "amount": 16800,
+      "hours": 2.67,
+      "minutes": 160,
+      "revenueInFile": 6292,
+      "excelRow": 27,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-28-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-19",
+      "amount": 16300,
+      "hours": 2.17,
+      "minutes": 130,
+      "revenueInFile": 7512,
+      "excelRow": 28,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-29-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-20",
+      "amount": 12050,
+      "hours": 2.83,
+      "minutes": 170,
+      "revenueInFile": 4258,
+      "excelRow": 29,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-30-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "objectId": "obj-21",
+      "amount": 16250,
+      "hours": 1.33,
+      "minutes": 80,
+      "revenueInFile": 12218,
+      "excelRow": 30,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-34-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-22",
+      "amount": 16400,
+      "hours": 1.5,
+      "minutes": 90,
+      "revenueInFile": 10933,
+      "excelRow": 34,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-35-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-23",
+      "amount": 8050,
+      "hours": 3,
+      "minutes": 180,
+      "revenueInFile": 2683,
+      "excelRow": 35,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-36-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-24",
+      "amount": 12900,
+      "hours": 3.25,
+      "minutes": 195,
+      "revenueInFile": 3969,
+      "excelRow": 36,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-37-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-25",
+      "amount": null,
+      "hours": 0.33,
+      "minutes": 20,
+      "revenueInFile": null,
+      "excelRow": 37,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-38-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-26",
+      "amount": null,
+      "hours": 7.5,
+      "minutes": 450,
+      "revenueInFile": null,
+      "excelRow": 38,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-39-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-27",
+      "amount": 5400,
+      "hours": 5.83,
+      "minutes": 350,
+      "revenueInFile": 926,
+      "excelRow": 39,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-40-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-28",
+      "amount": 9100,
+      "hours": 3,
+      "minutes": 180,
+      "revenueInFile": 3033,
+      "excelRow": 40,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-41-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-29",
+      "amount": 26800,
+      "hours": 3.33,
+      "minutes": 200,
+      "revenueInFile": 8048,
+      "excelRow": 41,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-42-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-30",
+      "amount": 3200,
+      "hours": 1.17,
+      "minutes": 70,
+      "revenueInFile": 2735,
+      "excelRow": 42,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-43-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-31",
+      "amount": 10050,
+      "hours": 1.83,
+      "minutes": 110,
+      "revenueInFile": 5492,
+      "excelRow": 43,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-44-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-32",
+      "amount": 6950,
+      "hours": 3.33,
+      "minutes": 200,
+      "revenueInFile": 2087,
+      "excelRow": 44,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-45-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-33",
+      "amount": 12400,
+      "hours": 3.08,
+      "minutes": 185,
+      "revenueInFile": 4026,
+      "excelRow": 45,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-46-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-34",
+      "amount": 20100,
+      "hours": 3.25,
+      "minutes": 195,
+      "revenueInFile": 6185,
+      "excelRow": 46,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-47-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-35",
+      "amount": 19200,
+      "hours": 3.5,
+      "minutes": 210,
+      "revenueInFile": 5486,
+      "excelRow": 47,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-48-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-36",
+      "amount": 13100,
+      "hours": 2.83,
+      "minutes": 170,
+      "revenueInFile": 4629,
+      "excelRow": 48,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-49-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-37",
+      "amount": 11100,
+      "hours": 1,
+      "minutes": 60,
+      "revenueInFile": 11100,
+      "excelRow": 49,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-50-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "objectId": "obj-38",
+      "amount": 13750,
+      "hours": 1.83,
+      "minutes": 110,
+      "revenueInFile": 7514,
+      "excelRow": 50,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-54-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-39",
+      "amount": 55350,
+      "hours": 8.83,
+      "minutes": 530,
+      "revenueInFile": 6268,
+      "excelRow": 54,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-55-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-40",
+      "amount": 31750,
+      "hours": 5.33,
+      "minutes": 320,
+      "revenueInFile": 5957,
+      "excelRow": 55,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-56-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-41",
+      "amount": 15650,
+      "hours": 2.67,
+      "minutes": 160,
+      "revenueInFile": 5861,
+      "excelRow": 56,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-57-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-42",
+      "amount": 10550,
+      "hours": 1.75,
+      "minutes": 105,
+      "revenueInFile": 6029,
+      "excelRow": 57,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-58-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-43",
+      "amount": 28500,
+      "hours": 3.83,
+      "minutes": 230,
+      "revenueInFile": 7441,
+      "excelRow": 58,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-59-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-44",
+      "amount": 11000,
+      "hours": 4.33,
+      "minutes": 260,
+      "revenueInFile": 2540,
+      "excelRow": 59,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-60-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-45",
+      "amount": 11900,
+      "hours": 2.83,
+      "minutes": 170,
+      "revenueInFile": 4205,
+      "excelRow": 60,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-61-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-46",
+      "amount": 18900,
+      "hours": 3,
+      "minutes": 180,
+      "revenueInFile": 6300,
+      "excelRow": 61,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-62-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "objectId": "obj-47",
+      "amount": 14850,
+      "hours": 3.5,
+      "minutes": 210,
+      "revenueInFile": 4243,
+      "excelRow": 62,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-66-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-48",
+      "amount": 12000,
+      "hours": 3.33,
+      "minutes": 200,
+      "revenueInFile": 3604,
+      "excelRow": 66,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-67-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-49",
+      "amount": 25600,
+      "hours": 6.83,
+      "minutes": 410,
+      "revenueInFile": 3748,
+      "excelRow": 67,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-68-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-50",
+      "amount": 18300,
+      "hours": 4.17,
+      "minutes": 250,
+      "revenueInFile": 4388,
+      "excelRow": 68,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-69-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-51",
+      "amount": 10800,
+      "hours": 3.25,
+      "minutes": 195,
+      "revenueInFile": 3323,
+      "excelRow": 69,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-70-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-23",
+      "amount": 8050,
+      "hours": 3,
+      "minutes": 180,
+      "revenueInFile": 2683,
+      "excelRow": 70,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-71-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-27",
+      "amount": 5400,
+      "hours": 5.83,
+      "minutes": 350,
+      "revenueInFile": 926,
+      "excelRow": 71,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-72-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-28",
+      "amount": 9100,
+      "hours": 3,
+      "minutes": 180,
+      "revenueInFile": 3033,
+      "excelRow": 72,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-73-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-32",
+      "amount": 6950,
+      "hours": 3.33,
+      "minutes": 200,
+      "revenueInFile": 2087,
+      "excelRow": 73,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-74-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-52",
+      "amount": 16750,
+      "hours": 3.17,
+      "minutes": 190,
+      "revenueInFile": 5284,
+      "excelRow": 74,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-75-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-53",
+      "amount": 11350,
+      "hours": 0.25,
+      "minutes": 15,
+      "revenueInFile": 45400,
+      "excelRow": 75,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-76-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-54",
+      "amount": 3200,
+      "hours": 0.25,
+      "minutes": 15,
+      "revenueInFile": 12800,
+      "excelRow": 76,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-77-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-55",
+      "amount": 2800,
+      "hours": 0.25,
+      "minutes": 15,
+      "revenueInFile": 11200,
+      "excelRow": 77,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-78-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-56",
+      "amount": 3250,
+      "hours": 0.25,
+      "minutes": 15,
+      "revenueInFile": 13000,
+      "excelRow": 78,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-79-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-57",
+      "amount": 14950,
+      "hours": 2.83,
+      "minutes": 170,
+      "revenueInFile": 5283,
+      "excelRow": 79,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-80-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-58",
+      "amount": null,
+      "hours": 0.67,
+      "minutes": 40,
+      "revenueInFile": null,
+      "excelRow": 80,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-81-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-59",
+      "amount": 16400,
+      "hours": 3.5,
+      "minutes": 210,
+      "revenueInFile": 4686,
+      "excelRow": 81,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-82-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-60",
+      "amount": 10900,
+      "hours": 2.17,
+      "minutes": 130,
+      "revenueInFile": 5023,
+      "excelRow": 82,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-83-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-61",
+      "amount": 23850,
+      "hours": 3,
+      "minutes": 180,
+      "revenueInFile": 7950,
+      "excelRow": 83,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-84-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "objectId": "obj-62",
+      "amount": 14400,
+      "hours": 3.58,
+      "minutes": 215,
+      "revenueInFile": 4022,
+      "excelRow": 84,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-88-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-63",
+      "amount": 23450,
+      "hours": 3.5,
+      "minutes": 210,
+      "revenueInFile": 6700,
+      "excelRow": 88,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-89-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-64",
+      "amount": 17300,
+      "hours": 2.33,
+      "minutes": 140,
+      "revenueInFile": 7425,
+      "excelRow": 89,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-90-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-65",
+      "amount": 2550,
+      "hours": 0.5,
+      "minutes": 30,
+      "revenueInFile": 5100,
+      "excelRow": 90,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-91-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-66",
+      "amount": 14200,
+      "hours": 1.83,
+      "minutes": 110,
+      "revenueInFile": 7760,
+      "excelRow": 91,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-92-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-67",
+      "amount": 13000,
+      "hours": 2.83,
+      "minutes": 170,
+      "revenueInFile": 4594,
+      "excelRow": 92,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-93-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-68",
+      "amount": 22950,
+      "hours": 3.67,
+      "minutes": 220,
+      "revenueInFile": 6253,
+      "excelRow": 93,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-94-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-69",
+      "amount": 18800,
+      "hours": 2.5,
+      "minutes": 150,
+      "revenueInFile": 7520,
+      "excelRow": 94,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-95-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-70",
+      "amount": 13600,
+      "hours": 2.83,
+      "minutes": 170,
+      "revenueInFile": 4806,
+      "excelRow": 95,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-96-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-71",
+      "amount": 16000,
+      "hours": 5.5,
+      "minutes": 330,
+      "revenueInFile": 2909,
+      "excelRow": 96,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-97-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-72",
+      "amount": 13300,
+      "hours": 3.5,
+      "minutes": 210,
+      "revenueInFile": 3800,
+      "excelRow": 97,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-98-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-73",
+      "amount": 18600,
+      "hours": 4.17,
+      "minutes": 250,
+      "revenueInFile": 4460,
+      "excelRow": 98,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-99-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-74",
+      "amount": 15750,
+      "hours": 4.67,
+      "minutes": 280,
+      "revenueInFile": 3373,
+      "excelRow": 99,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-100-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "objectId": "obj-75",
+      "amount": 13100,
+      "hours": 3,
+      "minutes": 180,
+      "revenueInFile": 4367,
+      "excelRow": 100,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-103-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "objectId": "obj-76",
+      "amount": null,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": null,
+      "excelRow": 103,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-104-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "objectId": "obj-77",
+      "amount": null,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": null,
+      "excelRow": 104,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-105-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "objectId": "obj-77",
+      "amount": null,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": null,
+      "excelRow": 105,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-106-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "objectId": "obj-77",
+      "amount": null,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": null,
+      "excelRow": 106,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-107-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-1",
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "objectId": "obj-77",
+      "amount": null,
+      "hours": 9,
+      "minutes": 540,
+      "revenueInFile": null,
+      "excelRow": 107,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-110-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-3",
+      "brigadeId": "brg-3.1",
+      "employeeId": null,
+      "objectId": "obj-78",
+      "amount": 44200,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 5525,
+      "excelRow": 110,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-112-5",
+      "day": "2026-10-03",
+      "dayIndex": 5,
+      "groupId": "grp-3",
+      "brigadeId": "brg-3.10",
+      "employeeId": "emp-3.10-1",
+      "objectId": "obj-79",
+      "amount": 23850,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 2981,
+      "excelRow": 112,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-113-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-3",
+      "brigadeId": "brg-3.10",
+      "employeeId": "emp-3.10-1",
+      "objectId": "obj-80",
+      "amount": 14500,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 1813,
+      "excelRow": 113,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-115-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-3",
+      "brigadeId": "brg-3.7",
+      "employeeId": "emp-3.7-1",
+      "objectId": "obj-81",
+      "amount": 11300,
+      "hours": 4,
+      "minutes": 240,
+      "revenueInFile": 2825,
+      "excelRow": 115,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-119-0",
+      "day": "2026-09-28",
+      "dayIndex": 0,
+      "groupId": "grp-5",
+      "brigadeId": "brg-5.1",
+      "employeeId": "crew-5.1",
+      "objectId": "obj-82",
+      "amount": 11850,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 1481,
+      "excelRow": 119,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-120-1",
+      "day": "2026-09-29",
+      "dayIndex": 1,
+      "groupId": "grp-5",
+      "brigadeId": "brg-5.1",
+      "employeeId": "crew-5.1",
+      "objectId": "obj-82",
+      "amount": 11850,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 1481,
+      "excelRow": 120,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-121-2",
+      "day": "2026-09-30",
+      "dayIndex": 2,
+      "groupId": "grp-5",
+      "brigadeId": "brg-5.1",
+      "employeeId": "crew-5.1",
+      "objectId": "obj-82",
+      "amount": 11850,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 1481,
+      "excelRow": 121,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-122-3",
+      "day": "2026-10-01",
+      "dayIndex": 3,
+      "groupId": "grp-5",
+      "brigadeId": "brg-5.1",
+      "employeeId": "crew-5.1",
+      "objectId": "obj-82",
+      "amount": 11850,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 1481,
+      "excelRow": 122,
+      "source": "fact-report"
+    },
+    {
+      "id": "fr-123-4",
+      "day": "2026-10-02",
+      "dayIndex": 4,
+      "groupId": "grp-5",
+      "brigadeId": "brg-5.1",
+      "employeeId": "crew-5.1",
+      "objectId": "obj-82",
+      "amount": 11850,
+      "hours": 8,
+      "minutes": 480,
+      "revenueInFile": 1481,
+      "excelRow": 123,
+      "source": "fact-report"
+    }
+  ],
+  "grandTotal": {
+    "label": "Итого",
+    "excelRow": 124,
+    "values": [
+      {
+        "day": 0,
+        "amount": 309100,
+        "hours": 64.81,
+        "revenue": 4769
+      },
+      {
+        "day": 1,
+        "amount": 232050,
+        "hours": 61.98,
+        "revenue": 3744
+      },
+      {
+        "day": 2,
+        "amount": 261000,
+        "hours": 64.75,
+        "revenue": 4031
+      },
+      {
+        "day": 3,
+        "amount": 266500,
+        "hours": 76.82,
+        "revenue": 3469
+      },
+      {
+        "day": 4,
+        "amount": 394700,
+        "hours": 76.66,
+        "revenue": 5149
+      },
+      {
+        "day": 5,
+        "amount": 63800,
+        "hours": 16.33,
+        "revenue": 3907
+      }
+    ],
+    "total": {
+      "day": -1,
+      "amount": 1527150,
+      "hours": 361.35,
+      "revenue": 4226
+    }
+  },
+  "frames": [
+    {
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "day": "2026-09-28",
+      "frame": "8.20-16.40",
+      "excelRow": 5
+    },
+    {
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "day": "2026-09-29",
+      "frame": "8.00-16.35",
+      "excelRow": 5
+    },
+    {
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "day": "2026-09-30",
+      "frame": "8.15-16.30",
+      "excelRow": 5
+    },
+    {
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "day": "2026-10-01",
+      "frame": "8.10-16.40",
+      "excelRow": 5
+    },
+    {
+      "brigadeId": "brg-1",
+      "employeeId": "emp-1-1",
+      "day": "2026-10-02",
+      "frame": "8.20-16.30",
+      "excelRow": 5
+    },
+    {
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "day": "2026-09-28",
+      "frame": "9.00-16.30",
+      "excelRow": 15
+    },
+    {
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "day": "2026-09-29",
+      "frame": "7.50-16.40",
+      "excelRow": 15
+    },
+    {
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "day": "2026-09-30",
+      "frame": "8.00-16.50",
+      "excelRow": 15
+    },
+    {
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "day": "2026-10-01",
+      "frame": "7.40-16.50",
+      "excelRow": 15
+    },
+    {
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "day": "2026-10-02",
+      "frame": "8.00-17.10",
+      "excelRow": 15
+    },
+    {
+      "brigadeId": "brg-2",
+      "employeeId": "emp-2-1",
+      "day": "2026-10-03",
+      "frame": "7.50-18.10",
+      "excelRow": 15
+    },
+    {
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "day": "2026-09-28",
+      "frame": "8.00-20.50",
+      "excelRow": 32
+    },
+    {
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "day": "2026-09-29",
+      "frame": "8.00-20.40",
+      "excelRow": 32
+    },
+    {
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "day": "2026-09-30",
+      "frame": "8.00-20.40",
+      "excelRow": 32
+    },
+    {
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "day": "2026-10-01",
+      "frame": "8.00-23.10",
+      "excelRow": 32
+    },
+    {
+      "brigadeId": "brg-3",
+      "employeeId": "emp-3-1",
+      "day": "2026-10-02",
+      "frame": "8.00-20.20",
+      "excelRow": 32
+    },
+    {
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "day": "2026-09-28",
+      "frame": "8.20-18.30",
+      "excelRow": 52
+    },
+    {
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "day": "2026-09-29",
+      "frame": "8.10-17.00",
+      "excelRow": 52
+    },
+    {
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "day": "2026-09-30",
+      "frame": "8.10-16.50",
+      "excelRow": 52
+    },
+    {
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "day": "2026-10-01",
+      "frame": "8.10-17.50",
+      "excelRow": 52
+    },
+    {
+      "brigadeId": "brg-4",
+      "employeeId": "emp-4-1",
+      "day": "2026-10-02",
+      "frame": "8.10-17.20",
+      "excelRow": 52
+    },
+    {
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "day": "2026-09-28",
+      "frame": "8.00-20.50",
+      "excelRow": 64
+    },
+    {
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "day": "2026-09-29",
+      "frame": "8.00-20.40",
+      "excelRow": 64
+    },
+    {
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "day": "2026-09-30",
+      "frame": "8.00-20.40",
+      "excelRow": 64
+    },
+    {
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "day": "2026-10-01",
+      "frame": "8.00-23.10",
+      "excelRow": 64
+    },
+    {
+      "brigadeId": "brg-5",
+      "employeeId": "emp-5-1",
+      "day": "2026-10-02",
+      "frame": "8.00-20.20",
+      "excelRow": 64
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "day": "2026-09-28",
+      "frame": "8.00-18.20",
+      "excelRow": 86
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "day": "2026-09-29",
+      "frame": "8.10-18.20",
+      "excelRow": 86
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "day": "2026-09-30",
+      "frame": "8.10-18.10",
+      "excelRow": 86
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "day": "2026-10-01",
+      "frame": "8.00-19.00",
+      "excelRow": 86
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-1",
+      "day": "2026-10-02",
+      "frame": "8.00-18.30",
+      "excelRow": 86
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "day": "2026-09-28",
+      "frame": "8.00-17.00",
+      "excelRow": 101
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "day": "2026-09-29",
+      "frame": "8.00-17.00",
+      "excelRow": 101
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "day": "2026-09-30",
+      "frame": "8.00-17.00",
+      "excelRow": 101
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "day": "2026-10-01",
+      "frame": "8.00-17.00",
+      "excelRow": 101
+    },
+    {
+      "brigadeId": "brg-7",
+      "employeeId": "emp-7-2",
+      "day": "2026-10-02",
+      "frame": "8.00-18.00",
+      "excelRow": 101
+    }
+  ]
+}

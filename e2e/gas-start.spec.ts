@@ -1,4 +1,5 @@
 import { expect, open, test } from "./fixtures";
+import { enterClientContour } from "./gas-helpers";
 
 /**
  * Стартовый экран, инструкция и вопросы контура газа (ADR-044, F2, F7) на 390 и 1440.
@@ -29,8 +30,12 @@ for (const [name, viewport] of [
     test("новичок: с /gas за одно касание до экрана любой роли", async ({ page }) => {
       for (const role of Object.keys(ROLE_HOME)) {
         await open(page, "/gas");
+        // Заголовок старта: на телефоне в шапке контура (h1), с планшета в герое (ADR-048, 5)
         await expect(
-          page.getByRole("heading", { level: 2, name: /Учёт выработки бригад/ }),
+          page
+            .getByRole("heading", { name: /^Учёт выработки бригад/ })
+            .filter({ visible: true })
+            .first(),
         ).toBeVisible();
         await page.getByTestId(`gas-role-${role}`).click();
         await expect(page).toHaveURL(ROLE_HOME[role]!);
@@ -38,6 +43,8 @@ for (const [name, viewport] of [
     });
 
     test("схема шагов ведёт на экраны", async ({ page }) => {
+      // Пример расчёта берётся из недели заказчика: 395 мин и 44 847 ₽ (ADR-047)
+      await enterClientContour(page);
       await open(page, "/gas");
       await page.getByTestId("gas-flow-3").click();
       await expect(page).toHaveURL(/\/gas\/guide\?tab=calc/);
@@ -66,6 +73,8 @@ for (const [name, viewport] of [
     });
 
     test("вопросы сохраняют ответ после перезагрузки", async ({ page }) => {
+      // Вопросы к согласованию только в личном контуре заказчика (ADR-047)
+      await enterClientContour(page);
       await open(page, "/gas/questions");
       await expect(page.locator("[data-testid^='question-']")).toHaveCount(10);
       // Вопрос открывается деталью: ответ и статус в ней (ADR-045, 5.11)
@@ -95,6 +104,6 @@ test("печать инструкции: все вкладки подряд, б�
 
 test("финал без показа ведёт на старт", async ({ page }) => {
   await open(page, "/gas/finish");
-  await page.getByRole("link", { name: "Пройти показ" }).click();
+  await page.getByRole("link", { name: "Начать показ" }).click();
   await expect(page).toHaveURL(/\/gas$/);
 });

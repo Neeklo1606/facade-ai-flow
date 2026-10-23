@@ -2,7 +2,8 @@ import { completePageHead } from "@/lib/page-head";
 import { useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Download, MessageCircle, RotateCcw } from "lucide-react";
+import { ArrowRight, Check, Download, Globe, MessageCircle, RotateCcw } from "lucide-react";
+import { useStartCanonScenario } from "@/components/guide/DemoScenarios";
 import { AmbientField, Marker } from "@/components/gaika";
 import { Button } from "@/components/ui/button";
 import { DemoReset } from "@/components/layout/DemoReset";
@@ -12,7 +13,7 @@ import { saveShiftFile, useMaterialRequests } from "@/api/capture";
 import { useNow } from "@/api/clock";
 import { reportStatusLabel, materialRequestStatusLabel } from "@/contracts";
 import { CANON_SCENARIOS } from "@/lib/guide/scenarios";
-import { startScenario, useGuide } from "@/lib/guide/store";
+import { useGuide } from "@/lib/guide/store";
 import { recordAction } from "@/lib/guide/telemetry";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -24,19 +25,20 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/finish")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Итоги показа — гайка" }] },
-      "Итоги показа — гайка",
+      { meta: [{ title: "Итоги показа · гайка" }] },
+      "Итоги показа · гайка",
       "Сводка смены и черновик ведомости по итогам демонстрации.",
     ),
   component: FinishPage,
 });
 
 function FinishPage() {
-  if (!demoShow) return <Navigate to="/" replace />;
+  if (!demoShow) return <Navigate to="/app" replace />;
   return <Finish />;
 }
 
 function Finish() {
+  const startCanon = useStartCanonScenario();
   const guide = useGuide();
   const now = useNow();
   const projects = useQuery(queries.projects()).data ?? [];
@@ -102,7 +104,7 @@ function Finish() {
           </h1>
           <p className="text-body text-text-2">
             Голос с объекта стал отчётом, ПТО принял его и выпустил файлы, снабжение решило по
-            заявке. Всё это — в одной вкладке, на вымышленных данных.
+            заявке. Всё это в одной вкладке, на вымышленных данных.
           </p>
         </div>
 
@@ -135,17 +137,31 @@ function Finish() {
           <div className="flex flex-col gap-2">
             <Marker>Осталось</Marker>
             {CANON_SCENARIOS.filter((item) => !guide.finished.includes(item.id)).map((item) => (
-              <Button key={item.id} variant="secondary" className="justify-start" asChild>
-                <Link to="/" onClick={() => startScenario(item.id)}>
-                  {item.title}
-                </Link>
+              // Сценарий стартует сразу со своего экрана: так же, как плитка на /demo
+              <Button
+                key={item.id}
+                variant="secondary"
+                className="justify-start"
+                onClick={() => startCanon(item.id)}
+              >
+                {item.title}
               </Button>
             ))}
           </div>
         ) : null}
 
         <div className="flex flex-col gap-2">
-          <Button variant="accent" onClick={() => void download()} disabled={saving || !projectId}>
+          {/* Что дальше (01_SPEC 7.3): разобрать свои данные главным действием, затем файлы */}
+          <Button variant="accent" asChild>
+            <Link to="/razbor" search={{ from: "demo-final" }} data-testid="finish-razbor">
+              Разобрать мои данные <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => void download()}
+            disabled={saving || !projectId}
+          >
             <Download className="size-4" /> Скачать файлы
           </Button>
           {contactUrl ? (
@@ -163,6 +179,11 @@ function Finish() {
               </Button>
             }
           />
+          <Button variant="ghost" asChild>
+            <Link to="/">
+              <Globe className="size-4" /> Вернуться на сайт
+            </Link>
+          </Button>
         </div>
       </section>
     </>

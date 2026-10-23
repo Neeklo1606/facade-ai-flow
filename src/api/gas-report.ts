@@ -7,7 +7,8 @@
  */
 import { useMemo } from "react";
 import { getServerSnapshot } from "@/adapters/gas-ops/state";
-import { factReport } from "@/data/mock/fact-report";
+import type { FactReport } from "@/data/mock/fact-report-types";
+import { useGasContour } from "@/lib/gas-ops/contour";
 import { reconcile, reconcileLines, type ReconcileLine } from "@/domain/gas-ops/reconcile";
 import {
   changedEntryIds,
@@ -75,7 +76,7 @@ export function useGasReportView(options: ReportViewOptions): ReportView {
 }
 
 /** Строки блока сверки для набора записей системы: экран и тест берут их отсюда */
-export function reconcileLinesOf(entries: TimeEntry[]): ReconcileLine[] {
+export function reconcileLinesOf(factReport: FactReport, entries: TimeEntry[]): ReconcileLine[] {
   return reconcileLines(
     reconcile(
       {
@@ -92,5 +93,6 @@ export function reconcileLinesOf(entries: TimeEntry[]): ReconcileLine[] {
 /** Блок «Сверка с вашим файлом»: строки текста посчитаны кодом сверки */
 export function useGasReconcile(): ReconcileLine[] {
   const data = useGasData();
-  return useMemo(() => reconcileLinesOf(data.entries), [data.entries]);
+  const { report } = useGasContour();
+  return useMemo(() => reconcileLinesOf(report, data.entries), [report, data.entries]);
 }

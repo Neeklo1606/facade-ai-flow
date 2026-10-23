@@ -63,8 +63,9 @@ for (const run of RUNS) {
       };
 
       /* ---------- Вход ---------- */
-      await page.goto("/", { waitUntil: "domcontentloaded" });
-      await expect(page.getByRole("heading", { name: /Говорите с объекта/ })).toBeVisible();
+      // Экран входа переехал на /demo вторым блоком (ADR-047)
+      await page.goto("/demo", { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: "Голос с объекта" })).toBeVisible();
       await expect(page.getByText("1 минута")).toHaveCount(3);
       await shot("0-vhod", "01-ekran-vhoda");
       await page.getByRole("button", { name: /Смена → учёт/ }).click();
@@ -173,9 +174,20 @@ for (const run of RUNS) {
       for (const file of files) await expectXlsx(file, /\.xlsx$/u);
 
       // «Пройти заново»: сброс с подтверждением возвращает к экрану входа и к исходным данным
+      // Что дальше (01_SPEC 7.3): разбор своих данных главным действием, отметка источника
+      await expect(page.getByTestId("finish-razbor")).toHaveAttribute(
+        "href",
+        "/razbor?from=demo-final",
+      );
+      await expect(page.getByRole("link", { name: "Вернуться на сайт" })).toHaveAttribute(
+        "href",
+        "/",
+      );
       await page.getByRole("button", { name: "Пройти заново" }).click();
       await page.getByRole("alertdialog").getByRole("button", { name: "Сбросить" }).click();
-      await expect(page.getByRole("heading", { name: /Говорите с объекта/ })).toBeVisible();
+      // Экран входа показа теперь на /demo (ADR-047)
+      await expect(page).toHaveURL(/\/demo$/);
+      await expect(page.getByRole("heading", { name: "Голос с объекта" })).toBeVisible();
     });
   });
 }

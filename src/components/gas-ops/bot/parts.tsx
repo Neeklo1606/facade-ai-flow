@@ -4,16 +4,30 @@
  */
 import { SendHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { GAS_BRAND } from "@/lib/gas-ops/brand";
+import { useGasBrand } from "@/lib/gas-ops/contour";
 import { cn } from "@/lib/utils";
 
 /** Появление сообщения: снизу и из прозрачности. prefers-reduced-motion выключает сдвиг */
 const APPEAR =
   "animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none";
 
-export function ChatHeader() {
+/**
+ * Шапка чата. На телефоне это и есть шапка экрана (ADR-048, 6): слева «Назад», справа
+ * «Мои записи» и роль, пометка «Так выглядит бот бригадира» строкой мета, а не плашкой
+ */
+export function ChatHeader({
+  leading,
+  trailing,
+  note,
+}: {
+  leading?: ReactNode;
+  trailing?: ReactNode;
+  note?: string;
+} = {}) {
+  const brand = useGasBrand();
   return (
-    <div className="line-bottom z-10 flex h-sheet-head shrink-0 items-center gap-3 bg-surface px-4">
+    <div className="line-bottom z-10 flex min-h-sheet-head shrink-0 items-center gap-3 bg-surface px-4 pt-[env(safe-area-inset-top)] lg:pt-0">
+      {leading}
       <span
         aria-hidden
         className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-strong text-body-strong text-on-orange"
@@ -22,8 +36,9 @@ export function ChatHeader() {
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-heading">Учёт времени</p>
-        <p className="text-meta truncate text-text-3">бот · {GAS_BRAND.clientShort}</p>
+        <p className="text-meta truncate text-text-3">{note ?? `бот · ${brand.clientShort}`}</p>
       </div>
+      {trailing}
     </div>
   );
 }
@@ -129,7 +144,7 @@ export function Key({
       data-recommended={recommended ? "true" : undefined}
       aria-label={label}
       className={cn(
-        "flex min-h-12 min-w-0 flex-col justify-center rounded-control px-4 py-1.5 text-body-strong transition-[background-color,box-shadow,transform] duration-150 focus-ring press",
+        "flex min-h-field min-w-0 flex-col justify-center rounded-control px-4 py-1.5 text-body-strong transition-[background-color,box-shadow,transform] duration-150 focus-ring press",
         align === "center" ? "items-center text-center" : "items-start text-start",
         tone === "primary"
           ? "bg-orange-strong text-on-orange is-hover:bg-orange-strong-hover"
@@ -166,18 +181,21 @@ export function Composer({
   onSend,
   mask,
   numeric = false,
+  autoFocus = true,
 }: {
   placeholder: string;
   label: string;
   onSend: (text: string) => void;
   mask?: (text: string) => string;
   numeric?: boolean;
+  /** Поле рядом с записью голосом не берёт фокус: клавиатура закрыла бы волну (ADR-049) */
+  autoFocus?: boolean;
 }) {
   const [text, setText] = useState("");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    input.current?.focus({ preventScroll: true });
-  }, []);
+    if (autoFocus) input.current?.focus({ preventScroll: true });
+  }, [autoFocus]);
   return (
     <form
       className="glass flex shrink-0 items-center gap-2 px-3 pt-2 pb-[max(8px,env(safe-area-inset-bottom))] lg:pb-3"
@@ -198,7 +216,7 @@ export function Composer({
         inputMode={numeric ? "decimal" : "text"}
         autoComplete="off"
         enterKeyHint="send"
-        className="text-body h-12 min-w-0 flex-1 rounded-control border border-line-2 bg-surface px-4 text-text outline-none placeholder:text-text-3 focus-ring tnum"
+        className="text-body h-field min-w-0 flex-1 rounded-control border border-line-2 bg-surface px-4 text-text outline-none placeholder:text-text-3 focus-ring tnum"
       />
       <button
         type="submit"

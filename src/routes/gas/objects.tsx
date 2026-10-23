@@ -16,6 +16,7 @@ import { fmtShortDay } from "@/components/gas-ops/review/rules";
 import { fmtHours, fmtRate, fmtRub, useGasObjects, type ObjectCard } from "@/api/gas-ops";
 import { plural } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 
 /**
  * Реестр объектов (ТЗ, п. 8; вид ADR-045, 5.9). Адрес не единственный ключ: у объекта есть
@@ -26,8 +27,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/gas/objects")({
   head: () =>
     completePageHead(
-      { meta: [{ title: "Объекты — Учёт выработки бригад" }] },
-      "Объекты — Учёт выработки бригад",
+      { meta: [{ title: "Объекты · Учёт выработки бригад" }] },
+      "Объекты · Учёт выработки бригад",
       "Реестр объектов: адрес, вид работ, бригады, стоимость и записи времени.",
     ),
   component: ObjectsPage,
@@ -44,6 +45,8 @@ function costText(card: ObjectCard): { text: string; missing: boolean } {
 }
 
 function ObjectsPage() {
+  const brand = useGasBrand();
+  const clientContour = useIsClientContour();
   const cards = useGasObjects();
   const desktop = useIsDesktop();
   // С 768 деталь панелью справа, таблица с 1024 (ADR-045, V7)
@@ -124,7 +127,7 @@ function ObjectsPage() {
     {
       key: "brigades",
       title: "Бригады",
-      cell: (c) => c.brigades.map((b) => b.name).join(", ") || "—",
+      cell: (c) => c.brigades.map((b) => b.name).join(", ") || "–",
     },
     { key: "hours", title: "Часы", numeric: true, cell: (c) => fmtHours(c.totals.hours) },
     {
@@ -159,7 +162,9 @@ function ObjectsPage() {
     <div className="flex flex-col gap-block">
       <ScreenHint screen="objects" className="mb-0" />
       <p className="text-meta text-text-3">
-        Объекты из графика на неделю 28.09 – 03.10 · демо: формирование графика вне договора
+        Объекты из графика на неделю {brand.periodLabel}
+        {/* Граница договора заказчика называется только в его личном контуре (L3) */}
+        {clientContour ? " · демо: формирование графика вне договора" : " · график недели: демо"}
       </p>
 
       <div className="flex items-center gap-2">
@@ -306,7 +311,7 @@ function Detail({
         {card.days.length > 1 ? (
           <p className="mt-2 text-meta text-text-2">
             Требует согласования: по объекту работали несколько дней, как распределять стоимость по
-            дням и бригадам — открытый вопрос ТЗ. Сумма не распределяется.
+            дням и бригадам: открытый вопрос ТЗ. Сумма не распределяется.
           </p>
         ) : null}
       </section>

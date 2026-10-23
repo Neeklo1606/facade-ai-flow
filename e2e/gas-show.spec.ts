@@ -38,7 +38,7 @@ for (const width of WIDTHS) {
 
     test("от стартового экрана до файла и «Готово»", async ({ page }) => {
       await open(page, "/gas");
-      await page.getByRole("button", { name: /Пройти показ/ }).click();
+      await page.getByRole("button", { name: /Начать показ/ }).click();
       await expect(page).toHaveURL(/\/gas\/foreman/);
       await expect(dock(page)).toContainText("1/6");
 
@@ -52,7 +52,7 @@ for (const width of WIDTHS) {
       await answer(bot, /^0 мин/);
       await expect(bot.getByTestId("bot-total")).toHaveText("150 мин = 2,50 ч");
       await answer(bot, "Отправить");
-      await expect(bot).toContainText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+      await expect(bot).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
       await expect(dock(page)).toContainText("3/6");
 
       // 3. Менеджер: полоса переключает роль и открывает запись
@@ -95,6 +95,13 @@ for (const width of WIDTHS) {
       await expect(main).toContainText(/ГЗ-\d{5}/);
       await expect(main).toContainText("14 700");
       await expect(main).toContainText(FILE);
+
+      // Что дальше (01_SPEC 7.2): главное действие ведёт на разбор с отметкой источника
+      await page.getByTestId("finish-razbor").click();
+      await expect(page).toHaveURL(/\/razbor\?from=demo-final$/);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        "Экспресс-разбор учёта выработки",
+      );
     });
   });
 }
@@ -109,7 +116,7 @@ test.describe("показ ведёт по записи зрителя 390", () =
 
   test("подтверждение заготовки не подменяет запись зрителя в финале", async ({ page }) => {
     await open(page, "/gas");
-    await page.getByRole("button", { name: /Пройти показ/ }).click();
+    await page.getByRole("button", { name: /Начать показ/ }).click();
     const bot = page.locator('[data-tour="bot"]');
     await answer(bot, "Внести время");
     await answer(bot, /ул\. Демо, 200/);
@@ -118,7 +125,7 @@ test.describe("показ ведёт по записи зрителя 390", () =
     await answer(bot, /^14:30/);
     await answer(bot, /^0 мин/);
     await answer(bot, "Отправить");
-    const accepted = bot.getByText(/Запись ГЗ-\d{5} принята, ждёт проверки/);
+    const accepted = bot.getByText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
     await expect(accepted).toBeVisible();
     const number = (await accepted.innerText()).match(/ГЗ-\d{5}/)![0];
 
@@ -146,7 +153,7 @@ test.describe("показ ведёт по записи зрителя 390", () =
     const main = page.locator("main");
     await expect(main).toContainText(number);
     await expect(main).not.toContainText("ГЗ-00096");
-    await expect(main).toContainText("ст. Петровская, ул. Демо, 200 - котел");
+    await expect(main).toContainText("ст. Демо-Северная, ул. Демо, 200 - котел");
     const text = plain(await main.innerText());
     expect(text).toContain("150 мин · 2,50 ч");
     expect(text).toContain("14 700 ₽");

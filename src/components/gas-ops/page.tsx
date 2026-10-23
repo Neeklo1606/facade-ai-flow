@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { HintRow } from "@/components/ui/kit/states";
 import { gasScreen, type GasScreenKey } from "@/lib/gas-ops/screens";
 import { cn } from "@/lib/utils";
+import { useGasContour } from "@/lib/gas-ops/contour";
 
 /**
  * «Как работать с экраном»: одна строка 44 со стрелкой. При первом посещении экрана
@@ -34,10 +35,12 @@ export function ScreenHint({ screen, className }: { screen: GasScreenKey; classN
 
 /** Граница договора: одна строка под заголовком экрана группы «Развитие» (F7) */
 export function GrowthLine({ children }: { children?: ReactNode }) {
+  // «Вне договора v1.0» это граница договора газового заказчика: в публичном контуре «Развитие»
+  const client = useGasContour().kind === "client";
   return (
     <p className="mb-block flex flex-wrap items-center gap-2 text-meta text-text-3">
       <span className="inline-flex h-chip items-center rounded-full bg-surface-2 px-2 text-meta-strong text-text-2">
-        Вне договора v1.0
+        {client ? "Вне договора v1.0" : "Развитие"}
       </span>
       {children ?? "Показываем, как система может развиваться."}
     </p>
@@ -46,11 +49,21 @@ export function GrowthLine({ children }: { children?: ReactNode }) {
 
 /** Тихая легенда источника данных: серые подписи, без цветных плашек (F5, п. 2) */
 export function SourceLegend() {
+  const { kind, brand } = useGasContour();
   return (
     <p className="mb-block text-meta text-text-3">
-      <span className="font-medium text-text-2">Факт</span> — из отчёта заказчика за
-      28.09–03.10.2026, ФИО и адреса обезличены.{" "}
-      <span className="font-medium text-text-2">Демо</span> — добавлено для показа сценариев.
+      {kind === "client" ? (
+        <>
+          <span className="font-medium text-text-2">Факт</span>: из вашего отчёта за{" "}
+          {brand.periodLabel}, ФИО и адреса обезличены.{" "}
+        </>
+      ) : (
+        <>
+          <span className="font-medium text-text-2">Пример</span>: вымышленная неделя подрядчика в
+          структуре настоящего отчёта.{" "}
+        </>
+      )}
+      <span className="font-medium text-text-2">Демо</span>: добавлено для показа сценариев.
     </p>
   );
 }

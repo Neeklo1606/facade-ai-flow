@@ -6,7 +6,7 @@ import { fmtHours, fmtRate, fmtRub, type ReportRow } from "@/api/gas-ops";
 
 export type ReportCellValue = ReportRow["total"];
 
-export const DASH = "—";
+export const DASH = "–";
 
 export function amountText(cell: ReportCellValue): string {
   return cell.amountRub === null ? DASH : fmtRub(cell.amountRub);

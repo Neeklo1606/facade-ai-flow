@@ -38,6 +38,8 @@ const steps: Step[] = [
   { name: "Ссылки в документах", cmd: ["bun", "run", "check:links"] },
   // Шкала ADR-045: ручные размеры мимо токенов только уменьшаются
   { name: "Шкала размеров", cmd: ["bun", "run", "check:typography"] },
+  // Тексты интерфейса: без длинных тире, капса, эмодзи и запрещённых слов (00_SYSTEM, 7)
+  { name: "Тексты интерфейса", cmd: ["bun", "run", "check:copy"] },
   {
     name: "PostgreSQL: миграции, паритет с демо, версия данных",
     cmd: ["bun", "run", "check:db"],
@@ -61,6 +63,12 @@ const steps: Step[] = [
     env: { NITRO_PRESET: "node-server" },
   },
   { name: "Размер бандла: демонстрация", cmd: ["bun", "run", "check:bundle", "demo"] },
+  // Данные заказчика в публичной сборке: файлы сборки и HTML страниц сайта и /gas (ADR-047)
+  {
+    name: "Данные заказчика в публичной сборке",
+    cmd: ["bun", "run", "check:public-bundle"],
+    server: true,
+  },
   { name: "Сквозные тесты: роли, EMBER, axe, консоль", cmd: ["bun", "run", "test:e2e"] },
   { name: "Lighthouse", cmd: ["bun", "run", "lighthouse"], server: true },
 ];
@@ -70,7 +78,8 @@ const running: { server: Subprocess | null } = { server: null };
 
 async function startServer() {
   running.server = spawn(["node", ".output/server/index.mjs"], {
-    env: { ...baseEnv, PORT: port },
+    // Тот же тестовый ключ личной ссылки, что у сервера сквозных тестов (playwright.config.ts)
+    env: { ...baseEnv, PORT: port, CLIENT_LINK_KEY: "e2e-client-key" },
     stdout: "ignore",
     stderr: "inherit",
   });

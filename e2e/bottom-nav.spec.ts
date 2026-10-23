@@ -128,8 +128,12 @@ test.describe("нижняя панель @mobile", () => {
 
     test("создание роли открывается из «Ещё» @mobile", async ({ page }) => {
       await open(page, "/projects/p-korona/procurement");
-      await page.getByRole("button", { name: /Ещё/ }).click();
-      const sheet = page.getByRole("dialog");
+      // «Ещё» вкладка-экран (ADR-048): действия создания в группе «Создать»
+      await page
+        .getByRole("navigation", { name: "Основная навигация" })
+        .getByRole("link", { name: "Ещё" })
+        .click();
+      const sheet = page.getByRole("region", { name: "Создать" });
       await expect(sheet).toBeVisible();
       const text = await sheet.innerText();
       // Прогон идёт с включённым флагом legacy_modules: действия модулей на месте.
@@ -138,9 +142,7 @@ test.describe("нижняя панель @mobile", () => {
       expect(text).toContain("Поставщик");
       // Бота в продукте нет
       expect(text.toLowerCase()).not.toContain("telegram");
-      await expectA11y(page, "шторка «Ещё»");
-      await page.keyboard.press("Escape");
-      await expect(sheet).toBeHidden();
+      await expectA11y(page, "экран «Ещё»");
     });
 
     test("на «Объектах» три позиции, микрофон всё равно по центру (refs/16) @mobile", async ({

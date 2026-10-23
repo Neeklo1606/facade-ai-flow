@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { fmtHours, fmtRate } from "@/domain/gas-ops/calc";
 import { calcExample, showExample } from "@/lib/gas-ops/start-examples";
-import { GAS_QUESTIONS, questionHref, questionsText } from "@/lib/gas-ops/questions";
+import { questionHref, questionsText } from "@/lib/gas-ops/questions";
+import { GAS_QUESTIONS } from "@/server/customer-questions";
 import { grantResponse } from "@/lib/access";
 
 describe("примеры стартового экрана и инструкции (ADR-044, F2)", () => {
   test("395 мин = 6,58 ч; 44 847 ₽ / (395 / 60) = 6 812 ₽/ч; от 6,58 ч выходит 6 816", () => {
-    const c = calcExample();
+    // Первая строка отчёта заказчика: 395 минут и 44 847 ₽
+    const c = calcExample({ amountRub: 44_847, minutes: 395 });
     expect(fmtHours(c.hours)).toBe("6,58 ч");
     expect(c.rate).toBe(6812);
     expect(fmtRate(c.rate).replace(/\s/g, " ")).toBe("6 812 ₽/ч");
@@ -36,7 +38,9 @@ describe("вопросы к согласованию (F7)", () => {
   });
 
   test("текст для мессенджера несёт ответ и статус", () => {
-    const text = questionsText({ 1: { answer: "По дням поровну", status: "answered" } });
+    const text = questionsText(GAS_QUESTIONS, {
+      1: { answer: "По дням поровну", status: "answered" },
+    });
     expect(text).toContain("1. Как делить стоимость");
     expect(text).toContain("Ответ: По дням поровну");
     expect(text).toContain("Статус: Ответ получен");

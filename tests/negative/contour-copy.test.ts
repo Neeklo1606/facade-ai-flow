@@ -74,6 +74,12 @@ describe("пометки контуров", () => {
         "src/components/layout/sheets.tsx",
         "шторка «Ещё»: смена роли бывает только в демонстрации, выход — только там, где есть сессия",
       ],
+      // ADR-048: «Ещё» стал экраном, смена роли переехала в шторку аватара. Разница та же
+      [
+        "src/components/layout/MoreScreen.tsx",
+        "экран «Ещё»: смена роли и сброс только в демонстрации, выход только с сессией",
+      ],
+      ["src/components/layout/RoleSheet.tsx", "шторка ролей: подпись о роли из учётной записи"],
     ]);
     const offenders = ui
       .filter((file) => /dataSource\s*===\s*"demo"|dataSource\s*!==\s*"demo"/.test(file.text))

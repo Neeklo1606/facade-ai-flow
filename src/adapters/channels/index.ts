@@ -1,3 +1,4 @@
+import { leadSinkFromEnv } from "@/adapters/leads";
 import { pickSpeech } from "@/adapters/speech";
 import type { ConnectionStatus } from "@/contracts";
 import type { ConnectionsPort, InboundChannel } from "@/ports";
@@ -25,6 +26,7 @@ export function connectionStatuses(
   const live = env("AI_MODE") === "live";
   const modelReady = live && has("LLM_API_KEY") && has("LLM_MODEL");
   const speech = pickSpeech(env);
+  const leads = leadSinkFromEnv(env).kind;
   return [
     {
       key: "model",
@@ -66,6 +68,27 @@ export function connectionStatuses(
         ? "Вход по номеру и коду для сотрудников компании"
         : "В демонстрации вход — выбором роли",
       env: ["DATABASE_URL", "SESSION_SECRET"],
+    },
+    {
+      key: "leads",
+      title: "Приём заявок с сайта",
+      state: leads === "none" ? "off" : "on",
+      detail:
+        leads === "telegram"
+          ? "Заявки приходят в Telegram владельца"
+          : leads === "webhook"
+            ? "Заявки уходят на вебхук (таблица заявок)"
+            : "Не подключён: форма честно ведёт в Telegram с готовым текстом заявки",
+      env: ["LEADS_TELEGRAM_BOT_TOKEN", "LEADS_TELEGRAM_CHAT_ID", "LEADS_WEBHOOK_URL"],
+    },
+    {
+      key: "client-link",
+      title: "Личный контур заказчика",
+      state: has("CLIENT_LINK_KEY") ? "on" : "off",
+      detail: has("CLIENT_LINK_KEY")
+        ? "Личная ссылка открывает данные заказчика, остальные видят публичный набор"
+        : "Ключ личной ссылки не задан: все видят публичный набор «Демо-подрядчика»",
+      env: ["CLIENT_LINK_KEY"],
     },
   ];
 }
