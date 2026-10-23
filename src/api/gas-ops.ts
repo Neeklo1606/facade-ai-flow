@@ -77,6 +77,10 @@ export {
 
 export { clashOf };
 
+/** Разбор фразы бригадира правилом domain (ADR-049): экран бота зовёт его отсюда */
+export { parseTimeMessage } from "@/domain/gas-ops/parse-time-message";
+export type { ParsedTime, ParseObject } from "@/domain/gas-ops/parse-time-message";
+
 export type {
   AnalyticRow,
   BrigadeCard,

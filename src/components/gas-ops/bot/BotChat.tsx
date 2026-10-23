@@ -27,7 +27,7 @@ import { GAS_SHOW_HINT, gasShowEvent, useGasShow } from "@/lib/gas-ops/show";
 import { cn } from "@/lib/utils";
 import { BotBubble, ChatHeader, Composer, Key, Keys, MyBubble, SystemNote } from "./parts";
 import { ParseStages, VoiceRecorder } from "./VoiceInput";
-import { parseTimeMessage, type ParsedTime } from "@/domain/gas-ops/parse-time-message";
+import { parseTimeMessage, type ParsedTime } from "@/api/gas-ops";
 import {
   busyAt,
   endSlots,
