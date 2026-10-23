@@ -211,7 +211,7 @@ for (const theme of ["dark", "light"] as const) {
       const instant = page.getByRole("button", { name: "Показать сразу" });
       await page.goto("/demo", { waitUntil: "load" });
       await page.waitForSelector("html[data-booted]");
-      await page.getByRole("button", { name: /Смена → учёт/ }).click();
+      await page.getByRole("link", { name: /Смена → учёт/ }).click();
       await expect(page).toHaveURL(/\/capture/);
       await page.getByRole("button", { name: /Удерживайте, чтобы говорить/ }).click();
       await page.getByRole("button", { name: "Показать без микрофона" }).click();

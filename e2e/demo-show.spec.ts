@@ -68,7 +68,7 @@ for (const run of RUNS) {
       await expect(page.getByRole("heading", { name: "Голос с объекта" })).toBeVisible();
       await expect(page.getByText("1 минута")).toHaveCount(3);
       await shot("0-vhod", "01-ekran-vhoda");
-      await page.getByRole("button", { name: /Смена → учёт/ }).click();
+      await page.getByRole("link", { name: /Смена → учёт/ }).click();
 
       /* ---------- Сценарий 1: смена → учёт ---------- */
       await expect(page).toHaveURL(/\/capture/);
