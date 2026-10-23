@@ -89,8 +89,14 @@ function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
           </div>
           <p className="site-caption site-rise mt-4 text-text-3">{hero.note}</p>
         </div>
-        {/* Компьютер: путь одной записи справа, сверху вниз, один раз при появлении */}
-        <div className="hidden flex-col gap-3 lg:flex" aria-label="Путь одной записи">
+        {/*
+          Путь одной записи сверху вниз, один раз при появлении: справа от текста с 1024,
+          под текстом на планшете. На телефоне его нет: первый экран только текст и кнопки
+        */}
+        <div
+          className="hidden flex-col gap-3 md:flex md:max-w-[560px] lg:max-w-none"
+          aria-label="Путь одной записи"
+        >
           <Reveal delay={150}>
             <BotFragment className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line" />
           </Reveal>

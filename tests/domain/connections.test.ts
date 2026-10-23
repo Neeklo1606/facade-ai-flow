@@ -15,6 +15,8 @@ describe("статусы подключений", () => {
       ["speech", "demo"],
       ["telegram", "off"],
       ["phone-login", "off"],
+      ["leads", "off"],
+      ["client-link", "off"],
     ]);
     for (const row of rows) expect(() => connectionStatus.parse(row)).not.toThrow();
   });
@@ -31,6 +33,9 @@ describe("статусы подключений", () => {
         STT_MODEL: "whisper-1",
         STT_API_KEY: secret,
         TELEGRAM_BOT_TOKEN: secret,
+        LEADS_TELEGRAM_BOT_TOKEN: secret,
+        LEADS_TELEGRAM_CHAT_ID: "12345",
+        CLIENT_LINK_KEY: secret,
       }),
       { phoneLogin: true },
     );
@@ -39,6 +44,22 @@ describe("статусы подключений", () => {
     expect(rows.find((row) => row.key === "speech")?.state).toBe("on");
     // Токен есть, а адаптера канала нет: «подключено» было бы враньём (правило 4)
     expect(rows.find((row) => row.key === "telegram")?.state).toBe("off");
+    expect(rows.find((row) => row.key === "leads")?.detail).toContain("Telegram владельца");
+    expect(rows.find((row) => row.key === "client-link")?.state).toBe("on");
+    expect(JSON.stringify(rows)).not.toContain("12345");
+  });
+
+  test("приём заявок: вебхук без Telegram, адрес не показывается", () => {
+    const rows = connectionStatuses(
+      env({ LEADS_WEBHOOK_URL: "https://hook.example/secret-path" }),
+      {
+        phoneLogin: false,
+      },
+    );
+    const leads = rows.find((row) => row.key === "leads")!;
+    expect(leads.state).toBe("on");
+    expect(leads.detail).toContain("вебхук");
+    expect(JSON.stringify(rows)).not.toContain("secret-path");
   });
 
   test("live без ключа — не подключено, а не демо", () => {

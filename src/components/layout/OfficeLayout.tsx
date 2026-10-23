@@ -90,7 +90,7 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
         {/* Шапка телефона 52 + safe-area (ADR-045, 4.2), сплошная, с границей снизу */}
         <header className="line-bottom sticky top-0 z-30 box-content flex h-header items-center gap-2 bg-surface px-gutter pt-[env(safe-area-inset-top)] lg:hidden">
           <Link
-            to={pathname.replace(/\/$/u, "") === "/office" ? "/" : "/office"}
+            to={pathname.replace(/\/$/u, "") === "/office" ? "/app" : "/office"}
             aria-label={
               pathname.replace(/\/$/u, "") === "/office"
                 ? "В полевое приложение"
@@ -123,6 +123,13 @@ export function OfficeLayout({ children }: { children: ReactNode }) {
           <DemoMark />
         </header>
         <main className="min-w-0 flex-1 px-gutter pt-4 pb-inset lg:px-12 lg:py-10">
+          {/* Таблицы и формы кабинета рассчитаны на компьютер: на телефоне говорим это прямо */}
+          <p
+            data-testid="office-desktop-note"
+            className="mb-4 rounded-[var(--r-sm)] bg-surface px-4 py-3 text-meta text-text-2 lg:hidden"
+          >
+            Кабинет удобнее на компьютере. Здесь можно посмотреть разделы и статус подключений.
+          </p>
           <div className="mx-auto w-full max-w-[1200px]">{children}</div>
         </main>
       </div>

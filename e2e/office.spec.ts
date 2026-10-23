@@ -15,9 +15,20 @@ test.describe("руководитель", () => {
       .first()
       .click();
     await expect(page.getByRole("heading", { name: "Подключения" })).toBeVisible();
-    for (const title of ["Модель разбора", "Распознавание речи", "Telegram", "Вход по телефону"]) {
+    for (const title of [
+      "Модель разбора",
+      "Распознавание речи",
+      "Telegram",
+      "Вход по телефону",
+      "Приём заявок с сайта",
+      "Личный контур заказчика",
+    ]) {
       await expect(page.getByText(title, { exact: true })).toBeVisible();
     }
+    // Сервер тестов без приёма заявок и с ключом личной ссылки (ADR-051, ADR-047)
+    await expect(page.getByText(/^Не подключён: форма честно ведёт в Telegram/)).toBeVisible();
+    await expect(page.getByText(/^Личная ссылка открывает данные заказчика/)).toBeVisible();
+    await expect(page.locator("main")).not.toContainText("e2e-client-key");
     // Тот же адрес сервер отдаёт руководителю: отказ прорабу ниже — право, а не поломка
     const allowed = await page.request.get("/api/office/connections");
     expect(allowed.status()).toBe(200);
