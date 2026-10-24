@@ -25,6 +25,8 @@ const SCREENS: { path: string; persona: string | null }[] = [
   { path: "/razbor", persona: null },
   { path: "/kit", persona: null },
   { path: "/privacy", persona: null },
+  // «Спросить ГАЙКУ» (ADR-052): роль по умолчанию в контуре газа менеджер
+  { path: "/gas/ask", persona: null },
   { path: "/today", persona: "e-gareev" },
   { path: "/capture", persona: "e-gareev" },
   { path: "/inbox", persona: "e-gareev" },

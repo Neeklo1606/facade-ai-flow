@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { buildPublicSeed } from "@/data/mock/public/seed";
-import { ASK_SUGGESTIONS, askGaika } from "@/domain/gas-ops/ask";
+import { ASK_SUGGESTIONS, askGaika, type AskIntent } from "@/domain/gas-ops/ask";
 import { totalsOf } from "@/domain/gas-ops/calc";
 import { dashboardMetrics, queue, type GasData } from "@/domain/gas-ops/view";
 
@@ -11,7 +11,7 @@ import { dashboardMetrics, queue, type GasData } from "@/domain/gas-ops/view";
 const data: GasData = { ...buildPublicSeed(), actorId: "u-manager" };
 
 describe("намерение вопроса", () => {
-  const cases: [string, string][] = [
+  const cases: [string, AskIntent][] = [
     ["Сколько заработали за неделю?", "week"],
     ["итог недели", "week"],
     ["Что ждёт проверки?", "review"],

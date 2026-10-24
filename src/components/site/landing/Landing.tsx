@@ -74,7 +74,7 @@ function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
       >
         <Link
           to="/demo"
-          className="site-rise inline-flex min-h-9 items-center gap-2 rounded-full bg-surface px-3.5 text-meta text-text-2 ring-1 ring-line focus-ring is-hover:text-text"
+          className="site-rise inline-flex min-h-11 items-center gap-2 rounded-full bg-surface px-4 sm:min-h-9 text-meta text-text-2 ring-1 ring-line focus-ring is-hover:text-text"
           onClick={() => track("cta_demo", { place: "badge" })}
         >
           <Sparkles className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
