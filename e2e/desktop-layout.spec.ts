@@ -118,7 +118,7 @@ test.describe("кабинет на компьютере 1280", () => {
 
 test.describe("сайт на компьютере и планшете", () => {
   for (const width of [768, 1024, 1280, 1440, 1920]) {
-    test(`лендинг ${width}: сетка, текст до 640, контент до 1200, фрагменты по ширине`, async ({
+    test(`лендинг ${width}: сетка, текст до 640, контент до 1200, окно продукта под текстом`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -130,25 +130,23 @@ test.describe("сайт на компьютере и планшете", () => {
         .locator("main .site-wrap")
         .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
       for (const w of wraps) expect(w).toBeLessThanOrEqual(1200);
+      // Первый экран по центру (ADR-052): окно продукта под текстом, по центру, до 1040
       const title = (await page.locator("main h1").boundingBox())!;
-      const fragment = (await page
-        .getByLabel("Путь одной записи")
-        .getByLabel("Пример: бот бригадира")
-        .boundingBox())!;
-      if (width >= 1024) {
-        expect(fragment.x).toBeGreaterThan(title.x + title.width - 1);
-      } else {
-        expect(fragment.y).toBeGreaterThan(title.y + title.height);
-      }
+      const window = (await page.getByRole("img", { name: /Как выглядит ГАЙКА/ }).boundingBox())!;
+      expect(window.y).toBeGreaterThan(title.y + title.height);
+      expect(window.width).toBeLessThanOrEqual(1040);
+      const centre = window.x + window.width / 2;
+      expect(Math.abs(centre - width / 2)).toBeLessThan(2);
+      // Меню окна видно с планшета: продукт узнаётся по экрану, а не по тексту
+      await expect(page.getByRole("img", { name: /Как выглядит ГАЙКА/ })).toContainText("Проверка");
     });
   }
 
   test("/demo на компьютере: две карточки рядом", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/demo", { waitUntil: "load" });
-    const cards = page.locator("main section[aria-labelledby]");
-    const a = (await cards.nth(0).boundingBox())!;
-    const b = (await cards.nth(1).boundingBox())!;
+    const a = (await page.locator('main section[aria-labelledby="demo-gas"]').boundingBox())!;
+    const b = (await page.locator('main section[aria-labelledby="demo-voice"]').boundingBox())!;
     expect(Math.abs(a.y - b.y)).toBeLessThan(2);
     expect(b.x).toBeGreaterThan(a.x + a.width - 1);
   });

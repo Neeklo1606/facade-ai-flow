@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   RotateCcw,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useBack, useTabStack, type TabDef } from "@/lib/ui/tab-stack";
@@ -402,6 +403,8 @@ function HeaderSearch() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  // Одно поле на поиск и вопрос (ADR-052): бригадиру вопрос недоступен, суммы ему не видны
+  const canAsk = useGasActor().role !== "foreman";
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -434,6 +437,21 @@ function HeaderSearch() {
             Найти
           </button>
         </form>
+        {canAsk ? (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              void navigate({ to: "/gas/ask", search: text.trim() ? { q: text.trim() } : {} });
+            }}
+            className="text-body mt-2 flex min-h-12 w-full items-center gap-2 rounded-[var(--r-md)] px-3 text-left text-text-2 focus-ring is-hover:bg-surface-2 is-hover:text-text"
+          >
+            <Sparkles className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
+            <span className="min-w-0 flex-1 truncate">
+              {text.trim() ? `Спросить ГАЙКУ: «${text.trim()}»` : "Спросить ГАЙКУ о неделе"}
+            </span>
+          </button>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

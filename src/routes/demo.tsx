@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { SiteError, SiteSkeleton, siteButton } from "@/components/site/parts";
 import { useForcedState } from "@/lib/screen-state";
@@ -64,27 +65,53 @@ function DemoEntry() {
         </div>
       ) : (
         <div className="site-wrap flex flex-col gap-12 pb-16 lg:grid lg:grid-cols-[1.15fr_1fr] lg:items-start lg:gap-10 lg:pb-28">
-          <section
-            aria-labelledby="demo-gas"
-            className="relative isolate overflow-hidden rounded-2xl bg-surface p-5 ring-1 ring-line sm:p-7 lg:p-10"
-          >
-            <span aria-hidden className="site-glow -z-10 opacity-40" />
-            <p className="site-caption font-medium text-orange">Главный сценарий</p>
-            <h2 id="demo-gas" className="site-h2 mt-2 text-text">
-              {DEMO.gas.title}
-            </h2>
-            <p className="site-body mt-3 text-text-2">{DEMO.gas.text}</p>
-            <p className="site-caption mt-4 text-text-3 tnum">{DEMO.gas.meta}</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-8">
-              <Link to="/gas" search={{ start: "1" }} className={siteButton.primary}>
-                <Play className="size-4 fill-current" aria-hidden />
-                {DEMO.gas.start}
+          <div className="flex flex-col gap-4">
+            <section
+              aria-labelledby="demo-gas"
+              className="relative isolate overflow-hidden rounded-2xl bg-surface p-5 ring-1 ring-line sm:p-7 lg:p-10"
+            >
+              <span aria-hidden className="site-glow -z-10 opacity-40" />
+              <p className="site-caption font-medium text-orange">Главный сценарий</p>
+              <h2 id="demo-gas" className="site-h2 mt-2 text-text">
+                {DEMO.gas.title}
+              </h2>
+              <p className="site-body mt-3 text-text-2">{DEMO.gas.text}</p>
+              <p className="site-caption mt-4 text-text-3 tnum">{DEMO.gas.meta}</p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-8">
+                <Link to="/gas" search={{ start: "1" }} className={siteButton.primary}>
+                  <Play className="size-4 fill-current" aria-hidden />
+                  {DEMO.gas.start}
+                </Link>
+                <Link to="/gas" search={{ roles: "1" }} className={siteButton.secondary}>
+                  {DEMO.gas.roles}
+                </Link>
+              </div>
+            </section>
+            {/* «Спросить ГАЙКУ» (ADR-052): вопрос о неделе обычными словами, ответ с источниками */}
+            <section
+              aria-labelledby="demo-ask"
+              className="flex flex-col gap-4 rounded-2xl bg-surface p-5 ring-1 ring-line sm:flex-row sm:items-center sm:justify-between sm:p-7"
+            >
+              <div className="flex gap-4">
+                <span
+                  className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-2 text-text"
+                  aria-hidden
+                >
+                  <Sparkles className="size-5" strokeWidth={1.75} />
+                </span>
+                <div>
+                  <h2 id="demo-ask" className="site-h3 text-text">
+                    {DEMO.ask.title}
+                  </h2>
+                  <p className="site-body mt-1 text-text-2">{DEMO.ask.text}</p>
+                </div>
+              </div>
+              <Link to="/gas/ask" className={cn(siteButton.secondary, "shrink-0")}>
+                {DEMO.ask.open}
+                <ArrowRight className="size-5" aria-hidden />
               </Link>
-              <Link to="/gas" search={{ roles: "1" }} className={siteButton.secondary}>
-                {DEMO.gas.roles}
-              </Link>
-            </div>
-          </section>
+            </section>
+          </div>
 
           <section aria-labelledby="demo-voice" className="flex flex-col gap-4">
             <div>

@@ -14,10 +14,19 @@ import {
   FileSpreadsheet,
   MessagesSquare,
   Play,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { ROLE_LABEL, fmtHours, fmtRate, fmtRub, useGasActions, type Role } from "@/api/gas-ops";
+import {
+  ROLE_LABEL,
+  fmtHours,
+  fmtRate,
+  fmtRub,
+  useGasActions,
+  useGasActor,
+  type Role,
+} from "@/api/gas-ops";
 import { useRoleSwitch } from "@/components/gas-ops/shell/use-role-switch";
 import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 import { ROLE_ABOUT, ROLE_HOME, ROLE_ORDER, gasScreen, roleInitial } from "@/lib/gas-ops/screens";
@@ -163,6 +172,7 @@ function Lead({
 }) {
   const brand = useGasBrand();
   const clientContour = useIsClientContour();
+  const canAsk = useGasActor().role !== "foreman";
   return (
     <section aria-labelledby="gas-start-title" className="flex flex-col gap-4 lg:gap-5">
       {/* На телефоне заголовок экрана в шапке контура, здесь с планшета (ADR-048, 5) */}
@@ -192,6 +202,16 @@ function Lead({
           Войти как…
           <ArrowDown className="size-4" aria-hidden />
         </button>
+        {/* «Спросить ГАЙКУ» (ADR-052): бригадиру нет, суммы ему не показываются */}
+        {canAsk ? (
+          <Link
+            to="/gas/ask"
+            className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-full px-4 text-body text-text-2 focus-ring is-hover:text-text"
+          >
+            <Sparkles className="size-4" strokeWidth={1.75} aria-hidden />
+            Спросить о неделе
+          </Link>
+        ) : null}
       </div>
       <p className="text-meta text-text-3 tnum">
         {clientContour ? `Для ${brand.client}` : "Пример: Демо-подрядчик"} · запись показа ОБ-200:{" "}

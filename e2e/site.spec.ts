@@ -103,21 +103,26 @@ test.describe("сайт и вход в демо 390", () => {
   });
 });
 
-test.describe("лендинг 390 (ADR-050)", () => {
+test.describe("лендинг 390 (ADR-050, ADR-052)", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("двенадцать секций, одна тёмная, ни одного запрещённого обещания", async ({ page }) => {
+  test("секции по построению сервисов, одна тёмная, ни одного запрещённого обещания", async ({
+    page,
+  }) => {
     await page.goto("/", { waitUntil: "load" });
+    // Окно продукта и полоса фактов в первом блоке, дальше секции заголовками
+    await expect(page.getByRole("img", { name: /Как выглядит ГАЙКА/ })).toHaveCount(1);
+    await expect(page.getByRole("region", { name: "Факты продукта" })).toHaveCount(1);
     for (const title of [
       "Знакомо?",
+      "Каждая роль видит своё",
       "Как это работает",
-      "Бригадиру ничего не нужно устанавливать",
-      "Цифрам можно верить",
-      "Отчёт как ваш",
+      "Учёт выработки целиком, а не ещё одна таблица",
       "Кейс",
       "Что ещё умеет ГАЙКА",
       "Как начать",
       "Вопросы",
+      "Посмотрите свою неделю в ГАЙКЕ",
       "Покажем на ваших данных",
     ]) {
       await expect(page.getByRole("heading", { level: 2, name: title })).toHaveCount(1);
@@ -128,6 +133,31 @@ test.describe("лендинг 390 (ADR-050)", () => {
     expect(text).not.toMatch(/₽\s*\/\s*мес|окупаем|экономи[ия]\s+\d|отзыв/i);
   });
 
+  test("тур по ролям: вкладки переключают панель, выбранная объявлена", async ({ page }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    const tabs = page.getByRole("tablist", { name: "Роли" });
+    await expect(tabs.getByRole("tab")).toHaveText([
+      "Бригадир",
+      "Менеджер",
+      "Руководитель",
+      "Спросить",
+    ]);
+    await expect(tabs.getByRole("tab", { name: "Бригадир" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await tabs.getByRole("tab", { name: "Спросить" }).click();
+    await expect(tabs.getByRole("tab", { name: "Спросить" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByRole("tabpanel")).toContainText(
+      "Вопрос обычными словами, ответ с источниками",
+    );
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  });
+
   test("липкая «Открыть демо»: нет на первом экране, есть дальше, прячется у формы", async ({
     page,
   }) => {
@@ -135,7 +165,7 @@ test.describe("лендинг 390 (ADR-050)", () => {
     await page.waitForSelector("html[data-booted]");
     const sticky = page.locator(".site-sticky");
     await expect(sticky).toHaveAttribute("data-hidden", "");
-    await page.getByRole("heading", { name: "Цифрам можно верить" }).scrollIntoViewIfNeeded();
+    await page.getByRole("heading", { name: "Каждая роль видит своё" }).scrollIntoViewIfNeeded();
     await expect(sticky).not.toHaveAttribute("data-hidden", "");
     await page.getByRole("heading", { name: "Покажем на ваших данных" }).scrollIntoViewIfNeeded();
     await page.getByRole("button", { name: "Отправить заявку" }).scrollIntoViewIfNeeded();

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   ArrowUp,
   Check,
@@ -95,6 +95,8 @@ export function AskScreen() {
   const [stage, setStage] = useState(0);
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const fromHeader = useSearch({ strict: false }) as { q?: string };
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const send = (question: string) => {
@@ -127,6 +129,14 @@ export function AskScreen() {
     if (turns.length || pending)
       endRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "end" });
   }, [turns.length, pending, reduced]);
+
+  // Вопрос из поля в шапке задаётся один раз, адрес очищается: «назад» не задаст его снова
+  useEffect(() => {
+    if (!fromHeader.q) return;
+    send(fromHeader.q);
+    void navigate({ to: "/gas/ask", search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromHeader.q]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
