@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Check, FileSpreadsheet } from "lucide-react";
-import { SAMPLE } from "@/lib/site/sample";
+import {
+  Check,
+  ClipboardCheck,
+  FileSpreadsheet,
+  MessagesSquare,
+  ScrollText,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import { ASK_SAMPLE, SAMPLE } from "@/lib/site/sample";
 import { cn } from "@/lib/utils";
 
 /**
@@ -233,6 +241,133 @@ export function WeekTableFragment({ className }: { className?: string }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Ответ «Спросить ГАЙКУ» карточкой: число, строки со сносками, источники (ADR-052) */
+export function AskFragment({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn("flex flex-col gap-3", className)}
+      aria-label="Пример: ответ на вопрос о неделе"
+    >
+      <p className="max-w-[85%] self-end rounded-bubble bg-surface-2 px-3.5 py-2 text-body text-text">
+        {ASK_SAMPLE.question}
+      </p>
+      <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <p className="flex items-center gap-1.5 text-meta text-text-3">
+          <Sparkles className="size-3.5" strokeWidth={1.75} aria-hidden />
+          ГАЙКА · по данным недели
+        </p>
+        <div>
+          <p className="text-heading text-text">{ASK_SAMPLE.title}</p>
+          <p className="mt-0.5 text-body text-text-2">{ASK_SAMPLE.lead}</p>
+        </div>
+        <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-control border border-line bg-line">
+          {ASK_SAMPLE.metrics.map((m) => (
+            <div key={m.label} className="min-w-0 bg-surface px-2.5 py-2">
+              <dt className="text-meta text-text-3">{m.label}</dt>
+              <dd className="mt-0.5 text-body-strong whitespace-nowrap text-text tnum">
+                {m.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {compact ? null : (
+          <ul className="flex flex-col [&>li+li]:border-t [&>li+li]:border-line">
+            {ASK_SAMPLE.rows.map((row) => (
+              <li key={row.label} className="flex items-center gap-2.5 py-2">
+                <span className="min-w-0 flex-1 truncate text-body text-text">{row.label}</span>
+                <span className="text-body-strong text-text tnum">{row.value}</span>
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-surface-2 text-meta-strong text-text-2 tnum">
+                  {row.source}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <ul className="flex flex-wrap gap-1.5" aria-label="Источники">
+          {ASK_SAMPLE.sources.map((source, index) => (
+            <li
+              key={source}
+              className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-meta text-text-2"
+            >
+              <span className="text-meta-strong text-text tnum">{index + 1}</span>
+              <span className="truncate">{source}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+const WINDOW_NAV = [
+  { label: "Спросить", icon: Sparkles, active: true },
+  { label: "Проверка", icon: ClipboardCheck, active: false },
+  { label: "Отчёт", icon: FileSpreadsheet, active: false },
+  { label: "Журнал", icon: ScrollText, active: false },
+  { label: "Бригады", icon: Users, active: false },
+  { label: "Бот", icon: MessagesSquare, active: false },
+];
+
+/**
+ * Окно продукта для первого экрана (ADR-052): рамка приложения с меню и ответом
+ * «Спросить ГАЙКУ». Не картинка: те же токены и кирпичи, что внутри продукта
+ */
+export function ProductWindow({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_32px_80px_-32px_rgba(20,14,8,0.45)]",
+        className,
+      )}
+      aria-label="Как выглядит ГАЙКА: экран «Спросить»"
+      role="img"
+    >
+      <div className="flex h-10 items-center gap-1.5 border-b border-line bg-surface-2 px-4">
+        <span aria-hidden className="size-2.5 rounded-full bg-line-2" />
+        <span aria-hidden className="size-2.5 rounded-full bg-line-2" />
+        <span aria-hidden className="size-2.5 rounded-full bg-line-2" />
+        <span className="mx-auto text-meta text-text-3">гайка · Спросить</span>
+        <span aria-hidden className="w-10" />
+      </div>
+      {/* minmax(0, 1fr): длинные подписи не растягивают окно шире экрана телефона */}
+      <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[200px_minmax(0,1fr)]">
+        <nav
+          aria-hidden
+          className="hidden flex-col gap-0.5 border-e border-line bg-base p-3 md:flex"
+        >
+          <span className="flex items-center gap-2 px-2 pb-3 text-body-strong text-text">
+            <span className="grid size-6 place-items-center rounded-md bg-text text-meta-strong text-void">
+              г
+            </span>
+            Учёт выработки
+          </span>
+          {WINDOW_NAV.map((item) => (
+            <span
+              key={item.label}
+              className={cn(
+                "flex min-h-9 items-center gap-2 rounded-control px-2 text-body",
+                item.active ? "bg-surface-2 text-text" : "text-text-2",
+              )}
+            >
+              <item.icon className="size-4" strokeWidth={1.75} />
+              {item.label}
+            </span>
+          ))}
+        </nav>
+        <div className="min-w-0 bg-void p-3 sm:p-6">
+          <AskFragment />
+        </div>
+      </div>
     </div>
   );
 }

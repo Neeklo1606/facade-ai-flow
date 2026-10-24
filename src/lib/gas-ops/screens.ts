@@ -7,6 +7,7 @@ import { ROLE_LABEL, type Role } from "@/domain/gas-ops/model";
 
 export type GasScreenKey =
   | "start"
+  | "ask"
   | "foreman"
   | "moderation"
   | "entries"
@@ -59,6 +60,19 @@ export const GAS_SCREENS: readonly GasScreen[] = [
     steps: [
       "Нажмите «Начать показ», чтобы за 3 минуты пройти путь записи от бригадира до Excel.",
       "Или выберите роль и посмотрите свой экран.",
+    ],
+  },
+  {
+    key: "ask",
+    to: "/gas/ask",
+    title: "Спросить ГАЙКУ",
+    short: "Спросить",
+    group: "work",
+    // Бригадиру нет: суммы ему не показываются (ТЗ, п. 5.6)
+    roles: ["admin", "manager", "director"],
+    steps: [
+      "Спросите обычными словами: «Сколько заработали за неделю?» или «Покажи бригаду 1».",
+      "У каждого числа в ответе есть источник: нажмите сноску, откроется запись или отчёт.",
     ],
   },
   {
@@ -262,7 +276,8 @@ export const ROLE_ABOUT: Record<Role, string> = {
  */
 export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
   manager: ["moderation", "entries", "reports"],
-  director: ["reports", "entries", "brigades"],
+  // «Спросить» первой: руководителю нужен ответ, а не таблица (ADR-052)
+  director: ["ask", "reports", "entries"],
   admin: ["moderation", "objects", "estimates"],
   foreman: [],
 };

@@ -49,6 +49,7 @@ import { Route as ApiLeadsRouteImport } from './routes/api/leads'
 import { Route as CaseGasRouteImport } from './routes/case/gas'
 import { Route as GasIndexRouteImport } from './routes/gas/index'
 import { Route as GasAdminRouteImport } from './routes/gas/admin'
+import { Route as GasAskRouteImport } from './routes/gas/ask'
 import { Route as GasBrigadesRouteImport } from './routes/gas/brigades'
 import { Route as GasEmployeesRouteImport } from './routes/gas/employees'
 import { Route as GasEntriesRouteImport } from './routes/gas/entries'
@@ -281,6 +282,11 @@ const GasAdminRoute = GasAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => GasRoute,
 } as any)
+const GasAskRoute = GasAskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasBrigadesRoute = GasBrigadesRouteImport.update({
   id: '/brigades',
   path: '/brigades',
@@ -481,6 +487,7 @@ export interface FileRoutesByFullPath {
   '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
+  '/gas/ask': typeof GasAskRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
@@ -552,6 +559,7 @@ export interface FileRoutesByTo {
   '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
+  '/gas/ask': typeof GasAskRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
@@ -626,6 +634,7 @@ export interface FileRoutesById {
   '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
   '/gas/admin': typeof GasAdminRoute
+  '/gas/ask': typeof GasAskRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
@@ -701,6 +710,7 @@ export interface FileRouteTypes {
     | '/api/leads'
     | '/case/gas'
     | '/gas/admin'
+    | '/gas/ask'
     | '/gas/brigades'
     | '/gas/employees'
     | '/gas/entries'
@@ -772,6 +782,7 @@ export interface FileRouteTypes {
     | '/api/leads'
     | '/case/gas'
     | '/gas/admin'
+    | '/gas/ask'
     | '/gas/brigades'
     | '/gas/employees'
     | '/gas/entries'
@@ -845,6 +856,7 @@ export interface FileRouteTypes {
     | '/api/leads'
     | '/case/gas'
     | '/gas/admin'
+    | '/gas/ask'
     | '/gas/brigades'
     | '/gas/employees'
     | '/gas/entries'
@@ -1217,6 +1229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasAdminRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/ask': {
+      id: '/gas/ask'
+      path: '/ask'
+      fullPath: '/gas/ask'
+      preLoaderRoute: typeof GasAskRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/brigades': {
       id: '/gas/brigades'
       path: '/brigades'
@@ -1439,6 +1458,7 @@ declare module '@tanstack/react-router' {
 
 interface GasRouteChildren {
   GasAdminRoute: typeof GasAdminRoute
+  GasAskRoute: typeof GasAskRoute
   GasBrigadesRoute: typeof GasBrigadesRoute
   GasEmployeesRoute: typeof GasEmployeesRoute
   GasEntriesRoute: typeof GasEntriesRoute
@@ -1457,6 +1477,7 @@ interface GasRouteChildren {
 
 const GasRouteChildren: GasRouteChildren = {
   GasAdminRoute: GasAdminRoute,
+  GasAskRoute: GasAskRoute,
   GasBrigadesRoute: GasBrigadesRoute,
   GasEmployeesRoute: GasEmployeesRoute,
   GasEntriesRoute: GasEntriesRoute,

@@ -11,6 +11,7 @@ import {
   MessagesSquare,
   ScrollText,
   Settings2,
+  Sparkles,
   Users,
   type LucideIcon,
   MoreHorizontal,
@@ -19,6 +20,7 @@ import type { GasScreenKey } from "@/lib/gas-ops/screens";
 
 export const SCREEN_ICON: Record<GasScreenKey, LucideIcon> = {
   start: Home,
+  ask: Sparkles,
   foreman: MessagesSquare,
   moderation: ClipboardCheck,
   entries: ScrollText,

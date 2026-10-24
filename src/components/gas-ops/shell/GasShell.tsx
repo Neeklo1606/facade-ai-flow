@@ -154,7 +154,8 @@ function GasShellFrame({ children }: { children: ReactNode }) {
         >
           <div className="mx-auto w-full max-w-[1280px]">
             {/* Заголовок экрана на телефоне и планшете: 24/30, отступ 8 сверху и 12 снизу */}
-            {screen.key === "foreman" ? null : (
+            {/* Бот и «Спросить» рисуют свой заголовок сами (ADR-052) */}
+            {screen.key === "foreman" || screen.key === "ask" ? null : (
               <>
                 <h1
                   ref={titleRef}

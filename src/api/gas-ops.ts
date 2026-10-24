@@ -5,6 +5,7 @@
  * и адаптер ниже этого слоя: когда демо-адаптер сменится на сервер, экраны не изменятся.
  */
 import { useCallback, useMemo } from "react";
+import { askGaika, type AskAnswer } from "@/domain/gas-ops/ask";
 import {
   effectiveMinutes,
   fmtHours,
@@ -79,6 +80,16 @@ export { clashOf };
 
 /** Разбор фразы бригадира правилом domain (ADR-049): экран бота зовёт его отсюда */
 export { parseTimeMessage } from "@/domain/gas-ops/parse-time-message";
+export { ASK_SUGGESTIONS } from "@/domain/gas-ops/ask";
+export {
+  LEVEL_ORDER,
+  MARK_LABEL,
+  MARK_LEVEL,
+  markKeysOf,
+  requiresAttention,
+} from "@/domain/gas-ops/marks";
+export type { MarkKey, MarkLevel } from "@/domain/gas-ops/marks";
+export type { AskAnswer, AskMetric, AskRow, AskSource } from "@/domain/gas-ops/ask";
 export type { ParsedTime, ParseObject } from "@/domain/gas-ops/parse-time-message";
 
 export type {
@@ -124,6 +135,12 @@ export function useGasWeek(): {
 export function useGasUsers(): { id: string; name: string; role: Role }[] {
   const data = useGasData();
   return data.users.map((user) => ({ id: user.id, name: user.name, role: user.role }));
+}
+
+/** «Спросить ГАЙКУ» (ADR-052): ответ по данным недели этой вкладки, правилом domain */
+export function useGasAsk(): (question: string) => AskAnswer {
+  const data = useGasData();
+  return useCallback((question: string) => askGaika(question, data), [data]);
 }
 
 export function useGasDashboard(): DashboardMetrics {

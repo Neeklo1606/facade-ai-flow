@@ -2,7 +2,17 @@
  * Правила меток и подписей записи для экранов проверки и журнала (ADR-044, F5, п. 2–3).
  * Отдельно от компонентов, чтобы метки считались одинаково везде, где их рисуют.
  */
-import { FLAG_LABEL, fmtHours, formatClock, type EntryFlag, type EntryView } from "@/api/gas-ops";
+import {
+  FLAG_LABEL,
+  fmtHours,
+  formatClock,
+  LEVEL_ORDER,
+  markKeysOf,
+  type EntryFlag,
+  type EntryView,
+  type MarkKey,
+  type MarkLevel,
+} from "@/api/gas-ops";
 import { fmtDate } from "@/lib/format";
 
 /* ---------------------------------------------------------------- Подписи */
@@ -39,11 +49,7 @@ export function entryLine(view: EntryView): string {
 
 /* ---------------------------------------------------------------- Признаки */
 
-/** Уровень признака: блокирует, требует решения, информирует */
-export type MarkLevel = "block" | "decide" | "info";
-
-export type MarkKey =
-  EntryFlag | "zero-minutes" | "late-entry" | "manual-amount" | "needs-agreement";
+export type { MarkKey, MarkLevel } from "@/api/gas-ops";
 
 export interface Mark {
   key: MarkKey;
@@ -53,7 +59,7 @@ export interface Mark {
   why: string;
 }
 
-export const LEVEL_ORDER: Record<MarkLevel, number> = { block: 0, decide: 1, info: 2 };
+export { LEVEL_ORDER };
 
 export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: string }> = {
   overlap: {
@@ -108,28 +114,9 @@ export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: 
   },
 };
 
-/** Признаки записи от важного к тихому. Флаги домена плюс то, что видно по самой записи */
+/** Признаки записи от важного к тихому: ключи и уровни из domain (одно правило с «Спросить») */
 export function marksOf(view: EntryView): Mark[] {
-  const keys = new Set<MarkKey>(view.flags);
-  const { entry } = view;
-  if (entry.minutes === 0) keys.add("zero-minutes");
-  // Внесено позже дня работы: бригадир вспоминал, а не записывал
-  if (entry.createdAt.slice(0, 10) > entry.day) keys.add("late-entry");
-  if (view.amountOrigin === "manual") keys.add("manual-amount");
-  if (view.estimate?.status === "manual-pending") keys.add("needs-agreement");
-  /*
-   * Ждёт проверки, а у объекта подтверждённая стоимость: сумма начислится при подтверждении
-   * (правило адаптера). Метка «Нет суммы» тут сбивала с толку: через шаг в отчёте сумма есть
-   */
-  if (
-    entry.amountRub === null &&
-    entry.status === "pending" &&
-    view.estimate?.status === "confirmed"
-  )
-    keys.delete("no-amount");
-  return [...keys]
-    .map((key) => ({ key, ...MARK_BASE[key], why: whyOf(key, view) }))
-    .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
+  return markKeysOf(view).map((key) => ({ key, ...MARK_BASE[key], why: whyOf(key, view) }));
 }
 
 /**
