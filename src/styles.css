@@ -198,7 +198,8 @@
   --sidebar-w: 248px;
   --mobile-sidebar-w: min(320px, calc(100vw - 40px));
   --type-body: 0.9375rem;
-  --type-body-leading: 1.25rem;
+  /* Воздух в строке как в современных сервисах: текст 15 с интерлиньяжем 22 читается легче */
+  --type-body-leading: 1.375rem;
   --type-nav: 0.9375rem;
   /* Шапка и нижняя панель ADR-045: 52 и 56 на телефоне */
   --topbar-h: 52px;
@@ -1366,7 +1367,8 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  box-shadow: none;
+  /* Мягкий подъём вместо плоской заливки: в светлой теме тень, в тёмной еле заметный свет */
+  box-shadow: var(--lift-1);
 }
 @utility transition-fast {
   transition-property: background-color, border-color, box-shadow, color, opacity, transform;
@@ -1402,7 +1404,14 @@
   padding: 3px;
   border-radius: var(--r-sm);
   background: var(--surface);
+  border: 1px solid var(--line);
   box-shadow: none;
+}
+@utility segment-active {
+  color: var(--text);
+  background: var(--surface-3);
+  /* Активный сегмент приподнят: как выбранная вкладка в современных сервисах */
+  box-shadow: var(--lift-1);
 }
 @utility segment {
   /* Сегмент на телефоне — область нажатия 48 px, на десктопе ряд плотнее (ADR-034, п. 6) */
@@ -1418,11 +1427,7 @@
     color: var(--text);
   }
 }
-@utility segment-active {
-  color: var(--text);
-  background: var(--surface-3);
-  box-shadow: none;
-}
+/* segment-active объявлен рядом с segmented-control выше */
 
 /* ---------------------------------------------------------------- Виджеты */
 
@@ -1436,7 +1441,8 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
-  box-shadow: none;
+  /* Мягкий подъём вместо плоской заливки: в светлой теме тень, в тёмной еле заметный свет */
+  box-shadow: var(--lift-1);
   padding: var(--space-card);
 }
 @utility widget-card-interactive {
