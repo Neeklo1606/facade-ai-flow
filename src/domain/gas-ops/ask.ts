@@ -337,11 +337,7 @@ function reviewAnswer(data: GasData): AskAnswer {
     .slice(0, 6)
     .map((view) => ({
       label: view.object?.label ?? view.entry.number,
-      sub: [
-        view.entry.number,
-        view.brigade?.name,
-        attentionLabels(view) || "без замечаний",
-      ]
+      sub: [view.entry.number, view.brigade?.name, attentionLabels(view) || "без замечаний"]
         .filter(Boolean)
         .join(" · "),
       metric: { label: "Сумма", kind: "rub", value: view.entry.amountRub },
