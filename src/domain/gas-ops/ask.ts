@@ -340,7 +340,7 @@ function reviewAnswer(data: GasData): AskAnswer {
       sub: [
         view.entry.number,
         view.brigade?.name,
-        view.flags.map((f) => FLAG_LABEL[f]).join(", ") || "без замечаний",
+        attentionLabels(view) || "без замечаний",
       ]
         .filter(Boolean)
         .join(" · "),

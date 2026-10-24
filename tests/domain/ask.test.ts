@@ -100,6 +100,9 @@ describe("язык и совпадение с экранами", () => {
     expect(answer.metrics[0]!.value).toBe(6);
     expect(answer.metrics[1]!.value).toBe(5);
     expect(answer.lead).toContain("Без замечаний 1");
+    // Информационный признак не выдаётся за замечание
+    expect(answer.rows.map((r) => r.sub).join(" ")).not.toContain("Объект на несколько дней");
+    expect(answer.rows.at(-1)!.sub).toContain("без замечаний");
   });
 
   test("числительные согласованы", () => {
