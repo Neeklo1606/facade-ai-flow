@@ -9,8 +9,31 @@ import {
   effectiveMinutes,
   findDuplicates,
   findOverlaps,
+  flagsOf,
   MINUTES_ERROR_TEXT,
 } from "@/domain/gas-ops/calc";
+import {
+  allocateByMinutes,
+  canConfirmVersion,
+  nextVersion,
+  recalcObject,
+  ruleFor,
+  ruleFormula,
+  workCostRub,
+  type CostRule,
+  type EstimateVersion,
+} from "@/domain/gas-ops/work-cost";
+import { setBrigadeStatus } from "@/domain/gas-ops/schedule";
+import {
+  AUTO_ACTOR,
+  REVIEW_MODE_LABEL,
+  accuracyOf,
+  finalCheckList,
+  modeAvailability,
+  routeEntry,
+  type FinalCheck,
+} from "@/domain/gas-ops/review-policy";
+import { reportEntries } from "@/domain/gas-ops/report";
 import {
   ENTRY_STATUS_LABEL,
   type AuditLog,
@@ -25,6 +48,7 @@ import {
   type CreateEntryInput,
   type GasOpsPort,
   type GasOpsSnapshot,
+  type ReportIssue,
   type ReviewInput,
   type UpdateEntryInput,
 } from "@/ports/gas-ops";
@@ -121,6 +145,95 @@ function validate(
   }
 }
 
+/**
+ * Доля стоимости объекта для записи (ADR-053, 3): подтверждённая стоимость распределяется
+ * по минутам всех неотклонённых записей объекта. Нет подтверждённой стоимости — null.
+ */
+function shareOf(snapshot: GasOpsSnapshot, draft: TimeEntry): number | null {
+  const estimate = snapshot.estimates.find(
+    (e) => e.objectId === draft.objectId && e.status === "confirmed",
+  );
+  if (!estimate) return null;
+  const own = [
+    ...snapshot.entries.filter(
+      (e) => e.objectId === draft.objectId && e.status !== "rejected" && e.id !== draft.id,
+    ),
+    draft,
+  ];
+  return (
+    allocateByMinutes(
+      estimate.amountRub,
+      own.map((e) => ({ id: e.id, minutes: e.minutes })),
+    ).get(draft.id) ?? null
+  );
+}
+
+/**
+ * Отправленная запись в режиме проверки (ADR-053, 5): «auto» подтверждает её сразу от имени
+ * системы, и тогда её найдёт итоговая проверка перед отчётом.
+ */
+function routed(snapshot: GasOpsSnapshot, draft: TimeEntry): TimeEntry {
+  if (draft.status !== "pending") return draft;
+  const objectDays = new Set(
+    snapshot.entries.filter((e) => e.objectId === draft.objectId).map((e) => e.day),
+  ).size;
+  // Признаки считаются с долей стоимости объекта: без неё любая новая запись была бы «без суммы»
+  const candidate = { ...draft, amountRub: draft.amountRub ?? shareOf(snapshot, draft) };
+  const flags = flagsOf({
+    entry: candidate,
+    all: [...snapshot.entries.filter((e) => e.id !== draft.id), candidate],
+    hasEstimate: snapshot.estimates.some(
+      (e) => e.objectId === draft.objectId && e.status === "confirmed",
+    ),
+    objectDays,
+  });
+  if (routeEntry(snapshot.reviewSettings.mode, flags) === "queue") return draft;
+  return {
+    ...draft,
+    status: "confirmed",
+    amountRub: candidate.amountRub,
+    reviewedBy: AUTO_ACTOR,
+    reviewedAt: nowOf(snapshot),
+  };
+}
+
+/**
+ * Новая стоимость объекта: пересчёт неподтверждённых записей и пометка сданных отчётов.
+ * Подтверждённые записи и выданные отчёты молча не меняются.
+ */
+function applyCost(
+  s: GasOpsSnapshot,
+  objectId: string,
+  amountRub: number,
+  reason: string,
+): { snapshot: GasOpsSnapshot; changed: number; stale: number } {
+  const recalc = recalcObject(s.entries, objectId, amountRub);
+  let stale = 0;
+  const reportIssues = s.reportIssues.map((r) => {
+    if (r.stale || !r.objectIds.includes(objectId)) return r;
+    stale++;
+    return { ...r, stale: true, staleReason: reason };
+  });
+  return {
+    snapshot: { ...s, entries: recalc.entries, reportIssues },
+    changed: recalc.changed.length,
+    stale,
+  };
+}
+
+function mustVersion(snapshot: GasOpsSnapshot, id: string): EstimateVersion {
+  const v = snapshot.estimateVersions.find((x) => x.id === id);
+  if (!v) throw new GasOpsError("not-found", "Смета не найдена. Обновите экран.");
+  return v;
+}
+
+function mustManager(snapshot: GasOpsSnapshot, message: string): void {
+  const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+  if (!actor || actor.role === "foreman" || actor.role === "director") {
+    throw new GasOpsError("not-allowed", message);
+  }
+}
+
 export function createGasOpsDemo(): GasOpsPort {
   return {
     snapshot: () => done(getSnapshot()),
@@ -164,14 +277,20 @@ export function createGasOpsDemo(): GasOpsPort {
         source: "mock",
       };
       validate(snapshot, draft);
+      const placed = routed(snapshot, draft);
 
       const next = update((s) => ({
         ...s,
-        entries: [...s.entries, draft],
+        entries: [...s.entries, placed],
         audit: [
           audit(s, {
             actor: s.actorId,
-            action: input.submit ? "entry.submit" : "entry.draft",
+            action:
+              placed.reviewedBy === AUTO_ACTOR
+                ? "entry.auto-confirm"
+                : input.submit
+                  ? "entry.submit"
+                  : "entry.draft",
             entityId: draft.id,
             detail: `${draft.number}: ${draft.minutes} мин, ${
               s.objects.find((o) => o.id === draft.objectId)?.label ?? draft.objectId
@@ -281,15 +400,19 @@ export function createGasOpsDemo(): GasOpsPort {
       }
       const draft: TimeEntry = { ...entry, status: "pending", comment: null };
       validate(snapshot, draft);
+      const placed = routed(snapshot, draft);
+      const auto = placed.reviewedBy === AUTO_ACTOR;
       const next = update((s) => ({
         ...s,
-        entries: s.entries.map((e) => (e.id === id ? draft : e)),
+        entries: s.entries.map((e) => (e.id === id ? placed : e)),
         audit: [
           audit(s, {
             actor: s.actorId,
-            action: "entry.submit",
+            action: auto ? "entry.auto-confirm" : "entry.submit",
             entityId: id,
-            detail: `${entry.number} отправлена на проверку`,
+            detail: auto
+              ? `${entry.number} подтверждена автоматически: режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}»`
+              : `${entry.number} отправлена на проверку`,
           }),
           ...s.audit,
         ],
@@ -317,12 +440,9 @@ export function createGasOpsDemo(): GasOpsPort {
           : input.action === "reject"
             ? "rejected"
             : "clarify";
-      // Подтверждённая сумма берётся из подтверждённого начисления объекта, а не из полной сметы
-      const estimate = snapshot.estimates.find(
-        (e) => e.objectId === entry.objectId && e.status === "confirmed",
-      );
+      // Сумма — доля подтверждённой стоимости объекта по минутам (ADR-053, 3), а не вся смета
       const amountRub =
-        status === "confirmed" ? (entry.amountRub ?? estimate?.amountRub ?? null) : entry.amountRub;
+        status === "confirmed" ? (entry.amountRub ?? shareOf(snapshot, entry)) : entry.amountRub;
 
       const draft: TimeEntry = {
         ...entry,
@@ -445,20 +565,373 @@ export function createGasOpsDemo(): GasOpsPort {
         note: input.note ?? "Ручной ввод суммы по объекту без сметы",
         source: "mock",
       };
-      const next = update((s) => ({
+      const next = update((s) => {
+        const applied = applyCost(
+          {
+            ...s,
+            estimates: [...s.estimates.filter((e) => e.objectId !== input.objectId), estimate],
+          },
+          input.objectId,
+          estimate.amountRub,
+          `Стоимость объекта введена вручную: ${estimate.amountRub} ₽`,
+        );
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.confirm",
+              entityId: estimate.id,
+              detail: `${object.label}: ${estimate.amountRub} ₽, версия ${estimate.version}, вручную`,
+            }),
+            ...s.audit,
+          ],
+        };
+      });
+      return done(next.estimates.find((e) => e.id === estimate.id)!);
+    },
+
+    addEstimateVersion: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Сметы загружает менеджер или сметчик.");
+      const { parsed } = input;
+      const version: EstimateVersion = {
+        id: newId("esv"),
+        objectId: input.objectId,
+        version: nextVersion(input.objectId, snapshot.estimateVersions),
+        fileName: input.fileName,
+        sheet: parsed.sheet,
+        uploadedAt: nowOf(snapshot),
+        uploadedBy: snapshot.actorId,
+        format: parsed.format,
+        parseStatus: parsed.status,
+        totals: parsed.totals,
+        vatRate: parsed.vatRate,
+        laborHours: parsed.laborHours,
+        sections: parsed.sections,
+        issues: parsed.issues,
+        issuesReviewedBy: null,
+        confirmedBy: null,
+        confirmedAt: null,
+      };
+      update((s) => ({
         ...s,
-        estimates: [...s.estimates.filter((e) => e.objectId !== input.objectId), estimate],
+        estimateVersions: [version, ...s.estimateVersions],
         audit: [
           audit(s, {
             actor: s.actorId,
-            action: "estimate.confirm",
-            entityId: estimate.id,
-            detail: `${object.label}: ${estimate.amountRub} ₽, версия ${estimate.version}`,
+            action: "estimate.upload",
+            entityId: version.id,
+            // Имя файла в журнал не пишется: в именах смет адреса объектов
+            detail: `Смета загружена, версия ${version.version}, замечаний ${parsed.issues.length}`,
           }),
           ...s.audit,
         ],
       }));
-      return done(next.estimates.find((e) => e.id === estimate.id)!);
+      return done(version);
+    },
+
+    linkEstimateVersion: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Привязку подтверждает менеджер или сметчик.");
+      const v = mustVersion(snapshot, input.id);
+      if (v.confirmedAt) throw new GasOpsError("already-reviewed", "Версия уже подтверждена.");
+      const object = snapshot.objects.find((o) => o.id === input.objectId);
+      if (!object) throw new GasOpsError("no-object", "Объект не найден.");
+      const linked: EstimateVersion = {
+        ...v,
+        objectId: object.id,
+        version: nextVersion(
+          object.id,
+          snapshot.estimateVersions.filter((x) => x.id !== v.id),
+        ),
+      };
+      const next = update((s) => ({
+        ...s,
+        estimateVersions: s.estimateVersions.map((x) => (x.id === v.id ? linked : x)),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "estimate.link",
+            entityId: v.id,
+            detail: `Смета привязана к объекту ${object.code}, версия ${linked.version}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(mustVersion(next, v.id));
+    },
+
+    reviewEstimateIssues: (id) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Замечания проверяет сметчик или менеджер.");
+      const v = mustVersion(snapshot, id);
+      const next = update((s) => ({
+        ...s,
+        estimateVersions: s.estimateVersions.map((x) =>
+          x.id === id ? { ...x, issuesReviewedBy: s.actorId } : x,
+        ),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "estimate.issues-reviewed",
+            entityId: id,
+            detail: `Замечания разбора проверены: ${v.issues.length}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(mustVersion(next, id));
+    },
+
+    confirmEstimateVersion: (id) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Смету подтверждает менеджер или сметчик.");
+      const v = mustVersion(snapshot, id);
+      const ready = canConfirmVersion(v);
+      if (!ready.ok) throw new GasOpsError("estimate-not-ready", ready.reason);
+      const objectId = v.objectId!;
+      const rule = ruleFor(objectId, snapshot.costRules);
+      const amountRub = workCostRub(v, rule);
+      if (amountRub === null) {
+        throw new GasOpsError(
+          "estimate-not-ready",
+          `В смете нет строк для правила «${ruleFormula(rule.terms)}». Введите сумму вручную.`,
+        );
+      }
+      const at = nowOf(snapshot);
+      const existing = snapshot.estimates.find((e) => e.objectId === objectId);
+      const estimate: Estimate = {
+        id: existing?.id ?? newId("est"),
+        objectId,
+        version: v.version,
+        amountRub,
+        status: "confirmed",
+        origin: "estimate",
+        confirmedBy: snapshot.actorId,
+        confirmedAt: at,
+        note: `${ruleFormula(rule.terms)}${rule.status === "needs-agreement" ? " (правило требует согласования)" : ""}`,
+        source: "mock",
+      };
+      let changed = 0;
+      let stale = 0;
+      const next = update((s) => {
+        const withVersion: GasOpsSnapshot = {
+          ...s,
+          estimateVersions: s.estimateVersions.map((x) =>
+            x.id === id ? { ...x, confirmedBy: s.actorId, confirmedAt: at } : x,
+          ),
+          estimates: [...s.estimates.filter((e) => e.objectId !== objectId), estimate],
+        };
+        const applied = applyCost(
+          withVersion,
+          objectId,
+          amountRub,
+          `Подтверждена смета версии ${v.version}: ${amountRub} ₽`,
+        );
+        changed = applied.changed;
+        stale = applied.stale;
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.confirm",
+              entityId: estimate.id,
+              detail: `Смета версии ${v.version}: ${amountRub} ₽ по правилу «${ruleFormula(rule.terms)}», пересчитано записей ${applied.changed}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      });
+      return done({
+        version: mustVersion(next, id),
+        estimate: next.estimates.find((e) => e.id === estimate.id)!,
+        changedEntries: changed,
+        staleReports: stale,
+      });
+    },
+
+    confirmCostRule: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Правило подтверждает сметчик или менеджер.");
+      const rule: CostRule = {
+        id: input.objectId ? `rule-${input.objectId}` : "rule-company",
+        objectId: input.objectId,
+        terms: input.terms,
+        status: "confirmed",
+        confirmedBy: snapshot.actorId,
+        confirmedAt: nowOf(snapshot),
+      };
+      const next = update((s) => ({
+        ...s,
+        costRules: [...s.costRules.filter((r) => r.objectId !== input.objectId), rule],
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "cost-rule.confirm",
+            entityId: rule.id,
+            detail: `${input.objectId ? "Для объекта" : "Для компании"}: ${ruleFormula(rule.terms)}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(next.costRules.find((r) => r.id === rule.id)!);
+    },
+
+    applySchedule: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "График загружает менеджер.");
+      const previous = snapshot.schedule;
+      update((s) => ({
+        ...s,
+        schedule: {
+          rows: input.rows,
+          fileName: input.fileName,
+          appliedAt: nowOf(s),
+          appliedBy: s.actorId,
+        },
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "schedule.apply",
+            entityId: "schedule",
+            detail: `График недели применён: строк ${input.rows.length}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(previous);
+    },
+
+    restoreSchedule: (previous) => {
+      update((s) => ({
+        ...s,
+        schedule: previous,
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "schedule.undo",
+            entityId: "schedule",
+            detail: "Применение графика отменено",
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(undefined);
+    },
+
+    setBrigadeWeek: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Отметки бригад ставит менеджер.");
+      const brigade = snapshot.brigades.find((b) => b.id === input.brigadeId);
+      if (!brigade) throw new GasOpsError("not-found", "Бригада не найдена.");
+      const next = update((s) => ({
+        ...s,
+        brigadeAvailability: setBrigadeStatus(s.brigadeAvailability, input),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "brigade.week",
+            entityId: brigade.id,
+            detail: `${brigade.code}: ${input.status === "working" ? "работает" : "в отпуске"} на неделе с ${input.weekFrom}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(next.brigadeAvailability);
+    },
+
+    setReviewSettings: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Режим проверки меняет менеджер или администратор.");
+      const threshold = Math.min(100, Math.max(50, Math.round(input.thresholdPercent)));
+      const available = modeAvailability(input.mode, accuracyOf(snapshot.reviews), threshold);
+      if (!available.ok) throw new GasOpsError("mode-unavailable", available.reason);
+      const next = update((s) => ({
+        ...s,
+        reviewSettings: {
+          mode: input.mode,
+          thresholdPercent: threshold,
+          changedBy: s.actorId,
+          changedAt: nowOf(s),
+        },
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "review.mode",
+            entityId: "review-settings",
+            detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(next.reviewSettings);
+    },
+
+    finalCheck: () => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Итоговую проверку проводит менеджер.");
+      const list = finalCheckList(snapshot.entries, snapshot.finalChecks, snapshot.week.days);
+      const check: FinalCheck = {
+        id: newId("fch"),
+        week: snapshot.week.from,
+        at: nowOf(snapshot),
+        by: snapshot.actorId,
+        entryIds: list.map((e) => e.id),
+      };
+      update((s) => ({
+        ...s,
+        finalChecks: [check, ...s.finalChecks],
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "report.final-check",
+            entityId: check.id,
+            detail: `Итоговая проверка: подтверждено записей без ручного решения ${list.length}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(check);
+    },
+
+    issueReport: () => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Отчёт сдаёт менеджер.");
+      const left = finalCheckList(snapshot.entries, snapshot.finalChecks, snapshot.week.days);
+      if (left.length > 0) {
+        throw new GasOpsError(
+          "final-check-required",
+          `Перед сдачей нужна итоговая проверка: ${left.length} записей без ручного подтверждения.`,
+        );
+      }
+      const week = new Set(snapshot.week.days);
+      const included = reportEntries(snapshot.entries, "confirmed").filter((e) => week.has(e.day));
+      const issue: ReportIssue = {
+        id: newId("rep"),
+        weekFrom: snapshot.week.from,
+        issuedAt: nowOf(snapshot),
+        issuedBy: snapshot.actorId,
+        totalRub: included.reduce((a, e) => a + (e.amountRub ?? 0), 0),
+        objectIds: [...new Set(included.map((e) => e.objectId))],
+        stale: false,
+        staleReason: null,
+      };
+      update((s) => ({
+        ...s,
+        reportIssues: [issue, ...s.reportIssues],
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "report.issue",
+            entityId: issue.id,
+            detail: `Отчёт недели сдан: ${issue.totalRub} ₽, объектов ${issue.objectIds.length}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(issue);
     },
 
     reset: () => done(resetState()),

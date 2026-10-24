@@ -44,13 +44,30 @@ export function StatusDot({
  * Тон метки: блокирующие (пересечение, дубль) красным текстом на светлом фоне, требующие
  * решения (нет суммы, вчера, вручную) янтарным, информационные серым.
  */
-export type ChipTone = "block" | "decide" | "info" | "neutral";
+export type ChipTone =
+  | "block"
+  | "decide"
+  | "info"
+  | "neutral"
+  | "ok"
+  | "sky"
+  | "lavender"
+  | "teal"
+  | "pink"
+  | "periwinkle";
 
+/* Метки «Графита» (ADR-052): фон — тон с альфой 16 %, текст тоном. Контраст в check-contrast */
 const CHIP_TONE: Record<ChipTone, string> = {
   block: "bg-danger-bg text-danger",
   decide: "bg-warn-bg text-warn",
   info: "bg-surface-2 text-text-2",
   neutral: "bg-surface-2 text-text-2",
+  ok: "bg-mint-soft text-mint",
+  sky: "bg-sky-soft text-sky",
+  lavender: "bg-lavender-soft text-lavender",
+  teal: "bg-teal-soft text-teal",
+  pink: "bg-pink-soft text-pink",
+  periwinkle: "bg-periwinkle-soft text-periwinkle",
 };
 
 export function Chip({

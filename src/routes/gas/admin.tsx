@@ -8,19 +8,22 @@ import { ROLE_LABEL, useGasAudit, useGasUsers, type Role } from "@/api/gas-ops";
 import { roleInitial } from "@/lib/gas-ops/screens";
 import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
 import {
+  REVIEW_MODE_HINT,
   REVIEW_MODE_LABEL,
-  setReviewMode,
-  useReviewMode,
+  useGasEstimateActions,
+  useGasReviewPolicy,
   type ReviewMode,
-} from "@/lib/gas-ops/review-mode";
+} from "@/api/gas-estimates";
+import { useGasActor } from "@/api/gas-ops";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 /**
  * Настройка направления. По ТЗ v1.0 отдельная веб-админка в договор не входит:
  * экран помечен как развитие и показывает только то, что действительно есть —
  * роли, согласованные правила расчёта, открытые вопросы, состояние подключений и журнал.
- * Вид ADR-045, 5.11: группы строк. Режим проверки и порядок показателей — демо «Развитие»,
- * логика проверки и расчёт не меняются.
+ * Вид ADR-045, 5.11: группы строк. Режим проверки настоящий (ADR-053, 5): он меняет маршрут
+ * отправленной записи, режим без проверки открывается только при набранной точности.
  */
 export const Route = createFileRoute("/gas/admin")({
   head: () =>
@@ -98,7 +101,6 @@ const LIST = "surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line
 function AdminPage() {
   const users = useGasUsers();
   const audit = useGasAudit();
-  const reviewMode = useReviewMode();
   const order = useMetricOrder();
 
   return (
@@ -133,43 +135,17 @@ function AdminPage() {
         </ul>
       </Group>
 
-      <Group
-        id="review-mode"
-        title="Режим проверки · Развитие"
-        note="Сейчас проверку ведёт менеджер. Выбор показывает, как система может работать дальше: логика проверки не меняется."
-      >
-        <ul className={LIST} role="radiogroup" aria-label="Режим проверки">
-          {(Object.keys(REVIEW_MODE_LABEL) as ReviewMode[]).map((key) => {
-            const on = reviewMode === key;
-            return (
-              <li key={key}>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  onClick={() => setReviewMode(key)}
-                  className={cn(
-                    "flex min-h-row-compact w-full items-center gap-3 px-row text-left text-body focus-ring",
-                    on && "bg-surface-2",
-                  )}
-                >
-                  <span className="flex-1">{REVIEW_MODE_LABEL[key]}</span>
-                  {on ? <Check className="size-5 text-orange" aria-hidden /> : null}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </Group>
+      <ReviewModeGroup />
 
-      <Group title="Порядок показателей" note="Как отчёт показывает три числа строки.">
+      <Group title="Порядок показателей" note="Что отчёт показывает первым из трёх чисел строки.">
+        {/* Короткие подписи: при тексте 130 % на 390 «Сначала деньги» уезжало за край */}
         <Segmented
           label="Порядок показателей"
           value={order}
           onChange={setMetricOrder}
           options={[
-            { value: "money", label: "Сначала деньги" },
-            { value: "time", label: "Сначала время" },
+            { value: "money", label: "Деньги" },
+            { value: "time", label: "Время" },
           ]}
         />
       </Group>
@@ -226,5 +202,78 @@ function AdminPage() {
         )}
       </Group>
     </div>
+  );
+}
+
+const THRESHOLDS = [90, 95, 98] as const;
+
+/**
+ * Режимы проверки (ADR-053, 5): три режима настройкой, а не одна кнопка. Режим без проверки
+ * недоступен, пока точность ниже порога: причина и числа видны рядом.
+ */
+function ReviewModeGroup() {
+  const policy = useGasReviewPolicy();
+  const actions = useGasEstimateActions();
+  const actor = useGasActor();
+  const canChange = actor.role === "manager" || actor.role === "admin";
+  const { settings, accuracy } = policy;
+
+  const choose = async (mode: ReviewMode, thresholdPercent = settings.thresholdPercent) => {
+    const result = await actions.setReviewSettings({ mode, thresholdPercent });
+    if (!result.ok) toast.error(result.message);
+  };
+
+  return (
+    <Group
+      id="review-mode"
+      title="Режим проверки"
+      note={
+        accuracy.percent === null
+          ? `Точность считается по последним решениям менеджера: пока ${accuracy.decided}, нужно не меньше 20.`
+          : `Точность ${accuracy.percent}%: ${accuracy.clean} из ${accuracy.decided} записей приняты без правки. Перед сдачей отчёта итоговая проверка человеком обязательна в любом режиме.`
+      }
+    >
+      <ul className={LIST} role="radiogroup" aria-label="Режим проверки">
+        {(Object.keys(REVIEW_MODE_LABEL) as ReviewMode[]).map((key) => {
+          const on = settings.mode === key;
+          const available = policy.availability[key];
+          const disabled = !canChange || !available.ok;
+          return (
+            <li key={key}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={on}
+                aria-disabled={disabled || undefined}
+                onClick={() => (disabled ? undefined : void choose(key))}
+                className={cn(
+                  "flex min-h-row w-full items-start gap-3 px-row py-row text-left focus-ring",
+                  on && "bg-surface-2",
+                  disabled && !on && "cursor-not-allowed",
+                )}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className={cn("block text-body", disabled && !on && "text-text-3")}>
+                    {REVIEW_MODE_LABEL[key]}
+                  </span>
+                  <span className="block text-meta text-text-3">
+                    {available.ok ? REVIEW_MODE_HINT[key] : available.reason}
+                  </span>
+                </span>
+                {on ? <Check className="mt-0.5 size-5 shrink-0 text-orange" aria-hidden /> : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="mt-2">
+        <Segmented
+          label="Порог точности для режима без проверки"
+          value={String(settings.thresholdPercent)}
+          onChange={(value) => (canChange ? void choose(settings.mode, Number(value)) : undefined)}
+          options={THRESHOLDS.map((t) => ({ value: String(t), label: `${t}%` }))}
+        />
+      </div>
+    </Group>
   );
 }

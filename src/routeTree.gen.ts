@@ -59,6 +59,7 @@ import { Route as GasGuideRouteImport } from './routes/gas/guide'
 import { Route as GasModerationRouteImport } from './routes/gas/moderation'
 import { Route as GasMoreRouteImport } from './routes/gas/more'
 import { Route as GasObjectsRouteImport } from './routes/gas/objects'
+import { Route as GasOverviewRouteImport } from './routes/gas/overview'
 import { Route as GasQuestionsRouteImport } from './routes/gas/questions'
 import { Route as GasReportsRouteImport } from './routes/gas/reports'
 import { Route as GasSummaryRouteImport } from './routes/gas/summary'
@@ -331,6 +332,11 @@ const GasObjectsRoute = GasObjectsRouteImport.update({
   path: '/objects',
   getParentRoute: () => GasRoute,
 } as any)
+const GasOverviewRoute = GasOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasQuestionsRoute = GasQuestionsRouteImport.update({
   id: '/questions',
   path: '/questions',
@@ -491,6 +497,7 @@ export interface FileRoutesByFullPath {
   '/gas/moderation': typeof GasModerationRoute
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
+  '/gas/overview': typeof GasOverviewRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/summary': typeof GasSummaryRoute
@@ -562,6 +569,7 @@ export interface FileRoutesByTo {
   '/gas/moderation': typeof GasModerationRoute
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
+  '/gas/overview': typeof GasOverviewRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/summary': typeof GasSummaryRoute
@@ -636,6 +644,7 @@ export interface FileRoutesById {
   '/gas/moderation': typeof GasModerationRoute
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
+  '/gas/overview': typeof GasOverviewRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/summary': typeof GasSummaryRoute
@@ -711,6 +720,7 @@ export interface FileRouteTypes {
     | '/gas/moderation'
     | '/gas/more'
     | '/gas/objects'
+    | '/gas/overview'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/summary'
@@ -782,6 +792,7 @@ export interface FileRouteTypes {
     | '/gas/moderation'
     | '/gas/more'
     | '/gas/objects'
+    | '/gas/overview'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/summary'
@@ -855,6 +866,7 @@ export interface FileRouteTypes {
     | '/gas/moderation'
     | '/gas/more'
     | '/gas/objects'
+    | '/gas/overview'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/summary'
@@ -1287,6 +1299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasObjectsRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/overview': {
+      id: '/gas/overview'
+      path: '/overview'
+      fullPath: '/gas/overview'
+      preLoaderRoute: typeof GasOverviewRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/questions': {
       id: '/gas/questions'
       path: '/questions'
@@ -1449,6 +1468,7 @@ interface GasRouteChildren {
   GasModerationRoute: typeof GasModerationRoute
   GasMoreRoute: typeof GasMoreRoute
   GasObjectsRoute: typeof GasObjectsRoute
+  GasOverviewRoute: typeof GasOverviewRoute
   GasQuestionsRoute: typeof GasQuestionsRoute
   GasReportsRoute: typeof GasReportsRoute
   GasSummaryRoute: typeof GasSummaryRoute
@@ -1467,6 +1487,7 @@ const GasRouteChildren: GasRouteChildren = {
   GasModerationRoute: GasModerationRoute,
   GasMoreRoute: GasMoreRoute,
   GasObjectsRoute: GasObjectsRoute,
+  GasOverviewRoute: GasOverviewRoute,
   GasQuestionsRoute: GasQuestionsRoute,
   GasReportsRoute: GasReportsRoute,
   GasSummaryRoute: GasSummaryRoute,

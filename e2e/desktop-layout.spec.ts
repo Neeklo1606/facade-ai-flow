@@ -34,10 +34,10 @@ async function smallestText(page: Page): Promise<{ size: number; text: string }>
 test.describe("планшет 900", () => {
   test.use({ viewport: { width: 900, height: 1100 } });
 
-  test("рельс 72 всегда, нижней панели нет", async ({ page }) => {
+  test("рельс 64 всегда, нижней панели нет (ADR-052)", async ({ page }) => {
     await open(page, "/gas/moderation");
     await expect(rail(page)).toHaveAttribute("data-rail", "true");
-    expect((await rail(page).boundingBox())!.width).toBe(72);
+    expect((await rail(page).boundingBox())!.width).toBe(64);
     await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeHidden();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(900);
   });
@@ -46,16 +46,16 @@ test.describe("планшет 900", () => {
 test.describe("компьютер 1280", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("сайдбар 248 сворачивается в 72 и помнит выбор", async ({ page }) => {
+  test("левая панель 240 сворачивается в 64 и помнит выбор (ADR-052)", async ({ page }) => {
     await open(page, "/gas/moderation");
-    expect((await rail(page).boundingBox())!.width).toBe(248);
+    expect((await rail(page).boundingBox())!.width).toBe(240);
     await page.getByRole("button", { name: "Свернуть панель" }).click();
     await expect(rail(page)).toHaveAttribute("data-rail", "true");
-    await expect.poll(async () => (await rail(page).boundingBox())!.width).toBe(72);
+    await expect.poll(async () => (await rail(page).boundingBox())!.width).toBe(64);
     await page.reload();
     await expect(rail(page)).toHaveAttribute("data-rail", "true");
     await page.getByRole("button", { name: "Развернуть панель" }).click();
-    await expect.poll(async () => (await rail(page).boundingBox())!.width).toBe(248);
+    await expect.poll(async () => (await rail(page).boundingBox())!.width).toBe(240);
   });
 
   test("деталь записи справа 420, Esc закрывает", async ({ page }) => {

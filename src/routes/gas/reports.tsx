@@ -21,6 +21,8 @@ import { useGasReportView, type ReportPeriod } from "@/api/gas-report";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { downloadCustomerXlsx } from "@/lib/gas-ops/export";
+import { FinalCheckBlock, NormVsFactBlock } from "@/components/gas-ops/report/FinalCheckBlock";
+import { normText, useGasReviewPolicy, useGasWorkCost } from "@/api/gas-estimates";
 import { gasShowEvent } from "@/lib/gas-ops/show";
 import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
 import { toast } from "@/lib/toast";
@@ -126,7 +128,21 @@ function ReportsPage() {
   const tourRowId =
     report.target?.rowId ?? report.rows.find((row) => isNewRow(row, report.changed))?.id ?? null;
 
+  const policy = useGasReviewPolicy();
+  const workCost = useGasWorkCost();
+  const normRows = workCost.rows
+    .filter((row) => row.confirmed && normText(row.norm))
+    .map((row) => ({ id: row.object.id, label: row.object.label, text: normText(row.norm)! }));
+
   const exportFile = async () => {
+    // Итоговая проверка обязательна перед выгрузкой утверждённого отчёта (ADR-053, 5)
+    if (mode === "confirmed" && policy.finalList.length > 0) {
+      toast.error("Сначала итоговая проверка", {
+        description: `Без ручного подтверждения: ${policy.finalList.length}. Проверьте их в блоке выше.`,
+      });
+      document.getElementById("final-check")?.scrollIntoView({ block: "center" });
+      return;
+    }
     setBusy(true);
     try {
       const name = await downloadCustomerXlsx({
@@ -213,6 +229,9 @@ function ReportsPage() {
         busy={busy}
         onExport={() => void exportFile()}
       />
+
+      <FinalCheckBlock />
+      <NormVsFactBlock rows={normRows} />
 
       {/* Сверка с файлом заказчика только в его личном контуре (ADR-047) */}
       {clientContour ? <ReconcileBlock /> : null}

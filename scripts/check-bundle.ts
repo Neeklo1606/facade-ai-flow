@@ -16,7 +16,13 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dir = join(here, "..", ".output", "public", "assets");
 const budgets = JSON.parse(readFileSync(join(here, "bundle-budget.json"), "utf8")) as Record<
   string,
-  { totalGzipKb: number; largestGzipKb: number; landingGzipKb?: number }
+  {
+    totalGzipKb: number;
+    largestGzipKb: number;
+    landingGzipKb?: number;
+    /** Куски, которые грузятся только по действию человека, со своим порогом (ADR-053) */
+    onDemand?: Record<string, number>;
+  }
 >;
 const contour = process.argv[2] ?? "demo";
 const budget = budgets[contour];
@@ -34,9 +40,18 @@ try {
   console.error(`Нет сборки: ${dir}. Сначала bun run build.`);
   process.exit(1);
 }
-const sizes = files
+const all = files
   .map((name) => ({ name, kb: gzipSync(readFileSync(join(dir, name))).length / 1024 }))
   .sort((a, b) => b.kb - a.kb);
+/*
+ * Кусок по требованию (ADR-053): библиотека чтения Excel грузится только в момент, когда
+ * человек выбрал файл сметы или графика. В первую загрузку и в переходы по экранам она
+ * не входит, поэтому меряется своим порогом, а не общим: общий бюджет экранов не растёт.
+ */
+const onDemandKey = (name: string) =>
+  Object.keys(budget.onDemand ?? {}).find((key) => name.startsWith(`${key}-`)) ?? null;
+const onDemand = all.filter((file) => onDemandKey(file.name) !== null);
+const sizes = all.filter((file) => onDemandKey(file.name) === null);
 const total = sizes.reduce((acc, file) => acc + file.kb, 0);
 const largest = sizes[0] ?? { name: "—", kb: 0 };
 
@@ -66,7 +81,15 @@ const landing = budget.landingGzipKb
 if (budget.landingGzipKb)
   console.log(`Лендинг: ${kb(landing)} (порог ${kb(budget.landingGzipKb)})`);
 
+for (const file of onDemand)
+  console.log(
+    `По требованию: ${file.name} — ${kb(file.kb)} (порог ${kb(budget.onDemand![onDemandKey(file.name)!]!)})`,
+  );
+
 const over = [
+  ...onDemand
+    .filter((file) => file.kb > budget.onDemand![onDemandKey(file.name)!]!)
+    .map((file) => `по требованию ${file.name} ${kb(file.kb)}`),
   total > budget.totalGzipKb && `всего ${kb(total)} > ${kb(budget.totalGzipKb)}`,
   budget.landingGzipKb !== undefined &&
     (landing === 0 || landing > budget.landingGzipKb) &&

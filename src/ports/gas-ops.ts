@@ -17,6 +17,35 @@ import type {
   User,
   WorkObject,
 } from "@/domain/gas-ops/model";
+import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
+import type { CostRule, CostRuleTerm, EstimateVersion } from "@/domain/gas-ops/work-cost";
+import type {
+  BrigadeAvailability,
+  BrigadeWeekStatus,
+  ScheduleRow,
+} from "@/domain/gas-ops/schedule";
+import type { FinalCheck, ReviewMode, ReviewSettings } from "@/domain/gas-ops/review-policy";
+
+/** Недельный график объектов, применённый из файла заказчика (ADR-053, 4) */
+export interface WeekSchedule {
+  rows: ScheduleRow[];
+  fileName: string;
+  appliedAt: string;
+  appliedBy: string;
+}
+
+/** Сданный отчёт недели: что вошло и не устарел ли он после смены сметы (ADR-053, 3) */
+export interface ReportIssue {
+  id: string;
+  weekFrom: string;
+  issuedAt: string;
+  issuedBy: string;
+  totalRub: number;
+  objectIds: string[];
+  /** Отчёт требует обновления: после сдачи подтверждена новая версия сметы его объекта */
+  stale: boolean;
+  staleReason: string | null;
+}
 
 export interface GasOpsSnapshot {
   /** «Сегодня» направления: в демонстрации это последний день недели отчёта */
@@ -36,6 +65,17 @@ export interface GasOpsSnapshot {
   users: User[];
   /** Кто сейчас в системе: выбирается на экране входа, настоящей проверки пароля нет */
   actorId: string;
+  /** Загруженные сметы по версиям (ADR-053) */
+  estimateVersions: EstimateVersion[];
+  /** Правило состава стоимости работ: компании и переопределения объектов */
+  costRules: CostRule[];
+  /** Недельный график из файла заказчика; null — ещё не загружали */
+  schedule: WeekSchedule | null;
+  /** Отметки бригад «работает / в отпуске» по неделям */
+  brigadeAvailability: BrigadeAvailability[];
+  reviewSettings: ReviewSettings;
+  finalChecks: FinalCheck[];
+  reportIssues: ReportIssue[];
 }
 
 export interface CreateEntryInput {
@@ -80,7 +120,10 @@ export class GasOpsError extends Error {
       | "not-found"
       | "already-reviewed"
       | "comment-required"
-      | "nothing-to-undo",
+      | "nothing-to-undo"
+      | "estimate-not-ready"
+      | "mode-unavailable"
+      | "final-check-required",
     message: string,
   ) {
     super(message);
@@ -108,6 +151,42 @@ export interface GasOpsPort {
     amountRub: number;
     note?: string | undefined;
   }): Promise<Estimate>;
+  /** Загрузить разобранную смету новой версией. Файл в состояние не кладётся, только итоги */
+  addEstimateVersion(input: {
+    parsed: ParsedWorkbook;
+    fileName: string;
+    objectId: string | null;
+  }): Promise<EstimateVersion>;
+  /** Привязать версию к объекту: подсказку подтверждает человек */
+  linkEstimateVersion(input: { id: string; objectId: string }): Promise<EstimateVersion>;
+  /** Сметчик проверил замечания разбора */
+  reviewEstimateIssues(id: string): Promise<EstimateVersion>;
+  /**
+   * Подтвердить версию: стоимость объекта по правилу, пересчёт неподтверждённых записей,
+   * пометка сданных отчётов «требует обновления»
+   */
+  confirmEstimateVersion(id: string): Promise<{
+    version: EstimateVersion;
+    estimate: Estimate;
+    changedEntries: number;
+    staleReports: number;
+  }>;
+  /** Подтвердить правило состава: objectId null — для компании */
+  confirmCostRule(input: { objectId: string | null; terms: CostRuleTerm[] }): Promise<CostRule>;
+  /** Применить недельный график; возвращает прежний для отмены */
+  applySchedule(input: { rows: ScheduleRow[]; fileName: string }): Promise<WeekSchedule | null>;
+  /** Отменить применение графика: вернуть прежний (тост 6 секунд) */
+  restoreSchedule(previous: WeekSchedule | null): Promise<void>;
+  setBrigadeWeek(input: {
+    brigadeId: string;
+    weekFrom: string;
+    status: BrigadeWeekStatus;
+  }): Promise<BrigadeAvailability[]>;
+  setReviewSettings(input: { mode: ReviewMode; thresholdPercent: number }): Promise<ReviewSettings>;
+  /** Итоговая проверка: подтверждение записей без ручного решения одним действием */
+  finalCheck(): Promise<FinalCheck>;
+  /** Сдать отчёт недели: только после итоговой проверки */
+  issueReport(): Promise<ReportIssue>;
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }

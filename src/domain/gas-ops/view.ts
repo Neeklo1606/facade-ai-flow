@@ -25,6 +25,12 @@ import type {
   User,
   WorkObject,
 } from "./model";
+import {
+  brigadeStatus,
+  scheduleObjectIds,
+  type BrigadeAvailability,
+  type ScheduleRow,
+} from "./schedule";
 
 export interface GasData {
   today: string;
@@ -44,6 +50,10 @@ export interface GasData {
   /** Журнал действий: кто и что сделал */
   audit: AuditLog[];
   actorId: string;
+  /** Недельный график из файла заказчика (ADR-053, 4); нет — назначения демо */
+  schedule?: { rows: ScheduleRow[] } | null;
+  /** Отметки «работает / в отпуске»: бригада в отпуске не получает объектов в боте */
+  brigadeAvailability?: BrigadeAvailability[];
 }
 
 export interface EntryView {
@@ -256,7 +266,8 @@ export function dashboardMetrics(data: GasData): DashboardMetrics {
  * Бригадир не видит 82 объекта списком: в боте MAX столько кнопок невозможно.
  */
 export function allowedObjectIdsFor(
-  data: Pick<GasData, "entries" | "assignments">,
+  data: Pick<GasData, "entries" | "assignments"> &
+    Partial<Pick<GasData, "schedule" | "brigades" | "objects">>,
   user: User,
 ): Set<string> | "all" {
   if (user.role !== "foreman" || !user.brigadeId) return "all";
@@ -264,6 +275,14 @@ export function allowedObjectIdsFor(
   for (const entry of data.entries) if (entry.brigadeId === user.brigadeId) ids.add(entry.objectId);
   for (const a of data.assignments)
     if (a.brigadeId === user.brigadeId) a.objectIds.forEach((id) => ids.add(id));
+  // Объекты из графика заказчика тоже разрешены бригадиру (ADR-053, 4)
+  const brigade = data.brigades?.find((b) => b.id === user.brigadeId);
+  if (data.schedule && brigade) {
+    for (const day of new Set(data.schedule.rows.map((r) => r.day)))
+      scheduleObjectIds(data.schedule.rows, brigade, day, data.objects ?? []).forEach((id) =>
+        ids.add(id),
+      );
+  }
   if (user.allowedObjectIds !== "all") user.allowedObjectIds.forEach((id) => ids.add(id));
   return ids;
 }
@@ -279,12 +298,24 @@ export function allowedObjects(data: GasData): WorkObject[] {
 
 /** Объекты бригады «на сегодня»: первые кнопки бота. Порядок как в назначении */
 export function dayObjects(
-  data: Pick<GasData, "assignments" | "objects">,
+  data: Pick<GasData, "assignments" | "objects"> &
+    Partial<Pick<GasData, "schedule" | "brigadeAvailability" | "brigades" | "week">>,
   brigadeId: string,
   day: string,
 ): WorkObject[] {
+  // Бригада в отпуске на этой неделе объектов не получает (ADR-053, 4)
+  if (
+    data.week &&
+    data.brigadeAvailability &&
+    brigadeStatus(brigadeId, data.week.from, data.brigadeAvailability) === "vacation"
+  )
+    return [];
+  const brigade = data.brigades?.find((b) => b.id === brigadeId);
+  // Есть график заказчика — объекты из него, иначе назначения демо
   const ids =
-    data.assignments.find((a) => a.brigadeId === brigadeId && a.day === day)?.objectIds ?? [];
+    data.schedule && brigade
+      ? scheduleObjectIds(data.schedule.rows, brigade, day, data.objects)
+      : (data.assignments.find((a) => a.brigadeId === brigadeId && a.day === day)?.objectIds ?? []);
   return ids.map((id) => data.objects.find((o) => o.id === id)).filter((o): o is WorkObject => !!o);
 }
 

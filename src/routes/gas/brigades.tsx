@@ -13,13 +13,15 @@ import { FieldGroup, FieldRow, MetricCard } from "@/components/ui/kit/data";
 import { notify } from "@/components/ui/kit/toast";
 import { fmtHours, fmtRate, fmtRub, useGasBrigades, useGasEntries } from "@/api/gas-ops";
 import { entryLine, fmtShortDay } from "@/components/gas-ops/review/rules";
-import { setOnVacation, useOnVacation } from "@/lib/gas-ops/week-crew";
+import { useGasEstimateActions, useGasSchedule } from "@/api/gas-estimates";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 /**
  * Бригады и подгруппы (ТЗ, п. 8; вид ADR-045, 5.8). Строка бригады: бригадир, часы
  * и доходность недели, статус недели точкой «Работает» или «В отпуске». «Состав на неделю»
- * с переключателями и добавление бригады — демо раздела «Развитие»: в расчёт не входят.
+ * настоящий (ADR-053, 4): отметка пишется в журнал, график и бот видят только работающие
+ * бригады. Добавление бригады — демо раздела «Развитие».
  */
 export const Route = createFileRoute("/gas/brigades")({
   head: () =>
@@ -39,7 +41,17 @@ interface Draft {
 
 function BrigadesPage() {
   const cards = useGasBrigades("confirmed");
-  const away = useOnVacation();
+  const week = useGasSchedule();
+  const estimateActions = useGasEstimateActions();
+  const away = new Set(week.brigades.filter((b) => b.status === "vacation").map((b) => b.id));
+  const setOnVacation = async (brigadeId: string, vacation: boolean) => {
+    const result = await estimateActions.setBrigadeWeek({
+      brigadeId,
+      weekFrom: week.weekFrom,
+      status: vacation ? "vacation" : "working",
+    });
+    if (!result.ok) toast.error(result.message);
+  };
   const [view, setView] = useState<"list" | "crew">("list");
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -124,7 +136,7 @@ function BrigadesPage() {
                         </span>
                         <Switch
                           checked={!vacation}
-                          onCheckedChange={(on) => setOnVacation(card.brigade.id, !on)}
+                          onCheckedChange={(on) => void setOnVacation(card.brigade.id, !on)}
                           aria-label={`${card.brigade.name}: работает на этой неделе`}
                         />
                       </label>

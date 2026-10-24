@@ -5,7 +5,8 @@
  * Вид ADR-045 «Финальный интерфейс», раздел 4: телефон и планшет — шапка 52 + safe-area
  * без логотипа и стекла, заголовок экрана 24/30 в контенте уходит в шапку при прокрутке,
  * полоса показа под шапкой, плоская нижняя панель 56 из четырёх пунктов по роли. Компьютер
- * от 1024 — сайдбар 248 (сворачивается до 72, состояние запоминается) и шапка 56.
+ * от 1024 — левая панель «Графита» 240 (сворачивается до 64, состояние запоминается) и шапка 56:
+ * пространство, поиск ⌘K, разделы со счётчиками, быстрый доступ, роль и ссылки внизу (ADR-052).
  * Бригадир видит экран бота во весь экран, без нижней панели.
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
@@ -33,7 +34,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ROLE_LABEL, useGasActions, useGasActor, useGasHydration } from "@/api/gas-ops";
+import {
+  ROLE_LABEL,
+  useGasActions,
+  useGasActor,
+  useGasHydration,
+  useGasQueueCounts,
+} from "@/api/gas-ops";
+import { useGasReviewPolicy, useGasWorkCost } from "@/api/gas-estimates";
 import {
   contourOf,
   GasContourProvider,
@@ -178,7 +186,25 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   );
 }
 
-/** Сайдбар компьютера свёрнут до рельса 72: запоминается, хранилище может быть недоступно */
+/** Событие «открыть поиск»: его шлёт кнопка левой панели, слушает поиск в шапке */
+const SEARCH_EVENT = "gas-search-open";
+
+/**
+ * Счётчики разделов левой панели: сколько ждёт решения человека. Ноль не показывается
+ * (ADR-052): записи на проверке, сметы без подтверждения, записи для итоговой проверки.
+ */
+function useNavCounters(): Partial<Record<string, number>> {
+  const counts = useGasQueueCounts();
+  const policy = useGasReviewPolicy();
+  const cost = useGasWorkCost();
+  return {
+    moderation: counts.pending,
+    estimates: cost.versions.filter((v) => v.confirmedAt === null).length,
+    reports: policy.finalList.length,
+  };
+}
+
+/** Сайдбар компьютера свёрнут до рельса 64: запоминается, хранилище может быть недоступно */
 function useRail(): [boolean, (next: boolean) => void] {
   const [rail, setRailState] = useState(false);
   useEffect(() => {
@@ -259,13 +285,14 @@ function GasSidebar({
   const actor = useGasActor();
   const contourKind = useGasContour().kind;
   const screens = screensFor(actor.role, contourKind);
+  const counters = useNavCounters();
   return (
     <aside
       aria-label="Меню учёта выработки"
       data-rail={rail ? "true" : undefined}
       className={cn(
-        "sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-e border-line bg-base py-4 transition-[width] duration-150 ease-out md:flex",
-        rail ? "w-[72px] px-2" : "w-[248px] px-3",
+        "sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-e border-line bg-rail py-4 transition-[width] duration-150 ease-out md:flex",
+        rail ? "w-rail px-2" : "w-sidebar px-3",
       )}
     >
       {/* Логотип только здесь, в меню, и на стартовом экране (4.2) */}
@@ -283,6 +310,24 @@ function GasSidebar({
           <span className="block truncate text-meta text-text-3">{brand.clientShort}</span>
         </span>
       </Link>
+
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(SEARCH_EVENT))}
+        title="Поиск записи"
+        aria-label="Поиск записи"
+        aria-keyshortcuts="Meta+K Control+K"
+        className={cn(
+          "nav-item focus-ring w-full border border-line bg-panel text-left",
+          rail && "justify-center px-0",
+        )}
+      >
+        <Search strokeWidth={1.75} aria-hidden />
+        <span className={cn("flex-1 truncate text-ink-3", rail && "sr-only")}>Поиск</span>
+        {rail ? null : (
+          <kbd className="rounded-xs border border-line px-1.5 text-meta text-ink-3">⌘K</kbd>
+        )}
+      </button>
 
       <nav
         aria-label="Разделы"
@@ -312,7 +357,18 @@ function GasSidebar({
                     className={cn("nav-item focus-ring", rail && "justify-center px-0")}
                   >
                     <Icon strokeWidth={1.75} aria-hidden />
-                    <span className={cn("truncate", rail && "sr-only")}>{item.title}</span>
+                    <span className={cn("flex-1 truncate", rail && "sr-only")}>{item.title}</span>
+                    {counters[item.key] ? (
+                      <span
+                        className={cn(
+                          "rounded-full bg-accent-soft px-1.5 text-meta-strong text-accent-text tnum",
+                          rail && "sr-only",
+                        )}
+                      >
+                        {counters[item.key]}
+                        <span className="sr-only"> ждут решения</span>
+                      </span>
+                    ) : null}
                   </Link>
                 );
               })}
@@ -401,6 +457,22 @@ function HeaderSearch() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  // ⌘K и Ctrl+K открывают поиск с любого экрана, кнопка левой панели — тем же событием
+  useEffect(() => {
+    const show = () => setOpen(true);
+    const key = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen(true);
+      }
+    };
+    window.addEventListener(SEARCH_EVENT, show);
+    window.addEventListener("keydown", key);
+    return () => {
+      window.removeEventListener(SEARCH_EVENT, show);
+      window.removeEventListener("keydown", key);
+    };
+  }, []);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>

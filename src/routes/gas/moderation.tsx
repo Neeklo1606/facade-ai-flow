@@ -28,7 +28,7 @@ import {
   type EntryView,
 } from "@/api/gas-ops";
 import { gasShowConfirmed, useGasShow } from "@/lib/gas-ops/show";
-import { REVIEW_MODE_LINE, useReviewMode } from "@/lib/gas-ops/review-mode";
+import { REVIEW_MODE_LABEL, useGasReviewPolicy } from "@/api/gas-estimates";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 
@@ -80,7 +80,7 @@ function ModerationPage() {
   const wide = useIsWide();
   const floatingBottom = useFloatingBottom();
   const show = useGasShow();
-  const reviewMode = useReviewMode();
+  const reviewMode = useGasReviewPolicy().settings.mode;
   const { open: openParam } = Route.useSearch();
 
   const [tab, setTab] = useState<Tab>("pending");
@@ -345,9 +345,9 @@ function ModerationPage() {
         {counts.pending} {plural(counts.pending, "ждёт", "ждут", "ждут")} проверки
         {tab === "pending" && withMarks ? `, ${withMarks} с замечаниями` : ""}
       </p>
-      {/* Режим проверки: интерфейс развития, логика не меняется (5.4, разговор 21.10) */}
+      {/* Режим проверки настоящий (ADR-053, 5): меняет маршрут отправленной записи */}
       <p className="mt-0.5 mb-2 flex min-w-0 items-center gap-2 text-meta text-text-3">
-        <span className="truncate">Режим: {REVIEW_MODE_LINE[reviewMode]} · Развитие</span>
+        <span className="truncate">Режим: {REVIEW_MODE_LABEL[reviewMode].toLowerCase()}</span>
         <Link
           to="/gas/admin"
           hash="review-mode"

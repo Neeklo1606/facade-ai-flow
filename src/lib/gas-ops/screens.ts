@@ -163,14 +163,15 @@ export const GAS_SCREENS: readonly GasScreen[] = [
   },
   {
     key: "summary",
-    to: "/gas/summary",
-    title: "Сводка",
-    short: "Сводка",
+    to: "/gas/overview",
+    title: "Обзор",
+    short: "Обзор",
+    // По ТЗ v1.0 дашборд в договор не входит: «Обзор» остаётся в «Развитии» (граница договора)
     group: "growth",
     roles: ["admin", "manager", "director"],
     steps: [
-      "Посмотрите итог недели: начислено, часы и доходность часа.",
-      "Нажмите на день, чтобы открыть его записи в журнале.",
+      "Посмотрите итог недели: начислено, часы, доходность и что ждёт решения.",
+      "Плана недели в данных нет: рядом с суммой стоит метка «План не задан».",
     ],
   },
   {
@@ -244,7 +245,8 @@ export function gasScreen(key: GasScreenKey): GasScreen {
 export const ROLE_HOME: Record<Role, GasScreenKey> = {
   foreman: "foreman",
   manager: "moderation",
-  director: "reports",
+  // Руководитель начинает с «Обзора» (ADR-052); менеджер — с очереди: с неё начинается показ
+  director: "summary",
   admin: "moderation",
 };
 
@@ -252,7 +254,7 @@ export const ROLE_HOME: Record<Role, GasScreenKey> = {
 export const ROLE_ABOUT: Record<Role, string> = {
   foreman: "Вносит время по объекту в боте MAX. Сумм не видит.",
   manager: "Проверяет записи бригадиров: подтверждает, исправляет, возвращает.",
-  director: "Смотрит недельный отчёт и выгружает Excel.",
+  director: "Смотрит обзор недели и отчёт, выгружает Excel.",
   admin: "Ведёт справочники, роли и правила расчёта.",
 };
 
@@ -262,7 +264,7 @@ export const ROLE_ABOUT: Record<Role, string> = {
  */
 export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
   manager: ["moderation", "entries", "reports"],
-  director: ["reports", "entries", "brigades"],
+  director: ["summary", "reports", "entries"],
   admin: ["moderation", "objects", "estimates"],
   foreman: [],
 };

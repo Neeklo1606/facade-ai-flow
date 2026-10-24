@@ -17,6 +17,9 @@ import { fmtHours, fmtRate, fmtRub, useGasObjects, type ObjectCard } from "@/api
 import { plural } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
+import { ScheduleImport } from "@/components/gas-ops/schedule/ScheduleImport";
+import { useGasActor } from "@/api/gas-ops";
+import { normText, useGasNorm, useGasSchedule } from "@/api/gas-estimates";
 
 /**
  * Реестр объектов (ТЗ, п. 8; вид ADR-045, 5.9). Адрес не единственный ключ: у объекта есть
@@ -45,6 +48,8 @@ function costText(card: ObjectCard): { text: string; missing: boolean } {
 }
 
 function ObjectsPage() {
+  const actor = useGasActor();
+  const { schedule } = useGasSchedule();
   const brand = useGasBrand();
   const clientContour = useIsClientContour();
   const cards = useGasObjects();
@@ -164,8 +169,17 @@ function ObjectsPage() {
       <p className="text-meta text-text-3">
         Объекты из графика на неделю {brand.periodLabel}
         {/* Граница договора заказчика называется только в его личном контуре (L3) */}
-        {clientContour ? " · демо: формирование графика вне договора" : " · график недели: демо"}
+        {schedule
+          ? ` · график из файла, строк ${schedule.rows.length}`
+          : clientContour
+            ? " · демо: формирование графика вне договора"
+            : " · график недели: демо"}
       </p>
+      {actor.role === "manager" || actor.role === "admin" ? (
+        <div>
+          <ScheduleImport />
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-2">
         <SearchBar
@@ -290,6 +304,7 @@ function Detail({
   onClose: () => void;
 }) {
   const cost = costText(card);
+  const norm = normText(useGasNorm(card.object.id));
   const body: ReactNode = (
     <div className="flex flex-col gap-section">
       <div className="grid grid-cols-2 gap-block">
@@ -305,13 +320,17 @@ function Detail({
             ? `${fmtRub(card.estimate.amountRub)}, версия ${card.estimate.version}`
             : cost.text}
         </p>
+        {/* Норма сметы против факта бригад (ADR-053, 3): только при подтверждённой смете */}
+        <p className="mt-1 text-meta text-text-2 tnum" data-testid="object-norm">
+          {norm ?? "Нормы нет: смета объекта не подтверждена"}
+        </p>
         {card.estimate?.note ? (
           <p className="mt-1 text-meta text-text-3">{card.estimate.note}</p>
         ) : null}
         {card.days.length > 1 ? (
           <p className="mt-2 text-meta text-text-2">
-            Требует согласования: по объекту работали несколько дней, как распределять стоимость по
-            дням и бригадам: открытый вопрос ТЗ. Сумма не распределяется.
+            Требует согласования: по объекту работали несколько дней. Стоимость делится между
+            записями по минутам (ADR-053); правило распределения согласует заказчик.
           </p>
         ) : null}
       </section>
