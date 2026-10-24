@@ -20,10 +20,12 @@
 import { buildSeedFrom, type GasOpsSeed } from "@/data/mock/gas-ops-seed-core";
 import { publicContour, type GasContour } from "@/lib/gas-ops/contour";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
+import { DEFAULT_COMPANY_RULE } from "@/domain/gas-ops/work-cost";
+import { DEFAULT_REVIEW_SETTINGS } from "@/domain/gas-ops/review-policy";
 
 const KEY = "neeklo-gas-ops-v1";
 /** Версия набора: меняется вместе с формой данных, иначе старый снимок во вкладке ломает экран */
-const VERSION = 3;
+const VERSION = 4;
 
 interface Stored {
   version: number;
@@ -48,6 +50,14 @@ function initial(contour: GasContour): GasOpsSnapshot {
     users: seed.users,
     // По умолчанию входим менеджером проверки: его экран — очередь, с него начинается показ
     actorId: "u-manager",
+    // Сметы, график и режимы проверки (ADR-053): в исходном наборе пусто, правило ждёт согласования
+    estimateVersions: [],
+    costRules: [DEFAULT_COMPANY_RULE],
+    schedule: null,
+    brigadeAvailability: [],
+    reviewSettings: DEFAULT_REVIEW_SETTINGS,
+    finalChecks: [],
+    reportIssues: [],
   };
 }
 

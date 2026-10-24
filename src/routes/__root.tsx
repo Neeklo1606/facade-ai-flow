@@ -110,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Гайка" },
       // Умолчание демо — тёмная тема (ADR-041); дальше значение ставит applyTheme
-      { name: "theme-color", content: "#0a0908" },
+      { name: "theme-color", content: "#17171a" },
       // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
       // картинка превью и запрет индексации общие (TASK-A5, п. 2 и 3)
       { title: previewMeta.title },
@@ -127,11 +127,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: previewMeta.description },
     ],
     links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      // Golos Text из своей папки (ADR-052): основное начертание заранее, без Google Fonts
       {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
+        rel: "preload",
+        href: "/fonts/golos-text-cyrillic-400.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "preload",
+        href: "/fonts/golos-text-latin-400.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
       },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },

@@ -99,7 +99,7 @@ export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: 
   "multi-day-object": {
     label: FLAG_LABEL["multi-day-object"],
     level: "info",
-    why: "По объекту работали несколько дней. Правило распределения суммы по дням не согласовано, сумма не распределяется.",
+    why: "По объекту работали несколько дней. Стоимость объекта делится между записями по минутам; правило распределения ещё согласует заказчик.",
   },
   "needs-agreement": {
     label: "Требует согласования",

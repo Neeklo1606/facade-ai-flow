@@ -187,7 +187,17 @@ test.describe("скорость сайта", () => {
       ).toEqual([]);
       page.removeAllListeners("request");
     }
-    const font = await page.locator('link[href*="fonts.googleapis.com/css2"]').getAttribute("href");
-    expect(font).toContain("display=swap");
+    // Шрифт свой (ADR-052): основное начертание грузится заранее, Google Fonts не нужен
+    await expect(
+      page.locator('link[rel="preload"][href="/fonts/golos-text-cyrillic-400.woff2"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('link[href*="fonts.googleapis.com"]')).toHaveCount(0);
+    const display = await page.evaluate(() =>
+      [...document.fonts]
+        .filter((f) => f.family.replace(/"/g, "") === "Golos Text")
+        .map((f) => f.display),
+    );
+    expect(display.length).toBeGreaterThan(0);
+    expect(new Set(display)).toEqual(new Set(["swap"]));
   });
 });

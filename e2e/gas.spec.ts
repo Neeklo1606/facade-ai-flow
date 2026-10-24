@@ -21,6 +21,7 @@ const GAS_SCREENS = [
   "/gas/estimates",
   "/gas/employees",
   "/gas/summary",
+  "/gas/overview",
   "/gas/admin",
   "/gas/guide",
   "/gas/questions",
@@ -68,7 +69,8 @@ test.describe("роль", () => {
   test("смена роли ведёт на стартовый экран роли и прячет пункты", async ({ page }) => {
     await open(page, "/gas/moderation");
     await gasRole(page, "Руководитель");
-    await expect(page).toHaveURL(/\/gas\/reports/);
+    // ADR-052: руководитель начинает с «Обзора»
+    await expect(page).toHaveURL(/\/gas\/overview/);
     await expect(toast(page, /Вы смотрите как руководитель/)).toBeVisible();
     // Проверку ведёт менеджер: у руководителя пункта нет вовсе, а не серый
     const menu = page.getByRole("navigation", { name: "Разделы" });

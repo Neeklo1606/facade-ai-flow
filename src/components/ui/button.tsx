@@ -6,45 +6,50 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Кнопки ADR-045, раздел 4.6.
- * - primary: главная, заливка акцентом, белый текст 15/500, высота 48 (size="lg"), одна на экран;
- * - secondary и outline: вторичная, граница 1 px, фон surface, 44;
- * - quiet: тихая, без фона, текст акцентом («Изменить», «Все»), 44;
- * - destructive: опасная, красный текст без заливки, 44;
- * - size="icon": круг 40, область касания 44; size="field": полевое действие прораба 56.
- * accent (ADR-027) и default оставлены для экранов до перевёрстки.
- * Нажатие: фон темнее и сжатие 0,98. Загрузка: подпись меняется на действие в процессе
- * (`loadingText`), ширина не прыгает. Недоступная: прозрачность 0,45.
+ * Кнопки «Графита» (ADR-052, раздел 3). Один набор на все экраны, своих стилей кнопок в экранах нет.
+ * - primary: главная, таблетка, заливка accent, текст on-accent 15/600; иконка справа в круге 24
+ *   (`iconEnd`). Одна на экран;
+ * - secondary (outline, default — псевдонимы): таблетка, фон panel-2, граница line-2, текст ink;
+ * - quiet (ghost — псевдоним): текст ink-2 без фона, при наведении фон panel-2;
+ * - destructive: текст danger без заливки;
+ * - size="icon": круг 40 на компьютере и 44 на телефоне, фон panel-2, граница line.
+ * Высота: компьютер 40, телефон 44, size="field" (полевое действие, решение по записи) 52.
+ * Нажатие: scale 0,97 за 100 мс. Фокус: кольцо accent 2 px с зазором 2 px. Загрузка: подпись
+ * меняется на действие в процессе (`loadingText`), ширина не прыгает. Недоступная: 0,45.
  */
 const buttonVariants = cva(
-  "inline-flex max-w-full items-center justify-center gap-2 whitespace-nowrap rounded-control text-body-strong leading-none cursor-pointer border border-transparent transition-fast focus-ring press-98 disabled:pointer-events-none disabled:shadow-none disabled:opacity-45 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+  "inline-flex max-w-full items-center justify-center gap-2 whitespace-nowrap rounded-pill text-body-strong leading-none cursor-pointer border border-transparent focus-ring press-97 disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         primary:
-          "bg-orange-strong text-on-orange is-hover:bg-orange-strong-hover active:bg-orange-strong-hover",
-        quiet: "bg-transparent text-orange is-hover:bg-surface-2 active:bg-surface-2",
-        accent: "accent-fill",
-        default: "border-line bg-surface-2 text-text is-hover:border-line-2 is-hover:bg-surface-3",
-        secondary:
-          "border-line bg-surface-2 text-text is-hover:border-line-2 is-hover:bg-surface-3",
-        outline: "border-line-2 bg-surface text-text is-hover:bg-surface-2 active:bg-surface-2",
-        ghost: "bg-transparent text-text-2 is-hover:bg-surface-2 is-hover:text-text",
-        destructive: "bg-transparent text-danger is-hover:bg-danger-bg",
-        link: "text-text underline-offset-4 is-hover:underline",
+          "bg-accent font-semibold fg-on-accent is-hover:bg-accent-hover active:bg-accent-hover",
+        secondary: "border-line-2 bg-panel-2 fg-ink is-hover:bg-panel-3 active:bg-panel-3",
+        outline: "border-line-2 bg-panel-2 fg-ink is-hover:bg-panel-3 active:bg-panel-3",
+        default: "border-line-2 bg-panel-2 fg-ink is-hover:bg-panel-3 active:bg-panel-3",
+        quiet: "bg-transparent fg-ink-2 is-hover:bg-panel-2 is-hover:fg-ink active:bg-panel-2",
+        ghost: "bg-transparent fg-ink-2 is-hover:bg-panel-2 is-hover:fg-ink active:bg-panel-2",
+        destructive: "bg-transparent fg-danger is-hover:bg-danger-bg active:bg-danger-bg",
+        /*
+         * Прежний вариант ADR-027: капсула цвета текста. Не оранжевая: экраны ГАЙКИ ставят её
+         * рядом с активной вкладкой, и правило «одно оранжевое пятно» иначе нарушается
+         */
+        accent: "accent-fill font-semibold",
+        link: "rounded-control fg-ink underline-offset-4 is-hover:underline",
       },
-      /*
-       * Высоты ADR-045: обычная 44, главная 48, полевое действие 56. Маленькая на компьютере
-       * 36, на телефоне область касания остаётся 44. Иконка: круг 40 с областью 44.
-       */
       size: {
-        default: "h-control px-4",
-        sm: "h-control px-3 text-meta-strong lg:h-9",
-        lg: "h-control-lg px-5",
-        field: "h-14 px-6",
-        icon: "touch-target size-10 rounded-full",
+        default: "h-btn px-5",
+        sm: "h-btn px-4 text-meta-strong",
+        lg: "h-btn px-6",
+        field: "h-btn-field px-6",
+        icon: "size-btn-icon rounded-full border-line bg-panel-2 p-0 fg-ink is-hover:bg-panel-3",
       },
     },
+    compoundVariants: [
+      // Иконка-кнопка всегда круг panel-2 с границей line, какой бы вариант ни пришёл
+      { size: "icon", variant: "quiet", className: "border-line bg-panel-2" },
+      { size: "icon", variant: "ghost", className: "border-line bg-panel-2" },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",
@@ -52,12 +57,26 @@ const buttonVariants = cva(
   },
 );
 
+/** Иконка справа у главной кнопки: круг 24 цвета on-accent с прозрачностью 0,14 */
+function IconEnd({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      aria-hidden
+      className="-me-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-on-accent/14 [&_svg]:size-4"
+    >
+      {children}
+    </span>
+  );
+}
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   loading?: boolean;
   /** Подпись на время загрузки: «Подтверждаю...». Без неё остаётся основная подпись */
   loadingText?: string;
+  /** Иконка справа в круге 24: только у главной кнопки */
+  iconEnd?: React.ReactNode;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -69,6 +88,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       asChild = false,
       loading = false,
       loadingText,
+      iconEnd,
       disabled,
       children,
       title,
@@ -100,16 +120,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {loading && loadingText ? (
           // Ширина держится основной подписью, поверх неё подпись процесса
-          <span className="grid">
-            <span aria-hidden className="invisible col-start-1 row-start-1">
-              {children}
+          <>
+            <span className="grid">
+              <span aria-hidden className="invisible col-start-1 row-start-1">
+                {children}
+              </span>
+              <span className="col-start-1 row-start-1">{loadingText}</span>
             </span>
-            <span className="col-start-1 row-start-1">{loadingText}</span>
-          </span>
+            {iconEnd ? <IconEnd>{iconEnd}</IconEnd> : null}
+          </>
         ) : (
           <>
             {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
             {children}
+            {iconEnd ? <IconEnd>{iconEnd}</IconEnd> : null}
           </>
         )}
       </Comp>

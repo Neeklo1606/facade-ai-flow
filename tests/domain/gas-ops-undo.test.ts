@@ -56,11 +56,35 @@ describe("отмена решения проверки", () => {
     expect(entry).toBeDefined();
     await port.setEstimate({ objectId: entry.objectId, amountRub: 12_000 });
 
+    /*
+     * ADR-053, 3: стоимость объекта распределяется по минутам его записей. У объекта две записи,
+     * 180 и 480 мин; до ADR-053 каждая получала всю стоимость, и объект считался дважды.
+     * Доля этой записи: 12 000 × 180 / 660 = 3 272,7 → 3 273 ₽ (наибольший остаток).
+     */
     const confirmed = await port.review({ id: entry.id, action: "confirm" });
-    expect(confirmed.amountRub).toBe(12_000);
+    expect(confirmed.amountRub).toBe(3_273);
     const restored = await port.undoReview(entry.id);
     expect(restored.amountRub).toBeNull();
     expect(restored.status).toBe("pending");
+  });
+
+  test("доли записей объекта в сумме дают стоимость объекта ровно", async () => {
+    const snapshot = await port.snapshot();
+    const entry = snapshot.entries.find((e) => e.status === "pending" && e.amountRub === null)!;
+    const others = snapshot.entries.filter(
+      (e) => e.objectId === entry.objectId && e.id !== entry.id && e.status !== "rejected",
+    );
+    await port.setEstimate({ objectId: entry.objectId, amountRub: 12_000 });
+    const all = [entry, ...others];
+    for (const e of all) {
+      if (e.status === "clarify") await port.submitEntry(e.id);
+      await port.review({ id: e.id, action: "confirm" });
+    }
+    const after = await port.snapshot();
+    const total = after.entries
+      .filter((e) => all.some((x) => x.id === e.id))
+      .reduce((a, e) => a + (e.amountRub ?? 0), 0);
+    expect(total).toBe(12_000);
   });
 
   test("отклонение отменяется вместе с причиной", async () => {

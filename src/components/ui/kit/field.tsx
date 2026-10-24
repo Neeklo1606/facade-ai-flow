@@ -62,7 +62,7 @@ export function Field({
           aria-describedby={describedBy || undefined}
           className={cn(
             "h-field w-full rounded-control border bg-surface px-3 text-body text-text outline-none transition-fast placeholder:text-text-3 focus:border-orange-line disabled:cursor-not-allowed disabled:opacity-45",
-            visibleError ? "border-danger" : "border-line-2",
+            visibleError ? "border-danger" : "border-field-line",
             (unit || (clearable && value)) && "pe-16",
           )}
           {...input}

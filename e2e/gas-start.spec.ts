@@ -9,7 +9,8 @@ import { enterClientContour } from "./gas-helpers";
 const ROLE_HOME: Record<string, RegExp> = {
   foreman: /\/gas\/foreman$/,
   manager: /\/gas\/moderation$/,
-  director: /\/gas\/reports$/,
+  // ADR-052: руководитель начинает с «Обзора»
+  director: /\/gas\/overview$/,
   admin: /\/gas\/moderation$/,
 };
 

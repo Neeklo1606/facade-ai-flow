@@ -10,7 +10,7 @@ import type { TimeEntry } from "@/domain/gas-ops/model";
 
 /** Отчёт сверяется с файлом заказчика: снимок кладётся в его личный контур (ADR-047) */
 export const GAS_STATE_KEY = "neeklo-gas-ops-v1:client";
-export const GAS_STATE_VERSION = 3;
+export const GAS_STATE_VERSION = 4;
 export const SHOW_ENTRY_ID = "ent-show-m200";
 
 export function reportState(): string {
@@ -51,6 +51,26 @@ export function reportState(): string {
     assignments: seed.assignments,
     users: seed.users,
     actorId: "u-director",
+    // ADR-053: сметы, график и режимы проверки — пустые, как в исходном наборе
+    estimateVersions: [],
+    costRules: [
+      {
+        id: "rule-company",
+        objectId: null,
+        terms: [
+          { key: "withoutVat", sign: 1 },
+          { key: "materials", sign: -1 },
+        ],
+        status: "needs-agreement",
+        confirmedBy: null,
+        confirmedAt: null,
+      },
+    ],
+    schedule: null,
+    brigadeAvailability: [],
+    reviewSettings: { mode: "all", thresholdPercent: 95, changedBy: null, changedAt: null },
+    finalChecks: [],
+    reportIssues: [],
   };
   return JSON.stringify({ version: GAS_STATE_VERSION, snapshot });
 }

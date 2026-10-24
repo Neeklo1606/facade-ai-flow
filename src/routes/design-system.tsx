@@ -25,6 +25,7 @@ import { WidgetGallery } from "@/components/design-system/WidgetGallery";
 import { GaikaGallery } from "@/components/design-system/GaikaGallery";
 import { ScaleGallery } from "@/components/design-system/ScaleGallery";
 import { KitGallery } from "@/components/design-system/KitGallery";
+import { GraphiteGallery } from "@/components/design-system/GraphiteGallery";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/design-system")({
@@ -193,6 +194,13 @@ function DesignSystemPage() {
 
       {/* ---------------------------------------------------------- Палитра */}
       <Section
+        title="Графит"
+        caption="ADR-052: токены обеих тем, кнопки во всех состояниях, метки, полоса показателей и панели с данными. Переключите тему, чтобы увидеть светлую."
+      >
+        <GraphiteGallery />
+      </Section>
+
+      <Section
         title="Палитра"
         caption="Образцы окрашены самими токенами из styles.css — витрина не расходится с кодом."
       >
@@ -231,7 +239,7 @@ function DesignSystemPage() {
       {/* ---------------------------------------------------------- Типографика */}
       <Section
         title="Типографика"
-        caption="Inter 400, 500, 600. Цифры одной ширины во всех данных; в заголовках знаки пропорциональные — в Inter признак tnum расширяет и дефис. Вес выше 600 и капса не используются."
+        caption="Golos Text 400, 500, 600 (ADR-052). Цифры одной ширины во всех данных, строчная l с хвостом отличается от I. Вес выше 600 и капса не используются."
       >
         <Panel bodyClassName="p-0">
           <ul className="divide-y divide-line">

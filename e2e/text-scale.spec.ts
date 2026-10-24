@@ -10,6 +10,10 @@ const SCREENS = [
   "/gas/entries",
   "/gas/reports",
   "/gas/objects",
+  // «Графит» (ADR-052, ADR-053): новые и перестроенные экраны
+  "/gas/overview",
+  "/gas/estimates",
+  "/gas/admin",
   "/today",
   "/projects",
 ];
