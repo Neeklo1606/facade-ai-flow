@@ -1427,11 +1427,7 @@
     color: var(--text);
   }
 }
-@utility segment-active {
-  color: var(--text);
-  background: var(--surface-3);
-  box-shadow: none;
-}
+/* segment-active объявлен рядом с segmented-control выше */
 
 /* ---------------------------------------------------------------- Виджеты */
 
