@@ -68,7 +68,8 @@ function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
       <div className="site-wrap landing-hero-inner">
         <div className="landing-hero-copy">
           <p className="site-caption site-rise font-medium text-text-2">{hero.eyebrow}</p>
-          <h1 className="site-h1 site-rise mt-4 text-text"><span className="landing-brand">{LANDING.meta.title.split(":")[0]}</span>{hero.title}</h1>
+          <p className="landing-brand site-rise mt-4">Гайка</p>
+          <h1 className="site-h1 site-rise mt-4 text-text">{hero.title}</h1>
           <p className="site-lead site-rise mt-5 text-text-2">{hero.lead}</p>
           <div className="landing-hero-actions site-rise mt-7 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -92,23 +93,23 @@ function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
           <p className="site-caption site-rise mt-4 text-text-3">{hero.note}</p>
         </div>
         {/*
-          Путь одной записи сверху вниз, один раз при появлении: справа от текста с 1024,
-          под текстом на планшете. На телефоне его нет: первый экран только текст и кнопки
+          Путь одной записи по горизонтали, один раз при появлении.
+          На телефоне его нет: первый экран только текст и кнопки.
         */}
         <div
           className="landing-record hidden gap-4 md:grid md:grid-cols-3"
           aria-label="Путь одной записи"
         >
           <Reveal delay={220} className="landing-record-step">
-            <p className="site-caption mb-3 text-text-2">01 · {LANDING.how.steps[0].title}</p>
+            <p className="site-caption mb-3 text-text-2">01 · {LANDING.how.steps[0]?.title}</p>
             <BotFragment />
           </Reveal>
           <Reveal delay={360} className="landing-record-step">
-            <p className="site-caption mb-3 text-text-2">02 · {LANDING.how.steps[1].title}</p>
+            <p className="site-caption mb-3 text-text-2">02 · {LANDING.how.steps[1]?.title}</p>
             <QueueFragment />
           </Reveal>
           <Reveal delay={500} className="landing-record-step">
-            <p className="site-caption mb-3 text-text-2">03 · {LANDING.how.steps[3].title}</p>
+            <p className="site-caption mb-3 text-text-2">03 · {LANDING.how.steps[3]?.title}</p>
             <ReportFragment />
           </Reveal>
           <Reveal delay={600} className="md:col-span-3">
