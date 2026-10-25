@@ -20,3 +20,9 @@ Validation limitation: five full-demo tests stop at the Excel download filename 
 - [x] Make the existing phone navigation a focus-managed slide-out panel.
 - [x] Improve shared mobile typography and readable navigation labels.
 - [x] Verify opening, closing, section navigation and desktop layout.
+
+## Premium landing
+
+- [x] Refine landing composition, typography and section hierarchy without changing approved claims.
+- [x] Add restrained entrance and interaction animations with reduced-motion support.
+- [x] Verify both themes, phone and desktop layouts, demo links and FAQ interactions.

@@ -18,3 +18,4 @@
 - Keep responsive navigation dimensions in shared shell tokens and use them for content clearance; this prevents pinned controls and phone navigation from overlapping.
 - Render phone navigation with the existing SidebarInner inside a modal dialog; shared section content prevents drift and modal focus management protects background controls.
 - Complete leaf page metadata through the shared page-head helper when necessary, preserving dynamic titles; this gives each screen its own share description without root-level images.
+- Keep landing composition styles scoped to landing-page and reuse the existing source-backed fragments; public-site typography must not change the working application's scale.
