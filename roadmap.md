@@ -23,6 +23,6 @@ Validation limitation: five full-demo tests stop at the Excel download filename 
 
 ## Premium landing
 
-- [ ] Refine landing composition, typography and section hierarchy without changing approved claims.
-- [ ] Add restrained entrance and interaction animations with reduced-motion support.
-- [ ] Verify both themes, phone and desktop layouts, demo links and FAQ interactions.
+- [x] Refine landing composition, typography and section hierarchy without changing approved claims.
+- [x] Add restrained entrance and interaction animations with reduced-motion support.
+- [x] Verify both themes, phone and desktop layouts, demo links and FAQ interactions.
