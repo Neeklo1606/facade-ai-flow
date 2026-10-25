@@ -2568,9 +2568,11 @@ main {
   .landing-page .site-h3 { font-size: 21px; line-height: 29px; }
   .landing-page .site-body { font-size: 18px; line-height: 28px; }
   .landing-page .site-lead { font-size: 19px; line-height: 29px; }
-  .landing-hero-inner { padding-block: 44px 48px; }
-  .landing-record { margin-top: 36px; }
-  .landing-record-step { padding: 20px; }
+  .landing-hero-inner { padding-block: 28px 24px; }
+  .landing-record { margin-top: 24px; gap: 12px; }
+  .landing-record-step { padding: 16px; }
+  .landing-record-step [aria-label="Пример: бот бригадира"] > .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .landing-record-step [aria-label="Пример: бот бригадира"] > .grid > span { min-height: 36px; font-size: 13px; }
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .landing-page .site-btn:hover svg, .landing-links a:hover svg { transform: translateX(4px); }
