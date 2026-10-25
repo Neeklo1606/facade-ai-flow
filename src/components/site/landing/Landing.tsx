@@ -63,7 +63,14 @@ function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
   const { hero } = LANDING;
   return (
     <section ref={ref} className="landing-hero relative isolate overflow-hidden">
-      <img src={engineeringImage} alt="" width={1920} height={1024} fetchPriority="high" className="landing-hero-image" />
+      <img
+        src={engineeringImage}
+        alt=""
+        width={1920}
+        height={1024}
+        fetchPriority="high"
+        className="landing-hero-image"
+      />
       <span aria-hidden className="landing-hero-wash" />
       <div className="site-wrap landing-hero-inner">
         <div className="landing-hero-copy">
@@ -145,10 +152,10 @@ function Section({
     >
       <div className="site-wrap">
         <Reveal className="landing-section-heading">
-        <h2 id={id} className="site-h2 max-w-[22ch] text-text">
-          {title}
-        </h2>
-        {lead ? <div className="site-body mt-3 max-w-[640px] text-text-2">{lead}</div> : null}
+          <h2 id={id} className="site-h2 max-w-[22ch] text-text">
+            {title}
+          </h2>
+          {lead ? <div className="site-body mt-3 max-w-[640px] text-text-2">{lead}</div> : null}
         </Reveal>
         <div className="mt-8 lg:mt-12">{children}</div>
       </div>
@@ -177,12 +184,7 @@ function Points({
       {items.map((item, index) => {
         const Icon = icons?.[index];
         return (
-          <Reveal
-            as="li"
-            key={item}
-            delay={index * 80}
-            className="landing-point flex h-full gap-3"
-          >
+          <Reveal as="li" key={item} delay={index * 80} className="landing-point flex h-full gap-3">
             {Icon ? (
               <Icon className="mt-0.5 size-5 shrink-0 text-orange" strokeWidth={1.75} aria-hidden />
             ) : (
