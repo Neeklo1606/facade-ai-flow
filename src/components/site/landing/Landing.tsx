@@ -27,6 +27,7 @@ import {
 } from "./fragments";
 import { LeadForm } from "./LeadForm";
 import { track } from "@/lib/site/analytics";
+import engineeringImage from "@/assets/landing-engineering.jpg";
 
 /**
  * Лендинг ГАЙКИ (ADR-050, 01_SPEC 9): двенадцать секций сверху вниз, тексты из `copy.ts`.
@@ -38,7 +39,7 @@ export function Landing() {
   const lead = useRef<HTMLElement>(null);
   useEffect(() => track("landing_view"), []);
   return (
-    <>
+    <div className="landing-page">
       <Hero ref={hero} />
       <Pains />
       <How />
@@ -52,7 +53,7 @@ export function Landing() {
       <Faq />
       <Lead ref={lead} />
       <StickyDemo hero={hero} lead={lead} />
-    </>
+    </div>
   );
 }
 
@@ -61,14 +62,15 @@ export function Landing() {
 function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
   const { hero } = LANDING;
   return (
-    <section ref={ref} className="relative isolate overflow-hidden">
-      <span aria-hidden className="site-glow -z-10" />
-      <div className="site-wrap grid grid-cols-1 gap-12 pt-8 pb-16 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:pt-20 lg:pb-28">
-        <div>
+    <section ref={ref} className="landing-hero relative isolate overflow-hidden">
+      <img src={engineeringImage} alt="" width={1920} height={1024} fetchPriority="high" className="landing-hero-image" />
+      <span aria-hidden className="landing-hero-wash" />
+      <div className="site-wrap landing-hero-inner">
+        <div className="landing-hero-copy">
           <p className="site-caption site-rise font-medium text-text-2">{hero.eyebrow}</p>
-          <h1 className="site-h1 site-rise mt-3 max-w-[14ch] text-text lg:mt-5">{hero.title}</h1>
-          <p className="site-lead site-rise mt-4 max-w-[640px] text-text-2 lg:mt-6">{hero.lead}</p>
-          <div className="site-rise mt-8 flex flex-col gap-3 sm:flex-row lg:mt-10">
+          <h1 className="site-h1 site-rise mt-4 text-text"><span className="landing-brand">{LANDING.meta.title.split(":")[0]}</span>{hero.title}</h1>
+          <p className="site-lead site-rise mt-5 text-text-2">{hero.lead}</p>
+          <div className="landing-hero-actions site-rise mt-7 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/demo"
               className={siteButton.primary}
@@ -94,19 +96,22 @@ function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
           под текстом на планшете. На телефоне его нет: первый экран только текст и кнопки
         */}
         <div
-          className="hidden flex-col gap-3 md:flex md:max-w-[560px] lg:max-w-none"
+          className="landing-record hidden gap-4 md:grid md:grid-cols-3"
           aria-label="Путь одной записи"
         >
-          <Reveal delay={150}>
-            <BotFragment className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line" />
+          <Reveal delay={220} className="landing-record-step">
+            <p className="site-caption mb-3 text-text-2">01 · {LANDING.how.steps[0].title}</p>
+            <BotFragment />
           </Reveal>
-          <Reveal delay={450}>
+          <Reveal delay={360} className="landing-record-step">
+            <p className="site-caption mb-3 text-text-2">02 · {LANDING.how.steps[1].title}</p>
             <QueueFragment />
           </Reveal>
-          <Reveal delay={750}>
+          <Reveal delay={500} className="landing-record-step">
+            <p className="site-caption mb-3 text-text-2">03 · {LANDING.how.steps[3].title}</p>
             <ReportFragment />
           </Reveal>
-          <Reveal delay={900}>
+          <Reveal delay={600} className="md:col-span-3">
             <SampleNote />
           </Reveal>
         </div>
@@ -138,10 +143,12 @@ function Section({
       className={cn("site-section", dark ? "site-dark" : "border-t border-line", className)}
     >
       <div className="site-wrap">
+        <Reveal className="landing-section-heading">
         <h2 id={id} className="site-h2 max-w-[22ch] text-text">
           {title}
         </h2>
         {lead ? <div className="site-body mt-3 max-w-[640px] text-text-2">{lead}</div> : null}
+        </Reveal>
         <div className="mt-8 lg:mt-12">{children}</div>
       </div>
     </section>
@@ -173,7 +180,7 @@ function Points({
             as="li"
             key={item}
             delay={index * 80}
-            className="flex h-full gap-3 rounded-2xl bg-surface p-5 ring-1 ring-line"
+            className="landing-point flex h-full gap-3"
           >
             {Icon ? (
               <Icon className="mt-0.5 size-5 shrink-0 text-orange" strokeWidth={1.75} aria-hidden />
@@ -212,9 +219,9 @@ function How() {
   ];
   return (
     <Section id="how" title={how.title} dark>
-      <ol className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-14">
+      <ol className="landing-process grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-x-12 lg:gap-y-14">
         {how.steps.map((step, index) => (
-          <li key={step.title}>
+          <li key={step.title} className="landing-process-step">
             <Reveal delay={index * 100} className="flex flex-col gap-4">
               <div className="flex gap-4">
                 <span className="site-caption font-medium text-orange tnum">
@@ -286,7 +293,7 @@ function CaseBlock() {
   const { case: item } = LANDING;
   return (
     <Section id="case" title={item.title}>
-      <Reveal className="flex flex-col gap-5 rounded-2xl bg-surface p-6 ring-1 ring-line lg:flex-row lg:items-center lg:justify-between lg:p-8">
+      <Reveal className="landing-case flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-[640px]">
           <p className="site-caption font-medium text-orange">{CASE_STATUS}</p>
           <p className="site-body mt-2 text-text">{item.text}</p>
@@ -306,12 +313,12 @@ function More() {
   const { more } = LANDING;
   return (
     <Section id="more" title={more.title} lead={more.caption}>
-      <ul className="overflow-hidden rounded-2xl bg-surface ring-1 ring-line [&>li+li]:border-t [&>li+li]:border-line">
+      <ul className="landing-links overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
         {more.items.map((item) => (
           <li key={item}>
             <Link
               to="/demo"
-              className="flex min-h-16 items-center gap-3 px-5 py-3 transition-colors duration-100 focus-ring active:bg-surface-2 is-hover:bg-surface-2"
+              className="flex min-h-16 items-center gap-3 py-4 transition-colors duration-100 focus-ring active:bg-surface-2 is-hover:bg-surface-2"
             >
               <span className="site-body min-w-0 flex-1 text-text">{item}</span>
               <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
@@ -366,7 +373,7 @@ function Start() {
               as="li"
               key={step.key}
               delay={index * 80}
-              className="flex h-full flex-col gap-2 rounded-2xl bg-surface p-5 ring-1 ring-line"
+              className="landing-start-step flex h-full flex-col gap-3"
             >
               <span className="site-caption font-medium text-text-3 tnum">Шаг {index + 1}</span>
               <h3 className="site-h3 text-text">{step.title}</h3>
@@ -400,10 +407,10 @@ function Faq() {
   const { faq } = LANDING;
   return (
     <Section id="faq" title={faq.title}>
-      <div className="max-w-[760px] overflow-hidden rounded-2xl bg-surface ring-1 ring-line [&>details+details]:border-t [&>details+details]:border-line">
+      <div className="landing-faq overflow-hidden [&>details+details]:border-t [&>details+details]:border-line">
         {faq.items.map((item) => (
           <details key={item.q} className="group">
-            <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-5 py-3 focus-ring [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 py-4 focus-ring [&::-webkit-details-marker]:hidden">
               <span className="site-body min-w-0 flex-1 font-medium text-text">{item.q}</span>
               <span
                 aria-hidden
@@ -412,7 +419,7 @@ function Faq() {
                 +
               </span>
             </summary>
-            <p className="site-body px-5 pb-5 text-text-2">{item.a}</p>
+            <p className="site-body max-w-[760px] pb-6 text-text-2">{item.a}</p>
           </details>
         ))}
       </div>
@@ -495,7 +502,7 @@ function StickyDemo({
         to="/demo"
         tabIndex={hidden ? -1 : undefined}
         onClick={() => track("cta_demo", { place: "sticky" })}
-        className={cn(siteButton.primary, "w-full shadow-[0_8px_24px_rgba(0,0,0,0.18)]")}
+        className={cn(siteButton.primary, "landing-sticky-button w-full")}
       >
         {LANDING.hero.primary}
         <ArrowRight className="size-5" aria-hidden />
