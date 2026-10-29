@@ -109,8 +109,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Гайка" },
-      // Умолчание демо — тёмная тема (ADR-041); дальше значение ставит applyTheme
-      { name: "theme-color", content: "#17171a" },
+      // Умолчание — светлая тема «Монохрома» (ADR-055): холст canvas; дальше ставит applyTheme
+      { name: "theme-color", content: "#efefed" },
       // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
       // картинка превью и запрет индексации общие (TASK-A5, п. 2 и 3)
       { title: previewMeta.title },

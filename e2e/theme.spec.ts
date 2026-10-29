@@ -29,14 +29,16 @@ const luminance = (page: import("@playwright/test").Page, color: string) =>
 test.describe("тема оформления", () => {
   test.use({ persona: "e-sokolov" });
 
-  // Умолчание — как в системе (решение владельца 21.10.2026, ADR-044; до этого светлая
-  // по ADR-042). Поменялось решение, а не проверка под код
-  test("без выбора тема берётся из системы", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "light" });
-    await open(page, "/projects");
-    expect(await theme(page)).toBe("light");
+  // Умолчание — светлая (ADR-055, документ Сервиса v1, S2 п. 3; до этого «как в системе»
+  // по ADR-044). Поменялось решение, а не проверка под код
+  test("без выбора светлая тема и при тёмной системе, без вспышки", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
-    await expect.poll(() => theme(page)).toBe("dark");
+    // Атрибут стоит уже в первом HTML-разборе: скрипт в head до отрисовки
+    await page.goto("/projects", { waitUntil: "commit" });
+    await page.waitForFunction(() => document.documentElement.dataset["theme"] !== undefined);
+    expect(await theme(page)).toBe("light");
+    await page.locator("main").waitFor();
+    expect(await theme(page)).toBe("light");
   });
 
   test("выбор светлой темы переживает перезагрузку", async ({ page }) => {

@@ -2,27 +2,27 @@
  * Рабочий контур газа (ADR-044, F1). На `/gas/*` вместо оболочки ГАЙКИ: своё меню, своя шапка,
  * своя нижняя панель по роли, без персон ГАЙКИ, выбора объектов и микрофона.
  *
- * Вид ADR-045 «Финальный интерфейс», раздел 4: телефон и планшет — шапка 52 + safe-area
- * без логотипа и стекла, заголовок экрана 24/30 в контенте уходит в шапку при прокрутке,
- * полоса показа под шапкой, плоская нижняя панель 56 из четырёх пунктов по роли. Компьютер
- * от 1024 — левая панель «Графита» 240 (сворачивается до 64, состояние запоминается) и шапка 56:
- * пространство, поиск ⌘K, разделы со счётчиками, быстрый доступ, роль и ссылки внизу (ADR-052).
- * Бригадир видит экран бота во весь экран, без нижней панели.
+ * Вид «Монохром» (ADR-055, разделы 2.1, 2.4, 2.5). Компьютер от 1024: верхняя строка 72
+ * на холсте (знак и компания, меню-таблетка роли, колокольчик, аватар), плавающая капсула
+ * слева (поиск, модули, справка, тема), заголовок экрана 44/48 со статус-плашкой. До 1024:
+ * шапка 56 со знаком, названием экрана, поиском и колокольчиком, нижняя панель 64 из четырёх
+ * пунктов роли и «Ещё». Бригадир видит экран бота во весь экран, без нижней панели.
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ChevronLeft,
-  ChevronsLeft,
-  ChevronsRight,
   CircleHelp,
+  Info,
+  LayoutGrid,
+  Moon,
   MoreHorizontal,
   RotateCcw,
   Search,
+  Sun,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useBack, useTabStack, type TabDef } from "@/lib/ui/tab-stack";
 import { BottomSheet } from "@/components/common/BottomSheet";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +33,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  BellButton,
+  BrandTile,
+  FloatingCapsule,
+  PhoneTabBar,
+  PillMenu,
+  ScreenTitle,
+  type AttentionItem,
+  type CapsuleAction,
+  type MenuItem,
+  type MenuSection,
+  type TabItem,
+} from "@/components/shell/mono";
 import {
   ROLE_LABEL,
   useGasActions,
@@ -54,6 +68,7 @@ import {
   GAS_GROUP_LABEL,
   OUT_OF_SCOPE_LABEL,
   ROLE_HOME,
+  ROLE_MENU,
   ROLE_TABS,
   gasScreen,
   gasScreenOf,
@@ -61,16 +76,18 @@ import {
   screensFor,
   type GasGroup,
   type GasScreen,
+  type GasScreenKey,
 } from "@/lib/gas-ops/screens";
 import { resetGasShow } from "@/lib/gas-ops/show";
+import { useApp } from "@/lib/app-context";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
+import { resolveTheme, themeChoices, themeLabels } from "@/lib/theme";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useBottomLayer } from "@/lib/ui/bottom-layers";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { useCollapsingTitle } from "@/lib/ui/collapsing-title";
 import { useSegScroll } from "@/lib/ui/seg-scroll";
 import { useAppManifest, useInstallHint } from "@/lib/ui/pwa";
-import { ListGroup, ListRow } from "@/components/ui/kit/list";
 import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
 import { GasShowDock } from "../show/GasShowDock";
@@ -115,18 +132,16 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   useTourHighlight();
   // Бригадир живёт в боте: без нижней панели и без меню, как в мессенджере
   const botOnly = actor.role === "foreman" && screen.key === "foreman";
-
-  const [railChoice, setRail] = useRail();
-  // Планшет 768–1023: рельс 72 всегда (ADR-045, V7); с 1024 выбор человека
-  const tablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
-  const rail = tablet || railChoice;
   useSegScroll(pathname);
   // На «Домой» контур ставится своим приложением «Учёт выработки» (4.20)
   useAppManifest("/manifest-gas.webmanifest", "Учёт выработки");
   useInstallHint();
-  // Крупный заголовок в контенте; когда он ушёл под шапку, его текст встаёт в шапку (4.2)
-  const { ref: titleRef, collapsed } = useCollapsingTitle(pathname);
   const network = useOffline();
+  const counts = useGasQueueCounts();
+  const canReview = screensFor(actor.role).some((s) => s.key === "moderation");
+  // Статус-плашка экрана (2.1): сколько ждёт проверки, иначе период недели
+  const status =
+    canReview && counts.pending > 0 ? `${counts.pending} ждут проверки` : brand.periodLabel;
   // Высота липкого верха (шапка и полоса показа): экран бота занимает остаток высоты
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -141,45 +156,32 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="gas-shell flex min-h-dvh bg-void text-text">
-      <GasSidebar pathname={pathname} rail={rail} onRail={setRail} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Шапка и полоса показа липкие вместе: полоса живёт под шапкой (4.4) */}
-        <div ref={topRef} className="sticky top-0 z-30">
-          {/* Экран бота на телефоне: шапка чата и есть шапка экрана, одна вместо трёх (ADR-048) */}
-          <div className={screen.key === "foreman" ? "max-md:hidden" : undefined}>
-            <GasTopbar screen={screen} collapsed={collapsed} />
-          </div>
-          {network.offline ? <OfflineBar demo={network.simulated} /> : null}
-          <GasShowDock />
+    <div className="gas-shell min-h-dvh bg-canvas text-ink">
+      {/* Шапка и полоса показа липкие вместе на телефоне: полоса живёт под шапкой (4.4) */}
+      <div ref={topRef} className="sticky top-0 z-30 bg-canvas lg:static">
+        {/* Экран бота на телефоне: шапка чата и есть шапка экрана, одна вместо двух (ADR-048) */}
+        <div className={screen.key === "foreman" ? "max-lg:hidden" : undefined}>
+          <GasHeader screen={screen} />
         </div>
-        <main
-          id="gas-main"
-          className={cn(
-            "min-w-0 flex-1 px-gutter pt-2 lg:px-8 lg:pt-6",
-            botOnly ? "pb-safe" : "pb-inset lg:pb-12",
-          )}
-        >
-          <div className="mx-auto w-full max-w-[1280px]">
-            {/* Заголовок экрана на телефоне и планшете: 24/30, отступ 8 сверху и 12 снизу */}
-            {screen.key === "foreman" ? null : (
-              <>
-                <h1
-                  ref={titleRef}
-                  className={cn("text-title lg:hidden", screen.key === "more" ? "mb-3" : "mb-0.5")}
-                >
-                  {screen.title}
-                </h1>
-                {/* Период недели строкой мета под крупным заголовком (ADR-048, 5) */}
-                {screen.key === "more" ? null : (
-                  <p className="mb-3 text-meta text-text-2 tnum lg:hidden">{brand.periodLabel}</p>
-                )}
-              </>
-            )}
-            <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
-          </div>
-        </main>
+        {network.offline ? <OfflineBar demo={network.simulated} /> : null}
+        <GasShowDock />
       </div>
+      {actor.role === "foreman" ? null : <GasCapsule screen={screen} />}
+      <main
+        id="gas-main"
+        className={cn("mono-content min-w-0", botOnly ? "pb-safe" : "pb-inset lg:pb-12")}
+      >
+        {/* Заголовок экрана компьютера; у бота на телефоне заголовок — шапка чата */}
+        <div className="max-lg:hidden">
+          <ScreenTitle
+            title={screen.title}
+            status={screen.key === "more" || screen.key === "foreman" ? null : status}
+          />
+        </div>
+        <div className="max-lg:pt-2">
+          <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
+        </div>
+      </main>
       {/* Бригадир живёт в боте: панели нет ни в боте, ни в «Моих записях» (01_SPEC 4.3) */}
       {actor.role === "foreman" ? null : <GasBottomNav pathname={pathname} />}
     </div>
@@ -202,27 +204,6 @@ function useNavCounters(): Partial<Record<string, number>> {
     estimates: cost.versions.filter((v) => v.confirmedAt === null).length,
     reports: policy.finalList.length,
   };
-}
-
-/** Сайдбар компьютера свёрнут до рельса 64: запоминается, хранилище может быть недоступно */
-function useRail(): [boolean, (next: boolean) => void] {
-  const [rail, setRailState] = useState(false);
-  useEffect(() => {
-    try {
-      if (localStorage.getItem("neeklo-gas-sidebar-collapsed") === "1") setRailState(true);
-    } catch {
-      // приватный режим: сайдбар развёрнут
-    }
-  }, []);
-  const setRail = useCallback((next: boolean) => {
-    setRailState(next);
-    try {
-      localStorage.setItem("neeklo-gas-sidebar-collapsed", next ? "1" : "0");
-    } catch {
-      // приватный режим
-    }
-  }, []);
-  return [rail, setRail];
 }
 
 /**
@@ -256,208 +237,239 @@ function useTourHighlight() {
   }, [tour]);
 }
 
-/* ------------------------------------------------------------ Десктоп: сайдбар */
-
-function BrandMark({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "grid size-9 shrink-0 place-items-center rounded-control bg-orange-strong text-body-strong text-on-orange",
-        className,
-      )}
-    >
-      г
-    </span>
-  );
-}
-
-function GasSidebar({
-  pathname,
-  rail,
-  onRail,
-}: {
-  pathname: string;
-  rail: boolean;
-  onRail: (next: boolean) => void;
-}) {
-  const brand = useGasBrand();
-  const actor = useGasActor();
-  const contourKind = useGasContour().kind;
-  const screens = screensFor(actor.role, contourKind);
-  const counters = useNavCounters();
-  return (
-    <aside
-      aria-label="Меню учёта выработки"
-      data-rail={rail ? "true" : undefined}
-      className={cn(
-        "sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-e border-line bg-rail py-4 transition-[width] duration-150 ease-out md:flex",
-        rail ? "w-rail px-2" : "w-sidebar px-3",
-      )}
-    >
-      {/* Логотип только здесь, в меню, и на стартовом экране (4.2) */}
-      <Link
-        to="/gas"
-        title={brand.product}
-        className={cn(
-          "flex items-center gap-3 rounded-control py-1 focus-ring",
-          rail ? "justify-center px-0" : "px-2",
-        )}
-      >
-        <BrandMark />
-        <span className={cn("min-w-0", rail && "sr-only")}>
-          <span className="block truncate text-body-strong text-text">{brand.product}</span>
-          <span className="block truncate text-meta text-text-3">{brand.clientShort}</span>
-        </span>
-      </Link>
-
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event(SEARCH_EVENT))}
-        title="Поиск записи"
-        aria-label="Поиск записи"
-        aria-keyshortcuts="Meta+K Control+K"
-        className={cn(
-          "nav-item focus-ring w-full border border-line bg-panel text-left",
-          rail && "justify-center px-0",
-        )}
-      >
-        <Search strokeWidth={1.75} aria-hidden />
-        <span className={cn("flex-1 truncate text-ink-3", rail && "sr-only")}>Поиск</span>
-        {rail ? null : (
-          <kbd className="rounded-xs border border-line px-1.5 text-meta text-ink-3">⌘K</kbd>
-        )}
-      </button>
-
-      <nav
-        aria-label="Разделы"
-        className="nav-scroll -mx-1 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-1"
-      >
-        {GROUPS.map((group) => {
-          const items = screens.filter((s) => s.group === group);
-          if (items.length === 0) return null;
-          return (
-            <div key={group} className="flex flex-col gap-0.5">
-              <p className={cn("px-3 pt-2 pb-1 text-meta text-text-3", rail && "sr-only")}>
-                {GAS_GROUP_LABEL[group]}
-                {/* Граница договора заказчика: только в его личном контуре (L3) */}
-                {group === "growth" && contourKind === "client" ? (
-                  <span className="ms-1.5 text-text-3">· {OUT_OF_SCOPE_LABEL}</span>
-                ) : null}
-              </p>
-              {items.map((item) => {
-                const Icon = SCREEN_ICON[item.key];
-                return (
-                  <Link
-                    key={item.key}
-                    to={item.to}
-                    title={item.title}
-                    data-active={isActive(item, pathname) ? "true" : undefined}
-                    data-tour={`nav-${item.key}`}
-                    className={cn("nav-item focus-ring", rail && "justify-center px-0")}
-                  >
-                    <Icon strokeWidth={1.75} aria-hidden />
-                    <span className={cn("flex-1 truncate", rail && "sr-only")}>{item.title}</span>
-                    {counters[item.key] ? (
-                      <span
-                        className={cn(
-                          "rounded-full bg-accent-soft px-1.5 text-meta-strong text-accent-text tnum",
-                          rail && "sr-only",
-                        )}
-                      >
-                        {counters[item.key]}
-                        <span className="sr-only"> ждут решения</span>
-                      </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })}
-      </nav>
-
-      <div className="flex flex-col gap-2">
-        {rail ? null : <RoleButton variant="wide" />}
-        {rail ? null : (
-          <div className="flex items-center gap-1">
-            <ResetButton />
-            <ThemeToggle className="ms-auto" />
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => onRail(!rail)}
-          title={rail ? "Развернуть панель" : "Свернуть панель"}
-          aria-label={rail ? "Развернуть панель" : "Свернуть панель"}
-          aria-expanded={!rail}
-          className={cn(
-            "nav-item focus-ring w-full text-left max-lg:hidden",
-            rail && "justify-center px-0",
-          )}
-        >
-          {rail ? <ChevronsRight strokeWidth={1.75} /> : <ChevronsLeft strokeWidth={1.75} />}
-          <span className={cn("truncate", rail && "sr-only")}>Свернуть панель</span>
-        </button>
-        {rail ? null : <p className="px-2 text-meta text-text-3">{brand.credit}</p>}
-      </div>
-    </aside>
-  );
-}
-
 /* ------------------------------------------------------------ Шапка */
 
-function GasTopbar({ screen, collapsed }: { screen: GasScreen; collapsed: boolean }) {
+/**
+ * Меню роли со счётчиками: что ждёт решения (ADR-052), ноль не показывается. Остальные
+ * разделы роли — в «Ещё» группами; граница договора подписана у группы «Развитие» (L3)
+ */
+function useRoleMenu(): { items: MenuItem[]; more: MenuSection[] } {
+  const actor = useGasActor();
+  const contourKind = useGasContour().kind;
+  const counters = useNavCounters();
+  const screens = screensFor(actor.role, contourKind);
+  const allowed = new Set(screens.map((s) => s.key));
+  const main = ROLE_MENU[actor.role].filter((key) => allowed.has(key));
+  const item = (screen: GasScreen): MenuItem => ({
+    key: screen.key,
+    to: screen.to,
+    label: screen.title,
+    count: counters[screen.key],
+  });
+  const rest = screens.filter((s) => s.key !== "start" && !main.includes(s.key));
+  return {
+    items: main.map((key) => item(gasScreen(key))),
+    more: GROUPS.map((group) => ({
+      title: `${GAS_GROUP_LABEL[group]}${group === "growth" && contourKind === "client" ? ` · ${OUT_OF_SCOPE_LABEL}` : ""}`,
+      items: rest.filter((s) => s.group === group).map(item),
+    })),
+  };
+}
+
+/** «Требует внимания» по роли: то же, что счётчики меню, одной строкой */
+function useAttention(): AttentionItem[] {
+  const actor = useGasActor();
+  const counters = useNavCounters();
+  const allowed = new Set(screensFor(actor.role).map((s) => s.key));
+  const items: AttentionItem[] = [
+    {
+      key: "moderation",
+      to: "/gas/moderation",
+      text: `Записей ждут проверки: ${counters["moderation"] ?? 0}`,
+      count: counters["moderation"] ?? 0,
+    },
+    {
+      key: "estimates",
+      to: "/gas/estimates",
+      text: `Стоимость не подтверждена: ${counters["estimates"] ?? 0}`,
+      count: counters["estimates"] ?? 0,
+    },
+    {
+      key: "reports",
+      to: "/gas/reports",
+      text: `К итоговой проверке: ${counters["reports"] ?? 0}`,
+      count: counters["reports"] ?? 0,
+    },
+  ];
+  return items.filter((item) => allowed.has(item.key as GasScreenKey));
+}
+
+/**
+ * Шапка контура. Компьютер: знак и компания, меню-таблетка по центру, колокольчик и аватар.
+ * Телефон: знак, название экрана, поиск, колокольчик и аватар роли
+ */
+function GasHeader({ screen }: { screen: GasScreen }) {
   const brand = useGasBrand();
   const actor = useGasActor();
+  const { items: menu, more } = useRoleMenu();
+  const attention = useAttention();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const active = [...menu, ...more.flatMap((section) => section.items)].find((item) =>
+    isActive(gasScreen(item.key as GasScreenKey), pathname),
+  );
   // Вложенный экран: не корень вкладки, не «Ещё» и не старт показа (ADR-048, 4)
   const roots = new Set<string>([...ROLE_TABS[actor.role], "more", "start", ROLE_HOME[actor.role]]);
   const nested = !roots.has(screen.key);
   // Бригадиру «Назад» ведёт в бот: это его единственный корень
   const back = useBack(actor.role === "foreman" ? "/gas/foreman" : "/gas/more");
   return (
-    <header data-collapsed={collapsed ? "true" : undefined} className="content-header lg:px-8">
+    <header className="shell-header mono-phone-header lg:mono-topbar lg:static lg:bg-transparent">
       {nested ? (
         <button
           type="button"
           onClick={back}
           aria-label="Назад"
-          className="-ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-full pr-2 pl-1 text-body text-text focus-ring md:hidden [touch-action:manipulation]"
+          className="-ml-2 grid size-11 place-items-center rounded-full text-ink focus-ring lg:hidden [touch-action:manipulation]"
         >
           <ChevronLeft className="size-6" strokeWidth={1.75} aria-hidden />
-          {collapsed ? null : "Назад"}
         </button>
       ) : null}
-      <div className="min-w-0 flex-1">
-        {/*
-          Телефон (ADR-048, 5): заголовок встаёт в шапку, когда крупный ушёл под неё.
-          Период живёт строкой мета под крупным заголовком. Компьютер: заголовок всегда
-        */}
-        <p className="truncate text-body-strong lg:hidden" aria-hidden={collapsed || undefined}>
-          {collapsed ? screen.title : null}
-        </p>
-        <h1 className="hidden truncate text-title lg:block">{screen.title}</h1>
+      <Link
+        to="/gas"
+        title={brand.product}
+        aria-label={`${brand.product}, на старт`}
+        className={cn(
+          "flex shrink-0 items-center gap-3 rounded-tile focus-ring",
+          nested && "max-lg:hidden",
+        )}
+      >
+        <BrandTile />
+        <span className="hidden min-w-0 type-card lg:block">{brand.clientShort}</span>
+      </Link>
+      {/* Телефон: название экрана 17/600 в шапке */}
+      <h1 className="min-w-0 flex-1 truncate text-heading lg:hidden">{screen.title}</h1>
+      <div className="hidden min-w-0 flex-1 justify-center lg:flex">
+        {menu.length ? <PillMenu items={menu} more={more} activeKey={active?.key ?? null} /> : null}
       </div>
-      <span className="hidden h-8 items-center rounded-full bg-surface-2 px-3 text-meta text-text-2 tnum lg:inline-flex">
-        {brand.periodLabel}
-      </span>
       {/* Свёрнутая полоса показа встаёт сюда таблеткой «4/6» */}
       <div id="gas-show-slot" className="contents" />
-      <HeaderSearch />
-      <HelpButton screen={screen} />
       <div className="lg:hidden">
-        <RoleButton variant="avatar" />
+        <HeaderSearch />
       </div>
+      {actor.role === "foreman" ? null : (
+        <BellButton items={attention} allTo={gasScreen(ROLE_HOME[actor.role]).to} />
+      )}
+      <AvatarMenu />
     </header>
   );
 }
 
-/** Поиск по записям: номер, объект, бригада. Ведёт в журнал с запросом */
+/**
+ * Плавающая капсула слева (2.1): поиск, модули, справка и тема. Модули — другие контуры:
+ * полевой контур ГАЙКИ всегда, снабжение и документы — когда их экраны включены (ADR-038)
+ */
+function GasCapsule({ screen }: { screen: GasScreen }) {
+  const { themeChoice, setThemeChoice } = useApp();
+  const dark = resolveTheme(themeChoice) === "dark";
+  const actions: (CapsuleAction | null)[] = [
+    {
+      key: "search",
+      label: "Поиск, ⌘K",
+      icon: Search,
+      onClick: () => window.dispatchEvent(new Event(SEARCH_EVENT)),
+    },
+    {
+      key: "modules",
+      label: "Модули",
+      icon: LayoutGrid,
+      render: (trigger) => (
+        <Popover>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent
+            side="right"
+            align="center"
+            sideOffset={16}
+            className="w-72 rounded-inset p-2 shadow-floating"
+          >
+            <ModulesList />
+          </PopoverContent>
+        </Popover>
+      ),
+    },
+    null,
+    {
+      key: "help",
+      label: "Что делать на этом экране",
+      icon: CircleHelp,
+      render: (trigger) => (
+        <Popover>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent
+            side="right"
+            align="center"
+            sideOffset={16}
+            className="w-80 rounded-inset p-4 shadow-floating"
+          >
+            <HelpSteps screen={screen} />
+          </PopoverContent>
+        </Popover>
+      ),
+    },
+    null,
+    {
+      key: "theme",
+      label: dark ? "Светлая тема" : "Тёмная тема",
+      icon: dark ? Sun : Moon,
+      onClick: () => setThemeChoice(dark ? "light" : "dark"),
+    },
+  ];
+  return <FloatingCapsule actions={actions} />;
+}
+
+/** Контуры продукта: где человек сейчас и куда можно перейти */
+function ModulesList() {
+  const legacy = legacyModulesEnabled();
+  const modules = [
+    { key: "gas", to: "/gas", label: "Учёт времени бригад", note: "Этот контур", current: true },
+    {
+      key: "field",
+      to: "/today",
+      label: "Голос с объекта",
+      note: "Полевой контур ГАЙКИ",
+      current: false,
+    },
+    ...(legacy
+      ? [
+          {
+            key: "supply",
+            to: "/inbox",
+            label: "Снабжение",
+            note: "Заявки и поставки",
+            current: false,
+          },
+          { key: "docs", to: "/projects", label: "Документы", note: "По объектам", current: false },
+        ]
+      : []),
+  ];
+  return (
+    <>
+      <p className="px-3 pt-2 pb-1 type-label text-ink-3">Модули</p>
+      <ul className="flex flex-col">
+        {modules.map((m) => (
+          <li key={m.key}>
+            <Link
+              to={m.to}
+              aria-current={m.current ? "page" : undefined}
+              className="flex min-h-12 flex-col justify-center rounded-tile px-3 py-2 focus-ring is-hover:bg-panel-2 aria-[current=page]:bg-panel-2"
+            >
+              <span className="type-text font-medium">{m.label}</span>
+              <span className="type-small text-ink-3">{m.note}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/**
+ * Поиск по записям: номер, объект, бригада. Ведёт в журнал с запросом. Окно открывают
+ * капсула, кнопка шапки телефона и ⌘K / Ctrl K с любого экрана
+ */
 function HeaderSearch() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  // ⌘K и Ctrl+K открывают поиск с любого экрана, кнопка левой панели — тем же событием
   useEffect(() => {
     const show = () => setOpen(true);
     const key = (event: KeyboardEvent) => {
@@ -474,129 +486,103 @@ function HeaderSearch() {
     };
   }, []);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" aria-label="Поиск записи" className="icon-button focus-ring">
-          <Search strokeWidth={1.6} aria-hidden />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[min(360px,calc(100vw-32px))] rounded-[var(--r-lg)] p-3"
+    <>
+      <button
+        type="button"
+        aria-label="Поиск записи"
+        onClick={() => setOpen(true)}
+        className="mono-circle focus-ring lg:hidden"
       >
-        <form
-          role="search"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setOpen(false);
-            void navigate({ to: "/gas/entries", search: { q: text.trim() || undefined } });
-          }}
-          className="flex items-center gap-2"
-        >
-          <input
-            autoFocus
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder="Номер, объект или бригада"
-            aria-label="Что найти"
-            className="text-body h-12 min-w-0 flex-1 rounded-[var(--r-md)] bg-surface-2 px-3 text-text outline-none focus-ring"
-          />
-          <button type="submit" className="text-body pill-action min-h-12 px-4 focus-ring">
-            Найти
-          </button>
-        </form>
-      </PopoverContent>
-    </Popover>
+        <Search strokeWidth={1.75} aria-hidden />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="top-24 max-w-[min(560px,calc(100vw-32px))] translate-y-0 rounded-surface border-0 bg-card p-4 shadow-floating">
+          <DialogTitle className="type-card">Поиск записи</DialogTitle>
+          <form
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setOpen(false);
+              void navigate({ to: "/gas/entries", search: { q: text.trim() || undefined } });
+            }}
+            className="flex items-center gap-2"
+          >
+            <input
+              autoFocus
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder="Номер, объект или бригада"
+              aria-label="Что найти"
+              className="h-field min-w-0 flex-1 rounded-inset bg-panel-2 px-4 type-text text-ink outline-none focus-ring"
+            />
+            <button type="submit" className="pill-action min-h-12 px-5 type-text focus-ring">
+              Найти
+            </button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 /** «?»: шаги экрана и переход в инструкцию */
-function HelpButton({ screen }: { screen: GasScreen }) {
+function HelpSteps({ screen }: { screen: GasScreen }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label="Что делать на этом экране"
-          className="icon-button focus-ring"
-        >
-          <CircleHelp strokeWidth={1.6} aria-hidden />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[min(340px,calc(100vw-32px))] rounded-[var(--r-lg)] p-4"
+    <>
+      <p className="type-label text-ink-3">Что делать здесь</p>
+      <ol className="mt-2 flex list-decimal flex-col gap-2 ps-5 type-text text-ink">
+        {screen.steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+      <Link
+        to="/gas/guide"
+        className="mt-3 inline-flex min-h-12 items-center type-text font-medium underline underline-offset-4 focus-ring"
       >
-        <p className="text-meta text-text-3">Что делать здесь</p>
-        <ol className="text-body mt-2 flex list-decimal flex-col gap-2 ps-5 text-text">
-          {screen.steps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-        <Link
-          to="/gas/guide"
-          className="text-body-strong mt-3 inline-flex min-h-12 items-center font-medium text-orange focus-ring"
-        >
-          Открыть инструкцию
-        </Link>
-      </PopoverContent>
-    </Popover>
+        Открыть инструкцию
+      </Link>
+    </>
   );
 }
 
-/** Аватар роли для шапки чата бота: та же шторка «Чьими глазами смотреть» */
+/** Аватар роли для шапки чата бота: то же меню, что в шапке контура */
 export function GasRoleAvatar() {
-  return <RoleButton variant="avatar" />;
+  return <AvatarMenu />;
 }
 
-/** Кто я: на десктопе строка в сайдбаре, на телефоне аватар в шапке */
-function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
+/**
+ * Аватар и его меню (2.1): роль демо, компания, тема, «Сбросить демо», «О системе».
+ * На компьютере — всплывающее меню, на телефоне — шторка
+ */
+function AvatarMenu() {
   const actor = useGasActor();
   const [open, setOpen] = useState(false);
-  const label = `Вы: ${ROLE_LABEL[actor.role]}`;
-
-  const trigger =
-    variant === "wide" ? (
-      <button
-        type="button"
-        data-tour="role"
-        className="flex min-h-12 w-full items-center gap-3 rounded-[var(--r-md)] bg-surface px-3 py-2 text-left focus-ring press is-hover:bg-surface-2"
-      >
-        <span className="text-meta-strong grid size-8 shrink-0 place-items-center rounded-full bg-pill font-semibold text-pill-text">
-          {roleInitial(actor.role)}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="text-meta block text-text-3">Вы смотрите как</span>
-          <span className="text-body-strong block truncate font-medium">
-            {ROLE_LABEL[actor.role]}
-          </span>
-        </span>
-      </button>
-    ) : (
-      <button
-        type="button"
-        aria-label={`${label}. Сменить роль`}
-        data-tour="role"
-        onClick={() => setOpen(true)}
-        className="grid size-12 place-items-center rounded-full focus-ring press"
-      >
-        <span className="text-body-strong grid size-9 place-items-center rounded-full bg-pill font-semibold text-pill-text">
-          {roleInitial(actor.role)}
-        </span>
-      </button>
-    );
-
-  if (variant === "avatar") {
+  const desktop = useMediaQuery("(min-width: 1024px)", false);
+  const trigger = (
+    <button
+      type="button"
+      aria-label={`Вы: ${ROLE_LABEL[actor.role]}. Сменить роль`}
+      data-tour="role"
+      onClick={desktop ? undefined : () => setOpen(true)}
+      className="mono-circle focus-ring press"
+    >
+      <span aria-hidden className="type-label font-semibold">
+        {roleInitial(actor.role)}
+      </span>
+    </button>
+  );
+  const body = <AvatarMenuBody onDone={() => setOpen(false)} />;
+  if (!desktop) {
     return (
       <>
         {trigger}
         <BottomSheet
           open={open}
           onOpenChange={setOpen}
-          title="Чьими глазами смотреть"
+          title="Вы смотрите как"
           description="Роль меняет меню и стартовый экран"
         >
-          <RoleList onDone={() => setOpen(false)} />
+          {body}
         </BottomSheet>
       </>
     );
@@ -604,11 +590,69 @@ function RoleButton({ variant }: { variant: "wide" | "avatar" }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent side="right" align="end" className="w-[340px] rounded-[var(--r-lg)] p-2">
-        <p className="text-meta px-3 pt-2 pb-1 text-text-3">Чьими глазами смотреть</p>
-        <RoleList onDone={() => setOpen(false)} />
+      <PopoverContent align="end" className="w-[360px] rounded-inset p-2 shadow-floating">
+        <p className="px-3 pt-2 pb-1 type-label text-ink-3">Вы смотрите как</p>
+        {body}
       </PopoverContent>
     </Popover>
+  );
+}
+
+function AvatarMenuBody({ onDone }: { onDone: () => void }) {
+  const brand = useGasBrand();
+  const { themeChoice, setThemeChoice } = useApp();
+  return (
+    <div className="flex flex-col gap-2">
+      <RoleList onDone={onDone} />
+      <div className="border-t border-line px-3 pt-3">
+        <p className="type-small text-ink-3">Компания</p>
+        <p className="type-text">{brand.clientShort}</p>
+      </div>
+      <div className="px-3 pt-1">
+        <p className="mb-2 type-small text-ink-3">Тема</p>
+        <div
+          role="radiogroup"
+          aria-label="Тема оформления"
+          className="flex gap-1 rounded-pill bg-panel-2 p-1"
+        >
+          {themeChoices.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              role="radio"
+              aria-checked={themeChoice === choice}
+              onClick={() => setThemeChoice(choice)}
+              className={cn(
+                "min-h-11 flex-1 rounded-pill px-2 type-label focus-ring",
+                themeChoice === choice ? "bg-card shadow-surface" : "text-ink-2",
+              )}
+            >
+              {themeLabels[choice]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col border-t border-line pt-1">
+        <ResetButton wide onDone={onDone} />
+        <AboutSystem />
+      </div>
+    </div>
+  );
+}
+
+/** «О системе»: продукт и кто сделал, без ссылок наружу */
+function AboutSystem() {
+  const brand = useGasBrand();
+  return (
+    <details className="group rounded-control">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-control px-3 type-text text-ink-2 focus-ring is-hover:bg-panel-2 [&::-webkit-details-marker]:hidden">
+        <Info className="size-4" aria-hidden />О системе
+      </summary>
+      <div className="px-3 pb-2 type-small text-ink-2">
+        <p>{brand.product}</p>
+        <p>{brand.credit}</p>
+      </div>
+    </details>
   );
 }
 
@@ -695,62 +739,24 @@ function GasBottomNav({ pathname }: { pathname: string }) {
   );
   const stack = useTabStack("gas", defs, ownerOf, GAS_TRANSIENT);
 
-  /*
-   * Нижняя панель ADR-045, 4.3: плоская, на всю ширину, 56 + safe-area, граница сверху.
-   * Активный пункт: иконка и подпись акцентом и точка 4 под подписью, без таблетки.
-   */
-  const item = (active: boolean) =>
-    cn(
-      "flex h-tabbar w-full flex-col items-center justify-center gap-1 pt-1 text-tab focus-ring [touch-action:manipulation]",
-      active ? "text-orange" : "text-text-2",
-    );
-  const dot = (active: boolean) => (
-    <span
-      aria-hidden
-      className={cn("-mt-0.5 size-1 rounded-full", active ? "bg-orange" : "bg-transparent")}
-    />
-  );
-  const entries = [
+  // Нижняя панель «Монохрома» (2.5): 64 + safe-area, активный — чёрная таблетка за иконкой
+  const items: TabItem[] = [
     ...tabs.map((tab) => ({
-      def: { key: tab.key, root: tab.to },
+      key: tab.key,
+      to: tab.to,
       label: tab.short,
       icon: SCREEN_ICON[tab.key],
     })),
-    { def: GAS_MORE_TAB, label: "Ещё", icon: MoreHorizontal },
+    { key: GAS_MORE_TAB.key, to: GAS_MORE_TAB.root, label: "Ещё", icon: MoreHorizontal },
   ];
-
   return (
-    <nav
-      ref={ref}
-      aria-label="Основные разделы"
-      className="line-top fixed inset-x-0 bottom-0 z-40 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
-    >
-      <ul className="flex items-stretch">
-        {entries.map(({ def, label, icon: Icon }) => {
-          const active = stack.active === def.key;
-          return (
-            <li key={def.key} className="min-w-0 flex-1">
-              <Link
-                to={def.root}
-                aria-current={active ? "page" : undefined}
-                data-tour={`tab-${def.key}`}
-                onClick={(event) => {
-                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0)
-                    return;
-                  event.preventDefault();
-                  stack.select(def);
-                }}
-                className={item(active)}
-              >
-                <Icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
-                <span className="max-w-full truncate px-1">{label}</span>
-                {dot(active)}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+    <PhoneTabBar
+      navRef={ref}
+      items={items}
+      activeKey={stack.active}
+      onSelect={(item) => stack.select(defs.find((d) => d.key === item.key)!)}
+      className="lg:hidden"
+    />
   );
 }
 

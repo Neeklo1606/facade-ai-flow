@@ -89,6 +89,7 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
     what: "акцент на мягком фоне",
   })),
   { fg: "on-record", bg: "record", min: 4.5, what: "кнопка голоса во время записи" },
+  { fg: "on-capsule", bg: "capsule", min: 4.5, what: "значки плавающей панели" },
   { fg: "record", bg: "card", min: 4.5, what: "таймер записи" },
   // Изменение показателя и статус: текст тоном на своей плашке поверх карточки
   ...STATUSES.map((tone) => ({

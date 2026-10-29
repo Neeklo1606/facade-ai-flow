@@ -73,6 +73,10 @@
   --accent-line: #ededf03d;
   /* Акцент текстом и кольцо фокуса: основной текст */
   --accent-text: var(--ink);
+  /* Плавающая панель слева (раздел 2.1): в тёмной теме panel-3 с рамкой */
+  --capsule: #222226;
+  --on-capsule: #ffffff;
+  --capsule-line: var(--line-2);
   /* Оранжевый бренда: только запись голоса и знак на лендинге (check:typography) */
   --record: #ff8a4c;
   --on-record: #1a0e08;
@@ -392,6 +396,9 @@
   --accent-hover: #2a2a2e;
   --accent-soft: #11111314;
   --accent-line: #1111133d;
+  /* Плавающая панель в светлой теме чёрная, без рамки */
+  --capsule: #111113;
+  --capsule-line: transparent;
   /* Запись голоса на светлой теме: белый значок 5,2:1, таймер текстом на белом 5,2:1 */
   --record: #c2410c;
   --on-record: #ffffff;
@@ -776,6 +783,8 @@
   --color-inverse: var(--inverse);
   --color-on-inverse: var(--on-inverse);
   --color-record: var(--record);
+  --color-capsule: var(--capsule);
+  --color-on-capsule: var(--on-capsule);
   --color-on-record: var(--on-record);
   --color-up: var(--up);
   --color-up-bg: var(--up-bg);
@@ -1351,6 +1360,265 @@
     }
   }
 }
+/*
+ * Оболочка «Монохрома» (ADR-055, разделы 2.1 и 2.5). Компьютер от 1024: верхняя строка 72
+ * на холсте, меню-таблетка 56 по центру, круги 48 справа, плавающая капсула 64 слева.
+ * До 1024: шапка 56 и нижняя панель 64 + safe-area. Размеры здесь, а не в разметке.
+ */
+@utility mono-topbar {
+  display: flex;
+  height: 72px;
+  align-items: center;
+  gap: 16px;
+  padding-inline: 32px;
+}
+@utility mono-brand {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--r-tile);
+  background: var(--inverse);
+  color: var(--on-inverse);
+  font-weight: 600;
+  font-size: var(--t-card);
+  line-height: 1;
+  /* Телефон: знак 32 в шапке 56 */
+  @media (max-width: 1023px) {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+}
+@utility mono-pill {
+  position: relative;
+  display: flex;
+  height: 56px;
+  align-items: center;
+  gap: 2px;
+  padding: 8px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+@utility mono-pill-item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 18px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  color: var(--ink-2);
+  font-size: 1.1429rem;
+  line-height: 1;
+  font-weight: 500;
+  transition: color var(--dur-indicator) var(--ease-out);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--ink);
+    }
+  }
+  &[data-active] {
+    color: var(--on-inverse);
+  }
+}
+@utility mono-pill-count {
+  color: var(--ink-3);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  [data-active] > & {
+    color: var(--on-inverse);
+    opacity: 0.75;
+  }
+}
+@utility mono-pill-indicator {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  height: 40px;
+  border-radius: var(--r-pill);
+  background: var(--inverse);
+  pointer-events: none;
+}
+@utility mono-circle {
+  position: relative;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+  /* 48 и на телефоне: аватар стоит и в шапке бота, где полевые кнопки от 48 (ADR-045) */
+  & svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+@utility mono-dot {
+  position: absolute;
+  top: 10px;
+  right: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--down);
+  box-shadow: 0 0 0 2px var(--card);
+}
+@utility mono-capsule {
+  position: fixed;
+  top: 50%;
+  left: 24px;
+  z-index: 30;
+  display: flex;
+  width: 64px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-block: 10px;
+  border-radius: 32px;
+  background: var(--capsule);
+  color: var(--on-capsule);
+  box-shadow:
+    0 0 0 1px var(--capsule-line),
+    var(--shadow-float);
+  transform: translateY(-50%);
+}
+@utility mono-capsule-button {
+  position: relative;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--on-capsule);
+  opacity: 0.7;
+  transition: opacity var(--dur-hover) var(--ease);
+  & svg {
+    width: 20px;
+    height: 20px;
+  }
+  &:focus-visible,
+  &[data-active],
+  &[aria-expanded="true"] {
+    opacity: 1;
+  }
+  @media (hover: hover) {
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+@utility mono-capsule-separator {
+  width: 24px;
+  height: 1px;
+  margin-block: 4px;
+  background: color-mix(in oklab, var(--on-capsule) 20%, transparent);
+}
+@utility mono-capsule-badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 4px;
+  border-radius: var(--r-pill);
+  background: var(--on-capsule);
+  color: var(--capsule);
+  font-size: 0.75rem;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* Контент компьютера: отступ 120 слева под капсулу, поле 32 справа, ширина до 1440 */
+@utility mono-content {
+  width: 100%;
+  max-width: 1592px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  @media (min-width: 1024px) {
+    padding-left: 120px;
+    padding-right: 32px;
+  }
+}
+@utility mono-status {
+  display: inline-flex;
+  height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 16px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font-size: var(--t-label);
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  &::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-pill);
+    background: currentColor;
+  }
+}
+@utility mono-phone-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  height: calc(56px + env(safe-area-inset-top));
+  align-items: center;
+  gap: 8px;
+  padding: env(safe-area-inset-top) 12px 0 16px;
+  background: var(--canvas);
+}
+@utility mono-tabbar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--card);
+  box-shadow: 0 -1px 0 var(--line), 0 -8px 24px rgba(17, 17, 19, 0.04);
+}
+@utility mono-tab {
+  display: flex;
+  height: 64px;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: 500;
+  & .mono-tab-icon {
+    display: grid;
+    width: 56px;
+    height: 32px;
+    place-items: center;
+    border-radius: var(--r-pill);
+    transition: background-color var(--dur-indicator) var(--ease-out);
+  }
+  &[aria-current="page"] {
+    color: var(--ink);
+  }
+  &[aria-current="page"] .mono-tab-icon {
+    background: var(--inverse);
+    color: var(--on-inverse);
+  }
+}
+
 /* Индикатор меню и сегментов переезжает между пунктами */
 @utility slide-indicator {
   transition:
@@ -1971,6 +2239,9 @@
   /* Оболочка на листе не нужна */
   [data-sidebar="app"],
   .content-header,
+  .shell-header,
+  .mono-capsule,
+  .mono-tabbar,
   [data-print="hide"],
   [role="dialog"],
   [role="tooltip"] {

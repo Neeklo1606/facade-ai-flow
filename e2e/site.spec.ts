@@ -196,7 +196,8 @@ test.describe("личный контур заказчика", () => {
     await page.goto(`/gas/reports?c=${CLIENT_KEY}`, { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/\/gas\/reports$/);
     await expect(page.getByText("Сверка с вашим файлом")).toBeVisible();
-    await expect(page.locator("aside")).toContainText(clientShort);
+    // Компания заказчика в верхней строке оболочки, рядом со знаком (ADR-055, 2.1)
+    await expect(page.locator("header.shell-header")).toContainText(clientShort);
     const cookies = await page.context().cookies();
     const cookie = cookies.find((c) => c.name === "gaika_client");
     expect(cookie?.httpOnly).toBe(true);

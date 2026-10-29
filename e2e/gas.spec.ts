@@ -38,12 +38,12 @@ test.describe("контур газа открывается в своей обо
   for (const path of GAS_SCREENS) {
     test(`экран ${path} без ошибок и без ГАЙКИ`, async ({ page }) => {
       await open(page, path);
-      // Один видимый заголовок на экран (ADR-045, 4.2): на телефоне он в контенте под шапкой,
-      // на компьютере в шапке оболочки 56
+      // Один видимый заголовок на экран, его ставит оболочка (ADR-055, 2.1 и 2.5): на телефоне
+      // в шапке 56, на компьютере заголовком экрана 44/48 над контентом
       const headings = page.locator("h1").filter({ visible: true });
       await expect(headings).toHaveCount(1);
       await expect(
-        page.locator("header h1, main > div > h1").filter({ visible: true }),
+        page.locator("header h1, h1[data-screen-title], main > div > h1").filter({ visible: true }),
       ).toHaveCount(1);
       const text = await page.locator("body").innerText();
       for (const marker of GAIKA_MARKERS)
@@ -53,14 +53,23 @@ test.describe("контур газа открывается в своей обо
   }
 
   test("граница договора подписана в меню один раз", async ({ page }) => {
-    // Договор газового заказчика: граница видна в его личном контуре, в публичном её нет (L3)
+    // Договор газового заказчика: граница видна в его личном контуре, в публичном её нет (L3).
+    // В «Монохроме» группы разделов живут в «Ещё» меню-таблетки (ADR-055, 2.4)
+    const moreMenu = async () => {
+      await page
+        .getByRole("navigation", { name: "Разделы", exact: true })
+        .getByRole("button", { name: "Ещё" })
+        .click();
+      return page.getByRole("dialog", { name: "Остальные разделы" });
+    };
     await open(page, "/gas/moderation");
-    const publicMenu = page.getByRole("navigation", { name: "Разделы" });
-    await expect(publicMenu.getByText("Вне договора v1.0")).toHaveCount(0);
+    await expect((await moreMenu()).getByText("Вне договора v1.0")).toHaveCount(0);
+    await page.keyboard.press("Escape");
     await enterClientContour(page);
     await open(page, "/gas/moderation");
-    const menu = page.getByRole("navigation", { name: "Разделы" });
-    await expect(menu.getByText("Вне договора v1.0")).toHaveCount(1);
+    await expect((await moreMenu()).getByText("Вне договора v1.0", { exact: false })).toHaveCount(
+      1,
+    );
     await expect(page.getByText("Демо: вне текущего договора")).toHaveCount(0);
   });
 });
@@ -73,7 +82,7 @@ test.describe("роль", () => {
     await expect(page).toHaveURL(/\/gas\/overview/);
     await expect(toast(page, /Вы смотрите как руководитель/)).toBeVisible();
     // Проверку ведёт менеджер: у руководителя пункта нет вовсе, а не серый
-    const menu = page.getByRole("navigation", { name: "Разделы" });
+    const menu = page.getByRole("navigation", { name: "Разделы", exact: true });
     await expect(menu.getByRole("link", { name: "Проверка" })).toHaveCount(0);
 
     await gasRole(page, "Бригадир");
@@ -82,7 +91,7 @@ test.describe("роль", () => {
 
   test("ГАЙКА живёт в своей оболочке: меню газа на её экранах нет", async ({ page }) => {
     await open(page, "/today");
-    await expect(page.getByRole("navigation", { name: "Разделы" })).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Разделы", exact: true })).toHaveCount(0);
   });
 });
 
@@ -90,12 +99,14 @@ test.describe("сброс демо", () => {
   test("возвращает исходную роль", async ({ page }) => {
     await open(page, "/gas/moderation");
     await gasRole(page, "Руководитель");
+    // «Сбросить демо» живёт в меню аватара (ADR-055, 2.1)
+    await page.getByRole("button", { name: /^Вы: Руководитель.*Сменить роль/ }).click();
     await page.getByRole("button", { name: "Сбросить демо" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Сбросить" }).click();
     await expect(toast(page, "Демо сброшено")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Вы смотрите как/ })).toContainText(
-      "Менеджер проверки",
-    );
+    await expect(
+      page.getByRole("button", { name: /^Вы: Менеджер проверки\. Сменить роль/ }),
+    ).toBeVisible();
   });
 });
 
@@ -112,11 +123,11 @@ test.describe("@mobile телефон", () => {
     });
   }
 
-  test("нижняя панель по роли: три раздела и «Ещё» с остальным", async ({ page }) => {
+  test("нижняя панель по роли: четыре раздела и «Ещё» с остальным", async ({ page }) => {
     await open(page, "/gas/moderation");
     const nav = page.getByRole("navigation", { name: "Основные разделы" });
-    // Три раздела роли и «Ещё» вкладкой-экраном (ADR-048)
-    await expect(nav.getByRole("link")).toHaveCount(4);
+    // Четыре раздела роли и «Ещё» вкладкой-экраном (ADR-055, 2.5; ADR-048)
+    await expect(nav.getByRole("link")).toHaveCount(5);
     await nav.getByRole("link", { name: "Ещё" }).click();
     await expect(page).toHaveURL(/\/gas\/more$/);
     await expect(page.getByRole("main").getByRole("link", { name: "Инструкция" })).toBeVisible();

@@ -21,11 +21,11 @@ export const themeLabels: Record<ThemeChoice, string> = {
 };
 
 /**
- * Умолчание: как в системе (решение владельца 21.10.2026, ADR-044). Обе темы доведены до
- * одного уровня, поэтому телефон в тёмном режиме получает тёмную, ноутбук днём светлую.
- * Выбор человека важнее умолчания.
+ * Умолчание: светлая (ADR-055, документ Сервиса v1, S2 п. 3). «Монохром» строится от светлой
+ * темы по референсу «Analytics»; тёмная и «как в системе» — выбор человека, он важнее
+ * умолчания. До этого было «как в системе» (решение 21.10.2026, ADR-044).
  */
-export const defaultChoice: ThemeChoice = "system";
+export const defaultChoice: ThemeChoice = "light";
 
 const isChoice = (value: string | null): value is ThemeChoice =>
   value === "light" || value === "dark" || value === "system";

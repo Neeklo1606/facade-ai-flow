@@ -259,13 +259,26 @@ export const ROLE_ABOUT: Record<Role, string> = {
 };
 
 /**
- * Нижняя панель телефона: три вкладки роли и «Ещё» (01_SPEC 4.3, ADR-048). Наборы руководителя
- * и администратора приведены к 4.3: прежние в ADR не назывались (audit/ROUTES.md, 2.4)
+ * Нижняя панель телефона: четыре вкладки роли и «Ещё» (ADR-055, раздел 2.5). Первые четыре
+ * пункта меню роли ниже, кроме тех, что телефону не нужны.
  */
 export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
-  manager: ["moderation", "entries", "reports"],
-  director: ["summary", "reports", "entries"],
-  admin: ["moderation", "objects", "estimates"],
+  manager: ["moderation", "entries", "reports", "objects"],
+  director: ["summary", "reports", "entries", "objects"],
+  admin: ["moderation", "objects", "estimates", "employees"],
+  foreman: [],
+};
+
+/**
+ * Меню-таблетка компьютера по ролям (ADR-055, раздел 2.4) из экранов, которые уже есть.
+ * Чего ещё нет, в меню не показывается (правило 3): «Ставки», «График», «Выгрузка»
+ * у администратора появятся с S4, «Снабжение» и «Документы» руководителя — другие контуры,
+ * в них ведёт пункт «Модули» плавающей панели. Пункты меню роли — её разрешённые экраны.
+ */
+export const ROLE_MENU: Record<Role, readonly GasScreenKey[]> = {
+  manager: ["moderation", "entries", "reports", "objects", "brigades", "estimates"],
+  director: ["summary", "reports", "entries", "objects", "brigades"],
+  admin: ["employees", "objects", "estimates", "admin", "moderation", "reports"],
   foreman: [],
 };
 
