@@ -2299,24 +2299,24 @@ main {
   font-size: 2rem;
   line-height: 2.375rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   text-wrap: balance;
   @media (min-width: 1024px) {
     font-size: 4rem;
     line-height: 4.2857rem;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
   }
 }
 @utility site-h2 {
   font-size: 1.5rem;
   line-height: 1.875rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   text-wrap: balance;
   @media (min-width: 1024px) {
     font-size: 2.5714rem;
     line-height: 3rem;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 }
 @utility site-h3 {
@@ -2505,4 +2505,78 @@ main {
   transform: translateY(120%);
   opacity: 0;
   pointer-events: none;
+}
+
+/* ADR-053: public landing composition, independent of app density. */
+.landing-page {
+  --landing-image-opacity: 0.22;
+  --landing-wash: color-mix(in oklab, var(--void) 72%, transparent);
+  --landing-shadow: 0 12px 36px color-mix(in oklab, var(--text) 7%, transparent);
+  --landing-section-space: 80px;
+  --landing-title-size: 36px;
+  --landing-title-leading: 40px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+:root[data-theme="light"] .landing-page {
+  --landing-image-opacity: 0.5;
+  --landing-wash: color-mix(in oklab, var(--void) 76%, transparent);
+}
+.landing-page .site-wrap { max-width: 1200px; padding-inline: 24px; }
+.landing-page .site-h1 { font-size: var(--landing-title-size); line-height: var(--landing-title-leading); letter-spacing: 0; }
+.landing-page .site-h2 { font-size: 28px; line-height: 34px; letter-spacing: 0; }
+.landing-page .site-h3 { font-size: 19px; line-height: 26px; }
+.landing-page .site-body { font-size: 16px; line-height: 26px; }
+.landing-page .site-caption { font-size: 14px; line-height: 21px; }
+.landing-page .site-lead { font-size: 17px; line-height: 27px; }
+.landing-page .site-section { padding-block: var(--landing-section-space); }
+.landing-page .site-btn { min-height: 52px; font-size: 16px; padding-inline: 24px; }
+.landing-hero { background: var(--void); }
+.landing-hero-image { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; opacity: var(--landing-image-opacity); }
+.landing-hero-wash { position: absolute; inset: 0; z-index: -1; background: var(--landing-wash); }
+.landing-hero-inner { padding-block: 36px 48px; }
+.landing-hero-copy { max-width: 800px; margin-inline: auto; text-align: center; }
+.landing-hero-copy .site-lead { max-width: 640px; margin-inline: auto; }
+.landing-brand { display: block; margin-bottom: 16px; font-size: 18px; line-height: 24px; font-weight: 500; color: var(--orange); }
+.landing-hero-actions { justify-content: center; }
+.landing-record { margin-top: 40px; text-align: left; }
+.landing-record-step { min-width: 0; padding: 16px; border-top: 1px solid var(--line-2); background: color-mix(in oklab, var(--surface) 95%, transparent); border-radius: 8px; box-shadow: var(--landing-shadow); }
+.landing-record-step .text-body, .landing-record-step .text-body-strong { font-size: 15px; line-height: 22px; }
+.landing-record-step .text-meta, .landing-record-step .text-meta-strong { font-size: 13px; line-height: 19px; }
+.landing-point { padding: 24px 0; border-top: 1px solid var(--line-2); }
+.landing-section-heading { max-width: 800px; }
+.landing-process-step { border-top: 1px solid var(--line-2); padding-top: 24px; }
+.landing-case { padding-block: 8px; }
+.landing-start-step { padding: 24px 16px 16px 0; border-top: 1px solid var(--line-2); }
+.landing-faq { max-width: 900px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.landing-links svg { transition: transform 180ms var(--ease-out); }
+.landing-sticky-button { box-shadow: var(--landing-shadow); }
+.landing-page .site-btn svg { transition: transform 180ms var(--ease-out); }
+.landing-page .site-rise:nth-child(2) { animation-delay: 70ms; }
+.landing-page .site-rise:nth-child(3) { animation-delay: 140ms; }
+.landing-page .site-rise:nth-child(4) { animation-delay: 210ms; }
+.landing-page .site-rise:nth-child(5) { animation-delay: 280ms; }
+@media (min-width: 768px) {
+  .landing-page { --landing-title-size: 52px; --landing-title-leading: 58px; }
+  .landing-page .site-wrap { padding-inline: 40px; }
+  .landing-hero-inner { padding-block: 48px 56px; }
+  .landing-record { align-items: start; }
+}
+@media (min-width: 1024px) {
+  .landing-page { --landing-title-size: 60px; --landing-title-leading: 66px; --landing-section-space: 96px; }
+  .landing-page .site-h2 { font-size: 38px; line-height: 46px; }
+  .landing-page .site-h3 { font-size: 21px; line-height: 29px; }
+  .landing-page .site-body { font-size: 18px; line-height: 28px; }
+  .landing-page .site-lead { font-size: 19px; line-height: 29px; }
+  .landing-hero-inner { padding-block: 28px 24px; }
+  .landing-record { margin-top: 24px; gap: 12px; }
+  .landing-record-step { padding: 16px; }
+  .landing-record-step [aria-label="Пример: бот бригадира"] > .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .landing-record-step [aria-label="Пример: бот бригадира"] > .grid > span { min-height: 36px; font-size: 13px; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .landing-page .site-btn:hover svg, .landing-links a:hover svg { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-page *, .landing-page *::before, .landing-page *::after { animation: none !important; transition: none !important; }
 }
