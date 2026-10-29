@@ -4,9 +4,10 @@
  * забота `check:sources`.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
-const ROOT = resolve(new URL("..", import.meta.url).pathname);
+const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const SKIP = new Set([
   "node_modules",
   ".git",

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join, relative } from "node:path";
 import {
   DEMO_ONLY_NOTES,
@@ -18,7 +19,7 @@ import {
  * Исключения — только то, что существует из-за самой имитации, и у каждого записана причина.
  */
 
-const ROOT = new URL("../..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const UI = ["src/components", "src/routes"];
 
 function files(dir: string): string[] {

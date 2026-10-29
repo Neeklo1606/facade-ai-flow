@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   ALTERNATIVES,
   allSources,
@@ -17,7 +18,7 @@ import { helpArticles } from "@/lib/help/articles";
  * расхождение статьи справки с документом показа.
  */
 
-const ROOT = new URL("../..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const salesDemo = readFileSync(`${ROOT}docs/SALES_DEMO.md`, "utf8");
 
 const claims = (): { where: string; claim: Claim }[] =>

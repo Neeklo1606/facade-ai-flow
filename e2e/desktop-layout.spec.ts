@@ -131,14 +131,22 @@ test.describe("сайт на компьютере и планшете", () => {
         .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
       for (const w of wraps) expect(w).toBeLessThanOrEqual(1200);
       const title = (await page.locator("main h1").boundingBox())!;
-      const fragment = (await page
-        .getByLabel("Путь одной записи")
-        .getByLabel("Пример: бот бригадира")
-        .boundingBox())!;
-      if (width >= 1024) {
-        expect(fragment.x).toBeGreaterThan(title.x + title.width - 1);
-      } else {
-        expect(fragment.y).toBeGreaterThan(title.y + title.height);
+      const record = page.getByLabel("Путь одной записи");
+      const fragment = (await record.getByLabel("Пример: бот бригадира").boundingBox())!;
+      // ADR-053 (лендинг): заголовок по центру, путь записи под ним тремя шагами в строку
+      expect(fragment.y).toBeGreaterThan(title.y + title.height);
+      const steps = await record.locator(".landing-record-step").evaluateAll((els) =>
+        els.map((el) => {
+          const box = el.getBoundingClientRect();
+          return { x: box.x, y: box.y, width: box.width };
+        }),
+      );
+      expect(steps).toHaveLength(3);
+      for (const [i, step] of steps.entries()) {
+        const previous = steps[i - 1];
+        if (!previous) continue;
+        expect(Math.abs(step.y - previous.y)).toBeLessThan(2);
+        expect(step.x).toBeGreaterThan(previous.x + previous.width - 1);
       }
     });
   }
