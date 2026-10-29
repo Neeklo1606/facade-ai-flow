@@ -10,7 +10,7 @@ import type { TimeEntry } from "@/domain/gas-ops/model";
 
 /** Отчёт сверяется с файлом заказчика: снимок кладётся в его личный контур (ADR-047) */
 export const GAS_STATE_KEY = "neeklo-gas-ops-v1:client";
-export const GAS_STATE_VERSION = 4;
+export const GAS_STATE_VERSION = 5;
 export const SHOW_ENTRY_ID = "ent-show-m200";
 
 export function reportState(): string {
@@ -71,6 +71,10 @@ export function reportState(): string {
     reviewSettings: { mode: "all", thresholdPercent: 95, changedBy: null, changedAt: null },
     finalChecks: [],
     reportIssues: [],
+    // ADR-056: состав из набора, ставок и закрытых недель нет
+    crew: seed.crew,
+    rates: [],
+    periods: [],
   };
   return JSON.stringify({ version: GAS_STATE_VERSION, snapshot });
 }

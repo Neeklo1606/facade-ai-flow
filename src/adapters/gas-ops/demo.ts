@@ -44,6 +44,24 @@ import {
 } from "@/domain/gas-ops/model";
 import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
+  defaultHeadcount,
+  frameOfPeople,
+  personRows,
+  type CrewMember,
+  type Rate,
+} from "@/domain/gas-ops/crew";
+import { fieldFor } from "@/domain/gas-ops/field";
+import {
+  blockingReasons,
+  closeReasons,
+  coverage,
+  expectations,
+  freezeWeek,
+  isDayLocked,
+  periodState,
+  type PeriodVersion,
+} from "@/domain/gas-ops/week";
+import {
   GasOpsError,
   type CreateEntryInput,
   type GasOpsPort,
@@ -234,6 +252,46 @@ function mustManager(snapshot: GasOpsSnapshot, message: string): void {
   }
 }
 
+/** Закрытая неделя не меняется (инвариант 1.4, 3): правка, решение и новая запись отклоняются */
+function mustBeOpen(snapshot: GasOpsSnapshot, ...days: string[]): void {
+  if (days.some((day) => isDayLocked(snapshot.periods, day))) {
+    throw new GasOpsError(
+      "period-closed",
+      "Неделя закрыта. Изменения возможны только после переоткрытия с причиной.",
+    );
+  }
+}
+
+/** Закрывает и переоткрывает неделю руководитель или администратор */
+function mustDirector(snapshot: GasOpsSnapshot, message: string): void {
+  const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+  if (!actor || (actor.role !== "director" && actor.role !== "admin")) {
+    throw new GasOpsError("not-allowed", message);
+  }
+}
+
+/** Причины недели по текущему снимку: те же, что видит экран «Неделя» */
+export function weekReasons(snapshot: GasOpsSnapshot) {
+  const expected = expectations({
+    days: snapshot.week.days,
+    brigades: snapshot.brigades,
+    objects: snapshot.objects,
+    schedule: snapshot.schedule,
+    assignments: snapshot.assignments,
+  });
+  const { missing } = coverage(expected, snapshot.entries);
+  return closeReasons({
+    days: snapshot.week.days,
+    entries: snapshot.entries,
+    estimates: snapshot.estimates,
+    objects: snapshot.objects,
+    brigades: snapshot.brigades,
+    crew: snapshot.crew,
+    finalChecks: snapshot.finalChecks,
+    missing,
+  });
+}
+
 export function createGasOpsDemo(): GasOpsPort {
   return {
     snapshot: () => done(getSnapshot()),
@@ -249,12 +307,29 @@ export function createGasOpsDemo(): GasOpsPort {
 
     createEntry: (input: CreateEntryInput) => {
       const snapshot = getSnapshot();
-      const minutes = effectiveMinutes({
-        start: input.start,
-        end: input.end,
-        breakMinutes: input.breakMinutes,
-      });
+      // Повтор отправки с тем же ключом: та же запись, дубля нет (инвариант 1.4, 4)
+      const key = input.clientKey?.trim() || null;
+      const repeated = key ? snapshot.entries.find((e) => e.clientKey === key) : undefined;
+      if (repeated) return done(repeated);
+      mustBeOpen(snapshot, input.day);
+
+      const people = input.people?.length ? personRows(input.people) : null;
+      if (people && !people.ok) {
+        throw new GasOpsError("bad-time", `Строка ${people.index + 1}: ${people.message}`);
+      }
+      const frame = people?.ok ? frameOfPeople(people.people) : null;
+      const minutes = frame
+        ? ({ ok: true, ...frame } as const)
+        : effectiveMinutes({
+            start: input.start,
+            end: input.end,
+            breakMinutes: input.breakMinutes,
+          });
       if (!minutes.ok) throw new GasOpsError("bad-time", MINUTES_ERROR_TEXT[minutes.error]);
+      if (input.headcount !== undefined && input.headcount !== null && input.headcount < 1) {
+        throw new GasOpsError("bad-time", "В записи должен быть хотя бы один человек.");
+      }
+      const actorRole = snapshot.users.find((u) => u.id === snapshot.actorId)?.role;
 
       const draft: TimeEntry = {
         id: newId("en"),
@@ -275,6 +350,15 @@ export function createGasOpsDemo(): GasOpsPort {
         reviewedAt: null,
         comment: null,
         source: "mock",
+        headcount: people?.ok
+          ? people.people.length
+          : input.headcount === undefined
+            ? defaultHeadcount(snapshot.crew, input.brigadeId, input.day)
+            : input.headcount,
+        people: people?.ok ? people.people : null,
+        clientKey: key,
+        channel: input.channel ?? (actorRole === "foreman" ? "web" : "manager"),
+        note: input.note?.trim() || null,
       };
       validate(snapshot, draft);
       const placed = routed(snapshot, draft);
@@ -306,6 +390,7 @@ export function createGasOpsDemo(): GasOpsPort {
       const snapshot = getSnapshot();
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      mustBeOpen(snapshot, entry.day, input.day ?? entry.day);
 
       /*
        * Бригадир правит только до проверки (ТЗ, п. 4; ADR-044, F4): черновик, запись, которая
@@ -348,7 +433,19 @@ export function createGasOpsDemo(): GasOpsPort {
         endMinutes: minutes.endMinutes,
         breakMinutes: minutes.breakMinutes,
         minutes: minutes.minutes,
+        headcount: input.headcount === undefined ? (entry.headcount ?? null) : input.headcount,
+        // Правка рамки или состава отменяет строки людей: дальше запись считается целиком
+        people:
+          input.start !== undefined || input.end !== undefined || input.headcount !== undefined
+            ? null
+            : (entry.people ?? null),
       };
+      if ((draft.headcount ?? null) !== (entry.headcount ?? null))
+        changes.push({
+          field: "Состав",
+          from: entry.headcount == null ? "не указан" : `${entry.headcount} чел.`,
+          to: draft.headcount == null ? "не указан" : `${draft.headcount} чел.`,
+        });
       if (draft.minutes !== entry.minutes)
         changes.push({ field: "Минуты", from: String(entry.minutes), to: String(draft.minutes) });
       if (draft.objectId !== entry.objectId)
@@ -395,6 +492,7 @@ export function createGasOpsDemo(): GasOpsPort {
     submitEntry: (id) => {
       const snapshot = getSnapshot();
       const entry = mustFind(snapshot, id);
+      mustBeOpen(snapshot, entry.day);
       if (entry.status === "confirmed") {
         throw new GasOpsError("already-reviewed", "Запись уже подтверждена.");
       }
@@ -427,6 +525,7 @@ export function createGasOpsDemo(): GasOpsPort {
       if (actor?.role === "foreman") {
         throw new GasOpsError("not-allowed", "Проверку ведёт менеджер.");
       }
+      mustBeOpen(snapshot, entry.day);
       if (input.action !== "confirm" && !input.comment?.trim()) {
         throw new GasOpsError(
           "comment-required",
@@ -501,6 +600,7 @@ export function createGasOpsDemo(): GasOpsPort {
       if (actor?.role === "foreman") {
         throw new GasOpsError("not-allowed", "Проверку ведёт менеджер.");
       }
+      mustBeOpen(snapshot, entry.day);
       // Решения лежат от нового к старому: первое по записи и есть последнее
       const last = snapshot.reviews.find((r) => r.entryId === id);
       const statusChange = last?.changes.find((c) => c.field === STATUS_FIELD);
@@ -932,6 +1032,232 @@ export function createGasOpsDemo(): GasOpsPort {
         ],
       }));
       return done(issue);
+    },
+
+    fieldSnapshot: (brigadeId) => done(fieldFor(getSnapshot(), brigadeId)),
+
+    answerClarify: (input) => {
+      const snapshot = getSnapshot();
+      const entry = mustFind(snapshot, input.id);
+      const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      if (actor?.role === "foreman" && actor.brigadeId !== entry.brigadeId) {
+        throw new GasOpsError("not-allowed", "Это запись другой бригады.");
+      }
+      mustBeOpen(snapshot, entry.day);
+      if (entry.status !== "clarify") {
+        throw new GasOpsError("already-reviewed", "Вопроса по записи уже нет. Обновите экран.");
+      }
+      const text = input.text.trim();
+      if (!text) throw new GasOpsError("comment-required", "Напишите ответ менеджеру.");
+      const draft: TimeEntry = { ...entry, status: "pending", note: text };
+      const review: Review = {
+        id: newId("rev"),
+        entryId: entry.id,
+        action: "answer",
+        actor: snapshot.actorId,
+        at: nowOf(snapshot),
+        comment: text,
+        changes: [
+          {
+            field: STATUS_FIELD,
+            from: ENTRY_STATUS_LABEL.clarify,
+            to: ENTRY_STATUS_LABEL.pending,
+          },
+        ],
+      };
+      const next = update((s) => ({
+        ...s,
+        entries: s.entries.map((e) => (e.id === entry.id ? draft : e)),
+        reviews: [review, ...s.reviews],
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "entry.answer",
+            entityId: entry.id,
+            detail: `${entry.number}: ${text}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(next.entries.find((e) => e.id === entry.id)!);
+    },
+
+    closeWeek: (input) => {
+      const snapshot = getSnapshot();
+      mustDirector(snapshot, "Неделю закрывает руководитель.");
+      const state = periodState(snapshot.periods, snapshot.week.from);
+      if (state.closed) {
+        throw new GasOpsError(
+          "period-closed",
+          `Неделя уже закрыта, версия v${state.closed.version}.`,
+        );
+      }
+      const reasons = weekReasons(snapshot);
+      const left = blockingReasons(reasons, input.accepted);
+      if (left.length > 0) {
+        throw new GasOpsError(
+          "close-blocked",
+          `До закрытия осталось причин: ${left.length}. Первая: ${left[0]!.text}.`,
+        );
+      }
+      const keys = new Set(reasons.map((r) => r.key));
+      const version: PeriodVersion = {
+        id: newId("per"),
+        weekFrom: snapshot.week.from,
+        weekTo: snapshot.week.to,
+        version: state.nextVersion,
+        closedAt: nowOf(snapshot),
+        closedBy: snapshot.actorId,
+        ...freezeWeek(snapshot.entries, snapshot.week.days),
+        accepted: input.accepted
+          .filter((a) => keys.has(a.key))
+          .map((a) => ({ key: a.key, reason: a.reason.trim() })),
+        reopenedAt: null,
+        reopenedBy: null,
+        reopenReason: null,
+      };
+      update((s) => ({
+        ...s,
+        periods: [...s.periods, version],
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "period.close",
+            entityId: version.id,
+            detail: `Неделя ${version.weekFrom} закрыта, версия v${version.version}: ${version.totals.accruedRub} ₽, записей ${version.totals.count}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(version);
+    },
+
+    reopenWeek: (input) => {
+      const snapshot = getSnapshot();
+      mustDirector(snapshot, "Неделю переоткрывает руководитель.");
+      const reason = input.reason.trim();
+      if (!reason) throw new GasOpsError("comment-required", "Укажите причину переоткрытия.");
+      const closed = periodState(snapshot.periods, snapshot.week.from).closed;
+      if (!closed) throw new GasOpsError("not-found", "Неделя не закрыта.");
+      const reopened: PeriodVersion = {
+        ...closed,
+        reopenedAt: nowOf(snapshot),
+        reopenedBy: snapshot.actorId,
+        reopenReason: reason,
+      };
+      update((s) => ({
+        ...s,
+        periods: s.periods.map((p) => (p.id === closed.id ? reopened : p)),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "period.reopen",
+            entityId: closed.id,
+            detail: `Неделя ${closed.weekFrom} переоткрыта, v${closed.version} сохранена: ${reason}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(reopened);
+    },
+
+    setRate: (input) => {
+      const snapshot = getSnapshot();
+      mustDirector(snapshot, "Ставки задаёт руководитель или администратор.");
+      if (!Number.isFinite(input.rubPerHour) || input.rubPerHour <= 0) {
+        throw new GasOpsError("bad-time", "Ставка должна быть больше нуля.");
+      }
+      // Новая ставка закрывает прежнюю того же адресата накануне своей даты
+      const dayBefore = new Date(`${input.from}T00:00:00Z`);
+      dayBefore.setUTCDate(dayBefore.getUTCDate() - 1);
+      const until = dayBefore.toISOString().slice(0, 10);
+      const rate: Rate = {
+        id: newId("rate"),
+        employeeId: input.employeeId,
+        brigadeId: input.employeeId ? null : input.brigadeId,
+        rubPerHour: Math.round(input.rubPerHour),
+        from: input.from,
+        to: null,
+        source: "mock",
+      };
+      const same = (r: Rate) =>
+        r.employeeId === rate.employeeId &&
+        (rate.employeeId !== null || r.brigadeId === rate.brigadeId);
+      update((s) => ({
+        ...s,
+        rates: [
+          ...s.rates.map((r) =>
+            same(r) && r.to === null && r.from < input.from ? { ...r, to: until } : r,
+          ),
+          rate,
+        ],
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "rate.set",
+            entityId: rate.id,
+            detail: `Ставка ${rate.rubPerHour} ₽/ч с ${rate.from}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(rate);
+    },
+
+    addCrewMember: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Состав бригады меняет менеджер или администратор.");
+      const name = input.name.trim();
+      if (!name) throw new GasOpsError("comment-required", "Укажите имя.");
+      const member: CrewMember = {
+        id: newId("crw"),
+        brigadeId: input.brigadeId,
+        employeeId: newId("emp"),
+        name,
+        role: "worker",
+        from: input.from,
+        to: null,
+        source: "mock",
+      };
+      update((s) => ({
+        ...s,
+        crew: [...s.crew, member],
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "crew.add",
+            entityId: member.id,
+            detail: `${name} в составе с ${input.from}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(member);
+    },
+
+    endCrewMember: (input) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Состав бригады меняет менеджер или администратор.");
+      const member = snapshot.crew.find((m) => m.id === input.id);
+      if (!member) throw new GasOpsError("not-found", "Человек не найден в составе.");
+      if (member.from && input.to < member.from) {
+        throw new GasOpsError("bad-time", "Дата выхода раньше даты входа в состав.");
+      }
+      const ended: CrewMember = { ...member, to: input.to };
+      update((s) => ({
+        ...s,
+        crew: s.crew.map((m) => (m.id === member.id ? ended : m)),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "crew.end",
+            entityId: member.id,
+            detail: `${member.name} в составе по ${input.to}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(ended);
     },
 
     reset: () => done(resetState()),

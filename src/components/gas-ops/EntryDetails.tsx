@@ -21,10 +21,14 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import {
+  CHANNEL_LABEL,
   ENTRY_STATUS_LABEL,
   fmtHours,
+  fmtManHours,
   fmtRate,
   fmtRub,
+  headcountOf,
+  manMinutesOf,
   useGasActor,
   type EntryView,
 } from "@/api/gas-ops";
@@ -78,6 +82,7 @@ const ACTION_TEXT = {
   reject: "Отклонено",
   clarify: "Возвращено на уточнение",
   correct: "Исправлено",
+  answer: "Бригадир ответил",
 } as const;
 
 /** Поля, которые история не повторяет: статус уже в заголовке пункта, комментарий ниже */
@@ -111,13 +116,29 @@ export function EntryDetails({ view }: { view: EntryView }) {
             {brigade?.name ?? "Бригада не указана"}
             {employee ? ` · ${employee.name}` : ""}
           </Row>
+          <Row icon={Users} label="Состав">
+            {headcountOf(entry) === null ? (
+              <span className="text-text-3">Не указан: в недельном отчёте состава нет</span>
+            ) : entry.people?.length ? (
+              `${entry.people.length} чел., у сотрудников разное время`
+            ) : (
+              `${entry.headcount} чел.`
+            )}
+          </Row>
+          {entry.note ? (
+            <Row icon={FileText} label="Комментарий бригадира">
+              {entry.note}
+            </Row>
+          ) : null}
           {group ? (
             <Row icon={Building2} label="Подразделение">
               {group.name}
             </Row>
           ) : null}
           <Row icon={Send} label="Внесено">
-            {fmtAt(entry.createdAt)} <SourceMark source={entry.source} className="ms-1" />
+            {fmtAt(entry.createdAt)}
+            {entry.channel ? ` · ${CHANNEL_LABEL[entry.channel]}` : ""}{" "}
+            <SourceMark source={entry.source} className="ms-1" />
           </Row>
         </dl>
       </Block>
@@ -126,6 +147,13 @@ export function EntryDetails({ view }: { view: EntryView }) {
         <dl className="mt-1">
           <Row icon={Timer} label="Время без перерыва">
             {entry.minutes} мин = {fmtHours(view.hours)}
+          </Row>
+          <Row icon={Users} label="Человеко-часы">
+            {manMinutesOf(entry) === null ? (
+              <span className="text-text-3">Не считаются: состав не указан</span>
+            ) : (
+              fmtManHours(manMinutesOf(entry)!, "чел.-ч")
+            )}
           </Row>
           {actor.canSeeMoney ? (
             <>

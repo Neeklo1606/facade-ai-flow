@@ -1,6 +1,9 @@
 import {
   BookOpen,
   Building2,
+  CalendarCheck,
+  Clock3,
+  Library,
   ClipboardCheck,
   Coins,
   FileSpreadsheet,
@@ -19,6 +22,9 @@ import type { GasScreenKey } from "@/lib/gas-ops/screens";
 
 export const SCREEN_ICON: Record<GasScreenKey, LucideIcon> = {
   start: Home,
+  brigade: Clock3,
+  week: CalendarCheck,
+  directory: Library,
   foreman: MessagesSquare,
   moderation: ClipboardCheck,
   entries: ScrollText,

@@ -38,8 +38,8 @@ export async function gasExportResponse(request: Request): Promise<Response> {
     headers: {
       "content-type": XLSX_MIME,
       "content-disposition": contentDisposition(
-        customerFileName(payload.week),
-        gasReportFileNameAscii(payload.week),
+        customerFileName(payload.week, payload.label),
+        gasReportFileNameAscii(payload.week, payload.label),
       ),
       "cache-control": "no-store",
     },

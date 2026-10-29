@@ -94,6 +94,7 @@ export function StartScreen() {
   const switchRole = useRoleSwitch();
   const actions = useGasActions();
   const [busy, setBusy] = useState(false);
+  const goTo = useNavigate();
 
   const startShow = async () => {
     if (busy) return;
@@ -105,7 +106,8 @@ export function StartScreen() {
         clearScenario();
       }
       startGasShow();
-      await switchRole("foreman");
+      // Показ идёт через бот MAX: стартовый экран бригадира теперь «Сегодня» (ADR-056)
+      if (await switchRole("foreman", { stay: true })) void goTo({ to: "/gas/foreman" });
     } finally {
       setBusy(false);
     }

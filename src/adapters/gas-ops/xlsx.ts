@@ -16,7 +16,13 @@
  * 3. Лист «Записи» — плоская таблица тех же записей, что под строками листа «Отчёт».
  * 4. Набор строк тот же, что на экране при текущих переключателях: режим и «скрыть пустые».
  */
-import { gasReportFileName, type AnalyticRow, type ReportRow } from "@/domain/gas-ops/report";
+import { CUSTOMER_DAY_HEADERS } from "@/domain/gas-ops/export-profile";
+import {
+  gasReportFileName,
+  type AnalyticRow,
+  type FileLabel,
+  type ReportRow,
+} from "@/domain/gas-ops/report";
 
 export const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -26,6 +32,8 @@ export interface ExportPayload {
   days: string[];
   week: { from: string; to: string };
   mode: "confirmed" | "preliminary";
+  /** Версия закрытой недели или черновик (ADR-056, 5); без метки — прежний отчёт */
+  label?: FileLabel;
 }
 
 const DAY_WIDTH = 3;
@@ -97,7 +105,7 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
   ws.mergeCells(1, totalCol, 1, totalCol + 2);
   ws.getCell(1, totalCol).value = "Итого";
 
-  const heads = ["Сумма начислений", "Эффективное рабочее время (ч.)", "Доходность часа"];
+  const heads = CUSTOMER_DAY_HEADERS;
   for (let col = FIRST_DAY_COL; col <= lastCol; col += DAY_WIDTH) {
     for (const [offset, title] of heads.entries()) ws.getCell(2, col + offset).value = title;
   }
@@ -197,6 +205,7 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
     { header: "Доходность часа", key: "rate", width: 16 },
     { header: "Статус", key: "status", width: 18 },
     { header: "Источник данных", key: "source", width: 18 },
+    { header: "Проверено человеком", key: "checked", width: 20 },
   ];
   flat.getRow(1).font = { bold: true };
   flat.getColumn("hours").numFmt = "0.00";
@@ -217,14 +226,23 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
       rate: row.revenue ?? "",
       status: row.status,
       source: row.source === "fact-report" ? "факт из отчёта" : "демо",
+      checked: row.status === "confirmed" ? "да" : "нет",
     });
+    // Непроверенная строка черновика выделена курсивом и словом в столбце, а не цветом
+    if (row.status !== "confirmed") flat.lastRow!.font = { italic: true };
   }
 
   // --- лист «Как считалось» ---
   const notes = wb.addWorksheet("Как считалось");
   notes.getColumn(1).width = 110;
+  const label = payload.label;
   const lines = [
     `Неделя ${ru(payload.week.from)} - ${ru(payload.week.to)}.`,
+    ...(label && "version" in label
+      ? [`Версия v${label.version} закрытой недели. Файл версии не меняется после переоткрытия.`]
+      : label && "draft" in label
+        ? ["Черновик. Непроверенные записи отмечены «нет» в столбце «Проверено человеком»."]
+        : []),
     payload.mode === "confirmed"
       ? "В отчёт включены только подтверждённые записи."
       : "Предварительный отчёт: включены записи, которые ещё не проверил человек.",
@@ -298,8 +316,8 @@ function writeTriple(
 }
 
 /** Имя файла: «Выработка_бригад_28.09-03.10.2026.xlsx» */
-export function customerFileName(week: { from: string; to: string }): string {
-  return gasReportFileName(week);
+export function customerFileName(week: { from: string; to: string }, label?: FileLabel): string {
+  return gasReportFileName(week, label);
 }
 
 /** «1 524 132»: оценка ширины столбца по тому, как число видно в ячейке */

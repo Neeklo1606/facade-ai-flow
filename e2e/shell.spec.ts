@@ -74,7 +74,7 @@ test.describe("поиск и права роли", () => {
   test("бригадир не находит сумм, смет и людей", async ({ page }) => {
     await open(page, "/gas/moderation");
     await gasRole(page, "Бригадир");
-    await expect(page).toHaveURL(/\/gas\/foreman/);
+    await expect(page).toHaveURL(/\/gas\/brigade/);
     await openSearch(page);
     const input = page.getByRole("combobox", { name: "Что найти" });
     for (const query of ["гз", "демо", "бригада"]) {

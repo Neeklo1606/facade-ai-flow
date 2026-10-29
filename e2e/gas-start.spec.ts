@@ -7,11 +7,11 @@ import { enterClientContour } from "./gas-helpers";
  */
 
 const ROLE_HOME: Record<string, RegExp> = {
-  foreman: /\/gas\/foreman$/,
+  // ADR-056: у каждой роли свой стартовый экран (раздел 1.3 документа владельца)
+  foreman: /\/gas\/brigade$/,
   manager: /\/gas\/moderation$/,
-  // ADR-052: руководитель начинает с «Обзора»
-  director: /\/gas\/overview$/,
-  admin: /\/gas\/moderation$/,
+  director: /\/gas\/week$/,
+  admin: /\/gas\/directory$/,
 };
 
 const TABS = ["Бригадир", "Менеджер", "Руководитель"] as const;

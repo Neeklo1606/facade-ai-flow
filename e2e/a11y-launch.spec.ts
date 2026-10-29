@@ -60,6 +60,10 @@ for (const theme of ["light", "dark"] as const) {
 
       await open(page, "/gas");
       await gasRole(page, "Бригадир");
+      // ADR-056: бригадир начинает с «Сегодня»; бот открывается вторым каналом
+      await expect(page).toHaveURL(/\/gas\/brigade/);
+      await expectA11y(page, `/gas/brigade ${theme}`);
+      await open(page, "/gas/foreman");
       const bot = page.locator('[data-tour="bot"]');
       await bot.locator("[data-stage]").getByRole("button", { name: "Внести время" }).click();
       await bot.locator("[data-stage]").getByRole("button", { name: "Сказать голосом" }).click();

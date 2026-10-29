@@ -23,7 +23,9 @@ async function signInForeman(page: Page) {
     .getByRole("list", { name: "Роли" })
     .getByRole("button", { name: /^Бригадир/ })
     .click();
-  await expect(page).toHaveURL(/\/gas\/foreman/);
+  // ADR-056: бригадир начинает с «Сегодня»; бот — второй канал, открываем его
+  await expect(page).toHaveURL(/\/gas\/brigade/);
+  await open(page, "/gas/foreman");
 }
 
 async function openBot(page: Page): Promise<Locator> {

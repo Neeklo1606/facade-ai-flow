@@ -7,6 +7,9 @@ import { ROLE_LABEL, type Role } from "@/domain/gas-ops/model";
 
 export type GasScreenKey =
   | "start"
+  | "brigade"
+  | "week"
+  | "directory"
   | "foreman"
   | "moderation"
   | "entries"
@@ -62,9 +65,48 @@ export const GAS_SCREENS: readonly GasScreen[] = [
     ],
   },
   {
+    key: "brigade",
+    to: "/gas/brigade",
+    title: "Сегодня",
+    short: "Сегодня",
+    group: "work",
+    roles: ["admin", "manager", "foreman"],
+    steps: [
+      "Нажмите «Добавить время» и выберите объект из графика на сегодня.",
+      "Укажите, кто работал, начало, окончание и перерыв.",
+      "Проверьте сводку и нажмите «Отправить». Вопросы менеджера придут в «Мои записи».",
+    ],
+  },
+  {
+    key: "week",
+    to: "/gas/week",
+    title: "Неделя",
+    short: "Неделя",
+    group: "work",
+    roles: ["admin", "manager", "director"],
+    steps: [
+      "Посмотрите итог недели и блок «До закрытия осталось».",
+      "Разберите причины по ссылкам или примите их как есть с причиной.",
+      "Нажмите «Закрыть неделю»: зафиксируется версия, файл версии останется доступен.",
+    ],
+  },
+  {
+    key: "directory",
+    to: "/gas/directory",
+    title: "Справочники",
+    short: "Справочн.",
+    group: "catalogs",
+    roles: ["admin", "manager", "director"],
+    steps: [
+      "Проверьте состав бригад: кто и с какой даты в бригаде.",
+      "Задайте ставки с датой начала: без них стоимость труда скрыта.",
+      "Сверьте профиль выгрузки Excel: обязательные столбцы и итог с экраном.",
+    ],
+  },
+  {
     key: "foreman",
     to: "/gas/foreman",
-    title: "Бригадир",
+    title: "Бот бригадира",
     short: "Бот",
     group: "work",
     roles: ["admin", "manager", "foreman"],
@@ -141,8 +183,8 @@ export const GAS_SCREENS: readonly GasScreen[] = [
   {
     key: "estimates",
     to: "/gas/estimates",
-    title: "Стоимость работ",
-    short: "Стоимость",
+    title: "Сметы",
+    short: "Сметы",
     group: "catalogs",
     roles: ["admin", "manager"],
     steps: [
@@ -244,19 +286,19 @@ export function gasScreen(key: GasScreenKey): GasScreen {
 
 /** Стартовый экран роли: куда ведёт смена роли (F1) */
 export const ROLE_HOME: Record<Role, GasScreenKey> = {
-  foreman: "foreman",
+  // ADR-056, раздел 1.3 документа владельца: у каждой роли свой стартовый экран
+  foreman: "brigade",
   manager: "moderation",
-  // Руководитель начинает с «Обзора» (ADR-052); менеджер — с очереди: с неё начинается показ
-  director: "summary",
-  admin: "moderation",
+  director: "week",
+  admin: "directory",
 };
 
 /** Одна строка о роли в переключателе: кто это и что делает */
 export const ROLE_ABOUT: Record<Role, string> = {
-  foreman: "Вносит время по объекту в боте MAX. Сумм не видит.",
-  manager: "Проверяет записи бригадиров: подтверждает, исправляет, возвращает.",
-  director: "Смотрит обзор недели и отчёт, выгружает Excel.",
-  admin: "Ведёт справочники, роли и правила расчёта.",
+  foreman: "Вносит время бригады за день с телефона. Сумм не видит.",
+  manager: "Проверяет записи бригадиров: принимает, исправляет с причиной, возвращает.",
+  director: "Закрывает неделю: что мешает, итог, версия отчёта.",
+  admin: "Ведёт состав бригад, ставки, сметы и выгрузку Excel.",
 };
 
 /**
@@ -264,22 +306,31 @@ export const ROLE_ABOUT: Record<Role, string> = {
  * пункта меню роли ниже, кроме тех, что телефону не нужны.
  */
 export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
-  manager: ["moderation", "entries", "reports", "objects"],
-  director: ["summary", "reports", "entries", "objects"],
-  admin: ["moderation", "objects", "estimates", "employees"],
+  manager: ["moderation", "entries", "week", "reports"],
+  director: ["week", "reports", "entries", "objects"],
+  admin: ["directory", "objects", "estimates", "moderation"],
   foreman: [],
 };
 
 /**
  * Меню-таблетка компьютера по ролям (ADR-055, раздел 2.4) из экранов, которые уже есть.
- * Чего ещё нет, в меню не показывается (правило 3): «Ставки», «График», «Выгрузка»
- * у администратора появятся с S4, «Снабжение» и «Документы» руководителя — другие контуры,
+ * Чего ещё нет, в меню не показывается (правило 3). Ставки, состав и профиль выгрузки
+ * живут в «Справочниках» (ADR-056), «Снабжение» и «Документы» руководителя — другие контуры,
  * в них ведёт пункт «Модули» плавающей панели. Пункты меню роли — её разрешённые экраны.
  */
 export const ROLE_MENU: Record<Role, readonly GasScreenKey[]> = {
-  manager: ["moderation", "entries", "reports", "objects", "brigades", "estimates"],
-  director: ["summary", "reports", "entries", "objects", "brigades"],
-  admin: ["employees", "objects", "estimates", "admin", "moderation", "reports"],
+  manager: [
+    "moderation",
+    "entries",
+    "week",
+    "reports",
+    "objects",
+    "estimates",
+    "brigades",
+    "directory",
+  ],
+  director: ["week", "reports", "entries", "objects", "summary", "brigades", "directory"],
+  admin: ["directory", "objects", "estimates", "moderation", "employees", "admin", "reports"],
   foreman: [],
 };
 

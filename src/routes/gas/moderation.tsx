@@ -15,15 +15,19 @@ import { ScreenHint, SectionTitle } from "@/components/gas-ops/page";
 import { Button } from "@/components/ui/button";
 import { ScrollTabs } from "@/components/ui/kit/controls";
 import { EmptyBlock } from "@/components/ui/kit/states";
+import { MetricCard, MetricRow } from "@/components/ui/mono";
 import {
   ENTRY_STATUS_LABEL,
+  fmtManHours,
   fmtRub,
   useGasActions,
   useGasActor,
   useGasEntry,
   useGasQueue,
   useGasQueueCounts,
+  useGasAcceptedToday,
   useGasUsers,
+  useGasWeekView,
   type EntryStatus,
   type EntryView,
 } from "@/api/gas-ops";
@@ -58,7 +62,15 @@ export const Route = createFileRoute("/gas/moderation")({
   component: ModerationPage,
 });
 
-const TABS: Tab[] = ["pending", "clarify", "draft", "rejected", "all"];
+/** Вкладки по документу владельца (S4): новые, на уточнении, принятые; «Все» — для поиска */
+const TABS: Tab[] = ["pending", "clarify", "confirmed", "all"];
+
+const TAB_LABEL: Partial<Record<Tab, string>> = {
+  pending: "Новые",
+  clarify: "На уточнении",
+  confirmed: "Принятые",
+  all: "Все",
+};
 
 const DONE_TEXT = {
   confirm: "Подтверждено",
@@ -90,6 +102,9 @@ function ModerationPage() {
 
   const counts = useGasQueueCounts();
   const rows = useGasQueue(tab);
+  const pendingRows = useGasQueue("pending");
+  const accepted = useGasAcceptedToday();
+  const weekView = useGasWeekView();
   const users = useGasUsers();
   const userIds = useMemo(() => new Set(users.map((u) => u.id)), [users]);
 
@@ -214,7 +229,7 @@ function ModerationPage() {
 
   /* ---------- Пачка «Без замечаний» ---------- */
   /*
-   * «Подтвердить все N» выполняется сразу, без диалога (ADR-045, принцип 8 и 5.4): действие
+   * «Принять все без замечаний N» выполняется сразу, без диалога (ADR-045, принцип 8 и 5.4): действие
    * обратимое, отмена живёт в тосте 6 секунд.
    */
   const confirmClean = async () => {
@@ -336,6 +351,8 @@ function ModerationPage() {
   ) : null;
 
   const total = counts.pending + counts.clarify + counts.draft + counts.rejected;
+  const pendingMarked = pendingRows.filter((view) => needsAttention(marksOf(view))).length;
+  const acceptedToday = accepted;
   const withMarks = attention.length;
 
   return (
@@ -359,6 +376,41 @@ function ModerationPage() {
 
       <ScreenHint screen="moderation" />
 
+      <div className="mt-block mb-4">
+        <MetricRow label="Показатели проверки">
+          <MetricCard
+            inverse
+            label="Ждут проверки"
+            value={counts.pending}
+            note={counts.clarify ? `на уточнении ${counts.clarify}` : "на уточнении нет"}
+            revealKey="mod:pending"
+          />
+          <MetricCard
+            label="С замечаниями"
+            value={pendingMarked}
+            note="среди ждущих"
+            revealKey="mod:marked"
+          />
+          <MetricCard
+            label="Принято сегодня"
+            value={acceptedToday}
+            note="решения людей"
+            revealKey="mod:today"
+          />
+          <MetricCard
+            label="Человеко-часы недели"
+            value={null}
+            text={fmtManHours(weekView.metrics.manMinutes, "чел.-ч")}
+            note={
+              weekView.metrics.withoutCrew
+                ? `по ${weekView.metrics.withoutCrew} записям состав не указан`
+                : "по подтверждённым"
+            }
+            revealKey="mod:man"
+          />
+        </MetricRow>
+      </div>
+
       <ScrollTabs
         label="Статус записи"
         value={tab}
@@ -369,8 +421,8 @@ function ModerationPage() {
         }}
         tabs={TABS.map((value) => ({
           value,
-          label: value === "all" ? "Все" : ENTRY_STATUS_LABEL[value],
-          count: value === "all" ? total : counts[value],
+          label: TAB_LABEL[value] ?? (value === "all" ? "Все" : ENTRY_STATUS_LABEL[value]),
+          count: value === "all" ? total + counts.confirmed : counts[value],
         }))}
       />
 
@@ -416,7 +468,7 @@ function ModerationPage() {
                       onClick={() => void confirmClean()}
                     >
                       <CheckCheck aria-hidden />
-                      Подтвердить все {clean.length}
+                      Принять все без замечаний {clean.length}
                     </Button>
                   ) : (
                     <span className="text-meta text-text-3 tnum">{clean.length}</span>

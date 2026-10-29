@@ -25,6 +25,7 @@ import type {
   User,
   WorkObject,
 } from "./model";
+import { crewOn, type CrewMember } from "./crew";
 import {
   brigadeStatus,
   scheduleObjectIds,
@@ -54,6 +55,8 @@ export interface GasData {
   schedule?: { rows: ScheduleRow[] } | null;
   /** Отметки «работает / в отпуске»: бригада в отпуске не получает объектов в боте */
   brigadeAvailability?: BrigadeAvailability[];
+  /** Состав бригад с периодами (ADR-056): нужен признаку «Состав больше бригады» */
+  crew?: CrewMember[];
 }
 
 export interface EntryView {
@@ -123,6 +126,7 @@ export function entryView(data: GasData, entry: TimeEntry): EntryView {
       all: data.entries,
       hasEstimate: estimate?.status === "confirmed" || entry.source === "fact-report",
       objectDays: objectDays(data, entry.objectId),
+      crewSize: data.crew ? crewOn(data.crew, entry.brigadeId, entry.day).length : null,
     }),
     overlaps: findOverlaps(data.entries)
       .filter((o) => o.a.id === entry.id || o.b.id === entry.id)

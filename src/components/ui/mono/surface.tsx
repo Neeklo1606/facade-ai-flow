@@ -150,12 +150,24 @@ export function MetricCard({
  * Ряд показателей: сетка на компьютере, на телефоне горизонтальная прокрутка с прилипанием
  * (2.5), инверсная карточка первой
  */
-export function MetricRow({ children, label }: { children: ReactNode; label: string }) {
+export function MetricRow({
+  children,
+  label,
+  columns = 4,
+}: {
+  children: ReactNode;
+  label: string;
+  /** Карточек в ряду на компьютере: 4 по умолчанию, 5 у «Недели» (S4) */
+  columns?: 4 | 5;
+}) {
   return (
     <div
       role="list"
       aria-label={label}
-      className="-mx-gutter flex snap-x snap-mandatory gap-3 overflow-x-auto px-gutter pb-1 [scrollbar-width:none] lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-5 lg:overflow-visible lg:px-0 [&>*]:w-[78%] [&>*]:shrink-0 [&>*]:snap-start lg:[&>*]:w-auto"
+      className={cn(
+        "-mx-gutter flex snap-x snap-mandatory gap-3 overflow-x-auto px-gutter pb-1 [scrollbar-width:none] lg:mx-0 lg:grid lg:gap-5 lg:overflow-visible lg:px-0 [&>*]:w-[78%] [&>*]:shrink-0 [&>*]:snap-start lg:[&>*]:w-auto",
+        columns === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4",
+      )}
     >
       {children}
     </div>

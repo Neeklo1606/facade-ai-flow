@@ -25,7 +25,7 @@ import { DEFAULT_REVIEW_SETTINGS } from "@/domain/gas-ops/review-policy";
 
 const KEY = "neeklo-gas-ops-v1";
 /** Версия набора: меняется вместе с формой данных, иначе старый снимок во вкладке ломает экран */
-const VERSION = 4;
+const VERSION = 5;
 
 interface Stored {
   version: number;
@@ -58,6 +58,10 @@ function initial(contour: GasContour): GasOpsSnapshot {
     reviewSettings: DEFAULT_REVIEW_SETTINGS,
     finalChecks: [],
     reportIssues: [],
+    crew: seed.crew,
+    // Ставок в данных заказчика нет: стоимость труда скрыта до их ввода
+    rates: [],
+    periods: [],
   };
 }
 

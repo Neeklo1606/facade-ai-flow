@@ -78,15 +78,15 @@ test.describe("роль", () => {
   test("смена роли ведёт на стартовый экран роли и прячет пункты", async ({ page }) => {
     await open(page, "/gas/moderation");
     await gasRole(page, "Руководитель");
-    // ADR-052: руководитель начинает с «Обзора»
-    await expect(page).toHaveURL(/\/gas\/overview/);
+    // ADR-056: руководитель начинает с «Недели»
+    await expect(page).toHaveURL(/\/gas\/week/);
     await expect(toast(page, /Вы смотрите как руководитель/)).toBeVisible();
     // Проверку ведёт менеджер: у руководителя пункта нет вовсе, а не серый
     const menu = page.getByRole("navigation", { name: "Разделы", exact: true });
     await expect(menu.getByRole("link", { name: "Проверка" })).toHaveCount(0);
 
     await gasRole(page, "Бригадир");
-    await expect(page).toHaveURL(/\/gas\/foreman/);
+    await expect(page).toHaveURL(/\/gas\/brigade/);
   });
 
   test("ГАЙКА живёт в своей оболочке: меню газа на её экранах нет", async ({ page }) => {

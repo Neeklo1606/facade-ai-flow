@@ -27,6 +27,8 @@ export interface CorrectInput {
   end: string;
   breakMinutes: string;
   comment: string;
+  /** Сколько людей работало: меняется только вместе с причиной (ADR-056) */
+  headcount?: number | null;
 }
 
 /** Ответ действия: текст ошибки показывается рядом с формой, а не только тостом */
@@ -297,7 +299,7 @@ function ReasonForm({
   onCancel: () => void;
   onSubmit: (
     comment: string,
-    times: { start: string; end: string; breakMinutes: string },
+    times: { start: string; end: string; breakMinutes: string; headcount?: number | null },
   ) => Promise<DecideResult>;
 }) {
   const { entry } = view;
@@ -306,6 +308,7 @@ function ReasonForm({
   const [start, setStart] = useState(clockOf(entry.startMinutes));
   const [end, setEnd] = useState(clockOf(entry.endMinutes));
   const [breaks, setBreaks] = useState(String(entry.breakMinutes));
+  const [people, setPeople] = useState(entry.headcount == null ? "" : String(entry.headcount));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const comment = reasonText(chip, own);
@@ -315,7 +318,13 @@ function ReasonForm({
   const send = async (text: string) => {
     setBusy(true);
     setError(null);
-    const result = await onSubmit(text, { start, end, breakMinutes: breaks });
+    const count = people.trim() === "" ? null : Number(people);
+    const result = await onSubmit(text, {
+      start,
+      end,
+      breakMinutes: breaks,
+      ...(count !== (entry.headcount ?? null) ? { headcount: count } : {}),
+    });
     setBusy(false);
     if (!result.ok) setError(result.message);
   };
@@ -366,7 +375,7 @@ function ReasonForm({
             минуты.
           </p>
         ) : (
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <label className="text-meta text-text-2">
               Начало
               <input
@@ -394,6 +403,16 @@ function ReasonForm({
                 onChange={(event) => setBreaks(event.target.value)}
                 inputMode="numeric"
                 placeholder="60"
+                className={field}
+              />
+            </label>
+            <label className="text-meta text-text-2">
+              Людей
+              <input
+                value={people}
+                onChange={(event) => setPeople(event.target.value.replace(/[^\d]/g, ""))}
+                inputMode="numeric"
+                placeholder="не указан"
                 className={field}
               />
             </label>

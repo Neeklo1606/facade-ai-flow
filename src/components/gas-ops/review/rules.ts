@@ -86,6 +86,11 @@ export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: 
     level: "decide",
     why: "Доходность выше 20 000 ₽/ч. В фактическом отчёте такие строки есть: это повод посмотреть, а не ошибка.",
   },
+  "over-crew": {
+    label: FLAG_LABEL["over-crew"],
+    level: "decide",
+    why: "В записи больше людей, чем в составе бригады на эту дату. Уточните состав у бригадира или добавьте человека в справочник.",
+  },
   "late-entry": {
     label: "Вчерашняя запись",
     level: "decide",
@@ -172,4 +177,5 @@ export const FLAG_LEVEL: Record<EntryFlag, MarkLevel> = {
   "no-estimate": "decide",
   "high-rate": "decide",
   "multi-day-object": "info",
+  "over-crew": "decide",
 };
