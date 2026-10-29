@@ -27,6 +27,7 @@ import { ScaleGallery } from "@/components/design-system/ScaleGallery";
 import { KitGallery } from "@/components/design-system/KitGallery";
 import { GraphiteGallery } from "@/components/design-system/GraphiteGallery";
 import { MonochromeGallery } from "@/components/design-system/MonochromeGallery";
+import { MonoKitGallery } from "@/components/design-system/MonoKitGallery";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/design-system")({
@@ -194,6 +195,12 @@ function DesignSystemPage() {
         caption="ADR-055: палитра обеих тем, пары контраста текущей темы, шкала двух плотностей, радиусы, тени и движение. Прежние витрины ниже остаются до перевода компонентов (S3)."
       >
         <MonochromeGallery />
+      </Section>
+      <Section
+        title="Компоненты «Монохрома»"
+        caption="ADR-055, S3: карточки, показатели, график по времени, доли, кнопки, сегменты, метки, таблица и деталь одним API, поля, шаги, история, состояния, тост и подтверждение. Числа — расчёт обзора на демо-данных."
+      >
+        <MonoKitGallery />
       </Section>
       <ScaleGallery />
       <KitGallery />

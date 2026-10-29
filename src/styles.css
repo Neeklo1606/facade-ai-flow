@@ -1336,6 +1336,11 @@
     stroke-dashoffset: var(--draw-length, 1);
   }
 }
+@keyframes mono-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
 @keyframes mono-shimmer {
   50% {
     opacity: 0.55;
@@ -1349,6 +1354,13 @@
 @utility draw-line {
   stroke-dasharray: 1;
   animation: mono-draw var(--dur-draw) var(--ease-out) both;
+}
+/*
+ * Спарклайн с неискажаемой толщиной (vector-effect): pathLength там не работает, линия
+ * открывается слева направо обрезкой за то же время
+ */
+@utility draw-wipe {
+  animation: mono-wipe var(--dur-draw) var(--ease-out) both;
 }
 /* Наведение на карточку: подъём 2 px и тень сильнее */
 @utility lift-hover {
@@ -1622,6 +1634,235 @@
   }
 }
 
+/*
+ * Компоненты «Монохрома» (ADR-055, S3, раздел 2.2). Карточка 24/20, отступ 28 на компьютере
+ * и 20 на телефоне, внутренние блоки panel-2 радиуса 16. Кнопки: 48 телефон, 44 компьютер,
+ * 52 полевые. Размеры в px: на компьютере html 87,5 %, а макет задан в пикселях.
+ */
+@utility mono-card {
+  position: relative;
+  border-radius: var(--r-surface);
+  background: var(--card);
+  color: var(--ink);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  @media (min-width: 1024px) {
+    padding: 28px;
+  }
+}
+@utility mono-card-inverse {
+  background: var(--inverse);
+  color: var(--on-inverse);
+  box-shadow: var(--shadow-card);
+  --ink: var(--on-inverse);
+  --ink-2: color-mix(in oklab, var(--on-inverse) 72%, var(--inverse));
+  --ink-3: color-mix(in oklab, var(--on-inverse) 64%, var(--inverse));
+  --panel-2: color-mix(in oklab, var(--on-inverse) 10%, var(--inverse));
+  --line: color-mix(in oklab, var(--on-inverse) 14%, transparent);
+}
+@utility mono-inset {
+  border-radius: var(--r-inset);
+  background: var(--panel-2);
+  padding: 16px;
+}
+@utility mono-btn {
+  display: inline-flex;
+  height: 48px;
+  min-width: 48px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 20px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-text);
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-hover) var(--ease),
+    color var(--dur-hover) var(--ease),
+    box-shadow var(--dur-hover) var(--ease),
+    transform var(--dur-press) var(--ease);
+  & svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  @media (min-width: 1024px) {
+    height: 44px;
+    min-width: 44px;
+  }
+}
+@utility mono-btn-field {
+  height: 52px;
+  min-width: 52px;
+  @media (min-width: 1024px) {
+    height: 52px;
+    min-width: 52px;
+  }
+}
+@utility mono-btn-primary {
+  background: var(--inverse);
+  color: var(--on-inverse);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+  }
+}
+@utility mono-btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--field-line);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--panel-2);
+    }
+  }
+}
+@utility mono-btn-quiet {
+  background: transparent;
+  color: var(--ink-2);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--panel-2);
+      color: var(--ink);
+    }
+  }
+}
+@utility mono-btn-danger {
+  background: var(--down-bg);
+  color: var(--down);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      box-shadow: inset 0 0 0 1px var(--down);
+    }
+  }
+}
+@utility mono-btn-icon {
+  padding-inline: 0;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+@utility mono-chip {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-small);
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  & svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+@utility mono-seg {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  overflow-x: auto;
+  border-radius: var(--r-pill);
+  background: var(--panel-2);
+  scrollbar-width: none;
+}
+@utility mono-seg-item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  padding-inline: 16px;
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: var(--t-label);
+  font-weight: 500;
+  white-space: nowrap;
+  &[aria-checked="true"],
+  &[aria-selected="true"] {
+    color: var(--ink);
+  }
+}
+@utility mono-seg-indicator {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: 40px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+}
+@utility mono-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--panel-3);
+  box-shadow: inset 0 0 0 1px var(--field-line);
+  transition: background-color var(--dur-switch) var(--ease);
+  &[aria-checked="true"] {
+    background: var(--inverse);
+    box-shadow: none;
+  }
+  & > span {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--r-pill);
+    background: var(--card);
+    box-shadow: 0 1px 3px rgba(17, 17, 19, 0.2);
+    transition: transform var(--dur-switch) var(--ease-spring);
+  }
+  &[aria-checked="true"] > span {
+    transform: translateX(20px);
+  }
+}
+@utility mono-input {
+  display: flex;
+  height: 52px;
+  width: 100%;
+  align-items: center;
+  border-radius: var(--r-inset);
+  background: var(--panel-2);
+  padding-inline: 16px;
+  color: var(--ink);
+  font-size: var(--t-text);
+  box-shadow: inset 0 0 0 1px transparent;
+  &[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 1px var(--down);
+  }
+}
+@utility mono-row {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+@utility mono-panel {
+  width: min(440px, 100vw);
+}
+
 /* Индикатор меню и сегментов переезжает между пунктами */
 @utility slide-indicator {
   transition:
@@ -1640,7 +1881,8 @@
   .reveal {
     animation-name: mono-fade;
   }
-  .draw-line {
+  .draw-line,
+  .draw-wipe {
     animation: none;
   }
   .lift-hover,
