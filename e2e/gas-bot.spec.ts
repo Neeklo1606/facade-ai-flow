@@ -79,13 +79,9 @@ for (const width of WIDTHS) {
       await expect(done.getByRole("button", { name: "Внести ещё адрес" })).toBeVisible();
 
       if (width.name === "1440") {
-        await expect(page.getByTestId("bot-system-status")).toContainText(
-          `${number} создана, ждёт проверки`,
-        );
-        await expect(page.getByRole("link", { name: "Открыть в проверке" })).toHaveAttribute(
-          "href",
-          /\/gas\/moderation\?open=/,
-        );
+        // «Что происходит в системе» — пояснение показа: вне показа на рабочем экране его нет
+        // (ADR-055, S2 п. 6); честная подпись о канале остаётся
+        await expect(page.getByTestId("bot-system-status")).toHaveCount(0);
         await expect(
           page.getByText("Так будет выглядеть бот в MAX. Канал не подключён."),
         ).toBeVisible();

@@ -376,17 +376,7 @@ function ModerationPage() {
 
       <div className="mt-block grid min-w-0 gap-section md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-cols-[minmax(0,1fr)_420px]">
         <div className="flex min-w-0 flex-col gap-section">
-          {desktop && ordered.length > 0 ? (
-            <p className="flex items-center gap-2 text-meta text-text-3">
-              <kbd className="kbd">J</kbd>
-              <kbd className="kbd">K</kbd>
-              по списку
-              <span aria-hidden>·</span>
-              <kbd className="kbd">Enter</kbd>
-              подтвердить открытую
-            </p>
-          ) : null}
-
+          {/* Клавиши J, K и Enter описаны в «?» оболочки, не строкой в теле экрана (ADR-055) */}
           {ordered.length === 0 ? (
             <EmptyBlock
               icon={tab === "pending" ? CheckCheck : Inbox}

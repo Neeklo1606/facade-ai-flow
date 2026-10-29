@@ -151,7 +151,19 @@ for (const run of WIDTHS) {
     } else {
       test("клавиши J, K и Enter", async ({ page }) => {
         await open(page, "/gas/moderation");
-        await expect(page.getByText("по списку")).toBeVisible();
+        // Клавиши описаны в «?» плавающей панели, а не строкой в теле экрана (ADR-055, S2 п. 5)
+        await page
+          .getByRole("complementary", { name: "Панель действий" })
+          .getByRole("button", { name: "Что делать на этом экране" })
+          .click();
+        await expect(
+          page.getByRole("dialog").getByText(/клавиши J и K ведут по списку/),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
+        // Пока справка открыта, экран клавиши не перехватывает: ждём, что она закрылась
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        // Фокус вернулся на «?»: Enter на кнопке снова открыл бы справку. Работа идёт в списке
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         const first = page.locator("[data-queue-card]").first();
         await expect(first).toHaveAttribute("aria-pressed", "true");
         await page.locator("body").press("j");

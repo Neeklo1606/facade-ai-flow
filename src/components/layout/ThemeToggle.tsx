@@ -17,7 +17,14 @@ const icons: Record<ThemeChoice, typeof Sun> = { light: Sun, dark: Moon, system:
  * Переключатель темы на три положения (ADR-017, п. 5). Выбор запоминается в браузере,
  * «как в системе» слушает настройку системы и меняет тему на лету.
  */
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  side = "bottom",
+}: {
+  className?: string;
+  /** С какой стороны открывается меню: в плавающей капсуле — справа */
+  side?: "bottom" | "right";
+}) {
   const { themeChoice, setThemeChoice } = useApp();
   const Icon = icons[themeChoice];
   return (
@@ -27,12 +34,17 @@ export function ThemeToggle({ className }: { className?: string }) {
           type="button"
           aria-label={`Тема оформления: ${themeLabels[themeChoice].toLowerCase()}. Сменить`}
           title={`Тема: ${themeLabels[themeChoice].toLowerCase()}`}
-          className={cn("icon-button focus-ring", className)}
+          className={cn(className ?? "icon-button", "focus-ring")}
         >
           <Icon strokeWidth={1.5} aria-hidden />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px]">
+      <DropdownMenuContent
+        side={side}
+        align={side === "right" ? "center" : "end"}
+        sideOffset={side === "right" ? 16 : 4}
+        className="w-[200px]"
+      >
         <DropdownMenuLabel className="text-meta font-normal text-text-3">
           Тема оформления
         </DropdownMenuLabel>

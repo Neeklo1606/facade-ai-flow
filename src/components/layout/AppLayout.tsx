@@ -1,6 +1,6 @@
 import { Suspense, lazy, type ReactNode } from "react";
 import { useApp } from "@/lib/app-context";
-import { Sidebar } from "./Sidebar";
+import { AppCapsule, AppTopRow } from "./AppTopRow";
 import { Topbar } from "./Topbar";
 import { BottomTabs } from "./BottomTabs";
 // Палитра поиска грузится при первом открытии: Ctrl+K и кнопки поиска живут в контексте
@@ -28,8 +28,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="app-window">
       <div className="app-shell">
-        <Sidebar />
+        {/* «Монохром» (ADR-055, 2.1): верхняя строка и капсула вместо левой панели */}
+        <AppCapsule />
         <div className="flex min-w-0 flex-1 flex-col">
+          <AppTopRow />
           <Topbar />
           {network.offline ? <OfflineBar demo={network.simulated} /> : null}
           {/* Полоса показа под шапкой одной строкой 44: не плавает поверх содержимого (4.4) */}
@@ -40,9 +42,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {/* Нижний отступ из менеджера слоёв: высота нижней панели и 16 (4.4) */}
             <main
               data-scroll-root
-              className="min-w-0 flex-1 overflow-y-auto px-gutter pt-2 pb-inset lg:pt-6 lg:pb-8"
+              className="min-w-0 flex-1 overflow-y-auto pt-2 pb-inset lg:pt-2 lg:pb-8"
             >
-              <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+              <div className="mono-content">{children}</div>
             </main>
           </div>
         </div>

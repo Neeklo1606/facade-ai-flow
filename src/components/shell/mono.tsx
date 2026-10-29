@@ -20,6 +20,8 @@ export interface MenuItem {
   /** Сколько ждёт решения; ноль не показывается */
   count?: number | undefined;
   icon?: LucideIcon;
+  /** Параметры адреса: раздел объекта ведёт со своим фильтром */
+  search?: Record<string, unknown> | undefined;
 }
 
 /** Знак: чёрная плитка с белой «г». Оранжевый только у знака на лендинге */
@@ -82,6 +84,7 @@ export function PillMenu({
     <li key={item.key} className={extra}>
       <Link
         to={item.to}
+        search={item.search as never}
         aria-current={item.key === activeKey ? "page" : undefined}
         className="flex min-h-11 items-center justify-between gap-3 rounded-tile px-3 type-text focus-ring is-hover:bg-panel-2 aria-[current=page]:bg-panel-2"
       >
@@ -106,6 +109,7 @@ export function PillMenu({
           <Link
             key={item.key}
             to={item.to}
+            search={item.search as never}
             aria-current={active ? "page" : undefined}
             data-active={active ? "" : undefined}
             data-pill-target={active ? "" : undefined}
@@ -231,6 +235,8 @@ export interface CapsuleAction {
   render?: (button: ReactNode) => ReactNode;
   badge?: number | undefined;
   active?: boolean;
+  /** Готовый элемент со своей кнопкой (тема, справка): подпись и вид он ставит сам */
+  node?: ReactNode;
 }
 
 /**
@@ -243,6 +249,7 @@ export function FloatingCapsule({ actions }: { actions: readonly (CapsuleAction 
       {actions.map((action, index) => {
         if (!action)
           return <span key={`sep-${index}`} aria-hidden className="mono-capsule-separator" />;
+        if (action.node) return <span key={action.key}>{action.node}</span>;
         const Icon = action.icon;
         const button = (
           <button

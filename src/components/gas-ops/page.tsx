@@ -1,6 +1,6 @@
 /**
- * Общие части экранов контура газа (ADR-044, F2; вид ADR-045, 4.19): строка
- * «Как работать с экраном», граница договора одной строкой и тихая легенда «Факт / Демо».
+ * Общие части экранов контура газа (ADR-044, F2; вид ADR-045, 4.19): подсказка первого
+ * визита, граница договора одной строкой и тихая легенда «Факт / Демо».
  */
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import { useGasContour } from "@/lib/gas-ops/contour";
 
 /**
- * «Как работать с экраном»: одна строка 44 со стрелкой. При первом посещении экрана
- * раскрыта одной карточкой не выше 120, шаги нумерованным списком; полная инструкция на /gas/guide.
+ * Подсказка первого визита (ADR-055, S2 п. 5): шаги экрана карточкой один раз, «Понятно»
+ * убирает её. Дальше шаги в «?» плавающей панели, полная инструкция на /gas/guide.
  */
 export function ScreenHint({ screen, className }: { screen: GasScreenKey; className?: string }) {
   const info = gasScreen(screen);
@@ -23,7 +23,7 @@ export function ScreenHint({ screen, className }: { screen: GasScreenKey; classN
         more={
           <Link
             to="/gas/guide"
-            className="inline-flex min-h-11 items-center text-meta-strong text-orange focus-ring"
+            className="inline-flex min-h-11 items-center px-2 text-meta-strong underline underline-offset-4 focus-ring"
           >
             Инструкция
           </Link>

@@ -123,7 +123,10 @@ test.describe("показ: сброс и пометка", () => {
   test("сброс демо-данных есть под рукой, а пометка видна всегда @mobile", async ({ page }) => {
     await open(page, "/today");
     // Пометка демонстрации в первом экране: её ищет и проверка честности
-    await expect(page.getByText("Демо", { exact: true }).first()).toBeVisible();
+    // Метка есть и в строке компьютера (скрыта до 1024), поэтому ищется видимая (ADR-055)
+    await expect(
+      page.getByText("Демо", { exact: true }).filter({ visible: true }).first(),
+    ).toBeVisible();
     // Сброс живёт в «Ещё»: одно касание с любого экрана, и он спрашивает подтверждение (ADR-048)
     await page
       .getByRole("navigation", { name: "Основная навигация" })

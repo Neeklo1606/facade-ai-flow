@@ -1,6 +1,5 @@
 /** Общая библиотека компонентов интерфейса. Единственный источник — эти файлы. */
 export { AppLayout as AppShell } from "@/components/layout/AppLayout";
-export { Sidebar } from "@/components/layout/Sidebar";
 export { PageHeader } from "./PageHeader";
 export { RelatedList, OriginTrail } from "./RelatedList";
 export { FilterBar, FilterChip } from "./FilterBar";

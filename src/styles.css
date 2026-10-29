@@ -254,9 +254,11 @@
   --space-row-x: 16px;
 
   /* Высоты ADR-045, разделы 3 и 4 */
-  --h-header: 52px;
+  /* Шапка телефона «Монохрома» 56 (ADR-055, 2.5) */
+  --h-header: 56px;
   --h-header-desk: 56px;
-  --h-tabbar: 56px;
+  /* Нижняя панель «Монохрома» 64 (ADR-055, 2.5) */
+  --h-tabbar: 64px;
   --h-action: 64px;
   --h-row: 64px;
   --h-row-compact: 52px;
@@ -296,9 +298,9 @@
   --type-body-leading: 1.375rem;
   --type-nav: 0.9375rem;
   /* Шапка и нижняя панель ADR-045: 52 и 56 на телефоне */
-  --topbar-h: 52px;
-  /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
-  --bottom-nav-h: 56px;
+  --topbar-h: 56px;
+  /* Нижняя панель навигации до 1024 (ADR-055, 2.5); на компьютере её нет */
+  --bottom-nav-h: 64px;
   /* Отступ контента от краёв оболочки: поле экрана 3.2 */
   --content-pad: var(--space-gutter);
 
@@ -482,8 +484,8 @@
   }
 }
 
-/* Нижняя панель живёт до 768 px: с 768 её место занимает рельс, с 1024 сайдбар (ADR-045, V7) */
-@media (min-width: 768px) {
+/* Нижняя панель живёт до 1024: с 1024 верхняя строка и капсула (ADR-055, 2.1) */
+@media (min-width: 1024px) {
   :root {
     --bottom-nav-h: 0px;
   }
@@ -1542,7 +1544,8 @@
   width: 100%;
   max-width: 1592px;
   margin-inline: auto;
-  padding-inline: 16px;
+  /* Поле экрана из токена: экраны выносят липкие полосы на -mx-gutter */
+  padding-inline: var(--space-gutter);
   @media (min-width: 1024px) {
     padding-left: 120px;
     padding-right: 32px;
@@ -1575,7 +1578,7 @@
   top: 0;
   z-index: 30;
   display: flex;
-  height: calc(56px + env(safe-area-inset-top));
+  height: calc(var(--topbar-h) + env(safe-area-inset-top));
   align-items: center;
   gap: 8px;
   padding: env(safe-area-inset-top) 12px 0 16px;
@@ -1890,10 +1893,22 @@
     background: var(--surface);
     box-shadow: inset 0 -1px 0 var(--line);
   }
+  /*
+   * Компьютер «Монохрома» (ADR-055, 2.1): строка экрана под верхней строкой, без линии и фона,
+   * по краю контента (120 слева под капсулу), заголовок 44/48
+   */
   @media (min-width: 1024px) {
-    height: var(--h-header-desk);
+    position: static;
+    height: auto;
+    min-height: var(--h-header-desk);
     gap: 12px;
-    box-shadow: inset 0 -1px 0 var(--line);
+    padding: 16px 32px 8px 120px;
+    background: transparent;
+    box-shadow: none;
+    &[data-collapsed="true"] {
+      background: transparent;
+      box-shadow: none;
+    }
   }
 }
 @utility header-search {

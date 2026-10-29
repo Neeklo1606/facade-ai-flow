@@ -8,7 +8,7 @@
  * шапка 56 со знаком, названием экрана, поиском и колокольчиком, нижняя панель 64 из четырёх
  * пунктов роли и «Ещё». Бригадир видит экран бота во весь экран, без нижней панели.
  */
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ChevronLeft,
   CircleHelp,
@@ -33,7 +33,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   BellButton,
@@ -52,9 +51,17 @@ import {
   ROLE_LABEL,
   useGasActions,
   useGasActor,
+  useGasAllowedObjects,
+  useGasDirectory,
+  useGasEmployees,
+  useGasEntries,
+  useGasEstimates,
   useGasHydration,
   useGasQueueCounts,
 } from "@/api/gas-ops";
+import { SearchPalette } from "@/components/shell/SearchPalette";
+import { buildGasIndex } from "@/lib/search/gas-index";
+import type { SearchItem } from "@/lib/search";
 import { useGasReviewPolicy, useGasWorkCost } from "@/api/gas-estimates";
 import {
   contourOf,
@@ -463,13 +470,60 @@ function ModulesList() {
 }
 
 /**
- * Поиск по записям: номер, объект, бригада. Ведёт в журнал с запросом. Окно открывают
- * капсула, кнопка шапки телефона и ⌘K / Ctrl K с любого экрана
+ * Индекс поиска контура (ADR-055, 2.6): данные из портов контура, права роли режет
+ * buildGasIndex. Бригадиру журнал только своей бригады, объекты только разрешённые
+ */
+function useGasSearchIndex(enabled: boolean): SearchItem[] {
+  const actor = useGasActor();
+  const contourKind = useGasContour().kind;
+  const entries = useGasEntries({ ownBrigadeOnly: actor.role === "foreman" });
+  const directory = useGasDirectory();
+  const allowed = useGasAllowedObjects();
+  const estimates = useGasEstimates();
+  const people = useGasEmployees();
+  return useMemo(() => {
+    if (!enabled) return [];
+    return buildGasIndex({
+      role: actor.role,
+      brigadeId: actor.brigadeId,
+      canSeeMoney: actor.canSeeMoney,
+      screens: new Set(screensFor(actor.role, contourKind).map((s) => s.key)),
+      entries: entries.map((view) => ({
+        id: view.entry.id,
+        number: view.entry.number,
+        day: view.entry.day,
+        brigadeId: view.entry.brigadeId,
+        brigadeName: view.brigade?.name ?? null,
+        objectLabel: view.object?.label ?? null,
+        objectCode: view.object?.code ?? null,
+        amountRub: view.entry.amountRub,
+      })),
+      objects: directory.objects,
+      allowedObjectIds: actor.role === "foreman" ? new Set(allowed.map((o) => o.id)) : null,
+      brigades: directory.brigades.map((b) => ({
+        id: b.id,
+        name: b.name,
+        note: b.leadName ? `бригадир ${b.leadName}` : null,
+      })),
+      estimates,
+      people: people.map((p) => ({
+        id: p.id,
+        name: p.name,
+        brigadeName: p.brigadeName,
+        isLead: p.isLead,
+      })),
+    });
+  }, [enabled, actor, contourKind, entries, directory, allowed, estimates, people]);
+}
+
+/**
+ * Палитра поиска контура. Открывают капсула, кнопка шапки телефона и ⌘K / Ctrl K
+ * с любого экрана
  */
 function HeaderSearch() {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
+  const { themeChoice, setThemeChoice } = useApp();
+  const index = useGasSearchIndex(open);
   useEffect(() => {
     const show = () => setOpen(true);
     const key = (event: KeyboardEvent) => {
@@ -489,38 +543,23 @@ function HeaderSearch() {
     <>
       <button
         type="button"
-        aria-label="Поиск записи"
+        aria-label="Поиск"
         onClick={() => setOpen(true)}
         className="mono-circle focus-ring lg:hidden"
       >
         <Search strokeWidth={1.75} aria-hidden />
       </button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="top-24 max-w-[min(560px,calc(100vw-32px))] translate-y-0 rounded-surface border-0 bg-card p-4 shadow-floating">
-          <DialogTitle className="type-card">Поиск записи</DialogTitle>
-          <form
-            role="search"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setOpen(false);
-              void navigate({ to: "/gas/entries", search: { q: text.trim() || undefined } });
-            }}
-            className="flex items-center gap-2"
-          >
-            <input
-              autoFocus
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder="Номер, объект или бригада"
-              aria-label="Что найти"
-              className="h-field min-w-0 flex-1 rounded-inset bg-panel-2 px-4 type-text text-ink outline-none focus-ring"
-            />
-            <button type="submit" className="pill-action min-h-12 px-5 type-text focus-ring">
-              Найти
-            </button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <SearchPalette
+        open={open}
+        onOpenChange={setOpen}
+        index={index}
+        placeholder="Номер записи, объект, бригада, человек или действие"
+        hint="Попробуйте номер записи (42 найдёт ГЗ-00042), адрес объекта или имя бригады."
+        onAction={(action) => {
+          if (action === "theme")
+            setThemeChoice(resolveTheme(themeChoice) === "dark" ? "light" : "dark");
+        }}
+      />
     </>
   );
 }
