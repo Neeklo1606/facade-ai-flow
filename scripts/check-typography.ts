@@ -13,6 +13,10 @@
  * в разметке и стилях экранов. Цвет только токенами «Графита»; прежние места записаны
  * в бюджет `colors` и могут только уменьшаться.
  *
+ * С ADR-055 («Монохром») оранжевый бренда — токен `--record` и классы `*-record` — разрешён
+ * только у записи голоса и знака на лендинге (файлы RECORD_ALLOWED). В остальных файлах
+ * любое упоминание падает сразу, без бюджета.
+ *
  * `bun scripts/check-typography.ts --write` переписывает бюджет текущими числами, но отказывает,
  * если хоть один файл вырос: поднять бюджет можно только руками, с объяснением в коммите.
  */
@@ -30,6 +34,17 @@ const PATTERN = new RegExp(
 
 const COLOR =
   /#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?\b|#[0-9a-fA-F]{3}\b(?![\w-])|\b(?:rgba?|hsla?|oklch)\(/g;
+
+/** Оранжевый «Монохрома»: запись голоса, знак лендинга и витрина токенов */
+const RECORD_ALLOWED = new Set([
+  "src/components/gaika/VoiceCaptureButton.tsx",
+  "src/components/gas-ops/bot/VoiceInput.tsx",
+  "src/components/site/SiteLayout.tsx",
+  "src/components/design-system/MonochromeGallery.tsx",
+]);
+/** Классы и переменные, а не слово «record» в коде: только внутри строк и className */
+const RECORD_TOKEN =
+  /\b(?:bg|text|border|ring|fill|stroke|outline|glow|shadow|from|to|via)-(?:on-)?record\b|var\(--(?:on-)?record\)/g;
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -59,6 +74,9 @@ interface Budget {
 }
 
 const current = count(PATTERN);
+const recordOutside = Object.entries(count(RECORD_TOKEN)).filter(
+  ([path]) => !RECORD_ALLOWED.has(path),
+);
 const colors = count(COLOR);
 const colorTotal = Object.values(colors).reduce((a, n) => a + n, 0);
 const total = Object.values(current).reduce((a, n) => a + n, 0);
@@ -99,6 +117,14 @@ if (process.argv.includes("--write")) {
   writeFileSync(BUDGET, `${JSON.stringify(next, null, 2)}\n`);
   console.log(`Бюджет записан: ${total} мест в ${Object.keys(current).length} файлах`);
   process.exit(0);
+}
+
+if (recordOutside.length) {
+  console.error(
+    "Оранжевый бренда вне записи голоса и знака лендинга (ADR-055). В приложении действие чёрное: bg-accent, bg-inverse:",
+  );
+  for (const [path, n] of recordOutside) console.error(`  ${path}: ${n}`);
+  process.exit(1);
 }
 
 if (!budget) {

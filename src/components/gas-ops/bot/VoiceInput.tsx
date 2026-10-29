@@ -66,7 +66,7 @@ export function VoiceRecorder({ onDone, onCancel }: { onDone: () => void; onCanc
   return (
     <div className="flex w-full flex-col gap-2" data-testid="bot-voice">
       <div className="flex items-center gap-3 rounded-bubble border border-line bg-surface px-3 py-2">
-        <span className="flex items-center gap-1.5 text-meta-strong text-danger tnum">
+        <span className="flex items-center gap-1.5 text-meta-strong text-record tnum">
           <Square className="size-2.5 fill-current" aria-hidden />
           {clock}
         </span>

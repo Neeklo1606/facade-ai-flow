@@ -90,8 +90,9 @@ export function VoiceCaptureButton({
         onPointerCancel={onHoldEnd}
         className={cn(
           "focus-ring press grid size-16 place-items-center rounded-full",
-          "bg-pill text-pill-text",
-          glow && "glow-ember",
+          // «Монохром» (ADR-055): кнопка чёрная, оранжевая только во время записи
+          state === "recording" ? "bg-record text-on-record" : "bg-pill text-pill-text",
+          glow && (state === "recording" ? "glow-record" : "glow-ember"),
           breathe && "breathe",
           state === "error" && "glow-risk",
           "disabled:cursor-not-allowed disabled:opacity-45",

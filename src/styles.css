@@ -42,34 +42,53 @@
   color-scheme: dark;
 
   /*
-   * «Графит» (ADR-052). Спокойная графитовая основа, тёплый оранжевый ГАЙКИ только у действия,
-   * яркая палитра данных для меток и графиков. Новые имена — источник значений; прежние имена
-   * EMBER и ГАЙКИ ниже стали псевдонимами, поэтому экраны перекрашиваются без правки разметки.
+   * «Монохром» (ADR-055, раздел 2.3 документа Сервиса v1). Чёрное, белое и серые ступени;
+   * действие и активный пункт — инверсная таблетка (ink на canvas), оранжевый остался только
+   * у записи голоса и знака на лендинге (--record). Имена «Графита» (ADR-052) сохранены и
+   * держат значения «Монохрома», прежние имена EMBER и ГАЙКИ ниже по-прежнему псевдонимы.
+   * Здесь тёмная тема; светлая (основная по документу) — в :root[data-theme="light"].
    * Контраст каждой пары проверяет scripts/check-contrast.ts в обеих темах.
    */
-  --rail: #0f0f11;
-  --canvas: #17171a;
-  --panel: #212125;
-  --panel-2: #2a2a2f;
-  --panel-3: #34343b;
+  --rail: #0e0e10;
+  --canvas: #0e0e10;
+  --card: #18181b;
+  --panel: var(--card);
+  --panel-2: #222226;
+  --panel-3: #2c2c31;
   --line: #ffffff14;
   --line-2: #ffffff26;
-  --ink: #f4f4f6;
-  --ink-2: #b6b6be;
-  /* Подписи: #9A9AA4 из задачи давал 4,43:1 на --panel-3, светлота поднята: 4,77:1 */
-  --ink-3: #a0a0aa;
+  --ink: #ededf0;
+  --ink-2: #a1a1aa;
+  /* Подписи: #8B8B94 из документа давал 4,11:1 на --panel-3, светлота поднята: 4,68:1 */
+  --ink-3: #95959e;
+  /* Инверсная поверхность: активный пункт меню, главная кнопка, главный показатель экрана */
+  --inverse: #ededf0;
+  --on-inverse: #111113;
 
-  /* Действие: тёплый оранжевый, тёмный текст на заливке даёт 8,1:1 */
-  --accent: #ff8a4c;
-  --accent-hover: #ffa06b;
-  --on-accent: #1a0e08;
-  --accent-soft: #ff8a4c29;
-  --accent-line: #ff8a4c47;
-  /* Акцент текстом и кольцом: в тёмной теме совпадает с заливкой, в светлой темнее */
-  --accent-text: var(--accent);
-  --brand: var(--accent);
-  /* Граница поля ввода: от 3:1 на panel и panel-2 (WCAG 1.4.11) */
+  /* Действие в «Монохроме» — инверсная заливка, а не цвет */
+  --accent: var(--inverse);
+  --accent-hover: #ffffff;
+  --on-accent: var(--on-inverse);
+  --accent-soft: #ededf014;
+  --accent-line: #ededf03d;
+  /* Акцент текстом и кольцо фокуса: основной текст */
+  --accent-text: var(--ink);
+  /* Оранжевый бренда: только запись голоса и знак на лендинге (check:typography) */
+  --record: #ff8a4c;
+  --on-record: #1a0e08;
+  --brand: var(--record);
+  /* Граница поля ввода: от 3:1 на card и panel-2 (WCAG 1.4.11) */
   --field-line: #76767f;
+
+  /* Изменение показателя и статусы: текст тоном на мягкой плашке */
+  --up: #5fd08f;
+  --up-bg: #5fd08f24;
+  --down: #f07a7a;
+  --down-bg: #f07a7a24;
+  --caution: #e8b54a;
+  --caution-bg: #e8b54a24;
+  --note: #86b0ee;
+  --note-bg: #86b0ee24;
 
   /* Палитра данных и меток. Метка: фон тон + 16 %, текст тоном */
   --mint: #8fe3b4;
@@ -114,8 +133,8 @@
   --orange-line: var(--accent-line);
   --sand: #d9c3ab;
   --sand-dim: rgba(217, 195, 171, 0.1);
-  --pill-bg: var(--ink);
-  --pill-text: var(--canvas);
+  --pill-bg: var(--inverse);
+  --pill-text: var(--on-inverse);
 
   /* Фирменный градиент: только старт, финал показа и вход ГАЙКИ (ADR-052) */
   --ember-gradient: linear-gradient(135deg, #0a0908 0%, #8f1d0b 35%, #f16001 68%, #d9c3ab 100%);
@@ -126,15 +145,15 @@
     rgba(217, 195, 171, 0.12) 100%
   );
 
-  /* Статусы — тоны палитры данных */
-  --ok: var(--mint);
-  --ok-bg: var(--mint-soft);
-  --warn: var(--amber);
-  --warn-bg: var(--amber-soft);
-  --danger: var(--coral);
-  --danger-bg: var(--coral-soft);
-  --info: var(--sky);
-  --info-bg: var(--sky-soft);
+  /* Статусы «Монохрома»: рост, падение, внимание, справка (раздел 2.3) */
+  --ok: var(--up);
+  --ok-bg: var(--up-bg);
+  --warn: var(--caution);
+  --warn-bg: var(--caution-bg);
+  --danger: var(--down);
+  --danger-bg: var(--down-bg);
+  --info: var(--note);
+  --info-bg: var(--note-bg);
 
   /* Свет вместо теней. На чёрном тень не работает */
   /* «Графит»: у панелей нет теней и внутреннего света, только граница (ADR-052) */
@@ -142,8 +161,10 @@
   --lift-2: none;
   --lift-3: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 64px rgba(0, 0, 0, 0.75);
   /* Свет это состояние: светится запись, главное действие и одна критичная карточка */
-  --glow-ember:
-    0 0 0 1px rgba(255, 122, 69, 0.3), 0 0 32px rgba(255, 122, 69, 0.28),
+  /* «Монохром»: свет главного действия нейтральный, оранжевый свет только у записи */
+  --glow-ember: 0 0 0 1px var(--line-2), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --glow-record:
+    0 0 0 1px rgba(255, 138, 76, 0.3), 0 0 32px rgba(255, 138, 76, 0.28),
     0 20px 70px rgba(241, 96, 1, 0.18);
   --glow-sand: 0 0 36px rgba(217, 195, 171, 0.22);
   --glow-risk: 0 0 28px rgba(255, 90, 95, 0.26);
@@ -177,6 +198,48 @@
   --r-2xl: var(--r-bubble);
   --r-sheet: 16px;
   --r-pill: 999px;
+
+  /*
+   * Радиусы «Монохрома» (ADR-055, раздел 2.2): карточка 24 на компьютере и 20 на телефоне,
+   * внутренний блок 16, плитка знака и мелкие плашки 12, таблетка 999.
+   */
+  --r-surface: 20px;
+  --r-inset: 16px;
+  --r-tile: 12px;
+
+  /* Тени «Монохрома»: тёмная тема слабее, у карточки рамка line вместо тени */
+  --shadow-card: 0 0 0 1px var(--line);
+  --shadow-card-hover: 0 0 0 1px var(--line-2), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-float: 0 0 0 1px var(--line), 0 16px 40px rgba(0, 0, 0, 0.55);
+
+  /* Движение «Монохрома» (раздел 2.3): длительности и кривые, без новых библиотек */
+  --dur-hover: 160ms;
+  --dur-switch: 200ms;
+  --dur-indicator: 220ms;
+  --dur-reveal: 240ms;
+  --dur-panel: 260ms;
+  --dur-count: 600ms;
+  --dur-draw: 700ms;
+  --reveal-step: 40ms;
+  --reveal-shift: 8px;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /*
+   * Шкала «Монохрома», две плотности (раздел 2.3). Телефон здесь, компьютер от 1024. На
+   * компьютере html 87,5 %, поэтому rem там считаются от 14 px: 44 px = 3.1429rem.
+   */
+  --t-screen: 1.875rem;
+  --t-screen-lh: 2.25rem;
+  --t-kpi: 1.75rem;
+  --t-kpi-lh: 2rem;
+  --t-card: 1.0625rem;
+  --t-card-lh: 1.375rem;
+  --t-text: 1rem;
+  --t-text-lh: 1.5rem;
+  --t-label: 0.875rem;
+  --t-label-lh: 1.25rem;
+  --t-small: 0.8125rem;
+  --t-small-lh: 1.125rem;
 
   /* Отступы ADR-045, раздел 3.2: шаг 4. Телефон здесь, планшет и компьютер медиазапросами */
   --space-gutter: 16px;
@@ -310,33 +373,42 @@
   color-scheme: light;
 
   /*
-   * «Графит», светлая тема (ADR-052): холодный светло-серый фон и белые панели. Переопределяются
-   * только значения «Графита»: псевдонимы EMBER и ГАЙКИ в :root берут их отсюда сами.
+   * «Монохром», светлая тема (ADR-055): тёплый светло-серый холст, белые карточки, чёрный
+   * текст и чёрная инверсная таблетка. Значения раздела 2.3 документа Сервиса v1.
    */
-  --rail: #e9e9ee;
-  --canvas: #f2f2f5;
-  --panel: #ffffff;
-  --panel-2: #f5f5f8;
-  --panel-3: #e9e9ee;
-  --line: #18181b14;
-  --line-2: #18181b29;
-  --ink: #18181b;
-  --ink-2: #46464e;
-  /* Подписи: 5,4:1 на --canvas и 5,7:1 на --panel-2 */
-  --ink-3: #5e5e67;
+  --rail: #e9e9e6;
+  --canvas: #efefed;
+  --card: #ffffff;
+  --panel-2: #f5f5f3;
+  --panel-3: #e9e9e6;
+  --line: #11111312;
+  --line-2: #11111326;
+  --ink: #111113;
+  --ink-2: #55555c;
+  --ink-3: #66666d;
+  --inverse: #111113;
+  --on-inverse: #ffffff;
 
-  /* Действие: на светлой теме заливка темнее, текст белый, 5,2:1 */
-  --accent: #c2410c;
-  --accent-hover: #a8380a;
-  --on-accent: #ffffff;
-  --accent-soft: #c2410c1f;
-  --accent-line: #c2410c4d;
-  /*
-   * Акцент текстом: #C2410C давал 3,9-4,3:1 на мягком акцентном фоне и 4,63:1 на --canvas.
-   * Оттенок тот же, светлота опущена: от 4,95:1 на плашке, 6,6:1 белым по нему
-   */
-  --accent-text: #a5380a;
+  --accent-hover: #2a2a2e;
+  --accent-soft: #11111314;
+  --accent-line: #1111133d;
+  /* Запись голоса на светлой теме: белый значок 5,2:1, таймер текстом на белом 5,2:1 */
+  --record: #c2410c;
+  --on-record: #ffffff;
   --field-line: #80808a;
+
+  /*
+   * Рост и падение: #1F8F4E и #C43D3D из документа давали 3,6-4,1:1 и 4,4:1 на холсте
+   * и своей плашке. Оттенок тот же, светлота опущена: от 5,0:1
+   */
+  --up: #187640;
+  --up-bg: #e6f5ec;
+  --down: #b83636;
+  --down-bg: #fbeaea;
+  --caution: #8a6100;
+  --caution-bg: #fbf1d9;
+  --note: #2f5f9e;
+  --note-bg: #e8f0fb;
 
   /*
    * Тоны меток светлой темы — тёмные варианты тех же оттенков: яркие тоны тёмной темы
@@ -377,14 +449,19 @@
   --lift-1: none;
   --lift-2: none;
   --lift-3: 0 4px 16px rgba(24, 24, 27, 0.06), 0 24px 48px rgba(24, 24, 27, 0.1);
-  --glow-ember:
-    0 0 0 1px rgba(194, 65, 12, 0.22), 0 0 24px rgba(194, 65, 12, 0.18),
-    0 16px 48px rgba(24, 24, 27, 0.08);
+  --glow-ember: 0 0 0 1px var(--line-2), 0 12px 32px rgba(17, 17, 19, 0.08);
+  --glow-record:
+    0 0 0 1px rgba(194, 65, 12, 0.24), 0 0 24px rgba(194, 65, 12, 0.2),
+    0 16px 48px rgba(17, 17, 19, 0.08);
   --glow-sand: 0 0 24px rgba(158, 132, 104, 0.2);
   --glow-risk: 0 0 20px rgba(179, 38, 30, 0.22);
   --glow-orange: none;
   --glow-soft: 0 8px 32px rgba(24, 24, 27, 0.07);
   --shadow-pop: 0 0 0 1px var(--line), 0 12px 32px rgba(24, 24, 27, 0.14);
+  /* Карточка без рамки, две мягкие тени (раздел 2.2) */
+  --shadow-card: 0 1px 2px rgba(17, 17, 19, 0.04), 0 12px 32px rgba(17, 17, 19, 0.05);
+  --shadow-card-hover: 0 1px 2px rgba(17, 17, 19, 0.06), 0 16px 40px rgba(17, 17, 19, 0.09);
+  --shadow-float: 0 1px 2px rgba(17, 17, 19, 0.06), 0 16px 48px rgba(17, 17, 19, 0.12);
   --overlay: rgba(24, 24, 27, 0.4);
 
   /* Инверсный текст: на светлой теме это белый по тёмному, а не наоборот */
@@ -414,6 +491,20 @@
     --space-section: 32px;
     --space-card: 20px;
     --space-row-y: 8px;
+    /* «Монохром», компьютер: 44/48, 36/40, 18/24, 15/22, 14/20, 13/18 px от базы 14 px */
+    --r-surface: 24px;
+    --t-screen: 3.1429rem;
+    --t-screen-lh: 3.4286rem;
+    --t-kpi: 2.5714rem;
+    --t-kpi-lh: 2.8571rem;
+    --t-card: 1.2857rem;
+    --t-card-lh: 1.7143rem;
+    --t-text: 1.0714rem;
+    --t-text-lh: 1.5714rem;
+    --t-label: 1rem;
+    --t-label-lh: 1.4286rem;
+    --t-small: 0.9286rem;
+    --t-small-lh: 1.2857rem;
   }
 }
 
@@ -677,6 +768,27 @@
   --color-teal-soft: var(--teal-soft);
   --color-pink-soft: var(--pink-soft);
   --radius-pill: var(--r-pill);
+  --radius-surface: var(--r-surface);
+  --radius-inset: var(--r-inset);
+  --radius-tile: var(--r-tile);
+
+  /* «Монохром»: новые имена для нового кода (ADR-055) */
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-record: var(--record);
+  --color-on-record: var(--on-record);
+  --color-up: var(--up);
+  --color-up-bg: var(--up-bg);
+  --color-down: var(--down);
+  --color-down-bg: var(--down-bg);
+  --color-caution: var(--caution);
+  --color-caution-bg: var(--caution-bg);
+  --color-note: var(--note);
+  --color-note-bg: var(--note-bg);
+  /* Классы shadow-surface, shadow-surface-hover, shadow-floating */
+  --shadow-surface: var(--shadow-card);
+  --shadow-surface-hover: var(--shadow-card-hover);
+  --shadow-floating: var(--shadow-float);
 
   --shadow-xs: var(--lift-1);
   --shadow-sm: var(--lift-1);
@@ -1122,11 +1234,11 @@
   box-shadow: none;
 }
 
-/* Запись: кнопка дышит, цикл 2 с. prefers-reduced-motion отключает дыхание ниже */
+/* Запись: кнопка дышит оранжевым светом записи, цикл 2 с. prefers-reduced-motion отключает */
 @keyframes gaika-breathe {
   0%,
   100% {
-    box-shadow: var(--glow-ember);
+    box-shadow: var(--glow-record);
     transform: scale(1);
   }
   50% {
@@ -1146,6 +1258,130 @@
   transition: transform 120ms var(--ease);
   &:active {
     transform: scale(0.97);
+  }
+}
+
+/* ---------------------------------------------------------------- «Монохром» (ADR-055) */
+
+/* Свет записи голоса: единственное оранжевое свечение приложения */
+@utility glow-record {
+  box-shadow: var(--glow-record);
+}
+
+/*
+ * Шкала «Монохрома», две плотности (раздел 2.3): размер и интерлиньяж из токенов --t-*,
+ * которые меняются на 1024. Заголовок экрана и показатель с отрицательным трекингом.
+ */
+@utility type-screen {
+  font-size: var(--t-screen);
+  line-height: var(--t-screen-lh);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+@utility type-kpi {
+  font-size: var(--t-kpi);
+  line-height: var(--t-kpi-lh);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+@utility type-card {
+  font-size: var(--t-card);
+  line-height: var(--t-card-lh);
+  font-weight: 600;
+}
+@utility type-text {
+  font-size: var(--t-text);
+  line-height: var(--t-text-lh);
+}
+@utility type-label {
+  font-size: var(--t-label);
+  line-height: var(--t-label-lh);
+  font-weight: 500;
+}
+@utility type-small {
+  font-size: var(--t-small);
+  line-height: var(--t-small-lh);
+}
+
+/*
+ * Движение «Монохрома» (раздел 2.3). Появление карточек один раз: класс reveal ставит
+ * компонент, которому useFirstReveal разрешил показ; порядок задаёт --reveal-index.
+ * prefers-reduced-motion оставляет только прозрачность.
+ */
+@keyframes mono-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-shift));
+  }
+}
+@keyframes mono-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes mono-draw {
+  from {
+    stroke-dashoffset: var(--draw-length, 1);
+  }
+}
+@keyframes mono-shimmer {
+  50% {
+    opacity: 0.55;
+  }
+}
+@utility reveal {
+  animation: mono-reveal var(--dur-reveal) var(--ease-out) both;
+  animation-delay: calc(var(--reveal-index, 0) * var(--reveal-step));
+}
+/* Линия графика и спарклайн рисуются: pathLength="1" у пути, штрих сдвигается на длину */
+@utility draw-line {
+  stroke-dasharray: 1;
+  animation: mono-draw var(--dur-draw) var(--ease-out) both;
+}
+/* Наведение на карточку: подъём 2 px и тень сильнее */
+@utility lift-hover {
+  transition:
+    transform var(--dur-hover) var(--ease),
+    box-shadow var(--dur-hover) var(--ease);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+  }
+}
+/* Индикатор меню и сегментов переезжает между пунктами */
+@utility slide-indicator {
+  transition:
+    transform var(--dur-indicator) var(--ease-out),
+    width var(--dur-indicator) var(--ease-out);
+}
+/* Переключатель: пружина */
+@utility spring {
+  transition: transform var(--dur-switch) var(--ease-spring);
+}
+/* Скелетон: тихое мерцание */
+@utility shimmer {
+  animation: mono-shimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation-name: mono-fade;
+  }
+  .draw-line {
+    animation: none;
+  }
+  .lift-hover,
+  .slide-indicator,
+  .spring {
+    transition: none;
+  }
+  .lift-hover:hover {
+    transform: none;
+  }
+  .shimmer {
+    animation: none;
   }
 }
 

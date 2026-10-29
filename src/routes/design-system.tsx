@@ -26,6 +26,7 @@ import { GaikaGallery } from "@/components/design-system/GaikaGallery";
 import { ScaleGallery } from "@/components/design-system/ScaleGallery";
 import { KitGallery } from "@/components/design-system/KitGallery";
 import { GraphiteGallery } from "@/components/design-system/GraphiteGallery";
+import { MonochromeGallery } from "@/components/design-system/MonochromeGallery";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/design-system")({
@@ -188,6 +189,12 @@ function DesignSystemPage() {
         title="Дизайн-система ГАЙКИ"
         description="Финальный интерфейс (ADR-045): одна шкала, два уровня поверхностей, один акцент на экран. Ниже прежние витрины версии 2 и v3: их приёмы на рабочих экранах отменены. Витрина доступна только в сборке для проверки."
       />
+      <Section
+        title="Монохром"
+        caption="ADR-055: палитра обеих тем, пары контраста текущей темы, шкала двух плотностей, радиусы, тени и движение. Прежние витрины ниже остаются до перевода компонентов (S3)."
+      >
+        <MonochromeGallery />
+      </Section>
       <ScaleGallery />
       <KitGallery />
       <GaikaGallery />
