@@ -527,6 +527,28 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
       brigadeId: null,
       allowedObjectIds: "all",
     },
+    // Модули 2 и 3 (ADR-057): прораб ведёт демо-объекты, снабженец и ПТО видят все
+    {
+      id: "u-prorab",
+      name: "Прораб",
+      role: "prorab",
+      brigadeId: null,
+      allowedObjectIds: mockObjects.map((o) => o.id),
+    },
+    {
+      id: "u-supply",
+      name: "Снабженец",
+      role: "supply",
+      brigadeId: null,
+      allowedObjectIds: "all",
+    },
+    {
+      id: "u-pto",
+      name: "ПТО",
+      role: "pto",
+      brigadeId: null,
+      allowedObjectIds: "all",
+    },
   ];
 
   return {

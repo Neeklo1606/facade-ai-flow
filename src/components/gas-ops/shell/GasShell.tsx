@@ -77,6 +77,7 @@ import {
   ROLE_HOME,
   ROLE_MENU,
   ROLE_TABS,
+  isFieldRole,
   gasScreen,
   gasScreenOf,
   roleInitial,
@@ -173,7 +174,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
         {network.offline ? <OfflineBar demo={network.simulated} /> : null}
         <GasShowDock />
       </div>
-      {actor.role === "foreman" ? null : <GasCapsule screen={screen} />}
+      {isFieldRole(actor.role) ? null : <GasCapsule screen={screen} />}
       <main
         id="gas-main"
         className={cn("mono-content min-w-0", botOnly ? "pb-safe" : "pb-inset lg:pb-12")}
@@ -190,7 +191,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
         </div>
       </main>
       {/* Бригадир живёт в боте: панели нет ни в боте, ни в «Моих записях» (01_SPEC 4.3) */}
-      {actor.role === "foreman" ? null : <GasBottomNav pathname={pathname} />}
+      {isFieldRole(actor.role) ? null : <GasBottomNav pathname={pathname} />}
     </div>
   );
 }
@@ -318,7 +319,9 @@ function GasHeader({ screen }: { screen: GasScreen }) {
   const roots = new Set<string>([...ROLE_TABS[actor.role], "more", "start", ROLE_HOME[actor.role]]);
   const nested = !roots.has(screen.key);
   // Бригадиру «Назад» ведёт в бот: это его единственный корень
-  const back = useBack(actor.role === "foreman" ? "/gas/foreman" : "/gas/more");
+  const back = useBack(
+    actor.role === "foreman" ? "/gas/foreman" : actor.role === "prorab" ? "/gas/site" : "/gas/more",
+  );
   return (
     <header className="shell-header mono-phone-header lg:mono-topbar lg:static lg:bg-transparent">
       {nested ? (
@@ -353,7 +356,7 @@ function GasHeader({ screen }: { screen: GasScreen }) {
       <div className="lg:hidden">
         <HeaderSearch />
       </div>
-      {actor.role === "foreman" ? null : (
+      {isFieldRole(actor.role) ? null : (
         <BellButton items={attention} allTo={gasScreen(ROLE_HOME[actor.role]).to} />
       )}
       <AvatarMenu />

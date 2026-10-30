@@ -29,6 +29,7 @@ import type { FinalCheck, ReviewMode, ReviewSettings } from "@/domain/gas-ops/re
 import type { CrewMember, PersonInput, Rate } from "@/domain/gas-ops/crew";
 import type { FieldSnapshot } from "@/domain/gas-ops/field";
 import type { Acceptance, PeriodVersion } from "@/domain/gas-ops/week";
+import type { SupplyState } from "@/domain/gas-ops/supply";
 
 /** Недельный график объектов, применённый из файла заказчика (ADR-053, 4) */
 export interface WeekSchedule {
@@ -86,6 +87,8 @@ export interface GasOpsSnapshot {
   rates: Rate[];
   /** Версии закрытых недель: v1, после переоткрытия v2 */
   periods: PeriodVersion[];
+  /** Снабжение (ADR-057): номенклатура, поставщики, заявки, предложения, приёмки, лимиты */
+  supply: SupplyState;
 }
 
 export interface CreateEntryInput {

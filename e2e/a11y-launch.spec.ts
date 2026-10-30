@@ -76,6 +76,19 @@ for (const theme of ["light", "dark"] as const) {
         .filter((v) => v.impact === "serious" || v.impact === "critical")
         .map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`);
       expect(serious, `голос в боте ${theme}`).toEqual([]);
+
+      // ADR-057: снабжение. Прораб начинает с «Сегодня прораба», снабженец с «Заявок»
+      await open(page, "/gas");
+      await gasRole(page, "Прораб");
+      await expect(page).toHaveURL(/\/gas\/site/);
+      await expectA11y(page, `/gas/site ${theme}`);
+      await page.getByRole("button", { name: "Новая заявка" }).click();
+      await page.getByLabel("Что нужно").fill("кран газовый 2 метра");
+      await page.getByRole("button", { name: "Разобрать текст" }).click();
+      await expectA11y(page, `черновик заявки ${theme}`);
+      await gasRole(page, "Снабженец");
+      await expect(page).toHaveURL(/\/gas\/supply$/);
+      await expectA11y(page, `/gas/supply ${theme}`);
     });
   });
 }

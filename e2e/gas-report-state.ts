@@ -7,10 +7,11 @@
  */
 import { buildSeed, GAS_TODAY } from "@/data/mock/gas-ops-seed";
 import type { TimeEntry } from "@/domain/gas-ops/model";
+import { buildSupplySeed } from "@/data/mock/gas-supply-seed";
 
 /** Отчёт сверяется с файлом заказчика: снимок кладётся в его личный контур (ADR-047) */
 export const GAS_STATE_KEY = "neeklo-gas-ops-v1:client";
-export const GAS_STATE_VERSION = 5;
+export const GAS_STATE_VERSION = 6;
 export const SHOW_ENTRY_ID = "ent-show-m200";
 
 export function reportState(): string {
@@ -75,6 +76,8 @@ export function reportState(): string {
     crew: seed.crew,
     rates: [],
     periods: [],
+    // ADR-057: снабжение из исходного набора
+    supply: buildSupplySeed(seed.today),
   };
   return JSON.stringify({ version: GAS_STATE_VERSION, snapshot });
 }

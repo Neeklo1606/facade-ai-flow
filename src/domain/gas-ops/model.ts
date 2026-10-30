@@ -170,13 +170,17 @@ export interface AuditLog {
   detail: string;
 }
 
-export type Role = "admin" | "manager" | "foreman" | "director";
+/** prorab, supply, pto — роли модулей 2 и 3 (ADR-057) */
+export type Role = "admin" | "manager" | "foreman" | "director" | "prorab" | "supply" | "pto";
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: "Администратор",
   manager: "Менеджер проверки",
   foreman: "Бригадир",
   director: "Руководитель",
+  prorab: "Прораб",
+  supply: "Снабженец",
+  pto: "ПТО",
 };
 
 export interface User {

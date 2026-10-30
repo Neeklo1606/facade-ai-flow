@@ -2,7 +2,7 @@
  * Поверхности «Монохрома» (ADR-055, S3, раздел 2.2): карточка обычная и инверсная,
  * карточка показателя со счётом и спарклайном, ряд показателей и блок «доли».
  */
-import type { ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { useCountUp, useFirstReveal } from "@/hooks/use-first-reveal";
 import { sharePercents, type Delta } from "@/lib/ui/mono-logic";
 import { cn } from "@/lib/utils";
@@ -160,16 +160,23 @@ export function MetricRow({
   /** Карточек в ряду на компьютере: 4 по умолчанию, 5 у «Недели» (S4) */
   columns?: 4 | 5;
 }) {
+  // Каждая карточка — пункт списка, а полоса на телефоне прокручивается и с клавиатуры:
+  // прокручиваемая область без фокуса недоступна без мыши (axe, scrollable-region-focusable)
   return (
     <div
       role="list"
       aria-label={label}
+      tabIndex={0}
       className={cn(
-        "-mx-gutter flex snap-x snap-mandatory gap-3 overflow-x-auto px-gutter pb-1 [scrollbar-width:none] lg:mx-0 lg:grid lg:gap-5 lg:overflow-visible lg:px-0 [&>*]:w-[78%] [&>*]:shrink-0 [&>*]:snap-start lg:[&>*]:w-auto",
+        "-mx-gutter flex snap-x snap-mandatory gap-3 overflow-x-auto px-gutter pb-1 focus-ring [scrollbar-width:none] lg:mx-0 lg:grid lg:gap-5 lg:overflow-visible lg:px-0 [&>*]:w-[78%] [&>*]:shrink-0 [&>*]:snap-start lg:[&>*]:w-auto",
         columns === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4",
       )}
     >
-      {children}
+      {Children.toArray(children).map((child, index) => (
+        <div key={index} role="listitem" className="flex [&>*]:flex-1">
+          {child}
+        </div>
+      ))}
     </div>
   );
 }

@@ -36,6 +36,8 @@ import {
 import { downloadCustomerXlsx } from "@/lib/gas-ops/export";
 import { chartPoints } from "@/lib/ui/mono-logic";
 import { toast } from "@/lib/toast";
+import { gasScreen } from "@/lib/gas-ops/screens";
+import { SupplyMetrics } from "../supply/SupplyOverviewScreen";
 
 const TimeChart = lazy(() =>
   import("@/components/ui/mono/time-chart").then((m) => ({ default: m.TimeChart })),
@@ -417,6 +419,21 @@ export function WeekScreen() {
             </div>
           </div>
         </Card>
+      ) : null}
+
+      {/* Модуль 2 (ADR-057): та же сводка, что на экране «Снабжение» руководителя */}
+      {gasScreen("supplyOverview").roles.includes(actor.role) ? (
+        <section aria-labelledby="week-supply" className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="week-supply" className="type-card">
+              Снабжение
+            </h2>
+            <Link to="/gas/supply-overview" className="mono-btn mono-btn-quiet focus-ring">
+              Подробнее
+            </Link>
+          </div>
+          <SupplyMetrics />
+        </section>
       ) : null}
 
       {period.versions.length ? (

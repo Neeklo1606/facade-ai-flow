@@ -22,6 +22,12 @@ export type GasScreenKey =
   | "admin"
   | "guide"
   | "questions"
+  | "site"
+  | "supply"
+  | "suppliers"
+  | "deliveries"
+  | "supplyOverview"
+  | "materials"
   | "more";
 
 export type GasGroup = "work" | "catalogs" | "growth" | "help";
@@ -39,7 +45,10 @@ export interface GasScreen {
   steps: readonly string[];
 }
 
+/** Роли учёта времени (модуль 1): журнал записей и прежние экраны контура */
 const ALL: readonly Role[] = ["admin", "manager", "foreman", "director"];
+/** Все роли, включая снабжение и ПТО (ADR-057): старт, инструкция, «Ещё» */
+const EVERYONE: readonly Role[] = [...ALL, "prorab", "supply", "pto"];
 
 export const GAS_GROUP_LABEL: Record<GasGroup, string> = {
   work: "Работа",
@@ -58,7 +67,7 @@ export const GAS_SCREENS: readonly GasScreen[] = [
     title: "Учёт выработки бригад",
     short: "Начало",
     group: null,
-    roles: ALL,
+    roles: EVERYONE,
     steps: [
       "Нажмите «Начать показ», чтобы за 3 минуты пройти путь записи от бригадира до Excel.",
       "Или выберите роль и посмотрите свой экран.",
@@ -235,7 +244,7 @@ export const GAS_SCREENS: readonly GasScreen[] = [
     title: "Инструкция",
     short: "Помощь",
     group: "help",
-    roles: ALL,
+    roles: EVERYONE,
     steps: [
       "Выберите свою роль во вкладках.",
       "Нажмите «Показать на экране» у шага: откроется нужный экран с подсветкой.",
@@ -254,6 +263,81 @@ export const GAS_SCREENS: readonly GasScreen[] = [
       "«Скопировать список» соберёт вопросы текстом для мессенджера.",
     ],
   },
+  // ---------- Снабжение (ADR-057) ----------
+  {
+    key: "site",
+    to: "/gas/site",
+    title: "Сегодня прораба",
+    short: "Сегодня",
+    group: "work",
+    roles: ["admin", "prorab"],
+    steps: [
+      "Нажмите микрофон или напишите, что нужно: «труба 20 50 метров к пятнице».",
+      "Проверьте строки черновика: позицию и количество подтверждаете вы.",
+      "Когда поставка приедет, откройте её в «Принять поставку» и сверьте количество.",
+    ],
+  },
+  {
+    key: "supply",
+    to: "/gas/supply",
+    title: "Заявки",
+    short: "Заявки",
+    group: "work",
+    roles: ["admin", "supply", "director"],
+    steps: [
+      "Начните с новых и просроченных: таблица идёт по сроку и приоритету.",
+      "Откройте заявку, сверьте с лимитом сметы и нажмите «Взять в работу».",
+      "Запросите предложения файлом или текстом, внесите ответы и выберите лучшее.",
+    ],
+  },
+  {
+    key: "suppliers",
+    to: "/gas/suppliers",
+    title: "Поставщики",
+    short: "Поставщ.",
+    group: "catalogs",
+    roles: ["admin", "supply", "director"],
+    steps: [
+      "Найдите поставщика по названию или категории.",
+      "Откройте строку: история предложений, цен и сроков.",
+    ],
+  },
+  {
+    key: "deliveries",
+    to: "/gas/deliveries",
+    title: "Поставки",
+    short: "Поставки",
+    group: "work",
+    roles: ["admin", "supply", "director"],
+    steps: [
+      "Посмотрите, что в пути и к какой дате.",
+      "Принятые поставки показывают расхождения и сертификаты.",
+    ],
+  },
+  {
+    key: "supplyOverview",
+    to: "/gas/supply-overview",
+    title: "Снабжение",
+    short: "Снабж.",
+    group: "work",
+    roles: ["admin", "director"],
+    steps: [
+      "Сумма заказов считается по выбранным предложениям заказанных заявок.",
+      "Проверьте просрочки и превышения сметы: строка ведёт в заявку.",
+    ],
+  },
+  {
+    key: "materials",
+    to: "/gas/materials",
+    title: "Материалы",
+    short: "Материалы",
+    group: "work",
+    roles: ["admin", "director", "pto", "supply"],
+    steps: [
+      "Здесь материалы, принятые на объектах, с сертификатами и паспортами.",
+      "Материал без сертификата помечен: в акт его не включить, пока документа нет.",
+    ],
+  },
 ];
 
 /** Вкладка «Ещё» телефона (ADR-048): разделы вне панели, роль, показ, тема */
@@ -263,7 +347,7 @@ const MORE_SCREEN: GasScreen = {
   title: "Ещё",
   short: "Ещё",
   group: null,
-  roles: ALL,
+  roles: EVERYONE,
   steps: [
     "Здесь разделы, которых нет в нижней панели, смена роли, сброс показа и тема.",
     "Нажмите строку, чтобы открыть раздел. «Назад» вернёт сюда.",
@@ -291,6 +375,10 @@ export const ROLE_HOME: Record<Role, GasScreenKey> = {
   manager: "moderation",
   director: "week",
   admin: "directory",
+  prorab: "site",
+  supply: "supply",
+  // До S6 у ПТО один экран: «Документы» строятся там
+  pto: "materials",
 };
 
 /** Одна строка о роли в переключателе: кто это и что делает */
@@ -299,6 +387,9 @@ export const ROLE_ABOUT: Record<Role, string> = {
   manager: "Проверяет записи бригадиров: принимает, исправляет с причиной, возвращает.",
   director: "Закрывает неделю: что мешает, итог, версия отчёта.",
   admin: "Ведёт состав бригад, ставки, сметы и выгрузку Excel.",
+  prorab: "Заказывает материалы голосом или текстом и принимает поставки на объекте.",
+  supply: "Ведёт заявки: предложения поставщиков, выбор, заказ и доставку.",
+  pto: "Берёт принятые материалы с сертификатами для исполнительной документации.",
 };
 
 /**
@@ -310,6 +401,10 @@ export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
   director: ["week", "reports", "entries", "objects"],
   admin: ["directory", "objects", "estimates", "moderation"],
   foreman: [],
+  // Прораб, как бригадир, живёт в своём экране телефона: панели нет
+  prorab: [],
+  supply: ["supply", "deliveries", "suppliers", "materials"],
+  pto: ["materials"],
 };
 
 /**
@@ -329,9 +424,30 @@ export const ROLE_MENU: Record<Role, readonly GasScreenKey[]> = {
     "brigades",
     "directory",
   ],
-  director: ["week", "reports", "entries", "objects", "summary", "brigades", "directory"],
-  admin: ["directory", "objects", "estimates", "moderation", "employees", "admin", "reports"],
+  director: [
+    "week",
+    "reports",
+    "supplyOverview",
+    "entries",
+    "objects",
+    "summary",
+    "brigades",
+    "directory",
+  ],
+  admin: [
+    "directory",
+    "objects",
+    "estimates",
+    "moderation",
+    "employees",
+    "admin",
+    "reports",
+    "supply",
+  ],
   foreman: [],
+  prorab: [],
+  supply: ["supply", "suppliers", "deliveries", "materials"],
+  pto: ["materials"],
 };
 
 /** Разделы только личного контура заказчика: рабочий лист встречи с ним (ADR-047) */
@@ -345,7 +461,21 @@ export function screensFor(role: Role, contour: "public" | "client" = "public"):
   );
 }
 
-export const ROLE_ORDER: readonly Role[] = ["foreman", "manager", "director", "admin"];
+export const ROLE_ORDER: readonly Role[] = [
+  "foreman",
+  "manager",
+  "director",
+  "admin",
+  "prorab",
+  "supply",
+  "pto",
+];
+
+/**
+ * Полевые роли: свой интерфейс телефона без меню, плавающей панели и колокольчика.
+ * Бригадир и прораб (ADR-056, ADR-057)
+ */
+export const isFieldRole = (role: Role) => role === "foreman" || role === "prorab";
 
 /** Первая буква роли для аватара в шапке */
 export const roleInitial = (role: Role) => ROLE_LABEL[role].slice(0, 1);

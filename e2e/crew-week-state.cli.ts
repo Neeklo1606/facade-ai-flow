@@ -6,6 +6,7 @@
 import { buildSeed } from "@/data/mock/gas-ops-seed";
 import { DEFAULT_COMPANY_RULE } from "@/domain/gas-ops/work-cost";
 import { DEFAULT_REVIEW_SETTINGS } from "@/domain/gas-ops/review-policy";
+import { buildSupplySeed } from "@/data/mock/gas-supply-seed";
 
 const seed = buildSeed();
 const entries = seed.entries.map((e) =>
@@ -26,5 +27,6 @@ const snapshot = {
   reportIssues: [],
   rates: [],
   periods: [],
+  supply: buildSupplySeed(seed.today),
 };
-process.stdout.write(JSON.stringify({ version: 5, snapshot }));
+process.stdout.write(JSON.stringify({ version: 6, snapshot }));
