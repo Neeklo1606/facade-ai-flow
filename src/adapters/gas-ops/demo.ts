@@ -40,6 +40,7 @@ import {
   type EntryStatus,
   type Estimate,
   type Review,
+  type Role,
   type TimeEntry,
 } from "@/domain/gas-ops/model";
 import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
@@ -245,9 +246,23 @@ function mustVersion(snapshot: GasOpsSnapshot, id: string): EstimateVersion {
   return v;
 }
 
+/**
+ * Роли модулей снабжения и ИД (ADR-057, ADR-058) в учёт времени не входят: ни записей, ни
+ * проверки, ни сумм. Правила ниже раньше перечисляли запреты («кроме бригадира»), и новые
+ * роли проходили их молча — список разрешённых закрывает это (S8, аудит прав)
+ */
+const TIME_ROLES: readonly Role[] = ["admin", "manager", "foreman", "director"];
+
+function mustTimeRole(snapshot: GasOpsSnapshot): void {
+  const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+  if (!actor || !TIME_ROLES.includes(actor.role)) {
+    throw new GasOpsError("not-allowed", "Учёт времени ведут бригадир, менеджер и руководитель.");
+  }
+}
+
 function mustManager(snapshot: GasOpsSnapshot, message: string): void {
   const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
-  if (!actor || actor.role === "foreman" || actor.role === "director") {
+  if (!actor || (actor.role !== "manager" && actor.role !== "admin")) {
     throw new GasOpsError("not-allowed", message);
   }
 }
@@ -307,6 +322,7 @@ export function createGasOpsDemo(): GasOpsPort {
 
     createEntry: (input: CreateEntryInput) => {
       const snapshot = getSnapshot();
+      mustTimeRole(snapshot);
       // Повтор отправки с тем же ключом: та же запись, дубля нет (инвариант 1.4, 4)
       const key = input.clientKey?.trim() || null;
       const repeated = key ? snapshot.entries.find((e) => e.clientKey === key) : undefined;
@@ -388,6 +404,7 @@ export function createGasOpsDemo(): GasOpsPort {
 
     updateEntry: (input: UpdateEntryInput) => {
       const snapshot = getSnapshot();
+      mustTimeRole(snapshot);
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       mustBeOpen(snapshot, entry.day, input.day ?? entry.day);
@@ -491,6 +508,7 @@ export function createGasOpsDemo(): GasOpsPort {
 
     submitEntry: (id) => {
       const snapshot = getSnapshot();
+      mustTimeRole(snapshot);
       const entry = mustFind(snapshot, id);
       mustBeOpen(snapshot, entry.day);
       if (entry.status === "confirmed") {
@@ -520,6 +538,7 @@ export function createGasOpsDemo(): GasOpsPort {
 
     review: (input: ReviewInput) => {
       const snapshot = getSnapshot();
+      mustTimeRole(snapshot);
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       if (actor?.role === "foreman") {
@@ -595,6 +614,7 @@ export function createGasOpsDemo(): GasOpsPort {
 
     undoReview: (id) => {
       const snapshot = getSnapshot();
+      mustTimeRole(snapshot);
       const entry = mustFind(snapshot, id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       if (actor?.role === "foreman") {
@@ -645,6 +665,7 @@ export function createGasOpsDemo(): GasOpsPort {
 
     setEstimate: (input) => {
       const snapshot = getSnapshot();
+      mustTimeRole(snapshot);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       if (actor?.role === "foreman") {
         throw new GasOpsError("not-allowed", "Суммы вносит менеджер, бригадир их не видит.");
@@ -1038,6 +1059,7 @@ export function createGasOpsDemo(): GasOpsPort {
 
     answerClarify: (input) => {
       const snapshot = getSnapshot();
+      mustTimeRole(snapshot);
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       if (actor?.role === "foreman" && actor.brigadeId !== entry.brigadeId) {

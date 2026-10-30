@@ -19,7 +19,7 @@ import {
 import type { AuditLog, Role, User } from "@/domain/gas-ops/model";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
 import { SupplyError, type GasSupplyPort } from "@/ports/gas-supply";
-import { getSnapshot, update } from "./state";
+import { demoStore, type GasStore } from "./store";
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -79,8 +79,13 @@ function audit(
 }
 
 /** Записать изменение снабжения и строку журнала действий одним шагом */
-function commit(change: (supply: SupplyState) => SupplyState, log: AuditLog): void {
-  update((s) => ({ ...s, supply: change(s.supply), audit: [log, ...s.audit] }));
+async function commit(
+  store: GasStore,
+  base: GasOpsSnapshot,
+  change: (supply: SupplyState) => SupplyState,
+  log: AuditLog,
+): Promise<void> {
+  await store.update((s) => ({ ...s, supply: change(s.supply), audit: [log, ...s.audit] }), base);
 }
 
 function moved(
@@ -107,10 +112,10 @@ const DECIDERS: readonly Role[] = ["supply", "admin"];
 const AUTHORS: readonly Role[] = ["prorab", "supply", "admin"];
 
 /** Методы асинхронные, как у будущего сервера: ошибка правил приходит отказом обещания */
-export function createGasSupplyDemo(): GasSupplyPort {
+export function createGasSupplyDemo(store: GasStore = demoStore): GasSupplyPort {
   return {
     async createRequest(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, AUTHORS, "Заявку создают прораб и снабженец.");
       // Повтор отправки с телефона: та же заявка, без дубля (инвариант 4)
       if (input.clientKey) {
@@ -152,7 +157,9 @@ export function createGasSupplyDemo(): GasSupplyPort {
         history: [{ at, actor: user.name, status: "new", note: null }],
         source: "mock",
       };
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => ({ ...supply, requests: [request, ...supply.requests] }),
         audit(
           snapshot,
@@ -166,12 +173,14 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async moveRequest({ id, to }) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, DECIDERS, "Заявку ведёт снабженец.");
       const request = mustRequest(snapshot, id);
       mustMove(request, to);
       const next = moved(snapshot, user, request, to);
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => replace(supply, next),
         audit(snapshot, user, SUPPLY_STATUS_LABEL[to], id, request.number),
       );
@@ -179,7 +188,7 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async rejectRequest({ id, reason }) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, DECIDERS, "Отклоняет заявку снабженец.");
       const request = mustRequest(snapshot, id);
       if (!reason.trim()) throw new SupplyError("reason-required", "Укажите причину отклонения.");
@@ -192,7 +201,9 @@ export function createGasSupplyDemo(): GasSupplyPort {
         { rejectReason: reason.trim() },
         reason.trim(),
       );
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => replace(supply, next),
         audit(snapshot, user, "Отклонил заявку", id, reason.trim()),
       );
@@ -200,7 +211,7 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async addOffer(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, DECIDERS, "Предложения вводит снабженец.");
       const request = mustRequest(snapshot, input.requestId);
       if (request.status !== "waiting-offers") {
@@ -238,7 +249,9 @@ export function createGasSupplyDemo(): GasSupplyPort {
         at: nowOf(snapshot),
       };
       const supplier = snapshot.supply.suppliers.find((s) => s.id === input.supplierId)!;
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => ({ ...supply, offers: [...supply.offers, offer] }),
         audit(
           snapshot,
@@ -252,7 +265,7 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async chooseOffer({ requestId, offerId }) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, DECIDERS, "Предложение выбирает снабженец.");
       const request = mustRequest(snapshot, requestId);
       if (request.status !== "waiting-offers") {
@@ -265,7 +278,9 @@ export function createGasSupplyDemo(): GasSupplyPort {
         throw new SupplyError("no-offer", "Предложение не найдено.");
       }
       const next = { ...request, chosenOfferId: offerId };
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => replace(supply, next),
         audit(snapshot, user, "Выбрал предложение", requestId, request.number),
       );
@@ -273,14 +288,16 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async markOrdered({ requestId }) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, DECIDERS, "Заказ отмечает снабженец.");
       const request = mustRequest(snapshot, requestId);
       mustMove(request, "ordered");
       if (!request.chosenOfferId)
         throw new SupplyError("no-offer", "Сначала выберите предложение.");
       const next = moved(snapshot, user, request, "ordered");
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => replace(supply, next),
         audit(snapshot, user, "Отметил «заказано»", requestId, request.number),
       );
@@ -288,14 +305,16 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async markInTransit({ requestId, eta }) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, DECIDERS, "Поставку отмечает снабженец.");
       const request = mustRequest(snapshot, requestId);
       mustMove(request, "in-transit");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(eta))
         throw new SupplyError("bad-input", "Укажите ожидаемую дату доставки.");
       const next = moved(snapshot, user, request, "in-transit", { eta });
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => replace(supply, next),
         audit(snapshot, user, "Отметил «в пути»", requestId, `${request.number}, к ${eta}`),
       );
@@ -303,7 +322,7 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async acceptDelivery(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, AUTHORS, "Поставку принимает прораб или снабженец.");
       if (input.clientKey) {
         const same = snapshot.supply.receipts.find((r) => r.clientKey === input.clientKey);
@@ -329,7 +348,9 @@ export function createGasSupplyDemo(): GasSupplyPort {
         clientKey: input.clientKey,
       };
       const next = moved(snapshot, user, request, check.status, {}, receipt.discrepancy);
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => ({ ...replace(supply, next), receipts: [...supply.receipts, receipt] }),
         audit(
           snapshot,
@@ -343,7 +364,7 @@ export function createGasSupplyDemo(): GasSupplyPort {
     },
 
     async addSupplier(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, DECIDERS, "Справочник поставщиков ведёт снабженец.");
       if (!input.name.trim()) throw new SupplyError("bad-input", "Укажите название поставщика.");
       const inn = input.inn?.replace(/\s/g, "") || null;
@@ -361,7 +382,9 @@ export function createGasSupplyDemo(): GasSupplyPort {
         // Как у записей, введённых в показе: демонстрация, не данные заказчика
         source: "mock",
       };
-      commit(
+      await commit(
+        store,
+        snapshot,
         (supply) => ({ ...supply, suppliers: [...supply.suppliers, supplier] }),
         audit(snapshot, user, "Добавил поставщика", supplier.id, supplier.name),
       );

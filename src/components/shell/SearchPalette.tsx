@@ -40,7 +40,8 @@ function Marked({ text, query }: { text: string; query: string }) {
     <>
       {highlight(text, query).map((part, i) =>
         part.hit ? (
-          <mark key={i} className="bg-accent-soft text-ink">
+          // Цвет текста строки: на выбранной (чёрной) строке совпадение остаётся видимым
+          <mark key={i} className="bg-current/15 text-inherit">
             {part.text}
           </mark>
         ) : (

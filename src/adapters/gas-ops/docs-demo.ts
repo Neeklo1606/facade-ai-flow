@@ -24,7 +24,7 @@ import {
 import type { AuditLog, Role, User } from "@/domain/gas-ops/model";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
 import { DocsError, type GasDocsPort } from "@/ports/gas-docs";
-import { getSnapshot, update } from "./state";
+import { demoStore, type GasStore } from "./store";
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -72,8 +72,13 @@ function audit(
   return { id: newId("aud"), at: nowOf(snapshot), actor: user.name, action, entityId, detail };
 }
 
-function commit(change: (docs: DocsState) => DocsState, log: AuditLog): void {
-  update((s) => ({ ...s, docs: change(s.docs), audit: [log, ...s.audit] }));
+async function commit(
+  store: GasStore,
+  base: GasOpsSnapshot,
+  change: (docs: DocsState) => DocsState,
+  log: AuditLog,
+): Promise<void> {
+  await store.update((s) => ({ ...s, docs: change(s.docs), audit: [log, ...s.audit] }), base);
 }
 
 function replaceDoc(docs: DocsState, doc: ExecDoc): DocsState {
@@ -84,10 +89,10 @@ function replaceDoc(docs: DocsState, doc: ExecDoc): DocsState {
 const EDITORS: readonly Role[] = ["pto", "admin"];
 const UPLOADERS: readonly Role[] = ["pto", "admin", "prorab", "supply"];
 
-export function createGasDocsDemo(): GasDocsPort {
+export function createGasDocsDemo(store: GasStore = demoStore): GasDocsPort {
   return {
     async createDocs(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, EDITORS, "Пакет актов формирует ПТО.");
       mustObject(snapshot, user, input.objectId);
       if (input.workIds.length === 0)
@@ -122,7 +127,9 @@ export function createGasDocsDemo(): GasDocsPort {
         created.push(doc);
       }
       if (created.length) {
-        commit(
+        await commit(
+          store,
+          snapshot,
           (docs) => ({ ...docs, docs: all }),
           audit(
             snapshot,
@@ -137,7 +144,7 @@ export function createGasDocsDemo(): GasDocsPort {
     },
 
     async editField(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, EDITORS, "Акт правит ПТО.");
       const doc = mustDoc(snapshot, input.docId);
       mustObject(snapshot, user, doc.objectId);
@@ -153,7 +160,9 @@ export function createGasDocsDemo(): GasDocsPort {
           [input.key]: { value: input.value.trim(), by: user.name, at: nowOf(snapshot) },
         },
       };
-      commit(
+      await commit(
+        store,
+        snapshot,
         (docs) => replaceDoc(docs, next),
         audit(snapshot, user, "Исправил поле акта", doc.id, `${docTitle(doc)}: ${input.key}`),
       );
@@ -161,7 +170,7 @@ export function createGasDocsDemo(): GasDocsPort {
     },
 
     async moveDoc(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, EDITORS, "Статус акта меняет ПТО.");
       const doc = mustDoc(snapshot, input.docId);
       mustObject(snapshot, user, doc.objectId);
@@ -171,7 +180,9 @@ export function createGasDocsDemo(): GasDocsPort {
       const check = moveCheck(doc, input.to, completenessOf(ctx, work), input);
       if (!check.ok) throw new DocsError(check.code, check.message);
       const next = movedDoc(doc, input.to, nowOf(snapshot), user.name, input);
-      commit(
+      await commit(
+        store,
+        snapshot,
         (docs) => ({
           ...replaceDoc(docs, next),
           files:
@@ -199,7 +210,7 @@ export function createGasDocsDemo(): GasDocsPort {
     },
 
     async addFile(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, UPLOADERS, "Файлы основания добавляют ПТО, прораб и снабжение.");
       mustObject(snapshot, user, input.objectId);
       const name = input.fileName.trim();
@@ -240,7 +251,9 @@ export function createGasDocsDemo(): GasDocsPort {
         by: user.name,
         at: nowOf(snapshot),
       };
-      commit(
+      await commit(
+        store,
+        snapshot,
         (docs) => ({ ...docs, files: [...docs.files, file] }),
         audit(
           snapshot,
@@ -254,14 +267,16 @@ export function createGasDocsDemo(): GasDocsPort {
     },
 
     async confirmVolume(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, ["prorab", "admin"], "Объём подтверждает прораб объекта.");
       const work = snapshot.docs.works.find((w) => w.id === input.workId);
       if (!work) throw new DocsError("not-found", "Запись объёма не найдена.");
       mustObject(snapshot, user, work.objectId);
       if (work.volumeConfirmedBy) return work;
       const next = { ...work, volumeConfirmedBy: user.name, volumeConfirmedAt: nowOf(snapshot) };
-      commit(
+      await commit(
+        store,
+        snapshot,
         (docs) => ({ ...docs, works: docs.works.map((w) => (w.id === work.id ? next : w)) }),
         audit(snapshot, user, "Подтвердил объём", work.id, work.number),
       );
@@ -269,7 +284,7 @@ export function createGasDocsDemo(): GasDocsPort {
     },
 
     async closeRegistry(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, EDITORS, "Реестр закрывает ПТО.");
       mustObject(snapshot, user, input.objectId);
       const check = registryCheck(snapshot.docs, input.objectId);
@@ -285,7 +300,9 @@ export function createGasDocsDemo(): GasDocsPort {
         rows: check.docs.map((d) => registryRowOf(ctx, d)),
       };
       const included = new Set(check.docs.map((d) => d.id));
-      commit(
+      await commit(
+        store,
+        snapshot,
         (docs) => ({
           ...docs,
           registries: [...docs.registries, registry],
@@ -308,7 +325,7 @@ export function createGasDocsDemo(): GasDocsPort {
     },
 
     async acceptJournal(input) {
-      const snapshot = getSnapshot();
+      const snapshot = await store.read();
       const user = must(snapshot, EDITORS, "Запись журнала принимает ПТО.");
       mustObject(snapshot, user, input.objectId);
       const same = snapshot.docs.journal.find((j) => j.workId === input.workId);
@@ -333,7 +350,9 @@ export function createGasDocsDemo(): GasDocsPort {
         acceptedBy: user.name,
         acceptedAt: nowOf(snapshot),
       };
-      commit(
+      await commit(
+        store,
+        snapshot,
         (docs) => ({ ...docs, journal: [...docs.journal, entry] }),
         audit(snapshot, user, "Принял запись журнала", input.objectId, draft.dates),
       );
