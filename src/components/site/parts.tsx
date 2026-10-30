@@ -6,9 +6,8 @@ import { cn } from "@/lib/utils";
  * Ссылки остаются ссылками (`<a>` или `Link`), кнопкой их делает только вид.
  */
 export const siteButton = {
-  /** Главное действие экрана: одно на экран, оранжевое */
-  primary:
-    "site-btn bg-orange-strong text-on-orange focus-ring is-hover:bg-[var(--orange-strong-hover)]",
+  /** Главное действие экрана: одно на экран, чёрная таблетка «Монохрома» (ADR-055, ADR-059) */
+  primary: "site-btn mono-btn-primary focus-ring",
   /** Второе действие: тихая капсула с обводкой */
   secondary:
     "site-btn bg-surface text-text ring-1 ring-line-2 ring-inset focus-ring is-hover:bg-surface-2",

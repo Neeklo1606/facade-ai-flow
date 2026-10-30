@@ -193,6 +193,15 @@ try {
         ? (audits[id]!.numericValue! / 1000).toFixed(1).replace(".", ",")
         : "—";
     const shift = audits["cumulative-layout-shift"]?.numericValue;
+    /*
+     * Лендинг (ADR-059, S7): сдвиг вёрстки первого экрана меньше 0,05. От сети он не зависит,
+     * поэтому держит порог и локально. LCP 2,5 с снимается на опубликованном адресе
+     */
+    if (path === "/" && (shift === undefined || shift >= 0.05)) {
+      failures.push(
+        `/ · телефон · CLS ${shift === undefined ? "нет замера" : shift.toFixed(3)} ≥ 0,05`,
+      );
+    }
     line.push(
       `FCP ${seconds("first-contentful-paint")} с · LCP ${seconds("largest-contentful-paint")} с · CLS ${shift === undefined ? "—" : shift.toFixed(3).replace(".", ",")}`,
     );

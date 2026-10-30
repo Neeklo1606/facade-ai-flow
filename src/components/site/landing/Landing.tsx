@@ -1,38 +1,20 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  ClipboardCheck,
-  FileSearch,
-  History,
-  ListChecks,
-  MessageSquareText,
-  Play,
-  ShieldCheck,
-  Smartphone,
-} from "lucide-react";
-import { CASE_STATUS, contactTgUrl, PRICES, VIDEO } from "@/lib/site/config";
+import { ArrowRight, ArrowUpRight, Play } from "lucide-react";
+import { contactTgUrl, VIDEO } from "@/lib/site/config";
 import { LANDING, leadMessage } from "@/lib/site/copy";
 import { cn } from "@/lib/utils";
 import { siteButton } from "@/components/site/parts";
-import {
-  BotFragment,
-  CalcFragment,
-  QueueFragment,
-  ReportFragment,
-  Reveal,
-  SampleNote,
-  WeekTableFragment,
-} from "./fragments";
+import { DocsFragment, QueueFragment, Reveal, ReportFragment, SupplyFragment } from "./fragments";
+import { HeroWeek } from "./hero-week";
 import { LeadForm } from "./LeadForm";
 import { track } from "@/lib/site/analytics";
-import engineeringImage from "@/assets/landing-engineering.jpg";
 
 /**
- * Лендинг ГАЙКИ (ADR-050, 01_SPEC 9): двенадцать секций сверху вниз, тексты из `copy.ts`.
- * Первый экран целиком в 390 x 664; на компьютере справа живая последовательность записи.
- * Одна тёмная секция «Как это работает». Липкая «Открыть демо» на телефоне после первого экрана.
+ * Лендинг «ГАЙКА: помощник подрядчика» (ADR-059, S7). Порядок секций и механика из правок
+ * 25.10 (ADR-053) сохранены: появление один раз, вопросы, форма, липкая кнопка телефона.
+ * Содержание и вид переписаны в «Монохром»: светлые карточки с воздухом, чёрная главная
+ * кнопка. Справа на первом экране живая неделя демо, а не картинка.
  */
 export function Landing() {
   const hero = useRef<HTMLElement>(null);
@@ -41,15 +23,12 @@ export function Landing() {
   return (
     <div className="landing-page">
       <Hero ref={hero} />
-      <Pains />
-      <How />
-      <Foreman />
-      <Trust />
-      <Report />
-      <CaseBlock />
-      <More />
+      <Modules />
+      <Pilot />
+      <Audience />
+      <Limits />
+      <Price />
       {VIDEO.url ? <Video /> : null}
-      <Start />
       <Faq />
       <Lead ref={lead} />
       <StickyDemo hero={hero} lead={lead} />
@@ -62,67 +41,36 @@ export function Landing() {
 function Hero({ ref }: { ref: React.Ref<HTMLElement> }) {
   const { hero } = LANDING;
   return (
-    <section ref={ref} className="landing-hero relative isolate overflow-hidden">
-      <img
-        src={engineeringImage}
-        alt=""
-        width={1920}
-        height={1024}
-        fetchPriority="high"
-        className="landing-hero-image"
-      />
-      <span aria-hidden className="landing-hero-wash" />
+    <section ref={ref} className="landing-hero">
       <div className="site-wrap landing-hero-inner">
         <div className="landing-hero-copy">
           <p className="site-caption site-rise font-medium text-text-2">{hero.eyebrow}</p>
-          <p className="landing-brand site-rise mt-4">Гайка</p>
           <h1 className="site-h1 site-rise mt-4 text-text">{hero.title}</h1>
           <p className="site-lead site-rise mt-5 text-text-2">{hero.lead}</p>
           <div className="landing-hero-actions site-rise mt-7 flex flex-col gap-3 sm:flex-row">
-            <Link
-              to="/demo"
+            <a
+              href="#lead"
               className={siteButton.primary}
-              data-cta="demo"
-              onClick={() => track("cta_demo", { place: "hero" })}
+              data-cta="lead"
+              onClick={() => track("cta_lead", { place: "hero" })}
             >
               {hero.primary}
               <ArrowRight className="size-5" aria-hidden />
-            </Link>
+            </a>
             <Link
-              to="/razbor"
-              search={{ from: "landing" }}
+              to="/demo"
               className={siteButton.secondary}
-              onClick={() => track("cta_razbor", { place: "hero" })}
+              data-cta="demo"
+              onClick={() => track("cta_demo", { place: "hero" })}
             >
               {hero.secondary}
             </Link>
           </div>
           <p className="site-caption site-rise mt-4 text-text-3">{hero.note}</p>
         </div>
-        {/*
-          Путь одной записи по горизонтали, один раз при появлении.
-          На телефоне его нет: первый экран только текст и кнопки.
-        */}
-        <div
-          className="landing-record hidden gap-4 md:grid md:grid-cols-3"
-          aria-label="Путь одной записи"
-        >
-          <Reveal delay={220} className="landing-record-step">
-            <p className="site-caption mb-3 text-text-2">01 · {LANDING.how.steps[0]?.title}</p>
-            <BotFragment />
-          </Reveal>
-          <Reveal delay={360} className="landing-record-step">
-            <p className="site-caption mb-3 text-text-2">02 · {LANDING.how.steps[1]?.title}</p>
-            <QueueFragment />
-          </Reveal>
-          <Reveal delay={500} className="landing-record-step">
-            <p className="site-caption mb-3 text-text-2">03 · {LANDING.how.steps[3]?.title}</p>
-            <ReportFragment />
-          </Reveal>
-          <Reveal delay={600} className="md:col-span-3">
-            <SampleNote />
-          </Reveal>
-        </div>
+        <Reveal delay={200} className="landing-hero-fragment">
+          <HeroWeek />
+        </Reveal>
       </div>
     </section>
   );
@@ -136,20 +84,15 @@ function Section({
   lead,
   children,
   className,
-  dark = false,
 }: {
   id: string;
   title: string;
   lead?: ReactNode;
   children: ReactNode;
   className?: string;
-  dark?: boolean;
 }) {
   return (
-    <section
-      aria-labelledby={id}
-      className={cn("site-section", dark ? "site-dark" : "border-t border-line", className)}
-    >
+    <section aria-labelledby={id} className={cn("site-section border-t border-line", className)}>
       <div className="site-wrap">
         <Reveal className="landing-section-heading">
           <h2 id={id} className="site-h2 max-w-[22ch] text-text">
@@ -165,11 +108,9 @@ function Section({
 
 function Points({
   items,
-  icons,
   layout = "two",
 }: {
   items: readonly string[];
-  icons?: readonly (typeof Play)[];
   /** «three» для трёх пунктов в ряд, «one» для колонки рядом с фрагментом */
   layout?: "one" | "two" | "three";
 }) {
@@ -182,14 +123,9 @@ function Points({
       )}
     >
       {items.map((item, index) => {
-        const Icon = icons?.[index];
         return (
           <Reveal as="li" key={item} delay={index * 80} className="landing-point flex h-full gap-3">
-            {Icon ? (
-              <Icon className="mt-0.5 size-5 shrink-0 text-orange" strokeWidth={1.75} aria-hidden />
-            ) : (
-              <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-orange" />
-            )}
+            <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-text" />
             <span className="site-body text-text">{item}</span>
           </Reveal>
         );
@@ -198,111 +134,97 @@ function Points({
   );
 }
 
-/* ------------------------------------------------------------------ 2. Знакомо? */
+/* ------------------------------------------------------------------ 2. Три модуля */
 
-function Pains() {
-  const { pains } = LANDING;
+const MODULE_SCREEN: Record<string, ReactNode> = {
+  time: (
+    <div className="flex flex-col gap-2">
+      <QueueFragment />
+      <ReportFragment />
+    </div>
+  ),
+  supply: <SupplyFragment />,
+  docs: <DocsFragment />,
+};
+
+/** Куда ведёт «Посмотреть в демо»: учёт времени показом, остальные модули выбором роли */
+const MODULE_DEMO: Record<string, "/demo" | "/gas"> = {
+  time: "/demo",
+  supply: "/gas",
+  docs: "/gas",
+};
+
+function Modules() {
+  const { modules } = LANDING;
   return (
-    <Section id="pains" title={pains.title}>
-      <Points items={pains.items} layout="three" />
-      <p className="site-caption mt-5 max-w-[640px] text-text-3">{pains.caption}</p>
-    </Section>
-  );
-}
-
-/* ------------------------------------------------------------------ 3. Как это работает */
-
-function How() {
-  const { how } = LANDING;
-  const fragments = [
-    <BotFragment key="bot" />,
-    <QueueFragment key="queue" />,
-    <CalcFragment key="calc" />,
-    <ReportFragment key="report" />,
-  ];
-  return (
-    <Section id="how" title={how.title} dark>
-      <ol className="landing-process grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-x-12 lg:gap-y-14">
-        {how.steps.map((step, index) => (
-          <li key={step.title} className="landing-process-step">
-            <Reveal delay={index * 100} className="flex flex-col gap-4">
-              <div className="flex gap-4">
-                <span className="site-caption font-medium text-orange tnum">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <h3 className="site-h3 text-text">{step.title}</h3>
-                  <p className="site-body mt-1 text-text-2">{step.text}</p>
-                </div>
-              </div>
-              {fragments[index]}
-            </Reveal>
-          </li>
+    <Section id="modules" title={modules.title} lead={modules.lead}>
+      <ul className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {modules.items.map((item, index) => (
+          <Reveal
+            as="li"
+            key={item.key}
+            delay={index * 120}
+            className="landing-module mono-card flex h-full flex-col gap-5"
+          >
+            <h3 className="site-h3 text-text">{item.title}</h3>
+            <ol className="flex flex-col gap-2" aria-label={`${item.title}: шаги`}>
+              {item.steps.map((step, i) => (
+                <li key={step} className="flex items-baseline gap-3">
+                  <span className="site-caption text-text-3 tnum">{i + 1}</span>
+                  <span className="site-body text-text">{step}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-auto">{MODULE_SCREEN[item.key]}</div>
+            <Link
+              to={MODULE_DEMO[item.key]!}
+              onClick={() => track("cta_demo", { place: `module-${item.key}` })}
+              className="inline-flex min-h-11 items-center gap-1.5 self-start text-body-strong text-text underline-offset-4 focus-ring is-hover:underline"
+            >
+              {modules.open}
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          </Reveal>
         ))}
-      </ol>
-      <SampleNote className="mt-8" />
+      </ul>
+      <p className="site-caption mt-4 text-text-3">Примеры из демо, вымышленные данные.</p>
     </Section>
   );
 }
 
-/* ------------------------------------------------------------------ 4. Бригадиру */
+/* ------------------------------------------------------------------ 3. Как внедряем */
 
-function Foreman() {
-  const { foreman } = LANDING;
+function Pilot() {
+  const { pilot } = LANDING;
   return (
-    <Section id="foreman" title={foreman.title}>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
-        <Points
-          items={foreman.items}
-          icons={[MessageSquareText, Smartphone, ShieldCheck]}
-          layout="one"
-        />
-        <Reveal className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line">
-          <BotFragment />
-        </Reveal>
+    <Section id="pilot" title={pilot.title} lead={pilot.lead}>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {pilot.columns.map((column, index) => (
+          <Reveal
+            key={column.title}
+            delay={index * 100}
+            className="landing-pilot-column flex flex-col gap-4"
+          >
+            <h3 className="site-h3 text-text">{column.title}</h3>
+            <Points items={column.items} layout="one" />
+          </Reveal>
+        ))}
       </div>
     </Section>
   );
 }
 
-/* ------------------------------------------------------------------ 5. Цифрам можно верить */
+/* ------------------------------------------------------------------ 4. Для кого */
 
-function Trust() {
-  const { trust } = LANDING;
+function Audience() {
+  const { audience } = LANDING;
   return (
-    <Section id="trust" title={trust.title}>
-      <Points items={trust.items} icons={[ClipboardCheck, FileSearch, ListChecks, History]} />
-    </Section>
-  );
-}
-
-/* ------------------------------------------------------------------ 6. Отчёт как ваш */
-
-function Report() {
-  const { report } = LANDING;
-  return (
-    <Section id="report" title={report.title} lead={report.text}>
-      <Reveal>
-        <WeekTableFragment />
-      </Reveal>
-      <SampleNote className="mt-3" />
-    </Section>
-  );
-}
-
-/* ------------------------------------------------------------------ 7. Кейс */
-
-function CaseBlock() {
-  const { case: item } = LANDING;
-  return (
-    <Section id="case" title={item.title}>
-      <Reveal className="landing-case flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-[640px]">
-          <p className="site-caption font-medium text-orange">{CASE_STATUS}</p>
-          <p className="site-body mt-2 text-text">{item.text}</p>
-        </div>
+    <Section id="audience" title={audience.title}>
+      <Points items={audience.items} layout="two" />
+      <Reveal className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="site-body text-text-2">{audience.caseText}</p>
         <Link to="/case/gas" className={cn(siteButton.secondary, "shrink-0")}>
-          {item.more}
+          {audience.caseLink}
           <ArrowRight className="size-5" aria-hidden />
         </Link>
       </Reveal>
@@ -310,25 +232,36 @@ function CaseBlock() {
   );
 }
 
-/* ------------------------------------------------------------------ 8. Что ещё умеет */
+/* ------------------------------------------------------------------ 5. Честно о границах */
 
-function More() {
-  const { more } = LANDING;
+function Limits() {
+  const { limits } = LANDING;
   return (
-    <Section id="more" title={more.title} lead={more.caption}>
-      <ul className="landing-links overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
-        {more.items.map((item) => (
-          <li key={item}>
-            <Link
-              to="/demo"
-              className="flex min-h-16 items-center gap-3 py-4 transition-colors duration-100 focus-ring active:bg-surface-2 is-hover:bg-surface-2"
-            >
-              <span className="site-body min-w-0 flex-1 text-text">{item}</span>
-              <ArrowUpRight className="size-5 shrink-0 text-text-3" aria-hidden />
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <Section id="limits" title={limits.title}>
+      <Reveal className="mono-card mono-card-inverse landing-limits">
+        <ul className="flex flex-col gap-4">
+          {limits.items.map((item) => (
+            <li key={item} className="flex gap-3">
+              <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-current" />
+              <span className="site-body">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </Reveal>
+    </Section>
+  );
+}
+
+/* ------------------------------------------------------------------ 6. Цена */
+
+function Price() {
+  const { price } = LANDING;
+  return (
+    <Section id="price" title={price.title}>
+      <Reveal className="landing-price mono-card flex flex-col gap-2">
+        <p className="site-h3 text-text tnum">{price.pilot}</p>
+        <p className="site-body text-text-2">{price.after}</p>
+      </Reveal>
     </Section>
   );
 }
@@ -362,49 +295,7 @@ function Video() {
   );
 }
 
-/* ------------------------------------------------------------------ 9. Как начать */
-
-function Start() {
-  const { start } = LANDING;
-  return (
-    <Section id="start" title={start.title}>
-      <ol className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-        {start.steps.map((step, index) => {
-          const price = PRICES[step.key as keyof typeof PRICES];
-          return (
-            <Reveal
-              as="li"
-              key={step.key}
-              delay={index * 80}
-              className="landing-start-step flex h-full flex-col gap-3"
-            >
-              <span className="site-caption font-medium text-text-3 tnum">Шаг {index + 1}</span>
-              <h3 className="site-h3 text-text">{step.title}</h3>
-              <p className="site-body text-text-2">{step.text}</p>
-              {/* Цена только из конфигурации: без значения строки нет вовсе (01_SPEC 13) */}
-              {price ? (
-                <p className="site-body mt-auto pt-2 font-medium text-text">{price}</p>
-              ) : null}
-              {step.key === "razbor" ? (
-                <Link
-                  to="/razbor"
-                  search={{ from: "landing" }}
-                  onClick={() => track("cta_razbor", { place: "steps" })}
-                  className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-2 text-body-strong text-orange focus-ring"
-                >
-                  Подробнее
-                  <ArrowRight className="size-4" aria-hidden />
-                </Link>
-              ) : null}
-            </Reveal>
-          );
-        })}
-      </ol>
-    </Section>
-  );
-}
-
-/* ------------------------------------------------------------------ 10. Вопросы */
+/* ------------------------------------------------------------------ 7. Вопросы */
 
 function Faq() {
   const { faq } = LANDING;
@@ -430,7 +321,7 @@ function Faq() {
   );
 }
 
-/* ------------------------------------------------------------------ 11. Заявка */
+/* ------------------------------------------------------------------ 8. Заявка */
 
 function Lead({ ref }: { ref: React.Ref<HTMLElement> }) {
   const { lead } = LANDING;
@@ -446,10 +337,7 @@ function Lead({ ref }: { ref: React.Ref<HTMLElement> }) {
           <h2 id="lead-title" className="site-h2 text-text">
             {lead.title}
           </h2>
-          <p className="site-body mt-3 max-w-[520px] text-text-2">
-            Оставьте контакты: свяжемся, пришлём, куда отправить сообщения бригадиров и отчёт, и
-            через 3 рабочих дня покажем вашу неделю в ГАЙКЕ.
-          </p>
+          <p className="site-body mt-3 max-w-[520px] text-text-2">{lead.text}</p>
           <a
             href={contactTgUrl(leadMessage("landing"))}
             target="_blank"
@@ -507,7 +395,7 @@ function StickyDemo({
         onClick={() => track("cta_demo", { place: "sticky" })}
         className={cn(siteButton.primary, "landing-sticky-button w-full")}
       >
-        {LANDING.hero.primary}
+        {LANDING.hero.secondary}
         <ArrowRight className="size-5" aria-hidden />
       </Link>
     </div>

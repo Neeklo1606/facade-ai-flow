@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Check, FileSpreadsheet } from "lucide-react";
-import { SAMPLE } from "@/lib/site/sample";
+import { DOCS_SAMPLE, SAMPLE, SUPPLY_SAMPLE } from "@/lib/site/sample";
 import { cn } from "@/lib/utils";
 
 /**
@@ -233,6 +233,53 @@ export function WeekTableFragment({ className }: { className?: string }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Черновик заявки прораба: текст как сказан, позиция из номенклатуры, лимит сметы (ADR-059) */
+export function SupplyFragment({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-card border border-line bg-surface px-4 py-3",
+        className,
+      )}
+      aria-label="Пример: черновик заявки"
+    >
+      <p className="text-meta text-text-3">Из текста: «{SUPPLY_SAMPLE.text}»</p>
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-body-strong text-text">{SUPPLY_SAMPLE.item}</span>
+        <span className="shrink-0 text-body-strong text-text tnum">{SUPPLY_SAMPLE.qty}</span>
+      </div>
+      <p className="text-meta text-text-2">{SUPPLY_SAMPLE.limit} (демо)</p>
+    </div>
+  );
+}
+
+/** Акт в работе ПТО: комплектность и строка «не хватает» с ответственным (ADR-059) */
+export function DocsFragment({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-card border border-line bg-surface px-4 py-3",
+        className,
+      )}
+      aria-label="Пример: комплектность акта"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-body-strong text-text">
+          {DOCS_SAMPLE.title} · {DOCS_SAMPLE.object}
+        </span>
+        <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-meta-strong text-text tnum">
+          {DOCS_SAMPLE.percent}%
+        </span>
+      </div>
+      <p className="text-meta text-text-3">{DOCS_SAMPLE.kind}, черновик</p>
+      <p className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+        <span className="text-meta text-text">{DOCS_SAMPLE.missing}</span>
+        <span className="text-meta text-text-3">Ответственный: {DOCS_SAMPLE.owner}</span>
+      </p>
     </div>
   );
 }

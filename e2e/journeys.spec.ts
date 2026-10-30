@@ -65,7 +65,7 @@ for (const theme of ["dark", "light"] as const) {
       const started = Date.now();
       await page.goto("/", { waitUntil: "load" });
       await page.waitForSelector("html[data-booted]");
-      await t.tap(page.getByRole("link", { name: /Открыть демо/ }).nth(1));
+      await t.tap(page.getByRole("main").getByRole("link", { name: "Посмотреть демо" }).first());
       await expect(page).toHaveURL(/\/demo$/);
       await t.tap(page.getByRole("link", { name: /Начать показ/ }));
       await expect(page).toHaveURL(/\/gas\/foreman/);

@@ -24,15 +24,21 @@ test.describe("сайт и вход в демо 390", () => {
   test("корень это сайт: заголовок, две кнопки, без оболочки приложения", async ({ page }) => {
     const response = await page.goto("/", { waitUntil: "domcontentloaded" });
     expect(response?.status()).toBe(200);
+    // ADR-059 (S7): заголовок и две кнопки первого экрана из постановки владельца
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Выработка бригад без ручного Excel",
+      "Данные с объекта превращаются в отчёты и документы. Без переписывания в Excel",
     );
-    await expect(page.getByRole("link", { name: "Разобрать мои данные" })).toBeVisible();
+    const main = page.getByRole("main");
+    await expect(main.getByRole("link", { name: "Попробовать на своей неделе" })).toHaveAttribute(
+      "href",
+      "#lead",
+    );
+    await expect(main.getByRole("link", { name: "Посмотреть демо" }).first()).toBeVisible();
     // Сайт, а не приложение: ни нижней панели, ни меню, ни выбора роли
     await expect(page.getByRole("navigation", { name: /Разделы|Нижняя/ })).toHaveCount(0);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     // Первый экран целиком в 390 x 664: строка под кнопками видна без прокрутки
-    const note = page.getByText("Без регистрации. С телефона. 3 минуты.");
+    const note = page.getByText("Демо без регистрации, с телефона, 3 минуты.");
     const box = await note.boundingBox();
     expect(box && box.y + box.height).toBeLessThanOrEqual(664);
   });
@@ -54,7 +60,7 @@ test.describe("сайт и вход в демо 390", () => {
     let taps = 0;
     await page
       .getByRole("main")
-      .getByRole("link", { name: /Открыть демо/ })
+      .getByRole("link", { name: /Посмотреть демо/ })
       .first()
       .click();
     taps += 1;
@@ -103,41 +109,63 @@ test.describe("сайт и вход в демо 390", () => {
   });
 });
 
-test.describe("лендинг 390 (ADR-050)", () => {
+test.describe("лендинг 390 (ADR-059, S7)", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("двенадцать секций, одна тёмная, ни одного запрещённого обещания", async ({ page }) => {
+  test("секции постановки, три модуля, честные границы, ни одного запрещённого обещания", async ({
+    page,
+  }) => {
     await page.goto("/", { waitUntil: "load" });
     for (const title of [
-      "Знакомо?",
-      "Как это работает",
-      "Бригадиру ничего не нужно устанавливать",
-      "Цифрам можно верить",
-      "Отчёт как ваш",
-      "Кейс",
-      "Что ещё умеет ГАЙКА",
-      "Как начать",
+      "Три модуля",
+      "Как внедряем",
+      "Для кого",
+      "Честно о границах",
+      "Цена",
       "Вопросы",
-      "Покажем на ваших данных",
+      "Попробуйте на своей неделе",
     ]) {
       await expect(page.getByRole("heading", { level: 2, name: title })).toHaveCount(1);
     }
-    await expect(page.locator("section.site-dark")).toHaveCount(1);
-    const text = await page.locator("main").innerText();
-    // Цен нет, пока не заданы в конфигурации; цифр эффекта и отзывов нет вовсе
-    expect(text).not.toMatch(/₽\s*\/\s*мес|окупаем|экономи[ия]\s+\d|отзыв/i);
+    // Три модуля, у каждого 3 шага и фрагмент экрана
+    for (const module of ["Учёт времени бригад", "Снабжение", "Исполнительная документация"]) {
+      await expect(
+        page.getByRole("list", { name: `${module}: шаги` }).getByRole("listitem"),
+      ).toHaveCount(3);
+    }
+    await expect(page.getByLabel("Пример: черновик заявки")).toBeVisible();
+    await expect(page.getByLabel("Пример: комплектность акта")).toBeVisible();
+    // Первый экран: живая неделя демо текстом, а не картинкой
+    await expect(page.getByLabel("Пример: неделя в демо")).toContainText("Начислено");
+    // «Монохром»: светлые секции, тёмной секции больше нет
+    await expect(page.locator("section.site-dark")).toHaveCount(0);
+    const main = page.locator("main");
+    for (const line of [
+      "Веб-ввод работает в пилоте.",
+      "Подключение MAX отдельным этапом.",
+      "Документы готовятся черновиками, подписывают ваши специалисты.",
+      "Подписка после пилота по договорённости",
+    ]) {
+      await expect(main.getByText(line, { exact: true })).toBeVisible();
+    }
+    await expect(main.getByText(/^Пилот от 30\s000 ₽$/)).toBeVisible();
+    const text = await main.innerText();
+    // Цифр эффекта, отзывов, скидок и таймеров нет вовсе
+    expect(text).not.toMatch(/₽\s*\/\s*мес|окупаем|экономи[ия]\s+\d|отзыв|скидк|осталось\s+\d/i);
   });
 
-  test("липкая «Открыть демо»: нет на первом экране, есть дальше, прячется у формы", async ({
+  test("липкая «Посмотреть демо»: нет на первом экране, есть дальше, прячется у формы", async ({
     page,
   }) => {
     await page.goto("/", { waitUntil: "load" });
     await page.waitForSelector("html[data-booted]");
     const sticky = page.locator(".site-sticky");
     await expect(sticky).toHaveAttribute("data-hidden", "");
-    await page.getByRole("heading", { name: "Цифрам можно верить" }).scrollIntoViewIfNeeded();
+    await page.getByRole("heading", { name: "Как внедряем" }).scrollIntoViewIfNeeded();
     await expect(sticky).not.toHaveAttribute("data-hidden", "");
-    await page.getByRole("heading", { name: "Покажем на ваших данных" }).scrollIntoViewIfNeeded();
+    await page
+      .getByRole("heading", { name: "Попробуйте на своей неделе" })
+      .scrollIntoViewIfNeeded();
     await page.getByRole("button", { name: "Отправить заявку" }).scrollIntoViewIfNeeded();
     await expect(sticky).toHaveAttribute("data-hidden", "");
   });

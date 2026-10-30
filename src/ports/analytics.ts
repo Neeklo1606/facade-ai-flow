@@ -6,6 +6,8 @@ export type AnalyticsEvent =
   | "landing_view"
   | "cta_demo"
   | "cta_razbor"
+  /** «Попробовать на своей неделе»: переход к форме заявки (ADR-059) */
+  | "cta_lead"
   | "demo_start"
   | "demo_step"
   | "demo_finish"
