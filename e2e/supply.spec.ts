@@ -9,7 +9,7 @@ import { gasRole } from "./gas-helpers";
  * 2. снабженец взял в работу и ввёл 2 предложения;
  * 3. сравнил их, выбрал и отметил «заказано», затем «в пути»;
  * 4. прораб принял поставку с расхождением и сертификатом;
- * 5. материал с сертификатом виден ПТО.
+ * 5. материал с сертификатом виден ПТО в «Материалах».
  *
  * Публичный контур с исходным набором: сессия вкладки своя у каждого теста.
  */
@@ -112,7 +112,11 @@ for (const [name, viewport] of [
       );
 
       // 5. ПТО: материал с сертификатом в «Материалах»
+      // С S6 (ADR-058) ПТО начинает с «Документов»; «Материалы» во вкладках роли
       await gasRole(page, "ПТО");
+      await expect(page).toHaveURL(/\/gas\/docs$/);
+      await page.goto("/gas/materials", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("html[data-booted]", { timeout: 60_000 });
       await expect(page).toHaveURL(/\/gas\/materials$/);
       await expect(page.getByText("Труба стальная ВГП 20 мм").first()).toBeVisible();
       await expect(page.getByText("Сертификат есть")).toBeVisible();

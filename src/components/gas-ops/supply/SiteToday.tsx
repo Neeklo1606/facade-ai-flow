@@ -38,6 +38,7 @@ import { useBrowserSpeech } from "@/lib/ui/browser-speech";
 import { useOffline } from "@/lib/ui/offline";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { SiteDocNeeds } from "../docs/SiteDocNeeds";
 import { FilePick, short, SUPPLY_TONE } from "./common";
 
 /** Очередь заявок без сети: своя, отдельно от записей времени бригадира */
@@ -337,6 +338,8 @@ export function SiteToday() {
           </ul>
         </section>
       ) : null}
+
+      <SiteDocNeeds />
 
       <section aria-labelledby="my-requests" className="flex flex-col gap-3">
         <h2 id="my-requests" className="type-card">

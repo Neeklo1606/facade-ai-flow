@@ -38,6 +38,7 @@ import { chartPoints } from "@/lib/ui/mono-logic";
 import { toast } from "@/lib/toast";
 import { gasScreen } from "@/lib/gas-ops/screens";
 import { SupplyMetrics } from "../supply/SupplyOverviewScreen";
+import { DocsReadiness } from "../docs/ReadinessScreen";
 
 const TimeChart = lazy(() =>
   import("@/components/ui/mono/time-chart").then((m) => ({ default: m.TimeChart })),
@@ -433,6 +434,21 @@ export function WeekScreen() {
             </Link>
           </div>
           <SupplyMetrics />
+        </section>
+      ) : null}
+
+      {/* Модуль 3 (ADR-058): готовность исполнительной документации по объектам */}
+      {gasScreen("docsOverview").roles.includes(actor.role) ? (
+        <section aria-labelledby="week-docs" className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="week-docs" className="type-card">
+              Исполнительная документация
+            </h2>
+            <Link to="/gas/docs-overview" className="mono-btn mono-btn-quiet focus-ring">
+              Подробнее
+            </Link>
+          </div>
+          <DocsReadiness />
         </section>
       ) : null}
 

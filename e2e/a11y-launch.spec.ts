@@ -89,6 +89,18 @@ for (const theme of ["light", "dark"] as const) {
       await gasRole(page, "Снабженец");
       await expect(page).toHaveURL(/\/gas\/supply$/);
       await expectA11y(page, `/gas/supply ${theme}`);
+
+      // ADR-058: ПТО начинает с «Документов»; пакет актов и редактор акта
+      await gasRole(page, "ПТО");
+      await expect(page).toHaveURL(/\/gas\/docs$/);
+      await expectA11y(page, `/gas/docs ${theme}`);
+      await page.getByRole("button", { name: "Создать черновики актов" }).click();
+      await page
+        .getByRole("button", { name: /АОСР №\s1(?!\d)/ })
+        .first()
+        .click();
+      await expect(page).toHaveURL(/\/gas\/docs\/ed-/);
+      await expectA11y(page, `редактор акта ${theme}`);
     });
   });
 }

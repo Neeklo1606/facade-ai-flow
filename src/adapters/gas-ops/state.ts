@@ -23,10 +23,11 @@ import type { GasOpsSnapshot } from "@/ports/gas-ops";
 import { DEFAULT_COMPANY_RULE } from "@/domain/gas-ops/work-cost";
 import { DEFAULT_REVIEW_SETTINGS } from "@/domain/gas-ops/review-policy";
 import { buildSupplySeed } from "@/data/mock/gas-supply-seed";
+import { buildDocsSeed } from "@/data/mock/gas-docs-seed";
 
 const KEY = "neeklo-gas-ops-v1";
 /** Версия набора: меняется вместе с формой данных, иначе старый снимок во вкладке ломает экран */
-const VERSION = 6;
+const VERSION = 7;
 
 interface Stored {
   version: number;
@@ -65,6 +66,7 @@ function initial(contour: GasContour): GasOpsSnapshot {
     periods: [],
     // Снабжение (ADR-057): демо-номенклатура и поставщики, цен нет
     supply: buildSupplySeed(seed.today),
+    docs: buildDocsSeed(seed.today),
   };
 }
 

@@ -23,6 +23,10 @@ import {
   Factory,
   BarChart3,
   MoreHorizontal,
+  FileCheck2,
+  FolderArchive,
+  NotebookPen,
+  Gauge,
 } from "lucide-react";
 import type { GasScreenKey } from "@/lib/gas-ops/screens";
 
@@ -49,5 +53,9 @@ export const SCREEN_ICON: Record<GasScreenKey, LucideIcon> = {
   deliveries: Truck,
   supplyOverview: BarChart3,
   materials: PackageCheck,
+  docs: FileCheck2,
+  docsRegistry: FolderArchive,
+  workJournal: NotebookPen,
+  docsOverview: Gauge,
   more: MoreHorizontal,
 };

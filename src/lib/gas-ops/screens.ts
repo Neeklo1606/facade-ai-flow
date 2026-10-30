@@ -28,6 +28,10 @@ export type GasScreenKey =
   | "deliveries"
   | "supplyOverview"
   | "materials"
+  | "docs"
+  | "docsRegistry"
+  | "workJournal"
+  | "docsOverview"
   | "more";
 
 export type GasGroup = "work" | "catalogs" | "growth" | "help";
@@ -338,6 +342,56 @@ export const GAS_SCREENS: readonly GasScreen[] = [
       "Материал без сертификата помечен: в акт его не включить, пока документа нет.",
     ],
   },
+  // ---------- Исполнительная документация (ADR-058) ----------
+  {
+    key: "docs",
+    to: "/gas/docs",
+    title: "Документы",
+    short: "Документы",
+    group: "work",
+    roles: ["admin", "pto"],
+    steps: [
+      "Выберите объект и нажмите «Создать черновики актов» в блоке «Сформировать пакет».",
+      "Откройте акт: у каждого поля источник, строки «Не хватает» ведут к добавлению.",
+      "Полный комплект передайте на подпись, затем загрузите скан подписанного.",
+    ],
+  },
+  {
+    key: "docsRegistry",
+    to: "/gas/docs-registry",
+    title: "Реестр ИД",
+    short: "Реестр",
+    group: "work",
+    roles: ["admin", "pto", "director"],
+    steps: [
+      "Подписанные акты объекта собираются в текущий реестр.",
+      "«Закрыть реестр версией» фиксирует список; xlsx и пакет zip скачиваются здесь.",
+    ],
+  },
+  {
+    key: "workJournal",
+    to: "/gas/work-journal",
+    title: "Журнал работ",
+    short: "Журнал",
+    group: "work",
+    roles: ["admin", "pto"],
+    steps: [
+      "Черновики записей собираются из подтверждённых объёмов.",
+      "Сверьте текст, допишите условия производства работ и нажмите «Принять запись».",
+    ],
+  },
+  {
+    key: "docsOverview",
+    to: "/gas/docs-overview",
+    title: "Готовность ИД",
+    short: "ИД",
+    group: "work",
+    roles: ["admin", "director"],
+    steps: [
+      "Процент комплектности считается по всем работам объекта, с актом и без.",
+      "Блокеры показывают, чего не хватает и кто отвечает.",
+    ],
+  },
 ];
 
 /** Вкладка «Ещё» телефона (ADR-048): разделы вне панели, роль, показ, тема */
@@ -377,8 +431,7 @@ export const ROLE_HOME: Record<Role, GasScreenKey> = {
   admin: "directory",
   prorab: "site",
   supply: "supply",
-  // До S6 у ПТО один экран: «Документы» строятся там
-  pto: "materials",
+  pto: "docs",
 };
 
 /** Одна строка о роли в переключателе: кто это и что делает */
@@ -389,7 +442,7 @@ export const ROLE_ABOUT: Record<Role, string> = {
   admin: "Ведёт состав бригад, ставки, сметы и выгрузку Excel.",
   prorab: "Заказывает материалы голосом или текстом и принимает поставки на объекте.",
   supply: "Ведёт заявки: предложения поставщиков, выбор, заказ и доставку.",
-  pto: "Берёт принятые материалы с сертификатами для исполнительной документации.",
+  pto: "Собирает акты из подтверждённых работ, проверяет комплект и ведёт реестр ИД.",
 };
 
 /**
@@ -404,7 +457,7 @@ export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
   // Прораб, как бригадир, живёт в своём экране телефона: панели нет
   prorab: [],
   supply: ["supply", "deliveries", "suppliers", "materials"],
-  pto: ["materials"],
+  pto: ["docs", "docsRegistry", "workJournal", "materials"],
 };
 
 /**
@@ -428,6 +481,7 @@ export const ROLE_MENU: Record<Role, readonly GasScreenKey[]> = {
     "week",
     "reports",
     "supplyOverview",
+    "docsOverview",
     "entries",
     "objects",
     "summary",
@@ -443,11 +497,12 @@ export const ROLE_MENU: Record<Role, readonly GasScreenKey[]> = {
     "admin",
     "reports",
     "supply",
+    "docs",
   ],
   foreman: [],
   prorab: [],
   supply: ["supply", "suppliers", "deliveries", "materials"],
-  pto: ["materials"],
+  pto: ["docs", "docsRegistry", "workJournal", "materials"],
 };
 
 /** Разделы только личного контура заказчика: рабочий лист встречи с ним (ADR-047) */
