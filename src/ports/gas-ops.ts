@@ -5,6 +5,7 @@
  * демонстрации. Поэтому замена демо-адаптера на сервер не переписывает интерфейс.
  */
 import type {
+  EntryChannel,
   Assignment,
   AuditLog,
   Brigade,
@@ -25,6 +26,11 @@ import type {
   ScheduleRow,
 } from "@/domain/gas-ops/schedule";
 import type { FinalCheck, ReviewMode, ReviewSettings } from "@/domain/gas-ops/review-policy";
+import type { CrewMember, PersonInput, Rate } from "@/domain/gas-ops/crew";
+import type { FieldSnapshot } from "@/domain/gas-ops/field";
+import type { Acceptance, PeriodVersion } from "@/domain/gas-ops/week";
+import type { SupplyState } from "@/domain/gas-ops/supply";
+import type { DocsState } from "@/domain/gas-ops/exec-docs";
 
 /** Недельный график объектов, применённый из файла заказчика (ADR-053, 4) */
 export interface WeekSchedule {
@@ -76,6 +82,16 @@ export interface GasOpsSnapshot {
   reviewSettings: ReviewSettings;
   finalChecks: FinalCheck[];
   reportIssues: ReportIssue[];
+  /** Состав бригад с периодами (ADR-056) */
+  crew: CrewMember[];
+  /** Ставки с периодами; пусто — стоимость труда скрыта с меткой «Ставки не заданы» */
+  rates: Rate[];
+  /** Версии закрытых недель: v1, после переоткрытия v2 */
+  periods: PeriodVersion[];
+  /** Снабжение (ADR-057): номенклатура, поставщики, заявки, предложения, приёмки, лимиты */
+  supply: SupplyState;
+  /** Исполнительная документация (ADR-058) */
+  docs: DocsState;
 }
 
 export interface CreateEntryInput {
@@ -89,6 +105,14 @@ export interface CreateEntryInput {
   breakMinutes: string | number;
   /** Отправить сразу на проверку или оставить черновиком */
   submit: boolean;
+  /** Сколько людей работало; null — состав не указан */
+  headcount?: number | null | undefined;
+  /** «У сотрудников разное время»: тогда начало и окончание записи — рамка строк */
+  people?: PersonInput[] | null | undefined;
+  /** Ключ отправки с телефона: повтор с ним возвращает ту же запись, дубля нет */
+  clientKey?: string | null | undefined;
+  channel?: EntryChannel | undefined;
+  note?: string | null | undefined;
 }
 
 export interface UpdateEntryInput {
@@ -98,6 +122,7 @@ export interface UpdateEntryInput {
   breakMinutes?: string | number | undefined;
   objectId?: string | undefined;
   day?: string | undefined;
+  headcount?: number | null | undefined;
   /** Обязателен, когда правит проверяющий: правка без причины в журнал не идёт */
   comment?: string | undefined;
 }
@@ -123,7 +148,9 @@ export class GasOpsError extends Error {
       | "nothing-to-undo"
       | "estimate-not-ready"
       | "mode-unavailable"
-      | "final-check-required",
+      | "final-check-required"
+      | "period-closed"
+      | "close-blocked",
     message: string,
   ) {
     super(message);
@@ -187,6 +214,28 @@ export interface GasOpsPort {
   finalCheck(): Promise<FinalCheck>;
   /** Сдать отчёт недели: только после итоговой проверки */
   issueReport(): Promise<ReportIssue>;
+  /**
+   * Выборка бригадира: своя бригада, без сумм, смет и ставок (1.2). Другие роли получают
+   * выборку бригады, за которую смотрят
+   */
+  fieldSnapshot(brigadeId?: string | undefined): Promise<FieldSnapshot>;
+  /** Ответ бригадира на вопрос «На уточнении»: запись снова ждёт проверки */
+  answerClarify(input: { id: string; text: string }): Promise<TimeEntry>;
+  /** Закрыть неделю: версия v1 (после переоткрытия v2) с копией подтверждённых записей */
+  closeWeek(input: { accepted: Acceptance[] }): Promise<PeriodVersion>;
+  /** Переоткрыть закрытую неделю с причиной: версия остаётся, следующее закрытие даст новую */
+  reopenWeek(input: { reason: string }): Promise<PeriodVersion>;
+  /** Ставка с периодом: на человека или на бригаду */
+  setRate(input: {
+    employeeId: string | null;
+    brigadeId: string;
+    rubPerHour: number;
+    from: string;
+  }): Promise<Rate>;
+  /** Добавить человека в состав с даты */
+  addCrewMember(input: { brigadeId: string; name: string; from: string }): Promise<CrewMember>;
+  /** Вывести из состава: последний день включительно */
+  endCrewMember(input: { id: string; to: string }): Promise<CrewMember>;
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }

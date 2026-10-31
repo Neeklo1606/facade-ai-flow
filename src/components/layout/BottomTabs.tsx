@@ -139,7 +139,8 @@ export function BottomTabs() {
         aria-label="Основная навигация"
         data-keyboard={keyboardOpen ? "open" : undefined}
         className={cn(
-          "line-top fixed inset-x-0 bottom-0 z-40 grid bg-surface pb-[env(safe-area-inset-bottom)] transition-fast md:hidden",
+          // «Монохром» (ADR-055, 2.5): 64 + safe-area, белая с тенью сверху, до 1024
+          "mono-tabbar grid transition-fast lg:hidden",
           // Пока фокус в поле ввода, панель уходит: место под неё остаётся, чтобы не прыгало
           keyboardOpen && "pointer-events-none translate-y-full opacity-0",
           // Колонок ровно по числу позиций: классы записаны целиком, иначе сборщик их не соберёт
@@ -167,7 +168,7 @@ export function BottomTabs() {
                 }}
                 aria-label="Говорить: касание открывает запись, удержание начинает её сразу"
                 data-tour="nav-plus"
-                className="focus-ring press-98 -translate-y-2 grid size-14 place-items-center rounded-full bg-pill text-pill-text ring-4 ring-surface [&_svg]:size-6"
+                className="focus-ring press-98 -translate-y-2 grid size-14 place-items-center rounded-full bg-pill text-pill-text ring-4 ring-card [&_svg]:size-6"
               >
                 <Mic strokeWidth={2} aria-hidden />
               </button>
@@ -185,7 +186,7 @@ const MORE_TAB: TabDef = { key: "more", root: "/more" };
 /** Дверь /app сразу уводит на экран роли: в истории вкладок её нет */
 const TRANSIENT = ["/app", "/"] as const;
 
-/** Позиция панели: иконка 24, подпись 11, активная акцентом и точкой 4 под подписью */
+/** Позиция панели «Монохрома»: иконка 20 в таблетке 56×32, активная — чёрная таблетка */
 function Tab({
   item,
   active,
@@ -211,17 +212,14 @@ function Tab({
       activeOptions={{ exact: true, includeSearch: false }}
       data-tour={`nav-${item.key}`}
       aria-current={active ? "page" : undefined}
-      className={cn(
-        "focus-ring transition-fast relative flex h-tabbar flex-col items-center justify-center gap-1 pt-1 text-tab [touch-action:manipulation]",
-        active ? "text-orange" : "text-text-2",
-      )}
+      className="mono-tab focus-ring relative [touch-action:manipulation]"
     >
-      <span className="relative">
-        <item.icon className="size-6" strokeWidth={active ? 2 : 1.75} aria-hidden />
+      <span className="mono-tab-icon relative">
+        <item.icon className="size-5" strokeWidth={active ? 2 : 1.75} aria-hidden />
         {count > 0 && (
           <span
             className={cn(
-              "absolute -top-1.5 -right-3 grid h-4 min-w-4 place-items-center rounded-full px-1 text-tab tnum",
+              "absolute -top-1 right-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-tab tnum",
               item.badge && CRITICAL_BADGES.includes(item.badge)
                 ? "bg-danger text-on-orange"
                 : "bg-surface-3 text-text-2",
@@ -232,10 +230,6 @@ function Tab({
         )}
       </span>
       {item.label}
-      <span
-        aria-hidden
-        className={cn("-mt-0.5 size-1 rounded-full", active ? "bg-orange" : "bg-transparent")}
-      />
     </Link>
   );
 }

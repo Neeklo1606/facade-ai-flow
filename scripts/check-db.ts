@@ -12,6 +12,8 @@
 import { spawnSync } from "node:child_process";
 import pg from "pg";
 import { enums, sqlName, tables } from "../src/contracts";
+import { gasTables } from "../src/contracts/gas";
+import { checkGas } from "./check-db-gas";
 import { checklistFor, deliveryFamilies } from "../src/domain/deliveries";
 import { createDemoRepositories, setClockSource, type ClockSource } from "../src/adapters/demo";
 import {
@@ -69,7 +71,8 @@ async function checkColumns(db: Driver) {
   const service = new Set(["created_at", "updated_at", "created_by", "row_order"]);
   const problems: string[] = [];
   const expected = new Set<string>();
-  for (const def of tables) {
+  // Модули сервиса v1 (ADR-060) сверяются тем же правилом: их таблицы в своём реестре
+  for (const def of [...tables, ...gasTables]) {
     for (const [key, column] of Object.entries(def.columns)) {
       const name = `${def.meta.name}.${sqlName(key)}`;
       expected.add(name);
@@ -117,6 +120,7 @@ async function checkColumns(db: Driver) {
     ["auth_codes", "коды подтверждения входа (ADR-021)"],
     ["auth_sessions", "серверные сессии: выход гасит строку (ADR-021)"],
     ["auth_invites", "одноразовые приглашения сотрудников (ADR-021)"],
+    ["gas_versions", "версия состояния модулей сервиса v1 для записи с проверкой (ADR-060)"],
   ]);
   for (const [name] of actual) {
     const [table, column] = name.split(".") as [string, string];
@@ -128,7 +132,7 @@ async function checkColumns(db: Driver) {
     return true;
   }
   console.log(
-    `✓ колонки и перечисления базы совпадают с контрактами: ${tables.length} таблиц, ${expected.size} колонок, ${enumNames.size} перечислений`,
+    `✓ колонки и перечисления базы совпадают с контрактами: ${tables.length + gasTables.length} таблиц, ${expected.size} колонок, ${enumNames.size} перечислений`,
   );
   return false;
 }
@@ -822,6 +826,8 @@ try {
   // Замер последним: он делает записи и сдвинул бы данные под сравнением
   await timing(driver);
   failed = (await concurrency(driver)) || failed;
+  // Модули сервиса v1 (ADR-060): сид, паритет вкладки и базы, одновременная запись
+  failed = (await checkGas(driver)) || failed;
 } catch (error) {
   failed = true;
   console.error("✗", error);

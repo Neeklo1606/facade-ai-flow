@@ -6,6 +6,8 @@
  */
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { gasOps } from "@/adapters/gas-ops/demo";
+import { gasSupply } from "@/adapters/gas-ops/supply-demo";
+import { gasDocs } from "@/adapters/gas-ops/docs-demo";
 import {
   getServerSnapshotFor,
   getSnapshot,
@@ -15,12 +17,24 @@ import {
 } from "@/adapters/gas-ops/state";
 import { useGasContour } from "@/lib/gas-ops/contour";
 import type { GasOpsPort, GasOpsSnapshot } from "@/ports/gas-ops";
+import type { GasSupplyPort } from "@/ports/gas-supply";
+import type { GasDocsPort } from "@/ports/gas-docs";
 import { actorOf, type GasData } from "@/domain/gas-ops/view";
 import type { Role } from "@/domain/gas-ops/model";
 
 /** Порт направления: в прототипе это демо-адаптер */
 export function useGasOps(): GasOpsPort {
   return gasOps;
+}
+
+/** Порт снабжения (ADR-057): то же состояние, свой набор действий */
+export function useGasSupplyPort(): GasSupplyPort {
+  return gasSupply;
+}
+
+/** Порт исполнительной документации (ADR-058): то же состояние, свой набор действий */
+export function useGasDocsPort(): GasDocsPort {
+  return gasDocs;
 }
 
 /**

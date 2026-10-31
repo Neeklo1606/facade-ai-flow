@@ -6,7 +6,8 @@ import { expect, open, test } from "./fixtures";
  * Модель навигации телефона (L2) не должна задевать планшет и компьютер.
  */
 
-const rail = (page: Page) => page.getByRole("complementary", { name: "Меню учёта выработки" });
+/** Плавающая капсула «Монохрома» (ADR-055, 2.1) */
+const capsule = (page: Page) => page.getByRole("complementary", { name: "Панель действий" });
 
 /** Самый мелкий видимый текст на экране, в пикселях после html 87,5 % */
 async function smallestText(page: Page): Promise<{ size: number; text: string }> {
@@ -34,11 +35,15 @@ async function smallestText(page: Page): Promise<{ size: number; text: string }>
 test.describe("планшет 900", () => {
   test.use({ viewport: { width: 900, height: 1100 } });
 
-  test("рельс 64 всегда, нижней панели нет (ADR-052)", async ({ page }) => {
+  test("до 1024 раскладка телефона: шапка и нижняя панель, без капсулы (ADR-055)", async ({
+    page,
+  }) => {
     await open(page, "/gas/moderation");
-    await expect(rail(page)).toHaveAttribute("data-rail", "true");
-    expect((await rail(page).boundingBox())!.width).toBe(64);
-    await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeHidden();
+    await expect(capsule(page)).toBeHidden();
+    await expect(page.getByRole("navigation", { name: "Разделы", exact: true })).toBeHidden();
+    const tabs = page.getByRole("navigation", { name: "Основные разделы" });
+    await expect(tabs).toBeVisible();
+    expect(Math.round((await tabs.boundingBox())!.width)).toBe(900);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(900);
   });
 });
@@ -46,16 +51,29 @@ test.describe("планшет 900", () => {
 test.describe("компьютер 1280", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("левая панель 240 сворачивается в 64 и помнит выбор (ADR-052)", async ({ page }) => {
+  test("верхняя строка 72, меню-таблетка по центру, капсула 64 слева (ADR-055, 2.1)", async ({
+    page,
+  }) => {
     await open(page, "/gas/moderation");
-    expect((await rail(page).boundingBox())!.width).toBe(240);
-    await page.getByRole("button", { name: "Свернуть панель" }).click();
-    await expect(rail(page)).toHaveAttribute("data-rail", "true");
-    await expect.poll(async () => (await rail(page).boundingBox())!.width).toBe(64);
-    await page.reload();
-    await expect(rail(page)).toHaveAttribute("data-rail", "true");
-    await page.getByRole("button", { name: "Развернуть панель" }).click();
-    await expect.poll(async () => (await rail(page).boundingBox())!.width).toBe(240);
+    const menu = page.getByRole("navigation", { name: "Разделы", exact: true });
+    const box = (await menu.boundingBox())!;
+    expect(box.height).toBe(56);
+    // По центру строки: середина меню не дальше 120 от середины окна (знак слева шире кругов)
+    expect(Math.abs(box.x + box.width / 2 - 640)).toBeLessThan(120);
+    // Активный пункт — инверсная таблетка: индикатор под «Проверкой»
+    const active = menu.getByRole("link", { name: /Проверка/ });
+    await expect(active).toHaveAttribute("aria-current", "page");
+    const bar = (await capsule(page).boundingBox())!;
+    expect(bar.width).toBe(64);
+    expect(bar.x).toBe(24);
+    await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeHidden();
+    // Переход по меню: индикатор переезжает, текущий пункт меняется
+    await menu.getByRole("link", { name: "Журнал" }).click();
+    await expect(page).toHaveURL(/\/gas\/entries/);
+    await expect(menu.getByRole("link", { name: "Журнал" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   test("деталь записи справа 420, Esc закрывает", async ({ page }) => {
@@ -118,7 +136,7 @@ test.describe("кабинет на компьютере 1280", () => {
 
 test.describe("сайт на компьютере и планшете", () => {
   for (const width of [768, 1024, 1280, 1440, 1920]) {
-    test(`лендинг ${width}: сетка, текст до 640, контент до 1200, фрагменты по ширине`, async ({
+    test(`лендинг ${width}: сетка, текст до 640, контент до 1200, неделя и модули по ширине`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -131,14 +149,26 @@ test.describe("сайт на компьютере и планшете", () => {
         .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
       for (const w of wraps) expect(w).toBeLessThanOrEqual(1200);
       const title = (await page.locator("main h1").boundingBox())!;
-      const fragment = (await page
-        .getByLabel("Путь одной записи")
-        .getByLabel("Пример: бот бригадира")
-        .boundingBox())!;
+      const fragment = (await page.getByLabel("Пример: неделя в демо").boundingBox())!;
+      // ADR-059 (S7): с 1024 живая неделя справа от заголовка, уже — под ним
+      if (width >= 1024) expect(fragment.x).toBeGreaterThanOrEqual(title.x + title.width - 1);
+      else expect(fragment.y).toBeGreaterThan(title.y + title.height);
+      // Три модуля с 1024 стоят в строку
+      // Раскладка, а не кадр анимации: появление сдвигает карточки transform-ом
+      const modules = await page.locator(".landing-module").evaluateAll((els) =>
+        els.map((el) => {
+          const box = el as HTMLElement;
+          return { x: box.offsetLeft, y: box.offsetTop, width: box.offsetWidth };
+        }),
+      );
+      expect(modules).toHaveLength(3);
       if (width >= 1024) {
-        expect(fragment.x).toBeGreaterThan(title.x + title.width - 1);
-      } else {
-        expect(fragment.y).toBeGreaterThan(title.y + title.height);
+        for (const [i, card] of modules.entries()) {
+          const previous = modules[i - 1];
+          if (!previous) continue;
+          expect(Math.abs(card.y - previous.y)).toBeLessThan(2);
+          expect(card.x).toBeGreaterThan(previous.x + previous.width - 1);
+        }
       }
     });
   }

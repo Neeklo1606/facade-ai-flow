@@ -11,8 +11,6 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/api/queries";
 import { screenStatesEnabled } from "@/lib/screen-state";
 import { StatePicker } from "./StatePicker";
-import { ScreenHelp } from "@/components/guide/ScreenHelp";
-import { ThemeToggle } from "./ThemeToggle";
 import { ProjectChip } from "./ProjectChip";
 import { screenFor } from "@/lib/guide/screens";
 import { useCurrentRole, useCurrentUser, useProjectId } from "@/lib/project-scope";
@@ -126,7 +124,7 @@ export function Topbar() {
           type="button"
           onClick={back}
           aria-label="Назад"
-          className="focus-ring -ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-full pr-2 pl-1 text-body text-text md:hidden [touch-action:manipulation]"
+          className="focus-ring -ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-full pr-2 pl-1 text-body text-text lg:hidden [touch-action:manipulation]"
         >
           <ChevronLeft className="size-6" strokeWidth={1.75} aria-hidden />
           Назад
@@ -145,7 +143,7 @@ export function Topbar() {
             снова в шапке рядом с крошками.
           */}
           <div
-            className="hidden min-w-0 lg:block lg:truncate lg:text-title"
+            className="hidden min-w-0 lg:block lg:truncate lg:type-screen"
             title={title}
             aria-hidden="true"
           >
@@ -163,7 +161,7 @@ export function Topbar() {
           {/* Пометка демонстрации на каждом экране — и на телефоне, где меню скрыто (ADR-015, п. 1) */}
           {dataSource === "demo" && (
             <span
-              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-meta-strong text-text-2"
+              className="inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-meta-strong text-text-2 lg:hidden"
               title={DEMO_ONLY_NOTES.mark.text}
             >
               {/* Видимая метка — отдельным элементом: её ищет проверка честности */}
@@ -208,23 +206,11 @@ export function Topbar() {
         <div id="show-slot" className="contents" />
         <Button
           variant="ghost"
-          type="button"
-          onClick={() => setCommandOpen(true)}
-          aria-label="Поиск по объектам, документам и материалам"
-          className="header-search focus-ring hidden xl:flex"
-        >
-          <Search strokeWidth={1.5} />
-          {/* Поле ГАЙКИ в шапке — пока только поиск: микрофон приходит в G4 (ADR-034, п. 2) */}
-          <span className="min-w-0 flex-1 truncate text-left">Найти в системе</span>
-          <kbd className="kbd">Ctrl K</kbd>
-        </Button>
-        <Button
-          variant="ghost"
           size="icon"
           type="button"
           onClick={() => setCommandOpen(true)}
           aria-label="Поиск"
-          className="icon-button focus-ring grid size-[var(--touch)] xl:hidden"
+          className="icon-button focus-ring grid size-[var(--touch)] lg:hidden"
         >
           <Search strokeWidth={1.5} />
         </Button>
@@ -233,12 +219,7 @@ export function Topbar() {
           в плавающей кнопке проводки, тема — в шторке «Ещё» (раздел 6 продукта): четыре
           значка по 48 px съедали строку заголовка, и «Входящие» обрезались на 375 px.
         */}
-        <div className="hidden lg:block">
-          <ScreenHelp />
-        </div>
-        <div className="hidden lg:block">
-          <ThemeToggle />
-        </div>
+        {/* Справка и тема с 1024 живут в плавающей капсуле (ADR-055, 2.1) */}
         {/* Переключатель состояний экрана — инструмент показа с ноутбука (ADR-030, п. 1) */}
         {screenStatesEnabled && (
           <div className="hidden 2xl:block">
@@ -258,7 +239,7 @@ export function Topbar() {
               onClick={dataSource === "demo" ? () => setRoles(true) : undefined}
               aria-label={`Вы смотрите как ${user.roleLabel}. Сменить роль`}
               title={`${user.name}, ${user.roleLabel}`}
-              className="-mr-1.5 grid min-h-11 min-w-11 place-items-center rounded-full focus-ring [touch-action:manipulation]"
+              className="-mr-1.5 grid min-h-11 min-w-11 place-items-center rounded-full focus-ring lg:hidden [touch-action:manipulation]"
             >
               <span className="avatar grid" aria-hidden>
                 {initials}

@@ -172,6 +172,8 @@ export interface FlagInput {
   hasEstimate: boolean;
   /** Работали ли по этому объекту больше одного дня */
   objectDays: number;
+  /** Состав бригады на дату записи; неизвестен — признак состава не ставится */
+  crewSize?: number | null;
 }
 
 /**
@@ -179,7 +181,7 @@ export interface FlagInput {
  * 42 095 ₽ за 0,33 ч в фактическом отчёте — реальная строка заказчика.
  */
 export function flagsOf(input: FlagInput): EntryFlag[] {
-  const { entry, all, hasEstimate, objectDays } = input;
+  const { entry, all, hasEstimate, objectDays, crewSize } = input;
   const flags: EntryFlag[] = [];
   if (entry.amountRub === null) flags.push("no-amount");
   const rate = revenuePerHour(entry.amountRub, entry.minutes);
@@ -190,6 +192,8 @@ export function flagsOf(input: FlagInput): EntryFlag[] {
     flags.push("duplicate");
   if (objectDays > 1) flags.push("multi-day-object");
   if (!hasEstimate && entry.amountRub !== null) flags.push("no-estimate");
+  const people = entry.people?.length ? entry.people.length : (entry.headcount ?? null);
+  if (people !== null && crewSize && people > crewSize) flags.push("over-crew");
   return flags;
 }
 

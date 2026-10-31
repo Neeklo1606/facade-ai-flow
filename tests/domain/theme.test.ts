@@ -28,10 +28,11 @@ function runBoot({ saved, systemLight }: { saved?: string | null; systemLight: b
 }
 
 describe("тема до первой отрисовки", () => {
-  test("по умолчанию тема берётся из системы", () => {
-    // Решение владельца 21.10.2026 (ADR-044): как в системе, ручной выбор важнее умолчания.
-    expect(defaultChoice).toBe("system");
-    expect(runBoot({ systemLight: false }).dataset["theme"]).toBe("dark");
+  test("по умолчанию светлая тема при любой настройке системы", () => {
+    // ADR-055 (документ Сервиса v1, S2 п. 3): светлая по умолчанию, ручной выбор важнее.
+    // До этого было «как в системе» (ADR-044): поменялось решение, а не проверка под код
+    expect(defaultChoice).toBe("light");
+    expect(runBoot({ systemLight: false }).dataset["theme"]).toBe("light");
     expect(runBoot({ systemLight: true }).dataset["theme"]).toBe("light");
   });
   test("без выбора берётся умолчание контура", () => {

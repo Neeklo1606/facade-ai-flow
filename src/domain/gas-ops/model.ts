@@ -105,7 +105,38 @@ export interface TimeEntry {
   /** Доходность часа из файла заказчика — для сверки расчёта с выгрузкой */
   revenueInFile?: number | null;
   excelRow?: number | null;
+  /**
+   * Сколько людей работало (ADR-056). В отчёте заказчика состава нет: у строк из выгрузки
+   * поле пустое, и человеко-часы по ним не считаются, а не приравниваются к часам
+   */
+  headcount?: number | null;
+  /** «У сотрудников разное время»: строки людей; тогда человеко-часы — их сумма */
+  people?: PersonTime[] | null;
+  /** Ключ отправки с телефона: повтор с тем же ключом возвращает ту же запись (1.4, 4) */
+  clientKey?: string | null;
+  /** Откуда пришла запись: форма бригадира, бот, менеджер, выгрузка заказчика */
+  channel?: EntryChannel;
+  /** Комментарий бригадира к записи; не путать с `comment` проверяющего */
+  note?: string | null;
 }
+
+/** Время одного человека при «у сотрудников разное время» */
+export interface PersonTime {
+  employeeId: string;
+  startMinutes: number;
+  endMinutes: number;
+  breakMinutes: number;
+  minutes: number;
+}
+
+export type EntryChannel = "web" | "bot" | "manager" | "import";
+
+export const CHANNEL_LABEL: Record<EntryChannel, string> = {
+  web: "Форма бригадира",
+  bot: "Бот",
+  manager: "Внёс менеджер",
+  import: "Выгрузка заказчика",
+};
 
 /**
  * Назначение бригады на день: какие объекты у неё «на сегодня» (ADR-044, F3–F4). В выгрузке
@@ -121,7 +152,8 @@ export interface Assignment {
 export interface Review {
   id: string;
   entryId: string;
-  action: "confirm" | "reject" | "correct" | "clarify";
+  /** answer — ответ бригадира на вопрос «На уточнении» */
+  action: "confirm" | "reject" | "correct" | "clarify" | "answer";
   actor: string;
   at: string;
   comment: string | null;
@@ -138,13 +170,17 @@ export interface AuditLog {
   detail: string;
 }
 
-export type Role = "admin" | "manager" | "foreman" | "director";
+/** prorab, supply, pto — роли модулей 2 и 3 (ADR-057) */
+export type Role = "admin" | "manager" | "foreman" | "director" | "prorab" | "supply" | "pto";
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: "Администратор",
   manager: "Менеджер проверки",
   foreman: "Бригадир",
   director: "Руководитель",
+  prorab: "Прораб",
+  supply: "Снабженец",
+  pto: "ПТО",
 };
 
 export interface User {
@@ -159,7 +195,13 @@ export interface User {
 
 /** Признак, который видит проверяющий: пересечение, дубль, аномалия, нет суммы */
 export type EntryFlag =
-  "no-amount" | "overlap" | "duplicate" | "high-rate" | "multi-day-object" | "no-estimate";
+  | "no-amount"
+  | "overlap"
+  | "duplicate"
+  | "high-rate"
+  | "multi-day-object"
+  | "no-estimate"
+  | "over-crew";
 
 export const FLAG_LABEL: Record<EntryFlag, string> = {
   "no-amount": "Нет суммы",
@@ -168,4 +210,5 @@ export const FLAG_LABEL: Record<EntryFlag, string> = {
   "high-rate": "Аномальная доходность",
   "multi-day-object": "Объект на несколько дней",
   "no-estimate": "Нет подтверждённой стоимости",
+  "over-crew": "Состав больше бригады",
 };

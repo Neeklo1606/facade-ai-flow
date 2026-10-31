@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join, relative } from "node:path";
 import {
   DEMO_ONLY_NOTES,
@@ -18,7 +19,7 @@ import {
  * Исключения — только то, что существует из-за самой имитации, и у каждого записана причина.
  */
 
-const ROOT = new URL("../..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const UI = ["src/components", "src/routes"];
 
 function files(dir: string): string[] {
@@ -69,7 +70,11 @@ describe("пометки контуров", () => {
      */
     const allowed = new Map([
       ["src/components/layout/Topbar.tsx", "метка «Демо» — в рабочем контуре данные настоящие"],
-      ["src/components/layout/Sidebar.tsx", "«Сбросить демо-данные» — сбрасывать нечего"],
+      // ADR-055: левая панель заменена верхней строкой и капсулой, разница переехала с ней
+      [
+        "src/components/layout/AppTopRow.tsx",
+        "смена роли и «Сбросить демо-данные» только в демонстрации, выход только с сессией",
+      ],
       [
         "src/components/layout/sheets.tsx",
         "шторка «Ещё»: смена роли бывает только в демонстрации, выход — только там, где есть сессия",

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   BotFragment,
   CalcFragment,
+  DocsFragment,
   QueueFragment,
   ReportFragment,
   WeekTableFragment,
@@ -15,14 +16,15 @@ import { BRAND } from "@/lib/site/copy";
  * из живых фрагментов лендинга, а не нарисованы руками.
  */
 const FRAMES: Record<string, { eyebrow: string; title: string; text: string; art: ReactNode }> = {
+  // ADR-059 (S7): кадр повторяет первый экран лендинга, фрагменты те же
   landing: {
-    eyebrow: "Для подрядчиков газификации и инженерных сетей",
-    title: "Выработка бригад без ручного Excel",
-    text: "Бригадир отмечает время в мессенджере. Менеджер проверяет. Отчёт собирается сам.",
+    eyebrow: "Помощник подрядчика",
+    title: "Данные с объекта превращаются в отчёты и документы",
+    text: "Учёт времени бригад, снабжение и исполнительная документация. Без переписывания в Excel.",
     art: (
       <>
-        <BotFragment />
         <QueueFragment />
+        <DocsFragment />
       </>
     ),
   },

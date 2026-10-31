@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Check, ChevronDown, Lightbulb } from "lucide-react";
+import { Check, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -162,9 +162,9 @@ function markSeen(key: string) {
 }
 
 /**
- * Одна строка 44 «Как работать с экраном» со стрелкой. При первом посещении раскрыта,
- * дальше свёрнута. Раскрытая показывает все шаги целиком: высота по содержимому, текст
- * не обрезается посреди строки (ADR-048, 6; аудит L0, now-05 и now-07).
+ * Подсказка первого визита (ADR-055, S2 п. 5): шаги экрана одной карточкой только при первом
+ * посещении, кнопка «Понятно» убирает её насовсем. Дальше шаги живут в «?» оболочки, а тело
+ * экрана не держит строку «Как работать с экраном».
  */
 export function HintRow({
   id,
@@ -175,41 +175,39 @@ export function HintRow({
   steps: readonly string[];
   more?: ReactNode;
 }) {
+  // До монтирования не показываем: на сервере хранилища нет, разметка совпадает
   const [open, setOpen] = useState(false);
   useEffect(() => {
-    if (!seen(id)) {
-      setOpen(true);
-      markSeen(id);
-    }
+    if (!seen(id)) setOpen(true);
   }, [id]);
+  if (!open) return null;
   return (
-    <section aria-label="Как работать с экраном">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="flex h-control min-w-0 flex-1 items-center gap-2 text-left text-body text-text-2 focus-ring"
-        >
-          <Lightbulb className="size-5 shrink-0 text-text-3" aria-hidden />
-          <span className="truncate">Как работать с экраном</span>
-          <ChevronDown
-            className={cn("size-5 shrink-0 text-text-3 transition-fast", open && "rotate-180")}
-            aria-hidden
-          />
-        </button>
-        {/* Полная инструкция всегда в строке: в раскрытой карточке она не обрезается */}
-        {more ? <div className="shrink-0">{more}</div> : null}
-      </div>
-      {open ? (
-        <div className="surface-1 px-card py-2">
-          <ol className="list-decimal space-y-1 ps-5 text-body text-text">
+    <section aria-label="Подсказка при первом визите" className="surface-1 px-card py-3">
+      <div className="flex items-start gap-3">
+        <Lightbulb className="mt-0.5 size-5 shrink-0 text-text-3" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-body-strong text-text">Первый раз на этом экране</p>
+          <ol className="mt-1 list-decimal space-y-1 ps-5 text-body text-text-2">
             {steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
+          <p className="mt-2 text-meta text-text-3">Шаги всегда под знаком «?» на панели.</p>
         </div>
-      ) : null}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+        {more}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            markSeen(id);
+            setOpen(false);
+          }}
+        >
+          Понятно
+        </Button>
+      </div>
     </section>
   );
 }

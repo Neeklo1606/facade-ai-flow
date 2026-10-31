@@ -8,9 +8,13 @@ import { expect, expectA11y, open, test } from "./fixtures";
  * про свечение остаётся). Голосовая кнопка строго по центру экрана при любом числе пунктов
  * (refs/16: у снабжения на «Объектах» она уезжала вправо). Набор позиций одинаков для всех
  * ролей, меняется только первая.
+ *
+ * «Монохром» (ADR-055, раздел 2.3): оранжевого в панели нет совсем, его оставили записи
+ * голоса и знаку лендинга. Активный пункт окрашен акцентом (--accent-text, основной текст)
+ * и отличается от неактивных; поменялось решение, а не проверка под код.
  */
 
-/** Сколько оранжевых пятен внутри панели и какого цвета активная позиция */
+/** Сколько оранжевых пятен внутри панели и окрашена ли активная позиция акцентом */
 async function panel(page: import("@playwright/test").Page) {
   return page.evaluate(() => {
     const nav = document.querySelector('nav[aria-label="Основная навигация"]');
@@ -42,8 +46,7 @@ async function panel(page: import("@playwright/test").Page) {
       const style = getComputedStyle(el);
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) continue;
-      // Акцент разрешён только активному пункту: иконка, подпись и точка «где я»
-      if (el.closest('[aria-current="page"]')) continue;
+      // Оранжевого нет ни у одного пункта, включая активный (ADR-055)
       if (isOrange(style.backgroundColor) || isOrange(style.color)) {
         orange.push((el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 24));
       }
@@ -55,6 +58,15 @@ async function panel(page: import("@playwright/test").Page) {
       }
     }
     const active = nav.querySelector('[aria-current="page"]');
+    // Цвет акцента темы: элемент-образец с color: var(--accent-text)
+    const probe = document.createElement("span");
+    probe.style.color = "var(--accent-text)";
+    nav.append(probe);
+    const accent = getComputedStyle(probe).color;
+    probe.remove();
+    const inactive = [...nav.querySelectorAll("a, button")].find(
+      (el) => !el.closest('[aria-current="page"]') && !el.closest('[data-tour="nav-plus"]'),
+    );
     /*
      * Голосовая капсула. С 18.10.2026 (правка владельца `032b15b`) она без свечения:
      * 56 px, в обводке линии, на фоне `--pill`. Раньше была 64 px с оранжевым свечением
@@ -75,7 +87,10 @@ async function panel(page: import("@playwright/test").Page) {
         .map((child) => (child.textContent || "").replace(/\s+/g, " ").trim().slice(0, 18)),
       orange,
       small,
-      activeOrange: active ? isOrange(getComputedStyle(active).color) : null,
+      activeAccent: active
+        ? getComputedStyle(active).color === accent &&
+          (!inactive || getComputedStyle(inactive).color !== accent)
+        : null,
       height: Math.round(nav.getBoundingClientRect().height),
     };
   });
@@ -103,7 +118,7 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.labels.join(" ")).not.toContain("Закупки");
       expect(state!.labels.join(" ")).not.toContain("Документ");
       /*
-       * Панель — хром: оранжевый только у активной позиции (4.3), у голосовой кнопки нет
+       * Панель — хром: оранжевого нет (ADR-055), у голосовой кнопки нет
        * ни заливки, ни свечения. Кнопка 56, строго по центру экрана, называется «Говорить».
        */
       expect(state!.orange).toHaveLength(0);
@@ -112,7 +127,7 @@ test.describe("нижняя панель @mobile", () => {
       expect(state!.capsuleSize).toBeGreaterThanOrEqual(56);
       expect(Math.abs(state!.capsuleOffset ?? 99)).toBeLessThanOrEqual(1);
       // На закупках объекта ни одна позиция не «здесь»; если активная есть, она акцентом
-      expect(state!.activeOrange ?? true).toBe(true);
+      expect(state!.activeAccent ?? true).toBe(true);
       expect(state!.small).toEqual([]);
       await expectA11y(page, "нижняя панель");
     });
@@ -152,8 +167,8 @@ test.describe("нижняя панель @mobile", () => {
       const state = await panel(page);
       expect(state!.capsule).toContain("Говорить");
       expect(Math.abs(state!.capsuleOffset ?? 99)).toBeLessThanOrEqual(1);
-      // «Объекты» активна: иконка и подпись акцентом, остального оранжевого в панели нет
-      expect(state!.activeOrange).toBe(true);
+      // «Объекты» активна: иконка и подпись акцентом, оранжевого в панели нет
+      expect(state!.activeAccent).toBe(true);
       expect(state!.orange).toEqual([]);
     });
   });

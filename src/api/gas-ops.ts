@@ -58,9 +58,46 @@ import {
   useGasData,
   useGasHydration,
   useGasOps,
+  useGasSnapshot,
   type GasActor,
 } from "@/lib/gas-ops/use-gas-ops";
 import type { CreateEntryInput, ReviewInput, UpdateEntryInput } from "@/ports/gas-ops";
+import { fieldFor, type FieldEntry, type FieldSnapshot } from "@/domain/gas-ops/field";
+import {
+  CREW_ROLE_LABEL,
+  crewOn,
+  crewSummary,
+  fmtManHours,
+  headcountOf,
+  manMinutesOf,
+  type CrewMember,
+  type PersonInput,
+  type Rate,
+} from "@/domain/gas-ops/crew";
+import {
+  accruedByDay,
+  blockingReasons,
+  closeReasons,
+  coverage,
+  expectations,
+  periodState,
+  weekMetrics,
+  type Acceptance,
+  type CloseReason,
+  type Expectation,
+  type PeriodState,
+  type PeriodVersion,
+  type WeekMetrics,
+} from "@/domain/gas-ops/week";
+import { CHANNEL_LABEL, type EntryChannel } from "@/domain/gas-ops/model";
+import { AUTO_ACTOR } from "@/domain/gas-ops/review-policy";
+import {
+  CUSTOMER_DAY_HEADERS,
+  CUSTOMER_PROFILE,
+  profileCheck,
+  type ExportProfile,
+  type ProfileCheck,
+} from "@/domain/gas-ops/export-profile";
 
 export {
   ENTRY_STATUS_LABEL,
@@ -76,6 +113,133 @@ export {
 };
 
 export { clashOf };
+
+export {
+  CHANNEL_LABEL,
+  CREW_ROLE_LABEL,
+  blockingReasons,
+  crewSummary,
+  fmtManHours,
+  headcountOf,
+  manMinutesOf,
+};
+export type {
+  Acceptance,
+  CloseReason,
+  CrewMember,
+  EntryChannel,
+  Expectation,
+  FieldEntry,
+  FieldSnapshot,
+  PeriodState,
+  PeriodVersion,
+  PersonInput,
+  Rate,
+  WeekMetrics,
+};
+
+/**
+ * Интерфейс бригадира (ADR-056): та же выборка, что отдаёт порт, — без сумм и чужих бригад.
+ * Менеджер и администратор смотрят им за выбранную бригаду
+ */
+export function useGasField(brigadeId?: string | null): FieldSnapshot {
+  const data = useGasSnapshot();
+  return useMemo(() => fieldFor(data, brigadeId), [data, brigadeId]);
+}
+
+export interface GasWeekView {
+  metrics: WeekMetrics;
+  byDay: { day: string; value: number | null }[];
+  coverage: { received: number; expected: number; missing: Expectation[] };
+  /** Источник ожидания: график заказчика, демо-назначения или ничего */
+  expectationSource: "schedule" | "assignment" | null;
+  reasons: CloseReason[];
+  period: PeriodState;
+  /** По объектам: подтверждённое, часы, человеко-часы, выработка, готовность */
+  objects: {
+    id: string;
+    label: string;
+    code: string;
+    minutes: number;
+    manMinutes: number | null;
+    accruedRub: number;
+    outputPerHour: number | null;
+    ready: boolean;
+  }[];
+}
+
+/** Неделя руководителя: показатели, полнота, причины, версии (ADR-056, 5) */
+export function useGasWeekView(): GasWeekView {
+  const data = useGasSnapshot();
+  return useMemo(() => {
+    const days = data.week.days;
+    const expected = expectations({
+      days,
+      brigades: data.brigades,
+      objects: data.objects,
+      schedule: data.schedule,
+      assignments: data.assignments,
+    });
+    const cov = coverage(expected, data.entries);
+    const reasons = closeReasons({
+      days,
+      entries: data.entries,
+      estimates: data.estimates,
+      objects: data.objects,
+      brigades: data.brigades,
+      crew: data.crew,
+      finalChecks: data.finalChecks,
+      missing: cov.missing,
+    });
+    const week = new Set(days);
+    const own = data.entries.filter((e) => week.has(e.day) && e.status !== "rejected");
+    const blocked = new Set(reasons.flatMap((r) => r.entryIds));
+    const objects = [...new Set(own.map((e) => e.objectId))].map((id) => {
+      const object = data.objects.find((o) => o.id === id);
+      const list = own.filter((e) => e.objectId === id);
+      const confirmed = list.filter((e) => e.status === "confirmed");
+      const minutes = confirmed.reduce((a, e) => a + e.minutes, 0);
+      const man = confirmed.map(manMinutesOf);
+      const accruedRub = confirmed.reduce((a, e) => a + (e.amountRub ?? 0), 0);
+      return {
+        id,
+        label: object?.label ?? "Объект",
+        code: object?.code ?? "",
+        minutes,
+        manMinutes:
+          man.length && man.every((m) => m !== null)
+            ? man.reduce<number>((a, m) => a + (m ?? 0), 0)
+            : null,
+        accruedRub,
+        outputPerHour: minutes > 0 ? Math.round(accruedRub / (minutes / 60)) : null,
+        ready: list.every((e) => e.status === "confirmed" && !blocked.has(e.id)),
+      };
+    });
+    return {
+      metrics: weekMetrics(data.entries, days, data.rates),
+      byDay: accruedByDay(data.entries, days),
+      coverage: cov,
+      expectationSource: expected[0]?.source ?? null,
+      reasons,
+      period: periodState(data.periods, data.week.from),
+      objects: objects.sort((a, b) => b.accruedRub - a.accruedRub),
+    };
+  }, [data]);
+}
+
+/** Справочники: состав на сегодня с периодами и ставки */
+export function useGasCrew(): {
+  crew: (CrewMember & { active: boolean })[];
+  rates: Rate[];
+} {
+  const data = useGasSnapshot();
+  return useMemo(() => {
+    const active = new Set(
+      data.brigades.flatMap((b) => crewOn(data.crew, b.id, data.today).map((m) => m.id)),
+    );
+    return { crew: data.crew.map((m) => ({ ...m, active: active.has(m.id) })), rates: data.rates };
+  }, [data]);
+}
 
 /** Разбор фразы бригадира правилом domain (ADR-049): экран бота зовёт его отсюда */
 export { parseTimeMessage } from "@/domain/gas-ops/parse-time-message";
@@ -281,7 +445,11 @@ export interface ReportData {
   count: number;
 }
 
-export function useGasReport(mode: ReportMode): ReportData {
+/**
+ * Отчёт недели. `entries` — записи версии закрытой недели (ADR-056, 5): файл v1 строится
+ * из её копии, а не из текущих записей, поэтому после переоткрытия он не меняется
+ */
+export function useGasReport(mode: ReportMode, entries?: readonly TimeEntry[] | null): ReportData {
   const data = useGasData();
   return useMemo(() => {
     const base = {
@@ -290,7 +458,7 @@ export function useGasReport(mode: ReportMode): ReportData {
       employees: data.employees,
       objects: data.objects,
       days: data.week.days,
-      entries: data.entries,
+      entries: entries ? [...entries] : data.entries,
       mode,
     };
     return {
@@ -298,9 +466,9 @@ export function useGasReport(mode: ReportMode): ReportData {
       analytic: analyticRows(base),
       days: data.week.days,
       week: { from: data.week.from, to: data.week.to },
-      count: reportEntries(data.entries, mode).length,
+      count: reportEntries(base.entries, mode).length,
     };
-  }, [data, mode]);
+  }, [data, mode, entries]);
 }
 
 /** Справочники для фильтров экранов */
@@ -360,6 +528,21 @@ export function useGasActions(): {
     note?: string | undefined;
   }) => Promise<ActionResult<Estimate>>;
   reset: () => Promise<ActionResult<unknown>>;
+  answerClarify: (input: { id: string; text: string }) => Promise<ActionResult<TimeEntry>>;
+  closeWeek: (input: { accepted: Acceptance[] }) => Promise<ActionResult<PeriodVersion>>;
+  reopenWeek: (input: { reason: string }) => Promise<ActionResult<PeriodVersion>>;
+  setRate: (input: {
+    employeeId: string | null;
+    brigadeId: string;
+    rubPerHour: number;
+    from: string;
+  }) => Promise<ActionResult<Rate>>;
+  addCrewMember: (input: {
+    brigadeId: string;
+    name: string;
+    from: string;
+  }) => Promise<ActionResult<CrewMember>>;
+  endCrewMember: (input: { id: string; to: string }) => Promise<ActionResult<CrewMember>>;
 } {
   const run = useGasAction();
   const port = useGasOps();
@@ -372,5 +555,49 @@ export function useGasActions(): {
     undoReview: useCallback((id) => run(() => port.undoReview(id)), [run, port]),
     setEstimate: useCallback((input) => run(() => port.setEstimate(input)), [run, port]),
     reset: useCallback(() => run(() => port.reset()), [run, port]),
+    answerClarify: useCallback((input) => run(() => port.answerClarify(input)), [run, port]),
+    closeWeek: useCallback((input) => run(() => port.closeWeek(input)), [run, port]),
+    reopenWeek: useCallback((input) => run(() => port.reopenWeek(input)), [run, port]),
+    setRate: useCallback((input) => run(() => port.setRate(input)), [run, port]),
+    addCrewMember: useCallback((input) => run(() => port.addCrewMember(input)), [run, port]),
+    endCrewMember: useCallback((input) => run(() => port.endCrewMember(input)), [run, port]),
   };
+}
+
+/** Принято людьми сегодня: решения системы в автоматическом режиме сюда не входят */
+export function useGasAcceptedToday(): number {
+  const data = useGasSnapshot();
+  return useMemo(
+    () =>
+      data.entries.filter(
+        (e) =>
+          e.status === "confirmed" &&
+          e.reviewedBy !== AUTO_ACTOR &&
+          e.reviewedAt?.slice(0, 10) === data.today,
+      ).length,
+    [data],
+  );
+}
+
+/** Профиль выгрузки Excel и его сверка с экраном «Неделя» (ADR-056, 6) */
+export function useGasExportProfile(): {
+  profile: ExportProfile;
+  headers: readonly string[];
+  check: ProfileCheck;
+} {
+  const report = useGasReport("confirmed");
+  const view = useGasWeekView();
+  return useMemo(
+    () => ({
+      profile: CUSTOMER_PROFILE,
+      headers: CUSTOMER_DAY_HEADERS,
+      check: profileCheck({
+        profile: CUSTOMER_PROFILE,
+        headers: CUSTOMER_DAY_HEADERS,
+        rows: report.rows,
+        screenTotalRub: view.metrics.accruedRub,
+      }),
+    }),
+    [report.rows, view.metrics.accruedRub],
+  );
 }

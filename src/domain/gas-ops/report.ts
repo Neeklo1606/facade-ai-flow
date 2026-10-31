@@ -432,11 +432,26 @@ const ddmmyyyy = (iso: string) => `${ddmm(iso)}.${iso.slice(0, 4)}`;
  * Имя файла выгрузки: «Выработка_бригад_28.09-03.10.2026.xlsx». Одно правило для сервера
  * (заголовок ответа) и для вкладки (имя при сохранении), иначе они разойдутся.
  */
-export function gasReportFileName(week: { from: string; to: string }): string {
-  return `Выработка_бригад_${ddmm(week.from)}-${ddmmyyyy(week.to)}.xlsx`;
+export function gasReportFileName(week: { from: string; to: string }, label?: FileLabel): string {
+  return `Выработка_бригад_${ddmm(week.from)}-${ddmmyyyy(week.to)}${suffixOf(label, "ru")}.xlsx`;
 }
 
 /** Запасное имя латиницей для `filename=` в заголовке: старые клиенты не читают `filename*` */
-export function gasReportFileNameAscii(week: { from: string; to: string }): string {
-  return `Vyrabotka_brigad_${ddmm(week.from)}-${ddmmyyyy(week.to)}.xlsx`;
+export function gasReportFileNameAscii(
+  week: { from: string; to: string },
+  label?: FileLabel,
+): string {
+  return `Vyrabotka_brigad_${ddmm(week.from)}-${ddmmyyyy(week.to)}${suffixOf(label, "ascii")}.xlsx`;
+}
+
+/**
+ * Метка файла (ADR-056, 5): версия закрытой недели или черновик. Без метки — прежнее имя,
+ * как его ждёт отчёт заказчика
+ */
+export type FileLabel = { version: number } | { draft: true } | null | undefined;
+
+function suffixOf(label: FileLabel, kind: "ru" | "ascii"): string {
+  if (!label) return "";
+  if ("version" in label) return `_v${label.version}`;
+  return kind === "ru" ? "_черновик" : "_draft";
 }

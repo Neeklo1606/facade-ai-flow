@@ -117,6 +117,23 @@ export const col = {
   text: <const O extends ColumnOptions = ColumnOptions>(options?: O) =>
     column(z.string(), { sqlType: "text" }, options),
 
+  /**
+   * Текстовый ключ модулей сервиса v1 (ADR-060): ключи создаёт приложение («zk-…», «ed-…»),
+   * демо и база хранят один и тот же ключ, перевода в uuid нет
+   */
+  key: () => column(z.string().min(1), { sqlType: "text", primaryKey: true }),
+
+  /** Ссылка на текстовый ключ (ADR-060) */
+  keyRef: <const O extends ColumnOptions = ColumnOptions>(
+    table: string,
+    onDelete: OnDelete,
+    options?: O,
+  ) => column(z.string().min(1), { sqlType: "text", references: { table, onDelete } }, options),
+
+  /** Дробное число без фиксированной точности: доходность из файла, начисления (ADR-060) */
+  float: <const O extends ColumnOptions = ColumnOptions>(options?: O) =>
+    column(z.number(), { sqlType: "double precision" }, options),
+
   /** Непустая строка: названия, номера */
   name: <const O extends ColumnOptions = ColumnOptions>(options?: O) =>
     column(z.string().min(1), { sqlType: "text" }, options),

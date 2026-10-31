@@ -122,7 +122,7 @@ export function TimeChips({
             className={cn(
               "flex h-control-lg flex-col items-center justify-center rounded-control border text-body-strong tnum focus-ring press-98 disabled:cursor-not-allowed",
               on
-                ? "border-orange-strong bg-orange-strong text-on-orange"
+                ? "border-inverse bg-inverse text-on-inverse"
                 : "border-line-2 bg-surface text-text",
               taken && "border-line bg-surface-2 text-text-3",
             )}

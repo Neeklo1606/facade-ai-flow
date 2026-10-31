@@ -65,7 +65,7 @@ for (const theme of ["dark", "light"] as const) {
       const started = Date.now();
       await page.goto("/", { waitUntil: "load" });
       await page.waitForSelector("html[data-booted]");
-      await t.tap(page.getByRole("link", { name: /Открыть демо/ }).nth(1));
+      await t.tap(page.getByRole("main").getByRole("link", { name: "Посмотреть демо" }).first());
       await expect(page).toHaveURL(/\/demo$/);
       await t.tap(page.getByRole("link", { name: /Начать показ/ }));
       await expect(page).toHaveURL(/\/gas\/foreman/);
@@ -120,6 +120,9 @@ for (const theme of ["dark", "light"] as const) {
     test("J2 бригадир: голосом 3 касания, кнопками 6", async ({ page }) => {
       await open(page, "/gas");
       await gasRole(page, "Бригадир");
+      // ADR-056: бригадир начинает с «Сегодня»; путь J2 идёт через бот, второй канал
+      await expect(page).toHaveURL(/\/gas\/brigade/);
+      await open(page, "/gas/foreman");
       const bot = page.locator('[data-tour="bot"]');
       await stage(bot).getByRole("button", { name: "Внести время", exact: true }).click();
 
@@ -141,6 +144,8 @@ for (const theme of ["dark", "light"] as const) {
       await page.getByRole("alertdialog").getByRole("button", { name: "Сбросить" }).click();
       await expect(toast(page, "Демо сброшено")).toBeVisible();
       await gasRole(page, "Бригадир");
+      await expect(page).toHaveURL(/\/gas\/brigade/);
+      await open(page, "/gas/foreman");
 
       const buttons = tapper();
       await buttons.tap(stage(bot).getByRole("button", { name: "Внести время", exact: true }));
@@ -167,13 +172,15 @@ for (const theme of ["dark", "light"] as const) {
 
       await page.keyboard.press("Escape");
       await open(page, "/gas/moderation");
-      const batch = page.getByRole("button", { name: /Подтвердить все \d+/ });
+      const batch = page.getByRole("button", { name: /Принять все без замечаний \d+/ });
       const count = Number((await batch.innerText()).match(/(\d+)/)![1]);
       await batch.click();
       const done = toast(page, new RegExp(`Подтверждено ${count} запис`));
       await expect(done).toBeVisible();
       await done.getByRole("button", { name: "Отменить" }).click();
-      await expect(page.getByRole("button", { name: `Подтвердить все ${count}` })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: `Принять все без замечаний ${count}` }),
+      ).toBeVisible();
     });
 
     test("J4 руководитель: отчёт, неделя и день, выгрузка", async ({ page }) => {

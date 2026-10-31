@@ -42,34 +42,57 @@
   color-scheme: dark;
 
   /*
-   * «Графит» (ADR-052). Спокойная графитовая основа, тёплый оранжевый ГАЙКИ только у действия,
-   * яркая палитра данных для меток и графиков. Новые имена — источник значений; прежние имена
-   * EMBER и ГАЙКИ ниже стали псевдонимами, поэтому экраны перекрашиваются без правки разметки.
+   * «Монохром» (ADR-055, раздел 2.3 документа Сервиса v1). Чёрное, белое и серые ступени;
+   * действие и активный пункт — инверсная таблетка (ink на canvas), оранжевый остался только
+   * у записи голоса и знака на лендинге (--record). Имена «Графита» (ADR-052) сохранены и
+   * держат значения «Монохрома», прежние имена EMBER и ГАЙКИ ниже по-прежнему псевдонимы.
+   * Здесь тёмная тема; светлая (основная по документу) — в :root[data-theme="light"].
    * Контраст каждой пары проверяет scripts/check-contrast.ts в обеих темах.
    */
-  --rail: #0f0f11;
-  --canvas: #17171a;
-  --panel: #212125;
-  --panel-2: #2a2a2f;
-  --panel-3: #34343b;
+  --rail: #0e0e10;
+  --canvas: #0e0e10;
+  --card: #18181b;
+  --panel: var(--card);
+  --panel-2: #222226;
+  --panel-3: #2c2c31;
   --line: #ffffff14;
   --line-2: #ffffff26;
-  --ink: #f4f4f6;
-  --ink-2: #b6b6be;
-  /* Подписи: #9A9AA4 из задачи давал 4,43:1 на --panel-3, светлота поднята: 4,77:1 */
-  --ink-3: #a0a0aa;
+  --ink: #ededf0;
+  --ink-2: #a1a1aa;
+  /* Подписи: #8B8B94 из документа давал 4,11:1 на --panel-3, светлота поднята: 4,68:1 */
+  --ink-3: #95959e;
+  /* Инверсная поверхность: активный пункт меню, главная кнопка, главный показатель экрана */
+  --inverse: #ededf0;
+  --on-inverse: #111113;
 
-  /* Действие: тёплый оранжевый, тёмный текст на заливке даёт 8,1:1 */
-  --accent: #ff8a4c;
-  --accent-hover: #ffa06b;
-  --on-accent: #1a0e08;
-  --accent-soft: #ff8a4c29;
-  --accent-line: #ff8a4c47;
-  /* Акцент текстом и кольцом: в тёмной теме совпадает с заливкой, в светлой темнее */
-  --accent-text: var(--accent);
-  --brand: var(--accent);
-  /* Граница поля ввода: от 3:1 на panel и panel-2 (WCAG 1.4.11) */
+  /* Действие в «Монохроме» — инверсная заливка, а не цвет */
+  --accent: var(--inverse);
+  --accent-hover: #ffffff;
+  --on-accent: var(--on-inverse);
+  --accent-soft: #ededf014;
+  --accent-line: #ededf03d;
+  /* Акцент текстом и кольцо фокуса: основной текст */
+  --accent-text: var(--ink);
+  /* Плавающая панель слева (раздел 2.1): в тёмной теме panel-3 с рамкой */
+  --capsule: #222226;
+  --on-capsule: #ffffff;
+  --capsule-line: var(--line-2);
+  /* Оранжевый бренда: только запись голоса и знак на лендинге (check:typography) */
+  --record: #ff8a4c;
+  --on-record: #1a0e08;
+  --brand: var(--record);
+  /* Граница поля ввода: от 3:1 на card и panel-2 (WCAG 1.4.11) */
   --field-line: #76767f;
+
+  /* Изменение показателя и статусы: текст тоном на мягкой плашке */
+  --up: #5fd08f;
+  --up-bg: #5fd08f24;
+  --down: #f07a7a;
+  --down-bg: #f07a7a24;
+  --caution: #e8b54a;
+  --caution-bg: #e8b54a24;
+  --note: #86b0ee;
+  --note-bg: #86b0ee24;
 
   /* Палитра данных и меток. Метка: фон тон + 16 %, текст тоном */
   --mint: #8fe3b4;
@@ -114,8 +137,8 @@
   --orange-line: var(--accent-line);
   --sand: #d9c3ab;
   --sand-dim: rgba(217, 195, 171, 0.1);
-  --pill-bg: var(--ink);
-  --pill-text: var(--canvas);
+  --pill-bg: var(--inverse);
+  --pill-text: var(--on-inverse);
 
   /* Фирменный градиент: только старт, финал показа и вход ГАЙКИ (ADR-052) */
   --ember-gradient: linear-gradient(135deg, #0a0908 0%, #8f1d0b 35%, #f16001 68%, #d9c3ab 100%);
@@ -126,15 +149,15 @@
     rgba(217, 195, 171, 0.12) 100%
   );
 
-  /* Статусы — тоны палитры данных */
-  --ok: var(--mint);
-  --ok-bg: var(--mint-soft);
-  --warn: var(--amber);
-  --warn-bg: var(--amber-soft);
-  --danger: var(--coral);
-  --danger-bg: var(--coral-soft);
-  --info: var(--sky);
-  --info-bg: var(--sky-soft);
+  /* Статусы «Монохрома»: рост, падение, внимание, справка (раздел 2.3) */
+  --ok: var(--up);
+  --ok-bg: var(--up-bg);
+  --warn: var(--caution);
+  --warn-bg: var(--caution-bg);
+  --danger: var(--down);
+  --danger-bg: var(--down-bg);
+  --info: var(--note);
+  --info-bg: var(--note-bg);
 
   /* Свет вместо теней. На чёрном тень не работает */
   /* «Графит»: у панелей нет теней и внутреннего света, только граница (ADR-052) */
@@ -142,8 +165,10 @@
   --lift-2: none;
   --lift-3: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 64px rgba(0, 0, 0, 0.75);
   /* Свет это состояние: светится запись, главное действие и одна критичная карточка */
-  --glow-ember:
-    0 0 0 1px rgba(255, 122, 69, 0.3), 0 0 32px rgba(255, 122, 69, 0.28),
+  /* «Монохром»: свет главного действия нейтральный, оранжевый свет только у записи */
+  --glow-ember: 0 0 0 1px var(--line-2), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --glow-record:
+    0 0 0 1px rgba(255, 138, 76, 0.3), 0 0 32px rgba(255, 138, 76, 0.28),
     0 20px 70px rgba(241, 96, 1, 0.18);
   --glow-sand: 0 0 36px rgba(217, 195, 171, 0.22);
   --glow-risk: 0 0 28px rgba(255, 90, 95, 0.26);
@@ -178,6 +203,48 @@
   --r-sheet: 16px;
   --r-pill: 999px;
 
+  /*
+   * Радиусы «Монохрома» (ADR-055, раздел 2.2): карточка 24 на компьютере и 20 на телефоне,
+   * внутренний блок 16, плитка знака и мелкие плашки 12, таблетка 999.
+   */
+  --r-surface: 20px;
+  --r-inset: 16px;
+  --r-tile: 12px;
+
+  /* Тени «Монохрома»: тёмная тема слабее, у карточки рамка line вместо тени */
+  --shadow-card: 0 0 0 1px var(--line);
+  --shadow-card-hover: 0 0 0 1px var(--line-2), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-float: 0 0 0 1px var(--line), 0 16px 40px rgba(0, 0, 0, 0.55);
+
+  /* Движение «Монохрома» (раздел 2.3): длительности и кривые, без новых библиотек */
+  --dur-hover: 160ms;
+  --dur-switch: 200ms;
+  --dur-indicator: 220ms;
+  --dur-reveal: 240ms;
+  --dur-panel: 260ms;
+  --dur-count: 600ms;
+  --dur-draw: 700ms;
+  --reveal-step: 40ms;
+  --reveal-shift: 8px;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /*
+   * Шкала «Монохрома», две плотности (раздел 2.3). Телефон здесь, компьютер от 1024. На
+   * компьютере html 87,5 %, поэтому rem там считаются от 14 px: 44 px = 3.1429rem.
+   */
+  --t-screen: 1.875rem;
+  --t-screen-lh: 2.25rem;
+  --t-kpi: 1.75rem;
+  --t-kpi-lh: 2rem;
+  --t-card: 1.0625rem;
+  --t-card-lh: 1.375rem;
+  --t-text: 1rem;
+  --t-text-lh: 1.5rem;
+  --t-label: 0.875rem;
+  --t-label-lh: 1.25rem;
+  --t-small: 0.8125rem;
+  --t-small-lh: 1.125rem;
+
   /* Отступы ADR-045, раздел 3.2: шаг 4. Телефон здесь, планшет и компьютер медиазапросами */
   --space-gutter: 16px;
   --space-block: 12px;
@@ -187,9 +254,11 @@
   --space-row-x: 16px;
 
   /* Высоты ADR-045, разделы 3 и 4 */
-  --h-header: 52px;
+  /* Шапка телефона «Монохрома» 56 (ADR-055, 2.5) */
+  --h-header: 56px;
   --h-header-desk: 56px;
-  --h-tabbar: 56px;
+  /* Нижняя панель «Монохрома» 64 (ADR-055, 2.5) */
+  --h-tabbar: 64px;
   --h-action: 64px;
   --h-row: 64px;
   --h-row-compact: 52px;
@@ -229,9 +298,9 @@
   --type-body-leading: 1.375rem;
   --type-nav: 0.9375rem;
   /* Шапка и нижняя панель ADR-045: 52 и 56 на телефоне */
-  --topbar-h: 52px;
-  /* Нижняя панель навигации телефона; на планшете и десктопе её нет */
-  --bottom-nav-h: 56px;
+  --topbar-h: 56px;
+  /* Нижняя панель навигации до 1024 (ADR-055, 2.5); на компьютере её нет */
+  --bottom-nav-h: 64px;
   /* Отступ контента от краёв оболочки: поле экрана 3.2 */
   --content-pad: var(--space-gutter);
 
@@ -310,33 +379,45 @@
   color-scheme: light;
 
   /*
-   * «Графит», светлая тема (ADR-052): холодный светло-серый фон и белые панели. Переопределяются
-   * только значения «Графита»: псевдонимы EMBER и ГАЙКИ в :root берут их отсюда сами.
+   * «Монохром», светлая тема (ADR-055): тёплый светло-серый холст, белые карточки, чёрный
+   * текст и чёрная инверсная таблетка. Значения раздела 2.3 документа Сервиса v1.
    */
-  --rail: #e9e9ee;
-  --canvas: #f2f2f5;
-  --panel: #ffffff;
-  --panel-2: #f5f5f8;
-  --panel-3: #e9e9ee;
-  --line: #18181b14;
-  --line-2: #18181b29;
-  --ink: #18181b;
-  --ink-2: #46464e;
-  /* Подписи: 5,4:1 на --canvas и 5,7:1 на --panel-2 */
-  --ink-3: #5e5e67;
+  --rail: #e9e9e6;
+  --canvas: #efefed;
+  --card: #ffffff;
+  --panel-2: #f5f5f3;
+  --panel-3: #e9e9e6;
+  --line: #11111312;
+  --line-2: #11111326;
+  --ink: #111113;
+  --ink-2: #55555c;
+  --ink-3: #66666d;
+  --inverse: #111113;
+  --on-inverse: #ffffff;
 
-  /* Действие: на светлой теме заливка темнее, текст белый, 5,2:1 */
-  --accent: #c2410c;
-  --accent-hover: #a8380a;
-  --on-accent: #ffffff;
-  --accent-soft: #c2410c1f;
-  --accent-line: #c2410c4d;
-  /*
-   * Акцент текстом: #C2410C давал 3,9-4,3:1 на мягком акцентном фоне и 4,63:1 на --canvas.
-   * Оттенок тот же, светлота опущена: от 4,95:1 на плашке, 6,6:1 белым по нему
-   */
-  --accent-text: #a5380a;
+  --accent-hover: #2a2a2e;
+  --accent-soft: #11111314;
+  --accent-line: #1111133d;
+  /* Плавающая панель в светлой теме чёрная, без рамки */
+  --capsule: #111113;
+  --capsule-line: transparent;
+  /* Запись голоса на светлой теме: белый значок 5,2:1, таймер текстом на белом 5,2:1 */
+  --record: #c2410c;
+  --on-record: #ffffff;
   --field-line: #80808a;
+
+  /*
+   * Рост и падение: #1F8F4E и #C43D3D из документа давали 3,6-4,1:1 и 4,4:1 на холсте
+   * и своей плашке. Оттенок тот же, светлота опущена: от 5,0:1
+   */
+  --up: #187640;
+  --up-bg: #e6f5ec;
+  --down: #b83636;
+  --down-bg: #fbeaea;
+  --caution: #8a6100;
+  --caution-bg: #fbf1d9;
+  --note: #2f5f9e;
+  --note-bg: #e8f0fb;
 
   /*
    * Тоны меток светлой темы — тёмные варианты тех же оттенков: яркие тоны тёмной темы
@@ -377,14 +458,19 @@
   --lift-1: none;
   --lift-2: none;
   --lift-3: 0 4px 16px rgba(24, 24, 27, 0.06), 0 24px 48px rgba(24, 24, 27, 0.1);
-  --glow-ember:
-    0 0 0 1px rgba(194, 65, 12, 0.22), 0 0 24px rgba(194, 65, 12, 0.18),
-    0 16px 48px rgba(24, 24, 27, 0.08);
+  --glow-ember: 0 0 0 1px var(--line-2), 0 12px 32px rgba(17, 17, 19, 0.08);
+  --glow-record:
+    0 0 0 1px rgba(194, 65, 12, 0.24), 0 0 24px rgba(194, 65, 12, 0.2),
+    0 16px 48px rgba(17, 17, 19, 0.08);
   --glow-sand: 0 0 24px rgba(158, 132, 104, 0.2);
   --glow-risk: 0 0 20px rgba(179, 38, 30, 0.22);
   --glow-orange: none;
   --glow-soft: 0 8px 32px rgba(24, 24, 27, 0.07);
   --shadow-pop: 0 0 0 1px var(--line), 0 12px 32px rgba(24, 24, 27, 0.14);
+  /* Карточка без рамки, две мягкие тени (раздел 2.2) */
+  --shadow-card: 0 1px 2px rgba(17, 17, 19, 0.04), 0 12px 32px rgba(17, 17, 19, 0.05);
+  --shadow-card-hover: 0 1px 2px rgba(17, 17, 19, 0.06), 0 16px 40px rgba(17, 17, 19, 0.09);
+  --shadow-float: 0 1px 2px rgba(17, 17, 19, 0.06), 0 16px 48px rgba(17, 17, 19, 0.12);
   --overlay: rgba(24, 24, 27, 0.4);
 
   /* Инверсный текст: на светлой теме это белый по тёмному, а не наоборот */
@@ -398,8 +484,8 @@
   }
 }
 
-/* Нижняя панель живёт до 768 px: с 768 её место занимает рельс, с 1024 сайдбар (ADR-045, V7) */
-@media (min-width: 768px) {
+/* Нижняя панель живёт до 1024: с 1024 верхняя строка и капсула (ADR-055, 2.1) */
+@media (min-width: 1024px) {
   :root {
     --bottom-nav-h: 0px;
   }
@@ -414,6 +500,20 @@
     --space-section: 32px;
     --space-card: 20px;
     --space-row-y: 8px;
+    /* «Монохром», компьютер: 44/48, 36/40, 18/24, 15/22, 14/20, 13/18 px от базы 14 px */
+    --r-surface: 24px;
+    --t-screen: 3.1429rem;
+    --t-screen-lh: 3.4286rem;
+    --t-kpi: 2.5714rem;
+    --t-kpi-lh: 2.8571rem;
+    --t-card: 1.2857rem;
+    --t-card-lh: 1.7143rem;
+    --t-text: 1.0714rem;
+    --t-text-lh: 1.5714rem;
+    --t-label: 1rem;
+    --t-label-lh: 1.4286rem;
+    --t-small: 0.9286rem;
+    --t-small-lh: 1.2857rem;
   }
 }
 
@@ -677,6 +777,29 @@
   --color-teal-soft: var(--teal-soft);
   --color-pink-soft: var(--pink-soft);
   --radius-pill: var(--r-pill);
+  --radius-surface: var(--r-surface);
+  --radius-inset: var(--r-inset);
+  --radius-tile: var(--r-tile);
+
+  /* «Монохром»: новые имена для нового кода (ADR-055) */
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-record: var(--record);
+  --color-capsule: var(--capsule);
+  --color-on-capsule: var(--on-capsule);
+  --color-on-record: var(--on-record);
+  --color-up: var(--up);
+  --color-up-bg: var(--up-bg);
+  --color-down: var(--down);
+  --color-down-bg: var(--down-bg);
+  --color-caution: var(--caution);
+  --color-caution-bg: var(--caution-bg);
+  --color-note: var(--note);
+  --color-note-bg: var(--note-bg);
+  /* Классы shadow-surface, shadow-surface-hover, shadow-floating */
+  --shadow-surface: var(--shadow-card);
+  --shadow-surface-hover: var(--shadow-card-hover);
+  --shadow-floating: var(--shadow-float);
 
   --shadow-xs: var(--lift-1);
   --shadow-sm: var(--lift-1);
@@ -1122,11 +1245,11 @@
   box-shadow: none;
 }
 
-/* Запись: кнопка дышит, цикл 2 с. prefers-reduced-motion отключает дыхание ниже */
+/* Запись: кнопка дышит оранжевым светом записи, цикл 2 с. prefers-reduced-motion отключает */
 @keyframes gaika-breathe {
   0%,
   100% {
-    box-shadow: var(--glow-ember);
+    box-shadow: var(--glow-record);
     transform: scale(1);
   }
   50% {
@@ -1146,6 +1269,632 @@
   transition: transform 120ms var(--ease);
   &:active {
     transform: scale(0.97);
+  }
+}
+
+/* ---------------------------------------------------------------- «Монохром» (ADR-055) */
+
+/* Свет записи голоса: единственное оранжевое свечение приложения */
+@utility glow-record {
+  box-shadow: var(--glow-record);
+}
+
+/*
+ * Шкала «Монохрома», две плотности (раздел 2.3): размер и интерлиньяж из токенов --t-*,
+ * которые меняются на 1024. Заголовок экрана и показатель с отрицательным трекингом.
+ */
+@utility type-screen {
+  font-size: var(--t-screen);
+  line-height: var(--t-screen-lh);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+@utility type-kpi {
+  font-size: var(--t-kpi);
+  line-height: var(--t-kpi-lh);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+@utility type-card {
+  font-size: var(--t-card);
+  line-height: var(--t-card-lh);
+  font-weight: 600;
+}
+@utility type-text {
+  font-size: var(--t-text);
+  line-height: var(--t-text-lh);
+}
+@utility type-label {
+  font-size: var(--t-label);
+  line-height: var(--t-label-lh);
+  font-weight: 500;
+}
+@utility type-small {
+  font-size: var(--t-small);
+  line-height: var(--t-small-lh);
+}
+
+/*
+ * Движение «Монохрома» (раздел 2.3). Появление карточек один раз: класс reveal ставит
+ * компонент, которому useFirstReveal разрешил показ; порядок задаёт --reveal-index.
+ * prefers-reduced-motion оставляет только прозрачность.
+ */
+@keyframes mono-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-shift));
+  }
+}
+@keyframes mono-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes mono-draw {
+  from {
+    stroke-dashoffset: var(--draw-length, 1);
+  }
+}
+@keyframes mono-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+@keyframes mono-shimmer {
+  50% {
+    opacity: 0.55;
+  }
+}
+@utility reveal {
+  animation: mono-reveal var(--dur-reveal) var(--ease-out) both;
+  animation-delay: calc(var(--reveal-index, 0) * var(--reveal-step));
+}
+/* Линия графика и спарклайн рисуются: pathLength="1" у пути, штрих сдвигается на длину */
+@utility draw-line {
+  stroke-dasharray: 1;
+  animation: mono-draw var(--dur-draw) var(--ease-out) both;
+}
+/*
+ * Спарклайн с неискажаемой толщиной (vector-effect): pathLength там не работает, линия
+ * открывается слева направо обрезкой за то же время
+ */
+@utility draw-wipe {
+  animation: mono-wipe var(--dur-draw) var(--ease-out) both;
+}
+/* Наведение на карточку: подъём 2 px и тень сильнее */
+@utility lift-hover {
+  transition:
+    transform var(--dur-hover) var(--ease),
+    box-shadow var(--dur-hover) var(--ease);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+  }
+}
+/*
+ * Оболочка «Монохрома» (ADR-055, разделы 2.1 и 2.5). Компьютер от 1024: верхняя строка 72
+ * на холсте, меню-таблетка 56 по центру, круги 48 справа, плавающая капсула 64 слева.
+ * До 1024: шапка 56 и нижняя панель 64 + safe-area. Размеры здесь, а не в разметке.
+ */
+@utility mono-topbar {
+  display: flex;
+  height: 72px;
+  align-items: center;
+  gap: 16px;
+  padding-inline: 32px;
+}
+@utility mono-brand {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--r-tile);
+  background: var(--inverse);
+  color: var(--on-inverse);
+  font-weight: 600;
+  font-size: var(--t-card);
+  line-height: 1;
+  /* Телефон: знак 32 в шапке 56 */
+  @media (max-width: 1023px) {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+}
+@utility mono-pill {
+  position: relative;
+  display: flex;
+  height: 56px;
+  align-items: center;
+  gap: 2px;
+  padding: 8px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+@utility mono-pill-item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 18px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  color: var(--ink-2);
+  font-size: 1.1429rem;
+  line-height: 1;
+  font-weight: 500;
+  transition: color var(--dur-indicator) var(--ease-out);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--ink);
+    }
+  }
+  &[data-active] {
+    color: var(--on-inverse);
+  }
+}
+@utility mono-pill-count {
+  color: var(--ink-3);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  [data-active] > & {
+    color: var(--on-inverse);
+    opacity: 0.75;
+  }
+}
+@utility mono-pill-indicator {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  height: 40px;
+  border-radius: var(--r-pill);
+  background: var(--inverse);
+  pointer-events: none;
+}
+@utility mono-circle {
+  position: relative;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+  /* 48 и на телефоне: аватар стоит и в шапке бота, где полевые кнопки от 48 (ADR-045) */
+  & svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+@utility mono-dot {
+  position: absolute;
+  top: 10px;
+  right: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--down);
+  box-shadow: 0 0 0 2px var(--card);
+}
+@utility mono-capsule {
+  position: fixed;
+  top: 50%;
+  left: 24px;
+  z-index: 30;
+  display: flex;
+  width: 64px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-block: 10px;
+  border-radius: 32px;
+  background: var(--capsule);
+  color: var(--on-capsule);
+  box-shadow:
+    0 0 0 1px var(--capsule-line),
+    var(--shadow-float);
+  transform: translateY(-50%);
+}
+@utility mono-capsule-button {
+  position: relative;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--on-capsule);
+  opacity: 0.7;
+  transition: opacity var(--dur-hover) var(--ease);
+  & svg {
+    width: 20px;
+    height: 20px;
+  }
+  &:focus-visible,
+  &[data-active],
+  &[aria-expanded="true"] {
+    opacity: 1;
+  }
+  @media (hover: hover) {
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+@utility mono-capsule-separator {
+  width: 24px;
+  height: 1px;
+  margin-block: 4px;
+  background: color-mix(in oklab, var(--on-capsule) 20%, transparent);
+}
+@utility mono-capsule-badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 4px;
+  border-radius: var(--r-pill);
+  background: var(--on-capsule);
+  color: var(--capsule);
+  font-size: 0.75rem;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* Контент компьютера: отступ 120 слева под капсулу, поле 32 справа, ширина до 1440 */
+@utility mono-content {
+  width: 100%;
+  max-width: 1592px;
+  margin-inline: auto;
+  /* Поле экрана из токена: экраны выносят липкие полосы на -mx-gutter */
+  padding-inline: var(--space-gutter);
+  @media (min-width: 1024px) {
+    padding-left: 120px;
+    padding-right: 32px;
+  }
+}
+@utility mono-status {
+  display: inline-flex;
+  height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 16px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font-size: var(--t-label);
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  &::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-pill);
+    background: currentColor;
+  }
+}
+@utility mono-phone-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  height: calc(var(--topbar-h) + env(safe-area-inset-top));
+  align-items: center;
+  gap: 8px;
+  padding: env(safe-area-inset-top) 12px 0 16px;
+  background: var(--canvas);
+}
+@utility mono-tabbar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--card);
+  box-shadow: 0 -1px 0 var(--line), 0 -8px 24px rgba(17, 17, 19, 0.04);
+}
+@utility mono-tab {
+  display: flex;
+  height: 64px;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: 500;
+  & .mono-tab-icon {
+    display: grid;
+    width: 56px;
+    height: 32px;
+    place-items: center;
+    border-radius: var(--r-pill);
+    transition: background-color var(--dur-indicator) var(--ease-out);
+  }
+  &[aria-current="page"] {
+    color: var(--ink);
+  }
+  &[aria-current="page"] .mono-tab-icon {
+    background: var(--inverse);
+    color: var(--on-inverse);
+  }
+}
+
+/*
+ * Компоненты «Монохрома» (ADR-055, S3, раздел 2.2). Карточка 24/20, отступ 28 на компьютере
+ * и 20 на телефоне, внутренние блоки panel-2 радиуса 16. Кнопки: 48 телефон, 44 компьютер,
+ * 52 полевые. Размеры в px: на компьютере html 87,5 %, а макет задан в пикселях.
+ */
+@utility mono-card {
+  position: relative;
+  border-radius: var(--r-surface);
+  background: var(--card);
+  color: var(--ink);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  @media (min-width: 1024px) {
+    padding: 28px;
+  }
+}
+@utility mono-card-inverse {
+  background: var(--inverse);
+  color: var(--on-inverse);
+  box-shadow: var(--shadow-card);
+  --ink: var(--on-inverse);
+  --ink-2: color-mix(in oklab, var(--on-inverse) 72%, var(--inverse));
+  --ink-3: color-mix(in oklab, var(--on-inverse) 64%, var(--inverse));
+  --panel-2: color-mix(in oklab, var(--on-inverse) 10%, var(--inverse));
+  --line: color-mix(in oklab, var(--on-inverse) 14%, transparent);
+}
+@utility mono-inset {
+  border-radius: var(--r-inset);
+  background: var(--panel-2);
+  padding: 16px;
+}
+@utility mono-btn {
+  display: inline-flex;
+  height: 48px;
+  min-width: 48px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 20px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-text);
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-hover) var(--ease),
+    color var(--dur-hover) var(--ease),
+    box-shadow var(--dur-hover) var(--ease),
+    transform var(--dur-press) var(--ease);
+  & svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  @media (min-width: 1024px) {
+    height: 44px;
+    min-width: 44px;
+  }
+}
+@utility mono-btn-field {
+  height: 52px;
+  min-width: 52px;
+  @media (min-width: 1024px) {
+    height: 52px;
+    min-width: 52px;
+  }
+}
+@utility mono-btn-primary {
+  background: var(--inverse);
+  color: var(--on-inverse);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+  }
+}
+@utility mono-btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--field-line);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--panel-2);
+    }
+  }
+}
+@utility mono-btn-quiet {
+  background: transparent;
+  color: var(--ink-2);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--panel-2);
+      color: var(--ink);
+    }
+  }
+}
+@utility mono-btn-danger {
+  background: var(--down-bg);
+  color: var(--down);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      box-shadow: inset 0 0 0 1px var(--down);
+    }
+  }
+}
+@utility mono-btn-icon {
+  padding-inline: 0;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+@utility mono-chip {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-small);
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  & svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+@utility mono-seg {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  overflow-x: auto;
+  border-radius: var(--r-pill);
+  background: var(--panel-2);
+  scrollbar-width: none;
+}
+@utility mono-seg-item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  padding-inline: 16px;
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: var(--t-label);
+  font-weight: 500;
+  white-space: nowrap;
+  &[aria-checked="true"],
+  &[aria-selected="true"] {
+    color: var(--ink);
+  }
+}
+@utility mono-seg-indicator {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: 40px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+}
+@utility mono-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--panel-3);
+  box-shadow: inset 0 0 0 1px var(--field-line);
+  transition: background-color var(--dur-switch) var(--ease);
+  &[aria-checked="true"] {
+    background: var(--inverse);
+    box-shadow: none;
+  }
+  & > span {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--r-pill);
+    background: var(--card);
+    box-shadow: 0 1px 3px rgba(17, 17, 19, 0.2);
+    transition: transform var(--dur-switch) var(--ease-spring);
+  }
+  &[aria-checked="true"] > span {
+    transform: translateX(20px);
+  }
+}
+@utility mono-input {
+  display: flex;
+  height: 52px;
+  width: 100%;
+  align-items: center;
+  border-radius: var(--r-inset);
+  background: var(--panel-2);
+  padding-inline: 16px;
+  color: var(--ink);
+  font-size: var(--t-text);
+  box-shadow: inset 0 0 0 1px transparent;
+  &[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 1px var(--down);
+  }
+}
+@utility mono-row {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+@utility mono-panel {
+  width: min(440px, 100vw);
+}
+
+/* Индикатор меню и сегментов переезжает между пунктами */
+@utility slide-indicator {
+  transition:
+    transform var(--dur-indicator) var(--ease-out),
+    width var(--dur-indicator) var(--ease-out);
+}
+/* Переключатель: пружина */
+@utility spring {
+  transition: transform var(--dur-switch) var(--ease-spring);
+}
+/* Скелетон: тихое мерцание */
+@utility shimmer {
+  animation: mono-shimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation-name: mono-fade;
+  }
+  .draw-line,
+  .draw-wipe {
+    animation: none;
+  }
+  .lift-hover,
+  .slide-indicator,
+  .spring {
+    transition: none;
+  }
+  .lift-hover:hover {
+    transform: none;
+  }
+  .shimmer {
+    animation: none;
   }
 }
 
@@ -1386,10 +2135,22 @@
     background: var(--surface);
     box-shadow: inset 0 -1px 0 var(--line);
   }
+  /*
+   * Компьютер «Монохрома» (ADR-055, 2.1): строка экрана под верхней строкой, без линии и фона,
+   * по краю контента (120 слева под капсулу), заголовок 44/48
+   */
   @media (min-width: 1024px) {
-    height: var(--h-header-desk);
+    position: static;
+    height: auto;
+    min-height: var(--h-header-desk);
     gap: 12px;
-    box-shadow: inset 0 -1px 0 var(--line);
+    padding: 16px 32px 8px 120px;
+    background: transparent;
+    box-shadow: none;
+    &[data-collapsed="true"] {
+      background: transparent;
+      box-shadow: none;
+    }
   }
 }
 @utility header-search {
@@ -1735,6 +2496,9 @@
   /* Оболочка на листе не нужна */
   [data-sidebar="app"],
   .content-header,
+  .shell-header,
+  .mono-capsule,
+  .mono-tabbar,
   [data-print="hide"],
   [role="dialog"],
   [role="tooltip"] {
@@ -2509,18 +3273,12 @@ main {
 
 /* ADR-053: public landing composition, independent of app density. */
 .landing-page {
-  --landing-image-opacity: 0.22;
-  --landing-wash: color-mix(in oklab, var(--void) 72%, transparent);
   --landing-shadow: 0 12px 36px color-mix(in oklab, var(--text) 7%, transparent);
   --landing-section-space: 80px;
-  --landing-title-size: 36px;
-  --landing-title-leading: 40px;
+  --landing-title-size: 32px;
+  --landing-title-leading: 38px;
   font-size: 16px;
   line-height: 1.5;
-}
-:root[data-theme="light"] .landing-page {
-  --landing-image-opacity: 0.5;
-  --landing-wash: color-mix(in oklab, var(--void) 76%, transparent);
 }
 .landing-page .site-wrap { max-width: 1200px; padding-inline: 24px; }
 .landing-page .site-h1 { font-size: var(--landing-title-size); line-height: var(--landing-title-leading); letter-spacing: 0; }
@@ -2531,23 +3289,13 @@ main {
 .landing-page .site-lead { font-size: 17px; line-height: 27px; }
 .landing-page .site-section { padding-block: var(--landing-section-space); }
 .landing-page .site-btn { min-height: 52px; font-size: 16px; padding-inline: 24px; }
-.landing-hero { background: var(--void); }
-.landing-hero-image { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; opacity: var(--landing-image-opacity); }
-.landing-hero-wash { position: absolute; inset: 0; z-index: -1; background: var(--landing-wash); }
+/* ADR-059 (S7): первый экран «Монохрома» без картинки, справа живая неделя демо */
+.landing-hero { background: var(--base); }
 .landing-hero-inner { padding-block: 36px 48px; }
-.landing-hero-copy { max-width: 800px; margin-inline: auto; text-align: center; }
-.landing-hero-copy .site-lead { max-width: 640px; margin-inline: auto; }
-.landing-brand { display: block; margin-bottom: 16px; font-size: 18px; line-height: 24px; font-weight: 500; color: var(--orange); }
-.landing-hero-actions { justify-content: center; }
-.landing-record { margin-top: 40px; text-align: left; }
-.landing-record-step { min-width: 0; padding: 16px; border-top: 1px solid var(--line-2); background: color-mix(in oklab, var(--surface) 95%, transparent); border-radius: 8px; box-shadow: var(--landing-shadow); }
-.landing-record-step .text-body, .landing-record-step .text-body-strong { font-size: 15px; line-height: 22px; }
-.landing-record-step .text-meta, .landing-record-step .text-meta-strong { font-size: 13px; line-height: 19px; }
+.landing-hero-copy { max-width: 640px; }
+.landing-hero-fragment { margin-top: var(--landing-section-space); min-width: 0; }
 .landing-point { padding: 24px 0; border-top: 1px solid var(--line-2); }
 .landing-section-heading { max-width: 800px; }
-.landing-process-step { border-top: 1px solid var(--line-2); padding-top: 24px; }
-.landing-case { padding-block: 8px; }
-.landing-start-step { padding: 24px 16px 16px 0; border-top: 1px solid var(--line-2); }
 .landing-faq { max-width: 900px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .landing-links svg { transition: transform 180ms var(--ease-out); }
 .landing-sticky-button { box-shadow: var(--landing-shadow); }
@@ -2557,22 +3305,19 @@ main {
 .landing-page .site-rise:nth-child(4) { animation-delay: 210ms; }
 .landing-page .site-rise:nth-child(5) { animation-delay: 280ms; }
 @media (min-width: 768px) {
-  .landing-page { --landing-title-size: 52px; --landing-title-leading: 58px; }
+  .landing-page { --landing-title-size: 44px; --landing-title-leading: 50px; }
   .landing-page .site-wrap { padding-inline: 40px; }
   .landing-hero-inner { padding-block: 48px 56px; }
-  .landing-record { align-items: start; }
 }
 @media (min-width: 1024px) {
-  .landing-page { --landing-title-size: 60px; --landing-title-leading: 66px; --landing-section-space: 96px; }
+  .landing-page { --landing-title-size: 48px; --landing-title-leading: 54px; --landing-section-space: 96px; }
+  .landing-hero-inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--landing-section-space); }
+  .landing-hero-fragment { margin-top: 0; }
   .landing-page .site-h2 { font-size: 38px; line-height: 46px; }
   .landing-page .site-h3 { font-size: 21px; line-height: 29px; }
   .landing-page .site-body { font-size: 18px; line-height: 28px; }
   .landing-page .site-lead { font-size: 19px; line-height: 29px; }
   .landing-hero-inner { padding-block: 28px 24px; }
-  .landing-record { margin-top: 24px; gap: 12px; }
-  .landing-record-step { padding: 16px; }
-  .landing-record-step [aria-label="Пример: бот бригадира"] > .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .landing-record-step [aria-label="Пример: бот бригадира"] > .grid > span { min-height: 36px; font-size: 13px; }
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .landing-page .site-btn:hover svg, .landing-links a:hover svg { transform: translateX(4px); }

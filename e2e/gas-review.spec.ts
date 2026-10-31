@@ -26,9 +26,9 @@ for (const run of WIDTHS) {
   test.describe(`проверка ${run.name}`, () => {
     test.use({ viewport: run.viewport });
 
-    test("группы и вкладки: по умолчанию «Ожидает проверки»", async ({ page }) => {
+    test("группы и вкладки: по умолчанию «Новые» (ADR-056)", async ({ page }) => {
       await open(page, "/gas/moderation");
-      await expect(page.getByRole("tab", { name: /Ожидает проверки/ })).toHaveAttribute(
+      await expect(page.getByRole("tab", { name: /^Новые/ })).toHaveAttribute(
         "aria-selected",
         "true",
       );
@@ -63,7 +63,7 @@ for (const run of WIDTHS) {
      */
     test("пачка «Без замечаний» сразу и с отменой из тоста", async ({ page }) => {
       await open(page, "/gas/moderation");
-      const button = page.getByRole("button", { name: /Подтвердить все \d+/ });
+      const button = page.getByRole("button", { name: /Принять все без замечаний \d+/ });
       const label = (await button.innerText()).trim();
       const count = Number(label.match(/(\d+)/)?.[1]);
       expect(count).toBeGreaterThan(0);
@@ -79,7 +79,9 @@ for (const run of WIDTHS) {
 
       await done.getByRole("button", { name: "Отменить" }).click();
       await expect(page.getByRole("heading", { name: "Без замечаний" })).toBeVisible();
-      await expect(page.getByRole("button", { name: `Подтвердить все ${count}` })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: `Принять все без замечаний ${count}` }),
+      ).toBeVisible();
     });
 
     test("отклонение требует причину: частая причина отклоняет сразу", async ({ page }) => {
@@ -99,7 +101,8 @@ for (const run of WIDTHS) {
       if (run.phone && (await page.locator("[data-review-sheet]").count()) > 0) {
         await page.getByRole("button", { name: "Закрыть" }).click();
       }
-      await page.getByRole("tab", { name: /Отклонено/ }).click();
+      // Отдельной вкладки отклонённых нет (ADR-056): отклонённая запись во «Все»
+      await page.getByRole("tab", { name: /^Все/ }).click();
       await card(page, "ГЗ-00098").click();
       await expect(page.getByText("Дубль записи").first()).toBeVisible();
     });
@@ -151,7 +154,19 @@ for (const run of WIDTHS) {
     } else {
       test("клавиши J, K и Enter", async ({ page }) => {
         await open(page, "/gas/moderation");
-        await expect(page.getByText("по списку")).toBeVisible();
+        // Клавиши описаны в «?» плавающей панели, а не строкой в теле экрана (ADR-055, S2 п. 5)
+        await page
+          .getByRole("complementary", { name: "Панель действий" })
+          .getByRole("button", { name: "Что делать на этом экране" })
+          .click();
+        await expect(
+          page.getByRole("dialog").getByText(/клавиши J и K ведут по списку/),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
+        // Пока справка открыта, экран клавиши не перехватывает: ждём, что она закрылась
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        // Фокус вернулся на «?»: Enter на кнопке снова открыл бы справку. Работа идёт в списке
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         const first = page.locator("[data-queue-card]").first();
         await expect(first).toHaveAttribute("aria-pressed", "true");
         await page.locator("body").press("j");

@@ -47,22 +47,34 @@ import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
 import { Route as ApiLeadsRouteImport } from './routes/api/leads'
 import { Route as CaseGasRouteImport } from './routes/case/gas'
+import { Route as FieldBrigadeRouteImport } from './routes/field/brigade'
 import { Route as GasIndexRouteImport } from './routes/gas/index'
 import { Route as GasAdminRouteImport } from './routes/gas/admin'
+import { Route as GasBrigadeRouteImport } from './routes/gas/brigade'
 import { Route as GasBrigadesRouteImport } from './routes/gas/brigades'
+import { Route as GasDeliveriesRouteImport } from './routes/gas/deliveries'
+import { Route as GasDirectoryRouteImport } from './routes/gas/directory'
+import { Route as GasDocsOverviewRouteImport } from './routes/gas/docs-overview'
+import { Route as GasDocsRegistryRouteImport } from './routes/gas/docs-registry'
 import { Route as GasEmployeesRouteImport } from './routes/gas/employees'
 import { Route as GasEntriesRouteImport } from './routes/gas/entries'
 import { Route as GasEstimatesRouteImport } from './routes/gas/estimates'
 import { Route as GasFinishRouteImport } from './routes/gas/finish'
 import { Route as GasForemanRouteImport } from './routes/gas/foreman'
 import { Route as GasGuideRouteImport } from './routes/gas/guide'
+import { Route as GasMaterialsRouteImport } from './routes/gas/materials'
 import { Route as GasModerationRouteImport } from './routes/gas/moderation'
 import { Route as GasMoreRouteImport } from './routes/gas/more'
 import { Route as GasObjectsRouteImport } from './routes/gas/objects'
 import { Route as GasOverviewRouteImport } from './routes/gas/overview'
 import { Route as GasQuestionsRouteImport } from './routes/gas/questions'
 import { Route as GasReportsRouteImport } from './routes/gas/reports'
+import { Route as GasSiteRouteImport } from './routes/gas/site'
 import { Route as GasSummaryRouteImport } from './routes/gas/summary'
+import { Route as GasSuppliersRouteImport } from './routes/gas/suppliers'
+import { Route as GasSupplyOverviewRouteImport } from './routes/gas/supply-overview'
+import { Route as GasWeekRouteImport } from './routes/gas/week'
+import { Route as GasWorkJournalRouteImport } from './routes/gas/work-journal'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as OfficeCatalogsRouteImport } from './routes/office/catalogs'
 import { Route as OfficeConnectionsRouteImport } from './routes/office/connections'
@@ -70,8 +82,14 @@ import { Route as OgNameRouteImport } from './routes/og.$name'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
+import { Route as ApiGasExecDocsRouteImport } from './routes/api/gas/exec-docs'
 import { Route as ApiGasExportRouteImport } from './routes/api/gas/export'
+import { Route as ApiGasRfqRouteImport } from './routes/api/gas/rfq'
 import { Route as ApiOfficeConnectionsRouteImport } from './routes/api/office/connections'
+import { Route as GasDocsIndexRouteImport } from './routes/gas/docs/index'
+import { Route as GasDocsDocIdRouteImport } from './routes/gas/docs/$docId'
+import { Route as GasSupplyIndexRouteImport } from './routes/gas/supply/index'
+import { Route as GasSupplyRequestIdRouteImport } from './routes/gas/supply/$requestId'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
 import { Route as ProjectsIdDeliveriesRouteImport } from './routes/projects/$id/deliveries'
 import { Route as ProjectsIdFieldReportsRouteImport } from './routes/projects/$id/field-reports'
@@ -272,6 +290,11 @@ const CaseGasRoute = CaseGasRouteImport.update({
   path: '/case/gas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FieldBrigadeRoute = FieldBrigadeRouteImport.update({
+  id: '/field/brigade',
+  path: '/field/brigade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GasIndexRoute = GasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -282,9 +305,34 @@ const GasAdminRoute = GasAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => GasRoute,
 } as any)
+const GasBrigadeRoute = GasBrigadeRouteImport.update({
+  id: '/brigade',
+  path: '/brigade',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasBrigadesRoute = GasBrigadesRouteImport.update({
   id: '/brigades',
   path: '/brigades',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasDeliveriesRoute = GasDeliveriesRouteImport.update({
+  id: '/deliveries',
+  path: '/deliveries',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasDirectoryRoute = GasDirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasDocsOverviewRoute = GasDocsOverviewRouteImport.update({
+  id: '/docs-overview',
+  path: '/docs-overview',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasDocsRegistryRoute = GasDocsRegistryRouteImport.update({
+  id: '/docs-registry',
+  path: '/docs-registry',
   getParentRoute: () => GasRoute,
 } as any)
 const GasEmployeesRoute = GasEmployeesRouteImport.update({
@@ -317,6 +365,11 @@ const GasGuideRoute = GasGuideRouteImport.update({
   path: '/guide',
   getParentRoute: () => GasRoute,
 } as any)
+const GasMaterialsRoute = GasMaterialsRouteImport.update({
+  id: '/materials',
+  path: '/materials',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasModerationRoute = GasModerationRouteImport.update({
   id: '/moderation',
   path: '/moderation',
@@ -347,9 +400,34 @@ const GasReportsRoute = GasReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => GasRoute,
 } as any)
+const GasSiteRoute = GasSiteRouteImport.update({
+  id: '/site',
+  path: '/site',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasSummaryRoute = GasSummaryRouteImport.update({
   id: '/summary',
   path: '/summary',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasSuppliersRoute = GasSuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasSupplyOverviewRoute = GasSupplyOverviewRouteImport.update({
+  id: '/supply-overview',
+  path: '/supply-overview',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasWeekRoute = GasWeekRouteImport.update({
+  id: '/week',
+  path: '/week',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasWorkJournalRoute = GasWorkJournalRouteImport.update({
+  id: '/work-journal',
+  path: '/work-journal',
   getParentRoute: () => GasRoute,
 } as any)
 const OfficeIndexRoute = OfficeIndexRouteImport.update({
@@ -387,15 +465,45 @@ const ApiExportShiftRoute = ApiExportShiftRouteImport.update({
   path: '/api/export/shift',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGasExecDocsRoute = ApiGasExecDocsRouteImport.update({
+  id: '/api/gas/exec-docs',
+  path: '/api/gas/exec-docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGasExportRoute = ApiGasExportRouteImport.update({
   id: '/api/gas/export',
   path: '/api/gas/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGasRfqRoute = ApiGasRfqRouteImport.update({
+  id: '/api/gas/rfq',
+  path: '/api/gas/rfq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOfficeConnectionsRoute = ApiOfficeConnectionsRouteImport.update({
   id: '/api/office/connections',
   path: '/api/office/connections',
   getParentRoute: () => rootRouteImport,
+} as any)
+const GasDocsIndexRoute = GasDocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasDocsDocIdRoute = GasDocsDocIdRouteImport.update({
+  id: '/docs/$docId',
+  path: '/docs/$docId',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasSupplyIndexRoute = GasSupplyIndexRouteImport.update({
+  id: '/supply/',
+  path: '/supply/',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasSupplyRequestIdRoute = GasSupplyRequestIdRouteImport.update({
+  id: '/supply/$requestId',
+  path: '/supply/$requestId',
+  getParentRoute: () => GasRoute,
 } as any)
 const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
   id: '/projects/$id/',
@@ -486,21 +594,33 @@ export interface FileRoutesByFullPath {
   '/api/feedback': typeof ApiFeedbackRoute
   '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
+  '/field/brigade': typeof FieldBrigadeRoute
   '/gas/admin': typeof GasAdminRoute
+  '/gas/brigade': typeof GasBrigadeRoute
   '/gas/brigades': typeof GasBrigadesRoute
+  '/gas/deliveries': typeof GasDeliveriesRoute
+  '/gas/directory': typeof GasDirectoryRoute
+  '/gas/docs-overview': typeof GasDocsOverviewRoute
+  '/gas/docs-registry': typeof GasDocsRegistryRoute
   '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
   '/gas/estimates': typeof GasEstimatesRoute
   '/gas/finish': typeof GasFinishRoute
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
+  '/gas/materials': typeof GasMaterialsRoute
   '/gas/moderation': typeof GasModerationRoute
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/overview': typeof GasOverviewRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
+  '/gas/site': typeof GasSiteRoute
   '/gas/summary': typeof GasSummaryRoute
+  '/gas/suppliers': typeof GasSuppliersRoute
+  '/gas/supply-overview': typeof GasSupplyOverviewRoute
+  '/gas/week': typeof GasWeekRoute
+  '/gas/work-journal': typeof GasWorkJournalRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
   '/og/$name': typeof OgNameRoute
@@ -509,12 +629,18 @@ export interface FileRoutesByFullPath {
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
+  '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
+  '/gas/docs/$docId': typeof GasDocsDocIdRoute
+  '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
+  '/gas/docs/': typeof GasDocsIndexRoute
+  '/gas/supply/': typeof GasSupplyIndexRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
   '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
   '/projects/$id/procurement/$rfqId': typeof ProjectsIdProcurementRfqIdRoute
@@ -558,21 +684,33 @@ export interface FileRoutesByTo {
   '/api/feedback': typeof ApiFeedbackRoute
   '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
+  '/field/brigade': typeof FieldBrigadeRoute
   '/gas/admin': typeof GasAdminRoute
+  '/gas/brigade': typeof GasBrigadeRoute
   '/gas/brigades': typeof GasBrigadesRoute
+  '/gas/deliveries': typeof GasDeliveriesRoute
+  '/gas/directory': typeof GasDirectoryRoute
+  '/gas/docs-overview': typeof GasDocsOverviewRoute
+  '/gas/docs-registry': typeof GasDocsRegistryRoute
   '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
   '/gas/estimates': typeof GasEstimatesRoute
   '/gas/finish': typeof GasFinishRoute
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
+  '/gas/materials': typeof GasMaterialsRoute
   '/gas/moderation': typeof GasModerationRoute
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/overview': typeof GasOverviewRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
+  '/gas/site': typeof GasSiteRoute
   '/gas/summary': typeof GasSummaryRoute
+  '/gas/suppliers': typeof GasSuppliersRoute
+  '/gas/supply-overview': typeof GasSupplyOverviewRoute
+  '/gas/week': typeof GasWeekRoute
+  '/gas/work-journal': typeof GasWorkJournalRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
   '/og/$name': typeof OgNameRoute
@@ -581,12 +719,18 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
+  '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
+  '/gas/docs/$docId': typeof GasDocsDocIdRoute
+  '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
+  '/gas/docs': typeof GasDocsIndexRoute
+  '/gas/supply': typeof GasSupplyIndexRoute
   '/projects/$id': typeof ProjectsIdIndexRoute
   '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
   '/projects/$id/procurement/$rfqId': typeof ProjectsIdProcurementRfqIdRoute
@@ -633,21 +777,33 @@ export interface FileRoutesById {
   '/api/feedback': typeof ApiFeedbackRoute
   '/api/leads': typeof ApiLeadsRoute
   '/case/gas': typeof CaseGasRoute
+  '/field/brigade': typeof FieldBrigadeRoute
   '/gas/admin': typeof GasAdminRoute
+  '/gas/brigade': typeof GasBrigadeRoute
   '/gas/brigades': typeof GasBrigadesRoute
+  '/gas/deliveries': typeof GasDeliveriesRoute
+  '/gas/directory': typeof GasDirectoryRoute
+  '/gas/docs-overview': typeof GasDocsOverviewRoute
+  '/gas/docs-registry': typeof GasDocsRegistryRoute
   '/gas/employees': typeof GasEmployeesRoute
   '/gas/entries': typeof GasEntriesRoute
   '/gas/estimates': typeof GasEstimatesRoute
   '/gas/finish': typeof GasFinishRoute
   '/gas/foreman': typeof GasForemanRoute
   '/gas/guide': typeof GasGuideRoute
+  '/gas/materials': typeof GasMaterialsRoute
   '/gas/moderation': typeof GasModerationRoute
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/overview': typeof GasOverviewRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
+  '/gas/site': typeof GasSiteRoute
   '/gas/summary': typeof GasSummaryRoute
+  '/gas/suppliers': typeof GasSuppliersRoute
+  '/gas/supply-overview': typeof GasSupplyOverviewRoute
+  '/gas/week': typeof GasWeekRoute
+  '/gas/work-journal': typeof GasWorkJournalRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
   '/og/$name': typeof OgNameRoute
@@ -656,12 +812,18 @@ export interface FileRoutesById {
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
+  '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
+  '/gas/docs/$docId': typeof GasDocsDocIdRoute
+  '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
   '/projects/$id/materials': typeof ProjectsIdMaterialsRoute
   '/projects/$id/timeline': typeof ProjectsIdTimelineRoute
+  '/gas/docs/': typeof GasDocsIndexRoute
+  '/gas/supply/': typeof GasSupplyIndexRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
   '/projects/$id/documents/$docId': typeof ProjectsIdDocumentsDocIdRoute
   '/projects/$id/procurement/$rfqId': typeof ProjectsIdProcurementRfqIdRoute
@@ -709,21 +871,33 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/api/leads'
     | '/case/gas'
+    | '/field/brigade'
     | '/gas/admin'
+    | '/gas/brigade'
     | '/gas/brigades'
+    | '/gas/deliveries'
+    | '/gas/directory'
+    | '/gas/docs-overview'
+    | '/gas/docs-registry'
     | '/gas/employees'
     | '/gas/entries'
     | '/gas/estimates'
     | '/gas/finish'
     | '/gas/foreman'
     | '/gas/guide'
+    | '/gas/materials'
     | '/gas/moderation'
     | '/gas/more'
     | '/gas/objects'
     | '/gas/overview'
     | '/gas/questions'
     | '/gas/reports'
+    | '/gas/site'
     | '/gas/summary'
+    | '/gas/suppliers'
+    | '/gas/supply-overview'
+    | '/gas/week'
+    | '/gas/work-journal'
     | '/office/catalogs'
     | '/office/connections'
     | '/og/$name'
@@ -732,12 +906,18 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/exec-docs'
     | '/api/gas/export'
+    | '/api/gas/rfq'
     | '/api/office/connections'
+    | '/gas/docs/$docId'
+    | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
+    | '/gas/docs/'
+    | '/gas/supply/'
     | '/projects/$id/'
     | '/projects/$id/documents/$docId'
     | '/projects/$id/procurement/$rfqId'
@@ -781,21 +961,33 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/api/leads'
     | '/case/gas'
+    | '/field/brigade'
     | '/gas/admin'
+    | '/gas/brigade'
     | '/gas/brigades'
+    | '/gas/deliveries'
+    | '/gas/directory'
+    | '/gas/docs-overview'
+    | '/gas/docs-registry'
     | '/gas/employees'
     | '/gas/entries'
     | '/gas/estimates'
     | '/gas/finish'
     | '/gas/foreman'
     | '/gas/guide'
+    | '/gas/materials'
     | '/gas/moderation'
     | '/gas/more'
     | '/gas/objects'
     | '/gas/overview'
     | '/gas/questions'
     | '/gas/reports'
+    | '/gas/site'
     | '/gas/summary'
+    | '/gas/suppliers'
+    | '/gas/supply-overview'
+    | '/gas/week'
+    | '/gas/work-journal'
     | '/office/catalogs'
     | '/office/connections'
     | '/og/$name'
@@ -804,12 +996,18 @@ export interface FileRouteTypes {
     | '/projects'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/exec-docs'
     | '/api/gas/export'
+    | '/api/gas/rfq'
     | '/api/office/connections'
+    | '/gas/docs/$docId'
+    | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
+    | '/gas/docs'
+    | '/gas/supply'
     | '/projects/$id'
     | '/projects/$id/documents/$docId'
     | '/projects/$id/procurement/$rfqId'
@@ -855,21 +1053,33 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/api/leads'
     | '/case/gas'
+    | '/field/brigade'
     | '/gas/admin'
+    | '/gas/brigade'
     | '/gas/brigades'
+    | '/gas/deliveries'
+    | '/gas/directory'
+    | '/gas/docs-overview'
+    | '/gas/docs-registry'
     | '/gas/employees'
     | '/gas/entries'
     | '/gas/estimates'
     | '/gas/finish'
     | '/gas/foreman'
     | '/gas/guide'
+    | '/gas/materials'
     | '/gas/moderation'
     | '/gas/more'
     | '/gas/objects'
     | '/gas/overview'
     | '/gas/questions'
     | '/gas/reports'
+    | '/gas/site'
     | '/gas/summary'
+    | '/gas/suppliers'
+    | '/gas/supply-overview'
+    | '/gas/week'
+    | '/gas/work-journal'
     | '/office/catalogs'
     | '/office/connections'
     | '/og/$name'
@@ -878,12 +1088,18 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/exec-docs'
     | '/api/gas/export'
+    | '/api/gas/rfq'
     | '/api/office/connections'
+    | '/gas/docs/$docId'
+    | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
     | '/projects/$id/materials'
     | '/projects/$id/timeline'
+    | '/gas/docs/'
+    | '/gas/supply/'
     | '/projects/$id/'
     | '/projects/$id/documents/$docId'
     | '/projects/$id/procurement/$rfqId'
@@ -930,11 +1146,14 @@ export interface RootRouteChildren {
   ApiFeedbackRoute: typeof ApiFeedbackRoute
   ApiLeadsRoute: typeof ApiLeadsRoute
   CaseGasRoute: typeof CaseGasRoute
+  FieldBrigadeRoute: typeof FieldBrigadeRoute
   OgNameRoute: typeof OgNameRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
+  ApiGasExecDocsRoute: typeof ApiGasExecDocsRoute
   ApiGasExportRoute: typeof ApiGasExportRoute
+  ApiGasRfqRoute: typeof ApiGasRfqRoute
   ApiOfficeConnectionsRoute: typeof ApiOfficeConnectionsRoute
   ProjectsIdDeliveriesRoute: typeof ProjectsIdDeliveriesRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
@@ -1215,6 +1434,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CaseGasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/field/brigade': {
+      id: '/field/brigade'
+      path: '/field/brigade'
+      fullPath: '/field/brigade'
+      preLoaderRoute: typeof FieldBrigadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gas/': {
       id: '/gas/'
       path: '/'
@@ -1229,11 +1455,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasAdminRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/brigade': {
+      id: '/gas/brigade'
+      path: '/brigade'
+      fullPath: '/gas/brigade'
+      preLoaderRoute: typeof GasBrigadeRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/brigades': {
       id: '/gas/brigades'
       path: '/brigades'
       fullPath: '/gas/brigades'
       preLoaderRoute: typeof GasBrigadesRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/deliveries': {
+      id: '/gas/deliveries'
+      path: '/deliveries'
+      fullPath: '/gas/deliveries'
+      preLoaderRoute: typeof GasDeliveriesRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/directory': {
+      id: '/gas/directory'
+      path: '/directory'
+      fullPath: '/gas/directory'
+      preLoaderRoute: typeof GasDirectoryRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/docs-overview': {
+      id: '/gas/docs-overview'
+      path: '/docs-overview'
+      fullPath: '/gas/docs-overview'
+      preLoaderRoute: typeof GasDocsOverviewRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/docs-registry': {
+      id: '/gas/docs-registry'
+      path: '/docs-registry'
+      fullPath: '/gas/docs-registry'
+      preLoaderRoute: typeof GasDocsRegistryRouteImport
       parentRoute: typeof GasRoute
     }
     '/gas/employees': {
@@ -1278,6 +1539,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasGuideRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/materials': {
+      id: '/gas/materials'
+      path: '/materials'
+      fullPath: '/gas/materials'
+      preLoaderRoute: typeof GasMaterialsRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/moderation': {
       id: '/gas/moderation'
       path: '/moderation'
@@ -1320,11 +1588,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasReportsRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/site': {
+      id: '/gas/site'
+      path: '/site'
+      fullPath: '/gas/site'
+      preLoaderRoute: typeof GasSiteRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/summary': {
       id: '/gas/summary'
       path: '/summary'
       fullPath: '/gas/summary'
       preLoaderRoute: typeof GasSummaryRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/suppliers': {
+      id: '/gas/suppliers'
+      path: '/suppliers'
+      fullPath: '/gas/suppliers'
+      preLoaderRoute: typeof GasSuppliersRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/supply-overview': {
+      id: '/gas/supply-overview'
+      path: '/supply-overview'
+      fullPath: '/gas/supply-overview'
+      preLoaderRoute: typeof GasSupplyOverviewRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/week': {
+      id: '/gas/week'
+      path: '/week'
+      fullPath: '/gas/week'
+      preLoaderRoute: typeof GasWeekRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/work-journal': {
+      id: '/gas/work-journal'
+      path: '/work-journal'
+      fullPath: '/gas/work-journal'
+      preLoaderRoute: typeof GasWorkJournalRouteImport
       parentRoute: typeof GasRoute
     }
     '/office/': {
@@ -1376,11 +1679,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExportShiftRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gas/exec-docs': {
+      id: '/api/gas/exec-docs'
+      path: '/api/gas/exec-docs'
+      fullPath: '/api/gas/exec-docs'
+      preLoaderRoute: typeof ApiGasExecDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gas/export': {
       id: '/api/gas/export'
       path: '/api/gas/export'
       fullPath: '/api/gas/export'
       preLoaderRoute: typeof ApiGasExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gas/rfq': {
+      id: '/api/gas/rfq'
+      path: '/api/gas/rfq'
+      fullPath: '/api/gas/rfq'
+      preLoaderRoute: typeof ApiGasRfqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/office/connections': {
@@ -1389,6 +1706,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/office/connections'
       preLoaderRoute: typeof ApiOfficeConnectionsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/gas/docs/': {
+      id: '/gas/docs/'
+      path: '/docs'
+      fullPath: '/gas/docs/'
+      preLoaderRoute: typeof GasDocsIndexRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/docs/$docId': {
+      id: '/gas/docs/$docId'
+      path: '/docs/$docId'
+      fullPath: '/gas/docs/$docId'
+      preLoaderRoute: typeof GasDocsDocIdRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/supply/': {
+      id: '/gas/supply/'
+      path: '/supply'
+      fullPath: '/gas/supply/'
+      preLoaderRoute: typeof GasSupplyIndexRouteImport
+      parentRoute: typeof GasRoute
+    }
+    '/gas/supply/$requestId': {
+      id: '/gas/supply/$requestId'
+      path: '/supply/$requestId'
+      fullPath: '/gas/supply/$requestId'
+      preLoaderRoute: typeof GasSupplyRequestIdRouteImport
+      parentRoute: typeof GasRoute
     }
     '/projects/$id/': {
       id: '/projects/$id/'
@@ -1458,40 +1803,70 @@ declare module '@tanstack/react-router' {
 
 interface GasRouteChildren {
   GasAdminRoute: typeof GasAdminRoute
+  GasBrigadeRoute: typeof GasBrigadeRoute
   GasBrigadesRoute: typeof GasBrigadesRoute
+  GasDeliveriesRoute: typeof GasDeliveriesRoute
+  GasDirectoryRoute: typeof GasDirectoryRoute
+  GasDocsOverviewRoute: typeof GasDocsOverviewRoute
+  GasDocsRegistryRoute: typeof GasDocsRegistryRoute
   GasEmployeesRoute: typeof GasEmployeesRoute
   GasEntriesRoute: typeof GasEntriesRoute
   GasEstimatesRoute: typeof GasEstimatesRoute
   GasFinishRoute: typeof GasFinishRoute
   GasForemanRoute: typeof GasForemanRoute
   GasGuideRoute: typeof GasGuideRoute
+  GasMaterialsRoute: typeof GasMaterialsRoute
   GasModerationRoute: typeof GasModerationRoute
   GasMoreRoute: typeof GasMoreRoute
   GasObjectsRoute: typeof GasObjectsRoute
   GasOverviewRoute: typeof GasOverviewRoute
   GasQuestionsRoute: typeof GasQuestionsRoute
   GasReportsRoute: typeof GasReportsRoute
+  GasSiteRoute: typeof GasSiteRoute
   GasSummaryRoute: typeof GasSummaryRoute
+  GasSuppliersRoute: typeof GasSuppliersRoute
+  GasSupplyOverviewRoute: typeof GasSupplyOverviewRoute
+  GasWeekRoute: typeof GasWeekRoute
+  GasWorkJournalRoute: typeof GasWorkJournalRoute
   GasIndexRoute: typeof GasIndexRoute
+  GasDocsDocIdRoute: typeof GasDocsDocIdRoute
+  GasSupplyRequestIdRoute: typeof GasSupplyRequestIdRoute
+  GasDocsIndexRoute: typeof GasDocsIndexRoute
+  GasSupplyIndexRoute: typeof GasSupplyIndexRoute
 }
 
 const GasRouteChildren: GasRouteChildren = {
   GasAdminRoute: GasAdminRoute,
+  GasBrigadeRoute: GasBrigadeRoute,
   GasBrigadesRoute: GasBrigadesRoute,
+  GasDeliveriesRoute: GasDeliveriesRoute,
+  GasDirectoryRoute: GasDirectoryRoute,
+  GasDocsOverviewRoute: GasDocsOverviewRoute,
+  GasDocsRegistryRoute: GasDocsRegistryRoute,
   GasEmployeesRoute: GasEmployeesRoute,
   GasEntriesRoute: GasEntriesRoute,
   GasEstimatesRoute: GasEstimatesRoute,
   GasFinishRoute: GasFinishRoute,
   GasForemanRoute: GasForemanRoute,
   GasGuideRoute: GasGuideRoute,
+  GasMaterialsRoute: GasMaterialsRoute,
   GasModerationRoute: GasModerationRoute,
   GasMoreRoute: GasMoreRoute,
   GasObjectsRoute: GasObjectsRoute,
   GasOverviewRoute: GasOverviewRoute,
   GasQuestionsRoute: GasQuestionsRoute,
   GasReportsRoute: GasReportsRoute,
+  GasSiteRoute: GasSiteRoute,
   GasSummaryRoute: GasSummaryRoute,
+  GasSuppliersRoute: GasSuppliersRoute,
+  GasSupplyOverviewRoute: GasSupplyOverviewRoute,
+  GasWeekRoute: GasWeekRoute,
+  GasWorkJournalRoute: GasWorkJournalRoute,
   GasIndexRoute: GasIndexRoute,
+  GasDocsDocIdRoute: GasDocsDocIdRoute,
+  GasSupplyRequestIdRoute: GasSupplyRequestIdRoute,
+  GasDocsIndexRoute: GasDocsIndexRoute,
+  GasSupplyIndexRoute: GasSupplyIndexRoute,
 }
 
 const GasRouteWithChildren = GasRoute._addFileChildren(GasRouteChildren)
@@ -1550,11 +1925,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFeedbackRoute: ApiFeedbackRoute,
   ApiLeadsRoute: ApiLeadsRoute,
   CaseGasRoute: CaseGasRoute,
+  FieldBrigadeRoute: FieldBrigadeRoute,
   OgNameRoute: OgNameRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,
+  ApiGasExecDocsRoute: ApiGasExecDocsRoute,
   ApiGasExportRoute: ApiGasExportRoute,
+  ApiGasRfqRoute: ApiGasRfqRoute,
   ApiOfficeConnectionsRoute: ApiOfficeConnectionsRoute,
   ProjectsIdDeliveriesRoute: ProjectsIdDeliveriesRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,

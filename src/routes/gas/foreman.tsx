@@ -103,7 +103,8 @@ function ForemanPage() {
           ? "-mb-[max(16px,env(safe-area-inset-bottom))] h-[calc(100dvh-var(--gas-top-h,0px))]"
           : "-mb-4 h-[calc(100dvh-var(--gas-top-h,0px)-var(--bottom-inset,0px))]",
         // Десктоп: рамка телефона по центру и панель системы справа
-        "lg:mx-0 lg:mt-0 lg:mb-0 lg:grid lg:h-auto lg:grid-cols-[390px_minmax(300px,380px)] lg:items-start lg:justify-center lg:gap-10",
+        "lg:mx-0 lg:mt-0 lg:mb-0 lg:grid lg:h-auto lg:items-start lg:justify-center lg:gap-10",
+        show.active && "lg:grid-cols-[390px_minmax(300px,380px)]",
       )}
     >
       <div className="flex min-h-0 flex-1 flex-col lg:flex-none">
@@ -178,9 +179,15 @@ function ForemanPage() {
         </p>
       </div>
 
-      <div className="hidden lg:block">
-        <SystemPanel entryId={lastId} />
-      </div>
+      {/*
+        «Что происходит в системе» — пояснение показа (ADR-055, S2 п. 6): только пока идёт
+        показ. На рабочем экране остаются бот и честная подпись «Канал не подключён»
+      */}
+      {show.active ? (
+        <div className="hidden lg:block">
+          <SystemPanel entryId={lastId} />
+        </div>
+      ) : null}
     </div>
   );
 }

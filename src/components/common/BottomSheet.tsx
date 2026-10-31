@@ -72,12 +72,16 @@ export function BottomSheet({
       /*
        * Снимаем свою запись чуть позже: действие шторки (смена роли, переход) может увести
        * на другой экран асинхронно, и «назад» сразу отменил бы этот переход. Если сверху
-       * уже чужая запись, история не трогается
+       * уже чужая запись, история не трогается. Ушли со страницы за эти 250 мс (адрес,
+       * обновление) — «назад» не делаем: он оборвал бы загрузку нового документа
        */
-      window.setTimeout(() => {
+      const timer = window.setTimeout(() => {
+        window.removeEventListener("beforeunload", leaving);
         const top = window.history.state as { __sheet?: string } | null;
         if (top?.__sheet === marker) window.history.back();
       }, 250);
+      const leaving = () => window.clearTimeout(timer);
+      window.addEventListener("beforeunload", leaving, { once: true });
     };
   }, [open]);
 

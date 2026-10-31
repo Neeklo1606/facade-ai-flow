@@ -10,6 +10,7 @@ import { saveFile } from "@/lib/download";
 import {
   gasReportFileName,
   type AnalyticRow,
+  type FileLabel,
   type ReportMode,
   type ReportRow,
 } from "@/domain/gas-ops/report";
@@ -20,6 +21,7 @@ export interface DownloadInput {
   days: string[];
   week: { from: string; to: string };
   mode: ReportMode;
+  label?: FileLabel;
 }
 
 /** Имя файла из Content-Disposition: `filename*` (RFC 5987) важнее `filename` */
@@ -48,7 +50,7 @@ export async function downloadCustomerXlsx(input: DownloadInput): Promise<string
   }
   const name =
     fileNameFromDisposition(response.headers.get("content-disposition")) ??
-    gasReportFileName(input.week);
+    gasReportFileName(input.week, input.label);
   saveFile(await response.blob(), name);
   return name;
 }

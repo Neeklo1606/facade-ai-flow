@@ -28,3 +28,43 @@ export const SAMPLE = {
   amount: fmtRub(AMOUNT_RUB),
   rate: fmtRate(revenuePerHour(AMOUNT_RUB, minutes)),
 };
+
+/**
+ * Неделя публичного набора «Демо-подрядчик» для первого экрана (ADR-059): подтверждённое
+ * начисление по дням и итог минут. Сид в лендинг не грузится (он тяжёлый), поэтому числа
+ * записаны здесь, а тест tests/site/landing-sample.test.ts сверяет их с набором.
+ */
+export const WEEK_SAMPLE = {
+  period: "28.09 – 03.10.2026",
+  days: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
+  dates: ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03"],
+  amountRub: [309_100, 232_050, 261_000, 266_500, 394_700, 63_800],
+  confirmedMinutes: 21_685,
+  confirmedEntries: 93,
+};
+
+export const WEEK_TOTAL_RUB = WEEK_SAMPLE.amountRub.reduce((sum, value) => sum + value, 0);
+/** Готовые строки показателей: формулы считает domain, компонент их не форматирует */
+export const WEEK_TEXT = {
+  amount: fmtRub(WEEK_TOTAL_RUB),
+  hours: fmtHours(WEEK_SAMPLE.confirmedMinutes / 60),
+};
+
+/** Пример акта из демо-набора документов (ADR-058): сверяется тем же тестом */
+export const DOCS_SAMPLE = {
+  title: "АОСР №\u00a01",
+  object: "ОБ-101",
+  work: "РО-0001",
+  kind: "Прокладка газопровода в футлярах",
+  percent: 83,
+  missing: "Нет сертификата: Труба стальная ВГП 20 мм",
+  owner: "Снабжение",
+};
+
+/** Пример заявки снабжения: позиция демо-номенклатуры, статусы пути заявки */
+export const SUPPLY_SAMPLE = {
+  text: "труба вгп 20 50 метров к пятнице",
+  item: "Труба стальная ВГП 20 мм",
+  qty: "50\u00a0м",
+  limit: "по смете 120\u00a0м, заказано 0, в заявке 50: в пределах сметы",
+};

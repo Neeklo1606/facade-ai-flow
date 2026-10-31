@@ -115,11 +115,11 @@ test.describe("история вкладок и повторное касани�
   });
 });
 
+// ADR-055, 2.5: четыре пункта роли и «Ещё»; стартовые экраны ролей по ADR-056
 const GAS = [
-  { role: "Менеджер", tabs: ["Проверка", "Журнал", "Отчёт", "Ещё"] },
-  // ADR-052: руководитель начинает с «Обзора», «Бригады» переехали в «Ещё»
-  { role: "Руководитель", tabs: ["Обзор", "Отчёт", "Журнал", "Ещё"] },
-  { role: "Администратор", tabs: ["Проверка", "Объекты", "Стоимость", "Ещё"] },
+  { role: "Менеджер", tabs: ["Проверка", "Журнал", "Неделя", "Отчёт", "Ещё"] },
+  { role: "Руководитель", tabs: ["Неделя", "Отчёт", "Журнал", "Объекты", "Ещё"] },
+  { role: "Администратор", tabs: ["Справочн", "Объекты", "Сметы", "Проверка", "Ещё"] },
 ] as const;
 
 test.describe("учёт выработки 390", () => {
@@ -141,10 +141,12 @@ test.describe("учёт выработки 390", () => {
   test("бригадир: бот на весь экран, одна шапка, «Мои записи» сверху", async ({ page }) => {
     await open(page, "/gas/moderation");
     await gasRole(page, "Бригадир");
-    await expect(page).toHaveURL(/\/gas\/foreman/);
+    // ADR-056: бригадир начинает с «Сегодня», бот — второй канал
+    await expect(page).toHaveURL(/\/gas\/brigade/);
     await expect(gasTabbar(page)).toHaveCount(0);
+    await open(page, "/gas/foreman");
     // Одна шапка: шапка чата, без шапки контура и плашки «Так выглядит бот»
-    await expect(page.locator("header.content-header").filter({ visible: true })).toHaveCount(0);
+    await expect(page.locator("header.shell-header").filter({ visible: true })).toHaveCount(0);
     await page.getByRole("link", { name: "Мои записи" }).click();
     await expect(page).toHaveURL(/\/gas\/entries/);
     await page.getByRole("button", { name: "Назад", exact: true }).click();

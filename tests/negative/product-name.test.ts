@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join, relative } from "node:path";
 
 /**
@@ -13,7 +14,7 @@ import { join, relative } from "node:path";
  * старым именем, либо переписаны целиком — половинного переименования быть не должно.
  */
 
-const ROOT = new URL("../..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 /** Ранние рабочие имена продукта: ни одного из них человек видеть не должен */
 const OLD_NAMES = [/ФАСАД-РП/iu, /FACADE-RP/iu, /Фасад\s+Эксперт/iu];

@@ -15,20 +15,17 @@ const WIDTHS = [
   { name: "1440", viewport: { width: 1440, height: 900 }, hasTouch: false },
 ] as const;
 
-/** Войти бригадиром через переключатель роли оболочки: аватар на телефоне, строка в сайдбаре */
+/** Войти бригадиром через переключатель роли оболочки: аватар в шапке на любой ширине (ADR-055) */
 async function signInForeman(page: Page) {
-  const width = page.viewportSize()?.width ?? 1440;
-  if (width < 1024) {
-    await page.getByRole("button", { name: /^Вы: / }).click();
-  } else {
-    await page.getByRole("button", { name: /Вы смотрите как/ }).click();
-  }
+  await page.getByRole("button", { name: /^Вы: / }).click();
   // На стартовом экране есть и карточка роли «Бригадир»: выбираем в списке переключателя
   await page
     .getByRole("list", { name: "Роли" })
     .getByRole("button", { name: /^Бригадир/ })
     .click();
-  await expect(page).toHaveURL(/\/gas\/foreman/);
+  // ADR-056: бригадир начинает с «Сегодня»; бот — второй канал, открываем его
+  await expect(page).toHaveURL(/\/gas\/brigade/);
+  await open(page, "/gas/foreman");
 }
 
 async function openBot(page: Page): Promise<Locator> {
@@ -84,13 +81,9 @@ for (const width of WIDTHS) {
       await expect(done.getByRole("button", { name: "Внести ещё адрес" })).toBeVisible();
 
       if (width.name === "1440") {
-        await expect(page.getByTestId("bot-system-status")).toContainText(
-          `${number} создана, ждёт проверки`,
-        );
-        await expect(page.getByRole("link", { name: "Открыть в проверке" })).toHaveAttribute(
-          "href",
-          /\/gas\/moderation\?open=/,
-        );
+        // «Что происходит в системе» — пояснение показа: вне показа на рабочем экране его нет
+        // (ADR-055, S2 п. 6); честная подпись о канале остаётся
+        await expect(page.getByTestId("bot-system-status")).toHaveCount(0);
         await expect(
           page.getByText("Так будет выглядеть бот в MAX. Канал не подключён."),
         ).toBeVisible();

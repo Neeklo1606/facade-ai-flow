@@ -60,6 +60,10 @@ for (const theme of ["light", "dark"] as const) {
 
       await open(page, "/gas");
       await gasRole(page, "Бригадир");
+      // ADR-056: бригадир начинает с «Сегодня»; бот открывается вторым каналом
+      await expect(page).toHaveURL(/\/gas\/brigade/);
+      await expectA11y(page, `/gas/brigade ${theme}`);
+      await open(page, "/gas/foreman");
       const bot = page.locator('[data-tour="bot"]');
       await bot.locator("[data-stage]").getByRole("button", { name: "Внести время" }).click();
       await bot.locator("[data-stage]").getByRole("button", { name: "Сказать голосом" }).click();
@@ -72,6 +76,31 @@ for (const theme of ["light", "dark"] as const) {
         .filter((v) => v.impact === "serious" || v.impact === "critical")
         .map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`);
       expect(serious, `голос в боте ${theme}`).toEqual([]);
+
+      // ADR-057: снабжение. Прораб начинает с «Сегодня прораба», снабженец с «Заявок»
+      await open(page, "/gas");
+      await gasRole(page, "Прораб");
+      await expect(page).toHaveURL(/\/gas\/site/);
+      await expectA11y(page, `/gas/site ${theme}`);
+      await page.getByRole("button", { name: "Новая заявка" }).click();
+      await page.getByLabel("Что нужно").fill("кран газовый 2 метра");
+      await page.getByRole("button", { name: "Разобрать текст" }).click();
+      await expectA11y(page, `черновик заявки ${theme}`);
+      await gasRole(page, "Снабженец");
+      await expect(page).toHaveURL(/\/gas\/supply$/);
+      await expectA11y(page, `/gas/supply ${theme}`);
+
+      // ADR-058: ПТО начинает с «Документов»; пакет актов и редактор акта
+      await gasRole(page, "ПТО");
+      await expect(page).toHaveURL(/\/gas\/docs$/);
+      await expectA11y(page, `/gas/docs ${theme}`);
+      await page.getByRole("button", { name: "Создать черновики актов" }).click();
+      await page
+        .getByRole("button", { name: /АОСР №\s1(?!\d)/ })
+        .first()
+        .click();
+      await expect(page).toHaveURL(/\/gas\/docs\/ed-/);
+      await expectA11y(page, `редактор акта ${theme}`);
     });
   });
 }

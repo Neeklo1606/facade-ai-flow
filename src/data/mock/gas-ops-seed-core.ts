@@ -27,6 +27,7 @@ import type {
   User,
   WorkObject,
 } from "@/domain/gas-ops/model";
+import type { CrewMember } from "@/domain/gas-ops/crew";
 
 /** Последний день недели отчёта: он же «сегодня» в демонстрации */
 export function todayOf(report: FactReport): string {
@@ -52,6 +53,7 @@ export interface GasOpsSeed {
   frames: ShiftFrame[];
   assignments: Assignment[];
   users: User[];
+  crew: CrewMember[];
 }
 
 const MANAGER = "u-manager";
@@ -91,6 +93,37 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
     source: "fact-report",
   }));
 
+  /*
+   * Состав бригад (ADR-056). В отчёте заказчика есть только бригадир, остальных людей нет.
+   * Для показа ввода «Кто работал» состав дополнен демо-монтажниками (`source: "mock"`):
+   * в Бригаде 1 их трое, в остальных по двое. Справочник подписывает их «Демо»
+   */
+  const crew: CrewMember[] = [
+    ...employees.map((e) => ({
+      id: `crw-${e.id}`,
+      brigadeId: e.brigadeId,
+      employeeId: e.id,
+      name: e.name,
+      role: e.isLead ? ("lead" as const) : ("worker" as const),
+      from: null,
+      to: null,
+      source: e.source,
+    })),
+    ...brigades.flatMap((b) =>
+      Array.from({ length: b.id === "brg-1" ? 3 : 2 }, (_, i) => ({
+        id: `crw-demo-${b.id}-${i + 1}`,
+        brigadeId: b.id,
+        employeeId: `emp-demo-${b.id}-${i + 1}`,
+        name: `Монтажник ${i + 1}`,
+        role: "worker" as const,
+        from: null,
+        to: null,
+        source: "mock" as const,
+      })),
+    ),
+  ];
+  const crewSize = (brigadeId: string) => crew.filter((m) => m.brigadeId === brigadeId).length;
+
   const objects: WorkObject[] = factReport.objects.map((o) => ({
     id: o.id,
     label: o.label,
@@ -122,6 +155,9 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
     source: "fact-report",
     revenueInFile: e.revenueInFile,
     excelRow: e.excelRow,
+    // Состава в отчёте нет: человеко-часы по этим строкам не считаются
+    headcount: null,
+    channel: "import",
   }));
 
   // --- демо-сценарии: всё ниже помечено source: "mock" ---
@@ -221,6 +257,9 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
     number: numberOf(entries.length + index),
     breakMinutes: 0,
     source: "mock",
+    // Демо-записи пришли из бота, работал весь состав бригады
+    headcount: crewSize(data.brigadeId),
+    channel: "bot",
     ...data,
   });
 
@@ -325,6 +364,8 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
       breakMinutes: 0,
       minutes: 150,
       amountRub: 19_950,
+      // Людей больше, чем в составе: признак «Состав больше бригады» (ADR-056)
+      headcount: crewSize("brg-4") + 2,
       status: "pending",
       createdBy: "emp-4-1",
       createdAt: `${GAS_TODAY}T17:05:00`,
@@ -486,6 +527,28 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
       brigadeId: null,
       allowedObjectIds: "all",
     },
+    // Модули 2 и 3 (ADR-057): прораб ведёт демо-объекты, снабженец и ПТО видят все
+    {
+      id: "u-prorab",
+      name: "Прораб",
+      role: "prorab",
+      brigadeId: null,
+      allowedObjectIds: mockObjects.map((o) => o.id),
+    },
+    {
+      id: "u-supply",
+      name: "Снабженец",
+      role: "supply",
+      brigadeId: null,
+      allowedObjectIds: "all",
+    },
+    {
+      id: "u-pto",
+      name: "ПТО",
+      role: "pto",
+      brigadeId: null,
+      allowedObjectIds: "all",
+    },
   ];
 
   return {
@@ -502,5 +565,6 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
     frames: factReport.frames,
     assignments,
     users,
+    crew,
   };
 }
