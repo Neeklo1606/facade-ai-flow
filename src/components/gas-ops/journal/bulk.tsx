@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { REASONS, reasonText } from "../review/reasons";
 import { plural } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 export function BulkClarifyDialog({
   open,

@@ -31,7 +31,7 @@ const SHOTS: Shot[] = [
   { name: "03-gas-moderation", path: "/gas/moderation", gasRole: "manager" },
   { name: "04-gas-entries", path: "/gas/entries", gasRole: "manager" },
   { name: "05-gas-overview", path: "/gas/overview", gasRole: "director" },
-  { name: "06-gas-reports", path: "/gas/reports", gasRole: "director" },
+  { name: "06-gas-reports", path: "/gas/tabel", gasRole: "director" },
   { name: "07-gas-estimates", path: "/gas/estimates", gasRole: "admin" },
   { name: "08-gas-admin", path: "/gas/admin", gasRole: "admin" },
   { name: "09-supply-inbox", path: "/inbox", persona: "e-dorohov" },

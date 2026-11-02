@@ -83,7 +83,7 @@ export function gasStepPath(step: GuideStep, chain: GuideState["chain"]): string
       return chain.gasEntryId ? `/gas/moderation?open=${chain.gasEntryId}` : "/gas/moderation";
     case "gas-report":
     case "gas-export":
-      return chain.gasEntryId ? `/gas/reports?highlight=${chain.gasEntryId}` : "/gas/reports";
+      return chain.gasEntryId ? `/gas/tabel?highlight=${chain.gasEntryId}` : "/gas/tabel";
     default:
       return "/gas/finish";
   }

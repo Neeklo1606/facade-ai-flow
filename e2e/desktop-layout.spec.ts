@@ -91,7 +91,7 @@ test.describe("компьютер 1280", () => {
   test("при html 87,5 % ничего мельче 12 px, касание мышью от 32, таблица без прокрутки вбок", async ({
     page,
   }) => {
-    for (const path of ["/gas/reports", "/gas/entries", "/gas/moderation"]) {
+    for (const path of ["/gas/tabel", "/gas/entries", "/gas/moderation"]) {
       await open(page, path);
       await page.locator("main").first().waitFor();
       const small = await smallestText(page);
@@ -109,7 +109,7 @@ test.describe("компьютер 1280", () => {
   });
 
   test("отчёт «Во весь экран» открывается и закрывается Esc", async ({ page }) => {
-    await open(page, "/gas/reports");
+    await open(page, "/gas/tabel");
     await page.getByRole("button", { name: "Во весь экран" }).click();
     // Отчёт ложится поверх меню и шапки: рельс под ним, видна только кнопка возврата
     const back = page.getByRole("button", { name: "Свернуть, Esc" });

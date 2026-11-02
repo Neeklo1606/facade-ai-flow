@@ -8,7 +8,7 @@ import { expect, open, test } from "./fixtures";
 const SCREENS = [
   "/gas/moderation",
   "/gas/entries",
-  "/gas/reports",
+  "/gas/tabel",
   "/gas/objects",
   // «Графит» (ADR-052, ADR-053): новые и перестроенные экраны
   "/gas/overview",

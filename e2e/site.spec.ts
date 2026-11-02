@@ -209,8 +209,8 @@ test.describe("личный контур заказчика", () => {
     });
     const html = await (await page.request.get("/gas")).text();
     expect(html).not.toContain(clientShort);
-    await page.goto("/gas/reports", { waitUntil: "domcontentloaded" });
-    // «Отчёт» в меню и шапке называется «Табель» (ADR-061)
+    await page.goto("/gas/tabel", { waitUntil: "domcontentloaded" });
+    // «Отчёт» стал экраном «Табель» (ADR-061, 11)
     await expect(page.getByRole("heading", { name: "Табель" }).first()).toBeVisible();
     await expect(page.getByText("Сверка с вашим файлом")).toHaveCount(0);
     expect(bodies.join("\n")).not.toContain(clientShort);
@@ -222,8 +222,8 @@ test.describe("личный контур заказчика", () => {
   test("личная ссылка ставит куку, убирает ключ и показывает контур заказчика", async ({
     page,
   }) => {
-    await page.goto(`/gas/reports?c=${CLIENT_KEY}`, { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(/\/gas\/reports$/);
+    await page.goto(`/gas/tabel?c=${CLIENT_KEY}`, { waitUntil: "domcontentloaded" });
+    await expect(page).toHaveURL(/\/gas\/tabel$/);
     await expect(page.getByText("Сверка с вашим файлом")).toBeVisible();
     // Компания заказчика в верхней строке оболочки, рядом со знаком (ADR-061, 3.1)
     await expect(page.locator("header.gas-topbar")).toContainText(clientShort);

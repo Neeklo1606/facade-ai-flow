@@ -18,7 +18,7 @@ const SCREENS: { path: string; name: string }[] = [
   { path: "/gas/foreman", name: "02-brigadir" },
   { path: "/gas/moderation", name: "03-proverka" },
   { path: "/gas/entries", name: "04-zhurnal" },
-  { path: "/gas/reports", name: "05-otchet" },
+  { path: "/gas/tabel", name: "05-otchet" },
   { path: "/gas/brigades", name: "06-brigady" },
   { path: "/gas/objects", name: "07-obekty" },
   { path: "/gas/estimates", name: "08-stoimost" },

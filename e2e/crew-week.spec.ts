@@ -111,6 +111,8 @@ for (const [name, viewport] of [
       await close.click();
       await page.getByRole("alertdialog").getByRole("button", { name: "Закрыть неделю" }).click();
       await expect(page.getByText("Закрыта, версия v1", { exact: true })).toBeVisible();
+      // Версия с контрольной суммой записей (ADR-061, 11)
+      await expect(page.getByTestId("checksum-v1")).toContainText(/[0-9a-f]{16}/);
 
       const [file1] = await Promise.all([
         page.waitForEvent("download"),

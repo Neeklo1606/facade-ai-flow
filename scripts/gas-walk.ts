@@ -27,7 +27,7 @@ const SCREENS = [
   "/gas/foreman",
   "/gas/moderation",
   "/gas/entries",
-  "/gas/reports",
+  "/gas/tabel",
   "/gas/brigades",
   "/gas/objects",
   "/gas/estimates",

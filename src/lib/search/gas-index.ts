@@ -65,7 +65,7 @@ export function buildGasIndex(input: GasIndexInput): SearchItem[] {
       group: "actions",
       title: "Выгрузить Excel",
       subtitle: "Недельный отчёт в структуре заказчика",
-      to: "/gas/reports",
+      to: "/gas/tabel",
       keywords: ["отчет", "выгрузка", "неделя"],
     });
   }

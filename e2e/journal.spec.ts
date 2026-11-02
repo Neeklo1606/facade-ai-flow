@@ -87,8 +87,9 @@ test.describe("журнал 1440", () => {
 
   test("неизвестное не ноль: «не рассчитано» ведёт к записям без состава", async ({ page }) => {
     await open(page, "/gas/week");
-    const man = page.getByRole("listitem").filter({ hasText: "Человеко-часы" });
-    await expect(man).toContainText("не рассчитано");
+    // Человеко-часы в строке счётчиков «Недели» (ADR-061, 11; 4.6), а не карточкой
+    const man = page.getByTestId("week-counters");
+    await expect(man).toContainText("чел.-ч: не рассчитано");
     await expect(man).not.toContainText("0 чел.-ч");
     await man.getByRole("link", { name: "Показать записи" }).click();
     await expect(page).toHaveURL(/\/gas\/entries\?crew=none/);

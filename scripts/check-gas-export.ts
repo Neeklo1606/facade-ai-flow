@@ -161,12 +161,19 @@ check(customerFileName(seed.week) === expectedName, `имя файла: ${custom
 const response = await gasExportResponse(
   new Request("http://localhost/api/gas/export", {
     method: "POST",
+    // Сервер сам считает строки из данных недели (ADR-061, 11)
     body: JSON.stringify({
-      rows,
-      analytic,
-      days: seed.week.days,
+      kind: "approved",
       week: seed.week,
-      mode: "confirmed",
+      data: {
+        entries: seed.entries,
+        groups: seed.groups,
+        brigades: seed.brigades,
+        employees: seed.employees,
+        objects: seed.objects,
+        frames: seed.frames,
+        periods: [],
+      },
     }),
   }),
 );

@@ -347,7 +347,7 @@ function ExportSection() {
         Предпросмотр строк открывается на экране «Отчёт». Шаблон заказчика подтверждает его
         специалист: структура повторяет присланный файл, формулы итогов считают суммы по строкам.
       </p>
-      <Link to="/gas/reports" className="mt-3 mono-btn mono-btn-secondary focus-ring">
+      <Link to="/gas/tabel" className="mt-3 mono-btn mono-btn-secondary focus-ring">
         Открыть предпросмотр
       </Link>
     </Card>

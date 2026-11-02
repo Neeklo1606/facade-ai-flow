@@ -70,7 +70,7 @@ for (const width of WIDTHS) {
       await dock(page)
         .getByRole("button", { name: /Как руководитель/ })
         .click();
-      await expect(page).toHaveURL(/\/gas\/reports\?highlight=/);
+      await expect(page).toHaveURL(/\/gas\/tabel\?highlight=/);
       const row = page.locator('[data-tour="report-row"]:visible').first();
       await expect(row).toBeVisible();
       const text = plain(await row.innerText());
@@ -79,11 +79,14 @@ for (const width of WIDTHS) {
       expect(text).toContain("5 880");
       await expect(dock(page)).toContainText("5/6");
 
-      // 5. Excel: шаг засчитывается событием download
-      const [download] = await Promise.all([
-        page.waitForEvent("download"),
-        page.locator('[data-tour="export"]').click(),
-      ]);
+      // 5. Excel: шаг засчитывается событием download. На компьютере «Выгрузить ▾» — меню
+      // с утверждённым и черновиком (ADR-061, 11), на телефоне кнопка выгружает утверждённый
+      const exportFile = async () => {
+        await page.locator('[data-tour="export"]:visible').click();
+        if (width.name === "1440")
+          await page.getByRole("menuitem", { name: /Excel утверждённый/ }).click();
+      };
+      const [download] = await Promise.all([page.waitForEvent("download"), exportFile()]);
       expect(download.suggestedFilename()).toBe(FILE);
 
       // 6. Финал: что создано за показ

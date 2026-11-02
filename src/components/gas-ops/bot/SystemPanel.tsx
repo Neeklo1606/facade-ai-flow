@@ -40,7 +40,7 @@ export function SystemPanel({ entryId }: { entryId: string | null }) {
               <span className="tnum">{entry.number}</span> подтверждена, в отчёте за{" "}
               <span className="tnum">{shortDay(entry.day)}</span>
             </p>
-            <PanelLink href={`/gas/reports?highlight=${entry.id}`}>Открыть в отчёте</PanelLink>
+            <PanelLink href={`/gas/tabel?highlight=${entry.id}`}>Открыть в отчёте</PanelLink>
           </>
         ) : entry.status === "pending" ? (
           <>

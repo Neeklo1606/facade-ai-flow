@@ -73,6 +73,7 @@ import { Route as GasSiteRouteImport } from './routes/gas/site'
 import { Route as GasSummaryRouteImport } from './routes/gas/summary'
 import { Route as GasSuppliersRouteImport } from './routes/gas/suppliers'
 import { Route as GasSupplyOverviewRouteImport } from './routes/gas/supply-overview'
+import { Route as GasTabelRouteImport } from './routes/gas/tabel'
 import { Route as GasWeekRouteImport } from './routes/gas/week'
 import { Route as GasWorkJournalRouteImport } from './routes/gas/work-journal'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
@@ -420,6 +421,11 @@ const GasSupplyOverviewRoute = GasSupplyOverviewRouteImport.update({
   path: '/supply-overview',
   getParentRoute: () => GasRoute,
 } as any)
+const GasTabelRoute = GasTabelRouteImport.update({
+  id: '/tabel',
+  path: '/tabel',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasWeekRoute = GasWeekRouteImport.update({
   id: '/week',
   path: '/week',
@@ -619,6 +625,7 @@ export interface FileRoutesByFullPath {
   '/gas/summary': typeof GasSummaryRoute
   '/gas/suppliers': typeof GasSuppliersRoute
   '/gas/supply-overview': typeof GasSupplyOverviewRoute
+  '/gas/tabel': typeof GasTabelRoute
   '/gas/week': typeof GasWeekRoute
   '/gas/work-journal': typeof GasWorkJournalRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
@@ -709,6 +716,7 @@ export interface FileRoutesByTo {
   '/gas/summary': typeof GasSummaryRoute
   '/gas/suppliers': typeof GasSuppliersRoute
   '/gas/supply-overview': typeof GasSupplyOverviewRoute
+  '/gas/tabel': typeof GasTabelRoute
   '/gas/week': typeof GasWeekRoute
   '/gas/work-journal': typeof GasWorkJournalRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
@@ -802,6 +810,7 @@ export interface FileRoutesById {
   '/gas/summary': typeof GasSummaryRoute
   '/gas/suppliers': typeof GasSuppliersRoute
   '/gas/supply-overview': typeof GasSupplyOverviewRoute
+  '/gas/tabel': typeof GasTabelRoute
   '/gas/week': typeof GasWeekRoute
   '/gas/work-journal': typeof GasWorkJournalRoute
   '/office/catalogs': typeof OfficeCatalogsRoute
@@ -896,6 +905,7 @@ export interface FileRouteTypes {
     | '/gas/summary'
     | '/gas/suppliers'
     | '/gas/supply-overview'
+    | '/gas/tabel'
     | '/gas/week'
     | '/gas/work-journal'
     | '/office/catalogs'
@@ -986,6 +996,7 @@ export interface FileRouteTypes {
     | '/gas/summary'
     | '/gas/suppliers'
     | '/gas/supply-overview'
+    | '/gas/tabel'
     | '/gas/week'
     | '/gas/work-journal'
     | '/office/catalogs'
@@ -1078,6 +1089,7 @@ export interface FileRouteTypes {
     | '/gas/summary'
     | '/gas/suppliers'
     | '/gas/supply-overview'
+    | '/gas/tabel'
     | '/gas/week'
     | '/gas/work-journal'
     | '/office/catalogs'
@@ -1616,6 +1628,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasSupplyOverviewRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/tabel': {
+      id: '/gas/tabel'
+      path: '/tabel'
+      fullPath: '/gas/tabel'
+      preLoaderRoute: typeof GasTabelRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/week': {
       id: '/gas/week'
       path: '/week'
@@ -1826,6 +1845,7 @@ interface GasRouteChildren {
   GasSummaryRoute: typeof GasSummaryRoute
   GasSuppliersRoute: typeof GasSuppliersRoute
   GasSupplyOverviewRoute: typeof GasSupplyOverviewRoute
+  GasTabelRoute: typeof GasTabelRoute
   GasWeekRoute: typeof GasWeekRoute
   GasWorkJournalRoute: typeof GasWorkJournalRoute
   GasIndexRoute: typeof GasIndexRoute
@@ -1860,6 +1880,7 @@ const GasRouteChildren: GasRouteChildren = {
   GasSummaryRoute: GasSummaryRoute,
   GasSuppliersRoute: GasSuppliersRoute,
   GasSupplyOverviewRoute: GasSupplyOverviewRoute,
+  GasTabelRoute: GasTabelRoute,
   GasWeekRoute: GasWeekRoute,
   GasWorkJournalRoute: GasWorkJournalRoute,
   GasIndexRoute: GasIndexRoute,

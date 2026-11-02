@@ -144,7 +144,7 @@ const ROUTES: Route[] = [
     },
   },
   { key: "gas-entries", path: "/gas/entries" },
-  { key: "gas-reports", path: "/gas/reports" },
+  { key: "gas-reports", path: "/gas/tabel" },
   { key: "gas-brigades", path: "/gas/brigades" },
   { key: "gas-objects", path: "/gas/objects" },
   { key: "gas-estimates", path: "/gas/estimates" },

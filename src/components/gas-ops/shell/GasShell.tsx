@@ -264,7 +264,7 @@ function useAttention(): AttentionItem[] {
     },
     {
       key: "reports",
-      to: "/gas/reports",
+      to: "/gas/tabel",
       text: `К итоговой проверке: ${counters["reports"] ?? 0}`,
       count: counters["reports"] ?? 0,
     },

@@ -183,24 +183,23 @@ for (const theme of ["dark", "light"] as const) {
       ).toBeVisible();
     });
 
-    test("J4 руководитель: отчёт, неделя и день, выгрузка", async ({ page }) => {
-      await open(page, "/gas/reports");
-      const tree = page.getByTestId("report-tree");
-      await expect(tree).toBeVisible();
-      await expect(page.getByRole("tab", { name: "Неделя" })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-      await page.getByRole("tab", { name: "Сб 03.10" }).click();
-      await expect(page.getByRole("tab", { name: "Сб 03.10" })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
+    /*
+     * «Табель» на телефоне (ADR-061, 11; раздел 4.5): список «бригада → объект → день»
+     * с тремя числами, «Открыть как таблицу» и выгрузка утверждённого Excel
+     */
+    test("J4 руководитель: табель списком, таблицей и выгрузка", async ({ page }) => {
+      await open(page, "/gas/tabel");
+      const list = page.getByRole("list", { name: "Табель по бригадам" });
+      await expect(list).toBeVisible();
+      await list.locator("summary").first().click();
+      await expect(list.locator("li li").first()).toContainText("₽");
       const [download] = await Promise.all([
         page.waitForEvent("download"),
         page.locator('[data-tour="export"]').click(),
       ]);
       expect(download.suggestedFilename()).toBe(FILE);
+      await page.getByRole("button", { name: "Открыть как таблицу" }).click();
+      await expect(page.getByRole("grid", { name: "Табель в формате заказчика" })).toBeVisible();
       expect(
         await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth),
       ).toBeLessThanOrEqual(0);
@@ -304,13 +303,13 @@ for (const theme of ["dark", "light"] as const) {
     test("J7 заказчик: личная ссылка показывает бренд и сверку, без ключа нет", async ({
       page,
     }) => {
-      await page.goto("/gas/reports", { waitUntil: "domcontentloaded" });
+      await page.goto("/gas/tabel", { waitUntil: "domcontentloaded" });
       await page.locator("main").waitFor();
       await expect(page.locator("body")).not.toContainText(clientShort);
       await expect(page.getByText("Сверка с вашим файлом")).toHaveCount(0);
 
-      await page.goto(`/gas/reports?c=${CLIENT_LINK_KEY}`, { waitUntil: "domcontentloaded" });
-      await expect(page).toHaveURL(/\/gas\/reports$/);
+      await page.goto(`/gas/tabel?c=${CLIENT_LINK_KEY}`, { waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(/\/gas\/tabel$/);
       await expect(page.getByText("Сверка с вашим файлом")).toBeVisible();
       await expect(page.locator("body")).toContainText(clientShort);
     });

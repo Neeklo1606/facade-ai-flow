@@ -1,28 +1,14 @@
 /**
- * Выгрузка отчёта из экрана: строки отправляются на сервер, оттуда приходит файл.
- * Экран не знает, чем собран файл, — это задача адаптера выгрузки.
+ * Выгрузка недели из экрана: вид, версия и данные недели уходят на сервер, оттуда приходит
+ * файл. Экран не знает, чем собран файл, — это задача адаптера выгрузки.
  *
  * Файл сохраняется через blob и `<a download>`: у такой ссылки браузер берёт имя
  * из атрибута, а не из заголовка ответа. Поэтому имя читается из Content-Disposition
  * (`filename*`, потом `filename`) и ставится в атрибут; без заголовка — то же правило имени.
  */
 import { saveFile } from "@/lib/download";
-import {
-  gasReportFileName,
-  type AnalyticRow,
-  type FileLabel,
-  type ReportMode,
-  type ReportRow,
-} from "@/domain/gas-ops/report";
-
-export interface DownloadInput {
-  rows: ReportRow[];
-  analytic: AnalyticRow[];
-  days: string[];
-  week: { from: string; to: string };
-  mode: ReportMode;
-  label?: FileLabel;
-}
+import type { GasExportRequest } from "@/api/gas-export";
+import { gasReportFileName } from "@/domain/gas-ops/report";
 
 /** Имя файла из Content-Disposition: `filename*` (RFC 5987) важнее `filename` */
 export function fileNameFromDisposition(header: string | null): string | null {
@@ -39,7 +25,11 @@ export function fileNameFromDisposition(header: string | null): string | null {
   return plain?.[1]?.trim() || null;
 }
 
-export async function downloadCustomerXlsx(input: DownloadInput): Promise<string> {
+/**
+ * Выгрузка недели (ADR-061, 11): экран называет вид и версию и отдаёт данные недели,
+ * строки файла сервер считает сам
+ */
+export async function downloadWeekXlsx(input: GasExportRequest): Promise<string> {
   const response = await fetch("/api/gas/export", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -48,9 +38,15 @@ export async function downloadCustomerXlsx(input: DownloadInput): Promise<string
   if (!response.ok) {
     throw new Error(`Сервер ответил ${response.status}: ${await response.text()}`);
   }
+  const label =
+    input.version != null
+      ? { version: input.version }
+      : input.kind === "draft"
+        ? { draft: true as const }
+        : null;
   const name =
     fileNameFromDisposition(response.headers.get("content-disposition")) ??
-    gasReportFileName(input.week, input.label);
+    gasReportFileName(input.week, label);
   saveFile(await response.blob(), name);
   return name;
 }

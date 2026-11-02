@@ -49,7 +49,6 @@ import {
 } from "@/api/gas-ops";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
-import { cn } from "@/lib/utils";
 
 /**
  * «Журнал» (ADR-061, 10; раздел 4.4): плотная таблица по образцу «Ведомости работ» ПТО Онлайн.

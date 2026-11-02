@@ -29,7 +29,7 @@ import { clearScenario, getGuideState } from "@/lib/guide/store";
 
 const SHOW = showExample();
 
-type StepTo = "/gas/foreman" | "/gas/moderation" | "/gas/guide" | "/gas/reports";
+type StepTo = "/gas/foreman" | "/gas/moderation" | "/gas/guide" | "/gas/tabel";
 
 const FLOW: readonly {
   title: string;
@@ -67,7 +67,7 @@ const FLOW: readonly {
     title: "Отчёт и Excel",
     where: "Неделя",
     text: "Неделя в структуре вашего файла и выгрузка XLSX.",
-    to: "/gas/reports",
+    to: "/gas/tabel",
     role: "director",
     icon: FileSpreadsheet,
   },
