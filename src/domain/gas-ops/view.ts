@@ -323,10 +323,11 @@ export function dayObjects(
   return ids.map((id) => data.objects.find((o) => o.id === id)).filter((o): o is WorkObject => !!o);
 }
 
-/** Занятые интервалы бригады за день: кнопки времени с ними недоступны (F4) */
+/** Внесённые интервалы бригады за день: подсказка над временем, не запрет (ADR-061, 9) */
 export interface BusyInterval {
   id: string;
   number: string;
+  objectId: string;
   start: number;
   end: number;
 }
@@ -347,7 +348,13 @@ export function busyIntervals(
         e.startMinutes !== null &&
         e.endMinutes !== null,
     )
-    .map((e) => ({ id: e.id, number: e.number, start: e.startMinutes!, end: e.endMinutes! }))
+    .map((e) => ({
+      id: e.id,
+      number: e.number,
+      objectId: e.objectId,
+      start: e.startMinutes!,
+      end: e.endMinutes!,
+    }))
     .sort((a, b) => a.start - b.start);
 }
 

@@ -1,17 +1,12 @@
 /**
  * Демо-адаптер газового направления (ADR-043): порт поверх состояния вкладки.
  *
- * Правила проверяет адаптер, а не экран: ошибки ТЗ, п. 5.7 (некорректное время, дубль,
- * пересечение, нет объекта) и обязательный комментарий при правке приходят оттуда же,
- * откуда их будет отдавать сервер. Экран только показывает текст ошибки.
+ * Правила проверяет адаптер, а не экран: ошибки ТЗ, п. 5.7 (некорректное время, полный дубль,
+ * нет объекта) и обязательный комментарий при правке приходят оттуда же, откуда их будет
+ * отдавать сервер. Пересечение и повторный выезд — признаки записи, не ошибки (ADR-061, 9).
  */
-import {
-  effectiveMinutes,
-  findDuplicates,
-  findOverlaps,
-  flagsOf,
-  MINUTES_ERROR_TEXT,
-} from "@/domain/gas-ops/calc";
+import { checkEntry, entryFrame } from "@/domain/gas-ops/entry-check";
+import { effectiveMinutes, flagsOf, MINUTES_ERROR_TEXT } from "@/domain/gas-ops/calc";
 import {
   allocateByMinutes,
   canConfirmVersion,
@@ -120,7 +115,7 @@ function mustFind(snapshot: GasOpsSnapshot, id: string): TimeEntry {
   return entry;
 }
 
-/** Правила, общие для создания и правки: объект, время, дубль, пересечение */
+/** Правила, общие для создания и правки: объект, права бригады, полный дубль */
 function validate(
   snapshot: GasOpsSnapshot,
   draft: TimeEntry,
@@ -140,26 +135,21 @@ function validate(
     );
   }
 
-  const others = snapshot.entries.filter((e) => e.id !== draft.id);
-
-  if (!options.allowDuplicate) {
-    const duplicates = findDuplicates([...others, draft]);
-    if (duplicates.some((list) => list.some((e) => e.id === draft.id))) {
-      throw new GasOpsError(
-        "duplicate",
-        "По этому объекту за этот день запись уже есть. Исправьте существующую запись.",
-      );
-    }
-  }
-
-  const overlaps = findOverlaps([...others, draft]);
-  const own = overlaps.find((o) => o.a.id === draft.id || o.b.id === draft.id);
-  if (own) {
-    const other = own.a.id === draft.id ? own.b : own.a;
-    const label = snapshot.objects.find((o) => o.id === other.objectId)?.label ?? "другой объект";
+  // Пересечение и повторный выезд — признаки для менеджера, а не запрет (ADR-061, 9).
+  // Отказ только при полном совпадении: тот же объект, день и интервал
+  if (options.allowDuplicate) return;
+  const { twin } = checkEntry(snapshot.entries, {
+    id: draft.id,
+    brigadeId: draft.brigadeId,
+    objectId: draft.objectId,
+    day: draft.day,
+    start: draft.startMinutes,
+    end: draft.endMinutes,
+  });
+  if (twin) {
     throw new GasOpsError(
-      "overlap",
-      `Время пересекается с записью ${other.number} (${label}) на ${own.minutes} мин.`,
+      "duplicate",
+      `Такая запись уже есть: ${twin.number}, ${entryFrame(twin)}. Откройте её, чтобы исправить.`,
     );
   }
 }

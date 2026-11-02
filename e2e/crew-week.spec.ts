@@ -68,12 +68,13 @@ for (const [name, viewport] of [
       await page.waitForSelector("html[data-booted]", { timeout: 60_000 });
       await expect(page.getByText("Бригада 1 ·")).toBeVisible();
       await page.getByRole("button", { name: "Добавить время" }).click();
-      await page.getByRole("button", { name: "Другое время" }).first().click();
-      await page.getByLabel("Другое начало").fill("12:00");
+      // Одно поле «Время работы» (ADR-061, 9): начало сообщением, окончание кнопкой
+      await page.getByLabel("Время работы").fill("12");
       await page
         .getByRole("group", { name: "Окончание" })
         .getByRole("button", { name: "17:00" })
         .click();
+      await expect(page.getByTestId("time-decoded")).toHaveText("12:00–17:00 · 5 ч 00 мин");
       await page.getByRole("button", { name: "Проверить" }).click();
       await expect(page.getByText("4 чел., по 4 ч на человека, всего 16 чел.-ч")).toBeVisible();
       await page.getByRole("button", { name: "Отправить" }).click();

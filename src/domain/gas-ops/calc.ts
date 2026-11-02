@@ -150,18 +150,35 @@ export function findOverlaps(entries: TimeEntry[]): Overlap[] {
   return result;
 }
 
-/**
- * Дубль: та же бригада, тот же объект, тот же день. Отклонённые записи не считаются —
- * после отклонения бригадир вводит запись заново, и это не дубль.
- */
-export function findDuplicates(entries: TimeEntry[]): TimeEntry[][] {
+function groupBy(entries: TimeEntry[], key: (e: TimeEntry) => string): TimeEntry[][] {
   const byKey = new Map<string, TimeEntry[]>();
   for (const e of entries) {
     if (e.status === "rejected") continue;
-    const key = `${e.brigadeId}|${e.objectId}|${e.day}`;
-    byKey.set(key, [...(byKey.get(key) ?? []), e]);
+    byKey.set(key(e), [...(byKey.get(key(e)) ?? []), e]);
   }
-  return [...byKey.values()].filter((list) => list.length > 1);
+  return [...byKey.values()];
+}
+
+/**
+ * Дубль: та же бригада, тот же объект, тот же день и тот же интервал (ADR-061, 9). У записей
+ * без рамки смены интервал неизвестен, они совпадают по объекту и дню. Отклонённые записи
+ * не считаются — после отклонения бригадир вводит запись заново, и это не дубль.
+ */
+export function findDuplicates(entries: TimeEntry[]): TimeEntry[][] {
+  return groupBy(
+    entries,
+    (e) => `${e.brigadeId}|${e.objectId}|${e.day}|${e.startMinutes}|${e.endMinutes}`,
+  ).filter((list) => list.length > 1);
+}
+
+/**
+ * Повторный выезд: тот же объект в тот же день с другим интервалом. ТЗ 5.9 разрешает
+ * несколько интервалов, поэтому это признак для менеджера, а не дубль
+ */
+export function findRepeatVisits(entries: TimeEntry[]): TimeEntry[][] {
+  return groupBy(entries, (e) => `${e.brigadeId}|${e.objectId}|${e.day}`).filter(
+    (list) => new Set(list.map((e) => `${e.startMinutes}|${e.endMinutes}`)).size > 1,
+  );
 }
 
 export interface FlagInput {
@@ -190,6 +207,8 @@ export function flagsOf(input: FlagInput): EntryFlag[] {
     flags.push("overlap");
   if (findDuplicates(all).some((list) => list.some((e) => e.id === entry.id)))
     flags.push("duplicate");
+  if (findRepeatVisits(all).some((list) => list.some((e) => e.id === entry.id)))
+    flags.push("repeat-visit");
   if (objectDays > 1) flags.push("multi-day-object");
   if (!hasEstimate && entry.amountRub !== null) flags.push("no-estimate");
   const people = entry.people?.length ? entry.people.length : (entry.headcount ?? null);

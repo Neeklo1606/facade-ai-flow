@@ -50,3 +50,38 @@ export function writeQueue(storage: Storage | null, list: readonly QueuedEntry[]
     // Запрет записи: очередь живёт до перезагрузки, экран это не скрывает
   }
 }
+
+export type SendResult =
+  | { ok: true; number: string }
+  /** `network` — не дошло до сервера: запись остаётся и уйдёт при следующей попытке */
+  | { ok: false; network: boolean; message: string };
+
+export interface DrainResult {
+  /** Что осталось на телефоне */
+  queue: QueuedEntry[];
+  accepted: { clientKey: string; number: string }[];
+  /** Отказ правила: запись снята с очереди, причину надо показать бригадиру */
+  refused: { clientKey: string; message: string }[];
+}
+
+/**
+ * Отправить очередь по порядку. Сбой сети останавливает отправку: остальное уйдёт при следующей
+ * связи тем же ключом, дубля не будет. Отказ правила снимает запись и идёт дальше
+ */
+export async function drainQueue(
+  list: readonly QueuedEntry[],
+  send: (item: QueuedEntry) => Promise<SendResult>,
+): Promise<DrainResult> {
+  const queue = [...list];
+  const accepted: DrainResult["accepted"] = [];
+  const refused: DrainResult["refused"] = [];
+  while (queue.length > 0) {
+    const item = queue[0]!;
+    const result = await send(item);
+    if (!result.ok && result.network) break;
+    queue.shift();
+    if (result.ok) accepted.push({ clientKey: item.clientKey, number: result.number });
+    else refused.push({ clientKey: item.clientKey, message: result.message });
+  }
+  return { queue, accepted, refused };
+}

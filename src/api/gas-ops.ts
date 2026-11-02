@@ -241,6 +241,29 @@ export function useGasCrew(): {
   }, [data]);
 }
 
+/** Ввод времени бригадиром (ADR-061, 9): поле, занятость, кнопки и диалог бота */
+export {
+  BOT_BREAKS,
+  botReply,
+  botStep,
+  editableInBot,
+  initialBotState,
+  recentEntries,
+  shortDay,
+  summaryOf,
+} from "@/domain/gas-ops/bot-dialog";
+export type {
+  BotContext,
+  BotEffect,
+  BotEvent,
+  BotKey,
+  BotReply,
+  BotState,
+} from "@/domain/gas-ops/bot-dialog";
+export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
+export { parseTimeInput, rangeLabel, TIME_INPUT_TEXT } from "@/domain/gas-ops/time-input";
+export { busyLine, intervalLabel } from "@/domain/gas-ops/time-slots";
+
 /** Разбор фразы бригадира правилом domain (ADR-049): экран бота зовёт его отсюда */
 export { parseTimeMessage } from "@/domain/gas-ops/parse-time-message";
 export type { ParsedTime, ParseObject } from "@/domain/gas-ops/parse-time-message";

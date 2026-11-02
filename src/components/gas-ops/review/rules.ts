@@ -64,7 +64,12 @@ export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: 
   duplicate: {
     label: FLAG_LABEL.duplicate,
     level: "block",
-    why: "По этому объекту в этот день у бригады уже есть запись. Проверьте, не внесено ли время дважды.",
+    why: "По этому объекту в этот день у бригады уже есть запись с тем же временем. Проверьте, не внесено ли время дважды.",
+  },
+  "repeat-visit": {
+    label: FLAG_LABEL["repeat-visit"],
+    level: "decide",
+    why: "Бригада была на этом объекте дважды за день: интервалы разные. ТЗ разрешает несколько выездов, сверьте с бригадиром.",
   },
   "zero-minutes": {
     label: "Ноль минут",
@@ -92,7 +97,7 @@ export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: 
     why: "В записи больше людей, чем в составе бригады на эту дату. Уточните состав у бригадира или добавьте человека в справочник.",
   },
   "late-entry": {
-    label: "Вчерашняя запись",
+    label: "Внесено позже",
     level: "decide",
     why: "Время внесено на следующий день после работы. Сверьте его с бригадиром.",
   },
@@ -173,6 +178,7 @@ export const LEVEL_LABEL: Record<MarkLevel, string> = {
 export const FLAG_LEVEL: Record<EntryFlag, MarkLevel> = {
   overlap: "block",
   duplicate: "block",
+  "repeat-visit": "decide",
   "no-amount": "decide",
   "no-estimate": "decide",
   "high-rate": "decide",

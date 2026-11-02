@@ -222,7 +222,7 @@ export function Composer({
         type="submit"
         aria-label="Отправить сообщение"
         disabled={!text.trim()}
-        className="grid size-12 shrink-0 place-items-center rounded-full bg-pill text-pill-text transition-opacity focus-ring press disabled:opacity-40"
+        className="grid h-field min-w-field shrink-0 place-items-center rounded-full bg-pill text-pill-text transition-opacity focus-ring press disabled:opacity-40"
       >
         <SendHorizontal className="size-5" aria-hidden />
       </button>

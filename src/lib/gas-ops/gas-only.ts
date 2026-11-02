@@ -21,3 +21,19 @@ export function gasOnlyEnabled() {
 
 /** Роли снабжения и ПТО (ADR-057, ADR-058): под флагом их нет в выборе роли */
 export const FROZEN_ROLES: readonly Role[] = ["prorab", "supply", "pto"];
+
+/** Ключ сессии: "1" показывает «У людей разное время» до решения Оксаны (D07) */
+export const SPLIT_TIME_KEY = "gaika-split-time";
+
+/**
+ * «У людей разное время» в форме бригадира (ADR-061, 9): правило расчёта человеко-часов
+ * по разному времени ещё не согласовано (D07), поэтому ссылка выключена по умолчанию
+ */
+export function splitTimeEnabled() {
+  if (import.meta.env["VITE_GAS_SPLIT_TIME"] === "1") return true;
+  try {
+    return typeof window !== "undefined" && window.sessionStorage.getItem(SPLIT_TIME_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
