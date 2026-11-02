@@ -36,7 +36,6 @@ import {
   type InfoKind,
   type Remark,
 } from "@/api/gas-ops";
-import { gasShowConfirmed } from "@/lib/gas-ops/show";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -237,7 +236,6 @@ function ModerationPage() {
         toast.error(result.message);
         return { ok: false, message: result.message };
       }
-      if (action === "confirm") gasShowConfirmed(id);
       toastUndo(
         DONE_TEXT[action],
         () => void undo(id),
@@ -281,7 +279,6 @@ function ModerationPage() {
       toast.error("Не получилось принять записи. Повторите.");
       return;
     }
-    for (const id of done) gasShowConfirmed(id);
     toastUndo(
       `Принято ${done.length} ${plural(done.length, "запись", "записи", "записей")} на ${fmtRub(sum)}`,
       () => {
@@ -410,6 +407,7 @@ function ModerationPage() {
 
   const bulk = (
     <Button
+      data-tour="review-accept-clean"
       onClick={() => void confirmClean()}
       disabled={tab !== "pending" || clean.length === 0}
       className={cn("max-lg:h-12 max-lg:w-full")}
@@ -544,6 +542,7 @@ function ModerationPage() {
           ) : (
             <ul
               aria-label="Очередь проверки"
+              data-tour="review-queue"
               className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line"
             >
               {ordered.map((item) => {

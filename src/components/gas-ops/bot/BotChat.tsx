@@ -33,7 +33,8 @@ import {
   type WorkObject,
 } from "@/api/gas-ops";
 import { newClientKey } from "@/lib/gas-ops/field-queue";
-import { GAS_SHOW_HINT, gasShowEvent, useGasShow } from "@/lib/gas-ops/show";
+import { useBrigadeInbox } from "@/api/gas-assistant";
+import { GAS_SHOW_HINT, recordShow, useShowActive } from "@/lib/gas-ops/show";
 import { useForcedState } from "@/lib/screen-state";
 import { cn } from "@/lib/utils";
 import { BotBubble, ChatHeader, Composer, Key, Keys, MyBubble, SystemNote } from "./parts";
@@ -75,7 +76,8 @@ export function BotChat({
 }: BotChatProps) {
   const week = useGasWeek();
   const actions = useGasActions();
-  const show = useGasShow();
+  const showActive = useShowActive();
+  const inbox = useBrigadeInbox(brigadeId);
   const dayObjects = useGasDayObjects(brigadeId, week.today).slice(0, DAY_OBJECTS_MAX);
   const views = useGasEntries({ brigadeId });
   const field = useGasField(brigadeId);
@@ -118,11 +120,6 @@ export function BotChat({
   stateRef.current = state;
 
   const reply = botReply(state, ctx);
-
-  // Шаг показа «внести время» засчитывается, когда бригадир дошёл до сводки
-  useEffect(() => {
-    if (state.stage.kind === "summary") gasShowEvent("gasEntrySummary");
-  }, [state.stage.kind]);
 
   // Лента прокручивается к новому сообщению: длинное сообщение видно с начала
   useLayoutEffect(() => {
@@ -197,7 +194,7 @@ export function BotChat({
       return;
     }
     const entry = result.value;
-    gasShowEvent("gasEntrySubmitted", { gasEntryId: entry.id, gasEntryNumber: entry.number });
+    recordShow({ gasEntryId: entry.id, gasEntryNumber: entry.number });
     onSubmitted(entry);
     dispatch({ type: "sent", number: entry.number });
   };
@@ -219,8 +216,8 @@ export function BotChat({
     return `Сегодня, ${place} ${house}, с двенадцати до половины третьего, без перерыва`;
   };
 
-  // Показ: на шагах «внести» и «отправить» подсвечены рекомендуемые значения
-  const rec = show.active && (show.step?.id === "gas-enter" || show.step?.id === "gas-send");
+  // Показ: в боте подсвечены рекомендуемые значения, окно без пересечений
+  const rec = showActive;
   const hint: Record<string, string | number> = {
     object: GAS_SHOW_HINT.objectId,
     start: 12 * 60,
@@ -324,6 +321,15 @@ export function BotChat({
         <SystemNote>
           Сегодня, {shortDay(week.today)}. Так будет выглядеть бот в MAX, канал не подключён.
         </SystemNote>
+        {/* Напоминания порта OutboundMessenger: в демо они живут только в этой ленте */}
+        {inbox.map((m) => (
+          <BotBubble key={m.key}>
+            <span data-testid="bot-reminder">{m.text}</span>
+            <span className="mt-1 block text-meta opacity-80">
+              Демо: напоминание показано здесь, в MAX не отправлено
+            </span>
+          </BotBubble>
+        ))}
         {past.map((item) =>
           item.from === "bot" ? (
             <BotBubble key={item.id}>{item.content}</BotBubble>

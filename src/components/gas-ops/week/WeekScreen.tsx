@@ -169,7 +169,7 @@ export function WeekScreen() {
           <StatusChip tone="neutral">Открыта</StatusChip>
         )}
         {canClose && !closed ? (
-          <Button onClick={closeWeek}>
+          <Button data-tour="week-close" onClick={closeWeek}>
             <Lock aria-hidden />
             {left.length
               ? `Закрыть неделю (${left.length} ${plural(left.length, "причина", "причины", "причин")})`
@@ -188,6 +188,7 @@ export function WeekScreen() {
         <p
           className="flex flex-wrap items-center gap-x-1 text-meta text-text-2"
           data-testid="week-counters"
+          data-tour="week-counters"
         >
           {counters.join(" · ")} ·{" "}
           {man.value ? (

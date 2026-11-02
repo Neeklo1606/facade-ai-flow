@@ -19,7 +19,7 @@ import {
   type WorkObject,
 } from "@/api/gas-ops";
 import { gasTitle } from "@/lib/gas-ops/brand";
-import { useGasShow } from "@/lib/gas-ops/show";
+import { useShowActive, useShowChain } from "@/lib/gas-ops/show";
 import { cn } from "@/lib/utils";
 
 /**
@@ -58,7 +58,8 @@ function ForemanPage() {
   const week = useGasWeek();
   const directory = useGasDirectory();
   const employees = useGasEmployees();
-  const show = useGasShow();
+  const showActive = useShowActive();
+  const chain = useShowChain();
   const isForeman = actor.role === "foreman";
   const brand = useGasBrand();
   const back = useBack("/gas/more");
@@ -87,7 +88,7 @@ function ForemanPage() {
 
   // Последняя отправленная запись: панель справа ведёт её по цепочке и после перехода
   const [lastId, setLastId] = useState<string | null>(null);
-  const chainId = show.state.chain.gasEntryId ?? null;
+  const chainId = chain.gasEntryId ?? null;
   useEffect(() => {
     setLastId((id) => id ?? readLast() ?? chainId);
   }, [chainId]);
@@ -104,7 +105,7 @@ function ForemanPage() {
           : "-mb-4 h-[calc(100dvh-var(--gas-top-h,0px)-var(--bottom-inset,0px))]",
         // Десктоп: рамка телефона по центру и панель системы справа
         "lg:mx-0 lg:mt-0 lg:mb-0 lg:grid lg:h-auto lg:items-start lg:justify-center lg:gap-10",
-        show.active && "lg:grid-cols-[390px_minmax(300px,380px)]",
+        showActive && "lg:grid-cols-[390px_minmax(300px,380px)]",
       )}
     >
       <div className="flex min-h-0 flex-1 flex-col lg:flex-none">
@@ -125,7 +126,7 @@ function ForemanPage() {
             isForeman={isForeman}
             allowed={allowed}
             objects={directory.objects}
-            bottomInset={show.active}
+            bottomInset={showActive}
             /*
               Одна шапка на телефоне (ADR-048, 6): шапка чата и есть шапка экрана. Менеджер
               смотрит бот изнутри «Ещё», поэтому слева «Назад»; бригадиру сверху «Мои записи»
@@ -183,7 +184,7 @@ function ForemanPage() {
         «Что происходит в системе» — пояснение показа (ADR-055, S2 п. 6): только пока идёт
         показ. На рабочем экране остаются бот и честная подпись «Канал не подключён»
       */}
-      {show.active ? (
+      {showActive ? (
         <div className="hidden lg:block">
           <SystemPanel entryId={lastId} />
         </div>

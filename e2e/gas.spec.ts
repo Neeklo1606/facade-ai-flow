@@ -5,7 +5,7 @@ import { enterClientContour, gasRole } from "./gas-helpers";
 /**
  * Рабочий контур газа (ADR-043, ADR-044, F1): экраны открываются в своей оболочке без
  * элементов ГАЙКИ, роль меняет стартовый экран и меню, сброс демо возвращает исходный набор.
- * Сценарии экранов живут рядом: gas-bot, gas-review, gas-report, gas-start, gas-show.
+ * Сценарии экранов живут рядом: gas-bot, gas-review, gas-report, gas-start, gas-tour.
  *
  * Ошибка в консоли роняет тест: это общая оснастка e2e.
  */

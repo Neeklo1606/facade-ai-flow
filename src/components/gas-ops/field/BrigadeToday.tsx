@@ -393,7 +393,7 @@ export function BrigadeToday() {
 
   return (
     <div className="flex flex-col gap-5">
-      <section aria-label="Итог дня" className="flex flex-col gap-3">
+      <section aria-label="Итог дня" data-tour="today-done" className="flex flex-col gap-3">
         <p className="type-label text-ink-2">
           {field.brigade.name} · {fmtDay(field.today)}
         </p>
@@ -441,7 +441,7 @@ export function BrigadeToday() {
             <span className="type-label text-ink-2">Ждут отправки: {queue.length}</span>
           </p>
         ) : null}
-        <Button field className="w-full" onClick={startDraft}>
+        <Button field className="w-full" data-tour="today-add" onClick={startDraft}>
           <Plus aria-hidden />
           Добавить время
         </Button>
@@ -465,7 +465,11 @@ export function BrigadeToday() {
         </section>
       ) : null}
 
-      <section aria-labelledby="my-entries" className="flex flex-col gap-3">
+      <section
+        aria-labelledby="my-entries"
+        data-tour="today-entries"
+        className="flex flex-col gap-3"
+      >
         <h2 id="my-entries" className="type-card">
           Мои записи
         </h2>

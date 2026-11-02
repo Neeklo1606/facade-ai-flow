@@ -16,9 +16,6 @@ import { CLIENT_LINK_KEY, gasRole } from "./gas-helpers";
 test.describe.configure({ timeout: 240_000 });
 
 const FILE = "Выработка_бригад_28.09-03.10.2026.xlsx";
-const plain = (value: string) => value.replace(/[\u00a0\u202f]/g, " ");
-const dock = (page: Page) =>
-  page.locator("[data-gas-show-dock], [data-gas-show-inline]").filter({ visible: true }).first();
 const toast = (page: Page, text: RegExp | string) =>
   page.locator("[data-sonner-toast]", { hasText: text });
 const clientShort = readFileSync("src/server/customer-data.ts", "utf8").match(
@@ -60,7 +57,9 @@ for (const theme of ["dark", "light"] as const) {
       expectedConsole: /^Failed to load resource: .*status of 501\b/,
     });
 
-    test("J1 холодный ЛПР: сайт → демо → 6 шагов → финал → разбор → заявка", async ({ page }) => {
+    test("J1 холодный ЛПР: сайт → демо → тур показа → финал → разбор → заявка", async ({
+      page,
+    }) => {
       const t = tapper();
       const started = Date.now();
       await page.goto("/", { waitUntil: "load" });
@@ -68,36 +67,14 @@ for (const theme of ["dark", "light"] as const) {
       await t.tap(page.getByRole("main").getByRole("link", { name: "Посмотреть демо" }).first());
       await expect(page).toHaveURL(/\/demo$/);
       await t.tap(page.getByRole("link", { name: /Начать показ/ }));
-      await expect(page).toHaveURL(/\/gas\/foreman/);
-      await expect(dock(page)).toContainText("1/6");
-
-      const bot = page.locator('[data-tour="bot"]');
-      await t.tap(stage(bot).getByRole("button", { name: "Внести время", exact: true }));
-      await t.tap(stage(bot).getByRole("button", { name: /ул\. Демо, 200/ }));
-      await t.tap(stage(bot).getByRole("button", { name: /^Сегодня, 03\.10/ }));
-      await t.tap(stage(bot).getByRole("button", { name: /^12:00/ }));
-      await t.tap(stage(bot).getByRole("button", { name: /^14:30/ }));
-      await t.tap(stage(bot).getByRole("button", { name: /^0 мин/ }));
-      await t.tap(stage(bot).getByRole("button", { name: "Отправить", exact: true }));
-      await expect(bot).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
-
-      await t.tap(dock(page).getByRole("button", { name: /Как менеджер проверки/ }));
-      await t.tap(page.locator('[data-tour="review-confirm"]:visible').first());
-      await expect(toast(page, "Принято")).toBeVisible();
-
-      await t.tap(dock(page).getByRole("button", { name: /Как руководитель/ }));
-      const row = page.locator('[data-tour="report-row"]:visible').first();
-      await expect(row).toBeVisible();
-      expect(plain(await row.innerText())).toContain("14 700 ₽");
-
-      const [download] = await Promise.all([
-        page.waitForEvent("download"),
-        t.tap(page.locator('[data-tour="export"]')),
-      ]);
-      expect(download.suggestedFilename()).toBe(FILE);
-
-      await t.tap(dock(page).getByRole("button", { name: /Итог показа/ }));
+      // Показ за 3 минуты (ADR-061, 13): тур менеджера → бригадира → руководителя, действия
+      // зрителя не обязательны. Запись в боте и файл по пути показа проверяет gas-tour.spec.ts
+      await expect(page).toHaveURL(/\/gas\/moderation$/);
+      const tour = page.getByTestId("tour-card");
+      await expect(tour.getByTestId("tour-step")).toHaveText("Шаг 1 из 9");
+      for (let i = 0; i < 8; i++) await t.tap(tour.getByRole("button", { name: "Далее" }));
       await expect(page).toHaveURL(/\/gas\/finish/);
+      await t.tap(tour.getByRole("button", { name: "Готово" }));
       await t.tap(page.getByTestId("finish-razbor"));
       await expect(page).toHaveURL(/\/razbor\?from=demo-final$/);
       const seconds = Math.round((Date.now() - started) / 1000);

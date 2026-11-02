@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { useSheetLayer } from "@/lib/ui/bottom-layers";
 import { cn } from "@/lib/utils";
-import { GasShowInline } from "../show/GasShowDock";
 
 /** Сколько протащить ручку вниз, чтобы лист закрылся */
 const CLOSE_AT = 96;
@@ -99,7 +98,6 @@ export function PhoneSheet({
         >
           <span aria-hidden className="h-1 w-9 rounded-full bg-line-2" />
         </div>
-        <GasShowInline className="mx-gutter mb-2" />
         {children}
       </div>
     </>

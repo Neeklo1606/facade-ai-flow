@@ -190,7 +190,7 @@ const ROLE_STEPS: Record<Exclude<GuideTab, "calc">, { role: Role; steps: GuideSt
 
 const SHOW_STYLE = `
 @media print {
-  .gas-shell > aside, .gas-shell header, .gas-shell nav, [data-gas-show-dock], [data-sonner-toaster] { display: none !important; }
+  .gas-shell > aside, .gas-shell header, .gas-shell nav, [data-gas-tour], [data-sonner-toaster] { display: none !important; }
   html, body, .gas-shell, #gas-main { background: #fff !important; }
   #gas-main { padding: 0 !important; }
   .gas-guide {

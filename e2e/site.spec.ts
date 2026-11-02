@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
 /**
@@ -14,9 +13,6 @@ const clientShort = (() => {
   const source = readFileSync("src/server/customer-data.ts", "utf8");
   return source.match(/clientShort: "([^"]+)"/)![1]!;
 })();
-
-const dock = (page: Page) =>
-  page.locator("[data-gas-show-dock], [data-gas-show-inline]").filter({ visible: true }).first();
 
 test.describe("сайт и вход в демо 390", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -71,8 +67,9 @@ test.describe("сайт и вход в демо 390", () => {
     await expect(page.getByText("1 минута")).toHaveCount(3);
     await page.getByRole("link", { name: /Начать показ/ }).click();
     taps += 1;
-    await expect(page).toHaveURL(/\/gas\/foreman/);
-    await expect(dock(page)).toContainText("1/6");
+    // Показ за 3 минуты (ADR-061, 13) начинается туром менеджера
+    await expect(page).toHaveURL(/\/gas\/moderation$/);
+    await expect(page.getByTestId("tour-step")).toHaveText("Шаг 1 из 9");
     expect(taps).toBeLessThanOrEqual(2);
     await expect(page.locator("body")).not.toContainText(clientShort);
   });
@@ -103,7 +100,7 @@ test.describe("сайт и вход в демо 390", () => {
 
   test("/gas по старой ссылке открывает старт показа на публичном наборе", async ({ page }) => {
     await page.goto("/gas", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: /Начать показ/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Показать за 3 минуты" })).toBeVisible();
     await expect(page.locator("body")).toContainText("Демо-подрядчик");
     await expect(page.locator("body")).not.toContainText(clientShort);
   });

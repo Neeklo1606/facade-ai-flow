@@ -2,6 +2,7 @@ import { completePageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ListRow } from "@/components/ui/kit/list";
 import { Segmented } from "@/components/ui/kit/controls";
 import { GrowthLine } from "@/components/gas-ops/page";
@@ -23,6 +24,7 @@ import {
   type ReviewMode,
 } from "@/api/gas-estimates";
 import { useGasActor } from "@/api/gas-ops";
+import { REMINDER_TIME_KEY, useSendReminders } from "@/api/gas-assistant";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -128,18 +130,19 @@ function AdminPage() {
   // Время напоминаний — настройка вида, пока MAX не подключён: живёт в этом браузере
   const [reminder, setReminder] = useState(() => {
     try {
-      return localStorage.getItem("gaika-reminder-time") ?? "18:00";
+      return localStorage.getItem(REMINDER_TIME_KEY) ?? "18:00";
     } catch {
       return "18:00";
     }
   });
   useEffect(() => {
     try {
-      localStorage.setItem("gaika-reminder-time", reminder);
+      localStorage.setItem(REMINDER_TIME_KEY, reminder);
     } catch {
       // без хранилища выбор живёт до перезагрузки
     }
   }, [reminder]);
+  const sendReminders = useSendReminders();
 
   return (
     <div className="flex flex-col gap-section">
@@ -233,7 +236,7 @@ function AdminPage() {
       <Group
         id="connections"
         title="Подключения"
-        note="Ни одно не подключено: прототип работает на моках. Сообщения не отправляются."
+        note="Ни одно не подключено: прототип работает на моках. В MAX сообщения не отправляются."
       >
         <ul className={LIST}>
           {CONNECTIONS.map((item) => (
@@ -245,18 +248,35 @@ function AdminPage() {
             <span className="min-w-0">
               <span className="block text-body">Время напоминаний бригадирам</span>
               <span className="block text-meta text-text-3">
-                Напоминание уйдёт в MAX, когда канал подключат. Сейчас не отправляется
+                Тем, у кого по графику нет записи за день, и менеджеру сводка. В MAX уйдёт, когда
+                канал подключат. В демо они приходят в колокольчик и ленту бота этой вкладки
               </span>
             </span>
-            <label className="text-meta text-text-2">
-              <span className="sr-only">Время напоминаний</span>
-              <input
-                type="time"
-                value={reminder}
-                onChange={(event) => setReminder(event.target.value)}
-                className="h-btn rounded-control border border-field-line bg-panel-2 px-3 text-body tnum focus-ring"
-              />
-            </label>
+            <span className="flex flex-wrap items-center gap-2">
+              <label className="text-meta text-text-2">
+                <span className="sr-only">Время напоминаний</span>
+                <input
+                  type="time"
+                  value={reminder}
+                  onChange={(event) => setReminder(event.target.value)}
+                  className="h-btn rounded-control border border-field-line bg-panel-2 px-3 text-body tnum focus-ring"
+                />
+              </label>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  // Демо: момент проверки — время напоминания сегодняшнего дня недели
+                  const count = await sendReminders(reminder);
+                  if (count)
+                    toast.success(`Отправлено напоминаний: ${count}`, {
+                      description: "Демо: в колокольчике и в ленте бота, в MAX не отправлено",
+                    });
+                  else toast("Напоминать некому: всё уже отправлено или записи есть");
+                }}
+              >
+                Проверить напоминания сейчас
+              </Button>
+            </span>
           </li>
         </ul>
       </Group>

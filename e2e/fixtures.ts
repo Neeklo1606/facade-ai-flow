@@ -44,6 +44,13 @@ export const test = base.extend<Options & { consoleGuard: void }>({
           // Снабжение и ПТО заморожены флагом газового контура (ADR-061), их проверки идут
           // с модулями. Что видно под флагом, проверяют юнит-тесты gas-only
           sessionStorage.setItem("gaika-gas-only", "0");
+          // Тур роли при первом входе (ADR-061, 13) закрывает экран подсказкой: сквозные
+          // тесты экранов идут без него, сам тур первого входа проверяет gas-tour.spec.ts
+          if (!localStorage.getItem("gaika-tour-seen"))
+            localStorage.setItem(
+              "gaika-tour-seen",
+              JSON.stringify(["foreman", "manager", "director"]),
+            );
           if (mode) localStorage.setItem("neeklo-fieldops-theme", mode);
         } catch {
           // Приватный режим: тест увидит экран выбора роли

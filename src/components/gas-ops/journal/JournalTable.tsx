@@ -65,7 +65,11 @@ export function JournalTable({
 
   return (
     <div className="surface-1">
-      <table aria-label="Журнал записей" className="w-full table-fixed text-body tnum">
+      <table
+        aria-label="Журнал записей"
+        data-tour="journal-table"
+        className="w-full table-fixed text-body tnum"
+      >
         <thead>
           <tr className="h-row-table border-b border-line text-left text-meta text-text-3">
             <th scope="col" className="w-[36px] ps-3">

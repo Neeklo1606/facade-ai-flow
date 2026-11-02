@@ -60,7 +60,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { useIsClientContour } from "@/lib/gas-ops/contour";
 import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
-import { gasShowEvent } from "@/lib/gas-ops/show";
+import { recordShow } from "@/lib/gas-ops/show";
 import { plural } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -322,29 +322,15 @@ function TabelPage() {
   }, [highlight, tabel.rows, filtered, shown.length]);
 
   /*
-   * Шаг показа «найдите запись в отчёте» (ADR-044, F3): засчитывается, когда строка записи
-   * видна на экране. Строка помечена `data-tour="report-row"` и в сетке, и в списке телефона
+   * Переход по ссылке на запись (`?highlight=`): прокрутка к строке один раз, когда она
+   * отрисована. Строка помечена `data-tour="report-row"` и в сетке, и в списке телефона
    */
   useEffect(() => {
     if (!highlight) return;
-    const started = Date.now();
-    let scrolled = false;
-    const timer = window.setInterval(() => {
-      if (Date.now() - started > 15_000) return window.clearInterval(timer);
-      const element = document.querySelector('[data-tour="report-row"]');
-      if (!element) return;
-      if (!scrolled) {
-        scrolled = true;
-        element.scrollIntoView({ block: "center" });
-      }
-      const rect = element.getBoundingClientRect();
-      const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
-      if (rect.height > 0 && visible / rect.height >= 0.6) {
-        window.clearInterval(timer);
-        gasShowEvent("gasReportSeen");
-      }
-    }, 150);
-    return () => window.clearInterval(timer);
+    const frame = requestAnimationFrame(() =>
+      document.querySelector('[data-tour="report-row"]')?.scrollIntoView({ block: "center" }),
+    );
+    return () => cancelAnimationFrame(frame);
   }, [highlight, phone]);
 
   /* ---------------- Высота сетки до низа окна ---------------- */
@@ -384,7 +370,7 @@ function TabelPage() {
     setBusy(true);
     try {
       const name = await exportWeek(kind);
-      gasShowEvent("gasExport", { gasFile: name });
+      recordShow({ gasFile: name });
       track("excel_download");
       toast.success(kind === "approved" ? "Утверждённый файл выгружен" : "Черновик выгружен", {
         description: name,
@@ -425,7 +411,12 @@ function TabelPage() {
 
   /* ---------------- Панель инструментов: одна строка (4.5) ---------------- */
   const toolbar = (
-    <div role="toolbar" aria-label="Панель табеля" className="flex flex-wrap items-center gap-1.5">
+    <div
+      role="toolbar"
+      aria-label="Панель табеля"
+      data-tour="tabel-toolbar"
+      className="flex flex-wrap items-center gap-1.5"
+    >
       {phone ? (
         <Button variant="outline" onClick={() => setAsTable(false)}>
           Списком

@@ -168,25 +168,40 @@ export interface AttentionItem {
   count: number;
 }
 
+/** Сообщение канала в колокольчике: напоминание или сводка (ADR-061, 13) */
+export interface BellMessage {
+  key: string;
+  text: string;
+  links: { label: string; to: string }[];
+  /** Пометка рядом со значением: «демо, в MAX не отправлено» */
+  note: string | null;
+}
+
 /** Колокольчик: что требует внимания роли, до пяти пунктов и ссылка «Все» */
 export function BellButton({
   items,
   allTo,
   className,
+  messages = [],
 }: {
   items: readonly AttentionItem[];
   allTo: string;
   className?: string;
+  messages?: readonly BellMessage[];
 }) {
   const [open, setOpen] = useState(false);
   const shown = items.filter((item) => item.count > 0).slice(0, 5);
-  const fresh = shown.length > 0;
+  const fresh = shown.length > 0 || messages.length > 0;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={fresh ? `Требует внимания: ${shown.length}` : "Требует внимания: ничего"}
+          aria-label={
+            fresh
+              ? `Требует внимания: ${shown.length}${messages.length ? `, сообщений: ${messages.length}` : ""}`
+              : "Требует внимания: ничего"
+          }
           className={cn("mono-circle focus-ring", className)}
         >
           <Bell strokeWidth={1.75} aria-hidden />
@@ -194,6 +209,35 @@ export function BellButton({
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 rounded-inset p-2 shadow-floating">
+        {messages.length ? (
+          <section aria-label="Сообщения" className="mb-1 border-b border-line pb-1">
+            <p className="px-3 pt-2 pb-1 type-label text-ink-3">Сообщения</p>
+            <ul className="flex flex-col">
+              {messages.slice(-3).map((m) => (
+                <li
+                  key={m.key}
+                  className="flex flex-col gap-1 px-3 py-2"
+                  data-testid="bell-message"
+                >
+                  <p className="type-text">{m.text}</p>
+                  {m.note ? <p className="type-small text-ink-3">{m.note}</p> : null}
+                  <p className="flex flex-wrap gap-x-3">
+                    {m.links.map((link) => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        onClick={() => setOpen(false)}
+                        className="inline-flex min-h-11 items-center type-label underline-offset-2 focus-ring hover:underline"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <p className="px-3 pt-2 pb-1 type-label text-ink-3">Требует внимания</p>
         {fresh ? (
           <ul className="flex flex-col">

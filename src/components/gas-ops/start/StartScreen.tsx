@@ -1,9 +1,9 @@
 /**
  * Стартовый экран контура газа (ADR-044, F2; шаг L3): рабочий старт, а не лендинг внутри
  * приложения. Одна строка о системе, главная кнопка показа в первом экране, «Войти как…»
- * тихой ссылкой, путь записи и роли строками списка, договор свёрнут. Под флагом газового
- * контура показа нет (ADR-061): «Войти как…» становится главной кнопкой, тур придёт в T6. Заголовок экрана (h1)
- * рисует шапка оболочки на телефоне, с планшета он здесь.
+ * тихой ссылкой, путь записи и роли строками списка, договор свёрнут. «Показать за 3 минуты»
+ * (ADR-061, 13) сбрасывает демо-данные вкладки и ведёт туром менеджера с переходами к бригадиру
+ * и руководителю. Заголовок экрана (h1) рисует шапка оболочки на телефоне, с планшета он здесь.
  */
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
@@ -22,10 +22,8 @@ import { ROLE_LABEL, fmtHours, fmtRate, fmtRub, useGasActions, type Role } from 
 import { useRoleSwitch } from "@/components/gas-ops/shell/use-role-switch";
 import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 import { ROLE_ABOUT, ROLE_HOME, gasScreen, roleInitial, rolesShown } from "@/lib/gas-ops/screens";
-import { startGasShow } from "@/lib/gas-ops/show";
-import { gasOnlyEnabled } from "@/lib/gas-ops/gas-only";
+import { startShow } from "@/lib/gas-ops/show";
 import { showExample } from "@/lib/gas-ops/start-examples";
-import { clearScenario, getGuideState } from "@/lib/guide/store";
 
 const SHOW = showExample();
 
@@ -96,20 +94,13 @@ export function StartScreen() {
   const switchRole = useRoleSwitch();
   const actions = useGasActions();
   const [busy, setBusy] = useState(false);
-  const goTo = useNavigate();
 
-  const startShow = async () => {
+  // Показ всегда с чистых данных вкладки; роль и экран первого шага ставит тур
+  const show = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      // Повторный показ начинается с чистых данных: прошлая запись заняла бы окно 12:00–14:30
-      if (getGuideState().chain.gasEntryId) {
-        await actions.reset();
-        clearScenario();
-      }
-      startGasShow();
-      // Показ идёт через бот MAX: стартовый экран бригадира теперь «Сегодня» (ADR-056)
-      if (await switchRole("foreman", { stay: true })) void goTo({ to: "/gas/foreman" });
+      await startShow(actions.reset);
     } finally {
       setBusy(false);
     }
@@ -129,7 +120,7 @@ export function StartScreen() {
     if (handled.current || (!search.start && !search.roles)) return;
     handled.current = true;
     void navigate({ to: "/gas", search: {}, replace: true });
-    if (search.start && !gasOnlyEnabled()) void startShow();
+    if (search.start) void show();
     else requestAnimationFrame(openRoles);
     // Один раз на заход: startShow и openRoles стабильны по смыслу, параметр читается при монтировании
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,7 +128,7 @@ export function StartScreen() {
 
   return (
     <div className="flex flex-col gap-section pb-4 lg:gap-12">
-      <Lead onStart={startShow} onRoles={openRoles} busy={busy} />
+      <Lead onStart={show} onRoles={openRoles} busy={busy} />
       <Flow onRole={(role) => void switchRole(role, { stay: true })} />
       <Roles onPick={(role) => void switchRole(role)} />
       <Contract />
@@ -167,7 +158,6 @@ function Lead({
 }) {
   const brand = useGasBrand();
   const clientContour = useIsClientContour();
-  const show = !gasOnlyEnabled();
   return (
     <section aria-labelledby="gas-start-title" className="flex flex-col gap-4 lg:gap-5">
       {/* На телефоне заголовок экрана в шапке контура, здесь с планшета (ADR-048, 5) */}
@@ -179,26 +169,20 @@ function Lead({
         смете и собирает недельный отчёт в вашем формате Excel.
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        {show ? (
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={busy}
-            data-testid="gas-start-show"
-            className="text-body pill-action press focus-ring w-full sm:w-auto"
-          >
-            <Play className="size-4 fill-current" aria-hidden />
-            Начать показ: 3 минуты
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={busy}
+          data-testid="gas-start-show"
+          className="text-body pill-action press focus-ring w-full sm:w-auto"
+        >
+          <Play className="size-4 fill-current" aria-hidden />
+          Показать за 3 минуты
+        </button>
         <button
           type="button"
           onClick={onRoles}
-          className={
-            show
-              ? "inline-flex min-h-12 items-center justify-center gap-1.5 rounded-full px-4 text-body text-text-2 focus-ring is-hover:text-text"
-              : "text-body pill-action press focus-ring w-full sm:w-auto"
-          }
+          className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-full px-4 text-body text-text-2 focus-ring is-hover:text-text"
         >
           Войти как…
           <ArrowDown className="size-4" aria-hidden />

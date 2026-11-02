@@ -103,8 +103,11 @@ test("печать инструкции: все вкладки подряд, б�
   await expect(page.getByRole("button", { name: "Сохранить инструкцию в PDF" })).toBeHidden();
 });
 
-test("финал без показа ведёт на старт", async ({ page }) => {
+test("финал без записи зрителя: итог показа и «Пройти заново»", async ({ page }) => {
+  // Тур показа не требует действий (ADR-061, 13): финал без записи — общий итог недели
   await open(page, "/gas/finish");
-  await page.getByRole("link", { name: "Начать показ" }).click();
-  await expect(page).toHaveURL(/\/gas$/);
+  await expect(page.locator("main")).toContainText(
+    "Неделя прошла от бригадира до файла заказчика.",
+  );
+  await expect(page.getByRole("button", { name: "Пройти заново" })).toBeVisible();
 });

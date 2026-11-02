@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Search,
   UserRound,
+  Signpost,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useBack, useTabStack, type TabDef } from "@/lib/ui/tab-stack";
@@ -47,6 +48,7 @@ import {
 } from "@/components/shell/mono";
 import {
   ROLE_LABEL,
+  type Role,
   useGasActions,
   useGasActor,
   useGasAllowedObjects,
@@ -86,7 +88,9 @@ import {
   type GasScreen,
   type GasScreenKey,
 } from "@/lib/gas-ops/screens";
-import { resetGasShow } from "@/lib/gas-ops/show";
+import { clearInbox, messengerChannel, useGasInbox } from "@/api/gas-assistant";
+import { clearScenario } from "@/lib/guide/store";
+import { TOURS, getTourState, startTour, tourOfRole, tourSeen } from "@/lib/gas-ops/tour";
 import { useApp } from "@/lib/app-context";
 import { gasOnlyEnabled } from "@/lib/gas-ops/gas-only";
 import { resolveTheme, themeChoices, themeLabels } from "@/lib/theme";
@@ -99,7 +103,8 @@ import { useAppManifest, useInstallHint } from "@/lib/ui/pwa";
 import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
 import { SCREEN_ACTIONS_ID, SCREEN_COUNTERS_ID } from "./screen-header";
-import { GasShowDock } from "../show/GasShowDock";
+import { AssistantButton } from "../assistant/AssistantPanel";
+import { Tour } from "../tour/Tour";
 import { ScreenStateGate } from "../ScreenStateGate";
 import { OfflineBar } from "@/components/ui/kit/offline-bar";
 import { useOffline } from "@/lib/ui/offline";
@@ -136,6 +141,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   const actor = useGasActor();
   const screen = gasScreenOf(pathname);
   useTourHighlight();
+  useFirstTour(actor.role, screen.key);
   // Бот бригадира на телефоне во весь экран: шапка чата вместо шапки контура, без панели
   const botOnly = actor.role === "foreman" && screen.key === "foreman";
   const field = isFieldRole(actor.role);
@@ -168,14 +174,6 @@ function GasShellFrame({ children }: { children: ReactNode }) {
           <GasPhoneHeader screen={screen} />
         </div>
         {network.offline ? <OfflineBar demo={network.simulated} /> : null}
-        {/* Показ «Сервиса v1» отменён (ADR-061): полоса живёт только без флага газового контура,
-            пока тур T6 не заменит его вместе с проверками */}
-        {gasOnlyEnabled() ? null : (
-          <>
-            <GasShowDock />
-            <div id="gas-show-slot" className="flex justify-end px-gutter empty:hidden" />
-          </>
-        )}
       </div>
       <div className="lg:flex">
         {/* Левое меню только у ролей с меню: бригадир живёт в телефоне (таблица 3.3) */}
@@ -194,6 +192,9 @@ function GasShellFrame({ children }: { children: ReactNode }) {
         </main>
       </div>
       {botOnly ? null : <GasBottomNav pathname={pathname} />}
+      {/* Помощник (4.8): у ролей с данными недели; бригадир и старт без него */}
+      {field || screen.key === "start" ? null : <AssistantButton />}
+      <Tour />
     </div>
   );
 }
@@ -218,6 +219,18 @@ function useNavCounters(): Partial<Record<string, number>> {
  * с `data-tour="цель"` на 4 секунды и прокручивает к нему. Элемент может появиться позже
  * первой отрисовки (данные, шторка), поэтому ждём его до 3 секунд.
  */
+/**
+ * Тур роли при первом входе (4.8): один раз на браузер, если другой тур не идёт. На стартовом
+ * экране не открывается: там своя кнопка показа
+ */
+function useFirstTour(role: Role, screenKey: GasScreenKey) {
+  useEffect(() => {
+    if (screenKey === "start" || getTourState().tourId) return;
+    const id = tourOfRole(role);
+    if (id && !tourSeen(id)) startTour(id);
+  }, [role, screenKey]);
+}
+
 function useTourHighlight() {
   const tour = useRouterState({
     select: (s) => (s.location.search as Record<string, unknown>)["tour"],
@@ -408,6 +421,7 @@ function GasSideNav({ pathname }: { pathname: string }) {
 function GasTopBar() {
   const actor = useGasActor();
   const attention = useAttention();
+  const inbox = useGasInbox(actor.id);
   const [searchOpen, setSearchOpen] = useState(false);
   useSearchHotkey(setSearchOpen);
   return (
@@ -419,6 +433,13 @@ function GasTopBar() {
         {isFieldRole(actor.role) ? null : (
           <BellButton
             items={attention}
+            messages={inbox.map((m) => ({
+              key: m.key,
+              text: m.text,
+              links: m.buttons,
+              note:
+                messengerChannel === "demo" ? "Демо: показано здесь, в MAX не отправлено" : null,
+            }))}
             allTo={gasScreen(ROLE_HOME[actor.role]).to}
             className="gas-icon-button bg-transparent shadow-none"
           />
@@ -574,6 +595,7 @@ function HelpMenu() {
           <HelpSteps screen={screen} />
         </div>
         <div className="flex flex-col border-t border-line pt-1">
+          <TourButton onDone={() => setOpen(false)} />
           {HELP_SCREENS.filter((key) => allowed.has(key)).map((key) => {
             const help = gasScreen(key);
             const Icon = SCREEN_ICON[key];
@@ -631,6 +653,26 @@ function ReportProblem({ screen, onDone }: { screen: GasScreen; onDone?: () => v
 }
 
 /** «?»: шаги экрана и переход в инструкцию */
+/** «Пройти тур» (4.8): тур своей роли с первого шага, из «?» и из профиля телефона */
+function TourButton({ onDone }: { onDone: () => void }) {
+  const actor = useGasActor();
+  const id = tourOfRole(actor.role);
+  if (!id) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onDone();
+        startTour(id);
+      }}
+      className="flex min-h-11 w-full items-center gap-2 rounded-control px-3 text-left type-text focus-ring is-hover:bg-panel-2"
+    >
+      <Signpost className="size-4 text-ink-3" aria-hidden />
+      Пройти тур: {TOURS[id].title.replace("Тур ", "")}
+    </button>
+  );
+}
+
 function HelpSteps({ screen }: { screen: GasScreen }) {
   return (
     <>
@@ -869,6 +911,11 @@ function ProfileBody({ onDone, withNav = false }: { onDone: () => void; withNav?
           ))}
         </nav>
       ) : null}
+      {withNav ? (
+        <div className="border-t border-line pt-1">
+          <TourButton onDone={onDone} />
+        </div>
+      ) : null}
       <div className="border-t border-line px-3 pt-3 pb-1">
         <p className="mb-2 type-small text-ink-3">Тема</p>
         <div
@@ -1034,7 +1081,8 @@ export function ResetButton({
             <AlertDialogAction
               onClick={() => {
                 void actions.reset().then(() => {
-                  resetGasShow();
+                  clearScenario();
+                  clearInbox();
                   toast.success("Демо сброшено");
                   onDone?.();
                 });
