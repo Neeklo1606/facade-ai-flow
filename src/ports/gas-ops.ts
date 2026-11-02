@@ -184,6 +184,13 @@ export interface GasOpsPort {
     fileName: string;
     objectId: string | null;
   }): Promise<EstimateVersion>;
+  /**
+   * Отменить импорт сметы (ADR-061, 12): неподтверждённая версия удаляется. Подтверждённую
+   * не удалить: по ней уже посчитана стоимость объекта
+   */
+  discardEstimateVersion(id: string): Promise<void>;
+  /** Сменить роль пользователя (ADR-061, 12): делает администратор, себе роль не меняет */
+  setUserRole(input: { userId: string; role: Role }): Promise<User>;
   /** Привязать версию к объекту: подсказку подтверждает человек */
   linkEstimateVersion(input: { id: string; objectId: string }): Promise<EstimateVersion>;
   /** Сметчик проверил замечания разбора */

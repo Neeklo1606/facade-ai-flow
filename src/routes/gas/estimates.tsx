@@ -1,14 +1,13 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
-import { ArrowRight, FileSpreadsheet, Upload } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/kit/field";
 import { ListRow } from "@/components/ui/kit/list";
 import { PickerSheet, Sheet, SidePanel } from "@/components/ui/kit/sheet";
 import { useIsDesktop } from "@/components/gas-ops/review/use-layout";
 import { Chip } from "@/components/ui/kit/status";
-import { StageList, type Stage } from "@/components/ui/kit/states";
 import { notify } from "@/components/ui/kit/toast";
 import { SourceMark } from "@/components/gas-ops/marks";
 import { fmtRub, useGasActions, useGasActor, useGasDirectory } from "@/api/gas-ops";
@@ -19,7 +18,9 @@ import {
   estimateVersionView,
   formulaOf,
   normText,
-  parseEstimateFile,
+  ESTIMATE_TEMPLATE,
+  downloadTemplate,
+  suggestEstimateObject,
   useGasEstimateActions,
   useGasWorkCost,
   type CostRule,
@@ -27,6 +28,7 @@ import {
   type WorkCostRow,
 } from "@/api/gas-estimates";
 import { toast } from "@/lib/toast";
+import { ImportWizard, type WizardState } from "@/components/gas-ops/import/ImportWizard";
 import { cn } from "@/lib/utils";
 
 /**
@@ -45,12 +47,6 @@ export const Route = createFileRoute("/gas/estimates")({
   component: EstimatesPage,
 });
 
-const PARSE_STAGES = [
-  "Читаю файл в браузере",
-  "Ищу блок «Итоги по смете»",
-  "Сверяю разделы с итогом",
-];
-
 function EstimatesPage() {
   const { rows, unlinked, companyRule, versions } = useGasWorkCost();
   const actor = useGasActor();
@@ -58,8 +54,7 @@ function EstimatesPage() {
   const estimateActions = useGasEstimateActions();
   const directory = useGasDirectory();
   const [upload, setUpload] = useState(false);
-  const [stage, setStage] = useState<number | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
+  const [vat, setVat] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Record<string, string | null>>({});
   const [manual, setManual] = useState(false);
@@ -68,7 +63,13 @@ function EstimatesPage() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
+  // Разбор с поправками мастера: лист, колонка сумм, строка начала (ADR-061, 12)
+  const parsedOf = (state: WizardState) =>
+    state.tools.parseEstimateWorkbook(state.sheets, {
+      sheet: state.sheets[state.sheetIndex]?.name ?? null,
+      amountCol: state.map["amount"] ?? null,
+      fromRow: state.headerRow + 1,
+    });
 
   const value = Number(amount.replace(/[\s\u00a0]/g, "").replace(",", "."));
   const amountError = !amount.trim()
@@ -82,35 +83,6 @@ function EstimatesPage() {
   const pending = versions.filter((v) => v.confirmedAt === null);
   const ruleOf = (objectIdOf: string | null): CostRule =>
     rows.find((r) => r.object.id === objectIdOf)?.rule ?? companyRule;
-
-  const pickFile = async (file: File | undefined) => {
-    if (!file) return;
-    setFileError(null);
-    setStage(0);
-    const parsing = parseEstimateFile(file, directory.objects);
-    // Этапы текстом, а не бесконечный спиннер: чтение и разбор идут в браузере
-    window.setTimeout(() => setStage((s) => (s === 0 ? 1 : s)), 250);
-    const result = await parsing;
-    if (!result.ok) {
-      setStage(null);
-      setFileError(result.message);
-      return;
-    }
-    setStage(2);
-    const added = await estimateActions.addVersion({
-      parsed: result.parsed,
-      fileName: file.name,
-      objectId: null,
-    });
-    setStage(null);
-    if (!added.ok) {
-      setFileError(added.message);
-      return;
-    }
-    setSuggestions((s) => ({ ...s, [added.value.id]: result.suggestion }));
-    setUpload(false);
-    setOpenId(added.value.id);
-  };
 
   const save = async () => {
     setTried(true);
@@ -128,11 +100,6 @@ function EstimatesPage() {
     setTried(false);
     setManual(false);
   };
-
-  const stages: Stage[] = PARSE_STAGES.map((label, i) => ({
-    label,
-    state: stage === null ? "wait" : i < stage ? "done" : i === stage ? "current" : "wait",
-  }));
 
   return (
     <div className="flex flex-col gap-block">
@@ -157,6 +124,16 @@ function EstimatesPage() {
           </Button>
           <Button variant="secondary" onClick={() => setManual(true)}>
             Ввести вручную
+          </Button>
+          <Button
+            variant="quiet"
+            onClick={async () => {
+              const done = await downloadTemplate(ESTIMATE_TEMPLATE, "Шаблон_сметы.xlsx");
+              if (!done.ok) toast.error(done.message);
+            }}
+          >
+            <Download aria-hidden />
+            Скачать шаблон
           </Button>
         </div>
       ) : null}
@@ -218,54 +195,114 @@ function EstimatesPage() {
         </ul>
       </section>
 
-      <Sheet
+      <ImportWizard
         open={upload}
-        onOpenChange={(next) => {
-          if (stage === null) setUpload(next);
-        }}
+        onOpenChange={setUpload}
         id="estimate-upload"
         title="Загрузить смету"
         description="ГРАНД-Смета или ресурсная смета 14 граф, xlsx или xls"
-      >
-        <div className="flex flex-col gap-block">
-          <p className="text-meta text-text-3">
-            Файл читается в этом браузере и не отправляется на сервер. В систему попадают только
-            итоги с номерами строк.
-          </p>
-          {stage !== null ? (
-            <StageList stages={stages} label="Ход разбора сметы" />
-          ) : (
-            <label
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                void pickFile(event.dataTransfer.files[0]);
-              }}
-              className="flex min-h-30 cursor-pointer flex-col items-center justify-center gap-2 rounded-card border border-dashed border-field-line p-card text-center focus-within:ring-2 focus-within:ring-accent-text"
-            >
-              <FileSpreadsheet className="size-8 text-text-3" aria-hidden />
-              <span className="text-body">Выберите файл сметы</span>
-              <span className="hidden text-meta text-text-3 md:block">или перетащите его сюда</span>
-              <input
-                ref={input}
-                type="file"
-                accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                className="sr-only"
-                data-testid="estimate-file"
-                onChange={(event) => void pickFile(event.target.files?.[0])}
-              />
-            </label>
-          )}
-          {fileError ? (
-            <p
-              role="alert"
-              className="rounded-control bg-danger-bg px-3 py-2 text-meta text-danger"
-            >
-              {fileError}
-            </p>
-          ) : null}
-        </div>
-      </Sheet>
+        fileTestId="estimate-file"
+        fields={[{ key: "amount", label: "Суммы (всего в текущем уровне цен)", required: true }]}
+        template={{ fileName: "Шаблон_сметы.xlsx", rows: ESTIMATE_TEMPLATE }}
+        defaultSheet={(tools, sheets) => {
+          const best = tools.parseEstimateWorkbook(sheets).sheet;
+          return Math.max(
+            0,
+            sheets.findIndex((sheet) => sheet.name === best),
+          );
+        }}
+        detect={(tools, grid) => {
+          const col = tools.detectAmountCol(grid);
+          // Строка заголовка — та, где подпись колонки сумм; без формы — первая строка
+          const headerRow =
+            col === null
+              ? 0
+              : Math.max(
+                  0,
+                  grid.findIndex((row) => typeof row[col] === "string"),
+                );
+          const parsed = tools.parseEstimateGrid(grid);
+          setVat(tools.guessVatIncluded(parsed));
+          return { headerRow, map: { amount: col } };
+        }}
+        options={
+          <div role="radiogroup" aria-label="Цены в смете" className="flex flex-wrap gap-2">
+            {(
+              [
+                [false, "Цены без НДС"],
+                [true, "Цены с НДС"],
+              ] as const
+            ).map(([value, text]) => (
+              <button
+                key={text}
+                type="button"
+                role="radio"
+                aria-checked={vat === value}
+                onClick={() => setVat(value)}
+                className={`inline-flex min-h-11 items-center rounded-full px-4 text-body focus-ring ${
+                  vat === value ? "bg-pill text-pill-text" : "bg-surface-2 text-text"
+                }`}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        }
+        evaluate={(state) => {
+          const parsed = parsedOf(state);
+          const total = parsed.totals.total;
+          const withoutVat = parsed.totals.withoutVat;
+          return {
+            check: state.tools.estimateCheck(parsed, vat),
+            canApply: parsed.format !== null,
+            preview: (
+              <div className="flex flex-col gap-1 text-meta text-text-2 tnum">
+                <p className="text-body text-text">
+                  {parsed.format ? ESTIMATE_FORMAT_LABEL[parsed.format] : "Форма не распознана"}
+                  {parsed.sheet ? ` · лист «${parsed.sheet}»` : ""}
+                </p>
+                {withoutVat ? (
+                  <p>
+                    Итог без НДС: {fmtRub(withoutVat.kopecks / 100)}, строка {withoutVat.row}
+                  </p>
+                ) : null}
+                {total ? (
+                  <p>
+                    ВСЕГО по смете: {fmtRub(total.kopecks / 100)}, строка {total.row}
+                  </p>
+                ) : null}
+                <p>Разделов: {parsed.sections.length}</p>
+                <p className="text-text">
+                  Добавится версия сметы. Стоимость работ без материалов будет кандидатом с меткой
+                  «требует подтверждения»: её подтверждает менеджер.
+                </p>
+              </div>
+            ),
+          };
+        }}
+        onApply={async (state) => {
+          const parsed = parsedOf(state);
+          const added = await estimateActions.addVersion({
+            parsed,
+            fileName: state.fileName,
+            objectId: null,
+          });
+          if (!added.ok) {
+            toast.error(added.message);
+            return false;
+          }
+          const suggestion = await suggestEstimateObject(state.fileName, directory.objects);
+          setSuggestions((s) => ({ ...s, [added.value.id]: suggestion }));
+          setOpenId(added.value.id);
+          notify(`Смета загружена: версия ${added.value.version}`, {
+            undo: () => {
+              setOpenId(null);
+              void estimateActions.discard(added.value.id);
+            },
+          });
+          return true;
+        }}
+      />
 
       {opened ? (
         <VersionSheet

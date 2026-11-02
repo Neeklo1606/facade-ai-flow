@@ -123,10 +123,30 @@ function totalKeyOf(label: string, format: EstimateFormat): TotalKey | null {
 }
 
 /**
+ * Поправки человека в мастере импорта (ADR-061, 12): колонка сумм и строка начала таблицы.
+ * Без поправок колонка ищется по заголовку, а таблица читается с первой строки
+ */
+export interface EstimateParseOptions {
+  /** Колонка сумм, с нуля; null — искать по заголовку */
+  amountCol?: number | null;
+  /** Первая строка таблицы, с единицы: строки выше пропускаются */
+  fromRow?: number;
+}
+
+/** Колонка сумм, которую выбрал бы разбор сам: для подсказки в мастере */
+export function detectAmountCol(grid: Grid): number | null {
+  const format = detectFormat(grid);
+  if (!format) return null;
+  return format === "grand"
+    ? findHeaderCol(grid, (t) => t === "всего в текущем уровне цен")
+    : findHeaderCol(grid, (t) => t === "общая");
+}
+
+/**
  * Разобрать смету. Сначала формат, потом колонки сумм и трудозатрат по заголовкам,
  * потом проход по строкам: разделы, блок «Итоги по смете», строки после итога.
  */
-export function parseEstimateGrid(grid: Grid): ParsedEstimate {
+export function parseEstimateGrid(grid: Grid, options: EstimateParseOptions = {}): ParsedEstimate {
   const format = detectFormat(grid);
   const result: ParsedEstimate = {
     format,
@@ -147,9 +167,10 @@ export function parseEstimateGrid(grid: Grid): ParsedEstimate {
   }
 
   const amountCol =
-    format === "grand"
-      ? findHeaderCol(grid, (t) => t === "всего в текущем уровне цен")
-      : findHeaderCol(grid, (t) => t === "общая");
+    options.amountCol !== undefined && options.amountCol !== null
+      ? options.amountCol
+      : detectAmountCol(grid);
+  const fromRow = options.fromRow ?? 1;
   const laborCol =
     format === "grand"
       ? findHeaderCol(grid, (t) => t === "всего с учетом коэффициентов")
@@ -160,6 +181,7 @@ export function parseEstimateGrid(grid: Grid): ParsedEstimate {
 
   grid.forEach((row, index) => {
     const rowNumber = index + 1;
+    if (rowNumber < fromRow) return;
     const found = labelOf(row);
     if (!found) return;
     const { label, col } = found;
@@ -286,10 +308,18 @@ const STATUS_RANK: Record<ParseStatus, number> = {
  * Разобрать книгу: каждый лист отдельно, побеждает разобранный без замечаний, затем лист
  * с большим числом найденных итогов. Так пустой лист-шаблон не перебивает настоящую смету.
  */
-export function parseEstimateWorkbook(sheets: SheetGrid[]): ParsedWorkbook {
+export function parseEstimateWorkbook(
+  sheets: SheetGrid[],
+  options: EstimateParseOptions & { sheet?: string | null } = {},
+): ParsedWorkbook {
+  // Лист выбран человеком в мастере: разбираем только его
+  if (options.sheet) {
+    const chosen = sheets.find((s) => s.name === options.sheet);
+    if (chosen) return { ...parseEstimateGrid(chosen.grid, options), sheet: chosen.name };
+  }
   let best: ParsedWorkbook | null = null;
   for (const sheet of sheets) {
-    const parsed = { ...parseEstimateGrid(sheet.grid), sheet: sheet.name };
+    const parsed = { ...parseEstimateGrid(sheet.grid, options), sheet: sheet.name };
     if (
       !best ||
       STATUS_RANK[parsed.status] > STATUS_RANK[best.status] ||

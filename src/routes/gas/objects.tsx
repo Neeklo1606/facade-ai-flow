@@ -18,7 +18,14 @@ import { cn } from "@/lib/utils";
 import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 import { ScheduleImport } from "@/components/gas-ops/schedule/ScheduleImport";
 import { useGasActor } from "@/api/gas-ops";
-import { normText, useGasNorm, useGasSchedule } from "@/api/gas-estimates";
+import {
+  SCHEDULE_TEMPLATE,
+  downloadTemplate,
+  normText,
+  useGasNorm,
+  useGasSchedule,
+} from "@/api/gas-estimates";
+import { toast } from "@/lib/toast";
 
 /**
  * Реестр объектов (ТЗ, п. 8; вид ADR-045, 5.9). Адрес не единственный ключ: у объекта есть
@@ -44,6 +51,20 @@ function costText(card: ObjectCard): { text: string; missing: boolean } {
   if (card.estimate?.status === "manual-pending")
     return { text: "ждёт подтверждения", missing: true };
   return { text: "нет сметы", missing: true };
+}
+
+/** Смета объекта (4.7): есть подтверждённая, ручная стоимость или нет */
+function estimateKind(card: ObjectCard): "есть" | "ручная" | "нет" {
+  if (card.estimate?.origin === "manual") return "ручная";
+  return card.estimate?.status === "confirmed" ? "есть" : "нет";
+}
+
+/** Статус объекта за неделю по записям */
+function statusOf(card: ObjectCard): string {
+  if (card.entries.length === 0) return "нет записей";
+  if (card.entries.some((e) => e.status === "pending" || e.status === "clarify"))
+    return "на проверке";
+  return "принято";
 }
 
 function ObjectsPage() {
@@ -127,13 +148,19 @@ function ObjectsPage() {
         </span>
       ),
     },
-    { key: "work", title: "Вид работ", cell: (c) => c.object.workType ?? "не указан" },
     {
       key: "brigades",
       title: "Бригады",
       cell: (c) => c.brigades.map((b) => b.name).join(", ") || "–",
     },
-    { key: "hours", title: "Часы", numeric: true, cell: (c) => fmtHours(c.totals.hours) },
+    {
+      key: "estimate",
+      title: "Смета",
+      cell: (c) => {
+        const kind = estimateKind(c);
+        return <span className={kind === "нет" ? "text-warn" : undefined}>{kind}</span>;
+      },
+    },
     {
       key: "cost",
       title: "Стоимость работ",
@@ -143,8 +170,34 @@ function ObjectsPage() {
         return <span className={cost.missing ? "text-warn" : undefined}>{cost.text}</span>;
       },
     },
-    { key: "flags", title: "Признаки", cell: (c) => <FlagList flags={c.flags} /> },
+    { key: "status", title: "Статус", cell: (c) => statusOf(c) },
+    {
+      key: "dates",
+      title: "Даты графика",
+      cell: (c) => {
+        const days = scheduleDays(c);
+        return days === null ? (
+          <span className="text-text-3">графика нет</span>
+        ) : days.length ? (
+          days.map((d) => `${d.slice(8, 10)}.${d.slice(5, 7)}`).join(", ")
+        ) : (
+          <span className="text-text-3">не в графике</span>
+        );
+      },
+    },
   ];
+
+  // Даты объекта в недельном графике: по номеру объекта или адресу; графика нет — null
+  const scheduleDays = (card: ObjectCard): string[] | null =>
+    schedule
+      ? [
+          ...new Set(
+            schedule.rows
+              .filter((r) => r.code === card.object.code || r.objectLabel === card.object.label)
+              .map((r) => r.day),
+          ),
+        ].sort()
+      : null;
 
   const current = cards.find((card) => card.object.id === open) ?? null;
   const option = (on: boolean, label: string, pick: () => void) => (
@@ -204,7 +257,27 @@ function ObjectsPage() {
         {rows.length} {plural(rows.length, "объект", "объекта", "объектов")} из {cards.length}
       </p>
 
-      {rows.length === 0 ? (
+      {cards.length === 0 ? (
+        <EmptyBlock
+          icon={SearchX}
+          title="Объектов пока нет"
+          text="Объекты приходят из недельного графика заказчика. Загрузите его из Excel или возьмите шаблон"
+          action={
+            <span className="flex flex-wrap justify-center gap-2">
+              <ScheduleImport label="Загрузить график из Excel" variant="primary" />
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const done = await downloadTemplate(SCHEDULE_TEMPLATE, "Шаблон_графика.xlsx");
+                  if (!done.ok) toast.error(done.message);
+                }}
+              >
+                Скачать шаблон
+              </Button>
+            </span>
+          }
+        />
+      ) : rows.length === 0 ? (
         <EmptyBlock
           icon={SearchX}
           title={search ? `Ничего не найдено по «${search}»` : "Ничего не найдено"}

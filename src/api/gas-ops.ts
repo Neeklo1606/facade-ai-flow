@@ -24,6 +24,7 @@ import {
   type Estimate,
   type Role,
   type TimeEntry,
+  type User,
   type WorkObject,
 } from "@/domain/gas-ops/model";
 import {
@@ -93,6 +94,7 @@ import { CHANNEL_LABEL, type EntryChannel } from "@/domain/gas-ops/model";
 import { AUTO_ACTOR } from "@/domain/gas-ops/review-policy";
 import { peopleRows, tabelRows, type PersonRow, type TabelRow } from "@/domain/gas-ops/tabel";
 import { downloadWeekXlsx } from "@/lib/gas-ops/export";
+import { staffRows, type StaffRow } from "@/domain/gas-ops/staff";
 import {
   CUSTOMER_DAY_HEADERS,
   CUSTOMER_PROFILE,
@@ -626,6 +628,7 @@ export function useGasActions(): {
     from: string;
   }) => Promise<ActionResult<CrewMember>>;
   endCrewMember: (input: { id: string; to: string }) => Promise<ActionResult<CrewMember>>;
+  setUserRole: (input: { userId: string; role: Role }) => Promise<ActionResult<User>>;
 } {
   const run = useGasAction();
   const port = useGasOps();
@@ -644,6 +647,7 @@ export function useGasActions(): {
     setRate: useCallback((input) => run(() => port.setRate(input)), [run, port]),
     addCrewMember: useCallback((input) => run(() => port.addCrewMember(input)), [run, port]),
     endCrewMember: useCallback((input) => run(() => port.endCrewMember(input)), [run, port]),
+    setUserRole: useCallback((input) => run(() => port.setUserRole(input)), [run, port]),
   };
 }
 
@@ -746,3 +750,11 @@ export function useWeekExport(): (kind: "approved" | "draft", version?: number) 
     [data],
   );
 }
+
+/** «Сотрудники» (ADR-061, 12): состав бригад и люди офиса одной таблицей */
+export function useGasStaff(): StaffRow[] {
+  const data = useGasSnapshot();
+  return useMemo(() => staffRows({ ...data, crew: data.crew ?? [] }), [data]);
+}
+export { inviteOf } from "@/domain/gas-ops/staff";
+export type { StaffRow } from "@/domain/gas-ops/staff";

@@ -143,6 +143,8 @@ function BrigadesPage() {
                         meta={
                           <>
                             <WeekDot vacation={vacation} /> {lead}
+                            {/* MAX подключён да/нет (4.7): канал не подключён, отметка из демо */}
+                            {card.lead?.maxId ? " · MAX подключён (демо)" : " · MAX не подключён"}
                             {card.pending > 0 ? ` · ${card.pending} на проверке` : ""}
                           </>
                         }

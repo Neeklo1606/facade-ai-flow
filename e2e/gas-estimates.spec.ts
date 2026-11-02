@@ -20,6 +20,9 @@ test.describe("сметы", () => {
     await expect(page.getByTestId("cost-rule-formula")).toHaveText("Всего без НДС минус материалы");
     await page.getByRole("button", { name: "Загрузить смету" }).click();
     await page.getByTestId("estimate-file").setInputFiles(grandXlsx());
+    // Мастер импорта (ADR-061, 12): проверка сходимости, затем «Всё верно, применить»
+    await expect(page.getByTestId("import-check")).toHaveAttribute("data-level", "ok");
+    await page.getByRole("button", { name: "Всё верно, применить" }).click();
     const parsed = page.getByTestId("estimate-parsed");
     await expect(parsed).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("estimate-candidate")).toHaveText(/165\s455,23\s₽/);

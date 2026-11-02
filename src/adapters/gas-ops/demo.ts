@@ -31,6 +31,8 @@ import {
 import { reportEntries } from "@/domain/gas-ops/report";
 import {
   ENTRY_STATUS_LABEL,
+  ROLE_LABEL,
+  type User,
   type AuditLog,
   type EntryStatus,
   type Estimate,
@@ -748,6 +750,61 @@ export function createGasOpsDemo(): GasOpsPort {
         ],
       }));
       return done(version);
+    },
+
+    discardEstimateVersion: (id) => {
+      const snapshot = getSnapshot();
+      mustManager(snapshot, "Сметы загружает менеджер или сметчик.");
+      const version = snapshot.estimateVersions.find((v) => v.id === id);
+      if (!version) throw new GasOpsError("not-found", "Версия сметы не найдена.");
+      if (version.confirmedAt !== null) {
+        throw new GasOpsError(
+          "not-allowed",
+          "Версия подтверждена: по ней посчитана стоимость. Загрузите новую версию.",
+        );
+      }
+      update((s) => ({
+        ...s,
+        estimateVersions: s.estimateVersions.filter((v) => v.id !== id),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "estimate.discard",
+            entityId: id,
+            detail: `Импорт сметы отменён, версия ${version.version}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(undefined);
+    },
+
+    setUserRole: (input) => {
+      const snapshot = getSnapshot();
+      const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      if (actor?.role !== "admin") {
+        throw new GasOpsError("not-allowed", "Роли меняет администратор.");
+      }
+      if (input.userId === actor.id) {
+        throw new GasOpsError("not-allowed", "Свою роль администратор не меняет.");
+      }
+      const user = snapshot.users.find((u) => u.id === input.userId);
+      if (!user) throw new GasOpsError("not-found", "Пользователь не найден.");
+      const next: User = { ...user, role: input.role };
+      update((s) => ({
+        ...s,
+        users: s.users.map((u) => (u.id === user.id ? next : u)),
+        audit: [
+          audit(s, {
+            actor: s.actorId,
+            action: "user.role",
+            entityId: user.id,
+            detail: `${user.name}: ${ROLE_LABEL[user.role]} → ${ROLE_LABEL[input.role]}`,
+          }),
+          ...s.audit,
+        ],
+      }));
+      return done(next);
     },
 
     linkEstimateVersion: (input) => {
