@@ -154,11 +154,8 @@ for (const run of WIDTHS) {
     } else {
       test("клавиши J, K и Enter", async ({ page }) => {
         await open(page, "/gas/moderation");
-        // Клавиши описаны в «?» плавающей панели, а не строкой в теле экрана (ADR-055, S2 п. 5)
-        await page
-          .getByRole("complementary", { name: "Панель действий" })
-          .getByRole("button", { name: "Что делать на этом экране" })
-          .click();
+        // Клавиши описаны в справке ⓘ шапки экрана, а не строкой в теле (ADR-061, T1 п. 5)
+        await page.getByRole("button", { name: "Справка: Проверка" }).click();
         await expect(
           page.getByRole("dialog").getByText(/клавиши J и K ведут по списку/),
         ).toBeVisible();

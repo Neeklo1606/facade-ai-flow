@@ -4,6 +4,7 @@
  * название экрана в меню, в шапке и во вкладке браузера не расходится.
  */
 import { ROLE_LABEL, type Role } from "@/domain/gas-ops/model";
+import { FROZEN_ROLES, gasOnlyEnabled } from "./gas-only";
 
 export type GasScreenKey =
   | "start"
@@ -73,8 +74,8 @@ export const GAS_SCREENS: readonly GasScreen[] = [
     group: null,
     roles: EVERYONE,
     steps: [
-      "Нажмите «Начать показ», чтобы за 3 минуты пройти путь записи от бригадира до Excel.",
-      "Или выберите роль и посмотрите свой экран.",
+      "Выберите роль в «Войти как…»: откроется её рабочий экран.",
+      "Путь записи от бригадира до Excel показан схемой: шаг ведёт на экран роли.",
     ],
   },
   {
@@ -159,8 +160,8 @@ export const GAS_SCREENS: readonly GasScreen[] = [
   {
     key: "reports",
     to: "/gas/reports",
-    title: "Отчёт",
-    short: "Отчёт",
+    title: "Табель",
+    short: "Табель",
     group: "work",
     roles: ["admin", "manager", "director"],
     steps: [
@@ -446,73 +447,106 @@ export const ROLE_ABOUT: Record<Role, string> = {
 };
 
 /**
- * Нижняя панель телефона: четыре вкладки роли и «Ещё» (ADR-055, раздел 2.5). Первые четыре
- * пункта меню роли ниже, кроме тех, что телефону не нужны.
+ * Нижняя панель телефона по ролям (ADR-061, таблица 3.3): три раздела роли и «Ещё».
+ * У бригадира своя панель: «Сегодня», бот, «Мои записи» и «Профиль» вместо «Ещё».
+ * Пункт «Уточнения» появится вместе с экраном (T2): чего нет, в меню не показывается.
  */
 export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
-  manager: ["moderation", "entries", "week", "reports"],
-  director: ["week", "reports", "entries", "objects"],
-  admin: ["directory", "objects", "estimates", "moderation"],
-  foreman: [],
-  // Прораб, как бригадир, живёт в своём экране телефона: панели нет
+  manager: ["moderation", "entries", "reports"],
+  director: ["week", "reports", "entries"],
+  admin: ["directory", "objects", "moderation"],
+  foreman: ["brigade", "foreman", "entries"],
+  // Прораб живёт в своём экране телефона: панели нет
   prorab: [],
   supply: ["supply", "deliveries", "suppliers", "materials"],
   pto: ["docs", "docsRegistry", "workJournal", "materials"],
 };
 
+/** Подпись вкладки бригадира: журнал своей бригады для него «Мои записи» */
+export const FOREMAN_TAB_LABEL: Partial<Record<GasScreenKey, string>> = {
+  foreman: "Бот",
+  entries: "Мои записи",
+};
+
+export type GasNavGroup = "work" | "catalogs" | "settings";
+
+export const GAS_NAV_LABEL: Record<GasNavGroup, string> = {
+  work: "Работа",
+  catalogs: "Справочники",
+  settings: "Настройки",
+};
+
+export interface GasNavSection {
+  group: GasNavGroup;
+  items: readonly GasScreenKey[];
+}
+
 /**
- * Меню-таблетка компьютера по ролям (ADR-055, раздел 2.4) из экранов, которые уже есть.
- * Чего ещё нет, в меню не показывается (правило 3). Ставки, состав и профиль выгрузки
- * живут в «Справочниках» (ADR-056), «Снабжение» и «Документы» руководителя — другие контуры,
- * в них ведёт пункт «Модули» плавающей панели. Пункты меню роли — её разрешённые экраны.
+ * Левое меню компьютера по ролям (ADR-061, таблица 3.3). Пункты, которых роль не видит
+ * (права экрана, флаг газового контура), отсекает оболочка через `screensFor`.
+ * «Выгрузка», «Подключения», «Доступы» и «Журнал действий» появятся вместе с экранами (T5, T7);
+ * до тех пор профиль выгрузки и ставки живут в «Справочниках» группы «Настройки».
  */
-export const ROLE_MENU: Record<Role, readonly GasScreenKey[]> = {
+export const ROLE_NAV: Record<Role, readonly GasNavSection[]> = {
   manager: [
-    "moderation",
-    "entries",
-    "week",
-    "reports",
-    "objects",
-    "estimates",
-    "brigades",
-    "directory",
+    { group: "work", items: ["moderation", "entries", "reports", "week"] },
+    { group: "catalogs", items: ["objects", "brigades", "employees", "estimates"] },
+    { group: "settings", items: ["directory"] },
   ],
   director: [
-    "week",
-    "reports",
-    "supplyOverview",
-    "docsOverview",
-    "entries",
-    "objects",
-    "summary",
-    "brigades",
-    "directory",
+    { group: "work", items: ["week", "reports", "entries", "supplyOverview", "docsOverview"] },
+    { group: "catalogs", items: ["objects", "brigades"] },
+    { group: "settings", items: ["directory"] },
   ],
   admin: [
-    "directory",
-    "objects",
-    "estimates",
-    "moderation",
-    "employees",
-    "admin",
-    "reports",
-    "supply",
-    "docs",
+    { group: "work", items: ["moderation", "entries", "reports", "week", "supply", "docs"] },
+    { group: "catalogs", items: ["objects", "brigades", "employees", "estimates"] },
+    { group: "settings", items: ["directory", "admin"] },
   ],
   foreman: [],
   prorab: [],
-  supply: ["supply", "suppliers", "deliveries", "materials"],
-  pto: ["docs", "docsRegistry", "workJournal", "materials"],
+  supply: [
+    { group: "work", items: ["supply", "deliveries", "materials"] },
+    { group: "catalogs", items: ["suppliers"] },
+  ],
+  pto: [{ group: "work", items: ["docs", "docsRegistry", "workJournal", "materials"] }],
 };
+
+/** Меню роли с учётом прав экранов и флага: пустые группы не показываются */
+export function navFor(role: Role, contour: "public" | "client" = "public"): GasNavSection[] {
+  const allowed = new Set(screensFor(role, contour).map((s) => s.key));
+  return ROLE_NAV[role]
+    .map((section) => ({ ...section, items: section.items.filter((key) => allowed.has(key)) }))
+    .filter((section) => section.items.length > 0);
+}
+
+/** Экраны «?»: инструкция и вопросы заказчика, не разделы меню */
+export const HELP_SCREENS: readonly GasScreenKey[] = ["guide", "questions"];
 
 /** Разделы только личного контура заказчика: рабочий лист встречи с ним (ADR-047) */
 export const CLIENT_ONLY_SCREENS: readonly GasScreenKey[] = ["questions"];
 
+/** Экраны снабжения и ПТО: под флагом газового контура их нет в меню и поиске (ADR-061) */
+export const FROZEN_SCREENS: readonly GasScreenKey[] = [
+  "site",
+  "supply",
+  "suppliers",
+  "deliveries",
+  "supplyOverview",
+  "materials",
+  "docs",
+  "docsRegistry",
+  "workJournal",
+  "docsOverview",
+];
+
 export function screensFor(role: Role, contour: "public" | "client" = "public"): GasScreen[] {
+  const gasOnly = gasOnlyEnabled();
   return GAS_SCREENS.filter(
     (screen) =>
       screen.roles.includes(role) &&
-      (contour === "client" || !CLIENT_ONLY_SCREENS.includes(screen.key)),
+      (contour === "client" || !CLIENT_ONLY_SCREENS.includes(screen.key)) &&
+      !(gasOnly && FROZEN_SCREENS.includes(screen.key)),
   );
 }
 
@@ -525,6 +559,11 @@ export const ROLE_ORDER: readonly Role[] = [
   "supply",
   "pto",
 ];
+
+/** Роли в выборе роли: под флагом газового контура без снабжения и ПТО (ADR-061) */
+export function rolesShown(): readonly Role[] {
+  return gasOnlyEnabled() ? ROLE_ORDER.filter((role) => !FROZEN_ROLES.includes(role)) : ROLE_ORDER;
+}
 
 /**
  * Полевые роли: свой интерфейс телефона без меню, плавающей панели и колокольчика.

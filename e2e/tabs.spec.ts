@@ -117,9 +117,10 @@ test.describe("история вкладок и повторное касани�
 
 // ADR-055, 2.5: четыре пункта роли и «Ещё»; стартовые экраны ролей по ADR-056
 const GAS = [
-  { role: "Менеджер", tabs: ["Проверка", "Журнал", "Неделя", "Отчёт", "Ещё"] },
-  { role: "Руководитель", tabs: ["Неделя", "Отчёт", "Журнал", "Объекты", "Ещё"] },
-  { role: "Администратор", tabs: ["Справочн", "Объекты", "Сметы", "Проверка", "Ещё"] },
+  // Таблица 3.3 ADR-061: три раздела роли и «Ещё»
+  { role: "Менеджер", tabs: ["Проверка", "Журнал", "Табель", "Ещё"] },
+  { role: "Руководитель", tabs: ["Неделя", "Табель", "Журнал", "Ещё"] },
+  { role: "Администратор", tabs: ["Справочн", "Объекты", "Проверка", "Ещё"] },
 ] as const;
 
 test.describe("учёт выработки 390", () => {
@@ -138,18 +139,28 @@ test.describe("учёт выработки 390", () => {
     });
   }
 
-  test("бригадир: бот на весь экран, одна шапка, «Мои записи» сверху", async ({ page }) => {
+  test("бригадир: своя панель, бот на весь экран, одна шапка", async ({ page }) => {
     await open(page, "/gas/moderation");
     await gasRole(page, "Бригадир");
-    // ADR-056: бригадир начинает с «Сегодня», бот — второй канал
+    // ADR-056: бригадир начинает с «Сегодня»; ADR-061: своя панель без меню менеджера
     await expect(page).toHaveURL(/\/gas\/brigade/);
-    await expect(gasTabbar(page)).toHaveCount(0);
+    await expect(gasTabbar(page).getByRole("link")).toHaveText([
+      /Сегодня/,
+      /Бот/,
+      /Мои записи/,
+      /Профиль/,
+    ]);
     await open(page, "/gas/foreman");
-    // Одна шапка: шапка чата, без шапки контура и плашки «Так выглядит бот»
-    await expect(page.locator("header.shell-header").filter({ visible: true })).toHaveCount(0);
+    // Одна шапка: шапка чата, без шапки контура и без панели
+    await expect(page.locator("header.gas-phone-header").filter({ visible: true })).toHaveCount(0);
+    await expect(gasTabbar(page)).toHaveCount(0);
     await page.getByRole("link", { name: "Мои записи" }).click();
     await expect(page).toHaveURL(/\/gas\/entries/);
-    await page.getByRole("button", { name: "Назад", exact: true }).click();
+    await expect(gasTabbar(page).getByRole("link", { name: "Мои записи" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await gasTabbar(page).getByRole("link", { name: "Бот" }).click();
     await expect(page).toHaveURL(/\/gas\/foreman/);
   });
 

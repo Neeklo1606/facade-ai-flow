@@ -1,5 +1,4 @@
 import { completePageHead } from "@/lib/page-head";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { ArrowRight, FileSpreadsheet, Upload } from "lucide-react";
@@ -137,8 +136,6 @@ function EstimatesPage() {
 
   return (
     <div className="flex flex-col gap-block">
-      <ScreenHint screen="estimates" className="mb-0" />
-
       <RuleCard
         formula={formulaOf(companyRule)}
         status={companyRule.status}

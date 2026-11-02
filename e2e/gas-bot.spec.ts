@@ -1,4 +1,5 @@
 import { expect, open, test } from "./fixtures";
+import { gasRole } from "./gas-helpers";
 import type { Locator, Page } from "@playwright/test";
 
 /**
@@ -15,14 +16,10 @@ const WIDTHS = [
   { name: "1440", viewport: { width: 1440, height: 900 }, hasTouch: false },
 ] as const;
 
-/** Войти бригадиром через переключатель роли оболочки: аватар в шапке на любой ширине (ADR-055) */
+/** Войти бригадиром через профиль в шапке на любой ширине (ADR-061, 3.1) */
 async function signInForeman(page: Page) {
-  await page.getByRole("button", { name: /^Вы: / }).click();
   // На стартовом экране есть и карточка роли «Бригадир»: выбираем в списке переключателя
-  await page
-    .getByRole("list", { name: "Роли" })
-    .getByRole("button", { name: /^Бригадир/ })
-    .click();
+  await gasRole(page, "Бригадир");
   // ADR-056: бригадир начинает с «Сегодня»; бот — второй канал, открываем его
   await expect(page).toHaveURL(/\/gas\/brigade/);
   await open(page, "/gas/foreman");

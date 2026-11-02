@@ -3,10 +3,13 @@ import { Info, Mic, Palette } from "lucide-react";
 import { ROLE_LABEL, useGasActor } from "@/api/gas-ops";
 import { useApp } from "@/lib/app-context";
 import { useGasContour } from "@/lib/gas-ops/contour";
+import { gasOnlyEnabled } from "@/lib/gas-ops/gas-only";
 import {
-  GAS_GROUP_LABEL,
-  OUT_OF_SCOPE_LABEL,
+  GAS_NAV_LABEL,
+  HELP_SCREENS,
   ROLE_TABS,
+  gasScreen,
+  navFor,
   roleInitial,
   screensFor,
 } from "@/lib/gas-ops/screens";
@@ -18,13 +21,14 @@ import {
   ThemeSetting,
   SettingsLink,
 } from "@/components/ui/kit/settings-list";
-import { GROUPS, ResetButton } from "./GasShell";
+import { ResetButton } from "./GasShell";
 import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
 
 /**
  * Вкладка «Ещё» учёта выработки (ADR-048): экран, а не шторка. Разделы роли вне панели
- * по группам меню, смена роли, сброс показа, тема, переход ко второму сценарию и на сайт.
+ * по группам левого меню (ADR-061, 3.3), справка, смена роли, сброс показа и тема.
+ * У бригадира это «Профиль».
  */
 export function GasMoreScreen() {
   const actor = useGasActor();
@@ -32,7 +36,11 @@ export function GasMoreScreen() {
   const { themeChoice, setThemeChoice } = useApp();
   const [roles, setRoles] = useState(false);
   const tabs = new Set<string>(ROLE_TABS[actor.role]);
-  const rest = screensFor(actor.role, kind).filter((s) => !tabs.has(s.key) && s.key !== "start");
+  const sections = navFor(actor.role, kind)
+    .map((section) => ({ ...section, items: section.items.filter((key) => !tabs.has(key)) }))
+    .filter((section) => section.items.length > 0);
+  const allowed = new Set(screensFor(actor.role, kind).map((s) => s.key));
+  const help = HELP_SCREENS.filter((key) => allowed.has(key)).map(gasScreen);
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6 pb-6">
@@ -43,28 +51,34 @@ export function GasMoreScreen() {
         onChange={() => setRoles(true)}
       />
 
-      {GROUPS.map((group) => {
-        const items = rest.filter((s) => s.group === group);
-        if (items.length === 0) return null;
-        return (
-          <SettingsGroup
-            key={group}
-            title={`${GAS_GROUP_LABEL[group]}${group === "growth" && kind === "client" ? ` · ${OUT_OF_SCOPE_LABEL}` : ""}`}
-          >
-            {items.map((item) => (
-              <SettingsLink
-                key={item.key}
-                icon={SCREEN_ICON[item.key]}
-                label={item.title}
-                to={item.to}
-              />
-            ))}
-          </SettingsGroup>
-        );
-      })}
+      {sections.map((section) => (
+        <SettingsGroup key={section.group} title={GAS_NAV_LABEL[section.group]}>
+          {section.items.map((key) => (
+            <SettingsLink
+              key={key}
+              icon={SCREEN_ICON[key]}
+              label={gasScreen(key).title}
+              to={gasScreen(key).to}
+            />
+          ))}
+        </SettingsGroup>
+      ))}
 
-      <SettingsGroup title="Показ">
-        <SettingsLink icon={SCREEN_ICON.start} label="Начало показа" to="/gas" />
+      {help.length ? (
+        <SettingsGroup title="Справка">
+          {help.map((item) => (
+            <SettingsLink
+              key={item.key}
+              icon={SCREEN_ICON[item.key]}
+              label={item.title}
+              to={item.to}
+            />
+          ))}
+        </SettingsGroup>
+      ) : null}
+
+      <SettingsGroup title="Демо">
+        <SettingsLink icon={SCREEN_ICON.start} label="На старт" to="/gas" />
         <li>
           <ResetButton row />
         </li>
@@ -82,10 +96,13 @@ export function GasMoreScreen() {
         />
       </SettingsGroup>
 
-      <SettingsGroup>
-        <SettingsLink icon={Mic} label="Голос с объекта" to="/demo" />
-        <SettingsLink icon={Info} label="О продукте" to="/" />
-      </SettingsGroup>
+      {/* Полевой контур и общий лендинг заморожены до сдачи газового заказчика (ADR-061) */}
+      {!gasOnlyEnabled() && (
+        <SettingsGroup>
+          <SettingsLink icon={Mic} label="Голос с объекта" to="/demo" />
+          <SettingsLink icon={Info} label="О продукте" to="/" />
+        </SettingsGroup>
+      )}
       <p className="px-4 text-meta text-text-3">{brand.credit}</p>
 
       <BottomSheet

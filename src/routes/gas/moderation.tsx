@@ -11,7 +11,7 @@ import {
 import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
 import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
 import { marksOf, needsAttention, type Mark } from "@/components/gas-ops/review/rules";
-import { ScreenHint, SectionTitle } from "@/components/gas-ops/page";
+import { SectionTitle } from "@/components/gas-ops/page";
 import { Button } from "@/components/ui/button";
 import { ScrollTabs } from "@/components/ui/kit/controls";
 import { EmptyBlock } from "@/components/ui/kit/states";
@@ -342,7 +342,6 @@ function ModerationPage() {
       layout={wide ? "panel" : "sheet"}
       floatingBottom={floatingBottom}
       canDecide={actor.canReview}
-      showKeys={desktop}
       onConfirm={() => void decide(current, "confirm")}
       onDecide={(action, comment) => decide(current, action, comment)}
       onCorrect={(input) => correct(current, input)}
@@ -373,8 +372,6 @@ function ModerationPage() {
           Настроить
         </Link>
       </p>
-
-      <ScreenHint screen="moderation" />
 
       <div className="mt-block mb-4">
         <MetricRow label="Показатели проверки">

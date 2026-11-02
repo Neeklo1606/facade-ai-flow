@@ -210,7 +210,8 @@ test.describe("личный контур заказчика", () => {
     const html = await (await page.request.get("/gas")).text();
     expect(html).not.toContain(clientShort);
     await page.goto("/gas/reports", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Отчёт" }).first()).toBeVisible();
+    // «Отчёт» в меню и шапке называется «Табель» (ADR-061)
+    await expect(page.getByRole("heading", { name: "Табель" }).first()).toBeVisible();
     await expect(page.getByText("Сверка с вашим файлом")).toHaveCount(0);
     expect(bodies.join("\n")).not.toContain(clientShort);
     // Вопросы к согласованию только в личном контуре
@@ -224,8 +225,8 @@ test.describe("личный контур заказчика", () => {
     await page.goto(`/gas/reports?c=${CLIENT_KEY}`, { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/\/gas\/reports$/);
     await expect(page.getByText("Сверка с вашим файлом")).toBeVisible();
-    // Компания заказчика в верхней строке оболочки, рядом со знаком (ADR-055, 2.1)
-    await expect(page.locator("header.shell-header")).toContainText(clientShort);
+    // Компания заказчика в верхней строке оболочки, рядом со знаком (ADR-061, 3.1)
+    await expect(page.locator("header.gas-topbar")).toContainText(clientShort);
     const cookies = await page.context().cookies();
     const cookie = cookies.find((c) => c.name === "gaika_client");
     expect(cookie?.httpOnly).toBe(true);

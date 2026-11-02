@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { ROLE_LABEL, useGasActor } from "@/api/gas-ops";
-import { ROLE_ABOUT, ROLE_ORDER, roleInitial } from "@/lib/gas-ops/screens";
+import { ROLE_ABOUT, roleInitial, rolesShown } from "@/lib/gas-ops/screens";
 import { cn } from "@/lib/utils";
 import { useRoleSwitch } from "./use-role-switch";
 
@@ -13,7 +13,7 @@ export function RoleList({ onDone }: { onDone?: () => void }) {
   const switchRole = useRoleSwitch();
   return (
     <ul className="flex flex-col gap-1" aria-label="Роли">
-      {ROLE_ORDER.map((role) => {
+      {rolesShown().map((role) => {
         const active = actor.role === role;
         return (
           <li key={role}>

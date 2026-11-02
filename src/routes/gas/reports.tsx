@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/kit/controls";
 import { FiltersSheet } from "@/components/ui/kit/sheet";
 import { CustomerReport } from "@/components/gas-ops/CustomerReport";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { AnalyticView } from "@/components/gas-ops/report/AnalyticView";
 import { isNewRow } from "@/components/gas-ops/report/cell-text";
 import { PeriodSwitch } from "@/components/gas-ops/report/PeriodSwitch";
@@ -219,8 +218,6 @@ function ReportsPage() {
 
   return (
     <div className="flex flex-col gap-block">
-      <ScreenHint screen="reports" className="mb-0" />
-
       <ReportHero
         total={report.total}
         count={report.count}

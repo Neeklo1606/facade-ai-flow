@@ -41,6 +41,9 @@ export const test = base.extend<Options & { consoleGuard: void }>({
            * нельзя. Что видно с выключенным флагом, проверяет legacy.spec.ts.
            */
           sessionStorage.setItem("neeklo-fieldops-legacy", "1");
+          // Снабжение и ПТО заморожены флагом газового контура (ADR-061), их проверки идут
+          // с модулями. Что видно под флагом, проверяют юнит-тесты gas-only
+          sessionStorage.setItem("gaika-gas-only", "0");
           if (mode) localStorage.setItem("neeklo-fieldops-theme", mode);
         } catch {
           // Приватный режим: тест увидит экран выбора роли

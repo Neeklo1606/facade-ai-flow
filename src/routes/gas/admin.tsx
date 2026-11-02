@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { ListRow } from "@/components/ui/kit/list";
 import { Segmented } from "@/components/ui/kit/controls";
-import { GrowthLine, ScreenHint } from "@/components/gas-ops/page";
+import { GrowthLine } from "@/components/gas-ops/page";
 import { ROLE_LABEL, useGasAudit, useGasUsers, type Role } from "@/api/gas-ops";
 import { roleInitial } from "@/lib/gas-ops/screens";
 import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
@@ -106,7 +106,6 @@ function AdminPage() {
   return (
     <div className="flex flex-col gap-section">
       <div>
-        <ScreenHint screen="admin" className="mb-0" />
         <GrowthLine />
       </div>
 

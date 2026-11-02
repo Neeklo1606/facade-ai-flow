@@ -1,5 +1,4 @@
 import { completePageHead } from "@/lib/page-head";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { createFileRoute } from "@tanstack/react-router";
 import { ListRow } from "@/components/ui/kit/list";
 import { SourceMark } from "@/components/gas-ops/marks";
@@ -27,7 +26,6 @@ function EmployeesPage() {
   const rows = useGasEmployees();
   return (
     <div className="flex flex-col gap-block">
-      <ScreenHint screen="employees" className="mb-0" />
       <p className="text-meta text-text-2 tnum">
         {rows.length} {plural(rows.length, "сотрудник", "сотрудника", "сотрудников")} и составов
         бригад

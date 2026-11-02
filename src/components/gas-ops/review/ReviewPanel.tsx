@@ -39,7 +39,6 @@ export function ReviewPanel({
   layout,
   floatingBottom,
   canDecide,
-  showKeys,
   onConfirm,
   onDecide,
   onCorrect,
@@ -50,7 +49,6 @@ export function ReviewPanel({
   /** Сколько снизу занято плавающими слоями оболочки (телефон) */
   floatingBottom: number;
   canDecide: boolean;
-  showKeys: boolean;
   onConfirm: () => void;
   onDecide: (action: "reject" | "clarify", comment: string) => Promise<DecideResult>;
   onCorrect: (input: CorrectInput) => Promise<DecideResult>;
@@ -178,11 +176,6 @@ export function ReviewPanel({
               >
                 <Check className="size-5 shrink-0" aria-hidden />
                 Подтвердить
-                {showKeys ? (
-                  <kbd className="ms-1 rounded-[var(--r-xs)] bg-white/20 px-1.5 text-tab">
-                    Enter
-                  </kbd>
-                ) : null}
               </button>
               <button
                 type="button"

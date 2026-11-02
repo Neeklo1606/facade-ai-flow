@@ -9,7 +9,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, Download } from "lucide-react";
 import { useMemo } from "react";
 import { ROLE_LABEL, fmtHours, fmtRate, fmtRub, useGasActor, type Role } from "@/api/gas-ops";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { useRoleSwitch } from "@/components/gas-ops/shell/use-role-switch";
 import { useGasBrand, useGasContour } from "@/lib/gas-ops/contour";
 import { ROLE_ABOUT, ROLE_HOME, gasScreen, roleInitial } from "@/lib/gas-ops/screens";
@@ -209,9 +208,7 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
   return (
     <div className="gas-guide flex flex-col gap-6">
       <style>{SHOW_STYLE}</style>
-      <div className="print:hidden">
-        <ScreenHint screen="guide" className="mb-0" />
-      </div>
+      <div className="print:hidden"></div>
 
       <div className="hidden print:block">
         <p className="text-title">Инструкция: {brand.product}</p>

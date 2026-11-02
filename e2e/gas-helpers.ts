@@ -1,17 +1,15 @@
 import type { Page } from "@playwright/test";
 
 /**
- * Сменить роль через переключатель оболочки газа (ADR-044, F1): на десктопе кнопка
- * в сайдбаре «Вы смотрите как», на телефоне аватар в шапке. Ведёт на стартовый экран роли.
+ * Сменить роль через меню профиля оболочки газа (ADR-061, 3.1): на компьютере всплывающее
+ * меню, на телефоне шторка из аватара. Ведёт на стартовый экран роли.
  */
 export async function gasRole(page: Page, label: string) {
-  const wide = page.getByRole("button", { name: /Вы смотрите как/ });
-  if (await wide.isVisible()) await wide.click();
-  else await page.getByRole("button", { name: /^Вы: .*Сменить роль/ }).click();
-  await page
-    .getByRole("list", { name: "Роли" })
-    .getByRole("button", { name: new RegExp(`^${label}`) })
-    .click();
+  // Профиль в шапке (ADR-061): на компьютере всплывающее меню, на телефоне шторка
+  await page.getByRole("button", { name: /^Вы: / }).filter({ visible: true }).first().click();
+  const list = page.getByRole("list", { name: "Роли" });
+  if (!(await list.isVisible())) await page.getByRole("button", { name: /^Сменить роль/ }).click();
+  await list.getByRole("button", { name: new RegExp(`^${label}`) }).click();
 }
 
 /** Тестовый ключ личной ссылки: им запущен сервер сквозных тестов (playwright.config.ts) */

@@ -15,7 +15,6 @@ import { EmptyBlock } from "@/components/ui/kit/states";
 import { ReviewPanel } from "@/components/gas-ops/review/ReviewPanel";
 import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
 import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
-import { ScreenHint } from "@/components/gas-ops/page";
 import {
   ENTRY_STATUS_LABEL,
   fmtHours,
@@ -236,7 +235,6 @@ function EntriesPage() {
       layout={wide ? "panel" : "sheet"}
       floatingBottom={floatingBottom}
       canDecide={false}
-      showKeys={false}
       onConfirm={() => undefined}
       onDecide={() => Promise.resolve({ ok: true })}
       onCorrect={() => Promise.resolve({ ok: true })}
@@ -261,8 +259,6 @@ function EntriesPage() {
 
   return (
     <div className="min-w-0">
-      <ScreenHint screen="entries" />
-
       {/* Поиск липкий при прокрутке списка (4.12) */}
       <div className="sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top))] z-20 -mx-gutter bg-void px-gutter pt-1 pb-2 lg:static lg:mx-0 lg:bg-transparent lg:px-0">
         <div className="flex items-center gap-2">
