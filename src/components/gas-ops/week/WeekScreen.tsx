@@ -7,12 +7,14 @@
  * отчётов» не считается; ставок нет — стоимость труда не показывается.
  */
 import { Link } from "@tanstack/react-router";
+import { NotCalculated } from "../review/remarks";
 import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, Lock, Unlock } from "lucide-react";
 import { lazy, Suspense, useMemo, useState } from "react";
 import {
   blockingReasons,
   fmtManHours,
   fmtRub,
+  manHoursText,
   useGasActions,
   useGasActor,
   useGasReport,
@@ -104,6 +106,11 @@ export function WeekScreen() {
   const [allObjects, setAllObjects] = useState(false);
 
   const { metrics, coverage, period } = view;
+  const man = manHoursText({
+    minutes: metrics.manMinutes,
+    total: metrics.confirmed,
+    missing: metrics.withoutCrew,
+  });
   const closed = period.closed;
   const acceptance = Object.entries(accepted).map(([key, reason]) => ({ key, reason }));
   const left = blockingReasons(view.reasons, acceptance);
@@ -202,14 +209,20 @@ export function WeekScreen() {
           note="ждут ответа бригадира"
           revealKey="week:clarify"
         />
+        {/* Неизвестное не ноль (ADR-061, 10): без состава — «не рассчитано» и ссылка на записи */}
         <MetricCard
           label="Человеко-часы"
           value={null}
-          text={fmtManHours(metrics.manMinutes, "чел.-ч")}
+          // Прочерк крупно, «не рассчитано» с причиной и ссылкой — подписью: крупная фраза не помещается
+          {...(man.value ? { text: man.value } : {})}
           note={
-            metrics.withoutCrew
-              ? `по ${metrics.withoutCrew} записям состав не указан`
-              : `часы записей ${fmtManHours(metrics.minutes, "ч")}`
+            man.reason ? (
+              <NotCalculated reason={man.reason}>
+                {man.value ? "часть не рассчитана" : "не рассчитано"}
+              </NotCalculated>
+            ) : (
+              `часы записей ${fmtManHours(metrics.minutes, "ч")}`
+            )
           }
           revealKey="week:man"
         />

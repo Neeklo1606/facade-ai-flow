@@ -91,15 +91,15 @@ for (const [name, viewport] of [
       await gasRole(page, "Менеджер");
       await expect(page).toHaveURL(/\/gas\/moderation$/);
       await page.locator("[data-queue-card]").filter({ hasText: number }).click();
-      await page.getByRole("button", { name: "Ещё действия" }).click();
-      await page.getByRole("menuitem", { name: "Исправить" }).click();
+      // «Исправить» — липкая кнопка детали (ADR-061, 10), а не пункт «⋮»
+      await page.getByRole("button", { name: "Исправить", exact: true }).click();
       await page.getByLabel("Людей").fill("3");
       await page.getByRole("button", { name: "Со слов бригадира" }).click();
       await page.getByRole("button", { name: "Сохранить исправление" }).click();
       // История записи свёрнута в детали: правка с причиной в ней есть
       await expect(page.getByText("Состав: 4 чел. → 3 чел.").first()).toBeAttached();
-      await page.getByRole("button", { name: /^Подтвердить/ }).click();
-      await expect(page.getByText("Подтверждено", { exact: true }).first()).toBeVisible();
+      await page.locator('[data-tour="review-confirm"]:visible').click();
+      await expect(page.locator("[data-sonner-toast]", { hasText: "Принято" })).toBeVisible();
 
       // 3. Руководитель: «Неделя», причины приняты как есть с причиной, закрытие v1
       await gasRole(page, "Руководитель");

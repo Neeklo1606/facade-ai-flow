@@ -9,39 +9,47 @@ import {
   type DecideResult,
 } from "@/components/gas-ops/review/ReviewPanel";
 import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
+import { StatusPills } from "@/components/gas-ops/review/remarks";
 import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
-import { marksOf, needsAttention, type Mark } from "@/components/gas-ops/review/rules";
-import { SectionTitle } from "@/components/gas-ops/page";
+import { ScreenActions, ScreenCounters } from "@/components/gas-ops/shell/screen-header";
 import { Button } from "@/components/ui/button";
-import { ScrollTabs } from "@/components/ui/kit/controls";
+import { FiltersButton, SearchBar } from "@/components/ui/kit/controls";
+import { FiltersSheet } from "@/components/ui/kit/sheet";
 import { EmptyBlock } from "@/components/ui/kit/states";
-import { MetricCard, MetricRow } from "@/components/ui/mono";
 import {
-  ENTRY_STATUS_LABEL,
-  fmtManHours,
+  costBreakdown,
+  entryInfo,
   fmtRub,
+  infoCounts,
+  INFO_KIND_LABEL,
+  isClean,
+  remarksOf,
   useGasActions,
   useGasActor,
+  useGasDirectory,
   useGasEntry,
   useGasQueue,
   useGasQueueCounts,
-  useGasAcceptedToday,
   useGasUsers,
-  useGasWeekView,
   type EntryStatus,
   type EntryView,
+  type InfoKind,
+  type Remark,
 } from "@/api/gas-ops";
-import { gasShowConfirmed, useGasShow } from "@/lib/gas-ops/show";
-import { REVIEW_MODE_LABEL, useGasReviewPolicy } from "@/api/gas-estimates";
+import { gasShowConfirmed } from "@/lib/gas-ops/show";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 /**
- * Очередь проверки (ADR-044, F5). Менеджер с первого взгляда видит, что требует внимания,
- * а что можно подтвердить пачкой. Решение по записи в два касания: открыть и подтвердить.
- * Обратимое действие выполняется сразу, отмена живёт в тосте 6 секунд.
+ * «Проверка» (ADR-061, 10; раздел 4.3): очередь слева 60%, решение справа 40%. Шапка — главная
+ * кнопка «Принять N без замечаний» и фильтры в месте действий оболочки, строка счётчиков —
+ * таблетки статусов и счётчики типов сведений. Карточек показателей нет: экран начинается
+ * со списка. После решения открывается следующая запись, фильтры и позиция остаются.
+ * Клавиши на компьютере: J и K по списку, Enter принимает, Esc закрывает форму и лист.
  */
-type Tab = EntryStatus | "all";
+type Tab = Extract<EntryStatus, "pending" | "clarify" | "confirmed"> | "all";
+type KindFilter = InfoKind | "clean" | "all";
 
 interface ModerationSearch {
   open?: string | undefined;
@@ -57,30 +65,39 @@ export const Route = createFileRoute("/gas/moderation")({
     completePageHead(
       { meta: [{ title: "Проверка записей времени · гайка" }] },
       "Проверка записей времени · гайка",
-      "Очередь проверки: подтвердить, вернуть на уточнение, исправить или отклонить.",
+      "Очередь проверки: принять, исправить с причиной, вернуть на уточнение.",
     ),
   component: ModerationPage,
 });
 
-/** Вкладки по документу владельца (S4): новые, на уточнении, принятые; «Все» — для поиска */
+/** Таблетки статусов по образцу ПТО Онлайн (4.3): новые, на уточнении, принятые, все */
 const TABS: Tab[] = ["pending", "clarify", "confirmed", "all"];
 
-const TAB_LABEL: Partial<Record<Tab, string>> = {
+const TAB_LABEL: Record<Tab, string> = {
   pending: "Новые",
   clarify: "На уточнении",
   confirmed: "Принятые",
   all: "Все",
 };
 
+const KIND_OPTIONS: { value: KindFilter; label: string }[] = [
+  { value: "all", label: "Все замечания" },
+  { value: "error", label: INFO_KIND_LABEL.error },
+  { value: "suspicion", label: INFO_KIND_LABEL.suspicion },
+  { value: "finance", label: INFO_KIND_LABEL.finance },
+  { value: "clean", label: "Без замечаний" },
+];
+
 const DONE_TEXT = {
-  confirm: "Подтверждено",
+  confirm: "Принято",
   reject: "Отклонено",
   clarify: "Возвращено на уточнение",
 } as const;
 
 interface Item {
   view: EntryView;
-  marks: Mark[];
+  remarks: Remark[];
+  clean: boolean;
   fresh: boolean;
 }
 
@@ -91,41 +108,67 @@ function ModerationPage() {
   // С 768 список и деталь рядом (ADR-045, V7), клавиши J, K, Enter только на компьютере
   const wide = useIsWide();
   const floatingBottom = useFloatingBottom();
-  const show = useGasShow();
-  const reviewMode = useGasReviewPolicy().settings.mode;
+  const directory = useGasDirectory();
   const { open: openParam } = Route.useSearch();
 
   const [tab, setTab] = useState<Tab>("pending");
   const [selected, setSelected] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [objectId, setObjectId] = useState("all");
+  const [brigadeId, setBrigadeId] = useState("all");
+  const [kind, setKind] = useState<KindFilter>("all");
+  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const counts = useGasQueueCounts();
   const rows = useGasQueue(tab);
   const pendingRows = useGasQueue("pending");
-  const accepted = useGasAcceptedToday();
-  const weekView = useGasWeekView();
+  const info = useMemo(() => infoCounts(pendingRows), [pendingRows]);
   const users = useGasUsers();
   const userIds = useMemo(() => new Set(users.map((u) => u.id)), [users]);
 
   /*
-   * Группы очереди. Новые записи этой вкладки — внесённые через бота или экран, а не
-   * пришедшие с набором: их автор человек из списка входа, а не сотрудник из выгрузки.
+   * Очередь одним списком: записи с замечаниями выше, без замечаний ниже (4.3). Внутри —
+   * свежие записи бригадиров первыми: их автор человек из списка входа, а не строка выгрузки.
    */
-  const { attention, clean, ordered } = useMemo(() => {
-    const items: Item[] = rows.map((view) => {
-      const marks = marksOf(view);
-      return {
-        view,
-        marks,
-        fresh: view.entry.source === "mock" && userIds.has(view.entry.createdBy),
-      };
-    });
-    const byFresh = (a: Item, b: Item) => Number(b.fresh) - Number(a.fresh);
-    const attention = items.filter((item) => needsAttention(item.marks)).sort(byFresh);
-    const clean = items.filter((item) => !needsAttention(item.marks)).sort(byFresh);
-    return { attention, clean, ordered: [...attention, ...clean] };
-  }, [rows, userIds]);
+  const ordered = useMemo(() => {
+    const text = search.trim().toLowerCase();
+    const items: Item[] = rows
+      .filter((view) => objectId === "all" || view.entry.objectId === objectId)
+      .filter((view) => brigadeId === "all" || view.entry.brigadeId === brigadeId)
+      .filter((view) =>
+        text
+          ? [view.object?.label, view.brigade?.name, view.entry.number, view.author]
+              .filter((value): value is string => !!value)
+              .some((value) => value.toLowerCase().includes(text))
+          : true,
+      )
+      .map((view) => {
+        const entryRemarks = entryInfo(view);
+        return {
+          view,
+          remarks: remarksOf(entryRemarks),
+          clean: isClean(entryRemarks),
+          fresh: view.entry.source === "mock" && userIds.has(view.entry.createdBy),
+        };
+      })
+      .filter((item) =>
+        kind === "all"
+          ? true
+          : kind === "clean"
+            ? item.clean
+            : item.remarks.some((r) => r.kind === kind),
+      );
+    return items.sort(
+      (a, b) => Number(a.clean) - Number(b.clean) || Number(b.fresh) - Number(a.fresh),
+    );
+  }, [rows, objectId, brigadeId, kind, search, userIds]);
+
+  const clean = useMemo(
+    () => ordered.filter((item) => item.clean && item.view.entry.status === "pending"),
+    [ordered],
+  );
 
   const currentId = wide
     ? (ordered.find((item) => item.view.entry.id === selected)?.view.entry.id ??
@@ -134,23 +177,21 @@ function ModerationPage() {
     : sheetOpen
       ? selected
       : null;
-  // Запись могла уйти из вкладки (решение принято): детали берём из всех записей
-  const current = useMemo(() => {
-    if (!currentId) return null;
-    const inList = ordered.find((item) => item.view.entry.id === currentId);
-    return inList?.view ?? null;
-  }, [currentId, ordered]);
+  const current = useMemo(
+    () => ordered.find((item) => item.view.entry.id === currentId)?.view ?? null,
+    [currentId, ordered],
+  );
 
   const cards = useRef(new Map<string, HTMLButtonElement>());
 
-  /* ---------- ?open=<id>: открыть и подсветить запись (показ, ссылки) ---------- */
+  /* ---------- ?open=<id>: открыть и подсветить запись (тур, ссылки) ---------- */
   const handledOpen = useRef<string | null>(null);
   const opened = useGasEntry(openParam ?? null);
   const openStatus = opened?.entry.status ?? null;
   useEffect(() => {
     if (!openParam || !openStatus || handledOpen.current === openParam) return;
     handledOpen.current = openParam;
-    setTab(TABS.includes(openStatus) ? openStatus : "all");
+    setTab((TABS as string[]).includes(openStatus) ? (openStatus as Tab) : "all");
     setSelected(openParam);
     setSheetOpen(true);
     setHighlight(openParam);
@@ -161,16 +202,14 @@ function ModerationPage() {
     return () => window.clearTimeout(timer);
   }, [openParam, openStatus]);
 
-  /** Следующая запись той же группы, иначе соседняя, иначе первая из другой группы */
+  /** Следующая запись после решения: ниже по списку, иначе выше */
   const nextAfter = useCallback(
     (id: string): string | null => {
-      const group = attention.some((item) => item.view.entry.id === id) ? attention : clean;
-      const other = group === attention ? clean : attention;
-      const index = group.findIndex((item) => item.view.entry.id === id);
-      const next = group[index + 1] ?? group[index - 1] ?? other[0];
+      const index = ordered.findIndex((item) => item.view.entry.id === id);
+      const next = ordered[index + 1] ?? ordered[index - 1];
       return next?.view.entry.id ?? null;
     },
-    [attention, clean],
+    [ordered],
   );
 
   const undo = useCallback(
@@ -180,7 +219,6 @@ function ModerationPage() {
         toast.error(result.message);
         return;
       }
-      setTab((value) => (value === "all" || value === result.value.status ? value : "pending"));
       setSelected(id);
     },
     [actions],
@@ -205,7 +243,7 @@ function ModerationPage() {
         () => void undo(id),
         `${view.entry.number}, ${view.object?.label ?? ""}`,
       );
-      // Решённая запись уходит из вкладки «Ожидает проверки»: открываем следующую
+      // Решённая запись уходит из таблетки: открываем следующую, фильтры не трогаем
       if (tab !== "all") {
         setSelected(next);
         if (!next) setSheetOpen(false);
@@ -220,33 +258,32 @@ function ModerationPage() {
       const result = await actions.updateEntry({ id: view.entry.id, ...input });
       if (!result.ok) return { ok: false, message: result.message };
       toast.success("Исправлено", {
-        description: `${view.entry.number}: изменение записано в журнал. Теперь запись можно подтвердить.`,
+        description: `${view.entry.number}: изменение и причина записаны в историю. Теперь запись можно принять.`,
       });
       return { ok: true };
     },
     [actions],
   );
 
-  /* ---------- Пачка «Без замечаний» ---------- */
   /*
-   * «Принять все без замечаний N» выполняется сразу, без диалога (ADR-045, принцип 8 и 5.4): действие
-   * обратимое, отмена живёт в тосте 6 секунд.
+   * «Принять N без замечаний» выполняется сразу, без диалога (ADR-045, принцип 8): действие
+   * обратимое, отмена в тосте 6 секунд. Только записи без ошибок данных и подозрений.
    */
   const confirmClean = async () => {
-    const ids = clean.map((item) => item.view.entry.id);
-    const sum = clean.reduce((acc, item) => acc + (item.view.entry.amountRub ?? 0), 0);
+    const list = clean;
+    const sum = list.reduce((acc, item) => acc + (costBreakdown(item.view).amountRub ?? 0), 0);
     const done: string[] = [];
-    for (const id of ids) {
-      const result = await actions.review({ id, action: "confirm" });
-      if (result.ok) done.push(id);
+    for (const item of list) {
+      const result = await actions.review({ id: item.view.entry.id, action: "confirm" });
+      if (result.ok) done.push(item.view.entry.id);
     }
     if (done.length === 0) {
-      toast.error("Не получилось подтвердить записи. Повторите.");
+      toast.error("Не получилось принять записи. Повторите.");
       return;
     }
     for (const id of done) gasShowConfirmed(id);
     toastUndo(
-      `Подтверждено ${done.length} ${plural(done.length, "запись", "записи", "записей")} на ${fmtRub(sum)}`,
+      `Принято ${done.length} ${plural(done.length, "запись", "записи", "записей")} на ${fmtRub(sum)}`,
       () => {
         void (async () => {
           for (const id of done) await actions.undoReview(id);
@@ -254,16 +291,18 @@ function ModerationPage() {
       },
       "Записи без замечаний ушли в недельный отчёт",
     );
-    if (currentId && done.includes(currentId)) setSelected(attention[0]?.view.entry.id ?? null);
+    if (currentId && done.includes(currentId)) setSelected(null);
   };
 
-  /* ---------- Клавиши на десктопе: J и K по списку, Enter подтверждает ---------- */
+  /* ---------- Клавиши на компьютере: J и K по списку, Enter принимает ---------- */
   useEffect(() => {
-    if (!desktop || !actor.canReview) return;
+    if (!actor.canReview) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      // Esc закрывает форму причины (ReviewPanel) и лист на телефоне (PhoneSheet)
+      if (!desktop) return;
       if (document.querySelector("[role='dialog'], [role='alertdialog'], [role='menu']")) return;
       if (document.getElementById("reason-title")) return;
       const index = ordered.findIndex((item) => item.view.entry.id === currentId);
@@ -277,7 +316,7 @@ function ModerationPage() {
         return;
       }
       if (event.key === "Enter" && current) {
-        // Enter на чужой кнопке делает своё; на карточке открытой записи — подтверждает
+        // Enter на чужой кнопке делает своё; на строке открытой записи — принимает
         const card = target?.closest("[data-queue-card]");
         if (
           target?.closest("button, a") &&
@@ -310,31 +349,6 @@ function ModerationPage() {
     setSheetOpen(true);
   };
 
-  const renderGroup = (items: Item[]) => (
-    <ul className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
-      {items.map((item) => {
-        const id = item.view.entry.id;
-        return (
-          <li key={id}>
-            <QueueCard
-              ref={(node) => {
-                if (node) cards.current.set(id, node);
-                else cards.current.delete(id);
-              }}
-              view={item.view}
-              marks={item.marks}
-              fresh={item.fresh}
-              active={wide && currentId === id}
-              highlight={highlight === id}
-              showStatus={tab === "all"}
-              onOpen={() => openEntry(id)}
-            />
-          </li>
-        );
-      })}
-    </ul>
-  );
-
   const panel = current ? (
     <ReviewPanel
       key={current.entry.id}
@@ -349,134 +363,211 @@ function ModerationPage() {
     />
   ) : null;
 
-  const total = counts.pending + counts.clarify + counts.draft + counts.rejected;
-  const pendingMarked = pendingRows.filter((view) => needsAttention(marksOf(view))).length;
-  const acceptedToday = accepted;
-  const withMarks = attention.length;
+  const activeFilters =
+    Number(objectId !== "all") + Number(brigadeId !== "all") + Number(kind !== "all");
+  const resetFilters = () => {
+    setObjectId("all");
+    setBrigadeId("all");
+    setKind("all");
+  };
+
+  // Объекты и бригады только те, что есть в очереди: длинный справочник тут не нужен
+  const queueObjects = [...new Map(rows.map((v) => [v.entry.objectId, v.object])).entries()];
+  const queueBrigades = [...new Map(rows.map((v) => [v.entry.brigadeId, v.brigade])).entries()];
+  const objectName = (id: string) => directory.objects.find((o) => o.id === id)?.label ?? "Объект";
+
+  // Счётчики типов не складываются: у одной записи может быть и подозрение, и финансы (2.3)
+  const counters = [
+    `${counts.pending} ${plural(counts.pending, "новая", "новые", "новых")}`,
+    info.errors ? `${info.errors} с ошибкой данных` : null,
+    info.suspicions ? `${info.suspicions} с подозрением` : null,
+    info.finance ? `${info.finance} без полной стоимости` : null,
+    counts.clarify ? `${counts.clarify} на уточнении` : null,
+  ].filter((part): part is string => !!part);
+
+  const select = (
+    label: string,
+    value: string,
+    onChange: (value: string) => void,
+    options: { value: string; label: string }[],
+  ) => (
+    <label className="relative min-w-0">
+      <span className="sr-only">{label}</span>
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`h-control-sm max-w-[176px] truncate rounded-control border bg-surface ps-3 pe-7 text-body text-text focus-ring ${value !== "all" ? "border-text" : "border-line-2"}`}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  const bulk = (
+    <Button
+      onClick={() => void confirmClean()}
+      disabled={tab !== "pending" || clean.length === 0}
+      className={cn("max-lg:h-12 max-lg:w-full")}
+    >
+      <CheckCheck aria-hidden />
+      Принять {clean.length} без замечаний
+    </Button>
+  );
+
+  const option = (on: boolean, label: string, pick: () => void) => (
+    <button
+      key={label}
+      type="button"
+      aria-pressed={on}
+      onClick={pick}
+      className={`inline-flex min-h-11 items-center rounded-full border px-3 text-body focus-ring ${
+        on ? "border-orange-strong bg-orange-dim text-text" : "border-line-2 text-text-2"
+      }`}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div className="min-w-0">
-      {/* Сначала итог одной строкой (принцип 2, 5.4) */}
-      <p className="text-body text-text-2 tnum" data-testid="queue-summary">
-        {counts.pending} {plural(counts.pending, "ждёт", "ждут", "ждут")} проверки
-        {tab === "pending" && withMarks ? `, ${withMarks} с замечаниями` : ""}
-      </p>
-      {/* Режим проверки настоящий (ADR-053, 5): меняет маршрут отправленной записи */}
-      <p className="mt-0.5 mb-2 flex min-w-0 items-center gap-2 text-meta text-text-3">
-        <span className="truncate">Режим: {REVIEW_MODE_LABEL[reviewMode].toLowerCase()}</span>
-        <Link
-          to="/gas/admin"
-          hash="review-mode"
-          className="inline-flex min-h-11 shrink-0 items-center text-meta-strong text-orange focus-ring"
-        >
-          Настроить
-        </Link>
-      </p>
+      <ScreenActions>
+        {desktop ? (
+          <>
+            {select("Объект", objectId, setObjectId, [
+              { value: "all", label: "Все объекты" },
+              ...queueObjects.map(([id, object]) => ({
+                value: id,
+                label: object?.code ?? object?.label ?? objectName(id),
+              })),
+            ])}
+            {select("Бригада", brigadeId, setBrigadeId, [
+              { value: "all", label: "Все бригады" },
+              ...queueBrigades.map(([id, brigade]) => ({ value: id, label: brigade?.name ?? id })),
+            ])}
+            {select("Тип замечания", kind, (value) => setKind(value as KindFilter), KIND_OPTIONS)}
+            <SearchBar
+              className="w-[200px] [&_input]:h-control-sm"
+              label="Поиск в очереди"
+              placeholder="Номер, объект, бригада"
+              value={search}
+              onChange={setSearch}
+            />
+          </>
+        ) : null}
+        {bulk}
+      </ScreenActions>
 
-      <div className="mt-block mb-4">
-        <MetricRow label="Показатели проверки">
-          <MetricCard
-            inverse
-            label="Ждут проверки"
-            value={counts.pending}
-            note={counts.clarify ? `на уточнении ${counts.clarify}` : "на уточнении нет"}
-            revealKey="mod:pending"
+      <ScreenCounters>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+          <StatusPills
+            label="Статус записи"
+            value={tab}
+            onChange={(value) => {
+              setTab(value);
+              setSelected(null);
+              setSheetOpen(false);
+            }}
+            options={TABS.map((value) => ({
+              value,
+              label: TAB_LABEL[value],
+              count:
+                value === "all"
+                  ? counts.pending +
+                    counts.clarify +
+                    counts.confirmed +
+                    counts.rejected +
+                    counts.draft
+                  : counts[value],
+            }))}
           />
-          <MetricCard
-            label="С замечаниями"
-            value={pendingMarked}
-            note="среди ждущих"
-            revealKey="mod:marked"
-          />
-          <MetricCard
-            label="Принято сегодня"
-            value={acceptedToday}
-            note="решения людей"
-            revealKey="mod:today"
-          />
-          <MetricCard
-            label="Человеко-часы недели"
-            value={null}
-            text={fmtManHours(weekView.metrics.manMinutes, "чел.-ч")}
-            note={
-              weekView.metrics.withoutCrew
-                ? `по ${weekView.metrics.withoutCrew} записям состав не указан`
-                : "по подтверждённым"
-            }
-            revealKey="mod:man"
-          />
-        </MetricRow>
-      </div>
+          <p className="min-w-0 text-meta text-text-2" data-testid="queue-summary">
+            {counters.join(" · ")}
+          </p>
+        </div>
+      </ScreenCounters>
 
-      <ScrollTabs
-        label="Статус записи"
-        value={tab}
-        onChange={(value) => {
-          setTab(value);
-          setSelected(null);
-          setSheetOpen(false);
-        }}
-        tabs={TABS.map((value) => ({
-          value,
-          label: TAB_LABEL[value] ?? (value === "all" ? "Все" : ENTRY_STATUS_LABEL[value]),
-          count: value === "all" ? total + counts.confirmed : counts[value],
-        }))}
-      />
+      {desktop ? null : (
+        <div className="mb-3 flex items-center gap-2">
+          <SearchBar
+            className="min-w-0 flex-1"
+            label="Поиск в очереди"
+            placeholder="Номер, объект, бригада"
+            value={search}
+            onChange={setSearch}
+          />
+          <FiltersButton active={activeFilters} onClick={() => setFiltersOpen(true)} />
+        </div>
+      )}
 
-      <div className="mt-block grid min-w-0 gap-section md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="flex min-w-0 flex-col gap-section">
-          {/* Клавиши J, K и Enter описаны в «?» оболочки, не строкой в теле экрана (ADR-055) */}
+      <div className="grid min-w-0 gap-section md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6">
+        <div className="min-w-0">
           {ordered.length === 0 ? (
             <EmptyBlock
-              icon={tab === "pending" ? CheckCheck : Inbox}
-              title={tab === "pending" ? "Очередь пуста" : "Здесь пусто"}
+              icon={tab === "pending" && !activeFilters && !search ? CheckCheck : Inbox}
+              title={
+                activeFilters || search
+                  ? "По фильтрам ничего нет"
+                  : tab === "pending"
+                    ? "Очередь пуста"
+                    : "Здесь пусто"
+              }
               text={
-                tab === "pending"
-                  ? "Новые записи бригадиров появятся здесь"
-                  : "В этом состоянии записей нет"
+                activeFilters || search
+                  ? "Сбросьте фильтры или поиск, чтобы увидеть всю очередь"
+                  : tab === "pending"
+                    ? "Новые записи бригадиров появятся здесь"
+                    : "В этом состоянии записей нет"
               }
               action={
-                <Button variant="outline" asChild>
-                  <Link to="/gas/entries">Открыть журнал</Link>
-                </Button>
+                activeFilters || search ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      resetFilters();
+                      setSearch("");
+                    }}
+                  >
+                    Сбросить фильтры
+                  </Button>
+                ) : (
+                  <Button variant="outline" asChild>
+                    <Link to="/gas/entries">Открыть журнал</Link>
+                  </Button>
+                )
               }
             />
-          ) : null}
-
-          {attention.length > 0 ? (
-            <section aria-labelledby="group-attention">
-              <SectionTitle
-                aside={<span className="text-meta text-text-3 tnum">{attention.length}</span>}
-              >
-                <span id="group-attention">Требуют внимания</span>
-              </SectionTitle>
-              {renderGroup(attention)}
-            </section>
-          ) : null}
-
-          {clean.length > 0 ? (
-            <section aria-labelledby="group-clean">
-              <SectionTitle
-                aside={
-                  tab === "pending" ? (
-                    <Button
-                      variant="quiet"
-                      className="-me-2 px-2"
-                      onClick={() => void confirmClean()}
-                    >
-                      <CheckCheck aria-hidden />
-                      Принять все без замечаний {clean.length}
-                    </Button>
-                  ) : (
-                    <span className="text-meta text-text-3 tnum">{clean.length}</span>
-                  )
-                }
-              >
-                <span id="group-clean">Без замечаний</span>
-              </SectionTitle>
-              {renderGroup(clean)}
-            </section>
-          ) : null}
+          ) : (
+            <ul
+              aria-label="Очередь проверки"
+              className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line"
+            >
+              {ordered.map((item) => {
+                const id = item.view.entry.id;
+                return (
+                  <li key={id}>
+                    <QueueCard
+                      ref={(node) => {
+                        if (node) cards.current.set(id, node);
+                        else cards.current.delete(id);
+                      }}
+                      view={item.view}
+                      remarks={item.remarks}
+                      fresh={item.fresh}
+                      active={wide && currentId === id}
+                      highlight={highlight === id}
+                      showStatus={tab === "all"}
+                      onOpen={() => openEntry(id)}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
 
         {wide ? (
@@ -505,6 +596,38 @@ function ModerationPage() {
           {panel}
         </PhoneSheet>
       )}
+
+      <FiltersSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        count={ordered.length}
+        onReset={resetFilters}
+      >
+        <section>
+          <h3 className="text-meta-strong text-text-2">Тип замечания</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {KIND_OPTIONS.map((o) => option(kind === o.value, o.label, () => setKind(o.value)))}
+          </div>
+        </section>
+        <section>
+          <h3 className="text-meta-strong text-text-2">Бригада</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {option(brigadeId === "all", "Все", () => setBrigadeId("all"))}
+            {queueBrigades.map(([id, brigade]) =>
+              option(brigadeId === id, brigade?.name ?? id, () => setBrigadeId(id)),
+            )}
+          </div>
+        </section>
+        <section>
+          <h3 className="text-meta-strong text-text-2">Объект</h3>
+          <div className="mt-2 flex flex-col">
+            {option(objectId === "all", "Все объекты", () => setObjectId("all"))}
+            {queueObjects.map(([id, object]) =>
+              option(objectId === id, object?.label ?? objectName(id), () => setObjectId(id)),
+            )}
+          </div>
+        </section>
+      </FiltersSheet>
     </div>
   );
 }

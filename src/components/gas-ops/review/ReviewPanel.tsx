@@ -1,15 +1,24 @@
 /**
- * Детали записи в проверке (ADR-044, F5, п. 4–5): заголовок с объектом и суммой, блоки
- * записи и действия. На десктопе это панель справа с кнопками внизу панели, на телефоне
- * содержимое листа снизу с плавающей капсулой действий над нижней панелью оболочки.
+ * Деталь записи в проверке (ADR-061, 10; раздел 4.3): заголовок с объектом и суммой, пять
+ * блоков детали и липкие кнопки «Принять», «Исправить», «Вернуть на уточнение», «Отклонить»
+ * в «⋮». На компьютере это панель справа, на телефоне лист на весь экран с кнопками внизу.
  *
- * Подтверждение в одно касание. Возврат, исправление и отклонение требуют причину:
- * частые причины кнопками, свой текст полем.
+ * Принятие в одно касание. Возврат, исправление и отклонение требуют причину:
+ * частые причины кнопками, свой текст полем. Esc закрывает форму причины.
  */
 import { Check, MessageCircleQuestion, MoreHorizontal, Pencil, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { fmtRate, fmtRub, formatClock, useGasActor, type EntryView } from "@/api/gas-ops";
+import {
+  acceptBlocker,
+  costBreakdown,
+  entryInfo,
+  fmtRub,
+  formatClock,
+  remarksOf,
+  useGasActor,
+  type EntryView,
+} from "@/api/gas-ops";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +26,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EntryDetails } from "../EntryDetails";
-import { EntryStatusBadge, MarkList } from "../marks";
-import { entryLine, fmtEntryDay, fmtShortDay, marksOf } from "./rules";
+import { EntryStatusBadge } from "../marks";
+import { RemarkChips } from "./remarks";
+import { entryLine, fmtEntryDay, fmtShortDay } from "./rules";
 import { REASONS, REASON_SUBMIT, REASON_TITLE, reasonText, type ReasonMode } from "./reasons";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +67,10 @@ export function ReviewPanel({
   const { entry } = view;
   const [mode, setMode] = useState<ReasonMode | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
-  const marks = marksOf(view);
+  const info = entryInfo(view);
+  const remarks = remarksOf(info);
+  const blocker = acceptBlocker(info);
+  const cost = costBreakdown(view);
   const sheet = layout === "sheet";
   // Суммы бригадир не видит (ТЗ, п. 5.6)
   const money = useGasActor().canSeeMoney;
@@ -65,6 +78,21 @@ export function ReviewPanel({
   // Форма причины открылась: показываем её, а не держим под сгибом
   useEffect(() => {
     if (mode) formRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [mode]);
+
+  // Esc закрывает форму причины; без формы — лист на телефоне
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (document.querySelector("[role='dialog'][data-state='open'] [data-testid='compare']"))
+        return;
+      if (mode) {
+        event.preventDefault();
+        setMode(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [mode]);
 
   const decided = entry.status === "confirmed";
@@ -93,41 +121,19 @@ export function ReviewPanel({
         </h2>
         <p className="mt-0.5 text-meta text-text-2 tnum">{entryLine(view)}</p>
         {money ? (
-          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {entry.amountRub === null && view.estimate?.status === "confirmed" ? (
-              /*
-               * Сумма записи назначается при подтверждении из подтверждённой стоимости объекта.
-               * До этого показываем её как ожидаемую, а не «нет суммы»: иначе на записи показа
-               * ЛПР видел «нет суммы», а через шаг в отчёте 14 700 ₽ (аудит J1)
-               */
-              <p className="flex flex-wrap items-baseline gap-x-2" data-testid="amount-expected">
-                <span className="text-title tnum">{fmtRub(view.estimate.amountRub)}</span>
-                <span className="text-meta text-text-3">
-                  по смете объекта, начислится при подтверждении
-                </span>
-              </p>
-            ) : entry.amountRub === null ? (
-              <p className="text-body text-text-3">
-                Нет суммы{" "}
-                <a href="#entry-why" className="text-body-strong text-orange focus-ring">
-                  Почему
-                </a>
-              </p>
+          <p className="mt-2 flex flex-wrap items-baseline gap-x-2" data-testid="amount-line">
+            {cost.amountRub === null ? (
+              <span className="text-body text-text-2">Сумма не рассчитана</span>
             ) : (
-              <p className="text-title tnum">{fmtRub(entry.amountRub)}</p>
+              <span className="text-title tnum">
+                {cost.expected ? "≈ " : ""}
+                {fmtRub(cost.amountRub)}
+              </span>
             )}
-            {view.revenue !== null ? (
-              <p className="text-body text-text-2 tnum">{fmtRate(view.revenue)}</p>
-            ) : null}
-            {/* Сумма есть, а стоимость объекта не подтверждена: говорим об этом у самой суммы */}
-            {entry.amountRub !== null && view.flags.includes("no-estimate") ? (
-              <p className="w-full text-meta text-warn" data-testid="amount-unconfirmed">
-                Сумма по стоимости, которая ещё не подтверждена
-              </p>
-            ) : null}
-          </div>
+            <span className="text-meta text-text-3">{cost.source}</span>
+          </p>
         ) : null}
-        <MarkList marks={marks} className="mt-2" />
+        <RemarkChips remarks={remarks} className="mt-2" />
       </header>
 
       <div
@@ -160,11 +166,19 @@ export function ReviewPanel({
         <EntryDetails view={view} />
       </div>
 
+      {blocker && !mode && canDecide && !decided ? (
+        <p
+          role="note"
+          className={`shrink-0 text-meta text-danger ${sheet ? "px-gutter pb-2" : "px-6 pb-1"}`}
+        >
+          {blocker.todo}
+        </p>
+      ) : null}
       {mode || !canDecide ? null : (
         <ActionBar sheet={sheet} floatingBottom={floatingBottom}>
           {decided ? (
             <p className="flex min-h-12 flex-1 items-center px-3 text-body text-text-2">
-              Подтверждено и учтено в недельном отчёте.
+              Принято и учтено в недельном отчёте.
             </p>
           ) : (
             <>
@@ -172,20 +186,31 @@ export function ReviewPanel({
                 type="button"
                 data-tour="review-confirm"
                 onClick={onConfirm}
-                className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-control bg-orange-strong px-5 text-body-strong text-on-orange transition-fast focus-ring press-98 is-hover:bg-orange-strong-hover"
+                disabled={!!blocker}
+                title={blocker ? blocker.todo : undefined}
+                className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-control bg-orange-strong px-4 text-body-strong text-on-orange transition-fast focus-ring press-98 is-hover:bg-orange-strong-hover disabled:opacity-45"
               >
                 <Check className="size-5 shrink-0" aria-hidden />
-                Подтвердить
+                Принять
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("correct")}
+                aria-label="Исправить"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-3 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2 lg:px-4"
+              >
+                <Pencil className="size-5 shrink-0" aria-hidden />
+                <span className="hidden lg:inline">Исправить</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMode("clarify")}
                 aria-label="Вернуть на уточнение"
-                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-4 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-3 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2 lg:px-4"
               >
-                <MessageCircleQuestion className="hidden size-5 sm:block" aria-hidden />
-                <span className="lg:hidden">На уточнение</span>
-                <span className="hidden lg:inline">Вернуть на уточнение</span>
+                <MessageCircleQuestion className="hidden size-5 shrink-0 sm:block" aria-hidden />
+                <span className="2xl:hidden">На уточнение</span>
+                <span className="hidden 2xl:inline">Вернуть на уточнение</span>
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -195,13 +220,6 @@ export function ReviewPanel({
                   <MoreHorizontal className="size-5" aria-hidden />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" side="top" className="min-w-[200px]">
-                  <DropdownMenuItem
-                    onSelect={() => setMode("correct")}
-                    className="min-h-12 gap-2 text-body"
-                  >
-                    <Pencil className="size-4" aria-hidden />
-                    Исправить
-                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => setMode("reject")}
                     className="min-h-12 gap-2 text-body text-danger"

@@ -263,6 +263,30 @@ export type {
 export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
 export { parseTimeInput, rangeLabel, TIME_INPUT_TEXT } from "@/domain/gas-ops/time-input";
 export { busyLine, intervalLabel } from "@/domain/gas-ops/time-slots";
+/** Четыре типа сведений о записи, «не рассчитано» и расшифровка суммы (ADR-061, 10) */
+export {
+  acceptBlocker,
+  costBreakdown,
+  costLine,
+  entryInfo,
+  infoCounts,
+  INFO_KIND_LABEL,
+  isClean,
+  manHours,
+  manHoursText,
+  REMARK_KIND,
+  REMARK_LABEL,
+  remarksOf,
+} from "@/domain/gas-ops/entry-info";
+export type {
+  CostBreakdown,
+  EntryInfo,
+  InfoCounts,
+  InfoKind,
+  ManHours,
+  Remark,
+  RemarkKey,
+} from "@/domain/gas-ops/entry-info";
 
 /** Разбор фразы бригадира правилом domain (ADR-049): экран бота зовёт его отсюда */
 export { parseTimeMessage } from "@/domain/gas-ops/parse-time-message";

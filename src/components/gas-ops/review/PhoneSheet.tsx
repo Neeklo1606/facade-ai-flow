@@ -36,7 +36,13 @@ export function PhoneSheet({
     const overflow = html.style.overflow;
     html.style.overflow = "hidden";
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !document.querySelector("[role='menu']")) onClose();
+      // Открытую форму причины Esc сначала закрывает сама (ReviewPanel), лист остаётся
+      if (
+        event.key === "Escape" &&
+        !event.defaultPrevented &&
+        !document.querySelector("[role='menu']")
+      )
+        onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => {

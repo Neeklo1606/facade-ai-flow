@@ -83,7 +83,7 @@ for (const theme of ["dark", "light"] as const) {
 
       await t.tap(dock(page).getByRole("button", { name: /Как менеджер проверки/ }));
       await t.tap(page.locator('[data-tour="review-confirm"]:visible').first());
-      await expect(toast(page, "Подтверждено")).toBeVisible();
+      await expect(toast(page, "Принято")).toBeVisible();
 
       await t.tap(dock(page).getByRole("button", { name: /Как руководитель/ }));
       const row = page.locator('[data-tour="report-row"]:visible').first();
@@ -165,21 +165,21 @@ for (const theme of ["dark", "light"] as const) {
       const card = page.locator("[data-queue-card]", { hasText: "ГЗ-00096" });
       await card.click();
       await page.locator('[data-tour="review-confirm"]:visible').first().click();
-      await expect(toast(page, "Подтверждено")).toBeVisible();
+      await expect(toast(page, "Принято")).toBeVisible();
       await expect(card).toHaveCount(0);
-      await toast(page, "Подтверждено").getByRole("button", { name: "Отменить" }).click();
+      await toast(page, "Принято").getByRole("button", { name: "Отменить" }).click();
       await expect(card).toBeVisible();
 
       await page.keyboard.press("Escape");
       await open(page, "/gas/moderation");
-      const batch = page.getByRole("button", { name: /Принять все без замечаний \d+/ });
+      const batch = page.getByRole("button", { name: /Принять \d+ без замечаний/ });
       const count = Number((await batch.innerText()).match(/(\d+)/)![1]);
       await batch.click();
-      const done = toast(page, new RegExp(`Подтверждено ${count} запис`));
+      const done = toast(page, new RegExp(`Принято ${count} запис`));
       await expect(done).toBeVisible();
       await done.getByRole("button", { name: "Отменить" }).click();
       await expect(
-        page.getByRole("button", { name: `Принять все без замечаний ${count}` }),
+        page.getByRole("button", { name: `Принять ${count} без замечаний` }),
       ).toBeVisible();
     });
 

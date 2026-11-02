@@ -1,51 +1,76 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, SearchX } from "lucide-react";
-import { EntryStatusBadge, SourceMark } from "@/components/gas-ops/marks";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarDays, Check, MessageCircleQuestion, MoreHorizontal, SearchX } from "lucide-react";
 import { QueueCard } from "@/components/gas-ops/review/QueueCard";
-import { fmtShortDay, marksOf, type Mark } from "@/components/gas-ops/review/rules";
+import { fmtShortDay, sumText } from "@/components/gas-ops/review/rules";
 import { Button } from "@/components/ui/button";
 import { FiltersButton, SearchBar } from "@/components/ui/kit/controls";
 import { CalendarSheet, FiltersSheet } from "@/components/ui/kit/sheet";
 import { Chip } from "@/components/ui/kit/status";
-import { DataTable, type TableColumn } from "@/components/ui/kit/data";
 import { WeekStrip } from "@/components/ui/kit/date";
 import { EmptyBlock } from "@/components/ui/kit/states";
-import { ReviewPanel } from "@/components/gas-ops/review/ReviewPanel";
+import { ReviewPanel, type DecideResult } from "@/components/gas-ops/review/ReviewPanel";
 import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
 import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
+import { JournalTable } from "@/components/gas-ops/journal/JournalTable";
 import {
+  DEFAULT_COLUMNS,
+  type ColumnKey,
+  type JournalRow,
+} from "@/components/gas-ops/journal/columns";
+import { BulkClarifyDialog } from "@/components/gas-ops/journal/bulk";
+import { downloadJournalCsv } from "@/components/gas-ops/journal/csv";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  CHANNEL_LABEL,
   ENTRY_STATUS_LABEL,
-  fmtHours,
+  INFO_KIND_LABEL,
+  entryInfo,
   fmtRub,
-  formatClock,
+  headcountOf,
+  isClean,
+  remarksOf,
+  useGasActions,
   useGasActor,
   useGasDirectory,
   useGasEntries,
   useGasEntry,
   useGasWeek,
+  type EntryChannel,
   type EntryStatus,
   type EntryView,
+  type InfoKind,
 } from "@/api/gas-ops";
 import { plural } from "@/lib/format";
+import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 /**
- * Журнал записей времени (ADR-044; вид ADR-045, 5.6): всё, что заведено, с поиском, полосой
- * недели, календарём и фильтрами. Строка поиска в шапке ведёт сюда с `?q=`. Телефон: список
- * по дням с липким заголовком «Сб 03.10 · 18 записей · 312 450 ₽», фильтры в шторке.
- * Компьютер: таблица, деталь панелью справа. Бригадир видит только свою бригаду и без сумм.
+ * «Журнал» (ADR-061, 10; раздел 4.4): плотная таблица по образцу «Ведомости работ» ПТО Онлайн.
+ * Панель: поиск, период, фильтры, действия с выбранными (неактивны без выбора), «⋮» с выгрузкой
+ * выбранных и настройкой колонок. Клик по строке открывает ту же деталь, что в «Проверке».
+ * Телефон: список по дням с липким итогом дня, фильтры в шторке. Бригадир видит свою бригаду
+ * без сумм. `?crew=none` — записи без состава (ссылка «Показать записи» у «не рассчитано»).
  */
 interface EntriesSearch {
   q?: string | undefined;
+  crew?: "none" | undefined;
 }
 
 export const Route = createFileRoute("/gas/entries")({
   validateSearch: (search: Record<string, unknown>): EntriesSearch => {
     const raw = search["q"];
     const q = typeof raw === "string" ? raw : typeof raw === "number" ? String(raw) : "";
-    return { q: q.trim() ? q.trim().slice(0, 120) : undefined };
+    return {
+      q: q.trim() ? q.trim().slice(0, 120) : undefined,
+      crew: search["crew"] === "none" ? "none" : undefined,
+    };
   },
   head: () =>
     completePageHead(
@@ -58,18 +83,23 @@ export const Route = createFileRoute("/gas/entries")({
 
 type StatusFilter = EntryStatus | "all";
 type SourceFilter = "all" | "fact-report" | "mock";
+type KindFilter = InfoKind | "clean" | "all";
+type ChannelFilter = EntryChannel | "all";
 
 const STATUSES: EntryStatus[] = ["pending", "confirmed", "clarify", "rejected", "draft"];
+const CHANNELS: EntryChannel[] = ["web", "bot", "manager", "import"];
 const WEEKDAY = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
-interface Row {
-  id: string;
-  view: EntryView;
-  marks: Mark[];
+/** Записи, которые можно принять или вернуть: ещё не решённые */
+const OPEN_STATUSES = new Set<EntryStatus>(["pending", "clarify"]);
+
+function channelOf(view: EntryView): EntryChannel | null {
+  return view.entry.channel ?? (view.entry.source === "fact-report" ? "import" : null);
 }
 
 function EntriesPage() {
   const actor = useGasActor();
+  const actions = useGasActions();
   const directory = useGasDirectory();
   const week = useGasWeek();
   const desktop = useIsDesktop();
@@ -77,7 +107,7 @@ function EntriesPage() {
   const wide = useIsWide();
   const floatingBottom = useFloatingBottom();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { q } = Route.useSearch();
+  const { q, crew } = Route.useSearch();
 
   const [search, setSearch] = useState(q ?? "");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -85,12 +115,22 @@ function EntriesPage() {
   const [object, setObject] = useState("all");
   const [day, setDay] = useState<string | null>(null);
   const [source, setSource] = useState<SourceFilter>("all");
+  const [kind, setKind] = useState<KindFilter>("all");
+  const [channel, setChannel] = useState<ChannelFilter>("all");
+  const [noCrew, setNoCrew] = useState(crew === "none");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [columns, setColumns] = useState<ColumnKey[]>(DEFAULT_COLUMNS);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(0);
+  const [clarifyOpen, setClarifyOpen] = useState(false);
 
   // Поиск из шапки: новый запрос заменяет строку поиска экрана
   useEffect(() => setSearch(q ?? ""), [q]);
+  useEffect(() => setNoCrew(crew === "none"), [crew]);
 
   const views = useGasEntries({
     brigadeId: brigade === "all" ? undefined : brigade,
@@ -101,17 +141,46 @@ function EntriesPage() {
     ownBrigadeOnly: actor.role === "foreman",
   });
 
-  const rows: Row[] = useMemo(
+  const rows: JournalRow[] = useMemo(
     () =>
       views
         .filter((view) => object === "all" || view.entry.objectId === object)
-        .map((view) => ({ id: view.entry.id, view, marks: marksOf(view) })),
-    [views, object],
+        .filter((view) => channel === "all" || channelOf(view) === channel)
+        .filter((view) => !noCrew || headcountOf(view.entry) === null)
+        .map((view) => {
+          const info = entryInfo(view);
+          return { id: view.entry.id, view, remarks: remarksOf(info), clean: isClean(info) };
+        })
+        .filter((row) =>
+          kind === "all"
+            ? true
+            : kind === "clean"
+              ? row.clean
+              : row.remarks.some((r) => r.kind === kind),
+        )
+        .sort(
+          (a, b) =>
+            b.view.entry.day.localeCompare(a.view.entry.day) ||
+            b.view.entry.number.localeCompare(a.view.entry.number),
+        ),
+    [views, object, channel, noCrew, kind],
   );
 
-  // Список по дням: свежий день сверху, итог дня в липком заголовке
+  // Фильтр поменялся — с первой страницы; выбор из исчезнувших строк снимаем
+  useEffect(() => setPage(0), [rows.length, pageSize]);
+  useEffect(() => {
+    setSelected((current) => {
+      const ids = new Set(rows.map((r) => r.id));
+      const next = new Set([...current].filter((id) => ids.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [rows]);
+
+  const pageRows = rows.slice(page * pageSize, (page + 1) * pageSize);
+
+  // Список по дням для телефона: свежий день сверху, итог дня в липком заголовке
   const byDay = useMemo(() => {
-    const groups = new Map<string, Row[]>();
+    const groups = new Map<string, JournalRow[]>();
     for (const row of rows)
       groups.set(row.view.entry.day, [...(groups.get(row.view.entry.day) ?? []), row]);
     return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
@@ -121,19 +190,26 @@ function EntriesPage() {
     Number(brigade !== "all") +
     Number(object !== "all") +
     Number(status !== "all") +
-    Number(source !== "all");
+    Number(source !== "all") +
+    Number(kind !== "all") +
+    Number(channel !== "all") +
+    Number(noCrew);
 
   const resetFilters = () => {
     setBrigade("all");
     setObject("all");
     setStatus("all");
     setSource("all");
+    setKind("all");
+    setChannel("all");
+    setNoCrew(false);
+    if (crew) void navigate({ search: (prev) => ({ ...prev, crew: undefined }), replace: true });
   };
   const reset = () => {
     resetFilters();
     setDay(null);
     setSearch("");
-    if (q) void navigate({ search: {}, replace: true });
+    if (q || crew) void navigate({ search: {}, replace: true });
   };
 
   const days = week.days.map((d) => ({
@@ -163,70 +239,92 @@ function EntriesPage() {
           clear: () => setSource("all"),
         }
       : null,
+    kind !== "all"
+      ? {
+          key: "k",
+          label: kind === "clean" ? "Без замечаний" : INFO_KIND_LABEL[kind],
+          clear: () => setKind("all"),
+        }
+      : null,
+    channel !== "all"
+      ? { key: "c", label: CHANNEL_LABEL[channel], clear: () => setChannel("all") }
+      : null,
+    noCrew
+      ? {
+          key: "crew",
+          label: "Без состава",
+          clear: () => {
+            setNoCrew(false);
+            if (crew)
+              void navigate({ search: (prev) => ({ ...prev, crew: undefined }), replace: true });
+          },
+        }
+      : null,
   ].filter((c): c is { key: string; label: string; clear: () => void } => !!c);
 
   const current = useGasEntry(open);
 
-  const columns: TableColumn<Row>[] = [
-    { key: "day", title: "Дата", cell: ({ view }) => fmtShortDay(view.entry.day) },
-    { key: "number", title: "Номер", cell: ({ view }) => view.entry.number },
-    { key: "brigade", title: "Бригада", cell: ({ view }) => view.brigade?.name ?? "–" },
-    {
-      key: "object",
-      title: "Объект",
-      cell: ({ view }) => (
-        <span className="block max-w-[320px] truncate" title={view.object?.label}>
-          {view.object?.label ?? "–"}
-        </span>
-      ),
+  /* ---------- Решения из детали: те же действия, что в «Проверке» ---------- */
+  const decide = useCallback(
+    async (
+      view: EntryView,
+      action: "confirm" | "reject" | "clarify",
+      comment?: string,
+    ): Promise<DecideResult> => {
+      const result = await actions.review({ id: view.entry.id, action, comment });
+      if (!result.ok) {
+        toast.error(result.message);
+        return { ok: false, message: result.message };
+      }
+      const text =
+        action === "confirm"
+          ? "Принято"
+          : action === "reject"
+            ? "Отклонено"
+            : "Возвращено на уточнение";
+      toastUndo(text, () => void actions.undoReview(view.entry.id), view.entry.number);
+      return { ok: true };
     },
-    {
-      key: "start",
-      title: "Начало",
-      numeric: true,
-      cell: ({ view }) =>
-        view.entry.startMinutes === null ? "–" : formatClock(view.entry.startMinutes),
-    },
-    {
-      key: "end",
-      title: "Окончание",
-      numeric: true,
-      cell: ({ view }) =>
-        view.entry.endMinutes === null ? "–" : formatClock(view.entry.endMinutes),
-    },
-    {
-      key: "break",
-      title: "Перерыв",
-      numeric: true,
-      cell: ({ view }) => (view.entry.breakMinutes ? `${view.entry.breakMinutes} мин` : "–"),
-    },
-    { key: "hours", title: "Часы", numeric: true, cell: ({ view }) => fmtHours(view.hours) },
-    ...(actor.canSeeMoney
-      ? [
-          {
-            key: "sum",
-            title: "Сумма",
-            numeric: true,
-            cell: ({ view }: Row) =>
-              view.entry.amountRub === null ? (
-                <span className="text-text-3">нет суммы</span>
-              ) : (
-                fmtRub(view.entry.amountRub)
-              ),
-          },
-        ]
-      : []),
-    {
-      key: "status",
-      title: "Статус",
-      cell: ({ view }) => (
-        <span className="inline-flex items-center gap-2">
-          <EntryStatusBadge status={view.entry.status} />
-          <SourceMark source={view.entry.source} />
-        </span>
-      ),
-    },
-  ];
+    [actions],
+  );
+
+  /* ---------- Действия с выбранными ---------- */
+  const chosen = rows.filter((row) => selected.has(row.id));
+  const decidable = chosen.filter((row) => OPEN_STATUSES.has(row.view.entry.status));
+  const select = (ids: string[], on: boolean) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const id of ids) {
+        if (on) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+
+  const bulk = async (action: "confirm" | "clarify", comment?: string) => {
+    const done: string[] = [];
+    let failed: string | null = null;
+    for (const row of decidable) {
+      const result = await actions.review({ id: row.id, action, comment });
+      if (result.ok) done.push(row.id);
+      else failed ??= `${row.view.entry.number}: ${result.message}`;
+    }
+    if (failed) toast.error(failed);
+    if (!done.length) return;
+    const sum = decidable
+      .filter((row) => done.includes(row.id))
+      .reduce((acc, row) => acc + (row.view.entry.amountRub ?? 0), 0);
+    toastUndo(
+      `${action === "confirm" ? "Принято" : "На уточнении"} ${done.length} ${plural(done.length, "запись", "записи", "записей")}`,
+      () => {
+        void (async () => {
+          for (const id of done) await actions.undoReview(id);
+        })();
+      },
+      action === "confirm" && actor.canSeeMoney ? `на ${fmtRub(sum)}` : undefined,
+    );
+    setSelected(new Set());
+  };
 
   const panel = current ? (
     <ReviewPanel
@@ -234,10 +332,17 @@ function EntriesPage() {
       view={current}
       layout={wide ? "panel" : "sheet"}
       floatingBottom={floatingBottom}
-      canDecide={false}
-      onConfirm={() => undefined}
-      onDecide={() => Promise.resolve({ ok: true })}
-      onCorrect={() => Promise.resolve({ ok: true })}
+      canDecide={actor.canReview}
+      onConfirm={() => void decide(current, "confirm")}
+      onDecide={(action, comment) => decide(current, action, comment)}
+      onCorrect={async (input) => {
+        const result = await actions.updateEntry({ id: current.entry.id, ...input });
+        if (!result.ok) return { ok: false, message: result.message };
+        toast.success("Исправлено", {
+          description: `${current.entry.number}: изменение и причина записаны в историю.`,
+        });
+        return { ok: true };
+      }}
       onClose={() => setOpen(null)}
     />
   ) : null;
@@ -248,76 +353,173 @@ function EntriesPage() {
       type="button"
       aria-pressed={on}
       onClick={pick}
-      className={cn(
-        "inline-flex min-h-11 items-center rounded-full border px-3 text-body focus-ring",
-        on ? "border-orange-strong bg-orange-dim text-text" : "border-line-2 text-text-2",
-      )}
+      className={`inline-flex min-h-11 items-center rounded-full border px-3 text-body focus-ring ${
+        on ? "border-orange-strong bg-orange-dim text-text" : "border-line-2 text-text-2"
+      }`}
     >
       {label}
     </button>
   );
 
+  const period = day
+    ? fmtShortDay(day)
+    : `Неделя ${fmtShortDay(week.from).slice(3)}–${fmtShortDay(week.to).slice(3)}`;
+
+  const chipList = chips.length ? (
+    <ul className="mt-2 flex flex-wrap gap-1" aria-label="Активные фильтры">
+      {chips.map((chip) => (
+        <li key={chip.key}>
+          <Chip tone="neutral" onRemove={chip.clear}>
+            {chip.label}
+          </Chip>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+
   return (
     <div className="min-w-0">
-      {/* Поиск липкий при прокрутке списка (4.12) */}
-      <div className="sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top))] z-20 -mx-gutter bg-void px-gutter pt-1 pb-2 lg:static lg:mx-0 lg:bg-transparent lg:px-0">
-        <div className="flex items-center gap-2">
-          <SearchBar
-            className="min-w-0 flex-1"
-            label="Поиск по журналу"
-            placeholder="Номер, объект, бригада"
-            value={search}
-            onChange={(value) => {
-              setSearch(value);
-              if (!value && q) void navigate({ search: {}, replace: true });
-            }}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Календарь"
-            className="size-11 rounded-control"
-            onClick={() => setCalendarOpen(true)}
+      {desktop ? (
+        /* Панель таблицы по образцу ПТО Онлайн (2.2): поиск, период, фильтры, действия, «⋮» */
+        <div className="mb-3">
+          <div
+            role="toolbar"
+            aria-label="Панель журнала"
+            className="flex flex-wrap items-center gap-2"
           >
-            <CalendarDays aria-hidden />
-          </Button>
-        </div>
-        {chips.length ? (
-          <ul className="mt-2 flex flex-wrap gap-1" aria-label="Активные фильтры">
-            {chips.map((chip) => (
-              <li key={chip.key}>
-                <Chip tone="neutral" onRemove={chip.clear}>
-                  {chip.label}
-                </Chip>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-
-      {/* Полоса недели на всю ширину; повторное касание выбранного дня возвращает неделю */}
-      <WeekStrip
-        days={days}
-        value={day}
-        today={week.today}
-        onChange={(next) => setDay(next === day ? null : next)}
-        className="gap-0"
-      />
-
-      <div className="mt-block flex min-h-7 items-center justify-between gap-3">
-        <p className="text-meta text-text-2 tnum">
-          {rows.length} {plural(rows.length, "запись", "записи", "записей")}
-          {search || active || day ? " по фильтрам" : " за неделю"}
-        </p>
-        <span className="flex items-center gap-1">
-          {search || active || day ? (
-            <Button variant="quiet" className="px-2" onClick={reset}>
-              Сбросить
+            <SearchBar
+              className="w-[260px] [&_input]:h-segment"
+              label="Поиск по журналу"
+              placeholder="Номер, объект, бригада"
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                if (!value && q) void navigate({ search: {}, replace: true });
+              }}
+            />
+            <Button
+              variant="outline"
+              onClick={() => setCalendarOpen(true)}
+              aria-label={`Период: ${period}`}
+            >
+              <CalendarDays aria-hidden />
+              {period}
             </Button>
-          ) : null}
-          <FiltersButton active={active} onClick={() => setFiltersOpen(true)} />
-        </span>
-      </div>
+            <FiltersButton active={active} onClick={() => setFiltersOpen(true)} />
+            {search || active || day ? (
+              <Button variant="quiet" className="px-2" onClick={reset}>
+                Сбросить
+              </Button>
+            ) : null}
+            <span className="mx-1 h-chip w-px bg-line" aria-hidden />
+            {actor.canReview ? (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={decidable.length === 0}
+                  onClick={() => void bulk("confirm")}
+                >
+                  <Check aria-hidden />
+                  Принять{decidable.length ? ` ${decidable.length}` : ""}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={decidable.length === 0}
+                  onClick={() => setClarifyOpen(true)}
+                >
+                  <MessageCircleQuestion aria-hidden />
+                  На уточнение
+                </Button>
+              </>
+            ) : null}
+            <span className="text-meta text-text-3 tnum" aria-live="polite">
+              {chosen.length
+                ? `Выбрано ${chosen.length}${decidable.length !== chosen.length ? `, решить можно ${decidable.length}` : ""}`
+                : ""}
+            </span>
+            <span className="ms-auto flex items-center gap-1">
+              <span className="text-meta text-text-2 tnum">
+                {rows.length} {plural(rows.length, "запись", "записи", "записей")}
+              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Ещё действия журнала"
+                  className="grid size-[36px] place-items-center rounded-control border border-line-2 bg-surface text-text focus-ring is-hover:bg-surface-2"
+                >
+                  <MoreHorizontal className="size-5" aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[220px]">
+                  <DropdownMenuItem
+                    disabled={chosen.length === 0}
+                    onSelect={() => downloadJournalCsv(chosen, actor.canSeeMoney)}
+                  >
+                    Выгрузить выбранные
+                  </DropdownMenuItem>
+                  {/* Открывает шестерёнку в шапке таблицы, когда меню закроется и вернёт фокус */}
+                  <DropdownMenuItem
+                    onSelect={() => window.setTimeout(() => setColumnsOpen(true), 0)}
+                  >
+                    Настроить колонки
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </span>
+          </div>
+          {chipList}
+        </div>
+      ) : (
+        <>
+          {/* Поиск липкий при прокрутке списка (4.12) */}
+          <div className="sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top))] z-20 -mx-gutter bg-void px-gutter pt-1 pb-2">
+            <div className="flex items-center gap-2">
+              <SearchBar
+                className="min-w-0 flex-1"
+                label="Поиск по журналу"
+                placeholder="Номер, объект, бригада"
+                value={search}
+                onChange={(value) => {
+                  setSearch(value);
+                  if (!value && q) void navigate({ search: {}, replace: true });
+                }}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Календарь"
+                className="size-11 rounded-control"
+                onClick={() => setCalendarOpen(true)}
+              >
+                <CalendarDays aria-hidden />
+              </Button>
+            </div>
+            {chipList}
+          </div>
+
+          {/* Полоса недели на всю ширину; повторное касание выбранного дня возвращает неделю */}
+          <WeekStrip
+            days={days}
+            value={day}
+            today={week.today}
+            onChange={(next) => setDay(next === day ? null : next)}
+            className="gap-0"
+          />
+
+          <div className="mt-block flex min-h-7 items-center justify-between gap-3">
+            <p className="text-meta text-text-2 tnum">
+              {rows.length} {plural(rows.length, "запись", "записи", "записей")}
+              {search || active || day ? " по фильтрам" : " за неделю"}
+            </p>
+            <span className="flex items-center gap-1">
+              {search || active || day ? (
+                <Button variant="quiet" className="px-2" onClick={reset}>
+                  Сбросить
+                </Button>
+              ) : null}
+              <FiltersButton active={active} onClick={() => setFiltersOpen(true)} />
+            </span>
+          </div>
+        </>
+      )}
 
       {rows.length === 0 ? (
         <EmptyBlock
@@ -331,31 +533,39 @@ function EntriesPage() {
           }
         />
       ) : desktop ? (
-        <DataTable
-          label="Журнал записей"
-          rows={rows}
-          columns={columns}
-          rowKey={(row) => row.id}
-          activeKey={open}
-          onRowClick={(row) => setOpen(row.id)}
+        <JournalTable
+          rows={pageRows}
+          visible={columns}
+          onVisible={setColumns}
+          columnsOpen={columnsOpen}
+          onColumnsOpen={setColumnsOpen}
+          money={actor.canSeeMoney}
+          selected={selected}
+          onSelect={select}
+          activeId={open}
+          onOpen={setOpen}
+          pageSize={pageSize}
+          onPageSize={setPageSize}
+          page={page}
+          onPage={setPage}
+          total={rows.length}
         />
       ) : (
         <div className="flex flex-col gap-block">
           {byDay.map(([d, list]) => {
-            const sum = list.reduce((acc, row) => acc + (row.view.entry.amountRub ?? 0), 0);
             return (
               <section key={d} aria-label={fmtShortDay(d)}>
                 <h2 className="sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top)+52px)] z-10 flex h-7 items-center bg-void text-meta text-text-3 tnum">
                   {fmtShortDay(d)} · {list.length}{" "}
                   {plural(list.length, "запись", "записи", "записей")}
-                  {actor.canSeeMoney ? ` · ${fmtRub(sum)}` : ""}
+                  {actor.canSeeMoney ? ` · ${sumText(list.map((row) => row.view))}` : ""}
                 </h2>
                 <ul className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
                   {list.map((row) => (
                     <li key={row.id}>
                       <QueueCard
                         view={row.view}
-                        marks={row.marks}
+                        remarks={row.remarks}
                         active={false}
                         fresh={false}
                         highlight={false}
@@ -391,12 +601,42 @@ function EntriesPage() {
         </PhoneSheet>
       )}
 
+      <BulkClarifyDialog
+        open={clarifyOpen}
+        count={decidable.length}
+        onOpenChange={setClarifyOpen}
+        onSubmit={async (comment) => {
+          await bulk("clarify", comment);
+          setClarifyOpen(false);
+        }}
+      />
+
       <FiltersSheet
         open={filtersOpen}
         onOpenChange={setFiltersOpen}
         count={rows.length}
         onReset={resetFilters}
       >
+        <section>
+          <h3 className="text-meta-strong text-text-2">Замечание</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {option(kind === "all", "Все", () => setKind("all"))}
+            {(["error", "suspicion", "finance"] as const).map((value) =>
+              option(kind === value, INFO_KIND_LABEL[value], () => setKind(value)),
+            )}
+            {option(kind === "clean", "Без замечаний", () => setKind("clean"))}
+            {option(noCrew, "Без состава", () => setNoCrew(!noCrew))}
+          </div>
+        </section>
+        <section>
+          <h3 className="text-meta-strong text-text-2">Статус</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {option(status === "all", "Все", () => setStatus("all"))}
+            {STATUSES.map((value) =>
+              option(status === value, ENTRY_STATUS_LABEL[value], () => setStatus(value)),
+            )}
+          </div>
+        </section>
         <section>
           <h3 className="text-meta-strong text-text-2">Бригада</h3>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -407,11 +647,11 @@ function EntriesPage() {
           </div>
         </section>
         <section>
-          <h3 className="text-meta-strong text-text-2">Статус</h3>
+          <h3 className="text-meta-strong text-text-2">Канал</h3>
           <div className="mt-2 flex flex-wrap gap-2">
-            {option(status === "all", "Все", () => setStatus("all"))}
-            {STATUSES.map((value) =>
-              option(status === value, ENTRY_STATUS_LABEL[value], () => setStatus(value)),
+            {option(channel === "all", "Все", () => setChannel("all"))}
+            {CHANNELS.map((value) =>
+              option(channel === value, CHANNEL_LABEL[value], () => setChannel(value)),
             )}
           </div>
         </section>
@@ -448,7 +688,7 @@ function EntriesPage() {
 
 /**
  * Деталь записи на компьютере и планшете: панель справа 420 поверх журнала (4.16).
- * Esc закрывает, стрелки вверх и вниз листают записи списка.
+ * Esc закрывает (если форма причины не открыта), стрелки вверх и вниз листают записи.
  */
 function SidePanel({
   onClose,
@@ -461,6 +701,9 @@ function SidePanel({
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      // Открыто окно сравнения или меню: Esc закрывает их, а не панель
+      if (document.querySelector("[role='dialog'][data-state='open'], [role='menu']")) return;
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         const target = event.target as HTMLElement | null;

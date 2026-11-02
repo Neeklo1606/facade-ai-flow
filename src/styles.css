@@ -271,6 +271,9 @@
   --btn-icon: 44px;
   --h-field: 48px;
   --h-segment: 36px;
+  /* Компактные элементы на компьютере (таблетки, списки, страницы) и строка таблицы журнала 4.4 */
+  --h-control-sm: 32px;
+  --h-row-table: 40px;
   --h-chip: 24px;
   --h-show: 44px;
   --h-sheet-head: 52px;
@@ -2883,6 +2886,18 @@ html[data-boot-compact] [data-boot-hero] {
 }
 @utility h-segment {
   height: var(--h-segment);
+}
+@utility min-h-segment {
+  min-height: var(--h-segment);
+}
+@utility h-control-sm {
+  height: var(--h-control-sm);
+}
+@utility min-h-control-sm {
+  min-height: var(--h-control-sm);
+}
+@utility h-row-table {
+  height: var(--h-row-table);
 }
 @utility h-chip {
   height: var(--h-chip);

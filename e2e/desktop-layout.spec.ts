@@ -79,7 +79,8 @@ test.describe("компьютер 1280", () => {
 
   test("деталь записи справа 420, Esc закрывает", async ({ page }) => {
     await open(page, "/gas/entries");
-    await page.locator("main table tbody tr").first().click();
+    // Строки сгруппированы по дням (ADR-061, 10): первая строка тела — заголовок дня
+    await page.locator("main table tbody tr[data-entry-row]").first().click();
     const panel = page.getByRole("dialog").last();
     await expect(panel).toBeVisible();
     expect(Math.round((await panel.boundingBox())!.width)).toBe(420);

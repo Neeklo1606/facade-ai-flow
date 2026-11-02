@@ -542,6 +542,14 @@ export function createGasOpsDemo(): GasOpsPort {
         );
       }
 
+      // Ноль минут не попадёт в выработку: такую запись исправляют или отклоняют (ADR-061, 10)
+      if (input.action === "confirm" && entry.minutes === 0) {
+        throw new GasOpsError(
+          "bad-time",
+          "Запись с нулём минут принять нельзя: исправьте время или отклоните.",
+        );
+      }
+
       const status =
         input.action === "confirm"
           ? "confirmed"

@@ -2,12 +2,13 @@ import type { Page } from "@playwright/test";
 import { expect, open, test } from "./fixtures";
 
 /**
- * Проверка записей газа (ADR-044, F5): подтверждение, отмена, пачка, отклонение с причиной,
- * запись после подтверждения в журнале. На 390 (лист снизу с плавающей капсулой) и 1440
- * (панель справа, клавиши J, K, Enter). Каждый тест начинает с исходного демо-набора.
+ * «Проверка» (ADR-061, 10; раздел 4.3) на 390 (лист на весь экран) и 1440 (очередь 60%,
+ * деталь 40%, клавиши J, K, Enter, Esc): принять, исправить с причиной, вернуть на уточнение
+ * с вопросом, «Принять N без замечаний», «Сравнить», запись после решения в журнале.
+ * Каждый тест начинает с исходного демо-набора.
  *
- * Записи демо-набора: ГЗ-00096 без замечаний (только «объект на несколько дней»),
- * ГЗ-00098 требует внимания (пересечение, нет суммы).
+ * Записи демо-набора: ГЗ-00096 без замечаний (только «объект на несколько дней» — сведение
+ * о финансах), ГЗ-00098 с подозрением «Пересечение времени» и без суммы.
  */
 
 const toast = (page: Page, text: RegExp | string) =>
@@ -26,62 +27,135 @@ for (const run of WIDTHS) {
   test.describe(`проверка ${run.name}`, () => {
     test.use({ viewport: run.viewport });
 
-    test("группы и вкладки: по умолчанию «Новые» (ADR-056)", async ({ page }) => {
+    test("очередь сразу под шапкой: таблетки и счётчики, без карточек показателей", async ({
+      page,
+    }) => {
       await open(page, "/gas/moderation");
       await expect(page.getByRole("tab", { name: /^Новые/ })).toHaveAttribute(
         "aria-selected",
         "true",
       );
-      await expect(page.getByRole("heading", { name: "Требуют внимания" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Без замечаний" })).toBeVisible();
-      // На карточке не больше двух признаков, остальное «+N»
-      const chips = card(page, "ГЗ-00098").locator("ul > li");
+      // Счётчики типов отдельно: подозрения и финансы не складываются в «с замечаниями»
+      const summary = page.getByTestId("queue-summary");
+      await expect(summary).toContainText("6 новых");
+      await expect(summary).toContainText("5 с подозрением");
+      await expect(summary).toContainText("2 без полной стоимости");
+      await expect(page.getByRole("list", { name: "Показатели проверки" })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: "Требуют внимания" })).toHaveCount(0);
+      // На строке не больше двух меток, остальное «+N»
+      const chips = card(page, "ГЗ-00098").locator("ul > li:not([aria-hidden])");
       expect(await chips.count()).toBeLessThanOrEqual(3);
       await expect(card(page, "ГЗ-00098")).toContainText("+");
+      if (!run.phone) {
+        // Строка 1440: первый элемент очереди не ниже 200 px, высота строки 52
+        const first = (await page.locator("[data-queue-card]").first().boundingBox())!;
+        expect(first.y).toBeLessThanOrEqual(200);
+        expect(Math.round(first.height)).toBeGreaterThanOrEqual(52);
+        expect(Math.round(first.height)).toBeLessThanOrEqual(56);
+        // Очередь 60%, деталь 40%
+        const list = (await page.getByRole("list", { name: "Очередь проверки" }).boundingBox())!;
+        const aside = (await page
+          .locator("aside")
+          .filter({ has: confirmButton(page) })
+          .boundingBox())!;
+        expect(list.width / (list.width + aside.width)).toBeGreaterThan(0.57);
+        expect(list.width / (list.width + aside.width)).toBeLessThan(0.63);
+      }
     });
 
-    test("подтверждение в два касания и отмена из тоста", async ({ page }) => {
+    test("принять в два касания, отмена из тоста, пять блоков детали", async ({ page }) => {
       await open(page, "/gas/moderation");
       await card(page, "ГЗ-00096").click();
       if (run.phone) await expect(page.locator("[data-review-sheet]")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Посчитала система" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Почему помечено" })).toBeVisible();
+      for (const name of ["Что проверить", "Данные бригадира", "Расчёт", "Стоимость", "История"])
+        await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
       await confirmButton(page).click();
 
-      await expect(toast(page, "Подтверждено")).toBeVisible();
+      await expect(toast(page, "Принято")).toBeVisible();
       await expect(card(page, "ГЗ-00096")).toHaveCount(0);
-      // Открылась следующая запись: кнопка подтверждения снова на месте
+      // Открылась следующая запись: кнопка «Принять» снова на месте
       await expect(confirmButton(page)).toBeVisible();
 
-      await toast(page, "Подтверждено").getByRole("button", { name: "Отменить" }).click();
+      await toast(page, "Принято").getByRole("button", { name: "Отменить" }).click();
       await expect(card(page, "ГЗ-00096")).toBeVisible();
     });
 
     /*
-     * Пачка «Без замечаний» (ADR-045, 5.4 и принцип 8): выполняется сразу, без диалога,
-     * тост «Подтверждено N записей на … ₽» с отменой 6 секунд.
+     * «Принять N без замечаний» (2.3, п. 5): только записи без ошибок данных и подозрений,
+     * выполняется сразу, отмена в тосте 6 секунд.
      */
-    test("пачка «Без замечаний» сразу и с отменой из тоста", async ({ page }) => {
+    test("«Принять N без замечаний» сразу и с отменой из тоста", async ({ page }) => {
       await open(page, "/gas/moderation");
-      const button = page.getByRole("button", { name: /Принять все без замечаний \d+/ });
-      const label = (await button.innerText()).trim();
-      const count = Number(label.match(/(\d+)/)?.[1]);
-      expect(count).toBeGreaterThan(0);
+      const button = page.getByRole("button", { name: /^Принять \d+ без замечаний$/ });
+      const count = Number((await button.innerText()).match(/(\d+)/)?.[1]);
+      expect(count).toBe(1);
       await button.click();
       await expect(page.getByRole("alertdialog")).toHaveCount(0);
 
       const done = toast(
         page,
-        new RegExp(`Подтверждено ${count} запис[а-я]* на [\\d\\s\u00a0\u202f]+₽`),
+        new RegExp(`Принято ${count} запис[а-я]* на [\\d\\s\u00a0\u202f]+₽`),
       );
       await expect(done).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Без замечаний" })).toHaveCount(0);
+      await expect(card(page, "ГЗ-00096")).toHaveCount(0);
+      // Записи с подозрениями пачкой не принимаются
+      await expect(card(page, "ГЗ-00098")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Принять 0 без замечаний" })).toBeDisabled();
 
       await done.getByRole("button", { name: "Отменить" }).click();
-      await expect(page.getByRole("heading", { name: "Без замечаний" })).toBeVisible();
       await expect(
-        page.getByRole("button", { name: `Принять все без замечаний ${count}` }),
-      ).toBeVisible();
+        page.getByRole("button", { name: `Принять ${count} без замечаний` }),
+      ).toBeEnabled();
+    });
+
+    test("исправить можно только с причиной, причина видна в истории", async ({ page }) => {
+      await open(page, "/gas/moderation");
+      await card(page, "ГЗ-00098").click();
+      await page.getByRole("button", { name: "Исправить", exact: true }).click();
+      const form = page.locator("section", { has: page.locator("#reason-title") });
+      await expect(form.getByRole("heading", { name: "Исправление времени" })).toBeVisible();
+      await form.getByLabel("Перерыв, мин").fill("30");
+      // На телефоне кнопки формы стоят панелью у края экрана, вне секции формы
+      const save = page.getByRole("button", { name: "Сохранить исправление" });
+      await expect(save).toBeDisabled();
+      await form.getByRole("button", { name: "Перерыв не учтён" }).click();
+      await expect(save).toBeEnabled();
+      await save.click();
+      await expect(toast(page, "Исправлено")).toBeVisible();
+      const history = page.getByRole("region", { name: "История" });
+      await expect(history).toContainText("Исправлено");
+      await expect(history).toContainText("Причина: Перерыв не учтён");
+      await expect(history).toContainText("Минуты:");
+    });
+
+    test("вернуть на уточнение с вопросом: запись уходит в «На уточнении»", async ({ page }) => {
+      await open(page, "/gas/moderation");
+      const before = Number(
+        (await page.getByRole("tab", { name: /^На уточнении/ }).innerText()).match(/(\d+)/)![1],
+      );
+      await card(page, "ГЗ-00098").click();
+      await page.getByRole("button", { name: "Вернуть на уточнение" }).click();
+      const form = page.locator("section", { has: page.locator("#reason-title") });
+      const send = page.getByRole("button", { name: "Вернуть бригадиру" });
+      await expect(send).toBeDisabled();
+      await form.getByLabel("Свой текст").fill("Где была бригада с 12 до 13?");
+      await send.click();
+      await expect(toast(page, "Возвращено на уточнение")).toBeVisible();
+      await expect(card(page, "ГЗ-00098")).toHaveCount(0);
+      // После решения открыта следующая запись, фильтр «Новые» на месте
+      await expect(page.getByRole("tab", { name: /^Новые/ })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      await expect(confirmButton(page)).toBeVisible();
+      if (run.phone && (await page.locator("[data-review-sheet]").count()) > 0) {
+        await page.getByRole("button", { name: "Закрыть" }).click();
+      }
+      const tab = page.getByRole("tab", { name: /^На уточнении/ });
+      await expect(tab).toContainText(String(before + 1));
+      await tab.click();
+      await card(page, "ГЗ-00098").click();
+      await expect(page.getByText("Где была бригада с 12 до 13?").first()).toBeVisible();
     });
 
     test("отклонение требует причину: частая причина отклоняет сразу", async ({ page }) => {
@@ -101,17 +175,37 @@ for (const run of WIDTHS) {
       if (run.phone && (await page.locator("[data-review-sheet]").count()) > 0) {
         await page.getByRole("button", { name: "Закрыть" }).click();
       }
-      // Отдельной вкладки отклонённых нет (ADR-056): отклонённая запись во «Все»
+      // Отдельной таблетки отклонённых нет (ADR-056): отклонённая запись во «Все»
       await page.getByRole("tab", { name: /^Все/ }).click();
       await card(page, "ГЗ-00098").click();
       await expect(page.getByText("Дубль записи").first()).toBeVisible();
     });
 
-    test("подтверждённая запись видна в журнале по поиску", async ({ page }) => {
+    test("«Сравнить» показывает две записи рядом с подсвеченными отличиями", async ({ page }) => {
+      await open(page, "/gas/moderation");
+      await card(page, "ГЗ-00098").click();
+      const remark = page.locator('[data-remark="overlap"]');
+      await expect(remark).toContainText("Пересечение времени");
+      await expect(remark).toContainText("Принять можно, но не пачкой");
+      await remark
+        .getByRole("button", { name: /^Сравнить с ГЗ-\d+/ })
+        .first()
+        .click();
+      const compare = page.getByTestId("compare");
+      await expect(compare).toBeVisible();
+      await expect(compare.locator("[data-differs]").first()).toBeVisible();
+      await expect(compare).toContainText("ГЗ-00098");
+      await page.keyboard.press("Escape");
+      await expect(compare).toHaveCount(0);
+      // Окно закрылось, деталь осталась
+      await expect(page.locator("#review-title")).toBeVisible();
+    });
+
+    test("принятая запись видна в журнале по поиску", async ({ page }) => {
       await open(page, "/gas/moderation");
       await card(page, "ГЗ-00096").click();
       await confirmButton(page).click();
-      await expect(toast(page, "Подтверждено")).toBeVisible();
+      await expect(toast(page, "Принято")).toBeVisible();
 
       await open(page, "/gas/entries?q=ГЗ-00096");
       await expect(page.getByRole("searchbox", { name: "Поиск по журналу" })).toHaveValue(
@@ -133,26 +227,28 @@ for (const run of WIDTHS) {
 
     if (run.phone) {
       /*
-       * ADR-045 «Финальный интерфейс», 4.4 и 4.13: открытая карточка закрывает нижнюю панель
-       * оболочки, внизу один слой — панель действий 64 у края экрана. Раньше (ADR-044)
-       * капсула решения плавала над панелью и полосой показа: поменялось решение владельца.
+       * Телефон (4.3): список и деталь на весь экран, кнопки решения внизу одним слоем
+       * 64 px у края экрана, нижняя панель оболочки закрыта.
        */
-      test("карточка закрывает нижнюю панель и держит одну панель действий", async ({ page }) => {
+      test("деталь на весь экран, одна панель решения внизу", async ({ page }) => {
         await open(page, "/gas/moderation");
         await card(page, "ГЗ-00096").click();
         const bar = await page.getByRole("group", { name: "Решение по записи" }).boundingBox();
         expect(bar).not.toBeNull();
         await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeHidden();
-        await expect(page.locator("[data-gas-show-dock]")).toHaveCount(0);
         const viewport = page.viewportSize()!;
         expect(bar!.y + bar!.height).toBeLessThanOrEqual(viewport.height);
         expect(bar!.height).toBeLessThanOrEqual(65);
-        // «Подтвердить» в карточке — полевое действие: не ниже 48 px
+        // «Принять» — полевое действие: не ниже 48 px
         const confirm = await confirmButton(page).boundingBox();
         expect(confirm!.height).toBeGreaterThanOrEqual(48);
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow).toBeLessThanOrEqual(0);
       });
     } else {
-      test("клавиши J, K и Enter", async ({ page }) => {
+      test("клавиши J, K, Enter и Esc", async ({ page }) => {
         await open(page, "/gas/moderation");
         // Клавиши описаны в справке ⓘ шапки экрана, а не строкой в теле (ADR-061, T1 п. 5)
         await page.getByRole("button", { name: "Справка: Проверка" }).click();
@@ -173,12 +269,34 @@ for (const run of WIDTHS) {
         );
         await page.locator("body").press("k");
         await expect(first).toHaveAttribute("aria-pressed", "true");
+
+        // Esc закрывает форму причины, запись остаётся открытой
+        await page.getByRole("button", { name: "Вернуть на уточнение" }).click();
+        await expect(page.locator("#reason-title")).toBeVisible();
+        await page.locator("body").press("Escape");
+        await expect(page.locator("#reason-title")).toHaveCount(0);
+        await expect(confirmButton(page)).toBeVisible();
+
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         const id = await first.getAttribute("data-queue-card");
         await page.locator("body").press("Enter");
-        await expect(toast(page, "Подтверждено")).toBeVisible();
+        await expect(toast(page, "Принято")).toBeVisible();
         await expect(page.locator(`[data-queue-card="${id}"]`)).toHaveCount(0);
         // Следующая запись открылась сама
         await expect(page.locator('[data-queue-card][aria-pressed="true"]')).toHaveCount(1);
+      });
+
+      test("фильтр по типу замечания и поиск не сбрасываются после решения", async ({ page }) => {
+        await open(page, "/gas/moderation");
+        await page.getByLabel("Тип замечания").selectOption("suspicion");
+        await expect(card(page, "ГЗ-00096")).toHaveCount(0);
+        const rows = page.locator("[data-queue-card]");
+        await expect(rows).toHaveCount(5);
+        await rows.first().click();
+        await confirmButton(page).click();
+        await expect(toast(page, "Принято")).toBeVisible();
+        await expect(rows).toHaveCount(4);
+        await expect(page.getByLabel("Тип замечания")).toHaveValue("suspicion");
       });
     }
   });

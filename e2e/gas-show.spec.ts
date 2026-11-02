@@ -63,7 +63,7 @@ for (const width of WIDTHS) {
       const confirm = page.locator('[data-tour="review-confirm"]:visible').first();
       await expect(confirm).toBeVisible();
       await confirm.click();
-      await expect(page.locator("[data-sonner-toast]", { hasText: "Подтверждено" })).toBeVisible();
+      await expect(page.locator("[data-sonner-toast]", { hasText: "Принято" })).toBeVisible();
       await expect(dock(page)).toContainText("4/6");
 
       // 4. Руководитель: строка объекта подсвечена, цифры посчитаны от минут
@@ -138,7 +138,7 @@ test.describe("показ ведёт по записи зрителя 390", () =
     await page.getByRole("button", { name: "Закрыть" }).first().click();
     await page.locator("[data-queue-card]", { hasText: "ГЗ-00096" }).click();
     await page.locator('[data-tour="review-confirm"]:visible').first().click();
-    await expect(page.locator("[data-sonner-toast]", { hasText: "Подтверждено" })).toBeVisible();
+    await expect(page.locator("[data-sonner-toast]", { hasText: "Принято" })).toBeVisible();
     await expect(dock(page)).toContainText("3/6");
 
     // Своя запись: подтверждение засчитывает шаг
