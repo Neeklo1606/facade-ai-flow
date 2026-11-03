@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { showDemoMarks } from "@/lib/cabinet";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Check, MessageCircleQuestion, MoreHorizontal, SearchX } from "lucide-react";
@@ -654,7 +655,7 @@ function EntriesPage() {
             )}
           </div>
         </section>
-        <section>
+        <section className={showDemoMarks ? undefined : "hidden"}>
           <h3 className="text-meta-strong text-text-2">Источник</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             {option(source === "all", "Факт и демо", () => setSource("all"))}

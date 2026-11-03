@@ -5,6 +5,7 @@
  * (ADR-061, 13) сбрасывает демо-данные вкладки и ведёт туром менеджера с переходами к бригадиру
  * и руководителю. Заголовок экрана (h1) рисует шапка оболочки на телефоне, с планшета он здесь.
  */
+import { showDemoMarks } from "@/lib/cabinet";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -120,7 +121,7 @@ export function StartScreen() {
     if (handled.current || (!search.start && !search.roles)) return;
     handled.current = true;
     void navigate({ to: "/gas", search: {}, replace: true });
-    if (search.start) void show();
+    if (search.start && showDemoMarks) void show();
     else requestAnimationFrame(openRoles);
     // Один раз на заход: startShow и openRoles стабильны по смыслу, параметр читается при монтировании
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,9 +135,11 @@ export function StartScreen() {
       <Contract />
       <footer className="text-meta flex flex-col gap-2 border-t border-line pt-6 text-text-3 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-[640px]">
-          {clientContour
-            ? `Демонстрация на обезличенных данных из вашего отчёта за ${brand.periodLabel}.`
-            : "Демонстрация на вымышленных данных: неделя «Демо-подрядчика» в структуре настоящего отчёта."}{" "}
+          {!showDemoMarks
+            ? ""
+            : clientContour
+              ? `Демонстрация на обезличенных данных из вашего отчёта за ${brand.periodLabel}. `
+              : "Демонстрация на вымышленных данных: неделя «Демо-подрядчика» в структуре настоящего отчёта. "}
           Бот MAX и таблицы пока не подключены.
         </p>
         <p className="shrink-0">{brand.credit}</p>
@@ -169,16 +172,19 @@ function Lead({
         смете и собирает недельный отчёт в вашем формате Excel.
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <button
-          type="button"
-          onClick={onStart}
-          disabled={busy}
-          data-testid="gas-start-show"
-          className="text-body pill-action press focus-ring w-full sm:w-auto"
-        >
-          <Play className="size-4 fill-current" aria-hidden />
-          Показать за 3 минуты
-        </button>
+        {/* Кабинет заказчика (ADR-062, F6): показа нет */}
+        {showDemoMarks ? (
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={busy}
+            data-testid="gas-start-show"
+            className="text-body pill-action press focus-ring w-full sm:w-auto"
+          >
+            <Play className="size-4 fill-current" aria-hidden />
+            Показать за 3 минуты
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onRoles}
@@ -188,11 +194,15 @@ function Lead({
           <ArrowDown className="size-4" aria-hidden />
         </button>
       </div>
-      <p className="text-meta text-text-3 tnum">
-        {clientContour ? `Для ${brand.client}` : "Пример: Демо-подрядчик"} · запись показа ОБ-200:{" "}
-        {SHOW.start}–{SHOW.end} = {fmtHours(SHOW.hours)}, {fmtRub(SHOW.amountRub)},{" "}
-        {fmtRate(SHOW.rate)}
-      </p>
+      {showDemoMarks ? (
+        <p className="text-meta text-text-3 tnum">
+          {clientContour ? `Для ${brand.client}` : "Пример: Демо-подрядчик"} · запись показа ОБ-200:{" "}
+          {SHOW.start}–{SHOW.end} = {fmtHours(SHOW.hours)}, {fmtRub(SHOW.amountRub)},{" "}
+          {fmtRate(SHOW.rate)}
+        </p>
+      ) : (
+        <p className="text-meta text-text-3">{brand.client}</p>
+      )}
     </section>
   );
 }

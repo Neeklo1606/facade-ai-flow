@@ -10,6 +10,7 @@ import type { FactReport } from "@/data/mock/fact-report-types";
 import { publicReport } from "@/data/mock/public/seed";
 import { PUBLIC_SCENARIO_PLACES, type ScenarioPlaces } from "@/data/mock/public/places";
 import type { GasQuestion } from "@/lib/gas-ops/questions";
+import { CABINET_PRODUCT, cabinetClient, cabinetOnly } from "@/lib/cabinet";
 
 export type GasContourKind = "public" | "client";
 
@@ -46,8 +47,9 @@ export function periodLabelOf(report: FactReport): string {
 export const publicContour: GasContour = {
   kind: "public",
   brand: {
-    client: "Демо-подрядчик",
-    clientShort: "Демо-подрядчик",
+    // Кабинет заказчика (ADR-062, F6): название из конфигурации сборки, не «Демо-подрядчик»
+    client: cabinetOnly ? cabinetClient || CABINET_PRODUCT : "Демо-подрядчик",
+    clientShort: cabinetOnly ? cabinetClient || CABINET_PRODUCT : "Демо-подрядчик",
     product: GAS_PRODUCT,
     credit: GAS_CREDIT,
     periodLabel: periodLabelOf(publicReport),

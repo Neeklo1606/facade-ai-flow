@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { showDemoMarks } from "@/lib/cabinet";
 import { Info, Mic, Palette } from "lucide-react";
 import { ROLE_LABEL, useGasActor } from "@/api/gas-ops";
 import { useApp } from "@/lib/app-context";
@@ -77,11 +78,14 @@ export function GasMoreScreen() {
         </SettingsGroup>
       ) : null}
 
-      <SettingsGroup title="Демо">
+      {/* Кабинет заказчика (ADR-062, F6): без сброса демо */}
+      <SettingsGroup title={showDemoMarks ? "Демо" : "Начало"}>
         <SettingsLink icon={SCREEN_ICON.start} label="На старт" to="/gas" />
-        <li>
-          <ResetButton row />
-        </li>
+        {showDemoMarks ? (
+          <li>
+            <ResetButton row />
+          </li>
+        ) : null}
       </SettingsGroup>
 
       <SettingsGroup title="Оформление">

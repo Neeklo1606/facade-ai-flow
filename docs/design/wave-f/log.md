@@ -71,3 +71,16 @@ ADR-062. Ветка `feature/gas-wave-f` от `origin/main` cb6a9f7.
 
 - `bun test tests`: 1345 из 1345 (6 новых).
 - Полный `npx playwright test`: 541 прошли, 5 упали на старых ожиданиях данных. Исправлены: версия наборов e2e, тост ОБ-001, строка чел.-ч; повторный запуск этих файлов зелёный.
+
+### F6. Режим кабинета заказчика (03.11.2026)
+
+Сделано:
+
+- `src/lib/cabinet.ts`: `VITE_CABINET_ONLY`, `VITE_CABINET_CLIENT`, перенаправление в /gas, заголовок вкладки.
+- Без показа, лендинга, меток «Демо» и «Пример», сброса демо и «Демо-подрядчика».
+- `bun run test:cabinet`: своя сборка в `.output-cabinet`, `e2e/cabinet/cabinet.spec.ts`.
+
+Проверено:
+
+- `tests/ui/cabinet.test.ts`: 4 из 4.
+- `bun run test:cabinet`: 2 из 2.

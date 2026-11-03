@@ -6,6 +6,7 @@
  * красный блокирует решение, янтарный требует решения, серый только сообщает. На карточке
  * списка не больше двух признаков, остальные «+N» и в деталях. «Факт» и «Демо» тихой подписью.
  */
+import { showDemoMarks } from "@/lib/cabinet";
 import {
   ENTRY_STATUS_LABEL,
   fmtHours,
@@ -67,7 +68,8 @@ export function SourceMark({
   className?: string;
 }) {
   const kind = useGasContour().kind;
-  if (source === null) return null;
+  // Кабинет заказчика (ADR-062, F6): меток источника «Демо» и «Пример» нет
+  if (source === null || !showDemoMarks) return null;
   const text = sourceLabel(source, kind);
   return <span className={cn("text-meta whitespace-nowrap text-text-3", className)}>{text}</span>;
 }

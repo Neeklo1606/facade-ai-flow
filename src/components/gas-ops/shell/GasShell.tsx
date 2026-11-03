@@ -91,6 +91,7 @@ import {
 import { clearInbox, linkButtons, messengerChannel, useGasInbox } from "@/api/gas-assistant";
 import { clearScenario } from "@/lib/guide/store";
 import { TOURS, getTourState, startTour, tourOfRole, tourSeen } from "@/lib/gas-ops/tour";
+import { showDemoMarks } from "@/lib/cabinet";
 import { useApp } from "@/lib/app-context";
 import { gasOnlyEnabled } from "@/lib/gas-ops/gas-only";
 import { resolveTheme, themeChoices, themeLabels } from "@/lib/theme";
@@ -481,7 +482,7 @@ function CompanyMenu() {
           >
             На старт
           </Link>
-          <ResetButton wide />
+          {showDemoMarks ? <ResetButton wide /> : null}
           <AboutSystem />
         </div>
       </PopoverContent>

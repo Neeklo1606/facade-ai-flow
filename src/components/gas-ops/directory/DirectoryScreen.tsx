@@ -3,6 +3,7 @@
  * выгрузки Excel. Сметы, объекты с графиком и режим проверки живут на своих экранах,
  * сюда ведут ссылки: один справочник — одно место правки.
  */
+import { showDemoMarks } from "@/lib/cabinet";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, UserMinus, UserPlus } from "lucide-react";
 import { useState } from "react";
@@ -149,7 +150,9 @@ function CrewSection() {
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 type-text font-medium">
                     {m.name}
-                    {m.source === "mock" ? <StatusChip tone="neutral">Демо</StatusChip> : null}
+                    {m.source === "mock" && showDemoMarks ? (
+                      <StatusChip tone="neutral">Демо</StatusChip>
+                    ) : null}
                     {m.active ? null : <StatusChip tone="caution">Не в составе</StatusChip>}
                   </p>
                   <p className="type-small text-ink-3">

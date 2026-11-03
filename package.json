@@ -27,6 +27,7 @@
     "eval:extract": "bun scripts/eval-extract.ts",
     "test:e2e": "playwright test",
     "walkthrough": "playwright test -c playwright.walkthrough.config.ts",
+    "test:cabinet": "bun scripts/cabinet-build.ts && playwright test -c playwright.cabinet.config.ts",
     "walkthrough:report": "bun scripts/walkthrough-report.ts && prettier --write docs/state/walkthrough.md",
     "check:bundle": "bun scripts/check-bundle.ts",
     "check:public-bundle": "bun scripts/check-public-bundle.ts",

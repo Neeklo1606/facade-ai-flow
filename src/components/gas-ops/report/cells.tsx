@@ -1,6 +1,7 @@
 /**
  * Мелкие части отчёта (ADR-044, F6): значение ячейки, точка «новая», тихая метка «Демо».
  */
+import { showDemoMarks } from "@/lib/cabinet";
 import { cn } from "@/lib/utils";
 import { DASH } from "./cell-text";
 
@@ -20,5 +21,6 @@ export function NewDot() {
 
 /** «Демо» тихой серой подписью рядом со значением (визуал v3, п. 8) */
 export function DemoMark() {
+  if (!showDemoMarks) return null;
   return <span className="text-meta shrink-0 text-text-3">Демо</span>;
 }

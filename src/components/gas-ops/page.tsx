@@ -2,6 +2,7 @@
  * Общие части экранов контура газа (ADR-044, F2; вид ADR-045, 4.19): граница договора одной
  * строкой и тихая легенда «Факт / Демо». Шаги экрана живут в справке ⓘ шапки (ADR-061).
  */
+import { showDemoMarks } from "@/lib/cabinet";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export function GrowthLine({ children }: { children?: ReactNode }) {
 /** Тихая легенда источника данных: серые подписи, без цветных плашек (F5, п. 2) */
 export function SourceLegend() {
   const { kind, brand } = useGasContour();
+  if (!showDemoMarks) return null;
   return (
     <p className="mb-block text-meta text-text-3">
       {kind === "client" ? (
