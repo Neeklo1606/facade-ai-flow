@@ -32,6 +32,23 @@ test.describe("«Сегодня» без сети 390", () => {
       timeout: 20_000,
     });
     await expect(page).toHaveURL(/\/gas\/brigade$/);
+
+    // Запись без сети ложится в очередь на телефоне, при связи уходит сама
+    await page.locator('[data-tour="today-add"]:visible').click();
+    await page
+      .getByRole("group", { name: "Начало" })
+      .getByRole("button", { name: "08:00" })
+      .click();
+    await page
+      .getByRole("group", { name: "Окончание" })
+      .getByRole("button", { name: "17:00" })
+      .click();
+    await page.getByRole("button", { name: "Проверить" }).click();
+    await page.getByRole("button", { name: "Отправить" }).click();
+    await expect(page.getByRole("heading", { name: "Запись на телефоне" })).toBeVisible();
+    await page.getByRole("button", { name: "Готово" }).click();
+    await expect(page.getByText("Ждут отправки: 1")).toBeVisible();
     await context.setOffline(false);
+    await expect(page.getByText(/Ждут отправки/)).toHaveCount(0, { timeout: 20_000 });
   });
 });
