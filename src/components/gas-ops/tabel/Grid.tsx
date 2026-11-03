@@ -312,7 +312,12 @@ export function Grid({
         className="surface-1 relative overflow-auto overscroll-contain focus-ring select-none"
         style={{ height }}
       >
+        {/*
+         * Сетка — у прокручиваемого блока: таблица внутри только раскладка (role="presentation"),
+         * а строки, группы строк и заголовки названы ролями сетки явно (axe, aria-required-children)
+         */}
         <table
+          role="presentation"
           className="border-separate border-spacing-0 text-body tnum"
           style={{ width: tableWidth, tableLayout: "fixed" }}
         >
@@ -322,11 +327,12 @@ export function Grid({
               <col key={column.key} style={{ width: column.width }} />
             ))}
           </colgroup>
-          <thead>
+          <thead role="rowgroup">
             <tr role="row" style={{ height: headRow }}>
               <th
                 rowSpan={2}
                 scope="col"
+                role="columnheader"
                 className="sticky top-0 left-0 z-[3] border-e border-b border-line bg-surface px-3 text-left text-meta font-normal text-text-3"
               >
                 <span className="relative block">
@@ -344,6 +350,7 @@ export function Grid({
                   key={`${group.title}-${group.start}`}
                   colSpan={group.span}
                   scope="colgroup"
+                  role="columnheader"
                   className="sticky top-0 z-[2] border-e border-b border-line bg-surface px-2 text-center text-meta-strong text-text-2"
                 >
                   {group.title}
@@ -355,6 +362,7 @@ export function Grid({
                 <th
                   key={column.key}
                   scope="col"
+                  role="columnheader"
                   data-col={index}
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;
@@ -377,7 +385,7 @@ export function Grid({
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {virtual && first > 0 ? (
               <tr aria-hidden style={{ height: first * rowHeight }}>
                 <td colSpan={columns.length + 1} />
@@ -404,6 +412,7 @@ export function Grid({
                 >
                   <th
                     scope="row"
+                    role="rowheader"
                     onPointerDown={(event) => {
                       if (event.button !== 0 || (event.target as HTMLElement).closest("button"))
                         return;

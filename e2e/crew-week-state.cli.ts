@@ -9,10 +9,24 @@ import { DEFAULT_REVIEW_SETTINGS } from "@/domain/gas-ops/review-policy";
 import { buildSupplySeed } from "@/data/mock/gas-supply-seed";
 import { buildDocsSeed } from "@/data/mock/gas-docs-seed";
 
+/**
+ * `--confirm ГЗ-00095`: эта запись остаётся принятой, а не отклонённой. Приёмка T8
+ * (e2e/tabel-acceptance.spec.ts) вносит время рядом с ней, чтобы получить пересечение
+ */
+const flag = process.argv.indexOf("--confirm");
+const keep = flag > -1 ? process.argv[flag + 1] : null;
+
 const seed = buildSeed();
 const entries = seed.entries.map((e) =>
   e.source === "mock" && e.status !== "confirmed"
-    ? { ...e, status: "rejected" as const, comment: "Решено до теста" }
+    ? e.number === keep
+      ? {
+          ...e,
+          status: "confirmed" as const,
+          reviewedBy: "u-manager",
+          reviewedAt: `${seed.today}T09:00:00`,
+        }
+      : { ...e, status: "rejected" as const, comment: "Решено до теста" }
     : e,
 );
 const snapshot = {

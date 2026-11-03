@@ -136,12 +136,17 @@ export function ReviewPanel({
         <RemarkChips remarks={remarks} className="mt-2" />
       </header>
 
+      {/*
+       * Деталь на компьютере прокручивается сама: с клавиатуры до неё доходят табуляцией,
+       * иначе текст ниже первого экрана читается только мышью (axe, scrollable-region-focusable)
+       */}
       <div
         className={cn(
           "min-h-0 flex-1",
-          sheet ? "px-gutter pt-4" : "overflow-y-auto px-6 pt-4 pb-4",
+          sheet ? "px-gutter pt-4" : "overflow-y-auto px-6 pt-4 pb-4 focus-ring",
         )}
         style={sheet ? { paddingBottom: floatingBottom + 88 } : undefined}
+        {...(sheet ? {} : { tabIndex: 0, role: "region", "aria-label": "Подробности записи" })}
       >
         {mode ? (
           <div ref={formRef} className="mb-3 scroll-mt-4">

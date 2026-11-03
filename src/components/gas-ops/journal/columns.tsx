@@ -47,6 +47,12 @@ export interface Column {
   width: string;
   numeric?: boolean;
   money?: boolean;
+  /**
+   * Колонка выводится от 1280 px. Между 1024 и 1280 колонки с фиксированной шириной не
+   * помещаются, а прокрутка таблицы вбок ломает липкие строки дня. Интервал и чел.-ч есть
+   * в детали записи
+   */
+  wide?: boolean;
   cell: (row: JournalRow) => ReactNode;
 }
 
@@ -84,6 +90,7 @@ export const COLUMNS: Column[] = [
     title: "Начало",
     width: "w-[60px]",
     numeric: true,
+    wide: true,
     cell: ({ view }) =>
       view.entry.startMinutes === null
         ? dash("В отчёте заказчика нет рамки смены")
@@ -94,6 +101,7 @@ export const COLUMNS: Column[] = [
     title: "Оконч.",
     width: "w-[60px]",
     numeric: true,
+    wide: true,
     cell: ({ view }) =>
       view.entry.endMinutes === null
         ? dash("В отчёте заказчика нет рамки смены")
@@ -118,6 +126,7 @@ export const COLUMNS: Column[] = [
     title: "Состав",
     width: "w-[60px]",
     numeric: true,
+    wide: true,
     cell: ({ view }) => {
       const people = headcountOf(view.entry);
       return people === null ? dash("Состав не указан") : `${people} чел.`;
@@ -128,6 +137,7 @@ export const COLUMNS: Column[] = [
     title: "Чел.-ч",
     width: "w-[56px]",
     numeric: true,
+    wide: true,
     cell: ({ view }) => {
       const man = manMinutesOf(view.entry);
       return man === null

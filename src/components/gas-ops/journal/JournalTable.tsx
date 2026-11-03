@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fmtShortDay, sumText } from "../review/rules";
 import { COLUMNS, PAGE_SIZES, type ColumnKey, type JournalRow } from "./columns";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { plural } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -46,7 +47,12 @@ export function JournalTable({
   onPage: (page: number) => void;
   total: number;
 }) {
-  const columns = COLUMNS.filter((c) => visible.includes(c.key) && (money || !c.money));
+  // Узкий компьютер (1024–1279): широкие колонки не выводятся вовсе, а не прячутся стилем,
+  // иначе строка дня с colSpan на все колонки достраивает пустые и сжимает «Объект»
+  const narrow = useMediaQuery("(max-width: 1279px)", false);
+  const columns = COLUMNS.filter(
+    (c) => visible.includes(c.key) && (money || !c.money) && !(narrow && c.wide),
+  );
   const pageIds = rows.map((r) => r.id);
   const allOn = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
   const someOn = pageIds.some((id) => selected.has(id));
