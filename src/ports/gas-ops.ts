@@ -53,6 +53,19 @@ export interface ReportIssue {
   staleReason: string | null;
 }
 
+/** Итог смены правила: что пересчитано и где посчитать нельзя */
+export interface CostRuleChange {
+  /** Действующее правило уровня после смены; null — правило объекта снято */
+  rule: CostRule | null;
+  /** Объекты, у которых сменилась стоимость */
+  changedObjects: number;
+  /** Неподтверждённые записи с новой суммой */
+  changedEntries: number;
+  /** Объекты с подтверждённой сметой, где нет строки правила: стоимость не менялась */
+  missingObjects: number;
+  staleReports: number;
+}
+
 export interface GasOpsSnapshot {
   /** «Сегодня» направления: в демонстрации это последний день недели отчёта */
   today: string;
@@ -150,7 +163,9 @@ export class GasOpsError extends Error {
       | "mode-unavailable"
       | "final-check-required"
       | "period-closed"
-      | "close-blocked",
+      | "close-blocked"
+      | "rule-invalid"
+      | "rule-changed",
     message: string,
   ) {
     super(message);
@@ -205,8 +220,18 @@ export interface GasOpsPort {
     changedEntries: number;
     staleReports: number;
   }>;
-  /** Подтвердить правило состава: objectId null — для компании */
+  /**
+   * Подтвердить действующую редакцию правила: objectId null — для компании. `terms` — то,
+   * что видел человек: правило успело смениться — отказ, а не подтверждение чужой редакции
+   */
   confirmCostRule(input: { objectId: string | null; terms: CostRuleTerm[] }): Promise<CostRule>;
+  /**
+   * Новая редакция правила из конструктора (ADR-062, F2): статус «Требует согласования»,
+   * пересчёт стоимости объектов с подтверждённой сметой и их неподтверждённых записей
+   */
+  saveCostRule(input: { objectId: string | null; terms: CostRuleTerm[] }): Promise<CostRuleChange>;
+  /** Отмена редакции (тост 6 секунд): вернуть правило до неё и пересчитать обратно */
+  undoCostRule(input: { objectId: string | null; revision: number }): Promise<CostRuleChange>;
   /** Применить недельный график; возвращает прежний для отмены */
   applySchedule(input: { rows: ScheduleRow[]; fileName: string }): Promise<WeekSchedule | null>;
   /** Отменить применение графика: вернуть прежний (тост 6 секунд) */
@@ -267,6 +292,8 @@ export const GAS_OPS_METHODS = [
   "reviewEstimateIssues",
   "confirmEstimateVersion",
   "confirmCostRule",
+  "saveCostRule",
+  "undoCostRule",
   "applySchedule",
   "restoreSchedule",
   "setBrigadeWeek",

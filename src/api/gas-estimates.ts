@@ -18,6 +18,7 @@ import {
   normVsFact,
   ruleFor,
   ruleFormula,
+  ruleHistory,
   workCostRub,
   type CostRule,
   type CostRuleTerm,
@@ -57,6 +58,8 @@ export function useGasWorkCost(): {
   unlinked: EstimateVersion[];
   companyRule: CostRule;
   versions: EstimateVersion[];
+  /** Последняя загруженная смета: на ней конструктор правила показывает пример (F2) */
+  latestUploaded: EstimateVersion | null;
 } {
   const s = useGasSnapshot();
   return useMemo(() => {
@@ -84,8 +87,41 @@ export function useGasWorkCost(): {
         s.costRules.filter((r) => r.objectId === null),
       ),
       versions: s.estimateVersions,
+      latestUploaded:
+        [...s.estimateVersions].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))[0] ?? null,
     };
   }, [s.objects, s.estimateVersions, s.costRules, s.estimates, s.entries]);
+}
+
+/** Редакция правила для истории: формула, кто и когда сохранил и подтвердил */
+export interface RuleRevisionView {
+  revision: number;
+  formula: string;
+  saved: string;
+  confirmed: string | null;
+}
+
+const stamp = (at: string) => `${at.slice(8, 10)}.${at.slice(5, 7)} в ${at.slice(11, 16)}`;
+
+/** История редакций правила (F2), новые сверху */
+export function useGasRuleHistory(rule: CostRule | null): RuleRevisionView[] {
+  const s = useGasSnapshot();
+  return useMemo(() => {
+    if (!rule) return [];
+    const name = (id: string) => s.users.find((u) => u.id === id)?.name ?? id;
+    return ruleHistory(rule)
+      .map((r) => ({
+        revision: r.revision,
+        formula: ruleFormula(r.terms),
+        saved:
+          r.savedBy && r.savedAt
+            ? `${name(r.savedBy)}, ${stamp(r.savedAt)}`
+            : "Исходное правило системы",
+        confirmed:
+          r.confirmedBy && r.confirmedAt ? `${name(r.confirmedBy)}, ${stamp(r.confirmedAt)}` : null,
+      }))
+      .reverse();
+  }, [rule, s.users]);
 }
 
 /** Норма против факта по одному объекту: для карточки объекта и отчёта */
@@ -177,6 +213,17 @@ export function useGasEstimateActions() {
         run((port) => port.confirmCostRule(input)),
       [run],
     ),
+    /** Новая редакция из конструктора (F2) */
+    saveRule: useCallback(
+      (input: { objectId: string | null; terms: CostRuleTerm[] }) =>
+        run((port) => port.saveCostRule(input)),
+      [run],
+    ),
+    undoRule: useCallback(
+      (input: { objectId: string | null; revision: number }) =>
+        run((port) => port.undoCostRule(input)),
+      [run],
+    ),
     applySchedule: useCallback(
       (input: { rows: ScheduleRow[]; fileName: string }) =>
         run((port) => port.applySchedule(input)),
@@ -261,16 +308,32 @@ export async function readScheduleFile(
 /* ---------------------------------------------------------------- Готовый вид для экранов */
 
 export { ESTIMATE_FORMAT_LABEL, PARSE_STATUS_LABEL } from "@/domain/gas-ops/estimate-labels";
-export { RULE_STATUS_LABEL } from "@/domain/gas-ops/work-cost";
-export type { CostRule, EstimateVersion } from "@/domain/gas-ops/work-cost";
+export {
+  RULE_STATUS_LABEL,
+  ruleExample,
+  sameTerms,
+  termChoices,
+  termLabel,
+  validateTerms,
+} from "@/domain/gas-ops/work-cost";
+export type {
+  CostRule,
+  CostRuleTerm,
+  EstimateVersion,
+  RuleExample,
+  TermKey,
+} from "@/domain/gas-ops/work-cost";
+export type { CostRuleChange } from "@/ports/gas-ops";
 
-const kop = (kopecks: number) =>
+export const kop = (kopecks: number) =>
   `${(kopecks / 100).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
 
 export interface EstimateVersionView {
   /** Итоги с подписью, суммой и строкой файла */
   totals: { key: string; label: string; value: string; row: number }[];
   sections: { title: string; value: string; row: number }[];
+  /** Строки с суммой ниже «ВСЕГО по смете» (F4): можно взять в правило */
+  extras: { label: string; value: string; row: number }[];
   /** «Сумма разделов 142 174,91 ₽, сходится с итогом без НДС»; null — нечего сверять */
   sectionsNote: string | null;
   labor: { value: string; row: number } | null;
@@ -286,7 +349,7 @@ export interface EstimateVersionView {
 export function estimateVersionView(version: EstimateVersion, rule: CostRule): EstimateVersionView {
   const sum = version.sections.reduce((a, s) => a + s.kopecks, 0);
   const withoutVat = version.totals.withoutVat?.kopecks ?? null;
-  const cost = applyRule(version.totals, rule.terms);
+  const cost = applyRule(version.totals, rule.terms, version.extras ?? []);
   return {
     totals: TOTAL_ORDER.filter((key) => version.totals[key]).map((key) => ({
       key,
@@ -296,6 +359,11 @@ export function estimateVersionView(version: EstimateVersion, rule: CostRule): E
       row: version.totals[key]!.row,
     })),
     sections: version.sections.map((s) => ({ title: s.title, value: kop(s.kopecks), row: s.row })),
+    extras: (version.extras ?? []).map((e) => ({
+      label: e.label,
+      value: kop(e.kopecks),
+      row: e.row,
+    })),
     sectionsNote:
       withoutVat === null || version.sections.length === 0
         ? null

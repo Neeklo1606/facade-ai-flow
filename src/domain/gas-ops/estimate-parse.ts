@@ -155,6 +155,7 @@ export function parseEstimateGrid(grid: Grid, options: EstimateParseOptions = {}
     vatRate: null,
     sections: [],
     laborHours: null,
+    extras: [],
     issues: [],
   };
   if (!format) {
@@ -199,6 +200,7 @@ export function parseEstimateGrid(grid: Grid, options: EstimateParseOptions = {}
 
     if (afterTotal) {
       if (amount !== null && amount !== 0) {
+        result.extras.push({ label: label.trim(), kopecks: toKopecks(amount), row: rowNumber });
         result.issues.push({
           row: rowNumber,
           message: `Ниже строки «ВСЕГО по смете» есть строка «${label}» с суммой. Какой итог настоящий, решает сметчик.`,

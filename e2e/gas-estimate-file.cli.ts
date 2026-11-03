@@ -1,11 +1,12 @@
 /**
  * Синтетическая смета для e2e (ADR-053): Playwright в Node не грузит exceljs из подключённых
  * симлинком зависимостей (см. gas-report-state.cli.ts), поэтому файл собирает bun.
- * `bun run e2e/gas-estimate-file.cli.ts <файл.xlsx>` — ГРАНД-Смета с итогами формата А.
+ * `bun run e2e/gas-estimate-file.cli.ts <файл.xlsx> [--extras]` — ГРАНД-Смета с итогами
+ * формата А; `--extras` добавляет строку «Технадзор» ниже «ВСЕГО по смете» (ADR-062, F4).
  */
 import ExcelJS from "exceljs";
 
-const [path] = process.argv.slice(2);
+const [path, flag] = process.argv.slice(2);
 const wb = new ExcelJS.Workbook();
 const ws = wb.addWorksheet("Смета");
 const put = (row: number, cols: Record<number, string | number>) => {
@@ -20,5 +21,6 @@ put(493, { 2: " Материалы", 15: 23703.01 });
 put(519, { 2: "Всего", 15: 189158.24 });
 put(523, { 2: " НДС 22%", 15: 41614.81 });
 put(524, { 2: "ВСЕГО по смете", 15: 230773.05 });
+if (flag === "--extras") put(525, { 2: "Технадзор", 15: 5000 });
 put(526, { 2: " Затраты труда рабочих", 10: "77,5712008" });
 await wb.xlsx.writeFile(path!);

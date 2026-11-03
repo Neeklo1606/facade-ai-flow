@@ -49,6 +49,8 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   reviewEstimateIssues: OFFICE,
   confirmEstimateVersion: OFFICE,
   confirmCostRule: OFFICE,
+  saveCostRule: OFFICE,
+  undoCostRule: OFFICE,
   applySchedule: OFFICE,
   restoreSchedule: OFFICE,
   setBrigadeWeek: OFFICE,

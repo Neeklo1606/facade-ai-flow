@@ -10,10 +10,17 @@ import { effectiveMinutes, flagsOf, MINUTES_ERROR_TEXT } from "@/domain/gas-ops/
 import {
   allocateByMinutes,
   canConfirmVersion,
+  confirmRule,
+  latestConfirmed,
   nextVersion,
   recalcObject,
+  reviseRule,
+  revertRule,
   ruleFor,
   ruleFormula,
+  ruleHistory,
+  sameTerms,
+  validateTerms,
   workCostRub,
   type CostRule,
   type EstimateVersion,
@@ -61,6 +68,7 @@ import {
 } from "@/domain/gas-ops/week";
 import {
   GasOpsError,
+  type CostRuleChange,
   type CreateEntryInput,
   type GasOpsPort,
   type GasOpsSnapshot,
@@ -231,6 +239,65 @@ function applyCost(
     changed: recalc.changed.length,
     stale,
   };
+}
+
+/**
+ * Смена правила (F2): поставить правило уровня и пересчитать стоимость объектов, у которых
+ * оно действует и есть подтверждённая смета. Ручная стоимость не трогается. Нет строки
+ * правила в смете — стоимость объекта не меняется, объект считается в `missingObjects`
+ */
+function applyRuleChange(
+  s: GasOpsSnapshot,
+  objectId: string | null,
+  rule: CostRule | null,
+  reason: string,
+): { snapshot: GasOpsSnapshot; change: CostRuleChange } {
+  const costRules = [
+    ...s.costRules.filter((r) => r.objectId !== objectId),
+    ...(rule ? [rule] : []),
+  ];
+  let next: GasOpsSnapshot = { ...s, costRules };
+  const change: CostRuleChange = {
+    rule,
+    changedObjects: 0,
+    changedEntries: 0,
+    missingObjects: 0,
+    staleReports: 0,
+  };
+  for (const estimate of s.estimates) {
+    if (estimate.origin !== "estimate" || estimate.status !== "confirmed") continue;
+    const target = estimate.objectId;
+    // Правило компании меняет объекты без своего; правило объекта — только его
+    if (objectId === null ? costRules.some((r) => r.objectId === target) : target !== objectId)
+      continue;
+    const version = latestConfirmed(target, next.estimateVersions);
+    if (!version) continue;
+    const objectRule = ruleFor(target, costRules);
+    const amountRub = workCostRub(version, objectRule);
+    if (amountRub === null) {
+      change.missingObjects++;
+      continue;
+    }
+    if (amountRub === estimate.amountRub) continue;
+    change.changedObjects++;
+    next = {
+      ...next,
+      estimates: next.estimates.map((e) =>
+        e.id === estimate.id
+          ? {
+              ...e,
+              amountRub,
+              note: `${ruleFormula(objectRule.terms)}${objectRule.status === "needs-agreement" ? " (правило требует согласования)" : ""}`,
+            }
+          : e,
+      ),
+    };
+    const applied = applyCost(next, target, amountRub, reason);
+    next = applied.snapshot;
+    change.changedEntries += applied.changed;
+    change.staleReports += applied.stale;
+  }
+  return { snapshot: next, change };
 }
 
 function mustVersion(snapshot: GasOpsSnapshot, id: string): EstimateVersion {
@@ -750,6 +817,7 @@ export function createGasOpsDemo(
         vatRate: parsed.vatRate,
         laborHours: parsed.laborHours,
         sections: parsed.sections,
+        extras: parsed.extras ?? [],
         issues: parsed.issues,
         issuesReviewedBy: null,
         confirmedBy: null,
@@ -966,14 +1034,16 @@ export function createGasOpsDemo(
     confirmCostRule: async (input) => {
       const snapshot = await store.read();
       mustManager(snapshot, "Правило подтверждает сметчик или менеджер.");
-      const rule: CostRule = {
-        id: input.objectId ? `rule-${input.objectId}` : "rule-company",
-        objectId: input.objectId,
-        terms: input.terms,
-        status: "confirmed",
-        confirmedBy: snapshot.actorId,
-        confirmedAt: nowOf(snapshot),
-      };
+      const current =
+        snapshot.costRules.find((r) => r.objectId === input.objectId) ??
+        (input.objectId === null ? ruleFor("", snapshot.costRules) : null);
+      if (!current || !sameTerms(current.terms, input.terms)) {
+        throw new GasOpsError(
+          "rule-changed",
+          "Правило уже изменили. Обновите экран и проверьте состав.",
+        );
+      }
+      const rule = confirmRule(current, snapshot.actorId, nowOf(snapshot));
       const next = await store.update(
         (s) => ({
           ...s,
@@ -983,7 +1053,7 @@ export function createGasOpsDemo(
               actor: s.actorId,
               action: "cost-rule.confirm",
               entityId: rule.id,
-              detail: `${input.objectId ? "Для объекта" : "Для компании"}: ${ruleFormula(rule.terms)}`,
+              detail: `${input.objectId ? "Для объекта" : "Для компании"}, редакция ${rule.revision}: ${ruleFormula(rule.terms)}`,
             }),
             ...s.audit,
           ],
@@ -991,6 +1061,87 @@ export function createGasOpsDemo(
         snapshot,
       );
       return done(next.costRules.find((r) => r.id === rule.id)!);
+    },
+
+    saveCostRule: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Правило меняет сметчик или менеджер.");
+      const invalid = validateTerms(input.terms);
+      if (invalid) throw new GasOpsError("rule-invalid", invalid);
+      if (input.objectId && !snapshot.objects.some((o) => o.id === input.objectId)) {
+        throw new GasOpsError("not-found", "Объект не найден. Обновите экран.");
+      }
+      const own = snapshot.costRules.find((r) => r.objectId === input.objectId) ?? null;
+      const current = own ?? (input.objectId === null ? ruleFor("", snapshot.costRules) : null);
+      if (current && sameTerms(current.terms, input.terms)) {
+        throw new GasOpsError("rule-invalid", "Состав не изменился.");
+      }
+      const rule = reviseRule(
+        own ?? (input.objectId ? null : current),
+        input,
+        snapshot.actorId,
+        nowOf(snapshot),
+      );
+      let change: CostRuleChange | null = null;
+      await store.update((s) => {
+        const applied = applyRuleChange(
+          s,
+          input.objectId,
+          rule,
+          `Правило стоимости, редакция ${rule.revision}: ${ruleFormula(rule.terms)}`,
+        );
+        change = applied.change;
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "cost-rule.save",
+              entityId: rule.id,
+              detail: `${input.objectId ? "Для объекта" : "Для компании"}, редакция ${rule.revision}: ${ruleFormula(rule.terms)}, пересчитано записей ${applied.change.changedEntries}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done(change!);
+    },
+
+    undoCostRule: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Правило меняет сметчик или менеджер.");
+      const own = snapshot.costRules.find((r) => r.objectId === input.objectId);
+      const last = own ? ruleHistory(own).at(-1) : null;
+      if (!own || !last || last.revision !== input.revision || !last.savedBy) {
+        throw new GasOpsError(
+          "nothing-to-undo",
+          "Эту редакцию уже не отменить: правило изменилось.",
+        );
+      }
+      const previous = revertRule(own);
+      let change: CostRuleChange | null = null;
+      await store.update((s) => {
+        const applied = applyRuleChange(
+          s,
+          input.objectId,
+          previous,
+          `Отменена редакция ${input.revision} правила стоимости`,
+        );
+        change = applied.change;
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "cost-rule.undo",
+              entityId: own.id,
+              detail: `Отменена редакция ${input.revision}: ${previous ? ruleFormula(previous.terms) : "правило компании"}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done(change!);
     },
 
     applySchedule: async (input) => {

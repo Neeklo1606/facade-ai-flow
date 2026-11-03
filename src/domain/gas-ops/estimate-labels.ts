@@ -50,6 +50,16 @@ export interface EstimateSection {
   row: number;
 }
 
+/**
+ * Строка с суммой ниже «ВСЕГО по смете» (F4): «Технадзор», «Врезка». В итоги не входит,
+ * правило состава может взять её слагаемым по подписи
+ */
+export interface EstimateExtra {
+  label: string;
+  kopecks: number;
+  row: number;
+}
+
 export interface EstimateIssue {
   /** Строка файла, к которой относится замечание; null — замечание ко всему файлу */
   row: number | null;
@@ -73,6 +83,8 @@ export interface ParsedEstimate {
   sections: EstimateSection[];
   /** Нормативные трудозатраты рабочих, чел.-ч */
   laborHours: { value: number; row: number } | null;
+  /** Строки с суммой ниже «ВСЕГО по смете», по порядку файла */
+  extras: EstimateExtra[];
   issues: EstimateIssue[];
 }
 

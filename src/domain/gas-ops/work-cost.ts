@@ -3,6 +3,9 @@
  *
  * - Правило состава: строки итогов со знаком. По умолчанию «без НДС минус материалы»
  *   со статусом «Требует согласования»: это кандидат владельца, а не решение заказчика.
+ *   Состав выбирает заказчик в конструкторе (ADR-062, F2): каждая правка — новая редакция
+ *   «Требует согласования», подтверждает менеджер. Слагаемым может быть и строка ниже
+ *   «ВСЕГО по смете» по подписи (F4): «Технадзор», «Врезка».
  * - Версии: стоимость берётся из последней подтверждённой версии сметы объекта.
  * - Распределение по записям: по минутам (ADR-043), наибольшим остатком до целого рубля,
  *   сумма частей равна стоимости ровно.
@@ -12,6 +15,8 @@
 import type { TimeEntry } from "./model";
 import {
   TOTAL_LABEL,
+  TOTAL_ORDER,
+  type EstimateExtra,
   type EstimateFormat,
   type EstimateIssue,
   type EstimateSection,
@@ -20,9 +25,40 @@ import {
   type TotalKey,
 } from "./estimate-labels";
 
+/** Слагаемое из строки ниже «ВСЕГО по смете»: `extra:Технадзор` */
+export type ExtraKey = `extra:${string}`;
+export type TermKey = TotalKey | ExtraKey;
+
 export interface CostRuleTerm {
-  key: TotalKey;
+  key: TermKey;
   sign: 1 | -1;
+}
+
+const EXTRA = "extra:";
+
+/** Подпись строки как ключ: пробелы схлопнуты, регистр сохранён для показа */
+export function extraKey(label: string): ExtraKey {
+  return `${EXTRA}${label.trim().replace(/\s+/g, " ")}`;
+}
+
+export function isExtraKey(key: TermKey): key is ExtraKey {
+  return key.startsWith(EXTRA);
+}
+
+/** Подпись слагаемого: «Всего без НДС» или «Технадзор» */
+export function termLabel(key: TermKey): string {
+  return isExtraKey(key) ? key.slice(EXTRA.length) : TOTAL_LABEL[key];
+}
+
+/** Одна редакция правила (F2): кто сохранил и кто подтвердил */
+export interface CostRuleRevision {
+  revision: number;
+  terms: CostRuleTerm[];
+  /** null — исходное правило системы, его никто не вводил */
+  savedBy: string | null;
+  savedAt: string | null;
+  confirmedBy: string | null;
+  confirmedAt: string | null;
 }
 
 export const DEFAULT_RULE_TERMS: CostRuleTerm[] = [
@@ -38,6 +74,10 @@ export interface CostRule {
   status: "needs-agreement" | "confirmed";
   confirmedBy: string | null;
   confirmedAt: string | null;
+  /** Номер действующей редакции; нет — первая (данные до F2) */
+  revision?: number;
+  /** Редакции по порядку, последняя действует; нет — одна исходная */
+  history?: CostRuleRevision[];
 }
 
 export const RULE_STATUS_LABEL: Record<CostRule["status"], string> = {
@@ -56,25 +96,180 @@ export const DEFAULT_COMPANY_RULE: CostRule = {
 
 /** Формула словами: «Всего без НДС минус материалы» */
 export function ruleFormula(terms: CostRuleTerm[]): string {
+  if (terms.length === 0) return "Ничего не выбрано";
   return terms
     .map((term, i) => {
-      const label = TOTAL_LABEL[term.key];
+      const label = termLabel(term.key);
       if (i === 0) return term.sign === 1 ? label : `минус ${label.toLowerCase()}`;
       return `${term.sign === 1 ? "плюс" : "минус"} ${label.toLowerCase()}`;
     })
     .join(" ");
 }
 
-export type RuleResult = { ok: true; kopecks: number } | { ok: false; missing: TotalKey[] };
+export type RuleResult = { ok: true; kopecks: number } | { ok: false; missing: TermKey[] };
+
+const sameLabel = (a: string, b: string) =>
+  a.trim().replace(/\s+/g, " ").toLowerCase() === b.trim().replace(/\s+/g, " ").toLowerCase();
+
+/** Строка сметы под слагаемым: итог или строка ниже «ВСЕГО»; null — в смете её нет */
+export function termSource(
+  key: TermKey,
+  totals: Partial<Record<TotalKey, Sourced>>,
+  extras: readonly EstimateExtra[] = [],
+): Sourced | null {
+  if (!isExtraKey(key)) return totals[key] ?? null;
+  const label = termLabel(key);
+  const found = extras.find((e) => sameLabel(e.label, label));
+  return found ? { kopecks: found.kopecks, row: found.row } : null;
+}
 
 /** Применить правило к итогам сметы. Нет нужной строки — нет числа, а не ноль */
 export function applyRule(
   totals: Partial<Record<TotalKey, Sourced>>,
   terms: CostRuleTerm[],
+  extras: readonly EstimateExtra[] = [],
 ): RuleResult {
-  const missing = terms.filter((t) => !totals[t.key]).map((t) => t.key);
+  if (terms.length === 0) return { ok: false, missing: [] };
+  const sources = terms.map((t) => termSource(t.key, totals, extras));
+  const missing = terms.filter((_, i) => !sources[i]).map((t) => t.key);
   if (missing.length > 0) return { ok: false, missing };
-  return { ok: true, kopecks: terms.reduce((a, t) => a + t.sign * totals[t.key]!.kopecks, 0) };
+  return { ok: true, kopecks: terms.reduce((a, t, i) => a + t.sign * sources[i]!.kopecks, 0) };
+}
+
+/** Живой пример правила на смете (F2): каждое слагаемое с суммой и строкой, итог */
+export interface RuleExample {
+  terms: { key: TermKey; label: string; sign: 1 | -1; source: Sourced | null }[];
+  result: RuleResult;
+}
+
+export function ruleExample(
+  version: Pick<EstimateVersion, "totals" | "extras">,
+  terms: CostRuleTerm[],
+): RuleExample {
+  const extras = version.extras ?? [];
+  return {
+    terms: terms.map((t) => ({
+      key: t.key,
+      label: termLabel(t.key),
+      sign: t.sign,
+      source: termSource(t.key, version.totals, extras),
+    })),
+    result: applyRule(version.totals, terms, extras),
+  };
+}
+
+/**
+ * Что можно выбрать в конструкторе: итоги по порядку TOTAL_ORDER и строки ниже «ВСЕГО»
+ * сметы примера, плюс слагаемые правила, которых в этой смете нет
+ */
+export function termChoices(
+  extras: readonly EstimateExtra[],
+  terms: readonly CostRuleTerm[],
+): TermKey[] {
+  const keys: TermKey[] = [...TOTAL_ORDER];
+  for (const extra of extras) {
+    const key = extraKey(extra.label);
+    if (!keys.some((k) => isExtraKey(k) && sameLabel(termLabel(k), extra.label))) keys.push(key);
+  }
+  for (const term of terms) if (!keys.includes(term.key)) keys.push(term.key);
+  return keys;
+}
+
+/** Проверка состава до сохранения: пусто, повтор, нет ни одного «плюс» */
+export function validateTerms(terms: CostRuleTerm[]): string | null {
+  if (terms.length === 0) return "Выберите хотя бы одну строку со знаком «плюс».";
+  if (!terms.some((t) => t.sign === 1)) return "Нужна хотя бы одна строка со знаком «плюс».";
+  const keys = terms.map((t) => (isExtraKey(t.key) ? t.key.toLowerCase() : t.key));
+  if (new Set(keys).size !== keys.length) return "Одна строка выбрана дважды.";
+  return null;
+}
+
+export function sameTerms(a: readonly CostRuleTerm[], b: readonly CostRuleTerm[]): boolean {
+  return a.length === b.length && a.every((t, i) => t.key === b[i]!.key && t.sign === b[i]!.sign);
+}
+
+/** Редакции правила; у данных до F2 истории нет — одна исходная из полей правила */
+export function ruleHistory(rule: CostRule): CostRuleRevision[] {
+  if (rule.history?.length) return rule.history;
+  return [
+    {
+      revision: rule.revision ?? 1,
+      terms: rule.terms,
+      savedBy: null,
+      savedAt: null,
+      confirmedBy: rule.confirmedBy,
+      confirmedAt: rule.confirmedAt,
+    },
+  ];
+}
+
+/**
+ * Новая редакция (F2): состав меняется, статус «Требует согласования» до подтверждения
+ * менеджером. `current` — действующее правило того же уровня (компания или объект) или null
+ */
+export function reviseRule(
+  current: CostRule | null,
+  input: { objectId: string | null; terms: CostRuleTerm[] },
+  by: string,
+  at: string,
+): CostRule {
+  const history = current ? ruleHistory(current) : [];
+  const revision = (history.at(-1)?.revision ?? 0) + 1;
+  return {
+    id: input.objectId ? `rule-${input.objectId}` : "rule-company",
+    objectId: input.objectId,
+    terms: input.terms,
+    status: "needs-agreement",
+    confirmedBy: null,
+    confirmedAt: null,
+    revision,
+    history: [
+      ...history,
+      {
+        revision,
+        terms: input.terms,
+        savedBy: by,
+        savedAt: at,
+        confirmedBy: null,
+        confirmedAt: null,
+      },
+    ],
+  };
+}
+
+/** Подтвердить действующую редакцию */
+export function confirmRule(rule: CostRule, by: string, at: string): CostRule {
+  const history = ruleHistory(rule);
+  return {
+    ...rule,
+    status: "confirmed",
+    confirmedBy: by,
+    confirmedAt: at,
+    revision: history.at(-1)!.revision,
+    history: history.map((r, i) =>
+      i === history.length - 1 ? { ...r, confirmedBy: by, confirmedAt: at } : r,
+    ),
+  };
+}
+
+/**
+ * Отмена последней редакции (тост 6 секунд): правило до неё. null — редакция была первой
+ * своим уровнем: правило объекта снимается, у компании остаётся исходное
+ */
+export function revertRule(rule: CostRule): CostRule | null {
+  const history = ruleHistory(rule);
+  if (history.length < 2) return rule.objectId === null ? DEFAULT_COMPANY_RULE : null;
+  const kept = history.slice(0, -1);
+  const last = kept.at(-1)!;
+  return {
+    ...rule,
+    terms: last.terms,
+    status: last.confirmedAt ? "confirmed" : "needs-agreement",
+    confirmedBy: last.confirmedBy,
+    confirmedAt: last.confirmedAt,
+    revision: last.revision,
+    history: kept,
+  };
 }
 
 /** Правило объекта: переопределение, если есть, иначе правило компании */
@@ -102,6 +297,8 @@ export interface EstimateVersion {
   vatRate: number | null;
   laborHours: { value: number; row: number } | null;
   sections: EstimateSection[];
+  /** Строки ниже «ВСЕГО по смете» (F4); нет — версия до F4 */
+  extras?: EstimateExtra[];
   issues: EstimateIssue[];
   /** Сметчик отметил замечания разбора как проверенные */
   issuesReviewedBy: string | null;
@@ -146,7 +343,7 @@ export function nextVersion(objectId: string | null, versions: EstimateVersion[]
 
 /** Стоимость работ по версии и правилу, целые рубли (округление в конце) */
 export function workCostRub(version: EstimateVersion, rule: CostRule): number | null {
-  const result = applyRule(version.totals, rule.terms);
+  const result = applyRule(version.totals, rule.terms, version.extras ?? []);
   if (!result.ok) return null;
   return Math.round(result.kopecks / 100);
 }
