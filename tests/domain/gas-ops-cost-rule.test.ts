@@ -222,3 +222,36 @@ describe("правило: порт", () => {
     ).toBe("not-allowed");
   });
 });
+
+describe("F4: записи с фактом получают стоимость при подтверждении сметы", () => {
+  test("проверенная до сметы запись без суммы получает долю, тост объясняет", async () => {
+    const s = await port.snapshot();
+    const day = s.week.days[0]!;
+    const brigadeId = s.brigades[0]!.id;
+    // У всех демо-объектов есть записи или стоимость: новый объект без сметы
+    const objectId = (
+      await port.addObject({ label: "ул. Демо, 400", code: "ОБ-400", workType: null })
+    ).id;
+    const entry = await port.createEntry({
+      day,
+      brigadeId,
+      employeeId: null,
+      objectId,
+      start: "5:00",
+      end: "6:00",
+      breakMinutes: 0,
+      submit: true,
+    });
+    const reviewed = await port.review({ id: entry.id, action: "confirm" });
+    expect(reviewed.status).toBe("confirmed");
+    expect(reviewed.amountRub).toBeNull();
+
+    const parsed = { ...parseEstimateGrid(grid()), sheet: "Смета" };
+    const v = await port.addEstimateVersion({ parsed, fileName: "пример.xls", objectId });
+    await port.reviewEstimateIssues(v.id);
+    const result = await port.confirmEstimateVersion(v.id);
+    expect(result.changedEntries).toBe(1);
+    const after = await port.snapshot();
+    expect(after.entries.find((e) => e.id === entry.id)?.amountRub).toBe(73_469);
+  });
+});

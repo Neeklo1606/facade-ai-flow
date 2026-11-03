@@ -255,8 +255,15 @@ function applyCost(
   objectId: string,
   amountRub: number,
   reason: string,
-): { snapshot: GasOpsSnapshot; changed: number; stale: number } {
-  const recalc = recalcObject(s.entries, objectId, amountRub);
+): {
+  snapshot: GasOpsSnapshot;
+  changed: number;
+  stale: number;
+  waiting: number;
+  locked: number;
+  kept: number;
+} {
+  const recalc = recalcObject(s.entries, objectId, amountRub, (day) => isDayLocked(s.periods, day));
   let stale = 0;
   const reportIssues = s.reportIssues.map((r) => {
     if (r.stale || !r.objectIds.includes(objectId)) return r;
@@ -267,6 +274,9 @@ function applyCost(
     snapshot: { ...s, entries: recalc.entries, reportIssues },
     changed: recalc.changed.length,
     stale,
+    waiting: recalc.waiting,
+    locked: recalc.locked,
+    kept: recalc.confirmedMismatch.length,
   };
 }
 
@@ -1023,6 +1033,9 @@ export function createGasOpsDemo(
       };
       let changed = 0;
       let stale = 0;
+      let waiting = 0;
+      let locked = 0;
+      let kept = 0;
       const next = await store.update((s) => {
         const withVersion: GasOpsSnapshot = {
           ...s,
@@ -1039,6 +1052,9 @@ export function createGasOpsDemo(
         );
         changed = applied.changed;
         stale = applied.stale;
+        waiting = applied.waiting;
+        locked = applied.locked;
+        kept = applied.kept;
         return {
           ...applied.snapshot,
           audit: [
@@ -1056,6 +1072,9 @@ export function createGasOpsDemo(
         version: mustVersion(next, id),
         estimate: next.estimates.find((e) => e.id === estimate.id)!,
         changedEntries: changed,
+        waitingEntries: waiting,
+        lockedEntries: locked,
+        keptEntries: kept,
         staleReports: stale,
       });
     },

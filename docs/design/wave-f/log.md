@@ -44,3 +44,17 @@ ADR-062. Ветка `feature/gas-wave-f` от `origin/main` cb6a9f7.
 - `npx playwright test e2e/gas-directory-import.spec.ts --project=desktop`: 4 из 4, axe без serious.
 - `DATABASE_URL=… bun run check:db`: паритет с демо-адаптером подтверждён.
 - `bun run typecheck`, `lint` (0 ошибок), `check:copy`, `check:typography`.
+
+### F4. Мастер смет (03.11.2026)
+
+Сделано:
+
+- `ImportWizard`: `recognized` сворачивает шаг колонок; смета передаёт «формат узнан».
+- Предпросмотр мастера показывает строки ниже «ВСЕГО».
+- `recalcObject`: проверенная без суммы получает долю, закрытая неделя не меняется; `recalcNote` для тоста.
+
+Проверено:
+
+- `bun test tests`: 1335 из 1335.
+- `npx playwright test e2e/gas-import.spec.ts e2e/gas-estimates.spec.ts e2e/gas-cost-rule.spec.ts --project=desktop`: 9 из 9.
+- `bun run typecheck`, `lint` (0 ошибок), `check:copy`.

@@ -60,6 +60,13 @@ test.describe("мастер импорта 1440", () => {
     await page
       .getByTestId("estimate-file")
       .setInputFiles(file("e2e/gas-estimate-file.cli.ts", "estimate"));
+    // Формат распознан: колонки свёрнуты в строку, «Изменить» раскрывает выбор (ADR-062, F4)
+    await expect(page.getByTestId("columns-auto")).toContainText(
+      "Колонки определены автоматически",
+    );
+    await expect(page.getByTestId("sample-amount")).toBeHidden();
+    await page.getByTestId("columns-auto").getByRole("button", { name: "Изменить" }).click();
+    await expect(page.getByTestId("columns-auto")).toHaveCount(0);
     await expect(page.getByTestId("sample-amount")).toContainText("Пример:");
     const check = page.getByTestId("import-check");
     await expect(check).toHaveAttribute("data-level", "ok");

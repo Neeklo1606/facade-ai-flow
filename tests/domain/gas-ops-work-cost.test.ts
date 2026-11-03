@@ -11,6 +11,7 @@ import {
   latestConfirmed,
   nextVersion,
   normVsFact,
+  recalcNote,
   recalcObject,
   ruleFor,
   ruleFormula,
@@ -174,6 +175,34 @@ describe("пересчёт при смене версии", () => {
     expect(result.entries.find((e) => e.id === "n")!.amountRub).toBeNull();
     expect(result.changed).toEqual([{ id: "b", from: 4_000, to: 10_000 }]);
     expect(result.confirmedMismatch).toEqual(["a"]);
+    expect(result.waiting).toBe(1);
+  });
+
+  test("F4: проверенная без суммы получает долю, закрытая неделя не меняется", () => {
+    const entries = [
+      entry({ id: "a", minutes: 60, status: "confirmed", amountRub: null }),
+      entry({ id: "b", minutes: 60, status: "confirmed", amountRub: null, day: "2026-09-28" }),
+      entry({ id: "c", minutes: 60, status: "pending", amountRub: null }),
+    ];
+    const result = recalcObject(entries, "obj-1", 3_000, (day) => day === "2026-09-28");
+    expect(result.entries.map((e) => e.amountRub)).toEqual([1_000, null, null]);
+    expect(result.changed).toEqual([{ id: "a", from: null, to: 1_000 }]);
+    expect(result).toMatchObject({ waiting: 1, locked: 1 });
+  });
+
+  test("F4: тост объясняет ноль", () => {
+    expect(recalcNote({ changed: 2, waiting: 0, locked: 0, kept: 0 })).toBe(
+      "Пересчитано записей: 2",
+    );
+    expect(recalcNote({ changed: 0, waiting: 3, locked: 0, kept: 0 })).toBe(
+      "Пересчитано записей: 0, у объекта нет проверенных записей недели; ждут проверки и получат стоимость при ней: 3",
+    );
+    expect(recalcNote({ changed: 0, waiting: 0, locked: 0, kept: 1 })).toBe(
+      "Пересчитано записей: 0; проверенные с суммой сохранили её: 1",
+    );
+    expect(recalcNote({ changed: 0, waiting: 0, locked: 0, kept: 0 })).toBe(
+      "Пересчитано записей: 0, у объекта нет записей с фактом",
+    );
   });
 });
 

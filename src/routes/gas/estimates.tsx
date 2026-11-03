@@ -18,6 +18,7 @@ import {
   estimateVersionView,
   formulaOf,
   normText,
+  recalcNote,
   ESTIMATE_TEMPLATE,
   downloadTemplate,
   suggestEstimateObject,
@@ -256,6 +257,7 @@ function EstimatesPage() {
             ))}
           </div>
         }
+        recognized={(state) => parsedOf(state).format !== null}
         evaluate={(state) => {
           const parsed = parsedOf(state);
           const total = parsed.totals.total;
@@ -280,8 +282,17 @@ function EstimatesPage() {
                   </p>
                 ) : null}
                 <p>Разделов: {parsed.sections.length}</p>
+                {parsed.extras.length ? (
+                  <p>
+                    Ниже «ВСЕГО по смете»:{" "}
+                    {parsed.extras
+                      .map((e) => `${e.label} ${fmtRub(e.kopecks / 100)}, строка ${e.row}`)
+                      .join("; ")}
+                    . Взять в стоимость можно в правиле.
+                  </p>
+                ) : null}
                 <p className="text-text">
-                  Добавится версия сметы. Стоимость работ без материалов будет кандидатом с меткой
+                  Добавится версия сметы. Стоимость работ по правилу будет кандидатом с меткой
                   «требует подтверждения»: её подтверждает менеджер.
                 </p>
               </div>
@@ -553,11 +564,15 @@ function VersionSheet({
       toast.error(result.message);
       return;
     }
-    const { estimate, changedEntries, staleReports } = result.value;
+    const { estimate, changedEntries, waitingEntries, lockedEntries, keptEntries, staleReports } =
+      result.value;
     notify(
-      `Смета подтверждена: ${fmtRub(estimate.amountRub)}. Пересчитано записей: ${changedEntries}${
-        staleReports ? `, отчётов требует обновления: ${staleReports}` : ""
-      }`,
+      `Смета подтверждена: ${fmtRub(estimate.amountRub)}. ${recalcNote({
+        changed: changedEntries,
+        waiting: waitingEntries,
+        locked: lockedEntries,
+        kept: keptEntries,
+      })}${staleReports ? `, отчётов требует обновления: ${staleReports}` : ""}`,
     );
     onClose();
   };

@@ -380,19 +380,32 @@ export function allocateByMinutes(
 
 export interface Recalc {
   entries: TimeEntry[];
-  /** Записи, у которых поменялась сумма: было, стало */
+  /** Записи, у которых поменялась сумма: было, стало. Подтверждённые без суммы — тоже здесь */
   changed: { id: string; from: number | null; to: number }[];
   /** Подтверждённые записи, чья доля по новой версии не совпала с их суммой */
   confirmedMismatch: string[];
+  /** Неподтверждённые записи без суммы: долю получат при проверке */
+  waiting: number;
+  /** Записи закрытой недели: не меняются до переоткрытия */
+  locked: number;
 }
 
 /**
  * Пересчитать суммы записей объекта по новой стоимости. Доли считаются по всем
- * неотклонённым записям объекта, но присваиваются только неподтверждённым, у которых сумма
- * уже есть: запись без суммы получит долю при подтверждении. Подтверждённые не меняются,
- * расхождение с ними возвращается отдельно, чтобы пометить отчёт.
+ * неотклонённым записям объекта. Получают долю:
+ * - неподтверждённые с суммой (сумма меняется);
+ * - подтверждённые без суммы (F4): проверены, пока у объекта не было сметы. Это первая сумма,
+ *   а не правка подтверждённой: иначе факт объекта так и остался бы без стоимости.
+ * Неподтверждённая без суммы получит долю при подтверждении. Подтверждённая с суммой
+ * не меняется, расхождение возвращается отдельно, чтобы пометить отчёт. Закрытая неделя
+ * (`isLocked`) не меняется вовсе.
  */
-export function recalcObject(entries: TimeEntry[], objectId: string, costRub: number): Recalc {
+export function recalcObject(
+  entries: TimeEntry[],
+  objectId: string,
+  costRub: number,
+  isLocked: (day: string) => boolean = () => false,
+): Recalc {
   const own = entries.filter((e) => e.objectId === objectId && e.status !== "rejected");
   const shares = allocateByMinutes(
     costRub,
@@ -400,20 +413,61 @@ export function recalcObject(entries: TimeEntry[], objectId: string, costRub: nu
   );
   const changed: Recalc["changed"] = [];
   const confirmedMismatch: string[] = [];
+  let waiting = 0;
+  let locked = 0;
   const next = entries.map((e) => {
     const share = shares.get(e.id);
     if (share === undefined) return e;
+    if (isLocked(e.day)) {
+      if (e.amountRub !== share) locked++;
+      return e;
+    }
     if (e.status === "confirmed") {
+      if (e.amountRub === null) {
+        changed.push({ id: e.id, from: null, to: share });
+        return { ...e, amountRub: share };
+      }
       if (e.amountRub !== share) confirmedMismatch.push(e.id);
       return e;
     }
     // Запись без суммы получает долю при подтверждении (ADR-043): здесь её не трогаем,
     // иначе сумма появилась бы до решения менеджера
-    if (e.amountRub === null || e.amountRub === share) return e;
+    if (e.amountRub === null) {
+      waiting++;
+      return e;
+    }
+    if (e.amountRub === share) return e;
     changed.push({ id: e.id, from: e.amountRub, to: share });
     return { ...e, amountRub: share };
   });
-  return { entries: next, changed, confirmedMismatch };
+  return { entries: next, changed, confirmedMismatch, waiting, locked };
+}
+
+/**
+ * Тост после подтверждения сметы или смены правила (F4): число пересчитанных записей,
+ * а если ноль — почему ноль
+ */
+export function recalcNote(r: {
+  changed: number;
+  waiting: number;
+  locked: number;
+  /** Подтверждённые с суммой, которая не совпала с новой долей */
+  kept: number;
+}): string {
+  const tail = [
+    r.waiting ? `ждут проверки и получат стоимость при ней: ${r.waiting}` : null,
+    r.kept ? `проверенные с суммой сохранили её: ${r.kept}` : null,
+    r.locked ? `в закрытой неделе не меняются: ${r.locked}` : null,
+  ].filter(Boolean);
+  if (r.changed > 0 || tail.length > 0) {
+    // Ноль с причиной: «у объекта нет проверенных записей недели» и что с остальными
+    const zero =
+      r.changed === 0 && r.waiting > 0 && !r.kept
+        ? ", у объекта нет проверенных записей недели"
+        : "";
+    return `Пересчитано записей: ${r.changed}${zero}${tail.length ? `; ${tail.join(", ")}` : ""}`;
+  }
+  return "Пересчитано записей: 0, у объекта нет записей с фактом";
 }
 
 /** Норма сметы против факта бригад: чел.-ч сметы и минуты по объекту */

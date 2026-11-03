@@ -225,7 +225,14 @@ export interface GasOpsPort {
   confirmEstimateVersion(id: string): Promise<{
     version: EstimateVersion;
     estimate: Estimate;
+    /** Записи, получившие новую сумму (F4: и подтверждённые без суммы) */
     changedEntries: number;
+    /** Непроверенные без суммы: стоимость придёт при проверке */
+    waitingEntries: number;
+    /** Записи закрытой недели: не менялись */
+    lockedEntries: number;
+    /** Проверенные с суммой: сумма не менялась, сданный отчёт помечается */
+    keptEntries: number;
     staleReports: number;
   }>;
   /**

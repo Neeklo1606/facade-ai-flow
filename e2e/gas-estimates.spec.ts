@@ -43,6 +43,12 @@ test.describe("сметы", () => {
       .click();
     await expect(confirm).toBeEnabled();
     await confirm.click();
-    await expect(page.getByText(/Смета подтверждена: 165\s455\s₽/)).toBeVisible();
+    const done = page.getByText(/Смета подтверждена: 165\s455\s₽/);
+    await expect(done).toBeVisible();
+    // Тост объясняет число пересчитанных (ADR-062, F4): у ОБ-001 проверенная запись из файла
+    // со своей суммой, она не меняется молча
+    await expect(done).toContainText(
+      "Пересчитано записей: 0; проверенные с суммой сохранили её: 1",
+    );
   });
 });
