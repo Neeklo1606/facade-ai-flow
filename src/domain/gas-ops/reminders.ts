@@ -29,6 +29,8 @@ export interface ReminderInput {
   at: string;
   /** Время напоминания из «Подключений»: «18:00» */
   time: string;
+  /** Сводка менеджеру; по умолчанию через час после напоминания: 18:00 → 19:00 (1.7) */
+  summaryTime?: string;
   /** Ожидания недели: график заказчика или демо-назначения (`expectations`) */
   expected: readonly Expectation[];
   entries: readonly TimeEntry[];
@@ -51,14 +53,18 @@ const names = (list: string[]) =>
   list.length > 3 ? `${list.slice(0, 3).join(", ")} и ещё ${list.length - 3}` : list.join(", ");
 
 /**
- * Что отправить на момент `at`. До времени напоминания — ничего. Бригада без бригадира
- * в системе не теряется: она попадает в сводку менеджера отдельной строкой
+ * Что отправить на момент `at` (финальный промт, 1.7): вопрос по записи — бригадиру сразу;
+ * нет записи по графику — после времени напоминания; сводка дня менеджеру — через час после
+ * него. Неверное время в настройке — не отправляется ничего. Бригада без бригадира в системе
+ * не теряется: она попадает в сводку менеджера отдельной строкой
  */
 export function remindersAt(input: ReminderInput): Reminder[] {
   const day = input.at.slice(0, 10);
   const now = minutesOf(input.at.slice(11, 16));
   const due = minutesOf(input.time);
-  if (now === null || due === null || now < due) return [];
+  if (now === null || due === null) return [];
+  const summaryDue = minutesOf(input.summaryTime ?? summaryTimeOf(input.time) ?? "");
+  const remindDue = now >= due;
 
   const brigadeName = (id: string) => input.brigades.find((b) => b.id === id)?.name ?? "Бригада";
   const objectLabel = (id: string) => input.objects.find((o) => o.id === id)?.label ?? "объект";
@@ -74,7 +80,7 @@ export function remindersAt(input: ReminderInput): Reminder[] {
 
   const list: Reminder[] = [];
   const orphans: string[] = [];
-  for (const [brigadeId, items] of missingBy) {
+  for (const [brigadeId, items] of remindDue ? missingBy : new Map<string, Expectation[]>()) {
     const foreman = foremanOf(brigadeId);
     if (!foreman) {
       orphans.push(brigadeName(brigadeId));
@@ -116,7 +122,7 @@ export function remindersAt(input: ReminderInput): Reminder[] {
   if (orphans.length) parts.push(`без бригадира в системе, напоминание не ушло: ${names(orphans)}`);
   if (pending) parts.push(`ждут проверки: ${pending}`);
   if (clarify.length) parts.push(`на уточнении: ${clarify.length}`);
-  if (parts.length) {
+  if (parts.length && summaryDue !== null && now >= summaryDue) {
     for (const manager of input.users.filter((u) => u.role === "manager"))
       list.push({
         key: `${day}|summary|${manager.id}`,
@@ -131,6 +137,14 @@ export function remindersAt(input: ReminderInput): Reminder[] {
       });
   }
   return list;
+}
+
+/** Время сводки по умолчанию: через час после напоминания, не позже 23:59 */
+export function summaryTimeOf(time: string): string | null {
+  const due = minutesOf(time);
+  if (due === null) return null;
+  const at = Math.min(due + 60, 23 * 60 + 59);
+  return `${String(Math.floor(at / 60)).padStart(2, "0")}:${String(at % 60).padStart(2, "0")}`;
 }
 
 /** Ещё не отправленные: повторная проверка в тот же день не шлёт то же сообщение */

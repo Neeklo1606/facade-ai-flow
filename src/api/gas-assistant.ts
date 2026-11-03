@@ -19,13 +19,13 @@ import {
   type AssistantAnswer,
   type AssistantDraft,
 } from "@/domain/gas-ops/assistant";
-import { remindersAt, unsent } from "@/domain/gas-ops/reminders";
+import { remindersAt, summaryTimeOf, unsent } from "@/domain/gas-ops/reminders";
 import { expectations } from "@/domain/gas-ops/week";
 import { useGasActor, useGasData } from "@/lib/gas-ops/use-gas-ops";
 import { useGasActions, useGasWeekView } from "./gas-ops";
 
 export type { AssistantAnswer, AssistantDraft, InboxMessage };
-export { clearInbox };
+export { clearInbox, summaryTimeOf };
 
 /** Модель помощника: без ключа заглушка, свободный вопрос получает список вопросов */
 export const assistantModel = assistantModelStub;

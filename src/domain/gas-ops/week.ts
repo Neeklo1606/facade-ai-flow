@@ -345,3 +345,33 @@ export function freezeWeek(
     },
   };
 }
+
+/**
+ * «Неделя готова к закрытию» (финальный промт, 1.5): с пятницы 18:00 по времени заказчика
+ * руководитель видит одну строку с числом записей и замечаний и готовый черновик файла.
+ * Черновик не хранится отдельно: файл недели собирается из записей в момент выгрузки.
+ * Закрытая неделя — плашки нет.
+ */
+export const WEEK_READY_DAY = 4;
+export const WEEK_READY_TIME = "18:00";
+
+export interface WeekReady {
+  entries: number;
+  remarks: number;
+}
+
+export function weekReadyNotice(input: {
+  weekFrom: string;
+  /** Местное время заказчика «ГГГГ-ММ-ДДTЧЧ:ММ» */
+  now: string;
+  closed: boolean;
+  entries: number;
+  remarks: number;
+}): WeekReady | null {
+  if (input.closed) return null;
+  const friday = new Date(`${input.weekFrom}T00:00:00Z`);
+  friday.setUTCDate(friday.getUTCDate() + WEEK_READY_DAY);
+  const from = `${friday.toISOString().slice(0, 10)}T${WEEK_READY_TIME}`;
+  if (input.now.slice(0, 16) < from) return null;
+  return { entries: input.entries, remarks: input.remarks };
+}

@@ -92,12 +92,14 @@ import {
   expectations,
   periodState,
   weekMetrics,
+  weekReadyNotice,
   type Acceptance,
   type CloseReason,
   type Expectation,
   type PeriodState,
   type PeriodVersion,
   type WeekMetrics,
+  type WeekReady,
 } from "@/domain/gas-ops/week";
 import { CHANNEL_LABEL, type EntryChannel } from "@/domain/gas-ops/model";
 import { AUTO_ACTOR } from "@/domain/gas-ops/review-policy";
@@ -168,6 +170,8 @@ export interface GasWeekView {
   expectationSource: "schedule" | "assignment" | null;
   reasons: CloseReason[];
   period: PeriodState;
+  /** С пятницы 18:00 открытая неделя «готова к закрытию» (ADR-063, 1.5) */
+  ready: WeekReady | null;
   /** По объектам: подтверждённое, часы, человеко-часы, выработка, готовность */
   objects: {
     id: string;
@@ -228,13 +232,23 @@ export function useGasWeekView(): GasWeekView {
         ready: list.every((e) => e.status === "confirmed" && !blocked.has(e.id)),
       };
     });
+    const period = periodState(data.periods, data.week.from);
+    const metrics = weekMetrics(data.entries, days, data.rates);
+    const clock = new Date();
     return {
-      metrics: weekMetrics(data.entries, days, data.rates),
+      metrics,
       byDay: accruedByDay(data.entries, days),
       coverage: cov,
       expectationSource: expected[0]?.source ?? null,
       reasons,
-      period: periodState(data.periods, data.week.from),
+      period,
+      ready: weekReadyNotice({
+        weekFrom: data.week.from,
+        now: `${data.today}T${String(clock.getHours()).padStart(2, "0")}:${String(clock.getMinutes()).padStart(2, "0")}`,
+        closed: period.closed !== null,
+        entries: own.filter((e) => e.status !== "draft").length,
+        remarks: reasons.length,
+      }),
       objects: objects.sort((a, b) => b.accruedRub - a.accruedRub),
     };
   }, [data]);

@@ -202,6 +202,36 @@ export function WeekScreen() {
         </p>
       </ScreenCounters>
 
+      {view.ready && canClose ? (
+        <section
+          aria-label="Неделя готова к закрытию"
+          data-testid="week-ready"
+          className="mono-inset flex flex-col gap-3 md:flex-row md:items-center"
+        >
+          <p className="min-w-0 flex-1 type-text">
+            Неделя готова к закрытию: {view.ready.entries}{" "}
+            {plural(view.ready.entries, "запись", "записи", "записей")}, {view.ready.remarks}{" "}
+            {plural(view.ready.remarks, "замечание", "замечания", "замечаний")}. Черновик файла
+            готов.
+          </p>
+          <Button
+            variant="secondary"
+            className="shrink-0"
+            onClick={async () => {
+              try {
+                const name = await exportWeek("draft");
+                toast.success(`Черновик выгружен: ${name}`);
+              } catch {
+                toast.error("Не удалось выгрузить черновик. Повторите.");
+              }
+            }}
+          >
+            <Download aria-hidden />
+            Скачать черновик
+          </Button>
+        </section>
+      ) : null}
+
       {!canClose ? <p className="type-label text-ink-3">Закрывает неделю руководитель.</p> : null}
       {error ? (
         <p role="alert" className="type-label text-down">
