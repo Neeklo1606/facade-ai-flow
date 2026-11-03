@@ -17,6 +17,7 @@ import { plural } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 import { ScheduleImport } from "@/components/gas-ops/schedule/ScheduleImport";
+import { AddObject } from "@/components/gas-ops/directory/AddObject";
 import { useGasActor } from "@/api/gas-ops";
 import {
   SCHEDULE_TEMPLATE,
@@ -227,8 +228,9 @@ function ObjectsPage() {
             : " · график недели: демо"}
       </p>
       {actor.role === "manager" || actor.role === "admin" ? (
-        <div>
+        <div className="flex flex-wrap gap-2">
           <ScheduleImport />
+          <AddObject />
         </div>
       ) : null}
 

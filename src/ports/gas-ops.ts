@@ -20,6 +20,7 @@ import type {
 } from "@/domain/gas-ops/model";
 import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
 import type { CostRule, CostRuleTerm, EstimateVersion } from "@/domain/gas-ops/work-cost";
+import type { DirectoryKind, DirectoryRow, Skipped } from "@/domain/gas-ops/directory-import";
 import type {
   BrigadeAvailability,
   BrigadeWeekStatus,
@@ -51,6 +52,13 @@ export interface ReportIssue {
   /** Отчёт требует обновления: после сдачи подтверждена новая версия сметы его объекта */
   stale: boolean;
   staleReason: string | null;
+}
+
+/** Итог импорта справочника: «добавлено N, обновлено M, пропущено K с причинами» */
+export interface DirectoryImportReport {
+  added: number;
+  updated: number;
+  skipped: Skipped[];
 }
 
 /** Итог смены правила: что пересчитано и где посчитать нельзя */
@@ -268,6 +276,17 @@ export interface GasOpsPort {
   addCrewMember(input: { brigadeId: string; name: string; from: string }): Promise<CrewMember>;
   /** Вывести из состава: последний день включительно */
   endCrewMember(input: { id: string; to: string }): Promise<CrewMember>;
+  /**
+   * Импорт справочника из Excel (ADR-062, F3): строки файла, план порт считает сам.
+   * Бригады и сотрудников ведёт менеджер, ставки — руководитель
+   */
+  importDirectory(input: {
+    kind: DirectoryKind;
+    rows: DirectoryRow[];
+    skipped?: Skipped[] | undefined;
+  }): Promise<DirectoryImportReport>;
+  /** Добавить объект вручную (F3): адрес, свой номер, вид работ */
+  addObject(input: { label: string; code: string; workType: string | null }): Promise<WorkObject>;
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }
@@ -307,6 +326,8 @@ export const GAS_OPS_METHODS = [
   "setRate",
   "addCrewMember",
   "endCrewMember",
+  "importDirectory",
+  "addObject",
   "reset",
 ] as const satisfies readonly (keyof GasOpsPort)[];
 

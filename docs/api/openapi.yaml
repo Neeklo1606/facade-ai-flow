@@ -728,6 +728,10 @@ components:
           enum:
             - "fact-report"
             - "mock"
+        phone:
+          anyOf:
+            - type: "string"
+            - type: "null"
       required:
         - "id"
         - "groupId"
@@ -735,6 +739,7 @@ components:
         - "code"
         - "excelRow"
         - "source"
+        - "phone"
       additionalProperties: false
     TimeEntry:
       type: "object"

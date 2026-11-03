@@ -36,7 +36,7 @@ import {
   type ReviewSettings,
 } from "@/domain/gas-ops/review-policy";
 import { useGasAction, useGasSnapshot } from "@/lib/gas-ops/use-gas-ops";
-import type { ReportIssue, WeekSchedule } from "@/ports/gas-ops";
+import type { GasOpsPort, ReportIssue, WeekSchedule } from "@/ports/gas-ops";
 import type { Estimate, TimeEntry } from "@/domain/gas-ops/model";
 
 export interface WorkCostRow {
@@ -450,7 +450,61 @@ export function loadImportTools() {
     import("@/domain/gas-ops/import-wizard"),
     import("@/domain/gas-ops/estimate-parse"),
     import("@/domain/gas-ops/schedule-import"),
-  ]).then(([wizard, estimate, schedule]) => ({ ...wizard, ...estimate, ...schedule }));
+    import("@/domain/gas-ops/directory-import"),
+  ]).then(([wizard, estimate, schedule, directory]) => ({
+    ...wizard,
+    ...estimate,
+    ...schedule,
+    ...directory,
+  }));
+}
+
+/* ---------------------------------------------------------------- Справочники из Excel (F3) */
+
+export {
+  DIRECTORY_FIELDS,
+  DIRECTORY_FIELD_LABEL,
+  DIRECTORY_KIND_LABEL,
+  DIRECTORY_TEMPLATE,
+} from "@/domain/gas-ops/directory-import";
+export type {
+  DirectoryField,
+  DirectoryKind,
+  DirectoryPlan,
+  DirectoryState,
+} from "@/domain/gas-ops/directory-import";
+export type { DirectoryImportReport } from "@/ports/gas-ops";
+
+/** Справочник для предпросмотра импорта и действия импорта и «Добавить объект» */
+export function useGasDirectoryImport() {
+  const s = useGasSnapshot();
+  const run = useGasAction();
+  const state = useMemo(
+    () => ({
+      brigades: s.brigades.map((b) => ({
+        id: b.id,
+        name: b.name,
+        phone: b.phone ?? null,
+        leadName: s.employees.find((e) => e.brigadeId === b.id && e.isLead)?.name ?? null,
+      })),
+      crew: s.crew,
+      rates: s.rates,
+    }),
+    [s.brigades, s.employees, s.crew, s.rates],
+  );
+  return {
+    state,
+    importDirectory: useCallback(
+      (input: Parameters<GasOpsPort["importDirectory"]>[0]) =>
+        run((port) => port.importDirectory(input)),
+      [run],
+    ),
+    addObject: useCallback(
+      (input: { label: string; code: string; workType: string | null }) =>
+        run((port) => port.addObject(input)),
+      [run],
+    ),
+  };
 }
 export type ImportTools = Awaited<ReturnType<typeof loadImportTools>>;
 export type { ImportCheck, ColumnOption } from "@/domain/gas-ops/import-wizard";

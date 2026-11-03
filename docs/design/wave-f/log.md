@@ -29,3 +29,18 @@ ADR-062. Ветка `feature/gas-wave-f` от `origin/main` cb6a9f7.
 - `bun test tests`: 1323 из 1323 (8 новых).
 - `npx playwright test e2e/gas-cost-rule.spec.ts e2e/gas-estimates.spec.ts --project=desktop`: 5 из 5, axe без serious.
 - `bun run typecheck`, `lint` (0 ошибок), `check:copy`, `check:typography`.
+
+### F3. Импорт справочников из Excel (03.11.2026)
+
+Сделано:
+
+- `src/domain/gas-ops/directory-import.ts`, порт `importDirectory` и `addObject`.
+- `DirectoryImport.tsx` на «Справочниках», `AddObject.tsx` на «Объектах».
+- `Brigade.phone`, миграция `db/migrations/20261104100000_gas_wave_f.sql`, OpenAPI перегенерирован.
+
+Проверено:
+
+- `bun test tests`: 1332 из 1332 (9 новых).
+- `npx playwright test e2e/gas-directory-import.spec.ts --project=desktop`: 4 из 4, axe без serious.
+- `DATABASE_URL=… bun run check:db`: паритет с демо-адаптером подтверждён.
+- `bun run typecheck`, `lint` (0 ошибок), `check:copy`, `check:typography`.

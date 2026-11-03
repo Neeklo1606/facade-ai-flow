@@ -179,6 +179,7 @@ describe("бот бригадира берёт объекты из график�
         code: "Б-1",
         excelRow: null,
         source: "mock" as const,
+        phone: null,
       },
     ];
     const week = { from: "2026-10-26", to: "2026-11-01", days: ["2026-10-27"] };

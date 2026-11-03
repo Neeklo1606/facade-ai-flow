@@ -28,6 +28,7 @@ import {
   StatusChip,
 } from "@/components/ui/mono";
 import { toast } from "@/lib/toast";
+import { DirectoryImport } from "./DirectoryImport";
 
 type Section = "crew" | "rates" | "export";
 
@@ -63,6 +64,7 @@ export function DirectoryScreen() {
       ) : (
         <ExportSection />
       )}
+      <ImportCard />
       <Card title="Другие справочники">
         <ul className="flex flex-col divide-y divide-line">
           {[
@@ -80,6 +82,32 @@ export function DirectoryScreen() {
         </ul>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Импорт списком (F3): бригады и сотрудников ведёт менеджер, ставки — руководитель.
+ * Администратору доступно всё. Чужой кнопки нет, порт всё равно проверяет право
+ */
+function ImportCard() {
+  const actor = useGasActor();
+  const office = actor.role === "manager" || actor.isAdmin;
+  const rates = actor.role === "director" || actor.isAdmin;
+  if (!office && !rates) return null;
+  return (
+    <Card title="Загрузить списком из Excel">
+      <div className="flex flex-col gap-3">
+        <p className="type-small text-ink-3">
+          Мастер покажет, что добавится, обновится и что пропущено с причиной. У каждого списка свой
+          шаблон .xlsx.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {office ? <DirectoryImport kind="brigades" /> : null}
+          {office ? <DirectoryImport kind="employees" /> : null}
+          {rates ? <DirectoryImport kind="rates" /> : null}
+        </div>
+      </div>
+    </Card>
   );
 }
 

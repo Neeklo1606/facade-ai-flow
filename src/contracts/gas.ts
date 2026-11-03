@@ -185,6 +185,10 @@ export const gasBrigades = table(
     code: col.name(),
     excelRow: col.int({ nullable: true }),
     source: col.enum(gasSource),
+    phone: col.text({
+      nullable: true,
+      comment: "телефон бригады из справочника; null — не указан",
+    }),
   },
 );
 
@@ -997,6 +1001,11 @@ export const gasTabelTables: TableDef[] = [
 /** Колонки существующих таблиц, которые добавляет миграция T7, а не v1 */
 export const GAS_T7_COLUMNS: Record<string, readonly string[]> = {
   gas_time_entries: ["flags", "repeatVisit"],
+};
+
+/** Колонки волны F (ADR-062): своя миграция поверх T7 */
+export const GAS_WAVE_F_COLUMNS: Record<string, readonly string[]> = {
+  gas_brigades: ["phone"],
 };
 
 export type GasRow<T extends z.ZodTypeAny> = z.infer<T>;

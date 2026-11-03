@@ -64,6 +64,9 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   setRate: WEEK,
   addCrewMember: OFFICE,
   endCrewMember: OFFICE,
+  // Ставки импортирует руководитель, бригады и сотрудников — менеджер: тип проверяет порт
+  importDirectory: ["manager", "admin", "director"],
+  addObject: OFFICE,
   reset: [],
 };
 

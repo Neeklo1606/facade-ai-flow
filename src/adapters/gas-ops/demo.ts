@@ -46,7 +46,15 @@ import {
   type Review,
   type Role,
   type TimeEntry,
+  type Brigade,
+  type Employee,
+  type WorkObject,
 } from "@/domain/gas-ops/model";
+import {
+  normName,
+  planDirectoryImport,
+  type DirectoryState,
+} from "@/domain/gas-ops/directory-import";
 import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
   defaultHeadcount,
@@ -102,6 +110,27 @@ function nextNumber(snapshot: GasOpsSnapshot): string {
     return Number.isFinite(n) ? Math.max(a, n) : a;
   }, 0);
   return `ГЗ-${String(max + 1).padStart(5, "0")}`;
+}
+
+/** ISO-дата накануне: новая ставка или переход в другую бригаду закрывает прежнюю */
+function dayBefore(day: string): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Что справочник знает для плана импорта (F3) */
+function directoryState(s: GasOpsSnapshot): DirectoryState {
+  return {
+    brigades: s.brigades.map((b) => ({
+      id: b.id,
+      name: b.name,
+      phone: b.phone ?? null,
+      leadName: s.employees.find((e) => e.brigadeId === b.id && e.isLead)?.name ?? null,
+    })),
+    crew: s.crew,
+    rates: s.rates,
+  };
 }
 
 function newId(prefix: string): string {
@@ -1559,11 +1588,232 @@ export function createGasOpsDemo(
       return done(ended);
     },
 
+    importDirectory: async (input) => {
+      const snapshot = await store.read();
+      if (input.kind === "rates")
+        mustDirector(snapshot, "Ставки задаёт руководитель или администратор.");
+      else mustManager(snapshot, "Бригады и сотрудников ведёт менеджер или администратор.");
+      const plan = planDirectoryImport(
+        input.kind,
+        input.rows,
+        directoryState(snapshot),
+        input.skipped ?? [],
+      );
+      const changes = [...plan.added, ...plan.updated].sort((a, b) => a.row - b.row);
+      if (changes.length === 0) {
+        return done({ added: 0, updated: 0, skipped: plan.skipped });
+      }
+      await store.update((s) => {
+        let next: GasOpsSnapshot = s;
+        for (const change of changes) {
+          if (change.kind === "brigade-add") {
+            const id = newId("brg");
+            const codes = next.brigades.map((b) => Number(b.code)).filter(Number.isFinite);
+            const brigade: Brigade = {
+              id,
+              groupId: next.brigades.at(-1)?.groupId ?? next.groups[0]!.id,
+              name: change.name,
+              code: String(Math.max(0, ...codes) + 1),
+              excelRow: null,
+              source: "mock",
+              phone: change.phone,
+            };
+            next = { ...next, brigades: [...next.brigades, brigade] };
+            if (change.lead) next = withLead(next, id, change.lead);
+          } else if (change.kind === "brigade-update") {
+            next = {
+              ...next,
+              brigades: next.brigades.map((b) =>
+                b.id === change.brigadeId && change.phone !== null
+                  ? { ...b, phone: change.phone }
+                  : b,
+              ),
+            };
+            if (change.lead) next = withLead(next, change.brigadeId, change.lead);
+          } else if (change.kind === "member-add") {
+            next = {
+              ...next,
+              crew: [
+                ...next.crew,
+                {
+                  id: newId("crw"),
+                  brigadeId: change.brigadeId,
+                  employeeId: newId("emp"),
+                  name: change.name,
+                  role: "worker",
+                  from: change.from,
+                  to: null,
+                  source: "mock",
+                },
+              ],
+            };
+          } else if (change.kind === "member-move") {
+            next = {
+              ...next,
+              crew: [
+                ...next.crew.map((m) =>
+                  m.id === change.memberId
+                    ? {
+                        ...m,
+                        to: m.from && m.from >= change.from ? m.from : dayBefore(change.from),
+                      }
+                    : m,
+                ),
+                {
+                  id: newId("crw"),
+                  brigadeId: change.brigadeId,
+                  employeeId: change.employeeId,
+                  name: change.name,
+                  role: "worker",
+                  from: change.from,
+                  to: null,
+                  source: "mock",
+                },
+              ],
+            };
+          } else {
+            const same = (r: Rate) =>
+              r.employeeId === change.employeeId &&
+              (change.employeeId !== null || r.brigadeId === change.brigadeId);
+            next = {
+              ...next,
+              rates: change.update
+                ? next.rates.map((r) =>
+                    same(r) && r.from === change.from ? { ...r, rubPerHour: change.rubPerHour } : r,
+                  )
+                : [
+                    ...next.rates.map((r) =>
+                      same(r) && r.to === null && r.from < change.from
+                        ? { ...r, to: dayBefore(change.from) }
+                        : r,
+                    ),
+                    {
+                      id: newId("rate"),
+                      employeeId: change.employeeId,
+                      brigadeId: change.employeeId ? null : change.brigadeId,
+                      rubPerHour: change.rubPerHour,
+                      from: change.from,
+                      to: null,
+                      source: "mock",
+                    },
+                  ],
+            };
+          }
+        }
+        return {
+          ...next,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "directory.import",
+              entityId: input.kind,
+              // Имена людей в журнал не пишутся: только счётчики
+              detail: `Импорт «${input.kind}»: добавлено ${plan.added.length}, обновлено ${plan.updated.length}, пропущено ${plan.skipped.length}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done({
+        added: plan.added.length,
+        updated: plan.updated.length,
+        skipped: plan.skipped,
+      });
+    },
+
+    addObject: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Объект добавляет менеджер или администратор.");
+      const label = input.label.trim();
+      const code = input.code.trim();
+      if (!label) throw new GasOpsError("comment-required", "Укажите адрес объекта.");
+      if (!code) throw new GasOpsError("comment-required", "Укажите номер объекта.");
+      const taken = snapshot.objects.find((o) => normName(o.code) === normName(code));
+      if (taken) {
+        throw new GasOpsError("duplicate", `Номер ${code} уже у объекта «${taken.label}».`);
+      }
+      const object: WorkObject = {
+        id: newId("obj"),
+        label,
+        settlement: null,
+        workType: input.workType?.trim() || null,
+        code,
+        source: "mock",
+      };
+      await store.update(
+        (s) => ({
+          ...s,
+          objects: [...s.objects, object],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "object.add",
+              entityId: object.id,
+              detail: `Объект ${code} добавлен вручную`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(object);
+    },
+
     reset: async () => {
       if (!reset) throw new GasOpsError("not-allowed", "Сброс доступен только в демонстрации.");
       return reset();
     },
   };
+}
+
+/**
+ * Бригадир из импорта (F3): прежний бригадир становится монтажником, новый — сотрудник
+ * с ролью «Бригадир» и строка состава. Тот же человек уже в бригаде — меняется только роль
+ */
+function withLead(s: GasOpsSnapshot, brigadeId: string, name: string): GasOpsSnapshot {
+  const existing = s.employees.find(
+    (e) => e.brigadeId === brigadeId && normName(e.name) === normName(name),
+  );
+  const lead: Employee = existing
+    ? { ...existing, isLead: true }
+    : {
+        id: newId("emp"),
+        brigadeId,
+        name,
+        isLead: true,
+        maxId: null,
+        excelRow: null,
+        source: "mock",
+      };
+  const employees = [
+    ...s.employees
+      .filter((e) => e.id !== lead.id)
+      .map((e) => (e.brigadeId === brigadeId && e.isLead ? { ...e, isLead: false } : e)),
+    lead,
+  ];
+  const member = s.crew.find((m) => m.brigadeId === brigadeId && m.employeeId === lead.id);
+  const crew = [
+    ...s.crew.map((m) => {
+      if (m.brigadeId !== brigadeId) return m;
+      if (m.employeeId === lead.id) return { ...m, role: "lead" as const };
+      return m.role === "lead" ? { ...m, role: "worker" as const } : m;
+    }),
+    ...(member
+      ? []
+      : [
+          {
+            id: `crw-${lead.id}`,
+            brigadeId,
+            employeeId: lead.id,
+            name,
+            role: "lead" as const,
+            from: null,
+            to: null,
+            source: "mock" as const,
+          },
+        ]),
+  ];
+  return { ...s, employees, crew };
 }
 
 /** Порт вкладки: действие по устаревшему снимку повторяется на свежем */
