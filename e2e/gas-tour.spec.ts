@@ -138,15 +138,15 @@ for (const width of WIDTHS) {
       await open(page, "/gas/moderation");
       await expect(card(page)).toHaveAccessibleName("Тур менеджера");
       await expect(step(page)).toHaveText("Шаг 1 из 4");
-      // Пункт меню: на компьютере левая панель, на телефоне нижняя
+      // Пункт меню: на компьютере левая панель, на телефоне нижняя; «Табель» есть в обеих
       await page
-        .getByRole("link", { name: /^Журнал/ })
+        .getByRole("link", { name: /^Табель/ })
         .filter({ visible: true })
         .first()
         .click();
-      await expect(page).toHaveURL(/\/gas\/entries$/);
+      await expect(page).toHaveURL(/\/gas\/tabel$/);
       await page.waitForTimeout(1500);
-      await expect(page).toHaveURL(/\/gas\/entries$/);
+      await expect(page).toHaveURL(/\/gas\/tabel$/);
       await expect(card(page)).toHaveCount(0);
       const paused = page.getByTestId("tour-paused");
       await expect(paused).toBeVisible();
@@ -157,7 +157,7 @@ for (const width of WIDTHS) {
       await expect(paused).toHaveCount(0);
       // Снова ушли и закрыли тур крестиком на плашке: тур больше не появляется
       await page
-        .getByRole("link", { name: /^Журнал/ })
+        .getByRole("link", { name: /^Табель/ })
         .filter({ visible: true })
         .first()
         .click();

@@ -276,14 +276,12 @@ export function WeekScreen() {
         </Card>
       ) : null}
 
-      <div
-        ref={reasonsRef}
-        tabIndex={-1}
-        data-tour="week-reasons"
-        className="scroll-mt-24 outline-none"
-      >
+      <div ref={reasonsRef} tabIndex={-1} className="scroll-mt-24 outline-none">
         <Card
-          title={closed ? "Неделя закрыта" : "Что мешает закрыть"}
+          title={
+            // Цель тура — заголовок, а не весь список: высокий список двигал подсказку
+            <span data-tour="week-reasons">{closed ? "Неделя закрыта" : "Что мешает закрыть"}</span>
+          }
           action={
             closed ? null : (
               <span className="type-label text-ink-3">

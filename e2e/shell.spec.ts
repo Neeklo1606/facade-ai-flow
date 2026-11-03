@@ -35,9 +35,10 @@ for (const viewport of [
         ? page.getByRole("navigation", { name: "Разделы", exact: true })
         : page.getByRole("navigation", { name: "Основные разделы" });
       await expect(nav).toBeVisible();
-      await nav.getByRole("link", { name: /Журнал/ }).click();
-      await expect(page).toHaveURL(/\/gas\/entries/);
-      await expect(nav.getByRole("link", { name: /Журнал/ })).toHaveAttribute(
+      // «Табель» в меню менеджера на всех ширинах (ADR-064), «Журнал» — в «Ещё»
+      await nav.getByRole("link", { name: /Табель/ }).click();
+      await expect(page).toHaveURL(/\/gas\/tabel/);
+      await expect(nav.getByRole("link", { name: /Табель/ })).toHaveAttribute(
         "aria-current",
         "page",
       );
