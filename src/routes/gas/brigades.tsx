@@ -1,5 +1,4 @@
 import { completePageHead } from "@/lib/page-head";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
@@ -75,8 +74,6 @@ function BrigadesPage() {
 
   return (
     <div className="flex flex-col gap-block">
-      <ScreenHint screen="brigades" className="mb-0" />
-
       <div className="flex items-center justify-between gap-2">
         <Segmented
           label="Вид списка"
@@ -146,6 +143,8 @@ function BrigadesPage() {
                         meta={
                           <>
                             <WeekDot vacation={vacation} /> {lead}
+                            {/* MAX подключён да/нет (4.7): канал не подключён, отметка из демо */}
+                            {card.lead?.maxId ? " · MAX подключён (демо)" : " · MAX не подключён"}
                             {card.pending > 0 ? ` · ${card.pending} на проверке` : ""}
                           </>
                         }

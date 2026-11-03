@@ -1,17 +1,12 @@
 /**
  * Демо-адаптер газового направления (ADR-043): порт поверх состояния вкладки.
  *
- * Правила проверяет адаптер, а не экран: ошибки ТЗ, п. 5.7 (некорректное время, дубль,
- * пересечение, нет объекта) и обязательный комментарий при правке приходят оттуда же,
- * откуда их будет отдавать сервер. Экран только показывает текст ошибки.
+ * Правила проверяет адаптер, а не экран: ошибки ТЗ, п. 5.7 (некорректное время, полный дубль,
+ * нет объекта) и обязательный комментарий при правке приходят оттуда же, откуда их будет
+ * отдавать сервер. Пересечение и повторный выезд — признаки записи, не ошибки (ADR-061, 9).
  */
-import {
-  effectiveMinutes,
-  findDuplicates,
-  findOverlaps,
-  flagsOf,
-  MINUTES_ERROR_TEXT,
-} from "@/domain/gas-ops/calc";
+import { checkEntry, entryFrame } from "@/domain/gas-ops/entry-check";
+import { effectiveMinutes, flagsOf, MINUTES_ERROR_TEXT } from "@/domain/gas-ops/calc";
 import {
   allocateByMinutes,
   canConfirmVersion,
@@ -36,6 +31,8 @@ import {
 import { reportEntries } from "@/domain/gas-ops/report";
 import {
   ENTRY_STATUS_LABEL,
+  ROLE_LABEL,
+  type User,
   type AuditLog,
   type EntryStatus,
   type Estimate,
@@ -71,7 +68,8 @@ import {
   type ReviewInput,
   type UpdateEntryInput,
 } from "@/ports/gas-ops";
-import { getSnapshot, resetState, update } from "./state";
+import { resetState } from "./state";
+import { demoStore, retrying, type GasStore } from "./store";
 
 const done = <T>(value: T) => Promise.resolve(value);
 
@@ -120,7 +118,7 @@ function mustFind(snapshot: GasOpsSnapshot, id: string): TimeEntry {
   return entry;
 }
 
-/** Правила, общие для создания и правки: объект, время, дубль, пересечение */
+/** Правила, общие для создания и правки: объект, права бригады, полный дубль */
 function validate(
   snapshot: GasOpsSnapshot,
   draft: TimeEntry,
@@ -140,26 +138,21 @@ function validate(
     );
   }
 
-  const others = snapshot.entries.filter((e) => e.id !== draft.id);
-
-  if (!options.allowDuplicate) {
-    const duplicates = findDuplicates([...others, draft]);
-    if (duplicates.some((list) => list.some((e) => e.id === draft.id))) {
-      throw new GasOpsError(
-        "duplicate",
-        "По этому объекту за этот день запись уже есть. Исправьте существующую запись.",
-      );
-    }
-  }
-
-  const overlaps = findOverlaps([...others, draft]);
-  const own = overlaps.find((o) => o.a.id === draft.id || o.b.id === draft.id);
-  if (own) {
-    const other = own.a.id === draft.id ? own.b : own.a;
-    const label = snapshot.objects.find((o) => o.id === other.objectId)?.label ?? "другой объект";
+  // Пересечение и повторный выезд — признаки для менеджера, а не запрет (ADR-061, 9).
+  // Отказ только при полном совпадении: тот же объект, день и интервал
+  if (options.allowDuplicate) return;
+  const { twin } = checkEntry(snapshot.entries, {
+    id: draft.id,
+    brigadeId: draft.brigadeId,
+    objectId: draft.objectId,
+    day: draft.day,
+    start: draft.startMinutes,
+    end: draft.endMinutes,
+  });
+  if (twin) {
     throw new GasOpsError(
-      "overlap",
-      `Время пересекается с записью ${other.number} (${label}) на ${own.minutes} мин.`,
+      "duplicate",
+      `Такая запись уже есть: ${twin.number}, ${entryFrame(twin)}. Откройте её, чтобы исправить.`,
     );
   }
 }
@@ -307,21 +300,25 @@ export function weekReasons(snapshot: GasOpsSnapshot) {
   });
 }
 
-export function createGasOpsDemo(): GasOpsPort {
+export function createGasOpsDemo(
+  store: GasStore = demoStore,
+  /** Сброс к исходному набору есть только у вкладки: базу так не очищают */
+  reset: (() => GasOpsSnapshot) | null = resetState,
+): GasOpsPort {
   return {
-    snapshot: () => done(getSnapshot()),
+    snapshot: async () => done(await store.read()),
 
-    signIn: (userId) =>
+    signIn: async (userId) =>
       done(
-        update((s) => {
+        await store.update((s) => {
           const user = s.users.find((u) => u.id === userId);
           if (!user) throw new GasOpsError("not-found", "Такой роли нет.");
           return { ...s, actorId: user.id };
         }),
       ),
 
-    createEntry: (input: CreateEntryInput) => {
-      const snapshot = getSnapshot();
+    createEntry: async (input: CreateEntryInput) => {
+      const snapshot = await store.read();
       mustTimeRole(snapshot);
       // Повтор отправки с тем же ключом: та же запись, дубля нет (инвариант 1.4, 4)
       const key = input.clientKey?.trim() || null;
@@ -379,31 +376,34 @@ export function createGasOpsDemo(): GasOpsPort {
       validate(snapshot, draft);
       const placed = routed(snapshot, draft);
 
-      const next = update((s) => ({
-        ...s,
-        entries: [...s.entries, placed],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action:
-              placed.reviewedBy === AUTO_ACTOR
-                ? "entry.auto-confirm"
-                : input.submit
-                  ? "entry.submit"
-                  : "entry.draft",
-            entityId: draft.id,
-            detail: `${draft.number}: ${draft.minutes} мин, ${
-              s.objects.find((o) => o.id === draft.objectId)?.label ?? draft.objectId
-            }`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: [...s.entries, placed],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action:
+                placed.reviewedBy === AUTO_ACTOR
+                  ? "entry.auto-confirm"
+                  : input.submit
+                    ? "entry.submit"
+                    : "entry.draft",
+              entityId: draft.id,
+              detail: `${draft.number}: ${draft.minutes} мин, ${
+                s.objects.find((o) => o.id === draft.objectId)?.label ?? draft.objectId
+              }`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.entries.find((e) => e.id === draft.id)!);
     },
 
-    updateEntry: (input: UpdateEntryInput) => {
-      const snapshot = getSnapshot();
+    updateEntry: async (input: UpdateEntryInput) => {
+      const snapshot = await store.read();
       mustTimeRole(snapshot);
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
@@ -488,26 +488,29 @@ export function createGasOpsDemo(): GasOpsPort {
               changes,
             };
 
-      const next = update((s) => ({
-        ...s,
-        entries: s.entries.map((e) => (e.id === draft.id ? draft : e)),
-        reviews: review ? [review, ...s.reviews] : s.reviews,
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "entry.correct",
-            entityId: draft.id,
-            detail:
-              changes.map((c) => `${c.field}: ${c.from} → ${c.to}`).join("; ") || "без изменений",
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === draft.id ? draft : e)),
+          reviews: review ? [review, ...s.reviews] : s.reviews,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "entry.correct",
+              entityId: draft.id,
+              detail:
+                changes.map((c) => `${c.field}: ${c.from} → ${c.to}`).join("; ") || "без изменений",
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.entries.find((e) => e.id === draft.id)!);
     },
 
-    submitEntry: (id) => {
-      const snapshot = getSnapshot();
+    submitEntry: async (id) => {
+      const snapshot = await store.read();
       mustTimeRole(snapshot);
       const entry = mustFind(snapshot, id);
       mustBeOpen(snapshot, entry.day);
@@ -518,26 +521,29 @@ export function createGasOpsDemo(): GasOpsPort {
       validate(snapshot, draft);
       const placed = routed(snapshot, draft);
       const auto = placed.reviewedBy === AUTO_ACTOR;
-      const next = update((s) => ({
-        ...s,
-        entries: s.entries.map((e) => (e.id === id ? placed : e)),
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: auto ? "entry.auto-confirm" : "entry.submit",
-            entityId: id,
-            detail: auto
-              ? `${entry.number} подтверждена автоматически: режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}»`
-              : `${entry.number} отправлена на проверку`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === id ? placed : e)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: auto ? "entry.auto-confirm" : "entry.submit",
+              entityId: id,
+              detail: auto
+                ? `${entry.number} подтверждена автоматически: режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}»`
+                : `${entry.number} отправлена на проверку`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.entries.find((e) => e.id === id)!);
     },
 
-    review: (input: ReviewInput) => {
-      const snapshot = getSnapshot();
+    review: async (input: ReviewInput) => {
+      const snapshot = await store.read();
       mustTimeRole(snapshot);
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
@@ -549,6 +555,14 @@ export function createGasOpsDemo(): GasOpsPort {
         throw new GasOpsError(
           "comment-required",
           input.action === "reject" ? "Укажите причину отклонения." : "Напишите, что уточнить.",
+        );
+      }
+
+      // Ноль минут не попадёт в выработку: такую запись исправляют или отклоняют (ADR-061, 10)
+      if (input.action === "confirm" && entry.minutes === 0) {
+        throw new GasOpsError(
+          "bad-time",
+          "Запись с нулём минут принять нельзя: исправьте время или отклоните.",
         );
       }
 
@@ -595,25 +609,28 @@ export function createGasOpsDemo(): GasOpsPort {
         changes,
       };
 
-      const next = update((s) => ({
-        ...s,
-        entries: s.entries.map((e) => (e.id === draft.id ? draft : e)),
-        reviews: [review, ...s.reviews],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: `entry.${input.action}`,
-            entityId: draft.id,
-            detail: `${entry.number}: ${input.comment?.trim() ?? "без комментария"}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === draft.id ? draft : e)),
+          reviews: [review, ...s.reviews],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: `entry.${input.action}`,
+              entityId: draft.id,
+              detail: `${entry.number}: ${input.comment?.trim() ?? "без комментария"}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.entries.find((e) => e.id === draft.id)!);
     },
 
-    undoReview: (id) => {
-      const snapshot = getSnapshot();
+    undoReview: async (id) => {
+      const snapshot = await store.read();
       mustTimeRole(snapshot);
       const entry = mustFind(snapshot, id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
@@ -646,25 +663,28 @@ export function createGasOpsDemo(): GasOpsPort {
         comment: commentChange ? commentChange.from : null,
       };
 
-      const next = update((s) => ({
-        ...s,
-        entries: s.entries.map((e) => (e.id === id ? restored : e)),
-        reviews: s.reviews.filter((r) => r.id !== last.id),
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "entry.undo",
-            entityId: id,
-            detail: `${entry.number}: отменено «${ENTRY_STATUS_LABEL[entry.status]}», снова «${ENTRY_STATUS_LABEL[before]}»`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === id ? restored : e)),
+          reviews: s.reviews.filter((r) => r.id !== last.id),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "entry.undo",
+              entityId: id,
+              detail: `${entry.number}: отменено «${ENTRY_STATUS_LABEL[entry.status]}», снова «${ENTRY_STATUS_LABEL[before]}»`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.entries.find((e) => e.id === id)!);
     },
 
-    setEstimate: (input) => {
-      const snapshot = getSnapshot();
+    setEstimate: async (input) => {
+      const snapshot = await store.read();
       mustTimeRole(snapshot);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       if (actor?.role === "foreman") {
@@ -686,7 +706,7 @@ export function createGasOpsDemo(): GasOpsPort {
         note: input.note ?? "Ручной ввод суммы по объекту без сметы",
         source: "mock",
       };
-      const next = update((s) => {
+      const next = await store.update((s) => {
         const applied = applyCost(
           {
             ...s,
@@ -708,12 +728,12 @@ export function createGasOpsDemo(): GasOpsPort {
             ...s.audit,
           ],
         };
-      });
+      }, snapshot);
       return done(next.estimates.find((e) => e.id === estimate.id)!);
     },
 
-    addEstimateVersion: (input) => {
-      const snapshot = getSnapshot();
+    addEstimateVersion: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Сметы загружает менеджер или сметчик.");
       const { parsed } = input;
       const version: EstimateVersion = {
@@ -735,25 +755,89 @@ export function createGasOpsDemo(): GasOpsPort {
         confirmedBy: null,
         confirmedAt: null,
       };
-      update((s) => ({
-        ...s,
-        estimateVersions: [version, ...s.estimateVersions],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "estimate.upload",
-            entityId: version.id,
-            // Имя файла в журнал не пишется: в именах смет адреса объектов
-            detail: `Смета загружена, версия ${version.version}, замечаний ${parsed.issues.length}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          estimateVersions: [version, ...s.estimateVersions],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.upload",
+              entityId: version.id,
+              // Имя файла в журнал не пишется: в именах смет адреса объектов
+              detail: `Смета загружена, версия ${version.version}, замечаний ${parsed.issues.length}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(version);
     },
 
-    linkEstimateVersion: (input) => {
-      const snapshot = getSnapshot();
+    discardEstimateVersion: async (id) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Сметы загружает менеджер или сметчик.");
+      const version = snapshot.estimateVersions.find((v) => v.id === id);
+      if (!version) throw new GasOpsError("not-found", "Версия сметы не найдена.");
+      if (version.confirmedAt !== null) {
+        throw new GasOpsError(
+          "not-allowed",
+          "Версия подтверждена: по ней посчитана стоимость. Загрузите новую версию.",
+        );
+      }
+      await store.update(
+        (s) => ({
+          ...s,
+          estimateVersions: s.estimateVersions.filter((v) => v.id !== id),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.discard",
+              entityId: id,
+              detail: `Импорт сметы отменён, версия ${version.version}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(undefined);
+    },
+
+    setUserRole: async (input) => {
+      const snapshot = await store.read();
+      const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      if (actor?.role !== "admin") {
+        throw new GasOpsError("not-allowed", "Роли меняет администратор.");
+      }
+      if (input.userId === actor.id) {
+        throw new GasOpsError("not-allowed", "Свою роль администратор не меняет.");
+      }
+      const user = snapshot.users.find((u) => u.id === input.userId);
+      if (!user) throw new GasOpsError("not-found", "Пользователь не найден.");
+      const next: User = { ...user, role: input.role };
+      await store.update(
+        (s) => ({
+          ...s,
+          users: s.users.map((u) => (u.id === user.id ? next : u)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "user.role",
+              entityId: user.id,
+              detail: `${user.name}: ${ROLE_LABEL[user.role]} → ${ROLE_LABEL[input.role]}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(next);
+    },
+
+    linkEstimateVersion: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Привязку подтверждает менеджер или сметчик.");
       const v = mustVersion(snapshot, input.id);
       if (v.confirmedAt) throw new GasOpsError("already-reviewed", "Версия уже подтверждена.");
@@ -767,46 +851,52 @@ export function createGasOpsDemo(): GasOpsPort {
           snapshot.estimateVersions.filter((x) => x.id !== v.id),
         ),
       };
-      const next = update((s) => ({
-        ...s,
-        estimateVersions: s.estimateVersions.map((x) => (x.id === v.id ? linked : x)),
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "estimate.link",
-            entityId: v.id,
-            detail: `Смета привязана к объекту ${object.code}, версия ${linked.version}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          estimateVersions: s.estimateVersions.map((x) => (x.id === v.id ? linked : x)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.link",
+              entityId: v.id,
+              detail: `Смета привязана к объекту ${object.code}, версия ${linked.version}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(mustVersion(next, v.id));
     },
 
-    reviewEstimateIssues: (id) => {
-      const snapshot = getSnapshot();
+    reviewEstimateIssues: async (id) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Замечания проверяет сметчик или менеджер.");
       const v = mustVersion(snapshot, id);
-      const next = update((s) => ({
-        ...s,
-        estimateVersions: s.estimateVersions.map((x) =>
-          x.id === id ? { ...x, issuesReviewedBy: s.actorId } : x,
-        ),
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "estimate.issues-reviewed",
-            entityId: id,
-            detail: `Замечания разбора проверены: ${v.issues.length}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          estimateVersions: s.estimateVersions.map((x) =>
+            x.id === id ? { ...x, issuesReviewedBy: s.actorId } : x,
+          ),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.issues-reviewed",
+              entityId: id,
+              detail: `Замечания разбора проверены: ${v.issues.length}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(mustVersion(next, id));
     },
 
-    confirmEstimateVersion: (id) => {
-      const snapshot = getSnapshot();
+    confirmEstimateVersion: async (id) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Смету подтверждает менеджер или сметчик.");
       const v = mustVersion(snapshot, id);
       const ready = canConfirmVersion(v);
@@ -836,7 +926,7 @@ export function createGasOpsDemo(): GasOpsPort {
       };
       let changed = 0;
       let stale = 0;
-      const next = update((s) => {
+      const next = await store.update((s) => {
         const withVersion: GasOpsSnapshot = {
           ...s,
           estimateVersions: s.estimateVersions.map((x) =>
@@ -864,7 +954,7 @@ export function createGasOpsDemo(): GasOpsPort {
             ...s.audit,
           ],
         };
-      });
+      }, snapshot);
       return done({
         version: mustVersion(next, id),
         estimate: next.estimates.find((e) => e.id === estimate.id)!,
@@ -873,8 +963,8 @@ export function createGasOpsDemo(): GasOpsPort {
       });
     },
 
-    confirmCostRule: (input) => {
-      const snapshot = getSnapshot();
+    confirmCostRule: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Правило подтверждает сметчик или менеджер.");
       const rule: CostRule = {
         id: input.objectId ? `rule-${input.objectId}` : "rule-company",
@@ -884,49 +974,55 @@ export function createGasOpsDemo(): GasOpsPort {
         confirmedBy: snapshot.actorId,
         confirmedAt: nowOf(snapshot),
       };
-      const next = update((s) => ({
-        ...s,
-        costRules: [...s.costRules.filter((r) => r.objectId !== input.objectId), rule],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "cost-rule.confirm",
-            entityId: rule.id,
-            detail: `${input.objectId ? "Для объекта" : "Для компании"}: ${ruleFormula(rule.terms)}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          costRules: [...s.costRules.filter((r) => r.objectId !== input.objectId), rule],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "cost-rule.confirm",
+              entityId: rule.id,
+              detail: `${input.objectId ? "Для объекта" : "Для компании"}: ${ruleFormula(rule.terms)}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.costRules.find((r) => r.id === rule.id)!);
     },
 
-    applySchedule: (input) => {
-      const snapshot = getSnapshot();
+    applySchedule: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "График загружает менеджер.");
       const previous = snapshot.schedule;
-      update((s) => ({
-        ...s,
-        schedule: {
-          rows: input.rows,
-          fileName: input.fileName,
-          appliedAt: nowOf(s),
-          appliedBy: s.actorId,
-        },
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "schedule.apply",
-            entityId: "schedule",
-            detail: `График недели применён: строк ${input.rows.length}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          schedule: {
+            rows: input.rows,
+            fileName: input.fileName,
+            appliedAt: nowOf(s),
+            appliedBy: s.actorId,
+          },
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "schedule.apply",
+              entityId: "schedule",
+              detail: `График недели применён: строк ${input.rows.length}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(previous);
     },
 
-    restoreSchedule: (previous) => {
-      update((s) => ({
+    restoreSchedule: async (previous) => {
+      await store.update((s) => ({
         ...s,
         schedule: previous,
         audit: [
@@ -942,56 +1038,62 @@ export function createGasOpsDemo(): GasOpsPort {
       return done(undefined);
     },
 
-    setBrigadeWeek: (input) => {
-      const snapshot = getSnapshot();
+    setBrigadeWeek: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Отметки бригад ставит менеджер.");
       const brigade = snapshot.brigades.find((b) => b.id === input.brigadeId);
       if (!brigade) throw new GasOpsError("not-found", "Бригада не найдена.");
-      const next = update((s) => ({
-        ...s,
-        brigadeAvailability: setBrigadeStatus(s.brigadeAvailability, input),
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "brigade.week",
-            entityId: brigade.id,
-            detail: `${brigade.code}: ${input.status === "working" ? "работает" : "в отпуске"} на неделе с ${input.weekFrom}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          brigadeAvailability: setBrigadeStatus(s.brigadeAvailability, input),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "brigade.week",
+              entityId: brigade.id,
+              detail: `${brigade.code}: ${input.status === "working" ? "работает" : "в отпуске"} на неделе с ${input.weekFrom}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.brigadeAvailability);
     },
 
-    setReviewSettings: (input) => {
-      const snapshot = getSnapshot();
+    setReviewSettings: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Режим проверки меняет менеджер или администратор.");
       const threshold = Math.min(100, Math.max(50, Math.round(input.thresholdPercent)));
       const available = modeAvailability(input.mode, accuracyOf(snapshot.reviews), threshold);
       if (!available.ok) throw new GasOpsError("mode-unavailable", available.reason);
-      const next = update((s) => ({
-        ...s,
-        reviewSettings: {
-          mode: input.mode,
-          thresholdPercent: threshold,
-          changedBy: s.actorId,
-          changedAt: nowOf(s),
-        },
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "review.mode",
-            entityId: "review-settings",
-            detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          reviewSettings: {
+            mode: input.mode,
+            thresholdPercent: threshold,
+            changedBy: s.actorId,
+            changedAt: nowOf(s),
+          },
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "review.mode",
+              entityId: "review-settings",
+              detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.reviewSettings);
     },
 
-    finalCheck: () => {
-      const snapshot = getSnapshot();
+    finalCheck: async () => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Итоговую проверку проводит менеджер.");
       const list = finalCheckList(snapshot.entries, snapshot.finalChecks, snapshot.week.days);
       const check: FinalCheck = {
@@ -1001,24 +1103,27 @@ export function createGasOpsDemo(): GasOpsPort {
         by: snapshot.actorId,
         entryIds: list.map((e) => e.id),
       };
-      update((s) => ({
-        ...s,
-        finalChecks: [check, ...s.finalChecks],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "report.final-check",
-            entityId: check.id,
-            detail: `Итоговая проверка: подтверждено записей без ручного решения ${list.length}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          finalChecks: [check, ...s.finalChecks],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "report.final-check",
+              entityId: check.id,
+              detail: `Итоговая проверка: подтверждено записей без ручного решения ${list.length}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(check);
     },
 
-    issueReport: () => {
-      const snapshot = getSnapshot();
+    issueReport: async () => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Отчёт сдаёт менеджер.");
       const left = finalCheckList(snapshot.entries, snapshot.finalChecks, snapshot.week.days);
       if (left.length > 0) {
@@ -1039,26 +1144,29 @@ export function createGasOpsDemo(): GasOpsPort {
         stale: false,
         staleReason: null,
       };
-      update((s) => ({
-        ...s,
-        reportIssues: [issue, ...s.reportIssues],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "report.issue",
-            entityId: issue.id,
-            detail: `Отчёт недели сдан: ${issue.totalRub} ₽, объектов ${issue.objectIds.length}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          reportIssues: [issue, ...s.reportIssues],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "report.issue",
+              entityId: issue.id,
+              detail: `Отчёт недели сдан: ${issue.totalRub} ₽, объектов ${issue.objectIds.length}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(issue);
     },
 
-    fieldSnapshot: (brigadeId) => done(fieldFor(getSnapshot(), brigadeId)),
+    fieldSnapshot: async (brigadeId) => done(fieldFor(await store.read(), brigadeId)),
 
-    answerClarify: (input) => {
-      const snapshot = getSnapshot();
+    answerClarify: async (input) => {
+      const snapshot = await store.read();
       mustTimeRole(snapshot);
       const entry = mustFind(snapshot, input.id);
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
@@ -1087,25 +1195,28 @@ export function createGasOpsDemo(): GasOpsPort {
           },
         ],
       };
-      const next = update((s) => ({
-        ...s,
-        entries: s.entries.map((e) => (e.id === entry.id ? draft : e)),
-        reviews: [review, ...s.reviews],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "entry.answer",
-            entityId: entry.id,
-            detail: `${entry.number}: ${text}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === entry.id ? draft : e)),
+          reviews: [review, ...s.reviews],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "entry.answer",
+              entityId: entry.id,
+              detail: `${entry.number}: ${text}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(next.entries.find((e) => e.id === entry.id)!);
     },
 
-    closeWeek: (input) => {
-      const snapshot = getSnapshot();
+    closeWeek: async (input) => {
+      const snapshot = await store.read();
       mustDirector(snapshot, "Неделю закрывает руководитель.");
       const state = periodState(snapshot.periods, snapshot.week.from);
       if (state.closed) {
@@ -1138,24 +1249,27 @@ export function createGasOpsDemo(): GasOpsPort {
         reopenedBy: null,
         reopenReason: null,
       };
-      update((s) => ({
-        ...s,
-        periods: [...s.periods, version],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "period.close",
-            entityId: version.id,
-            detail: `Неделя ${version.weekFrom} закрыта, версия v${version.version}: ${version.totals.accruedRub} ₽, записей ${version.totals.count}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          periods: [...s.periods, version],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "period.close",
+              entityId: version.id,
+              detail: `Неделя ${version.weekFrom} закрыта, версия v${version.version}: ${version.totals.accruedRub} ₽, записей ${version.totals.count}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(version);
     },
 
-    reopenWeek: (input) => {
-      const snapshot = getSnapshot();
+    reopenWeek: async (input) => {
+      const snapshot = await store.read();
       mustDirector(snapshot, "Неделю переоткрывает руководитель.");
       const reason = input.reason.trim();
       if (!reason) throw new GasOpsError("comment-required", "Укажите причину переоткрытия.");
@@ -1167,24 +1281,27 @@ export function createGasOpsDemo(): GasOpsPort {
         reopenedBy: snapshot.actorId,
         reopenReason: reason,
       };
-      update((s) => ({
-        ...s,
-        periods: s.periods.map((p) => (p.id === closed.id ? reopened : p)),
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "period.reopen",
-            entityId: closed.id,
-            detail: `Неделя ${closed.weekFrom} переоткрыта, v${closed.version} сохранена: ${reason}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          periods: s.periods.map((p) => (p.id === closed.id ? reopened : p)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "period.reopen",
+              entityId: closed.id,
+              detail: `Неделя ${closed.weekFrom} переоткрыта, v${closed.version} сохранена: ${reason}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(reopened);
     },
 
-    setRate: (input) => {
-      const snapshot = getSnapshot();
+    setRate: async (input) => {
+      const snapshot = await store.read();
       mustDirector(snapshot, "Ставки задаёт руководитель или администратор.");
       if (!Number.isFinite(input.rubPerHour) || input.rubPerHour <= 0) {
         throw new GasOpsError("bad-time", "Ставка должна быть больше нуля.");
@@ -1205,29 +1322,32 @@ export function createGasOpsDemo(): GasOpsPort {
       const same = (r: Rate) =>
         r.employeeId === rate.employeeId &&
         (rate.employeeId !== null || r.brigadeId === rate.brigadeId);
-      update((s) => ({
-        ...s,
-        rates: [
-          ...s.rates.map((r) =>
-            same(r) && r.to === null && r.from < input.from ? { ...r, to: until } : r,
-          ),
-          rate,
-        ],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "rate.set",
-            entityId: rate.id,
-            detail: `Ставка ${rate.rubPerHour} ₽/ч с ${rate.from}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          rates: [
+            ...s.rates.map((r) =>
+              same(r) && r.to === null && r.from < input.from ? { ...r, to: until } : r,
+            ),
+            rate,
+          ],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "rate.set",
+              entityId: rate.id,
+              detail: `Ставка ${rate.rubPerHour} ₽/ч с ${rate.from}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(rate);
     },
 
-    addCrewMember: (input) => {
-      const snapshot = getSnapshot();
+    addCrewMember: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Состав бригады меняет менеджер или администратор.");
       const name = input.name.trim();
       if (!name) throw new GasOpsError("comment-required", "Укажите имя.");
@@ -1241,24 +1361,27 @@ export function createGasOpsDemo(): GasOpsPort {
         to: null,
         source: "mock",
       };
-      update((s) => ({
-        ...s,
-        crew: [...s.crew, member],
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "crew.add",
-            entityId: member.id,
-            detail: `${name} в составе с ${input.from}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          crew: [...s.crew, member],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "crew.add",
+              entityId: member.id,
+              detail: `${name} в составе с ${input.from}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(member);
     },
 
-    endCrewMember: (input) => {
-      const snapshot = getSnapshot();
+    endCrewMember: async (input) => {
+      const snapshot = await store.read();
       mustManager(snapshot, "Состав бригады меняет менеджер или администратор.");
       const member = snapshot.crew.find((m) => m.id === input.id);
       if (!member) throw new GasOpsError("not-found", "Человек не найден в составе.");
@@ -1266,24 +1389,31 @@ export function createGasOpsDemo(): GasOpsPort {
         throw new GasOpsError("bad-time", "Дата выхода раньше даты входа в состав.");
       }
       const ended: CrewMember = { ...member, to: input.to };
-      update((s) => ({
-        ...s,
-        crew: s.crew.map((m) => (m.id === member.id ? ended : m)),
-        audit: [
-          audit(s, {
-            actor: s.actorId,
-            action: "crew.end",
-            entityId: member.id,
-            detail: `${member.name} в составе по ${input.to}`,
-          }),
-          ...s.audit,
-        ],
-      }));
+      await store.update(
+        (s) => ({
+          ...s,
+          crew: s.crew.map((m) => (m.id === member.id ? ended : m)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "crew.end",
+              entityId: member.id,
+              detail: `${member.name} в составе по ${input.to}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
       return done(ended);
     },
 
-    reset: () => done(resetState()),
+    reset: async () => {
+      if (!reset) throw new GasOpsError("not-allowed", "Сброс доступен только в демонстрации.");
+      return reset();
+    },
   };
 }
 
-export const gasOps = createGasOpsDemo();
+/** Порт вкладки: действие по устаревшему снимку повторяется на свежем */
+export const gasOps = retrying(createGasOpsDemo());

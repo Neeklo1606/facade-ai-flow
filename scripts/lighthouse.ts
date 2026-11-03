@@ -21,6 +21,7 @@ import lighthouse from "lighthouse";
 import desktopConfig from "lighthouse/core/config/desktop-config.js";
 import * as chromeLauncher from "chrome-launcher";
 import puppeteer, { type Browser } from "puppeteer-core";
+import { getServerSnapshot } from "../src/adapters/gas-ops/state";
 
 const base = process.env["LH_BASE"] ?? "http://localhost:4630";
 const runs = Number(process.env["LH_RUNS"] ?? "3");
@@ -132,7 +133,15 @@ try {
    * Телефон (этап D, D5): экран входа демо и «Сегодня» прораба мобильным профилем Lighthouse.
    * Доступность — 100: это экраны, с которых клиент начинает показ.
    */
-  const mobile: { path: string; persona: string | null }[] = [
+  /*
+   * Приёмка табеля T8: «Сегодня» бригадира. Роль `/gas` живёт в снимке вкладки, поэтому
+   * снимок демо-контура с бригадиром кладётся в localStorage до загрузки страницы
+   */
+  const foremanTab = JSON.stringify({
+    version: 7,
+    snapshot: { ...getServerSnapshot(), actorId: "u-foreman-1" },
+  });
+  const mobile: { path: string; persona: string | null; gas?: string }[] = [
     { path: "/", persona: null },
     // Вход в демо с сайта (шаг L8): страница сайта, отрисованная на сервере
     { path: "/demo", persona: null },
@@ -141,6 +150,8 @@ try {
     { path: "/gas", persona: null },
     // «Обзор» руководителя (ADR-052): стартовый экран, порог скорости 2,5 с из задачи владельца
     { path: "/gas/overview", persona: null },
+    // «Сегодня» бригадира (T8): первый экран до 2,5 с на 4G — порог снимается на опубликованном адресе
+    { path: "/gas/brigade", persona: null, gas: foremanTab },
   ];
   /*
    * Производительность телефона печатается, но не держит порог: локальный node-сервер отдаёт
@@ -152,7 +163,7 @@ try {
     "best-practices": 0.9,
     performance: 0,
   };
-  for (const { path, persona } of mobile) {
+  for (const { path, persona, gas } of mobile) {
     const page = await browser.newPage();
     await page.evaluateOnNewDocument((id: string | null) => {
       if (!id) return;
@@ -160,6 +171,13 @@ try {
       sessionStorage.setItem("neeklo-fieldops-start-applied", "1");
       sessionStorage.setItem("neeklo-fieldops-persona", id);
     }, persona);
+    if (gas) {
+      await page.evaluateOnNewDocument((value: string) => {
+        localStorage.setItem("neeklo-gas-ops-v1:public", value);
+        // Тур при первом входе роли закрыл бы экран: он отмечен просмотренным, как в e2e
+        localStorage.setItem("gaika-tour-seen", JSON.stringify(["foreman", "manager", "director"]));
+      }, gas);
+    }
     const result = await lighthouse(
       base + path,
       { output: "json", logLevel: "error", onlyCategories: Object.keys(mobileThresholds) },

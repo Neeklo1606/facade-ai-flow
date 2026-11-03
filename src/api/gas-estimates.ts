@@ -164,6 +164,8 @@ export function useGasEstimateActions() {
         run((port) => port.addEstimateVersion(input)),
       [run],
     ),
+    /** Отмена импорта: неподтверждённая версия удаляется (ADR-061, 12) */
+    discard: useCallback((id: string) => run((port) => port.discardEstimateVersion(id)), [run]),
     link: useCallback(
       (input: { id: string; objectId: string }) => run((port) => port.linkEstimateVersion(input)),
       [run],
@@ -331,6 +333,62 @@ export { REQUIRED_FIELDS, SCHEDULE_FIELD_LABEL } from "@/domain/gas-ops/schedule
 export type { ColumnMap, ScheduleField, ScheduleRow } from "@/domain/gas-ops/schedule";
 
 /** Разбор файла графика грузится только после выбора файла (ADR-053, кусок по требованию) */
+/** Все листы книги Excel для мастера импорта (ADR-061, 12): файл читается в браузере */
+export async function readExcelSheets(
+  file: File,
+): Promise<
+  | { ok: true; sheets: import("@/domain/gas-ops/estimate-labels").SheetGrid[] }
+  | { ok: false; message: string }
+> {
+  const { readEstimateFile, EstimateFileError } = await import("@/adapters/gas-ops/estimate-file");
+  try {
+    const sheets = await readEstimateFile(file);
+    if (!sheets.length) return { ok: false, message: "В файле нет листов." };
+    return { ok: true, sheets };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof EstimateFileError ? error.message : "Файл не прочитался.",
+    };
+  }
+}
+
+/** Подсказка объекта сметы по имени файла: её подтверждает человек */
+export async function suggestEstimateObject(
+  fileName: string,
+  objects: WorkObject[],
+): Promise<string | null> {
+  const { suggestObject } = await import("@/domain/gas-ops/work-cost");
+  return suggestObject(fileName, objects);
+}
+
+/** «Скачать шаблон (.xlsx)» мастера импорта */
+export async function downloadTemplate(
+  rows: (string | number | null)[][],
+  fileName: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { writeTemplate } = await import("@/adapters/gas-ops/estimate-file");
+  try {
+    await writeTemplate(rows, fileName);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Шаблон не собрался." };
+  }
+}
+
+/** Правила мастера импорта: грузятся вместе с чтением файла */
+export function loadImportTools() {
+  return Promise.all([
+    import("@/domain/gas-ops/import-wizard"),
+    import("@/domain/gas-ops/estimate-parse"),
+    import("@/domain/gas-ops/schedule-import"),
+  ]).then(([wizard, estimate, schedule]) => ({ ...wizard, ...estimate, ...schedule }));
+}
+export type ImportTools = Awaited<ReturnType<typeof loadImportTools>>;
+export type { ImportCheck, ColumnOption } from "@/domain/gas-ops/import-wizard";
+export type { SheetGrid } from "@/domain/gas-ops/estimate-labels";
+export { ESTIMATE_TEMPLATE, SCHEDULE_TEMPLATE } from "@/domain/gas-ops/import-wizard";
+
 export function loadScheduleTools() {
   return import("@/domain/gas-ops/schedule-import");
 }

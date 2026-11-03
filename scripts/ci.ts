@@ -71,6 +71,12 @@ const steps: Step[] = [
   },
   { name: "Сквозные тесты: роли, EMBER, axe, консоль", cmd: ["bun", "run", "test:e2e"] },
   { name: "Lighthouse", cmd: ["bun", "run", "lighthouse"], server: true },
+  // Порог T8: первый экран бригадира на 4G в условиях хостинга, HTTP/2 со сжатием (ADR-061, 16)
+  {
+    name: "Первый экран бригадира: 4G, HTTP/2",
+    cmd: ["bun", "run", "perf:first-screen"],
+    server: true,
+  },
 ];
 
 const results: { name: string; code: number; seconds: number }[] = [];

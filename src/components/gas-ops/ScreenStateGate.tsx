@@ -83,7 +83,7 @@ const COPY: Partial<
     empty: "Вопросов нет",
     text: "Все вопросы к согласованию закрыты",
     action: "Открыть отчёт",
-    to: "/gas/reports",
+    to: "/gas/tabel",
   },
 };
 

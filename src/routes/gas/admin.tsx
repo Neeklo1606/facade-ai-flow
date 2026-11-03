@@ -1,11 +1,20 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ListRow } from "@/components/ui/kit/list";
 import { Segmented } from "@/components/ui/kit/controls";
-import { GrowthLine, ScreenHint } from "@/components/gas-ops/page";
-import { ROLE_LABEL, useGasAudit, useGasUsers, type Role } from "@/api/gas-ops";
-import { roleInitial } from "@/lib/gas-ops/screens";
+import { GrowthLine } from "@/components/gas-ops/page";
+import {
+  ROLE_LABEL,
+  fmtRub,
+  useGasAudit,
+  useGasExportProfile,
+  useGasUsers,
+  type Role,
+  type SheetProvider,
+} from "@/api/gas-ops";
 import { setMetricOrder, useMetricOrder } from "@/lib/gas-ops/report-view";
 import {
   REVIEW_MODE_HINT,
@@ -15,6 +24,7 @@ import {
   type ReviewMode,
 } from "@/api/gas-estimates";
 import { useGasActor } from "@/api/gas-ops";
+import { REMINDER_TIME_KEY, useSendReminders } from "@/api/gas-assistant";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -35,13 +45,23 @@ export const Route = createFileRoute("/gas/admin")({
   component: AdminPage,
 });
 
-/** Что роль может делать: таблица прав, которую проверяет сервер в рабочем контуре */
-const RIGHTS: { role: Role; rights: string }[] = [
-  { role: "foreman", rights: "Вводит время по разрешённым объектам, правит до проверки" },
-  { role: "manager", rights: "Проверяет, исправляет, подтверждает, ведёт стоимость и отчёт" },
-  { role: "admin", rights: "Доступы, справочники, настройки, журналы" },
-  { role: "director", rights: "Читает утверждённые отчёты" },
+/**
+ * «Доступы» (4.7): матрица прав по ролям. Те же правила держит порт (`adapters/gas-ops/demo.ts`
+ * и сервер в рабочем контуре): здесь только их запись для человека
+ */
+const ACCESS_ROLES: Role[] = ["foreman", "manager", "director", "admin"];
+const ACCESS: { right: string; roles: Role[] }[] = [
+  { right: "Вносить время по разрешённым объектам", roles: ["foreman", "manager", "admin"] },
+  { right: "Проверять, принимать и возвращать записи", roles: ["manager", "director", "admin"] },
+  { right: "Исправлять записи с причиной", roles: ["manager", "admin"] },
+  { right: "Видеть суммы и доходность", roles: ["manager", "director", "admin"] },
+  { right: "Загружать сметы и подтверждать стоимость", roles: ["manager", "admin"] },
+  { right: "Закрывать и переоткрывать неделю", roles: ["director", "admin"] },
+  { right: "Менять роли пользователей", roles: ["admin"] },
 ];
+
+/** Облачная таблица — настройка вида: подключения нет, выбор запоминается в этом браузере */
+const SHEET_KEY = "gaika-cloud-sheet";
 
 /** Правила, которые согласованы и работают в расчёте */
 const RULES = [
@@ -70,7 +90,12 @@ const OPEN_QUESTIONS = [
 ];
 
 const CONNECTIONS = [
-  { name: "Бот MAX", detail: "Приём времени от бригадиров", state: "не подключён" },
+  {
+    name: "Бот MAX",
+    detail:
+      "Приём времени от бригадиров. Токен хранит администратор сервера; проверка вебхука и тестовое сообщение появятся с подключением",
+    state: "не подключён",
+  },
   { name: "PostgreSQL", detail: "Источник истины по ТЗ", state: "не подключён" },
   { name: "Google или Яндекс Таблицы", detail: "Представление отчёта", state: "не выбрано" },
   { name: "VPS Ubuntu 24.04 и Docker", detail: "Размещение", state: "не развёрнут" },
@@ -102,38 +127,76 @@ function AdminPage() {
   const users = useGasUsers();
   const audit = useGasAudit();
   const order = useMetricOrder();
+  // Время напоминаний — настройка вида, пока MAX не подключён: живёт в этом браузере
+  const [reminder, setReminder] = useState(() => {
+    try {
+      return localStorage.getItem(REMINDER_TIME_KEY) ?? "18:00";
+    } catch {
+      return "18:00";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(REMINDER_TIME_KEY, reminder);
+    } catch {
+      // без хранилища выбор живёт до перезагрузки
+    }
+  }, [reminder]);
+  const sendReminders = useSendReminders();
 
   return (
     <div className="flex flex-col gap-section">
       <div>
-        <ScreenHint screen="admin" className="mb-0" />
         <GrowthLine />
       </div>
 
       <Group
-        title="Пользователи и роли"
-        note="Права проверяет сервер: скрытый пункт меню защитой не является."
+        id="access"
+        title="Доступы"
+        note="Права проверяет сервер: скрытый пункт меню защитой не является. Роли людей меняются в «Сотрудниках»."
       >
-        <ul className={LIST}>
-          {RIGHTS.map((item) => {
-            const user = users.find((u) => u.role === item.role);
-            return (
-              <li key={item.role}>
-                <ListRow
-                  leading={
-                    <span className="avatar" aria-hidden>
-                      {roleInitial(item.role)}
+        <div className="surface-1 overflow-x-auto">
+          <table className="w-full text-body" aria-label="Доступы по ролям">
+            <thead>
+              <tr className="border-b border-line text-left text-meta text-text-3">
+                <th scope="col" className="px-row py-2 font-normal">
+                  Право
+                </th>
+                {ACCESS_ROLES.map((role) => (
+                  <th key={role} scope="col" className="px-2 py-2 text-center font-normal">
+                    {ROLE_LABEL[role]}
+                    <span className="block text-text-3">
+                      {users.filter((u) => u.role === role).length} чел.
                     </span>
-                  }
-                  title={ROLE_LABEL[item.role]}
-                  meta={item.rights}
-                  valueMeta={user?.name}
-                />
-              </li>
-            );
-          })}
-        </ul>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ACCESS.map((item) => (
+                <tr key={item.right} className="border-t border-line">
+                  <th scope="row" className="px-row py-2 text-left font-normal">
+                    {item.right}
+                  </th>
+                  {ACCESS_ROLES.map((role) => (
+                    <td key={role} className="px-2 py-2 text-center">
+                      {item.roles.includes(role) ? (
+                        <span aria-label="есть">✓</span>
+                      ) : (
+                        <span className="text-text-3" aria-label="нет">
+                          –
+                        </span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Group>
+
+      <ExportGroup />
 
       <ReviewModeGroup />
 
@@ -170,13 +233,51 @@ function AdminPage() {
         </ul>
       </Group>
 
-      <Group title="Подключения" note="Ни одно не подключено: прототип работает на моках.">
+      <Group
+        id="connections"
+        title="Подключения"
+        note="Ни одно не подключено: прототип работает на моках. В MAX сообщения не отправляются."
+      >
         <ul className={LIST}>
           {CONNECTIONS.map((item) => (
             <li key={item.name}>
               <ListRow title={item.name} meta={item.detail} valueMeta={item.state} compact />
             </li>
           ))}
+          <li className="flex flex-wrap items-center justify-between gap-3 px-row py-row">
+            <span className="min-w-0">
+              <span className="block text-body">Время напоминаний бригадирам</span>
+              <span className="block text-meta text-text-3">
+                Тем, у кого по графику нет записи за день, и менеджеру сводка. В MAX уйдёт, когда
+                канал подключат. В демо они приходят в колокольчик и ленту бота этой вкладки
+              </span>
+            </span>
+            <span className="flex flex-wrap items-center gap-2">
+              <label className="text-meta text-text-2">
+                <span className="sr-only">Время напоминаний</span>
+                <input
+                  type="time"
+                  value={reminder}
+                  onChange={(event) => setReminder(event.target.value)}
+                  className="h-btn rounded-control border border-field-line bg-panel-2 px-3 text-body tnum focus-ring"
+                />
+              </label>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  // Демо: момент проверки — время напоминания сегодняшнего дня недели
+                  const count = await sendReminders(reminder);
+                  if (count)
+                    toast.success(`Отправлено напоминаний: ${count}`, {
+                      description: "Демо: в колокольчике и в ленте бота, в MAX не отправлено",
+                    });
+                  else toast("Напоминать некому: всё уже отправлено или записи есть");
+                }}
+              >
+                Проверить напоминания сейчас
+              </Button>
+            </span>
+          </li>
         </ul>
       </Group>
 
@@ -186,9 +287,13 @@ function AdminPage() {
             {audit.map((row) => (
               <li key={row.id} className="flex items-start justify-between gap-3 px-row py-row">
                 <span className="min-w-0">
-                  <span className="block text-body">{row.action}</span>
-                  <span className="block text-meta text-text-3">
-                    {row.actor} · {row.detail}
+                  <span className="block text-body">
+                    {users.find((u) => u.id === row.actor)?.name ?? row.actor}
+                    <span className="text-text-3"> · {row.action}</span>
+                  </span>
+                  <span className="block text-meta text-text-2">
+                    {/* «было → стало», если действие его пишет */}
+                    {row.detail}
                   </span>
                 </span>
                 <span className="shrink-0 text-meta text-text-3 tnum">
@@ -273,6 +378,95 @@ function ReviewModeGroup() {
           onChange={(value) => (canChange ? void choose(settings.mode, Number(value)) : undefined)}
           options={THRESHOLDS.map((t) => ({ value: String(t), label: `${t}%` }))}
         />
+      </div>
+    </Group>
+  );
+}
+
+/**
+ * «Выгрузка» (4.7): профиль Excel заказчика с шапкой, проверка обязательных столбцов и итога
+ * с экраном, выбор облачной таблицы как настройка (подключения нет, D12)
+ */
+function ExportGroup() {
+  const { profile, headers, check } = useGasExportProfile();
+  const [provider, setProvider] = useState<SheetProvider | null>(() => {
+    try {
+      const saved = localStorage.getItem(SHEET_KEY);
+      return saved === "google" || saved === "yandex" ? saved : null;
+    } catch {
+      return null;
+    }
+  });
+  const choose = (next: SheetProvider) => {
+    setProvider(next);
+    try {
+      localStorage.setItem(SHEET_KEY, next);
+    } catch {
+      // выбор живёт до перезагрузки
+    }
+  };
+  return (
+    <Group id="export" title="Выгрузка" note="Профиль файла, по которому собирается Excel недели.">
+      <div className="surface-1 flex flex-col gap-3 p-card">
+        <p className="text-body-strong">
+          {profile.name} · лист «{profile.sheet}»
+        </p>
+        <div className="overflow-x-auto">
+          <table className="text-meta" aria-label="Шапка дня в файле">
+            <tbody>
+              <tr>
+                {headers.map((h) => (
+                  <td key={h} className="border border-line px-2 py-1">
+                    {h}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p
+          data-testid="export-profile-check"
+          className={`rounded-control px-3 py-2 text-meta ${check.matches ? "bg-mint-soft text-mint" : "bg-warn-bg text-warn"}`}
+        >
+          {check.missing.length
+            ? `Нет обязательных столбцов: ${check.missing.join(", ")}`
+            : "Обязательные столбцы на месте."}{" "}
+          {check.fileTotalRub === check.screenTotalRub
+            ? `Итог файла сходится с экраном: ${fmtRub(check.fileTotalRub)}.`
+            : `Итог файла ${fmtRub(check.fileTotalRub)}, на экране ${fmtRub(check.screenTotalRub)}.`}
+        </p>
+        <div>
+          <p className="text-meta text-text-2">Облачная таблица (не подключено)</p>
+          <div
+            role="radiogroup"
+            aria-label="Облачная таблица"
+            className="mt-1 flex flex-wrap gap-2"
+          >
+            {(
+              [
+                ["google", "Google Таблицы"],
+                ["yandex", "Яндекс Таблицы"],
+              ] as const
+            ).map(([value, text]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={provider === value}
+                onClick={() => choose(value)}
+                className={`inline-flex min-h-11 items-center rounded-full px-4 text-body focus-ring ${
+                  provider === value ? "bg-pill text-pill-text" : "bg-surface-2 text-text"
+                }`}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-meta text-text-3">
+            Ссылка на таблицу появится после подключения (T7). Сейчас неделя выгружается файлом
+            Excel из «Табеля».
+          </p>
+        </div>
       </div>
     </Group>
   );

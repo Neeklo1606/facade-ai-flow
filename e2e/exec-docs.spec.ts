@@ -94,7 +94,8 @@ for (const [name, viewport] of [
       await page.getByRole("button", { name: "Отметить заказано" }).click();
       await page.getByLabel("Ожидаемая дата доставки").fill("2026-10-08");
       await page.getByRole("button", { name: "Отметить в пути" }).click();
-      await expect(page.getByText("ожидается 08.10.2026")).toBeVisible();
+      // Точное совпадение: строка поставки, а не тост «В пути, ожидается …» с тем же текстом
+      await expect(page.getByText("ожидается 08.10.2026", { exact: true })).toBeVisible();
 
       await gasRole(page, "Прораб");
       await page.getByRole("button", { name: `Принять поставку ${number}` }).click();

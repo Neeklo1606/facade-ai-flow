@@ -34,7 +34,12 @@ export interface ExportPayload {
   mode: "confirmed" | "preliminary";
   /** Версия закрытой недели или черновик (ADR-056, 5); без метки — прежний отчёт */
   label?: FileLabel;
+  /** Черновик (ADR-061, 11): записи без проверки, их адресные строки подсвечены на листе */
+  pendingIds?: string[];
 }
+
+/** Подложка непроверенной строки черновика: светло-янтарная, как ячейка на экране «Табель» */
+const DRAFT_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF1D6" } } as const;
 
 const DAY_WIDTH = 3;
 /** Первая колонка дня: подпись строки занимает A:D */
@@ -73,7 +78,9 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
   wb.creator = "ГАЙКА AI, газовое направление";
   wb.created = new Date();
 
-  const ws = wb.addWorksheet("Отчёт", {
+  const draft = !!payload.label && "draft" in payload.label;
+  const pending = new Set(payload.pendingIds ?? []);
+  const ws = wb.addWorksheet(draft ? "Отчёт (черновик)" : "Отчёт", {
     // Закрепление E3: подпись строки и обе строки шапки дней остаются на месте
     views: [{ state: "frozen", xSplit: 4, ySplit: 2, topLeftCell: "E3" }],
     properties: { outlineLevelRow: 3 },
@@ -96,7 +103,7 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
 
   // --- шапка: дни объединёнными ячейками, под каждым три показателя ---
   ws.mergeCells(1, 1, 2, 4);
-  ws.getCell(1, 1).value = "Бригада и адрес";
+  ws.getCell(1, 1).value = draft ? "Черновик: не утверждено. Бригада и адрес" : "Бригада и адрес";
   for (const [index, day] of payload.days.entries()) {
     const col = FIRST_DAY_COL + index * DAY_WIDTH;
     ws.mergeCells(1, col, 1, col + 2);
@@ -153,6 +160,11 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
     ws.getCell(rowNumber, 1).alignment = { indent: row.level * 2, vertical: "middle" };
     // Уровень группировки: как в файле заказчика, итог сворачивается над детьми
     sheetRow.outlineLevel = Math.min(row.level, 7);
+    // Черновик: адресная строка с непроверенной записью подсвечена и выделена курсивом
+    if (row.kind === "address" && row.entryIds.some((id) => pending.has(id))) {
+      sheetRow.fill = DRAFT_FILL;
+      sheetRow.font = { italic: true };
+    }
 
     const children = row.kind === "total" ? [] : childRowNumbers(payload.rows, index, excelRows);
     const aggregate = children.length > 0;

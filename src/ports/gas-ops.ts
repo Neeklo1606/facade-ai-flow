@@ -184,6 +184,13 @@ export interface GasOpsPort {
     fileName: string;
     objectId: string | null;
   }): Promise<EstimateVersion>;
+  /**
+   * Отменить импорт сметы (ADR-061, 12): неподтверждённая версия удаляется. Подтверждённую
+   * не удалить: по ней уже посчитана стоимость объекта
+   */
+  discardEstimateVersion(id: string): Promise<void>;
+  /** Сменить роль пользователя (ADR-061, 12): делает администратор, себе роль не меняет */
+  setUserRole(input: { userId: string; role: Role }): Promise<User>;
   /** Привязать версию к объекту: подсказку подтверждает человек */
   linkEstimateVersion(input: { id: string; objectId: string }): Promise<EstimateVersion>;
   /** Сметчик проверил замечания разбора */
@@ -239,5 +246,41 @@ export interface GasOpsPort {
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }
+
+/**
+ * Имена методов порта по порядку объявления: по ним собирается серверная реализация
+ * (`adapters/gas-ops/remote.ts`) и таблица доступа сервера (`api/gas-ops-server.ts`)
+ */
+export const GAS_OPS_METHODS = [
+  "snapshot",
+  "signIn",
+  "createEntry",
+  "updateEntry",
+  "submitEntry",
+  "review",
+  "undoReview",
+  "setEstimate",
+  "addEstimateVersion",
+  "discardEstimateVersion",
+  "setUserRole",
+  "linkEstimateVersion",
+  "reviewEstimateIssues",
+  "confirmEstimateVersion",
+  "confirmCostRule",
+  "applySchedule",
+  "restoreSchedule",
+  "setBrigadeWeek",
+  "setReviewSettings",
+  "finalCheck",
+  "issueReport",
+  "fieldSnapshot",
+  "answerClarify",
+  "closeWeek",
+  "reopenWeek",
+  "setRate",
+  "addCrewMember",
+  "endCrewMember",
+  "reset",
+] as const satisfies readonly (keyof GasOpsPort)[];
 
 export type { Role };

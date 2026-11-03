@@ -24,6 +24,7 @@ import {
   type Estimate,
   type Role,
   type TimeEntry,
+  type User,
   type WorkObject,
 } from "@/domain/gas-ops/model";
 import {
@@ -91,6 +92,9 @@ import {
 } from "@/domain/gas-ops/week";
 import { CHANNEL_LABEL, type EntryChannel } from "@/domain/gas-ops/model";
 import { AUTO_ACTOR } from "@/domain/gas-ops/review-policy";
+import { peopleRows, tabelRows, type PersonRow, type TabelRow } from "@/domain/gas-ops/tabel";
+import { downloadWeekXlsx } from "@/lib/gas-ops/export";
+import { staffRows, type StaffRow } from "@/domain/gas-ops/staff";
 import {
   CUSTOMER_DAY_HEADERS,
   CUSTOMER_PROFILE,
@@ -240,6 +244,87 @@ export function useGasCrew(): {
     return { crew: data.crew.map((m) => ({ ...m, active: active.has(m.id) })), rates: data.rates };
   }, [data]);
 }
+
+/** Ввод времени бригадиром (ADR-061, 9): поле, занятость, кнопки и диалог бота */
+export {
+  BOT_BREAKS,
+  botReply,
+  botStep,
+  editableInBot,
+  initialBotState,
+  recentEntries,
+  shortDay,
+  summaryOf,
+} from "@/domain/gas-ops/bot-dialog";
+export type {
+  BotContext,
+  BotEffect,
+  BotEvent,
+  BotKey,
+  BotReply,
+  BotState,
+} from "@/domain/gas-ops/bot-dialog";
+export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
+export { parseTimeInput, rangeLabel, TIME_INPUT_TEXT } from "@/domain/gas-ops/time-input";
+export { busyLine, intervalLabel } from "@/domain/gas-ops/time-slots";
+/** Табель (ADR-061, 11): статус ячеек, выделение, TSV, «По людям», контрольная сумма версии */
+export {
+  METRIC_LABEL,
+  METRIC_SHORT,
+  inRect,
+  metricOrder,
+  metricValue,
+  moveSelection,
+  peopleRows,
+  peopleTotals,
+  rectOf,
+  selectionStats,
+  tabelRows,
+  toTsv,
+  tsvNumber,
+  versionChecksum,
+  visibleTabelRows,
+  wholeColumn,
+  wholeRow,
+} from "@/domain/gas-ops/tabel";
+export type {
+  CellStatus,
+  Metric,
+  PersonRow,
+  Point,
+  Rect,
+  Selection,
+  Stats,
+  TabelCell,
+  TabelRow,
+} from "@/domain/gas-ops/tabel";
+export { sheetSyncDemo as sheetSync } from "@/adapters/gas-ops/sheet-sync-demo";
+export type { SheetProvider } from "@/ports/sheet-sync";
+
+/** Четыре типа сведений о записи, «не рассчитано» и расшифровка суммы (ADR-061, 10) */
+export {
+  acceptBlocker,
+  costBreakdown,
+  costLine,
+  entryInfo,
+  infoCounts,
+  INFO_KIND_LABEL,
+  isClean,
+  manHours,
+  manHoursText,
+  REMARK_KIND,
+  REMARK_LABEL,
+  remarksOf,
+} from "@/domain/gas-ops/entry-info";
+export type {
+  CostBreakdown,
+  EntryInfo,
+  InfoCounts,
+  InfoKind,
+  ManHours,
+  Remark,
+  RemarkKey,
+} from "@/domain/gas-ops/entry-info";
 
 /** Разбор фразы бригадира правилом domain (ADR-049): экран бота зовёт его отсюда */
 export { parseTimeMessage } from "@/domain/gas-ops/parse-time-message";
@@ -543,6 +628,7 @@ export function useGasActions(): {
     from: string;
   }) => Promise<ActionResult<CrewMember>>;
   endCrewMember: (input: { id: string; to: string }) => Promise<ActionResult<CrewMember>>;
+  setUserRole: (input: { userId: string; role: Role }) => Promise<ActionResult<User>>;
 } {
   const run = useGasAction();
   const port = useGasOps();
@@ -561,6 +647,7 @@ export function useGasActions(): {
     setRate: useCallback((input) => run(() => port.setRate(input)), [run, port]),
     addCrewMember: useCallback((input) => run(() => port.addCrewMember(input)), [run, port]),
     endCrewMember: useCallback((input) => run(() => port.endCrewMember(input)), [run, port]),
+    setUserRole: useCallback((input) => run(() => port.setUserRole(input)), [run, port]),
   };
 }
 
@@ -601,3 +688,73 @@ export function useGasExportProfile(): {
     [report.rows, view.metrics.accruedRub],
   );
 }
+
+/**
+ * Табель недели (ADR-061, 11): строки сетки по принятым и ждущим проверки записям, статус
+ * ячеек по графику и сметам, вид «По людям»
+ */
+export function useGasTabel(): {
+  rows: TabelRow[];
+  people: PersonRow[];
+  days: string[];
+  week: { from: string; to: string };
+  locked: boolean;
+} {
+  const data = useGasSnapshot();
+  return useMemo(() => {
+    const expected = expectations({
+      days: data.week.days,
+      brigades: data.brigades,
+      objects: data.objects,
+      schedule: data.schedule,
+      assignments: data.assignments,
+    });
+    return {
+      rows: tabelRows({
+        groups: data.groups,
+        brigades: data.brigades,
+        employees: data.employees,
+        objects: data.objects,
+        days: data.week.days,
+        entries: data.entries,
+        estimates: data.estimates,
+        expected,
+      }),
+      people: peopleRows(data.entries, data.employees, data.week.days),
+      days: data.week.days,
+      week: { from: data.week.from, to: data.week.to },
+      locked: periodState(data.periods, data.week.from).closed !== null,
+    };
+  }, [data]);
+}
+
+/** Выгрузка недели файлом: вид и версия, строки сервер считает сам (ADR-061, 11) */
+export function useWeekExport(): (kind: "approved" | "draft", version?: number) => Promise<string> {
+  const data = useGasSnapshot();
+  return useCallback(
+    (kind, version) =>
+      downloadWeekXlsx({
+        kind,
+        version: version ?? null,
+        week: { from: data.week.from, to: data.week.to, days: data.week.days },
+        data: {
+          entries: data.entries,
+          groups: data.groups,
+          brigades: data.brigades,
+          employees: data.employees,
+          objects: data.objects,
+          frames: data.frames,
+          periods: data.periods,
+        },
+      }),
+    [data],
+  );
+}
+
+/** «Сотрудники» (ADR-061, 12): состав бригад и люди офиса одной таблицей */
+export function useGasStaff(): StaffRow[] {
+  const data = useGasSnapshot();
+  return useMemo(() => staffRows({ ...data, crew: data.crew ?? [] }), [data]);
+}
+export { inviteOf } from "@/domain/gas-ops/staff";
+export type { StaffRow } from "@/domain/gas-ops/staff";

@@ -13,7 +13,7 @@ export const GAS_QUESTIONS: readonly GasQuestion[] = [
     example:
       "В файле один адрес идёт пять дней подряд по 13 000 ₽ и 8 ч в день. Это похоже на дневную ставку, а не на сумму по смете.",
     impact: "Сумма каждой строки отчёта и доходность часа по дням и бригадам.",
-    screen: { to: "/gas/reports", label: "Отчёт" },
+    screen: { to: "/gas/tabel", label: "Отчёт" },
   },
   {
     n: 2,
@@ -22,7 +22,7 @@ export const GAS_QUESTIONS: readonly GasQuestion[] = [
     example:
       "Девять строк с часами и без суммы: вводы, КНС, замена счётчика, устранение утечки. Сейчас у них «нет суммы» и доходность не считается.",
     impact: "Попадут ли эти часы в доходность недели и как выглядит строка в отчёте.",
-    screen: { to: "/gas/reports", label: "Отчёт" },
+    screen: { to: "/gas/tabel", label: "Отчёт" },
   },
   {
     n: 3,
@@ -40,7 +40,7 @@ export const GAS_QUESTIONS: readonly GasQuestion[] = [
     example:
       "14 700 ₽ за 2,67 ч дают 5 512,5 ₽/ч. В файле 5 512, арифметическое округление даёт 5 513. Так расходятся две строки из 84.",
     impact: "Доходность в отчёте и в выгрузке Excel до рубля.",
-    screen: { to: "/gas/reports", label: "Отчёт" },
+    screen: { to: "/gas/tabel", label: "Отчёт" },
   },
   {
     n: 5,
@@ -67,7 +67,7 @@ export const GAS_QUESTIONS: readonly GasQuestion[] = [
     example:
       "Видимые строки дают 1 524 132 ₽ и 361,35 ч, «Итого» 5 165 357 ₽ и 776,08 ч. Групп 2 и 4 в выгрузке нет, похоже на фильтр по подразделениям.",
     impact: "С чем сверять итог недели: система считает снизу вверх по видимым строкам.",
-    screen: { to: "/gas/reports", label: "Отчёт" },
+    screen: { to: "/gas/tabel", label: "Отчёт" },
   },
   {
     n: 8,

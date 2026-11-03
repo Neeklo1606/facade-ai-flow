@@ -5,7 +5,7 @@ import { enterClientContour, gasRole } from "./gas-helpers";
 /**
  * Рабочий контур газа (ADR-043, ADR-044, F1): экраны открываются в своей оболочке без
  * элементов ГАЙКИ, роль меняет стартовый экран и меню, сброс демо возвращает исходный набор.
- * Сценарии экранов живут рядом: gas-bot, gas-review, gas-report, gas-start, gas-show.
+ * Сценарии экранов живут рядом: gas-bot, gas-review, gas-report, gas-start, gas-tour.
  *
  * Ошибка в консоли роняет тест: это общая оснастка e2e.
  */
@@ -15,7 +15,7 @@ const GAS_SCREENS = [
   "/gas/foreman",
   "/gas/moderation",
   "/gas/entries",
-  "/gas/reports",
+  "/gas/tabel",
   "/gas/brigades",
   "/gas/objects",
   "/gas/estimates",
@@ -54,22 +54,13 @@ test.describe("контур газа открывается в своей обо
 
   test("граница договора подписана в меню один раз", async ({ page }) => {
     // Договор газового заказчика: граница видна в его личном контуре, в публичном её нет (L3).
-    // В «Монохроме» группы разделов живут в «Ещё» меню-таблетки (ADR-055, 2.4)
-    const moreMenu = async () => {
-      await page
-        .getByRole("navigation", { name: "Разделы", exact: true })
-        .getByRole("button", { name: "Ещё" })
-        .click();
-      return page.getByRole("dialog", { name: "Остальные разделы" });
-    };
+    // Веб-кабинет вне ТЗ v1.0 (D09): строка внизу левого меню (ADR-061)
+    const menu = () => page.getByRole("navigation", { name: "Разделы", exact: true });
     await open(page, "/gas/moderation");
-    await expect((await moreMenu()).getByText("Вне договора v1.0")).toHaveCount(0);
-    await page.keyboard.press("Escape");
+    await expect(menu().getByText("Вне договора v1.0", { exact: false })).toHaveCount(0);
     await enterClientContour(page);
     await open(page, "/gas/moderation");
-    await expect((await moreMenu()).getByText("Вне договора v1.0", { exact: false })).toHaveCount(
-      1,
-    );
+    await expect(menu().getByText("Вне договора v1.0", { exact: false })).toHaveCount(1);
     await expect(page.getByText("Демо: вне текущего договора")).toHaveCount(0);
   });
 });
@@ -99,8 +90,8 @@ test.describe("сброс демо", () => {
   test("возвращает исходную роль", async ({ page }) => {
     await open(page, "/gas/moderation");
     await gasRole(page, "Руководитель");
-    // «Сбросить демо» живёт в меню аватара (ADR-055, 2.1)
-    await page.getByRole("button", { name: /^Вы: Руководитель.*Сменить роль/ }).click();
+    // «Сбросить демо» живёт в меню компании (ADR-061, 3.1)
+    await page.getByRole("button", { name: /меню компании/ }).click();
     await page.getByRole("button", { name: "Сбросить демо" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Сбросить" }).click();
     await expect(toast(page, "Демо сброшено")).toBeVisible();
@@ -123,11 +114,11 @@ test.describe("@mobile телефон", () => {
     });
   }
 
-  test("нижняя панель по роли: четыре раздела и «Ещё» с остальным", async ({ page }) => {
+  test("нижняя панель по роли: три раздела и «Ещё» с остальным", async ({ page }) => {
     await open(page, "/gas/moderation");
     const nav = page.getByRole("navigation", { name: "Основные разделы" });
-    // Четыре раздела роли и «Ещё» вкладкой-экраном (ADR-055, 2.5; ADR-048)
-    await expect(nav.getByRole("link")).toHaveCount(5);
+    // Три раздела роли и «Ещё» вкладкой-экраном (ADR-061, таблица 3.3; ADR-048)
+    await expect(nav.getByRole("link")).toHaveCount(4);
     await nav.getByRole("link", { name: "Ещё" }).click();
     await expect(page).toHaveURL(/\/gas\/more$/);
     await expect(page.getByRole("main").getByRole("link", { name: "Инструкция" })).toBeVisible();

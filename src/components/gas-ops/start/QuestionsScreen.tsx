@@ -8,7 +8,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Check, Copy } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { useIsDesktop } from "@/components/gas-ops/review/use-layout";
 import { Button } from "@/components/ui/button";
 import { Sheet, SidePanel } from "@/components/ui/kit/sheet";
@@ -153,7 +152,6 @@ export function QuestionsScreen() {
 
   return (
     <div className="flex flex-col gap-block">
-      <ScreenHint screen="questions" className="mb-0" />
       <p className="text-body text-text-2 tnum">
         Ответ получен: <span data-testid="questions-progress">{answered}</span> из{" "}
         {GAS_QUESTIONS.length}

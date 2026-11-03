@@ -198,6 +198,7 @@ export type EntryFlag =
   | "no-amount"
   | "overlap"
   | "duplicate"
+  | "repeat-visit"
   | "high-rate"
   | "multi-day-object"
   | "no-estimate"
@@ -207,6 +208,7 @@ export const FLAG_LABEL: Record<EntryFlag, string> = {
   "no-amount": "Нет суммы",
   overlap: "Пересечение времени",
   duplicate: "Возможный дубль",
+  "repeat-visit": "Повторный выезд",
   "high-rate": "Аномальная доходность",
   "multi-day-object": "Объект на несколько дней",
   "no-estimate": "Нет подтверждённой стоимости",

@@ -6,8 +6,8 @@ import { expect, open, test } from "./fixtures";
  * Модель навигации телефона (L2) не должна задевать планшет и компьютер.
  */
 
-/** Плавающая капсула «Монохрома» (ADR-055, 2.1) */
-const capsule = (page: Page) => page.getByRole("complementary", { name: "Панель действий" });
+/** Левое меню оболочки табеля (ADR-061, 3.1) */
+const sideNav = (page: Page) => page.getByRole("navigation", { name: "Разделы", exact: true });
 
 /** Самый мелкий видимый текст на экране, в пикселях после html 87,5 % */
 async function smallestText(page: Page): Promise<{ size: number; text: string }> {
@@ -35,12 +35,11 @@ async function smallestText(page: Page): Promise<{ size: number; text: string }>
 test.describe("планшет 900", () => {
   test.use({ viewport: { width: 900, height: 1100 } });
 
-  test("до 1024 раскладка телефона: шапка и нижняя панель, без капсулы (ADR-055)", async ({
+  test("до 1024 раскладка телефона: шапка и нижняя панель, без левого меню (ADR-061)", async ({
     page,
   }) => {
     await open(page, "/gas/moderation");
-    await expect(capsule(page)).toBeHidden();
-    await expect(page.getByRole("navigation", { name: "Разделы", exact: true })).toBeHidden();
+    await expect(sideNav(page)).toBeHidden();
     const tabs = page.getByRole("navigation", { name: "Основные разделы" });
     await expect(tabs).toBeVisible();
     expect(Math.round((await tabs.boundingBox())!.width)).toBe(900);
@@ -51,34 +50,37 @@ test.describe("планшет 900", () => {
 test.describe("компьютер 1280", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("верхняя строка 72, меню-таблетка по центру, капсула 64 слева (ADR-055, 2.1)", async ({
+  test("верхняя строка 56, левое меню 240, шапка экрана с крошками (ADR-061, 3.1)", async ({
     page,
   }) => {
     await open(page, "/gas/moderation");
-    const menu = page.getByRole("navigation", { name: "Разделы", exact: true });
+    const bar = (await page.locator("header.gas-topbar").boundingBox())!;
+    expect(bar.height).toBe(56);
+    expect(bar.width).toBe(1280);
+    const menu = sideNav(page);
     const box = (await menu.boundingBox())!;
-    expect(box.height).toBe(56);
-    // По центру строки: середина меню не дальше 120 от середины окна (знак слева шире кругов)
-    expect(Math.abs(box.x + box.width / 2 - 640)).toBeLessThan(120);
-    // Активный пункт — инверсная таблетка: индикатор под «Проверкой»
+    expect(box.width).toBe(240);
+    expect(box.x).toBe(0);
+    expect(box.y).toBe(56);
     const active = menu.getByRole("link", { name: /Проверка/ });
     await expect(active).toHaveAttribute("aria-current", "page");
-    const bar = (await capsule(page).boundingBox())!;
-    expect(bar.width).toBe(64);
-    expect(bar.x).toBe(24);
     await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeHidden();
-    // Переход по меню: индикатор переезжает, текущий пункт меняется
+    await expect(page.getByRole("complementary", { name: "Панель действий" })).toHaveCount(0);
+    // Переход по меню: текущий пункт меняется, крошки и заголовок за ним
     await menu.getByRole("link", { name: "Журнал" }).click();
     await expect(page).toHaveURL(/\/gas\/entries/);
     await expect(menu.getByRole("link", { name: "Журнал" })).toHaveAttribute(
       "aria-current",
       "page",
     );
+    await expect(page.getByRole("navigation", { name: "Где вы" })).toContainText("Журнал");
+    await expect(page.locator("h1[data-screen-title]")).toHaveText("Журнал");
   });
 
   test("деталь записи справа 420, Esc закрывает", async ({ page }) => {
     await open(page, "/gas/entries");
-    await page.locator("main table tbody tr").first().click();
+    // Строки сгруппированы по дням (ADR-061, 10): первая строка тела — заголовок дня
+    await page.locator("main table tbody tr[data-entry-row]").first().click();
     const panel = page.getByRole("dialog").last();
     await expect(panel).toBeVisible();
     expect(Math.round((await panel.boundingBox())!.width)).toBe(420);
@@ -89,7 +91,7 @@ test.describe("компьютер 1280", () => {
   test("при html 87,5 % ничего мельче 12 px, касание мышью от 32, таблица без прокрутки вбок", async ({
     page,
   }) => {
-    for (const path of ["/gas/reports", "/gas/entries", "/gas/moderation"]) {
+    for (const path of ["/gas/tabel", "/gas/entries", "/gas/moderation"]) {
       await open(page, path);
       await page.locator("main").first().waitFor();
       const small = await smallestText(page);
@@ -107,7 +109,7 @@ test.describe("компьютер 1280", () => {
   });
 
   test("отчёт «Во весь экран» открывается и закрывается Esc", async ({ page }) => {
-    await open(page, "/gas/reports");
+    await open(page, "/gas/tabel");
     await page.getByRole("button", { name: "Во весь экран" }).click();
     // Отчёт ложится поверх меню и шапки: рельс под ним, видна только кнопка возврата
     const back = page.getByRole("button", { name: "Свернуть, Esc" });

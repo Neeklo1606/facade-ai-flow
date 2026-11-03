@@ -9,7 +9,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, Download } from "lucide-react";
 import { useMemo } from "react";
 import { ROLE_LABEL, fmtHours, fmtRate, fmtRub, useGasActor, type Role } from "@/api/gas-ops";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { useRoleSwitch } from "@/components/gas-ops/shell/use-role-switch";
 import { useGasBrand, useGasContour } from "@/lib/gas-ops/contour";
 import { ROLE_ABOUT, ROLE_HOME, gasScreen, roleInitial } from "@/lib/gas-ops/screens";
@@ -147,7 +146,7 @@ const ROLE_STEPS: Record<Exclude<GuideTab, "calc">, { role: Role; steps: GuideSt
       {
         title: "Найдите результат в отчёте",
         text: "Подтверждённая запись сразу появляется в недельном отчёте в строке своего объекта.",
-        to: "/gas/reports",
+        to: "/gas/tabel",
         tour: "report-row",
       },
     ],
@@ -158,31 +157,31 @@ const ROLE_STEPS: Record<Exclude<GuideTab, "calc">, { role: Role; steps: GuideSt
       {
         title: "Откройте отчёт",
         text: "Пункт «Отчёт»: неделя по дням, группам, бригадам и адресам.",
-        to: "/gas/reports",
+        to: "/gas/tabel",
         tour: nav("reports"),
       },
       {
         title: "Переключите «Формат заказчика» и «Аналитика»",
         text: "Формат заказчика повторяет ваш Excel. Аналитика показывает те же записи плоской таблицей.",
-        to: "/gas/reports",
+        to: "/gas/tabel",
         tour: "report-row",
       },
       {
         title: "Выберите «только подтверждённые» или «предварительный»",
         text: "Предварительный добавляет записи, которые ещё ждут проверки. В выгрузку идёт выбранный вариант.",
-        to: "/gas/reports",
+        to: "/gas/tabel",
         tour: "report-row",
       },
       {
         title: "Выгрузите Excel",
         text: "Кнопка «Выгрузить Excel» скачает файл в структуре вашего отчёта с листом «Как считалось».",
-        to: "/gas/reports",
+        to: "/gas/tabel",
         tour: "export",
       },
       {
         title: "Что значит «нет суммы»",
         text: "У объекта нет подтверждённой стоимости работ. Часы учтены, доходность не считается, пока сумму не утвердят.",
-        to: "/gas/reports",
+        to: "/gas/tabel",
         tour: "report-row",
       },
     ],
@@ -191,7 +190,7 @@ const ROLE_STEPS: Record<Exclude<GuideTab, "calc">, { role: Role; steps: GuideSt
 
 const SHOW_STYLE = `
 @media print {
-  .gas-shell > aside, .gas-shell header, .gas-shell nav, [data-gas-show-dock], [data-sonner-toaster] { display: none !important; }
+  .gas-shell > aside, .gas-shell header, .gas-shell nav, [data-gas-tour], [data-sonner-toaster] { display: none !important; }
   html, body, .gas-shell, #gas-main { background: #fff !important; }
   #gas-main { padding: 0 !important; }
   .gas-guide {
@@ -209,9 +208,7 @@ export function GuideScreen({ tab, onTab }: { tab: GuideTab; onTab: (tab: GuideT
   return (
     <div className="gas-guide flex flex-col gap-6">
       <style>{SHOW_STYLE}</style>
-      <div className="print:hidden">
-        <ScreenHint screen="guide" className="mb-0" />
-      </div>
+      <div className="print:hidden"></div>
 
       <div className="hidden print:block">
         <p className="text-title">Инструкция: {brand.product}</p>

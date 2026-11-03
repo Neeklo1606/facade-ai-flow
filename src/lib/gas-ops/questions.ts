@@ -19,7 +19,7 @@ export interface GasQuestion {
   example: string;
   impact: string;
   screen: {
-    to: "/gas/reports" | "/gas/foreman" | "/gas/moderation" | "/gas/estimates";
+    to: "/gas/tabel" | "/gas/foreman" | "/gas/moderation" | "/gas/estimates";
     label: string;
   };
 }

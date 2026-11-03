@@ -68,12 +68,13 @@ for (const [name, viewport] of [
       await page.waitForSelector("html[data-booted]", { timeout: 60_000 });
       await expect(page.getByText("Бригада 1 ·")).toBeVisible();
       await page.getByRole("button", { name: "Добавить время" }).click();
-      await page.getByRole("button", { name: "Другое время" }).first().click();
-      await page.getByLabel("Другое начало").fill("12:00");
+      // Одно поле «Время работы» (ADR-061, 9): начало сообщением, окончание кнопкой
+      await page.getByLabel("Время работы").fill("12");
       await page
         .getByRole("group", { name: "Окончание" })
         .getByRole("button", { name: "17:00" })
         .click();
+      await expect(page.getByTestId("time-decoded")).toHaveText("12:00–17:00 · 5 ч 00 мин");
       await page.getByRole("button", { name: "Проверить" }).click();
       await expect(page.getByText("4 чел., по 4 ч на человека, всего 16 чел.-ч")).toBeVisible();
       await page.getByRole("button", { name: "Отправить" }).click();
@@ -90,15 +91,15 @@ for (const [name, viewport] of [
       await gasRole(page, "Менеджер");
       await expect(page).toHaveURL(/\/gas\/moderation$/);
       await page.locator("[data-queue-card]").filter({ hasText: number }).click();
-      await page.getByRole("button", { name: "Ещё действия" }).click();
-      await page.getByRole("menuitem", { name: "Исправить" }).click();
+      // «Исправить» — липкая кнопка детали (ADR-061, 10), а не пункт «⋮»
+      await page.getByRole("button", { name: "Исправить", exact: true }).click();
       await page.getByLabel("Людей").fill("3");
       await page.getByRole("button", { name: "Со слов бригадира" }).click();
       await page.getByRole("button", { name: "Сохранить исправление" }).click();
       // История записи свёрнута в детали: правка с причиной в ней есть
       await expect(page.getByText("Состав: 4 чел. → 3 чел.").first()).toBeAttached();
-      await page.getByRole("button", { name: /^Подтвердить/ }).click();
-      await expect(page.getByText("Подтверждено", { exact: true }).first()).toBeVisible();
+      await page.locator('[data-tour="review-confirm"]:visible').click();
+      await expect(page.locator("[data-sonner-toast]", { hasText: "Принято" })).toBeVisible();
 
       // 3. Руководитель: «Неделя», причины приняты как есть с причиной, закрытие v1
       await gasRole(page, "Руководитель");
@@ -110,6 +111,8 @@ for (const [name, viewport] of [
       await close.click();
       await page.getByRole("alertdialog").getByRole("button", { name: "Закрыть неделю" }).click();
       await expect(page.getByText("Закрыта, версия v1", { exact: true })).toBeVisible();
+      // Версия с контрольной суммой записей (ADR-061, 11)
+      await expect(page.getByTestId("checksum-v1")).toContainText(/[0-9a-f]{16}/);
 
       const [file1] = await Promise.all([
         page.waitForEvent("download"),

@@ -1,22 +1,20 @@
 /**
- * Показ газа «gas-week» (ADR-044, F3) поверх общего механизма проводки `src/lib/guide`.
- * Второй механизм не заводится: здесь только события экранов газа и адреса шагов.
+ * Показ газа заказчику (ADR-061, 13): тур «Показать за 3 минуты» поверх `./tour`. Действия
+ * зрителя не обязательны. Если зритель всё же отправил запись в боте или выгрузил файл,
+ * это запоминается в цепочке вкладки, и финал показывает его запись (V4, refs/01 и refs/10).
  */
 import {
   clearScenario,
-  completeThrough,
   getGuideState,
   setChain,
-  startScenario,
   useGuide,
   type GuideState,
 } from "@/lib/guide/store";
-import { gasWeek, type GuideStep } from "@/lib/guide/scenarios";
+import { clearInbox } from "@/adapters/gas-ops/messenger-demo";
 import { track } from "@/lib/site/analytics";
+import { getTourState, startTour, useTourState } from "./tour";
 
-export const GAS_SHOW_ID = gasWeek.id;
-
-/** Рекомендованные значения шага 1: окно без пересечений у Бригады 1 на сегодня */
+/** Рекомендованные значения бота: окно без пересечений у Бригады 1 на сегодня */
 export const GAS_SHOW_HINT = {
   objectId: "obj-m200",
   start: "12:00",
@@ -24,80 +22,43 @@ export const GAS_SHOW_HINT = {
   breakMinutes: 0,
 } as const;
 
-export type GasShowAction =
-  "gasEntrySummary" | "gasEntrySubmitted" | "gasEntryConfirmed" | "gasReportSeen" | "gasExport";
-
-export function startGasShow() {
-  startScenario(GAS_SHOW_ID);
-  track("demo_start");
+export function isShowActive(): boolean {
+  return getTourState().tourId === "show";
 }
 
-export function resetGasShow() {
-  if (getGuideState().scenarioId === GAS_SHOW_ID) clearScenario();
+export function useShowActive(): boolean {
+  return useTourState().tourId === "show";
 }
 
-export function isGasShow(state: GuideState = getGuideState()): boolean {
-  return state.scenarioId === GAS_SHOW_ID;
+/** Цепочка показа: запись и файл зрителя */
+export function useShowChain(): GuideState["chain"] {
+  return useGuide().chain;
 }
 
-/**
- * Действие экрана засчитывает шаг показа, если показ идёт. Шаги до него, сделанные раньше,
- * тоже засчитываются: зритель мог нажать быстрее, чем прочитал полосу.
- */
-export function gasShowEvent(action: GasShowAction, chain?: GuideState["chain"]) {
-  const state = getGuideState();
-  if (!isGasShow(state)) return;
-  if (chain) setChain(chain);
-  const index = gasWeek.steps.findIndex((step) => step.doneOn.action?.includes(action));
-  if (index < 0) return;
-  const before = state.stepIndex;
-  completeThrough(index);
-  // Аналитика сайта (01_SPEC 11.2): номер шага с единицы, финал отдельным событием
-  if (index >= before) track("demo_step", { step: index + 1 });
-  if (index === gasWeek.steps.length - 1 && before <= index) track("demo_finish");
+/** Запомнить, что зритель создал за показ. Вне показа ничего не пишется */
+export function recordShow(
+  part: Pick<GuideState["chain"], "gasEntryId" | "gasEntryNumber" | "gasFile">,
+) {
+  if (isShowActive()) setChain(part);
 }
 
-/**
- * Подтверждённая запись засчитывает шаг показа, только если это запись зрителя: та, что он
- * создал в боте в этой вкладке (V4, refs/01 и refs/10). Подтверждение заготовки шаг
- * не засчитывает и цепочку не переписывает, иначе финал показывал чужую запись.
- */
+/** Запись зрителя: та, что он создал в боте в этой вкладке, а не заготовка */
 export function isShowEntry(chain: GuideState["chain"], id: string): boolean {
   return !!chain.gasEntryId && chain.gasEntryId === id;
 }
 
-/** Решение по записи в проверке: засчитать шаг показа, если подтверждена запись зрителя */
-export function gasShowConfirmed(id: string) {
-  const state = getGuideState();
-  if (!isGasShow(state) || !isShowEntry(state.chain, id)) return;
-  gasShowEvent("gasEntryConfirmed");
+/**
+ * Начать показ с чистыми данными (раздел 4.8): демо-данные вкладки, входящие и цепочка
+ * сбрасываются, затем тур. Роль и экран первого шага ставит сам тур
+ */
+export async function startShow(reset: () => Promise<unknown>) {
+  await reset();
+  clearInbox();
+  clearScenario();
+  startTour("show");
+  track("demo_start");
 }
 
-/** Адрес шага: запись и файл берутся из цепочки вкладки */
-export function gasStepPath(step: GuideStep, chain: GuideState["chain"]): string {
-  switch (step.id) {
-    case "gas-enter":
-    case "gas-send":
-      return "/gas/foreman";
-    case "gas-confirm":
-      return chain.gasEntryId ? `/gas/moderation?open=${chain.gasEntryId}` : "/gas/moderation";
-    case "gas-report":
-    case "gas-export":
-      return chain.gasEntryId ? `/gas/reports?highlight=${chain.gasEntryId}` : "/gas/reports";
-    default:
-      return "/gas/finish";
-  }
-}
-
-export function useGasShow(): {
-  active: boolean;
-  state: GuideState;
-  step: GuideStep | null;
-  index: number;
-  total: number;
-} {
-  const state = useGuide();
-  const active = state.scenarioId === GAS_SHOW_ID;
-  const step = active ? (gasWeek.steps[state.stepIndex] ?? null) : null;
-  return { active, state, step, index: state.stepIndex, total: gasWeek.steps.length };
+export function showChain(): GuideState["chain"] {
+  return getGuideState().chain;
 }

@@ -77,3 +77,26 @@ export async function readEstimateFile(file: File): Promise<SheetGrid[]> {
     return sheetsOfXls(buffer);
   throw new EstimateFileError("unsupported", "Нужен файл сметы Excel: .xlsx или .xls.");
 }
+
+/**
+ * Шаблон для мастера импорта (ADR-061, 12): книга из одного листа собирается в браузере тем же
+ * модулем Excel, что и чтение, — он уже грузится по требованию, новой зависимости нет
+ */
+export async function writeTemplate(
+  rows: (string | number | null)[][],
+  fileName: string,
+  sheet = "Шаблон",
+): Promise<void> {
+  let XLSX: typeof import("xlsx");
+  try {
+    XLSX = await import("xlsx");
+  } catch {
+    throw new EstimateFileError(
+      "reader-unavailable",
+      "Модуль Excel не загрузился. Проверьте связь и попробуйте снова.",
+    );
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), sheet);
+  XLSX.writeFile(wb, fileName);
+}

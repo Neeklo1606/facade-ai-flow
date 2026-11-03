@@ -31,8 +31,9 @@ export function ReportHero({
   const brand = useGasBrand();
   const order = useMetricOrder();
   const week = total?.total ?? { amountRub: null, minutes: null, revenue: null };
-  const money = fmtRub(week.amountRub ?? 0);
-  const hours = fmtHours((week.minutes ?? 0) / 60);
+  // Неизвестное не ноль (ADR-061, 10): нет значений — «не рассчитано», а не «0 ₽»
+  const money = week.amountRub === null ? "сумма не рассчитана" : fmtRub(week.amountRub);
+  const hours = week.minutes === null ? "часы не рассчитаны" : fmtHours(week.minutes / 60);
   const records = `${count} ${plural(count, "запись", "записи", "записей")}`;
   return (
     <section aria-labelledby="report-total" className="surface-1 p-card">

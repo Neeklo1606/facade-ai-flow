@@ -34,9 +34,12 @@ const STATUS_DOT: Record<EntryStatus, string> = {
 export function EntryStatusBadge({
   status,
   className,
+  labelClassName,
 }: {
   status: EntryStatus;
   className?: string;
+  /** Узкая колонка журнала прячет текст до точки, оставляя его экранной читалке */
+  labelClassName?: string;
 }) {
   return (
     <span
@@ -46,7 +49,11 @@ export function EntryStatusBadge({
       )}
     >
       <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
-      {ENTRY_STATUS_LABEL[status]}
+      {labelClassName ? (
+        <span className={labelClassName}>{ENTRY_STATUS_LABEL[status]}</span>
+      ) : (
+        ENTRY_STATUS_LABEL[status]
+      )}
     </span>
   );
 }

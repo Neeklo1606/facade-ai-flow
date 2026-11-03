@@ -8,7 +8,10 @@ import { toast } from "@/lib/toast";
  * Смена роли (F1): вход за человека этой роли, переход на стартовый экран роли и тост
  * «Вы смотрите как …». Права остаются мок-ограничением порта, как в ADR-043.
  */
-export function useRoleSwitch(): (role: Role, options?: { stay?: boolean }) => Promise<boolean> {
+export function useRoleSwitch(): (
+  role: Role,
+  options?: { stay?: boolean; quiet?: boolean },
+) => Promise<boolean> {
   const users = useGasUsers();
   const actions = useGasActions();
   const navigate = useNavigate();
@@ -23,7 +26,9 @@ export function useRoleSwitch(): (role: Role, options?: { stay?: boolean }) => P
       }
       if (!options?.stay) void navigate({ to: gasScreen(ROLE_HOME[role]).to });
       // Короткое подтверждение: полоса показа и аватар и так говорят, чьими глазами смотрим (L3)
-      toast.success(`Вы смотрите как ${ROLE_LABEL[role].toLowerCase()}`, { duration: 2000 });
+      // Тур говорит о роли сам в подсказке шага: тост закрыл бы её на телефоне
+      if (!options?.quiet)
+        toast.success(`Вы смотрите как ${ROLE_LABEL[role].toLowerCase()}`, { duration: 2000 });
       return true;
     },
     [users, actions, navigate],

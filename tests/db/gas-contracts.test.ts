@@ -7,7 +7,7 @@ import { rowsToSnapshot, snapshotToRows } from "@/adapters/gas-ops/db-codec";
 import { getServerSnapshot, getSnapshot, resetState } from "@/adapters/gas-ops/state";
 import { gasTables } from "@/contracts/gas";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
-import { gasMigration } from "../../scripts/gas-ddl";
+import { gasMigration, gasT7Migration } from "../../scripts/gas-ddl";
 
 /**
  * Контракты модулей сервиса v1 (ADR-060): строки снимка проходят схемы таблиц, снимок
@@ -126,6 +126,10 @@ describe("контракты модулей сервиса v1", () => {
   test("миграция в репозитории равна выводу генератора из контрактов", () => {
     const file = readFileSync("db/migrations/20261031100000_gas_service_v1.sql", "utf8");
     expect(file).toBe(gasMigration());
+    // Табель T7 (ADR-061, 14): свой файл поверх v1, v1 не переписывается
+    expect(readFileSync("db/migrations/20261103100000_gas_tabel_t7.sql", "utf8")).toBe(
+      gasT7Migration(),
+    );
   });
 
   test("ключи отправки с телефона уникальны в базе: индексы есть у записей, заявок, приёмок", () => {

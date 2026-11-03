@@ -1,7 +1,6 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarDays, ClipboardCheck, Coins, UsersRound } from "lucide-react";
-import { ScreenHint } from "@/components/gas-ops/page";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { useGasBrand } from "@/lib/gas-ops/contour";
 import { BarList, ColumnChart, KpiStrip, Panel, ProgressStack } from "@/components/ui/kit/charts";
@@ -28,8 +27,6 @@ function OverviewPage() {
   const o = useGasOverview();
   return (
     <div className="flex flex-col gap-section">
-      <ScreenHint screen="summary" className="mb-0" />
-
       <KpiStrip
         label="Показатели недели"
         items={[

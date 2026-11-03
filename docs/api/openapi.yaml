@@ -1,0 +1,1752 @@
+openapi: "3.1.0"
+info:
+  title: "ГАЙКА: учёт времени бригад"
+  version: "0.7.0"
+  description: "Черновик API по BACKEND HANDOFF v1.1 (раздел 4) и ADR-061, решение 14. Сгенерировано scripts/gas-openapi.ts из src/contracts/gas-api.ts. Не редактировать вручную."
+servers:
+  - url: "/"
+paths:
+  /api/v1/me:
+    get:
+      summary: "Кто вошёл: пользователь, роль, бригада"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          $ref: "#/components/responses/E401"
+  /api/v1/objects:
+    get:
+      summary: "Объекты; бригадиру только разрешённые"
+      parameters:
+        - name: "assignedToMe"
+          in: "query"
+          required: false
+          description: "только объекты моей бригады"
+          schema:
+            type: "boolean"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Object"
+        "401":
+          $ref: "#/components/responses/E401"
+  /api/v1/brigades:
+    get:
+      summary: "Бригады"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Brigade"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+  /api/v1/time-entries:
+    get:
+      summary: "Записи времени; бригадиру только своей бригады и без сумм"
+      parameters:
+        - name: "from"
+          in: "query"
+          required: false
+          description: "первый день"
+          schema:
+            type: "string"
+            format: "date"
+        - name: "to"
+          in: "query"
+          required: false
+          description: "последний день"
+          schema:
+            type: "string"
+            format: "date"
+        - name: "status"
+          in: "query"
+          required: false
+          description: "статус записи"
+          schema:
+            type: "string"
+        - name: "objectId"
+          in: "query"
+          required: false
+          description: "объект"
+          schema:
+            type: "string"
+        - name: "cursor"
+          in: "query"
+          required: false
+          description: "продолжение списка"
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  items:
+                    type: "array"
+                    items:
+                      $ref: "#/components/schemas/TimeEntry"
+                  nextCursor:
+                    anyOf:
+                      - type: "string"
+                      - type: "null"
+                required:
+                  - "items"
+                  - "nextCursor"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+    post:
+      summary: "Новая запись; повтор с тем же ключом возвращает ту же запись"
+      parameters:
+        - name: "Idempotency-Key"
+          in: "header"
+          required: true
+          description: "ключ отправки; в порте — clientKey"
+          schema:
+            type: "string"
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTimeEntry"
+      responses:
+        "200":
+          description: "Повтор: та же запись"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "201":
+          description: "Создана"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "409":
+          $ref: "#/components/responses/E409"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/time-entries/{id}:
+    patch:
+      summary: "Правка записи; проверяющему причина обязательна"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+        - name: "If-Match"
+          in: "header"
+          required: true
+          description: "версия записи, по которой принято решение"
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTimeEntry"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+        "409":
+          $ref: "#/components/responses/E409"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/time-entries/{id}/review:
+    post:
+      summary: "Решение проверки: принять, отклонить, вернуть на уточнение"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewDecision"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+        "409":
+          $ref: "#/components/responses/E409"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/time-entries/{id}/answer:
+    post:
+      summary: "Дополнение: ответ бригадира на уточнение"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClarifyAnswer"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/time-entries/{id}/reviews:
+    get:
+      summary: "Дополнение: история проверки записи"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Review"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+  /api/v1/reviews/queue:
+    get:
+      summary: "Очередь проверки: сначала с замечаниями"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/QueueItem"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+  /api/v1/estimates/import:
+    post:
+      summary: "Загрузка сметы: исходник сохраняется, разбор детерминированный"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: "object"
+              properties:
+                file:
+                  type: "string"
+                  format: "binary"
+                objectId:
+                  type: "string"
+              required:
+                - "file"
+      responses:
+        "201":
+          description: "Загружена"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/estimates/{id}/preview:
+    get:
+      summary: "Предпросмотр разбора: лист, ячейка, значение, уверенность"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  estimate:
+                    $ref: "#/components/schemas/Estimate"
+                  lines:
+                    type: "array"
+                    items:
+                      $ref: "#/components/schemas/EstimateLine"
+                required:
+                  - "estimate"
+                  - "lines"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+  /api/v1/estimates/{id}/approve:
+    post:
+      summary: "Подтверждение сметы человеком: неизменяемая версия"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateApprove"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+        "409":
+          $ref: "#/components/responses/E409"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/reports/weekly:
+    get:
+      summary: "Отчёт недели; бригадиру недоступен"
+      parameters:
+        - name: "weekStart"
+          in: "query"
+          required: true
+          description: "понедельник недели"
+          schema:
+            type: "string"
+            format: "date"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReport"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+  /api/v1/weeks/{id}/close:
+    post:
+      summary: "Закрыть неделю: версия v1, v2 после переоткрытия"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseWeek"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeekVersion"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+        "409":
+          $ref: "#/components/responses/E409"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/weeks/{id}/reopen:
+    post:
+      summary: "Переоткрыть неделю с причиной"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReopenWeek"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeekVersion"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+        "409":
+          $ref: "#/components/responses/E409"
+        "422":
+          $ref: "#/components/responses/E422"
+  /api/v1/weeks/{id}/exports:
+    get:
+      summary: "Выгрузки недели по версиям"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Export"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+    post:
+      summary: "Собрать xlsx недели на сервере; заголовок X-Checksum-Sha256"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportRequest"
+      responses:
+        "200":
+          description: "Файл"
+          headers:
+            X-Checksum-Sha256:
+              schema:
+                type: "string"
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: "string"
+                format: "binary"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+  /api/v1/audit:
+    get:
+      summary: "Журнал действий"
+      parameters:
+        - name: "entity"
+          in: "query"
+          required: false
+          description: "вид сущности"
+          schema:
+            type: "string"
+        - name: "entityId"
+          in: "query"
+          required: false
+          description: "ключ сущности"
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/AuditItem"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+  /api/v1/max/invites:
+    post:
+      summary: "Дополнение: приглашение сотрудника в бота MAX одноразовым кодом"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                userId:
+                  type: "string"
+              required:
+                - "userId"
+      responses:
+        "201":
+          description: "Создано"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaxInvite"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "403":
+          $ref: "#/components/responses/E403"
+        "404":
+          $ref: "#/components/responses/E404"
+  /api/max/webhook:
+    post:
+      summary: "События бота MAX; 501, пока канал не настроен"
+      description: "В HANDOFF: /api/v1/integrations/max/webhook. Источник проверяется секретом подписки; формат событий сверить с dev.max.ru."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+      responses:
+        "200":
+          description: "Успех"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  ok:
+                    type: "boolean"
+                  status:
+                    type: "string"
+        "400":
+          $ref: "#/components/responses/E400"
+        "401":
+          $ref: "#/components/responses/E401"
+        "501":
+          $ref: "#/components/responses/E501"
+  /health:
+    get:
+      summary: "Сервер жив"
+      responses:
+        "200":
+          description: "Жив"
+components:
+  schemas:
+    Me:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        name:
+          type: "string"
+        role:
+          type: "string"
+          enum:
+            - "admin"
+            - "manager"
+            - "foreman"
+            - "director"
+            - "prorab"
+            - "supply"
+            - "pto"
+        brigadeId:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "null"
+      required:
+        - "id"
+        - "name"
+        - "role"
+        - "brigadeId"
+      additionalProperties: false
+    Object:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        label:
+          type: "string"
+          minLength: 1
+        settlement:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        workType:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        code:
+          type: "string"
+          minLength: 1
+        source:
+          type: "string"
+          enum:
+            - "fact-report"
+            - "mock"
+      required:
+        - "id"
+        - "label"
+        - "settlement"
+        - "workType"
+        - "code"
+        - "source"
+      additionalProperties: false
+    Brigade:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        groupId:
+          type: "string"
+          minLength: 1
+        name:
+          type: "string"
+          minLength: 1
+        code:
+          type: "string"
+          minLength: 1
+        excelRow:
+          anyOf:
+            - type: "integer"
+            - type: "null"
+        source:
+          type: "string"
+          enum:
+            - "fact-report"
+            - "mock"
+      required:
+        - "id"
+        - "groupId"
+        - "name"
+        - "code"
+        - "excelRow"
+        - "source"
+      additionalProperties: false
+    TimeEntry:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        number:
+          type: "string"
+          minLength: 1
+        day:
+          type: "string"
+          format: "date"
+        brigadeId:
+          type: "string"
+          minLength: 1
+        employeeId:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "null"
+        objectId:
+          type: "string"
+          minLength: 1
+        startMinutes:
+          anyOf:
+            - type: "integer"
+            - type: "null"
+        endMinutes:
+          anyOf:
+            - type: "integer"
+            - type: "null"
+        breakMinutes:
+          type: "integer"
+        minutes:
+          type: "integer"
+        amountRub:
+          anyOf:
+            - type: "number"
+            - type: "null"
+        status:
+          type: "string"
+          enum:
+            - "draft"
+            - "pending"
+            - "confirmed"
+            - "rejected"
+            - "clarify"
+        createdBy:
+          type: "string"
+          minLength: 1
+        createdAt:
+          type: "string"
+          format: "date-time"
+        reviewedBy:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        reviewedAt:
+          anyOf:
+            - type: "string"
+              format: "date-time"
+            - type: "null"
+        comment:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        source:
+          type: "string"
+          enum:
+            - "fact-report"
+            - "mock"
+        revenueInFile:
+          anyOf:
+            - type: "number"
+            - type: "null"
+        excelRow:
+          anyOf:
+            - type: "integer"
+            - type: "null"
+        headcount:
+          anyOf:
+            - type: "integer"
+            - type: "null"
+        people:
+          anyOf:
+            - type: "array"
+              items:
+                type: "object"
+                properties:
+                  employeeId:
+                    type: "string"
+                    minLength: 1
+                  startMinutes:
+                    type: "integer"
+                  endMinutes:
+                    type: "integer"
+                  breakMinutes:
+                    type: "integer"
+                  minutes:
+                    type: "integer"
+                required:
+                  - "employeeId"
+                  - "startMinutes"
+                  - "endMinutes"
+                  - "breakMinutes"
+                  - "minutes"
+                additionalProperties: false
+            - type: "null"
+        clientKey:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        channel:
+          anyOf:
+            - type: "string"
+              enum:
+                - "web"
+                - "bot"
+                - "manager"
+                - "import"
+            - type: "null"
+        note:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        flags:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "no-amount"
+              - "overlap"
+              - "duplicate"
+              - "repeat-visit"
+              - "high-rate"
+              - "multi-day-object"
+              - "no-estimate"
+              - "over-crew"
+        repeatVisit:
+          anyOf:
+            - type: "boolean"
+            - type: "null"
+        version:
+          type: "integer"
+          description: "номер версии строки для If-Match"
+      required:
+        - "id"
+        - "number"
+        - "day"
+        - "brigadeId"
+        - "employeeId"
+        - "objectId"
+        - "startMinutes"
+        - "endMinutes"
+        - "breakMinutes"
+        - "minutes"
+        - "amountRub"
+        - "status"
+        - "createdBy"
+        - "createdAt"
+        - "reviewedBy"
+        - "reviewedAt"
+        - "comment"
+        - "source"
+        - "revenueInFile"
+        - "excelRow"
+        - "headcount"
+        - "people"
+        - "clientKey"
+        - "channel"
+        - "note"
+        - "flags"
+        - "repeatVisit"
+        - "version"
+      additionalProperties: false
+    CreateTimeEntry:
+      type: "object"
+      properties:
+        day:
+          type: "string"
+          format: "date"
+        brigadeId:
+          type: "string"
+          minLength: 1
+        employeeId:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "null"
+        objectId:
+          type: "string"
+          minLength: 1
+        start:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "integer"
+        end:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "integer"
+        breakMinutes:
+          anyOf:
+            - type: "string"
+            - type: "integer"
+              minimum: 0
+        submit:
+          type: "boolean"
+        headcount:
+          anyOf:
+            - type: "integer"
+              minimum: 1
+            - type: "null"
+        people:
+          anyOf:
+            - type: "array"
+              items:
+                type: "object"
+                properties:
+                  employeeId:
+                    type: "string"
+                    minLength: 1
+                  start:
+                    anyOf:
+                      - type: "string"
+                        minLength: 1
+                      - type: "integer"
+                  end:
+                    anyOf:
+                      - type: "string"
+                        minLength: 1
+                      - type: "integer"
+                  breakMinutes:
+                    anyOf:
+                      - type: "string"
+                      - type: "integer"
+                        minimum: 0
+                required:
+                  - "employeeId"
+                  - "start"
+                  - "end"
+                  - "breakMinutes"
+                additionalProperties: false
+            - type: "null"
+        clientKey:
+          anyOf:
+            - type: "string"
+              maxLength: 200
+            - type: "null"
+        channel:
+          type: "string"
+          enum:
+            - "web"
+            - "bot"
+            - "manager"
+            - "import"
+        note:
+          anyOf:
+            - type: "string"
+              maxLength: 2000
+            - type: "null"
+      required:
+        - "day"
+        - "brigadeId"
+        - "employeeId"
+        - "objectId"
+        - "start"
+        - "end"
+        - "breakMinutes"
+        - "submit"
+      additionalProperties: false
+    UpdateTimeEntry:
+      type: "object"
+      properties:
+        start:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "integer"
+        end:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "integer"
+        breakMinutes:
+          anyOf:
+            - type: "string"
+            - type: "integer"
+              minimum: 0
+        objectId:
+          type: "string"
+          minLength: 1
+        day:
+          type: "string"
+          format: "date"
+        headcount:
+          anyOf:
+            - type: "integer"
+              minimum: 1
+            - type: "null"
+        comment:
+          type: "string"
+          maxLength: 2000
+      additionalProperties: false
+    ReviewDecision:
+      type: "object"
+      properties:
+        action:
+          type: "string"
+          enum:
+            - "confirm"
+            - "reject"
+            - "clarify"
+        comment:
+          type: "string"
+          maxLength: 2000
+      required:
+        - "action"
+      additionalProperties: false
+    ClarifyAnswer:
+      type: "object"
+      properties:
+        text:
+          type: "string"
+          minLength: 1
+          maxLength: 2000
+      required:
+        - "text"
+      additionalProperties: false
+    Review:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        entryId:
+          type: "string"
+          minLength: 1
+        action:
+          type: "string"
+          enum:
+            - "confirm"
+            - "reject"
+            - "correct"
+            - "clarify"
+            - "answer"
+        actor:
+          type: "string"
+          minLength: 1
+        at:
+          type: "string"
+          format: "date-time"
+        comment:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        changes:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              field:
+                type: "string"
+              from:
+                type: "string"
+              to:
+                type: "string"
+            required:
+              - "field"
+              - "from"
+              - "to"
+            additionalProperties: false
+      required:
+        - "id"
+        - "entryId"
+        - "action"
+        - "actor"
+        - "at"
+        - "comment"
+        - "changes"
+      additionalProperties: false
+    QueueItem:
+      type: "object"
+      properties:
+        entry:
+          type: "object"
+          properties:
+            id:
+              type: "string"
+              minLength: 1
+            number:
+              type: "string"
+              minLength: 1
+            day:
+              type: "string"
+              format: "date"
+            brigadeId:
+              type: "string"
+              minLength: 1
+            employeeId:
+              anyOf:
+                - type: "string"
+                  minLength: 1
+                - type: "null"
+            objectId:
+              type: "string"
+              minLength: 1
+            startMinutes:
+              anyOf:
+                - type: "integer"
+                - type: "null"
+            endMinutes:
+              anyOf:
+                - type: "integer"
+                - type: "null"
+            breakMinutes:
+              type: "integer"
+            minutes:
+              type: "integer"
+            amountRub:
+              anyOf:
+                - type: "number"
+                - type: "null"
+            status:
+              type: "string"
+              enum:
+                - "draft"
+                - "pending"
+                - "confirmed"
+                - "rejected"
+                - "clarify"
+            createdBy:
+              type: "string"
+              minLength: 1
+            createdAt:
+              type: "string"
+              format: "date-time"
+            reviewedBy:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            reviewedAt:
+              anyOf:
+                - type: "string"
+                  format: "date-time"
+                - type: "null"
+            comment:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            source:
+              type: "string"
+              enum:
+                - "fact-report"
+                - "mock"
+            revenueInFile:
+              anyOf:
+                - type: "number"
+                - type: "null"
+            excelRow:
+              anyOf:
+                - type: "integer"
+                - type: "null"
+            headcount:
+              anyOf:
+                - type: "integer"
+                - type: "null"
+            people:
+              anyOf:
+                - type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      employeeId:
+                        type: "string"
+                        minLength: 1
+                      startMinutes:
+                        type: "integer"
+                      endMinutes:
+                        type: "integer"
+                      breakMinutes:
+                        type: "integer"
+                      minutes:
+                        type: "integer"
+                    required:
+                      - "employeeId"
+                      - "startMinutes"
+                      - "endMinutes"
+                      - "breakMinutes"
+                      - "minutes"
+                    additionalProperties: false
+                - type: "null"
+            clientKey:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            channel:
+              anyOf:
+                - type: "string"
+                  enum:
+                    - "web"
+                    - "bot"
+                    - "manager"
+                    - "import"
+                - type: "null"
+            note:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            flags:
+              type: "array"
+              items:
+                type: "string"
+                enum:
+                  - "no-amount"
+                  - "overlap"
+                  - "duplicate"
+                  - "repeat-visit"
+                  - "high-rate"
+                  - "multi-day-object"
+                  - "no-estimate"
+                  - "over-crew"
+            repeatVisit:
+              anyOf:
+                - type: "boolean"
+                - type: "null"
+            version:
+              type: "integer"
+              description: "номер версии строки для If-Match"
+          required:
+            - "id"
+            - "number"
+            - "day"
+            - "brigadeId"
+            - "employeeId"
+            - "objectId"
+            - "startMinutes"
+            - "endMinutes"
+            - "breakMinutes"
+            - "minutes"
+            - "amountRub"
+            - "status"
+            - "createdBy"
+            - "createdAt"
+            - "reviewedBy"
+            - "reviewedAt"
+            - "comment"
+            - "source"
+            - "revenueInFile"
+            - "excelRow"
+            - "headcount"
+            - "people"
+            - "clientKey"
+            - "channel"
+            - "note"
+            - "flags"
+            - "repeatVisit"
+            - "version"
+          additionalProperties: false
+        flags:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "no-amount"
+              - "overlap"
+              - "duplicate"
+              - "repeat-visit"
+              - "high-rate"
+              - "multi-day-object"
+              - "no-estimate"
+              - "over-crew"
+        reasons:
+          type: "array"
+          items:
+            type: "string"
+          description: "что проверить: тексты правил"
+      required:
+        - "entry"
+        - "flags"
+        - "reasons"
+      additionalProperties: false
+    Estimate:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        objectId:
+          anyOf:
+            - type: "string"
+              minLength: 1
+            - type: "null"
+        version:
+          type: "integer"
+        sourceFileName:
+          type: "string"
+        parseStatus:
+          type: "string"
+          enum:
+            - "parsed"
+            - "issues"
+            - "confirmed"
+            - "discarded"
+        approvedWorkAmount:
+          anyOf:
+            - type: "number"
+            - type: "null"
+        approvedBy:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        approvedAt:
+          anyOf:
+            - type: "string"
+            - type: "null"
+      required:
+        - "id"
+        - "objectId"
+        - "version"
+        - "sourceFileName"
+        - "parseStatus"
+        - "approvedWorkAmount"
+        - "approvedBy"
+        - "approvedAt"
+      additionalProperties: false
+    EstimateLine:
+      type: "object"
+      properties:
+        sheet:
+          type: "string"
+        cell:
+          type: "string"
+        description:
+          type: "string"
+        unit:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        qty:
+          anyOf:
+            - type: "number"
+            - type: "null"
+        workAmount:
+          anyOf:
+            - type: "number"
+            - type: "null"
+        materialAmount:
+          anyOf:
+            - type: "number"
+            - type: "null"
+        confidence:
+          anyOf:
+            - type: "number"
+              minimum: 0
+              maximum: 1
+            - type: "null"
+        reviewStatus:
+          type: "string"
+          enum:
+            - "pending"
+            - "accepted"
+            - "excluded"
+      required:
+        - "sheet"
+        - "cell"
+        - "description"
+        - "unit"
+        - "qty"
+        - "workAmount"
+        - "materialAmount"
+        - "confidence"
+        - "reviewStatus"
+      additionalProperties: false
+    EstimateApprove:
+      type: "object"
+      properties:
+        approvedWorkAmount:
+          type: "number"
+          minimum: 0
+        selectedLines:
+          type: "array"
+          items:
+            type: "string"
+        reason:
+          type: "string"
+          minLength: 1
+      required:
+        - "approvedWorkAmount"
+        - "selectedLines"
+        - "reason"
+      additionalProperties: false
+    WeeklyReport:
+      type: "object"
+      properties:
+        weekStart:
+          type: "string"
+          format: "date"
+        version:
+          anyOf:
+            - type: "integer"
+            - type: "null"
+        rows:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              brigadeId:
+                type: "string"
+                minLength: 1
+              objectId:
+                type: "string"
+                minLength: 1
+              day:
+                type: "string"
+                format: "date"
+              minutes:
+                type: "integer"
+              amountRub:
+                anyOf:
+                  - type: "number"
+                  - type: "null"
+              status:
+                type: "string"
+                enum:
+                  - "draft"
+                  - "pending"
+                  - "confirmed"
+                  - "rejected"
+                  - "clarify"
+            required:
+              - "brigadeId"
+              - "objectId"
+              - "day"
+              - "minutes"
+              - "amountRub"
+              - "status"
+            additionalProperties: false
+        totals:
+          type: "object"
+          properties:
+            amountRub:
+              anyOf:
+                - type: "number"
+                - type: "null"
+            minutes:
+              type: "integer"
+          required:
+            - "amountRub"
+            - "minutes"
+          additionalProperties: false
+      required:
+        - "weekStart"
+        - "version"
+        - "rows"
+        - "totals"
+      additionalProperties: false
+    WeekVersion:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        weekFrom:
+          type: "string"
+          format: "date"
+        weekTo:
+          type: "string"
+          format: "date"
+        version:
+          type: "integer"
+        closedAt:
+          type: "string"
+          format: "date-time"
+        closedBy:
+          type: "string"
+          minLength: 1
+        entries:
+          type: "array"
+          items:
+            type: "object"
+            additionalProperties: {}
+        totals:
+          type: "object"
+          properties:
+            accruedRub:
+              type: "number"
+            minutes:
+              type: "number"
+            manMinutes:
+              type: "number"
+            count:
+              type: "number"
+          required:
+            - "accruedRub"
+            - "minutes"
+            - "manMinutes"
+            - "count"
+          additionalProperties: false
+        accepted:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              key:
+                type: "string"
+              reason:
+                type: "string"
+            required:
+              - "key"
+              - "reason"
+            additionalProperties: false
+        reopenedAt:
+          anyOf:
+            - type: "string"
+              format: "date-time"
+            - type: "null"
+        reopenedBy:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        reopenReason:
+          anyOf:
+            - type: "string"
+            - type: "null"
+      required:
+        - "id"
+        - "weekFrom"
+        - "weekTo"
+        - "version"
+        - "closedAt"
+        - "closedBy"
+        - "entries"
+        - "totals"
+        - "accepted"
+        - "reopenedAt"
+        - "reopenedBy"
+        - "reopenReason"
+      additionalProperties: false
+    CloseWeek:
+      type: "object"
+      properties:
+        accepted:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              key:
+                type: "string"
+              reason:
+                type: "string"
+            required:
+              - "key"
+              - "reason"
+            additionalProperties: false
+        expectedVersion:
+          type: "integer"
+          minimum: 0
+          description: "версия недели, по которой принято решение"
+      required:
+        - "accepted"
+        - "expectedVersion"
+      additionalProperties: false
+    ReopenWeek:
+      type: "object"
+      properties:
+        reason:
+          type: "string"
+          minLength: 1
+      required:
+        - "reason"
+      additionalProperties: false
+    ExportRequest:
+      type: "object"
+      properties:
+        kind:
+          type: "string"
+          enum:
+            - "approved"
+            - "draft"
+        version:
+          anyOf:
+            - type: "integer"
+              minimum: 1
+            - type: "null"
+      required:
+        - "kind"
+        - "version"
+      additionalProperties: false
+    Export:
+      type: "object"
+      properties:
+        weekStart:
+          type: "string"
+          format: "date"
+        version:
+          anyOf:
+            - type: "integer"
+            - type: "null"
+        kind:
+          type: "string"
+          enum:
+            - "approved"
+            - "draft"
+        fileName:
+          type: "string"
+        checksum:
+          type: "string"
+          description: "sha256 файла"
+        createdAt:
+          type: "string"
+      required:
+        - "weekStart"
+        - "version"
+        - "kind"
+        - "fileName"
+        - "checksum"
+        - "createdAt"
+      additionalProperties: false
+    AuditItem:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          minLength: 1
+        at:
+          type: "string"
+          format: "date-time"
+        actor:
+          type: "string"
+          minLength: 1
+        action:
+          type: "string"
+          minLength: 1
+        entityId:
+          type: "string"
+          minLength: 1
+        detail:
+          type: "string"
+      required:
+        - "id"
+        - "at"
+        - "actor"
+        - "action"
+        - "entityId"
+        - "detail"
+      additionalProperties: false
+    Error:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+        message:
+          type: "string"
+      required:
+        - "code"
+        - "message"
+      additionalProperties: false
+    MaxInvite:
+      type: "object"
+      properties:
+        url:
+          type: "string"
+          description: "ссылка на бота с кодом в параметре start"
+        expiresAt:
+          type: "string"
+      required:
+        - "url"
+        - "expiresAt"
+      additionalProperties: false
+  responses:
+    E400:
+      description: "Неверные данные запроса"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    E401:
+      description: "Нет сессии"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    E403:
+      description: "Действие недоступно роли или чужие данные"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    E404:
+      description: "Не найдено"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    E409:
+      description: "Данные изменились: версия не совпала"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    E422:
+      description: "Отказ правила: код правила в поле code"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    E501:
+      description: "Не подключено: рабочая база или канал"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

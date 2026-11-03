@@ -1,4 +1,5 @@
 import { expect, open, test } from "./fixtures";
+import { gasRole } from "./gas-helpers";
 import type { Locator, Page } from "@playwright/test";
 
 /**
@@ -6,7 +7,8 @@ import type { Locator, Page } from "@playwright/test";
  *
  * - полный проход ОБ-200, 12:00–14:30, без перерыва: не больше 6 касаний от «Внести время»
  *   до «Отправить», номер записи приходит сообщением бота;
- * - пересечение 08:30–11:40 с ГЗ-00095 видно сразу на шаге времени, есть «Изменить»;
+ * - уже внесённое время ГЗ-00095 — подпись на кнопке, не запрет (ADR-061, 9): «с 13 до 17»
+ *   сообщением переспрашивается, 08:00–17:00 рядом с 08:10–11:40 принимается с пометкой;
  * - на 390 и 1440.
  */
 
@@ -15,14 +17,10 @@ const WIDTHS = [
   { name: "1440", viewport: { width: 1440, height: 900 }, hasTouch: false },
 ] as const;
 
-/** Войти бригадиром через переключатель роли оболочки: аватар в шапке на любой ширине (ADR-055) */
+/** Войти бригадиром через профиль в шапке на любой ширине (ADR-061, 3.1) */
 async function signInForeman(page: Page) {
-  await page.getByRole("button", { name: /^Вы: / }).click();
   // На стартовом экране есть и карточка роли «Бригадир»: выбираем в списке переключателя
-  await page
-    .getByRole("list", { name: "Роли" })
-    .getByRole("button", { name: /^Бригадир/ })
-    .click();
+  await gasRole(page, "Бригадир");
   // ADR-056: бригадир начинает с «Сегодня»; бот — второй канал, открываем его
   await expect(page).toHaveURL(/\/gas\/brigade/);
   await open(page, "/gas/foreman");
@@ -59,8 +57,10 @@ for (const width of WIDTHS) {
       await expect(current(bot)).toContainText("За какой день?");
       await tap(/^Сегодня, 03\.10/);
       await expect(current(bot)).toContainText("Во сколько начали?");
-      // Занятые кнопки видны и недоступны, подписаны «занято»
-      await expect(current(bot).getByRole("button", { name: /^08:30, занято/ })).toBeDisabled();
+      // Уже внесённое время подписано на кнопке, но кнопка доступна (ADR-061, 9)
+      await expect(
+        current(bot).getByRole("button", { name: "09:00, уже внесено ГЗ-00095" }),
+      ).toBeEnabled();
       await tap("12:00");
       await expect(current(bot)).toContainText("Во сколько закончили?");
       await tap("14:30");
@@ -110,7 +110,7 @@ for (const width of WIDTHS) {
       expect(overflow).toBeLessThanOrEqual(0);
     });
 
-    test("пересечение 08:30–11:40 видно сразу и есть «Изменить»", async ({ page }) => {
+    test("«с 13 до 17» сообщением и пересечение с 08:10–11:40 без запрета", async ({ page }) => {
       const bot = await openBot(page);
       await current(bot).getByRole("button", { name: "Внести время" }).click();
       await current(bot)
@@ -119,24 +119,27 @@ for (const width of WIDTHS) {
       await current(bot)
         .getByRole("button", { name: /^Сегодня/ })
         .click();
+      await expect(current(bot)).toContainText("Уже внесено: 08:10–11:40");
 
-      // Начало сообщением: «0830» маска понимает как 08:30, и это время занято
-      await current(bot).getByRole("button", { name: "Другое время" }).click();
-      await page.getByLabel("Время начала").fill("0830");
-      await page.getByLabel("Время начала").press("Enter");
-      await expect(current(bot)).toContainText("пересекается с записью ГЗ-00095");
-      await current(bot).getByRole("button", { name: "Изменить" }).click();
-      await expect(current(bot)).toContainText("Во сколько начали?");
+      // «с 13 до 17» больше не превращается в 13:17: бот переспрашивает (строка 2 таблицы 2.1)
+      const message = page.getByLabel("Сообщение боту: объект, день и время одной фразой");
+      await message.fill("с 13 до 17");
+      await message.press("Enter");
+      await expect(current(bot)).toContainText("Понял: 13:00–17:00, 4 ч. Верно?");
+      await current(bot).getByRole("button", { name: "Исправить" }).click();
 
-      // Начало 07:00 свободно, окончание 11:40 сообщением заходит на ГЗ-00095
-      await current(bot).getByRole("button", { name: "07:00", exact: true }).click();
-      await current(bot).getByRole("button", { name: "Другое время" }).click();
-      await page.getByLabel("Время окончания").fill("11.40");
-      await page.getByLabel("Время окончания").press("Enter");
-      await expect(current(bot)).toContainText("пересекается с записью ГЗ-00095");
-      await expect(current(bot).getByRole("button", { name: "Изменить" })).toBeVisible();
-      // Ничего не отправлено: шаг «Отправить» не наступил
-      await expect(bot.getByRole("button", { name: "Отправить", exact: true })).toHaveCount(0);
+      // 08:00–17:00 заходит на ГЗ-00095: запись принимается, сводка называет пересечение
+      await page.getByLabel("Время работы").fill("8-17");
+      await page.getByLabel("Время работы").press("Enter");
+      await expect(current(bot)).toContainText("Понял: 08:00–17:00, 9 ч. Верно?");
+      await current(bot).getByRole("button", { name: "Верно" }).click();
+      await current(bot)
+        .getByRole("button", { name: /^60 мин/ })
+        .click();
+      await expect(current(bot).getByTestId("bot-total")).toHaveText("480 мин = 8,00 ч");
+      await expect(current(bot)).toContainText("Пересечение времени: ГЗ-00095 08:10–11:40");
+      await current(bot).getByRole("button", { name: "Отправить", exact: true }).click();
+      await expect(current(bot)).toContainText(/Отправлено\. Запись ГЗ-\d{5} ждёт проверки/);
     });
   });
 }

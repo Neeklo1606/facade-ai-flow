@@ -4,7 +4,9 @@
  * из одного снимка, поэтому цифры на экранах не расходятся.
  */
 import {
+  findDuplicates,
   findOverlaps,
+  findRepeatVisits,
   flagsOf,
   hoursOfMinutes,
   revenuePerHour,
@@ -78,6 +80,13 @@ export interface EntryView {
    * на одном объекте (V4, refs/02).
    */
   overlaps: { id: string; number: string; minutes: number }[];
+  /** Записи-двойники («Возможный дубль») и другие выезды на тот же объект в тот же день */
+  duplicates: { id: string; number: string }[];
+  repeats: { id: string; number: string }[];
+  /** Кто внёс: пользователь или сотрудник; null — из выгрузки заказчика */
+  author: string | null;
+  /** Минуты всех неотклонённых записей объекта: доля стоимости считается от них */
+  objectMinutes: number;
   history: Review[];
 }
 
@@ -134,8 +143,24 @@ export function entryView(data: GasData, entry: TimeEntry): EntryView {
         const other = o.a.id === entry.id ? o.b : o.a;
         return { id: other.id, number: other.number, minutes: o.minutes };
       }),
+    duplicates: partners(findDuplicates(data.entries), entry),
+    repeats: partners(findRepeatVisits(data.entries), entry),
+    author:
+      data.users.find((u) => u.id === entry.createdBy)?.name ??
+      data.employees.find((e) => e.id === entry.createdBy)?.name ??
+      employee?.name ??
+      null,
+    objectMinutes: data.entries
+      .filter((e) => e.objectId === entry.objectId && e.status !== "rejected")
+      .reduce((a, e) => a + e.minutes, 0),
     history: data.reviews.filter((r) => r.entryId === entry.id),
   };
+}
+
+/** Другие записи той же группы, что и запись: двойники или выезды того же дня */
+function partners(groups: TimeEntry[][], entry: TimeEntry): { id: string; number: string }[] {
+  const group = groups.find((list) => list.some((e) => e.id === entry.id)) ?? [];
+  return group.filter((e) => e.id !== entry.id).map((e) => ({ id: e.id, number: e.number }));
 }
 
 /** Очередь проверки: сначала то, что ждёт решения, внутри — по времени создания */
@@ -323,10 +348,11 @@ export function dayObjects(
   return ids.map((id) => data.objects.find((o) => o.id === id)).filter((o): o is WorkObject => !!o);
 }
 
-/** Занятые интервалы бригады за день: кнопки времени с ними недоступны (F4) */
+/** Внесённые интервалы бригады за день: подсказка над временем, не запрет (ADR-061, 9) */
 export interface BusyInterval {
   id: string;
   number: string;
+  objectId: string;
   start: number;
   end: number;
 }
@@ -347,7 +373,13 @@ export function busyIntervals(
         e.startMinutes !== null &&
         e.endMinutes !== null,
     )
-    .map((e) => ({ id: e.id, number: e.number, start: e.startMinutes!, end: e.endMinutes! }))
+    .map((e) => ({
+      id: e.id,
+      number: e.number,
+      objectId: e.objectId,
+      start: e.startMinutes!,
+      end: e.endMinutes!,
+    }))
     .sort((a, b) => a.start - b.start);
 }
 

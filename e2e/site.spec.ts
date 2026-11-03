@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
 /**
@@ -14,9 +13,6 @@ const clientShort = (() => {
   const source = readFileSync("src/server/customer-data.ts", "utf8");
   return source.match(/clientShort: "([^"]+)"/)![1]!;
 })();
-
-const dock = (page: Page) =>
-  page.locator("[data-gas-show-dock], [data-gas-show-inline]").filter({ visible: true }).first();
 
 test.describe("сайт и вход в демо 390", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -71,8 +67,9 @@ test.describe("сайт и вход в демо 390", () => {
     await expect(page.getByText("1 минута")).toHaveCount(3);
     await page.getByRole("link", { name: /Начать показ/ }).click();
     taps += 1;
-    await expect(page).toHaveURL(/\/gas\/foreman/);
-    await expect(dock(page)).toContainText("1/6");
+    // Показ за 3 минуты (ADR-061, 13) начинается туром менеджера
+    await expect(page).toHaveURL(/\/gas\/moderation$/);
+    await expect(page.getByTestId("tour-step")).toHaveText("Шаг 1 из 9");
     expect(taps).toBeLessThanOrEqual(2);
     await expect(page.locator("body")).not.toContainText(clientShort);
   });
@@ -103,7 +100,7 @@ test.describe("сайт и вход в демо 390", () => {
 
   test("/gas по старой ссылке открывает старт показа на публичном наборе", async ({ page }) => {
     await page.goto("/gas", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: /Начать показ/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Показать за 3 минуты" })).toBeVisible();
     await expect(page.locator("body")).toContainText("Демо-подрядчик");
     await expect(page.locator("body")).not.toContainText(clientShort);
   });
@@ -209,8 +206,9 @@ test.describe("личный контур заказчика", () => {
     });
     const html = await (await page.request.get("/gas")).text();
     expect(html).not.toContain(clientShort);
-    await page.goto("/gas/reports", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Отчёт" }).first()).toBeVisible();
+    await page.goto("/gas/tabel", { waitUntil: "domcontentloaded" });
+    // «Отчёт» стал экраном «Табель» (ADR-061, 11)
+    await expect(page.getByRole("heading", { name: "Табель" }).first()).toBeVisible();
     await expect(page.getByText("Сверка с вашим файлом")).toHaveCount(0);
     expect(bodies.join("\n")).not.toContain(clientShort);
     // Вопросы к согласованию только в личном контуре
@@ -221,11 +219,11 @@ test.describe("личный контур заказчика", () => {
   test("личная ссылка ставит куку, убирает ключ и показывает контур заказчика", async ({
     page,
   }) => {
-    await page.goto(`/gas/reports?c=${CLIENT_KEY}`, { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(/\/gas\/reports$/);
+    await page.goto(`/gas/tabel?c=${CLIENT_KEY}`, { waitUntil: "domcontentloaded" });
+    await expect(page).toHaveURL(/\/gas\/tabel$/);
     await expect(page.getByText("Сверка с вашим файлом")).toBeVisible();
-    // Компания заказчика в верхней строке оболочки, рядом со знаком (ADR-055, 2.1)
-    await expect(page.locator("header.shell-header")).toContainText(clientShort);
+    // Компания заказчика в верхней строке оболочки, рядом со знаком (ADR-061, 3.1)
+    await expect(page.locator("header.gas-topbar")).toContainText(clientShort);
     const cookies = await page.context().cookies();
     const cookie = cookies.find((c) => c.name === "gaika_client");
     expect(cookie?.httpOnly).toBe(true);

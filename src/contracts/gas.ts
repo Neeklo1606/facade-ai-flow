@@ -142,6 +142,18 @@ const docHistoryItem = z
   })
   .strict();
 
+/** Признаки записи для проверяющего: те же имена, что `EntryFlag` в domain */
+export const gasEntryFlag = z.enum([
+  "no-amount",
+  "overlap",
+  "duplicate",
+  "repeat-visit",
+  "high-rate",
+  "multi-day-object",
+  "no-estimate",
+  "over-crew",
+]);
+
 /* ---------- S4: учёт времени бригад ---------- */
 
 export const gasGroups = table(
@@ -275,6 +287,14 @@ export const gasTimeEntries = table(
     clientKey: col.text({ nullable: true }),
     channel: col.enum(gasEntryChannel, { nullable: true }),
     note: col.text({ nullable: true }),
+    flags: col.jsonb(z.array(gasEntryFlag), {
+      nullable: true,
+      comment: "признаки записи на момент сохранения: считает сервер, в снимок не читаются",
+    }),
+    repeatVisit: col.bool({
+      nullable: true,
+      comment: "повторный выезд бригады на объект в тот же день; то же, что признак repeat-visit",
+    }),
   },
 );
 
@@ -798,6 +818,133 @@ export const gasJournalEntries = table(
   },
 );
 
+/* ---------- T7: канал MAX, уведомления, график (ADR-061, 14) ---------- */
+
+export const gasNotificationKind = pgEnum(
+  "gas_notification_kind",
+  ["missing", "clarify", "summary"],
+  "Вид уведомления: нет записи, вопрос по записи, сводка дня",
+);
+
+export const gasNotificationStatus = pgEnum(
+  "gas_notification_status",
+  ["sent", "failed"],
+  "Итог отправки уведомления",
+);
+
+export const gasInboundKind = pgEnum(
+  "gas_inbound_kind",
+  ["start", "callback", "text"],
+  "Вид входящего события канала: запуск бота, нажатие кнопки, текст",
+);
+
+export const gasMaxLinks = table(
+  {
+    name: "gas_max_links",
+    comment: "Привязка пользователя к MAX по одноразовому коду приглашения",
+    primaryKey: ["id"],
+    indexes: [
+      { columns: ["inviteCode"], unique: true, purpose: "код из ссылки на бота ищется при start" },
+      {
+        columns: ["maxUserId"],
+        unique: true,
+        where: "max_user_id is not null",
+        purpose: "один аккаунт MAX на одного пользователя",
+      },
+      { columns: ["userId"], purpose: "приглашения пользователя" },
+    ],
+  },
+  {
+    id: col.key(),
+    userId: col.keyRef("gas_users", "cascade"),
+    inviteCode: col.text(),
+    createdBy: col.name(),
+    createdAt: col.timestamp(),
+    expiresAt: col.timestamp(),
+    maxUserId: col.text({ nullable: true, comment: "user_id в MAX после привязки" }),
+    linkedAt: col.timestamp({ nullable: true }),
+  },
+);
+
+export const gasMessengerSessions = table(
+  {
+    name: "gas_messenger_sessions",
+    comment: "Состояние диалога бота с бригадиром: машина состояний T2 между событиями",
+    primaryKey: ["maxUserId"],
+    indexes: [{ columns: ["expiresAt"], purpose: "очистка устаревших диалогов" }],
+  },
+  {
+    maxUserId: col.key(),
+    userId: col.keyRef("gas_users", "cascade"),
+    chatId: col.text({ nullable: true }),
+    state: col.jsonb(z.record(z.unknown()), { comment: "BotState из domain/gas-ops/bot-dialog" }),
+    updatedAt: col.timestamp(),
+    expiresAt: col.timestamp(),
+  },
+);
+
+export const gasInboundEvents = table(
+  {
+    name: "gas_inbound_events",
+    comment: "Принятые события канала: повторная доставка с тем же внешним id не обрабатывается",
+    primaryKey: ["externalId"],
+    appendOnly: true,
+    indexes: [{ columns: ["receivedAt"], purpose: "журнал событий по времени" }],
+  },
+  {
+    externalId: col.key(),
+    channel: col.text({ comment: "канал: max" }),
+    kind: col.enum(gasInboundKind),
+    maxUserId: col.text(),
+    receivedAt: col.timestamp(),
+    entryId: col.text({ nullable: true, comment: "запись, созданная событием" }),
+  },
+);
+
+export const gasNotifications = table(
+  {
+    name: "gas_notifications",
+    comment: "Журнал отправленных напоминаний и сводок: ключ день|вид|получатель не повторяется",
+    primaryKey: ["key"],
+    appendOnly: true,
+    indexes: [{ columns: ["userId", "day"], purpose: "что получил пользователь за день" }],
+  },
+  {
+    key: col.key(),
+    day: col.date(),
+    kind: col.enum(gasNotificationKind),
+    userId: col.keyRef("gas_users", "cascade"),
+    channel: col.text({ comment: "demo или max" }),
+    text: col.text(),
+    status: col.enum(gasNotificationStatus),
+    reason: col.text({ nullable: true }),
+    sentAt: col.timestamp(),
+  },
+);
+
+export const gasScheduleItems = table(
+  {
+    name: "gas_schedule_items",
+    comment: "График: бригада × объект × дата, по нему считаются ожидаемые записи",
+    primaryKey: ["id"],
+    indexes: [
+      {
+        columns: ["brigadeId", "objectId", "day"],
+        unique: true,
+        purpose: "одна строка графика на бригаду, объект и день",
+      },
+      { columns: ["day"], purpose: "ожидаемые записи дня для напоминаний" },
+    ],
+  },
+  {
+    id: col.key(),
+    brigadeId: col.keyRef("gas_brigades", "cascade"),
+    objectId: col.keyRef("gas_objects", "cascade"),
+    day: col.date(),
+    source: col.text({ comment: "файл графика заказчика или назначение менеджера" }),
+  },
+);
+
 /* ---------- Реестр ---------- */
 
 /** Порядок важен: ссылки идут только на таблицы выше по списку (загрузка и вставка) */
@@ -834,5 +981,22 @@ const GAS_SCHEMAS = [
 export const gasTables: TableDef[] = GAS_SCHEMAS.map((schema) =>
   registeredTables.find((def) => def.schema === schema)!,
 );
+
+/**
+ * Таблицы T7 (ADR-061, 14): своя миграция `*_gas_tabel_t7.sql`. В снимок вкладки не входят:
+ * их ведёт серверный обработчик канала (B6), поэтому хранилище снимка их не читает и не пишет
+ */
+export const gasTabelTables: TableDef[] = [
+  gasMaxLinks,
+  gasMessengerSessions,
+  gasInboundEvents,
+  gasNotifications,
+  gasScheduleItems,
+].map((schema) => registeredTables.find((def) => def.schema === schema)!);
+
+/** Колонки существующих таблиц, которые добавляет миграция T7, а не v1 */
+export const GAS_T7_COLUMNS: Record<string, readonly string[]> = {
+  gas_time_entries: ["flags", "repeatVisit"],
+};
 
 export type GasRow<T extends z.ZodTypeAny> = z.infer<T>;

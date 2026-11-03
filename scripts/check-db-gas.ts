@@ -2,11 +2,12 @@
  * Модули сервиса v1 в PostgreSQL (ADR-060): часть `check:db` на временной базе после миграций.
  *
  * 1. Сид: исходный набор пишется хранилищем базы и читается обратно без потерь.
- * 2. Паритет: путь снабжения и документов (S5 → S6) выполняется портами над вкладкой
+ * 2. Паритет: путь записи времени (T7), снабжения и документов (S5 → S6) выполняется портами над вкладкой
  *    и над базой; ответы и итоговые снимки совпадают с точностью до новых ключей и минут.
  * 3. Одновременная запись: две заявки из двух хранилищ одной базы — обе на месте, номера разные.
  */
 import { createGasDocsDemo } from "../src/adapters/gas-ops/docs-demo";
+import { createGasOpsDemo } from "../src/adapters/gas-ops/demo";
 import { createGasSupplyDemo } from "../src/adapters/gas-ops/supply-demo";
 import { createGasDbStore } from "../src/adapters/gas-ops/db-store";
 import { getServerSnapshot, resetState } from "../src/adapters/gas-ops/state";
@@ -17,7 +18,7 @@ import type { GasOpsSnapshot } from "../src/ports/gas-ops";
 /** Новые ключи и минуты действий различаются между прогонами: в сравнении заменяются метками */
 function masked(value: unknown): string {
   return JSON.stringify(normalize(value))
-    .replace(/\b(zk|zl|of|rc|ed|df|rg|jr|aud|sp)-[a-z0-9]{6,}\b/g, "$1-*")
+    .replace(/\b(zk|zl|of|rc|ed|df|rg|jr|aud|sp|en|rev)-[a-z0-9]{6,}\b/g, "$1-*")
     .replace(/T\d\d:\d\d:00/g, "T*");
 }
 
@@ -62,6 +63,33 @@ async function walk(store: GasStore): Promise<unknown[]> {
       return null;
     }
   };
+
+  // Запись времени (ADR-061, 14): бригадир вносит, повтор по ключу, менеджер принимает
+  const time = createGasOpsDemo(store, null);
+  await as("u-foreman-1");
+  const today = (await store.read()).today;
+  const entryInput = {
+    day: today,
+    brigadeId: "brg-1",
+    employeeId: null,
+    objectId: "obj-m1",
+    start: "6:00",
+    end: "7:30",
+    breakMinutes: 0,
+    submit: true,
+    clientKey: "check-time-1",
+    channel: "bot" as const,
+  };
+  // Пустое необязательное поле база отдаёт без ключа (db-codec): сравниваются без null
+  const plain = async (run: () => Promise<object>) =>
+    Object.fromEntries(Object.entries(await run()).filter(([, v]) => v !== null));
+  const entry = (await step(() => plain(() => time.createEntry(entryInput)))) as { id: string };
+  await step(() => plain(() => time.createEntry(entryInput)));
+  // Бригадир не проверяет записи
+  await step(() => plain(() => time.review({ id: entry.id, action: "confirm" })));
+  await as("u-manager");
+  await step(() => plain(() => time.review({ id: entry.id, action: "confirm" })));
+  await step(() => time.reset());
 
   await as("u-pto");
   const created = await step(() => docs.createDocs({ objectId: "obj-m1", workIds: ["wr-1"] }));
@@ -155,6 +183,20 @@ export async function checkGas(db: Driver): Promise<boolean> {
     );
   }
 
+  // Признаки записи (T7) лежат в базе для запросов сервера: у каждой записи они посчитаны
+  const [flagged] = await db.query<{ total: number; filled: number; overlap: number }>(
+    `select count(*)::int as total, count(flags)::int as filled,
+       count(*) filter (where flags ? 'overlap')::int as overlap from gas_time_entries`,
+  );
+  if (!flagged || flagged.total === 0 || flagged.filled !== flagged.total || !flagged.overlap) {
+    console.error(`✗ модули v1: признаки записей не записаны в базу (${JSON.stringify(flagged)})`);
+    failed = true;
+  } else {
+    console.log(
+      `✓ табель T7: признаки посчитаны у всех ${flagged.total} записей, с пересечением ${flagged.overlap}`,
+    );
+  }
+
   resetState();
   const demo = await walk(demoStore);
   const base = await walk(store);
@@ -162,12 +204,17 @@ export async function checkGas(db: Driver): Promise<boolean> {
   if (mismatch !== -1 || demo.length !== base.length) {
     console.error(`✗ модули v1: паритет вкладки и базы расходится на шаге ${mismatch + 1}`);
     console.error(`  вкладка: ${masked(demo[mismatch]).slice(0, 400)}`);
+    if (process.env["CHECK_DB_DUMP"]) {
+      const { writeFileSync } = await import("node:fs");
+      writeFileSync(`${process.env["CHECK_DB_DUMP"]}.demo`, masked(demo[mismatch]));
+      writeFileSync(`${process.env["CHECK_DB_DUMP"]}.base`, masked(base[mismatch]));
+    }
     console.error(`  база:    ${masked(base[mismatch]).slice(0, 400)}`);
     failed = true;
   } else {
     const refused = demo.filter((a) => a && typeof a === "object" && "error" in a).length;
     console.log(
-      `✓ модули v1: путь снабжения и документов одинаков во вкладке и в базе (${demo.length - 1} шагов, отказов по правилам ${refused})`,
+      `✓ модули v1: путь записи времени, снабжения и документов одинаков во вкладке и в базе (${demo.length - 1} шагов, отказов по правилам ${refused})`,
     );
   }
 

@@ -182,10 +182,12 @@ export function crewSummary(entry: Pick<TimeEntry, "minutes" | "headcount" | "pe
   const people = headcountOf(entry);
   const man = manMinutesOf(entry);
   if (people === null || man === null) return "Состав не указан";
-  const each =
-    entry.people && entry.people.length > 0
-      ? "разное время"
-      : `по ${fmtManHours(entry.minutes, "ч")} на человека`;
+  // «Отметить людей» даёт строки с одним временем на всех: это не «разное время» (ADR-061, 9)
+  const rows = entry.people ?? [];
+  const uniform = rows.length === 0 || rows.every((p) => p.minutes === rows[0]!.minutes);
+  const each = uniform
+    ? `по ${fmtManHours(rows[0]?.minutes ?? entry.minutes, "ч")} на человека`
+    : "разное время";
   return `${people} чел., ${each}, всего ${fmtManHours(man, "чел.-ч")}`;
 }
 

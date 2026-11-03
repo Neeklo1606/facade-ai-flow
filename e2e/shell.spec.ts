@@ -3,11 +3,15 @@ import { expect, open, test } from "./fixtures";
 import { gasRole } from "./gas-helpers";
 
 /**
- * Оболочка «Монохром» и поиск (ADR-055, разделы 2.1, 2.5, 2.6): навигация и палитра на 390,
+ * Оболочка и поиск учёта времени (ADR-061, T1; поиск ADR-055, 2.6): навигация и поиск на 390,
  * 768 и 1440, без прокрутки вбок, клавиатура проходит оболочку, права роли в поиске.
+ * На компьютере поиск раскрывается полем в шапке, на телефоне открывается окном.
  */
 
-const palette = (page: Page) => page.getByRole("dialog", { name: "Поиск в системе" });
+const palette = (page: Page) =>
+  page
+    .getByRole("dialog", { name: "Поиск в системе" })
+    .or(page.getByRole("search", { name: "Поиск в системе" }));
 
 async function openSearch(page: Page) {
   const width = page.viewportSize()?.width ?? 1440;
@@ -87,7 +91,7 @@ test.describe("поиск и права роли", () => {
     }
   });
 
-  test("клавиатура проходит оболочку: знак, меню, колокольчик, аватар, капсула", async ({
+  test("клавиатура проходит оболочку: компания, поиск, колокольчик, профиль, меню", async ({
     page,
   }) => {
     await open(page, "/gas/moderation");
@@ -101,7 +105,7 @@ test.describe("поиск и права роли", () => {
       seen.add(name);
     }
     const all = [...seen].join(" | ");
-    expect(all).toMatch(/на старт/);
+    expect(all).toMatch(/меню компании/);
     expect(all).toMatch(/Журнал/);
     expect(all).toMatch(/Требует внимания/);
     expect(all).toMatch(/Сменить роль/);

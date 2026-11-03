@@ -2,7 +2,17 @@
  * Правила меток и подписей записи для экранов проверки и журнала (ADR-044, F5, п. 2–3).
  * Отдельно от компонентов, чтобы метки считались одинаково везде, где их рисуют.
  */
-import { FLAG_LABEL, fmtHours, formatClock, type EntryFlag, type EntryView } from "@/api/gas-ops";
+import {
+  FLAG_LABEL,
+  fmtHours,
+  fmtRub,
+  fmtManHours,
+  formatClock,
+  headcountOf,
+  manMinutesOf,
+  type EntryFlag,
+  type EntryView,
+} from "@/api/gas-ops";
 import { fmtDate } from "@/lib/format";
 
 /* ---------------------------------------------------------------- Подписи */
@@ -37,6 +47,36 @@ export function entryLine(view: EntryView): string {
     .join(" · ");
 }
 
+/**
+ * Вторая строка очереди и журнала: «Сб 03.10 · 08:00 – 17:00 · 8,00 ч · 4 чел. · 32 чел.-ч».
+ * Неизвестный состав – «состав –», а не ноль человеко-часов (2.3, п. 2)
+ */
+export function rowLine(view: EntryView): string {
+  const people = headcountOf(view.entry);
+  const man = manMinutesOf(view.entry);
+  return [
+    fmtShortDay(view.entry.day),
+    entryFrame(view),
+    fmtHours(view.hours),
+    people === null ? "состав –" : `${people} чел.`,
+    man === null ? null : fmtManHours(man, "чел.-ч"),
+  ]
+    .filter((part): part is string => !!part)
+    .join(" · ");
+}
+
+/**
+ * Сумма группы записей без подмены неизвестного нулём: «312 450 ₽», «312 450 ₽, без суммы 3»
+ * или «сумма не рассчитана», если суммы нет ни у одной записи (2.3, п. 2)
+ */
+export function sumText(views: EntryView[]): string {
+  const known = views.filter((view) => view.entry.amountRub !== null);
+  if (known.length === 0) return "сумма не рассчитана";
+  const sum = fmtRub(known.reduce((acc, view) => acc + (view.entry.amountRub ?? 0), 0));
+  const missing = views.length - known.length;
+  return missing ? `${sum}, без суммы ${missing}` : sum;
+}
+
 /* ---------------------------------------------------------------- Признаки */
 
 /** Уровень признака: блокирует, требует решения, информирует */
@@ -64,7 +104,12 @@ export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: 
   duplicate: {
     label: FLAG_LABEL.duplicate,
     level: "block",
-    why: "По этому объекту в этот день у бригады уже есть запись. Проверьте, не внесено ли время дважды.",
+    why: "По этому объекту в этот день у бригады уже есть запись с тем же временем. Проверьте, не внесено ли время дважды.",
+  },
+  "repeat-visit": {
+    label: FLAG_LABEL["repeat-visit"],
+    level: "decide",
+    why: "Бригада была на этом объекте дважды за день: интервалы разные. ТЗ разрешает несколько выездов, сверьте с бригадиром.",
   },
   "zero-minutes": {
     label: "Ноль минут",
@@ -92,7 +137,7 @@ export const MARK_BASE: Record<MarkKey, { label: string; level: MarkLevel; why: 
     why: "В записи больше людей, чем в составе бригады на эту дату. Уточните состав у бригадира или добавьте человека в справочник.",
   },
   "late-entry": {
-    label: "Вчерашняя запись",
+    label: "Внесено позже",
     level: "decide",
     why: "Время внесено на следующий день после работы. Сверьте его с бригадиром.",
   },
@@ -173,6 +218,7 @@ export const LEVEL_LABEL: Record<MarkLevel, string> = {
 export const FLAG_LEVEL: Record<EntryFlag, MarkLevel> = {
   overlap: "block",
   duplicate: "block",
+  "repeat-visit": "decide",
   "no-amount": "decide",
   "no-estimate": "decide",
   "high-rate": "decide",

@@ -11,4 +11,7 @@ interface ImportMetaEnv {
   readonly VITE_CONTACT_URL?: string;
   /** Переключатель состояний экрана для проверки макетов */
   readonly VITE_SCREEN_STATES?: string;
+  /** Газовый контур без снабжения, ПТО и общего лендинга (ADR-061); "0" возвращает модули */
+  readonly VITE_GAS_ONLY?: string;
+  readonly VITE_GAS_SPLIT_TIME?: string;
 }

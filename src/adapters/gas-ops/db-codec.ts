@@ -5,10 +5,13 @@
  * - позиции заявки живут своей таблицей, у заявки их нет;
  * - «все объекты» пользователя — `null` в `allowed_object_ids`;
  * - необязательное поле без значения хранится как `null` и читается обратно без ключа;
- * - состояние учёта времени до S4 лежит одной строкой `gas_state`.
+ * - состояние учёта времени до S4 лежит одной строкой `gas_state`;
+ * - признаки записи (`flags`, `repeat_visit`, T7) считаются при записи из того же снимка,
+ *   что видит проверяющий, и при чтении отбрасываются: в снимке их считает domain.
  * Порядок строк в массиве снимка хранит `row_order`.
  */
 import type { User } from "@/domain/gas-ops/model";
+import { entryView } from "@/domain/gas-ops/view";
 import type { SupplyRequest } from "@/domain/gas-ops/supply";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
 
@@ -43,6 +46,16 @@ const ENTRY_OPTIONAL = [
   "note",
 ] as const;
 
+/** Поля записи, которые база хранит для запросов сервера, а снимок считает сам */
+const ENTRY_DERIVED = ["flags", "repeatVisit"] as const;
+
+function entryRows(s: GasOpsSnapshot): Row[] {
+  return s.entries.map((e) => {
+    const flags = entryView(s, e).flags;
+    return withNulls({ ...e, flags, repeatVisit: flags.includes("repeat-visit") }, ENTRY_OPTIONAL);
+  });
+}
+
 /** Журнал растёт с головы: `row_order` от конца массива, иначе каждая запись сдвигала бы все строки */
 export const PREPENDED = new Set(["gas_audit"]);
 
@@ -69,7 +82,7 @@ export function snapshotToRows(s: GasOpsSnapshot): GasRows {
       ...u,
       allowedObjectIds: u.allowedObjectIds === "all" ? null : u.allowedObjectIds,
     })),
-    gas_time_entries: s.entries.map((e) => withNulls({ ...e }, ENTRY_OPTIONAL)),
+    gas_time_entries: entryRows(s),
     gas_reviews: s.reviews.map((r) => ({ ...r })),
     gas_crew_members: s.crew.map((c) => ({ ...c })),
     gas_rates: s.rates.map((r) => ({ ...r })),
@@ -119,9 +132,11 @@ export function rowsToSnapshot(rows: GasRows): GasOpsSnapshot {
     users: list<Row>("gas_users").map(
       (u) => ({ ...u, allowedObjectIds: u["allowedObjectIds"] ?? "all" }) as User,
     ),
-    entries: list<Row>("gas_time_entries").map(
-      (e) => withoutNulls(e, ENTRY_OPTIONAL) as unknown as GasOpsSnapshot["entries"][number],
-    ),
+    entries: list<Row>("gas_time_entries").map((e) => {
+      const entry = withoutNulls(e, ENTRY_OPTIONAL);
+      for (const key of ENTRY_DERIVED) delete entry[key];
+      return entry as unknown as GasOpsSnapshot["entries"][number];
+    }),
     reviews: list("gas_reviews"),
     crew: list("gas_crew_members"),
     rates: list("gas_rates"),
