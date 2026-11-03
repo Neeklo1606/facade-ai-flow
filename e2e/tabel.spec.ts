@@ -112,7 +112,8 @@ test.describe("табель 1440", () => {
     const counters = page.getByTestId("week-counters");
     await expect(counters).toContainText("не проверено");
     await expect(counters).toContainText("начислено");
-    await expect(counters).toContainText("чел.-ч: не рассчитано");
+    // Демо-неделя (ADR-062, F5): сумма по записям с составом и число записей без состава
+    await expect(counters).toContainText(/чел\.-ч: [^·]+чел\.-ч\s*· в \d+ записях нет состава/);
   });
 
   test("«Колонки»: чел.-ч и порядок показателей, «По людям» без состава выключен", async ({

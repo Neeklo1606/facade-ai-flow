@@ -38,9 +38,9 @@ export const WEEK_SAMPLE = {
   period: "28.09 – 03.10.2026",
   days: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
   dates: ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03"],
-  amountRub: [309_100, 232_050, 261_000, 266_500, 394_700, 63_800],
-  confirmedMinutes: 21_685,
-  confirmedEntries: 93,
+  amountRub: [309_100, 232_050, 261_000, 266_500, 394_700, 237_119],
+  confirmedMinutes: 24_160,
+  confirmedEntries: 109,
 };
 
 export const WEEK_TOTAL_RUB = WEEK_SAMPLE.amountRub.reduce((sum, value) => sum + value, 0);

@@ -24,10 +24,15 @@ import { DEFAULT_COMPANY_RULE } from "@/domain/gas-ops/work-cost";
 import { DEFAULT_REVIEW_SETTINGS } from "@/domain/gas-ops/review-policy";
 import { buildSupplySeed } from "@/data/mock/gas-supply-seed";
 import { buildDocsSeed } from "@/data/mock/gas-docs-seed";
+import { showcaseSnapshot } from "@/data/mock/gas-ops-showcase";
 
 const KEY = "neeklo-gas-ops-v1";
-/** Версия набора: меняется вместе с формой данных, иначе старый снимок во вкладке ломает экран */
-const VERSION = 7;
+/**
+ * Версия набора: меняется вместе с формой данных, иначе старый снимок во вкладке ломает экран.
+ * 8 — демо-неделя показа (ADR-062, F5). Наборы e2e пишут ту же версию: crew-week-state.cli.ts,
+ * gas-report-state.ts
+ */
+const VERSION = 8;
 
 interface Stored {
   version: number;
@@ -36,7 +41,7 @@ interface Stored {
 
 function initial(contour: GasContour): GasOpsSnapshot {
   const seed: GasOpsSeed = buildSeedFrom(contour.report, contour.places);
-  return {
+  const snapshot: GasOpsSnapshot = {
     today: seed.today,
     week: seed.week,
     groups: seed.groups,
@@ -68,6 +73,8 @@ function initial(contour: GasContour): GasOpsSnapshot {
     supply: buildSupplySeed(seed.today),
     docs: buildDocsSeed(seed.today),
   };
+  // Демо-неделя для показа (ADR-062, F5): только публичный контур, личный не трогаем
+  return contour.kind === "public" ? showcaseSnapshot(snapshot) : snapshot;
 }
 
 /** Исходные наборы по контуру: они же снимки для сервера и для первого рендера в браузере */

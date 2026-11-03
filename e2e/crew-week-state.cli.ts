@@ -45,4 +45,4 @@ const snapshot = {
   supply: buildSupplySeed(seed.today),
   docs: buildDocsSeed(seed.today),
 };
-process.stdout.write(JSON.stringify({ version: 7, snapshot }));
+process.stdout.write(JSON.stringify({ version: 8, snapshot }));

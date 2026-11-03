@@ -191,11 +191,11 @@ export function WeekScreen() {
           data-tour="week-counters"
         >
           {counters.join(" · ")} ·{" "}
-          {man.value ? (
-            <span>
-              чел.-ч: {man.value}
-              {man.reason ? `, ${man.reason}` : ""}
-            </span>
+          {man.value && !man.reason ? (
+            <span>чел.-ч: {man.value}</span>
+          ) : man.value ? (
+            // Сумма по записям с составом и ссылка на записи без него (ADR-062, F5)
+            <NotCalculated reason={man.reason}>чел.-ч: {man.value}</NotCalculated>
           ) : (
             <NotCalculated reason={man.reason}>чел.-ч: не рассчитано</NotCalculated>
           )}

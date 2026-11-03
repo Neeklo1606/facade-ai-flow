@@ -12,7 +12,7 @@ import { buildDocsSeed } from "@/data/mock/gas-docs-seed";
 
 /** Отчёт сверяется с файлом заказчика: снимок кладётся в его личный контур (ADR-047) */
 export const GAS_STATE_KEY = "neeklo-gas-ops-v1:client";
-export const GAS_STATE_VERSION = 7;
+export const GAS_STATE_VERSION = 8;
 export const SHOW_ENTRY_ID = "ent-show-m200";
 
 export function reportState(): string {
