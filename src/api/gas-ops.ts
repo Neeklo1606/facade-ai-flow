@@ -4,6 +4,14 @@
  * Экраны и компоненты берут отсюда и готовые цифры, и действия, и подписи. Порт, домен
  * и адаптер ниже этого слоя: когда демо-адаптер сменится на сервер, экраны не изменятся.
  */
+import { sheetSyncDemo } from "@/adapters/gas-ops/sheet-sync-demo";
+import {
+  factReportSheet,
+  nextPushAt,
+  sheetStatusText,
+  type WeekSheet,
+} from "@/domain/gas-ops/cloud-sheet";
+import type { SheetSyncPort, SheetSyncResult } from "@/ports/sheet-sync";
 import { dataSource } from "@/api/config";
 import { useCallback, useMemo } from "react";
 import {
@@ -305,8 +313,42 @@ export type {
   TabelCell,
   TabelRow,
 } from "@/domain/gas-ops/tabel";
-export { sheetSyncDemo as sheetSync } from "@/adapters/gas-ops/sheet-sync-demo";
-export type { SheetProvider } from "@/ports/sheet-sync";
+export type { SheetProvider, SheetSyncResult } from "@/ports/sheet-sync";
+
+/*
+ * Облачная таблица (ADR-063, 1.4). Во вкладке порт — заглушка: ключ сервисного аккаунта живёт
+ * только на сервере (`googleSheetSyncFromEnv`). Здесь помнится, что ушло в прошлый раз:
+ * следующая отправка — только изменившиеся диапазоны и не чаще раза в минуту.
+ */
+export const sheetSync: SheetSyncPort = sheetSyncDemo;
+let lastSheet: WeekSheet | null = null;
+let lastPushAt: string | null = null;
+
+export function sheetStatus(): string {
+  return sheetStatusText({ connected: sheetSync.connected, updatedAt: lastPushAt });
+}
+
+export async function pushWeekSheet(input: {
+  weekFrom: string;
+  weekTo: string;
+  days: readonly string[];
+  rows: readonly TabelRow[];
+}): Promise<SheetSyncResult> {
+  const now = new Date().toISOString();
+  const allowed = nextPushAt(lastPushAt, now);
+  if (allowed > now)
+    return {
+      ok: false,
+      reason: `Таблица обновлялась меньше минуты назад: следующее обновление в ${allowed.slice(11, 16)}.`,
+    };
+  const sheet = factReportSheet(input);
+  const result = await sheetSync.push({ sheet, prev: lastSheet });
+  if (result.ok) {
+    lastSheet = sheet;
+    lastPushAt = result.syncedAt;
+  }
+  return result;
+}
 
 /** Четыре типа сведений о записи, «не рассчитано» и расшифровка суммы (ADR-061, 10) */
 export {
