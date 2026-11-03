@@ -220,14 +220,16 @@ function useNavCounters(): Partial<Record<string, number>> {
  * первой отрисовки (данные, шторка), поэтому ждём его до 3 секунд.
  */
 /**
- * Тур роли при первом входе (4.8): один раз на браузер, если другой тур не идёт. На стартовом
- * экране не открывается: там своя кнопка показа
+ * Тур роли при первом входе (4.8): один раз на браузер, если другой тур не идёт. Только на
+ * домашнем экране роли (F1): прямая ссылка на другой экран открывает этот экран без тура.
+ * Автостарт никуда не переводит, первый шаг тура и стоит на домашнем экране
  */
 function useFirstTour(role: Role, screenKey: GasScreenKey) {
   useEffect(() => {
-    if (screenKey === "start" || getTourState().tourId) return;
+    if (screenKey !== ROLE_HOME[role] || getTourState().tourId) return;
     const id = tourOfRole(role);
-    if (id && !tourSeen(id)) startTour(id);
+    // Администратор смотрит тур менеджера: его шаги на чужой роли, сам он не открывается
+    if (id && !tourSeen(id) && TOURS[id].steps[0]?.role === role) startTour(id, { go: false });
   }, [role, screenKey]);
 }
 
