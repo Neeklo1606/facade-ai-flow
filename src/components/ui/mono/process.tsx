@@ -190,7 +190,14 @@ export function ErrorState({ what, onRetry }: { what: string; onRetry: () => voi
  * Где сейчас запись (поле без сети): «Сохранено на телефоне» — ещё не отправлено,
  * «Принято сервером» — получено. Не путать с «Проверено человеком»
  */
-export function OfflineBadge({ state }: { state: "local" | "server" }) {
+export function OfflineBadge({
+  state,
+  sentLabel = "Принято сервером",
+}: {
+  state: "local" | "server";
+  /** Подпись отправленного: в демонстрации сервера нет, подпись приходит из слоя данных */
+  sentLabel?: string;
+}) {
   const local = state === "local";
   const Icon = local ? Smartphone : CloudCheck;
   return (
@@ -199,7 +206,7 @@ export function OfflineBadge({ state }: { state: "local" | "server" }) {
       className={cn("mono-chip", local ? "bg-caution-bg text-caution" : "bg-up-bg text-up")}
     >
       <Icon aria-hidden />
-      {local ? "Сохранено на телефоне" : "Принято сервером"}
+      {local ? "Сохранено на телефоне" : sentLabel}
     </span>
   );
 }

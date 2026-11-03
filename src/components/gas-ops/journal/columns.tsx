@@ -1,6 +1,7 @@
 /**
  * Колонки «Журнала» (ADR-061, 10; раздел 4.4). Пустое – «–» с подсказкой, а не ноль (2.3, п. 2).
  */
+import { isAutoAccepted } from "@/api/gas-ops";
 import type { ReactNode } from "react";
 import {
   CHANNEL_LABEL,
@@ -169,9 +170,16 @@ export const COLUMNS: Column[] = [
     // До 1400 px статус точкой с подсказкой: иначе на 1280 не помещается объект
     width: "w-[44px] min-[1400px]:w-[140px]",
     cell: ({ view }) => (
-      <span title={ENTRY_STATUS_LABEL[view.entry.status]}>
+      <span
+        title={
+          isAutoAccepted(view.entry)
+            ? "Принята автоматически"
+            : ENTRY_STATUS_LABEL[view.entry.status]
+        }
+      >
         <EntryStatusBadge
           status={view.entry.status}
+          auto={isAutoAccepted(view.entry)}
           className="max-w-full"
           labelClassName="truncate max-[1399px]:sr-only"
         />

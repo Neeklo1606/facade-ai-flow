@@ -28,6 +28,7 @@ import {
 import { setBrigadeStatus } from "@/domain/gas-ops/schedule";
 import {
   AUTO_ACTOR,
+  isAutoAccepted,
   REVIEW_MODE_LABEL,
   accuracyOf,
   finalCheckList,
@@ -58,6 +59,7 @@ import {
 } from "@/domain/gas-ops/directory-import";
 import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
+  crewOn,
   defaultHeadcount,
   frameOfPeople,
   personRows,
@@ -236,6 +238,8 @@ function routed(snapshot: GasOpsSnapshot, draft: TimeEntry): TimeEntry {
       (e) => e.objectId === draft.objectId && e.status === "confirmed",
     ),
     objectDays,
+    // Состав больше бригады — тоже замечание: без размера состава признак не ставился вовсе
+    crewSize: crewOn(snapshot.crew, draft.brigadeId, draft.day).length || null,
   });
   if (routeEntry(snapshot.reviewSettings.mode, flags) === "queue") return draft;
   return {
@@ -781,6 +785,41 @@ export function createGasOpsDemo(
               action: "entry.undo",
               entityId: id,
               detail: `${entry.number}: отменено «${ENTRY_STATUS_LABEL[entry.status]}», снова «${ENTRY_STATUS_LABEL[before]}»`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(next.entries.find((e) => e.id === id)!);
+    },
+
+    undoAutoAccept: async (id) => {
+      const snapshot = await store.read();
+      mustTimeRole(snapshot);
+      const entry = mustFind(snapshot, id);
+      const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      if (actor?.role === "foreman") {
+        throw new GasOpsError("not-allowed", "Проверку ведёт менеджер.");
+      }
+      mustBeOpen(snapshot, entry.day);
+      if (!isAutoAccepted(entry)) {
+        throw new GasOpsError(
+          "nothing-to-undo",
+          "Запись принята не автоматически: отменять нечего.",
+        );
+      }
+      const back: TimeEntry = { ...entry, status: "pending", reviewedBy: null, reviewedAt: null };
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === id ? back : e)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "entry.auto.undo",
+              entityId: id,
+              detail: `${entry.number}: автоматический приём отменён, запись снова в очереди проверки`,
             }),
             ...s.audit,
           ],

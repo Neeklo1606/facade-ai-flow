@@ -34,14 +34,19 @@ const STATUS_DOT: Record<EntryStatus, string> = {
 /** Статус записи: текст с цветной точкой, без плашки. Один на запись */
 export function EntryStatusBadge({
   status,
+  auto = false,
   className,
   labelClassName,
 }: {
   status: EntryStatus;
+  /** Принята системой без менеджера (финальный промт, 1.2): метка видна в журнале и проверке */
+  auto?: boolean;
   className?: string;
   /** Узкая колонка журнала прячет текст до точки, оставляя его экранной читалке */
   labelClassName?: string;
 }) {
+  const label =
+    auto && status === "confirmed" ? "Принята автоматически" : ENTRY_STATUS_LABEL[status];
   return (
     <span
       className={cn(
@@ -50,11 +55,7 @@ export function EntryStatusBadge({
       )}
     >
       <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
-      {labelClassName ? (
-        <span className={labelClassName}>{ENTRY_STATUS_LABEL[status]}</span>
-      ) : (
-        ENTRY_STATUS_LABEL[status]
-      )}
+      {labelClassName ? <span className={labelClassName}>{label}</span> : label}
     </span>
   );
 }

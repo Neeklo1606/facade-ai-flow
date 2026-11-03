@@ -51,7 +51,7 @@ for (const [name, viewport] of [
       ).toBeVisible();
       await page.getByRole("button", { name: "Проверить" }).click();
       await page.getByRole("button", { name: "Отправить заявку" }).click();
-      await expect(page.getByText("Принято сервером")).toBeVisible();
+      await expect(page.getByText("Записано", { exact: true })).toBeVisible();
       const heading = await page
         .getByRole("heading", { name: /Заявка ЗК-\d+ принята/ })
         .textContent();

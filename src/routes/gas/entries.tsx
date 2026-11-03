@@ -335,6 +335,15 @@ function EntriesPage() {
       canDecide={actor.canReview}
       onConfirm={() => void decide(current, "confirm")}
       onDecide={(action, comment) => decide(current, action, comment)}
+      onUndoAuto={() =>
+        void actions
+          .undoAutoAccept(current.entry.id)
+          .then((result) =>
+            result.ok
+              ? toast.success(`${current.entry.number} снова в очереди проверки`)
+              : toast.error(result.message),
+          )
+      }
       onCorrect={async (input) => {
         const result = await actions.updateEntry({ id: current.entry.id, ...input });
         if (!result.ok) return { ok: false, message: result.message };

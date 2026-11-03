@@ -4,6 +4,7 @@
  * Экраны и компоненты берут отсюда и готовые цифры, и действия, и подписи. Порт, домен
  * и адаптер ниже этого слоя: когда демо-адаптер сменится на сервер, экраны не изменятся.
  */
+import { dataSource } from "@/api/config";
 import { useCallback, useMemo } from "react";
 import {
   effectiveMinutes,
@@ -265,6 +266,12 @@ export type {
   BotState,
 } from "@/domain/gas-ops/bot-dialog";
 export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
+export { isAutoAccepted } from "@/domain/gas-ops/review-policy";
+/**
+ * Подпись отправленной записи бригадира: в демонстрации запись лежит во вкладке, и «Принято
+ * сервером» обещало бы то, чего нет (финальный промт, правило 3)
+ */
+export const SENT_LABEL = dataSource === "server" ? "Принято сервером" : "Записано";
 export { parseTimeInput, rangeLabel, TIME_INPUT_TEXT } from "@/domain/gas-ops/time-input";
 export { busyLine, intervalLabel } from "@/domain/gas-ops/time-slots";
 /** Табель (ADR-061, 11): статус ячеек, выделение, TSV, «По людям», контрольная сумма версии */
@@ -607,6 +614,8 @@ export function useGasActions(): {
   review: (input: ReviewInput) => Promise<ActionResult<TimeEntry>>;
   /** Отменить последнее решение проверки: тост «Отменить» */
   undoReview: (id: string) => Promise<ActionResult<TimeEntry>>;
+  /** Вернуть автоматически принятую запись в очередь проверки */
+  undoAutoAccept: (id: string) => Promise<ActionResult<TimeEntry>>;
   setEstimate: (input: {
     objectId: string;
     amountRub: number;
@@ -639,6 +648,7 @@ export function useGasActions(): {
     submitEntry: useCallback((id) => run(() => port.submitEntry(id)), [run, port]),
     review: useCallback((input) => run(() => port.review(input)), [run, port]),
     undoReview: useCallback((id) => run(() => port.undoReview(id)), [run, port]),
+    undoAutoAccept: useCallback((id) => run(() => port.undoAutoAccept(id)), [run, port]),
     setEstimate: useCallback((input) => run(() => port.setEstimate(input)), [run, port]),
     reset: useCallback(() => run(() => port.reset()), [run, port]),
     answerClarify: useCallback((input) => run(() => port.answerClarify(input)), [run, port]),

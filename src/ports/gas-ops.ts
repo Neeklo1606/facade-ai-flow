@@ -205,6 +205,11 @@ export interface GasOpsPort {
    * в журнал действий пишется отмена. Исправление времени так не отменяется.
    */
   undoReview(id: string): Promise<TimeEntry>;
+  /**
+   * Вернуть запись, принятую системой без менеджера, в очередь проверки (финальный промт, 1.2).
+   * Доступно до закрытия недели; запись снова ждёт решения человека.
+   */
+  undoAutoAccept(id: string): Promise<TimeEntry>;
   /** Ручная сумма по объекту без сметы: подтверждает менеджер (OPEN-QUESTION 4) */
   setEstimate(input: {
     objectId: string;
@@ -335,6 +340,7 @@ export const GAS_OPS_METHODS = [
   "submitEntry",
   "review",
   "undoReview",
+  "undoAutoAccept",
   "setEstimate",
   "addEstimateVersion",
   "discardEstimateVersion",

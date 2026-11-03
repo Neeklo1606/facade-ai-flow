@@ -97,7 +97,7 @@ for (const width of WIDTHS) {
         "Пересечение времени: ГЗ-00095 08:10–11:40",
       );
       await page.getByRole("button", { name: "Отправить" }).click();
-      await expect(page.getByText("Принято сервером")).toBeVisible();
+      await expect(page.getByText("Записано", { exact: true })).toBeVisible();
       const heading = await page
         .getByRole("heading", { name: /Запись ГЗ-\d+ принята/ })
         .textContent();
@@ -181,7 +181,7 @@ test.describe("приёмка: касания бригадира 390", () => {
     );
     await tap(page.getByRole("button", { name: "Проверить" }));
     await tap(page.getByRole("button", { name: "Отправить" }));
-    await expect(page.getByText("Принято сервером")).toBeVisible();
+    await expect(page.getByText("Записано", { exact: true })).toBeVisible();
     fact("касаний на типичную запись", taps);
     expect(taps).toBeLessThanOrEqual(5);
   });

@@ -41,6 +41,7 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   submitEntry: TIME,
   review: OFFICE,
   undoReview: OFFICE,
+  undoAutoAccept: OFFICE,
   setEstimate: OFFICE,
   addEstimateVersion: OFFICE,
   discardEstimateVersion: OFFICE,

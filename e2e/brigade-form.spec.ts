@@ -52,7 +52,7 @@ for (const width of WIDTHS) {
       await tap(page.getByRole("button", { name: "Проверить" }));
       await expect(page.getByText("по 8 ч на человека")).toBeVisible();
       await tap(page.getByRole("button", { name: "Отправить" }));
-      await expect(page.getByText("Принято сервером")).toBeVisible();
+      await expect(page.getByText("Записано", { exact: true })).toBeVisible();
       await expect(page.getByRole("heading", { name: /Запись ГЗ-\d+ принята/ })).toBeVisible();
       expect(taps, "касаний для типичной записи").toBeLessThanOrEqual(5);
       await expect(page.locator("main")).not.toContainText("₽");
@@ -76,7 +76,7 @@ for (const width of WIDTHS) {
       await expect(marks).toContainText("Пересечение времени: ГЗ-00095 08:10–11:40");
       await expect(marks).toContainText("Повторный выезд");
       await page.getByRole("button", { name: "Отправить" }).click();
-      await expect(page.getByText("Принято сервером")).toBeVisible();
+      await expect(page.getByText("Записано", { exact: true })).toBeVisible();
       const heading = await page
         .getByRole("heading", { name: /Запись ГЗ-\d+ принята/ })
         .textContent();

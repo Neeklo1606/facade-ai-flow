@@ -6,6 +6,7 @@
  * Отправка с ключом: без сети заявка «Сохранено на телефоне», после ответа «Принято
  * сервером», повтор с тем же ключом дубля не создаёт (инварианты 4 и 7).
  */
+import { SENT_LABEL } from "@/api/gas-ops";
 import { Check, Mic, PackageCheck, Plus, Square, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -250,7 +251,7 @@ export function SiteToday() {
   if (step === "sent" && sent) {
     return (
       <div className="flex flex-col items-start gap-4">
-        <OfflineBadge state={sent.state} />
+        <OfflineBadge state={sent.state} sentLabel={SENT_LABEL} />
         <h2 className="type-screen">
           {sent.state === "server" ? `Заявка ${sent.number ?? ""} принята` : "Заявка на телефоне"}
         </h2>

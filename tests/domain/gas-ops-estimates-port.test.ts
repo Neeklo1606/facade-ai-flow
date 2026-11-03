@@ -126,6 +126,31 @@ describe("режимы проверки и итоговая проверка", (
     expect(after.entries.find((e) => e.id === entry.id)?.amountRub).toBe(entry.amountRub);
   });
 
+  test("автоприём можно вернуть в очередь до закрытия недели, бригадир этого не может", async () => {
+    const slot = await freeSlot();
+    await port.setEstimate({ objectId: slot.objectId, amountRub: 9_000, note: "договор" });
+    await port.setReviewSettings({ mode: "flagged", thresholdPercent: 95 });
+    const entry = await port.createEntry({
+      ...slot,
+      employeeId: null,
+      start: "5:00",
+      end: "6:00",
+      breakMinutes: 0,
+      submit: true,
+    });
+    expect(entry.reviewedBy).toBe("auto");
+    const back = await port.undoAutoAccept(entry.id);
+    expect(back.status).toBe("pending");
+    expect(back.reviewedBy).toBeNull();
+    const s = await port.snapshot();
+    expect(s.audit[0]?.action).toBe("entry.auto.undo");
+    // Повтор: запись уже в очереди, отменять нечего
+    expect(await errorCode(() => port.undoAutoAccept(entry.id))).toBe("nothing-to-undo");
+    // Бригадир автоприём не отменяет
+    await port.signIn("u-foreman-1");
+    expect(await errorCode(() => port.undoAutoAccept(entry.id))).toBe("not-allowed");
+  });
+
   test("«проверять все»: запись ждёт менеджера", async () => {
     const slot = await freeSlot();
     const entry = await port.createEntry({

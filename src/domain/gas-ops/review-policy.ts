@@ -98,13 +98,65 @@ export function modeAvailability(
   return { ok: true };
 }
 
+/**
+ * Предложение перейти на «Проверять только с замечаниями» (финальный промт, 1.2): первые
+ * две недели менеджер проверяет всё, затем система сама предлагает режим, если точность
+ * за полное окно последних решений не ниже порога. Включает человек, предложение только плашка.
+ */
+export const SUGGEST_AFTER_DAYS = 14;
+export const SUGGEST_PERCENT = 95;
+
+export interface ModeSuggestion {
+  percent: number;
+  decided: number;
+}
+
+export function flaggedModeSuggestion(input: {
+  settings: ReviewSettings;
+  accuracy: Accuracy;
+  reviews: readonly Review[];
+  now: string;
+}): ModeSuggestion | null {
+  const { settings, accuracy } = input;
+  if (settings.mode !== "all") return null;
+  if (accuracy.percent === null || accuracy.decided < ACCURACY_WINDOW) return null;
+  if (accuracy.percent < SUGGEST_PERCENT) return null;
+  // Отсчёт двух недель — от первого решения человека: с него началась проверка
+  const first = input.reviews
+    .filter((r) => r.actor !== AUTO_ACTOR)
+    .reduce<string | null>((min, r) => (min === null || r.at < min ? r.at : min), null);
+  if (!first) return null;
+  const days = (Date.parse(input.now) - Date.parse(first)) / 86_400_000;
+  if (!(days >= SUGGEST_AFTER_DAYS)) return null;
+  return { percent: accuracy.percent, decided: accuracy.decided };
+}
+
+/** Запись принята системой без менеджера: её видно в журнале и её можно вернуть в очередь */
+export function isAutoAccepted(entry: Pick<TimeEntry, "status" | "reviewedBy">): boolean {
+  return entry.status === "confirmed" && entry.reviewedBy === AUTO_ACTOR;
+}
+
+export const AUTO_ACCEPTED_LABEL = "принята автоматически";
+
 /** Кто подтверждает автоматически: пишется в запись и журнал, чтобы её нашла итоговая проверка */
 export const AUTO_ACTOR = "auto";
+
+/**
+ * Признаки только для сведения: «Объект на несколько дней» говорит о распределении стоимости,
+ * а не о замечании, и в разборе подписан «Принятию не мешает». Автоприём он не держит.
+ * Нет суммы или сметы — держит: финансовый итог подтверждает человек.
+ */
+const NOTE_FLAGS = new Set<EntryFlag>(["multi-day-object"]);
+
+/** Признаки, из-за которых запись ждёт менеджера в режиме «только с замечаниями» */
+export function remarkFlags(flags: readonly EntryFlag[]): EntryFlag[] {
+  return flags.filter((f) => !NOTE_FLAGS.has(f));
+}
 
 /** Куда идёт отправленная запись в этом режиме */
 export function routeEntry(mode: ReviewMode, flags: EntryFlag[]): "queue" | "auto" {
   if (mode === "all") return "queue";
-  if (mode === "flagged") return flags.length === 0 ? "auto" : "queue";
+  if (mode === "flagged") return remarkFlags(flags).length === 0 ? "auto" : "queue";
   return "auto";
 }
 

@@ -480,7 +480,16 @@ describe("очередь отправки бригадира", () => {
     );
     expect(result.queue).toEqual([]);
     expect(result.refused).toEqual([{ clientKey: "a", message: "Такая запись уже есть" }]);
-    expect(result.accepted).toEqual([{ clientKey: "b", number: "ГЗ-00105" }]);
+    expect(result.accepted).toEqual([{ clientKey: "b", number: "ГЗ-00105", auto: false }]);
+  });
+
+  test("автоприём доходит до экрана бригадира и через очередь", async () => {
+    const result = await drainQueue([item("a")], async () => ({
+      ok: true,
+      number: "ГЗ-00106",
+      auto: true,
+    }));
+    expect(result.accepted).toEqual([{ clientKey: "a", number: "ГЗ-00106", auto: true }]);
   });
 });
 

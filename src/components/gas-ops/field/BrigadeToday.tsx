@@ -11,6 +11,7 @@
  * с ключом: без сети запись «Сохранено на телефоне», после ответа «Принято сервером»;
  * повтор с тем же ключом дубля не создаёт.
  */
+import { SENT_LABEL, isAutoAccepted } from "@/api/gas-ops";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Bot, ChevronRight, Clock3, MessageCircleQuestion, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -160,6 +161,7 @@ export function BrigadeToday() {
     key: string;
     state: "local" | "server";
     number: string | null;
+    auto?: boolean;
   } | null>(null);
 
   useEffect(() => setQueue(readQueue(storage())), []);
@@ -203,7 +205,12 @@ export function BrigadeToday() {
   const send = useCallback(
     async (item: QueuedEntry): Promise<SendResult> => {
       const result = await actions.createEntry(item.input);
-      if (result.ok) return { ok: true, number: result.value.number };
+      if (result.ok)
+        return {
+          ok: true,
+          number: result.value.number,
+          auto: isAutoAccepted(result.value),
+        };
       return { ok: false, network: result.code === "unknown", message: result.message };
     },
     [actions],
@@ -217,7 +224,8 @@ export function BrigadeToday() {
       writeQueue(storage(), result.queue);
       setQueue(result.queue);
       const mine = result.accepted.find((a) => a.clientKey === sent?.key);
-      if (mine) setSent({ key: mine.clientKey, state: "server", number: mine.number });
+      if (mine)
+        setSent({ key: mine.clientKey, state: "server", number: mine.number, auto: mine.auto });
     })();
   }, [network.offline, queue, send, sent?.key]);
 
@@ -357,7 +365,12 @@ export function BrigadeToday() {
                   setError(result.message);
                   return;
                 }
-                setSent({ key: item.clientKey, state: "server", number: result.number });
+                setSent({
+                  key: item.clientKey,
+                  state: "server",
+                  number: result.number,
+                  auto: result.auto ?? false,
+                });
                 setStep("sent");
               }}
             >
@@ -375,13 +388,15 @@ export function BrigadeToday() {
   if (step === "sent" && sent) {
     return (
       <div className="flex flex-col items-start gap-4">
-        <OfflineBadge state={sent.state} />
+        <OfflineBadge state={sent.state} sentLabel={SENT_LABEL} />
         <h2 className="type-screen">
           {sent.state === "server" ? `Запись ${sent.number ?? ""} принята` : "Запись на телефоне"}
         </h2>
         <p className="type-text text-ink-2">
           {sent.state === "server"
-            ? "Ждёт проверки. Если у менеджера появится вопрос, он придёт в «Уточнения»."
+            ? sent.auto
+              ? "Замечаний нет: запись принята и учтена в отчёте недели."
+              : "Ждёт проверки. Если у менеджера появится вопрос, он придёт в «Уточнения»."
             : "Сохранено на телефоне, отправим при связи. Повторно вносить не нужно."}
         </p>
         <Button field className="w-full" onClick={() => setStep("today")}>

@@ -97,6 +97,7 @@ export const gasMethodArgs: Record<string, z.ZodTypeAny> = {
   submitEntry: z.tuple([id]),
   review: z.tuple([gasReviewInput]),
   undoReview: z.tuple([id]),
+  undoAutoAccept: z.tuple([id]),
   fieldSnapshot: z.union([z.tuple([]), z.tuple([id.optional()])]),
   answerClarify: z.tuple([gasAnswerInput]),
   closeWeek: z.tuple([gasCloseWeekInput]),

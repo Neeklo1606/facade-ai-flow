@@ -28,6 +28,8 @@ import {
 import { brigadeStatus, type BrigadeWeekStatus, type ScheduleRow } from "@/domain/gas-ops/schedule";
 import {
   accuracyOf,
+  flaggedModeSuggestion,
+  type ModeSuggestion,
   finalCheckList,
   modeAvailability,
   type Accuracy,
@@ -144,6 +146,8 @@ export interface ReviewPolicyData {
   finalList: TimeEntry[];
   reports: ReportIssue[];
   lastCheck: { at: string; by: string; count: number } | null;
+  /** Предложение перейти на «только с замечаниями»; null — предлагать рано или нечего */
+  suggestion: ModeSuggestion | null;
 }
 
 export function useGasReviewPolicy(): ReviewPolicyData {
@@ -169,8 +173,23 @@ export function useGasReviewPolicy(): ReviewPolicyData {
             count: last.entryIds.length,
           }
         : null,
+      suggestion: flaggedModeSuggestion({
+        settings: s.reviewSettings,
+        accuracy,
+        reviews: s.reviews,
+        now: `${s.today}T23:59:00`,
+      }),
     };
-  }, [s.reviews, s.reviewSettings, s.finalChecks, s.entries, s.week.days, s.reportIssues, s.users]);
+  }, [
+    s.reviews,
+    s.reviewSettings,
+    s.finalChecks,
+    s.entries,
+    s.week.days,
+    s.reportIssues,
+    s.users,
+    s.today,
+  ]);
 }
 
 /** График недели и отметки бригад */
