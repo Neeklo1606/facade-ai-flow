@@ -476,7 +476,10 @@ function ModerationPage() {
       <ModeSuggestion />
 
       <ScreenCounters>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2"
+          data-tour="review-tabs"
+        >
           <StatusPills
             label="Статус записи"
             value={tab}

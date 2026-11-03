@@ -200,22 +200,27 @@ test.describe("тур роли 1440", () => {
     await page.getByRole("button", { name: "Справка", exact: true }).click();
     await page.getByRole("button", { name: "Пройти тур: менеджера" }).click();
     await expect(step(page)).toHaveText("Шаг 1 из 4");
+    // Все шаги тура роли на её домашнем экране (финальный промт, 2.5; ADR-064)
     for (let i = 0; i < 3; i++) await next(page).click();
-    await expect(page).toHaveURL(/\/gas\/entries$/);
-    await expect(card(page).getByRole("heading")).toHaveText("Журнал");
+    await expect(page).toHaveURL(/\/gas\/moderation$/);
+    await expect(card(page).getByRole("heading")).toHaveText("Новые, уточнения, принятые");
   });
 
-  test("тур руководителя ведёт по «Неделе» и «Табелю»", async ({ page }) => {
+  test("тур руководителя: четыре шага на «Неделе»", async ({ page }) => {
     await open(page, "/gas/week");
     await gasRole(page, "Руководитель");
     await page.getByRole("button", { name: "Справка", exact: true }).click();
     await page.getByRole("button", { name: "Пройти тур: руководителя" }).click();
     await expect(page).toHaveURL(/\/gas\/week$/);
     await expect(card(page).getByRole("heading")).toHaveText("Неделя");
+    await expect(step(page)).toHaveText("Шаг 1 из 4");
     await next(page).click();
     await next(page).click();
-    await expect(page).toHaveURL(/\/gas\/tabel$/);
-    await expect(card(page).getByRole("heading")).toHaveText("Табель");
+    await expect(page).toHaveURL(/\/gas\/week$/);
+    await expect(card(page).getByRole("heading")).toHaveText("Что мешает закрыть");
+    await next(page).click();
+    await expect(page).toHaveURL(/\/gas\/week$/);
+    await expect(card(page).getByRole("heading")).toHaveText("Файл недели");
   });
 });
 

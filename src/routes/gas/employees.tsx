@@ -1,4 +1,6 @@
 import { completePageHead } from "@/lib/page-head";
+import { DirectoryImport } from "@/components/gas-ops/directory/DirectoryImport";
+import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { MoreHorizontal, Send, UserPlus, Users } from "lucide-react";
@@ -86,7 +88,7 @@ function EmployeesPage() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Действия: ${row.name}`}
-        className="grid h-control-sm w-[32px] place-items-center rounded-control text-text-2 focus-ring is-hover:bg-surface-2"
+        className="touch-target grid h-control-sm w-[32px] place-items-center rounded-control text-text-2 focus-ring is-hover:bg-surface-2"
       >
         <MoreHorizontal className="size-4" aria-hidden />
       </DropdownMenuTrigger>
@@ -167,7 +169,9 @@ function EmployeesPage() {
 
   return (
     <div className="flex flex-col gap-block">
+      <DirectoryTabs />
       <ScreenActions>
+        {actor.role === "manager" || actor.isAdmin ? <DirectoryImport kind="employees" /> : null}
         <Button variant="primary" onClick={() => setInvite("pick")}>
           <UserPlus aria-hidden />
           Пригласить сотрудника

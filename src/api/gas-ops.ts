@@ -289,6 +289,7 @@ export type {
 } from "@/domain/gas-ops/bot-dialog";
 export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
 export { isAutoAccepted } from "@/domain/gas-ops/review-policy";
+export { lastEntryBefore, sameAsYesterday } from "@/domain/gas-ops/field";
 /**
  * Подпись отправленной записи бригадира: в демонстрации запись лежит во вкладке, и «Принято
  * сервером» обещало бы то, чего нет (финальный промт, правило 3)

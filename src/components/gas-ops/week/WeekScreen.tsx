@@ -276,7 +276,12 @@ export function WeekScreen() {
         </Card>
       ) : null}
 
-      <div ref={reasonsRef} tabIndex={-1} className="scroll-mt-24 outline-none">
+      <div
+        ref={reasonsRef}
+        tabIndex={-1}
+        data-tour="week-reasons"
+        className="scroll-mt-24 outline-none"
+      >
         <Card
           title={closed ? "Неделя закрыта" : "Что мешает закрыть"}
           action={
@@ -383,7 +388,11 @@ export function WeekScreen() {
         </p>
       </Card>
 
-      <section aria-label="Действия недели" className="flex flex-wrap items-center gap-3">
+      <section
+        aria-label="Действия недели"
+        data-tour="week-actions"
+        className="flex flex-wrap items-center gap-3"
+      >
         <Link to="/gas/tabel" className="mono-btn mono-btn-secondary focus-ring">
           <FileSpreadsheet aria-hidden />
           Открыть табель
@@ -571,7 +580,7 @@ function ReasonRow({
           <Link
             to="/gas/moderation"
             search={{ open: first }}
-            className="type-label underline underline-offset-4 focus-ring"
+            className="inline-flex min-h-11 items-center type-label underline underline-offset-4 focus-ring"
           >
             Открыть
           </Link>
@@ -585,7 +594,7 @@ function ReasonRow({
         value === undefined ? (
           <button
             type="button"
-            className="self-start type-label underline underline-offset-4 focus-ring"
+            className="min-h-11 self-start type-label underline underline-offset-4 focus-ring"
             onClick={() => onChange("")}
           >
             Принять как есть

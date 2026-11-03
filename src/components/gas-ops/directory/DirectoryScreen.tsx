@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/mono";
 import { toast } from "@/lib/toast";
 import { DirectoryImport } from "./DirectoryImport";
+import { DirectoryTabs } from "./DirectoryTabs";
 
 type Section = "crew" | "rates" | "export";
 
@@ -57,6 +58,7 @@ export function DirectoryScreen() {
   }
   return (
     <div className="flex flex-col gap-section">
+      <DirectoryTabs />
       <SegmentedPills label="Справочник" options={SECTIONS} value={section} onChange={setSection} />
       {section === "crew" ? (
         <CrewSection />

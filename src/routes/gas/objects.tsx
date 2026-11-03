@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import { SearchX } from "lucide-react";
@@ -218,6 +219,7 @@ function ObjectsPage() {
 
   return (
     <div className="flex flex-col gap-block">
+      <DirectoryTabs />
       <p className="text-meta text-text-3">
         Объекты из графика на неделю {brand.periodLabel}
         {/* Граница договора заказчика называется только в его личном контуре (L3) */}

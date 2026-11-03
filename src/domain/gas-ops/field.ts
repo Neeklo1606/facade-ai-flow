@@ -131,3 +131,51 @@ export function fieldFor(
     allowedObjectIds: foreman ? allowedObjectIdsFor(data, actor) : "all",
   });
 }
+
+/**
+ * Прошлая запись бригады до дня (финальный промт, 2.2): от неё форма берёт перерыв и число
+ * людей по умолчанию. Черновики, отклонённые и записи без перерыва не в счёт; нет такой —
+ * форма ставит 60 минут и состав бригады.
+ */
+export function lastEntryBefore(entries: readonly FieldEntry[], day: string): FieldEntry | null {
+  return (
+    entries
+      // Перерыв 0 в выгрузке и наборе показа значит «не указан»: такие записи не образец
+      .filter(
+        (e) => e.day < day && e.status !== "draft" && e.status !== "rejected" && e.breakMinutes > 0,
+      )
+      .sort((a, b) => b.day.localeCompare(a.day) || b.createdAt.localeCompare(a.createdAt))[0] ??
+    null
+  );
+}
+
+/**
+ * «Как вчера» одной кнопкой: вчерашняя запись с рамкой смены на объект, который сегодня
+ * снова по графику и по которому сегодня ещё ничего не внесено. Нет такой — кнопки нет.
+ */
+export function sameAsYesterday(input: {
+  entries: readonly FieldEntry[];
+  yesterday: string;
+  today: string;
+  todayObjectIds: readonly string[];
+}): FieldEntry | null {
+  const planned = new Set(input.todayObjectIds);
+  const done = new Set(
+    input.entries
+      .filter((e) => e.day === input.today && e.status !== "rejected")
+      .map((e) => e.objectId),
+  );
+  return (
+    input.entries.find(
+      (e) =>
+        e.day === input.yesterday &&
+        e.status !== "draft" &&
+        e.status !== "rejected" &&
+        e.startMinutes !== null &&
+        e.endMinutes !== null &&
+        !e.people?.length &&
+        planned.has(e.objectId) &&
+        !done.has(e.objectId),
+    ) ?? null
+  );
+}

@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Download, Upload } from "lucide-react";
@@ -110,6 +111,7 @@ function EstimatesPage() {
 
   return (
     <div className="flex flex-col gap-block">
+      <DirectoryTabs />
       <RuleCard
         formula={formulaOf(companyRule)}
         status={companyRule.status}
