@@ -9,6 +9,7 @@
 import { Link } from "@tanstack/react-router";
 import { NotCalculated } from "../review/remarks";
 import { FinalCheckBlock } from "../report/FinalCheckBlock";
+import { ReconcileUpload } from "./ReconcileUpload";
 import { ScreenActions, ScreenCounters } from "../shell/screen-header";
 import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, Lock, Unlock } from "lucide-react";
 import { useRef, useState } from "react";
@@ -402,6 +403,8 @@ export function WeekScreen() {
           Выгрузить черновик Excel
         </Button>
       </section>
+
+      {canClose ? <ReconcileUpload /> : null}
 
       {period.versions.length ? (
         <Card title="Версии недели">

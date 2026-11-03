@@ -449,6 +449,44 @@ export async function readExcelSheets(
   }
 }
 
+export { RECONCILE_REASON_LABEL } from "@/domain/gas-ops/reconcile-file";
+export type { Discrepancy, FileReconciliation } from "@/domain/gas-ops/reconcile-file";
+
+/**
+ * Сверка недели с Excel заказчика (ADR-063, 1.8): файл читается в браузере, сравнивается
+ * с принятыми записями этой вкладки. Разбор грузится только после выбора файла
+ */
+export function useFileReconcile(): (
+  file: File,
+) => Promise<
+  | { ok: true; result: import("@/domain/gas-ops/reconcile-file").FileReconciliation }
+  | { ok: false; message: string }
+> {
+  const s = useGasSnapshot();
+  return useCallback(
+    async (file: File) => {
+      const read = await readExcelSheets(file);
+      if (!read.ok) return read;
+      const { readFileWeek, reconcileFile } = await import("@/domain/gas-ops/reconcile-file");
+      for (const sheet of read.sheets) {
+        const week = readFileWeek(sheet.grid, s.objects);
+        if (!week) continue;
+        if (!week.days.some((d) => s.week.days.includes(d)))
+          return {
+            ok: false,
+            message: `В файле неделя ${week.days[0]} – ${week.days.at(-1)}, а открыта ${s.week.from} – ${s.week.to}.`,
+          };
+        return { ok: true, result: reconcileFile(week, s.entries, s.objects) };
+      }
+      return {
+        ok: false,
+        message: "Не нашли строку с датами дней: это не «Фактический отчёт» за неделю.",
+      };
+    },
+    [s.objects, s.entries, s.week],
+  );
+}
+
 /** Подсказка объекта сметы по имени файла: её подтверждает человек */
 export async function suggestEstimateObject(
   fileName: string,
