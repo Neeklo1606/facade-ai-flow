@@ -51,6 +51,7 @@ import {
   type WorkObject,
 } from "@/domain/gas-ops/model";
 import {
+  directoryFingerprint,
   normName,
   planDirectoryImport,
   type DirectoryState,
@@ -1091,6 +1092,14 @@ export function createGasOpsDemo(
           "Правило уже изменили. Обновите экран и проверьте состав.",
         );
       }
+      const savedBy = ruleHistory(current).at(-1)?.savedBy ?? null;
+      const samePerson = savedBy === snapshot.actorId;
+      if (samePerson && snapshot.reviewSettings.secondRuleApprover) {
+        throw new GasOpsError(
+          "same-person",
+          "Правило подтверждает другой человек: так настроено в «Режиме проверки».",
+        );
+      }
       const rule = confirmRule(current, snapshot.actorId, nowOf(snapshot));
       const next = await store.update(
         (s) => ({
@@ -1101,7 +1110,7 @@ export function createGasOpsDemo(
               actor: s.actorId,
               action: "cost-rule.confirm",
               entityId: rule.id,
-              detail: `${input.objectId ? "Для объекта" : "Для компании"}, редакция ${rule.revision}: ${ruleFormula(rule.terms)}`,
+              detail: `${input.objectId ? "Для объекта" : "Для компании"}, редакция ${rule.revision}: ${ruleFormula(rule.terms)}${samePerson ? ", сохранил и подтвердил один человек" : ""}`,
             }),
             ...s.audit,
           ],
@@ -1184,6 +1193,39 @@ export function createGasOpsDemo(
               action: "cost-rule.undo",
               entityId: own.id,
               detail: `Отменена редакция ${input.revision}: ${previous ? ruleFormula(previous.terms) : "правило компании"}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done(change!);
+    },
+
+    resetObjectRule: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Правило меняет сметчик или менеджер.");
+      const own = snapshot.costRules.find((r) => r.objectId === input.objectId);
+      if (!own) {
+        throw new GasOpsError("nothing-to-undo", "У объекта уже правило компании.");
+      }
+      const object = snapshot.objects.find((o) => o.id === input.objectId);
+      let change: CostRuleChange | null = null;
+      await store.update((s) => {
+        const applied = applyRuleChange(
+          s,
+          input.objectId,
+          null,
+          "Объект снова по правилу компании",
+        );
+        change = applied.change;
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "cost-rule.reset",
+              entityId: own.id,
+              detail: `${object?.code ?? "Объект"}: своё правило снято, действует правило компании «${ruleFormula(ruleFor(input.objectId, applied.snapshot.costRules).terms)}», пересчитано записей ${applied.change.changedEntries}`,
             }),
             ...s.audit,
           ],
@@ -1275,13 +1317,15 @@ export function createGasOpsDemo(
             thresholdPercent: threshold,
             changedBy: s.actorId,
             changedAt: nowOf(s),
+            secondRuleApprover:
+              input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover ?? false,
           },
           audit: [
             audit(s, {
               actor: s.actorId,
               action: "review.mode",
               entityId: "review-settings",
-              detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%`,
+              detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%${(input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover) ? ", правило подтверждает второй человек" : ""}`,
             }),
             ...s.audit,
           ],
@@ -1620,8 +1664,9 @@ export function createGasOpsDemo(
       );
       const changes = [...plan.added, ...plan.updated].sort((a, b) => a.row - b.row);
       if (changes.length === 0) {
-        return done({ added: 0, updated: 0, skipped: plan.skipped });
+        return done({ added: 0, updated: 0, skipped: plan.skipped, undoId: null });
       }
+      const undoId = newId("imp");
       await store.update((s) => {
         let next: GasOpsSnapshot = s;
         for (const change of changes) {
@@ -1721,6 +1766,16 @@ export function createGasOpsDemo(
         }
         return {
           ...next,
+          directoryUndo: {
+            id: undoId,
+            kind: input.kind,
+            by: s.actorId,
+            at: nowOf(s),
+            added: plan.added.length,
+            updated: plan.updated.length,
+            before: { brigades: s.brigades, employees: s.employees, crew: s.crew, rates: s.rates },
+            after: directoryFingerprint(next),
+          },
           audit: [
             audit(s, {
               actor: s.actorId,
@@ -1737,7 +1792,46 @@ export function createGasOpsDemo(
         added: plan.added.length,
         updated: plan.updated.length,
         skipped: plan.skipped,
+        undoId,
       });
+    },
+
+    undoDirectoryImport: async (input) => {
+      const snapshot = await store.read();
+      const last = snapshot.directoryUndo ?? null;
+      if (!last || last.id !== input.id) {
+        throw new GasOpsError("nothing-to-undo", "Этот импорт уже не отменить.");
+      }
+      if (last.kind === "rates")
+        mustDirector(snapshot, "Ставки задаёт руководитель или администратор.");
+      else mustManager(snapshot, "Бригады и сотрудников ведёт менеджер или администратор.");
+      if (directoryFingerprint(snapshot) !== last.after) {
+        throw new GasOpsError(
+          "nothing-to-undo",
+          "После импорта справочник уже меняли: отмена стёрла бы эти правки. Исправьте по одной.",
+        );
+      }
+      await store.update(
+        (s) => ({
+          ...s,
+          brigades: last.before.brigades,
+          employees: last.before.employees,
+          crew: last.before.crew,
+          rates: last.before.rates,
+          directoryUndo: null,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "directory.import.undo",
+              entityId: last.kind,
+              detail: `Отменён импорт «${last.kind}»: добавлено было ${last.added}, обновлено ${last.updated}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done({ added: last.added, updated: last.updated });
     },
 
     addObject: async (input) => {

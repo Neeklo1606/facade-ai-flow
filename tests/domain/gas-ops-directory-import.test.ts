@@ -168,7 +168,7 @@ describe("порт", () => {
       kind: "brigades",
       rows: [row(2, { brigade: "Бригада 77", lead: "Демо Семён", phone: "+7 900 000-00-77" })],
     });
-    expect(report).toEqual({ added: 1, updated: 0, skipped: [] });
+    expect(report).toEqual({ added: 1, updated: 0, skipped: [], undoId: expect.any(String) });
     let s = await port.snapshot();
     const brigade = s.brigades.find((b) => b.name === "Бригада 77")!;
     expect(brigade.phone).toBe("+7 900 000-00-77");
@@ -204,6 +204,39 @@ describe("порт", () => {
     expect((await port.importDirectory({ kind: "rates", rows })).added).toBe(1);
     const s = await port.snapshot();
     expect(s.rates.at(-1)).toMatchObject({ rubPerHour: 640, from: "2026-11-02", to: null });
+  });
+
+  test("отмена импорта (решение владельца 2): справочники как до него, запись в журнале", async () => {
+    const before = await port.snapshot();
+    const report = await port.importDirectory({
+      kind: "brigades",
+      rows: [row(2, { brigade: "Бригада 78", lead: "Демо Семён", phone: "+7 900 000-00-78" })],
+    });
+    expect(report.undoId).not.toBeNull();
+    const undone = await port.undoDirectoryImport({ id: report.undoId! });
+    expect(undone).toEqual({ added: 1, updated: 0 });
+    const after = await port.snapshot();
+    expect(after.brigades).toEqual(before.brigades);
+    expect(after.employees).toEqual(before.employees);
+    expect(after.crew).toEqual(before.crew);
+    expect(after.audit[0]).toMatchObject({ action: "directory.import.undo" });
+    expect(await errorCode(() => port.undoDirectoryImport({ id: report.undoId! }))).toBe(
+      "nothing-to-undo",
+    );
+  });
+
+  test("отмены нет, если справочник поменяли после импорта; пустой импорт отменять нечего", async () => {
+    const report = await port.importDirectory({
+      kind: "brigades",
+      rows: [row(2, { brigade: "Бригада 79", lead: "Демо Семён" })],
+    });
+    const brigade = (await port.snapshot()).brigades.find((b) => b.name === "Бригада 79")!;
+    await port.addCrewMember({ brigadeId: brigade.id, name: "Демо Лев", from: "2026-10-01" });
+    expect(await errorCode(() => port.undoDirectoryImport({ id: report.undoId! }))).toBe(
+      "nothing-to-undo",
+    );
+    const empty = await port.importDirectory({ kind: "brigades", rows: [] });
+    expect(empty.undoId).toBeNull();
   });
 
   test("«Добавить объект»: номер уникален, вид работ необязателен", async () => {

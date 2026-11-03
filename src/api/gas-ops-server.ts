@@ -51,6 +51,7 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   confirmCostRule: OFFICE,
   saveCostRule: OFFICE,
   undoCostRule: OFFICE,
+  resetObjectRule: OFFICE,
   applySchedule: OFFICE,
   restoreSchedule: OFFICE,
   setBrigadeWeek: OFFICE,
@@ -66,6 +67,7 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   endCrewMember: OFFICE,
   // Ставки импортирует руководитель, бригады и сотрудников — менеджер: тип проверяет порт
   importDirectory: ["manager", "admin", "director"],
+  undoDirectoryImport: ["manager", "admin", "director"],
   addObject: OFFICE,
   reset: [],
 };

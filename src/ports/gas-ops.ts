@@ -20,7 +20,12 @@ import type {
 } from "@/domain/gas-ops/model";
 import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
 import type { CostRule, CostRuleTerm, EstimateVersion } from "@/domain/gas-ops/work-cost";
-import type { DirectoryKind, DirectoryRow, Skipped } from "@/domain/gas-ops/directory-import";
+import type {
+  DirectoryKind,
+  DirectoryRow,
+  DirectoryUndo,
+  Skipped,
+} from "@/domain/gas-ops/directory-import";
 import type {
   BrigadeAvailability,
   BrigadeWeekStatus,
@@ -59,6 +64,8 @@ export interface DirectoryImportReport {
   added: number;
   updated: number;
   skipped: Skipped[];
+  /** Импорт можно отменить этим номером (решение владельца 2); null — менять было нечего */
+  undoId: string | null;
 }
 
 /** Итог смены правила: что пересчитано и где посчитать нельзя */
@@ -113,6 +120,8 @@ export interface GasOpsSnapshot {
   supply: SupplyState;
   /** Исполнительная документация (ADR-058) */
   docs: DocsState;
+  /** Последний импорт справочников для отмены тостом (ADR-062); нет — отменять нечего */
+  directoryUndo?: DirectoryUndo<Brigade, Employee, CrewMember, Rate> | null;
 }
 
 export interface CreateEntryInput {
@@ -173,7 +182,8 @@ export class GasOpsError extends Error {
       | "period-closed"
       | "close-blocked"
       | "rule-invalid"
-      | "rule-changed",
+      | "rule-changed"
+      | "same-person",
     message: string,
   ) {
     super(message);
@@ -247,6 +257,11 @@ export interface GasOpsPort {
   saveCostRule(input: { objectId: string | null; terms: CostRuleTerm[] }): Promise<CostRuleChange>;
   /** Отмена редакции (тост 6 секунд): вернуть правило до неё и пересчитать обратно */
   undoCostRule(input: { objectId: string | null; revision: number }): Promise<CostRuleChange>;
+  /**
+   * Снять своё правило объекта (ADR-062, решение владельца 2): объект снова считается
+   * по правилу компании, стоимость пересчитывается, в журнал пишется снятие
+   */
+  resetObjectRule(input: { objectId: string }): Promise<CostRuleChange>;
   /** Применить недельный график; возвращает прежний для отмены */
   applySchedule(input: { rows: ScheduleRow[]; fileName: string }): Promise<WeekSchedule | null>;
   /** Отменить применение графика: вернуть прежний (тост 6 секунд) */
@@ -256,7 +271,12 @@ export interface GasOpsPort {
     weekFrom: string;
     status: BrigadeWeekStatus;
   }): Promise<BrigadeAvailability[]>;
-  setReviewSettings(input: { mode: ReviewMode; thresholdPercent: number }): Promise<ReviewSettings>;
+  setReviewSettings(input: {
+    mode: ReviewMode;
+    thresholdPercent: number;
+    /** Нет — прежнее значение */
+    secondRuleApprover?: boolean | undefined;
+  }): Promise<ReviewSettings>;
   /** Итоговая проверка: подтверждение записей без ручного решения одним действием */
   finalCheck(): Promise<FinalCheck>;
   /** Сдать отчёт недели: только после итоговой проверки */
@@ -292,6 +312,11 @@ export interface GasOpsPort {
     rows: DirectoryRow[];
     skipped?: Skipped[] | undefined;
   }): Promise<DirectoryImportReport>;
+  /**
+   * Отменить импорт справочника (ADR-062, решение владельца 2): справочники возвращаются
+   * к состоянию до импорта, в журнал пишется отмена. Отказ, если после импорта их меняли
+   */
+  undoDirectoryImport(input: { id: string }): Promise<{ added: number; updated: number }>;
   /** Добавить объект вручную (F3): адрес, свой номер, вид работ */
   addObject(input: { label: string; code: string; workType: string | null }): Promise<WorkObject>;
   /** Вернуть демонстрацию к исходному состоянию */
@@ -320,6 +345,7 @@ export const GAS_OPS_METHODS = [
   "confirmCostRule",
   "saveCostRule",
   "undoCostRule",
+  "resetObjectRule",
   "applySchedule",
   "restoreSchedule",
   "setBrigadeWeek",
@@ -334,6 +360,7 @@ export const GAS_OPS_METHODS = [
   "addCrewMember",
   "endCrewMember",
   "importDirectory",
+  "undoDirectoryImport",
   "addObject",
   "reset",
 ] as const satisfies readonly (keyof GasOpsPort)[];

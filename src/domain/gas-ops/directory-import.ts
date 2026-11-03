@@ -399,3 +399,36 @@ export function planDirectoryImport(
 export function planSummary(plan: DirectoryPlan): string {
   return `Добавится ${plan.added.length}, обновится ${plan.updated.length}, пропущено ${plan.skipped.length}`;
 }
+
+/**
+ * Отмена импорта (ADR-062, решение владельца 2): снимок справочников до импорта и отпечаток
+ * после. Отменить можно, пока бригады, сотрудники, состав и ставки не менялись: иначе
+ * отмена стёрла бы чужую правку.
+ */
+export interface DirectoryUndo<B = unknown, E = unknown, C = unknown, R = unknown> {
+  id: string;
+  kind: DirectoryKind;
+  by: string;
+  at: string;
+  added: number;
+  updated: number;
+  before: { brigades: B[]; employees: E[]; crew: C[]; rates: R[] };
+  /** Отпечаток справочников сразу после импорта */
+  after: string;
+}
+
+/** Отпечаток справочников: FNV-1a по JSON, чтобы не хранить вторую копию */
+export function directoryFingerprint(parts: {
+  brigades: unknown[];
+  employees: unknown[];
+  crew: unknown[];
+  rates: unknown[];
+}): string {
+  const text = JSON.stringify([parts.brigades, parts.employees, parts.crew, parts.rates]);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `${text.length}:${hash.toString(16)}`;
+}

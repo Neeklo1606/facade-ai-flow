@@ -36,3 +36,15 @@ export function cabinetRedirect(pathname: string, enabled: boolean = cabinetOnly
 
 /** Метки «Демо», «Пример», сброс и показ: в кабинете их нет */
 export const showDemoMarks = !cabinetOnly;
+
+/**
+ * Плашка «Тестовый режим» (ADR-062, решение владельца 3): личная ссылка и кабинет без
+ * сервера держат данные во вкладке.
+ */
+export function showTestMode(input: {
+  dataSource: "demo" | "server";
+  contour: "public" | "client";
+  cabinet: boolean;
+}): boolean {
+  return input.dataSource === "demo" && (input.contour === "client" || input.cabinet);
+}

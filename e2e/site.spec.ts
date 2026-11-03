@@ -227,6 +227,10 @@ test.describe("личный контур заказчика", () => {
     const cookies = await page.context().cookies();
     const cookie = cookies.find((c) => c.name === "gaika_client");
     expect(cookie?.httpOnly).toBe(true);
+    // Данные личной ссылки во вкладке: заказчик видит это рядом с ними (ADR-062, решение 3)
+    await expect(page.getByTestId("test-mode-bar")).toHaveText(
+      "Тестовый режим: данные хранятся в этом браузере",
+    );
   });
 
   test("неверный ключ не открывает контур и не оставляет ключ в адресе", async ({ page }) => {
@@ -234,5 +238,6 @@ test.describe("личный контур заказчика", () => {
     await expect(page).toHaveURL(/\/gas$/);
     await expect(page.locator("body")).not.toContainText(clientShort);
     expect((await page.context().cookies()).some((c) => c.name === "gaika_client")).toBe(false);
+    await expect(page.getByTestId("test-mode-bar")).toHaveCount(0);
   });
 });

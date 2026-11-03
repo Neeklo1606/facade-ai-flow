@@ -99,6 +99,8 @@ export interface RuleRevisionView {
   formula: string;
   saved: string;
   confirmed: string | null;
+  /** Сохранил и подтвердил один человек (ADR-062, решение владельца 1) */
+  samePerson: boolean;
 }
 
 const stamp = (at: string) => `${at.slice(8, 10)}.${at.slice(5, 7)} в ${at.slice(11, 16)}`;
@@ -119,6 +121,7 @@ export function useGasRuleHistory(rule: CostRule | null): RuleRevisionView[] {
             : "Исходное правило системы",
         confirmed:
           r.confirmedBy && r.confirmedAt ? `${name(r.confirmedBy)}, ${stamp(r.confirmedAt)}` : null,
+        samePerson: !!r.savedBy && r.savedBy === r.confirmedBy,
       }))
       .reverse();
   }, [rule, s.users]);
@@ -224,6 +227,11 @@ export function useGasEstimateActions() {
         run((port) => port.undoCostRule(input)),
       [run],
     ),
+    /** «Вернуть правило компании» у объекта (решение владельца 2) */
+    resetObjectRule: useCallback(
+      (objectId: string) => run((port) => port.resetObjectRule({ objectId })),
+      [run],
+    ),
     applySchedule: useCallback(
       (input: { rows: ScheduleRow[]; fileName: string }) =>
         run((port) => port.applySchedule(input)),
@@ -239,7 +247,7 @@ export function useGasEstimateActions() {
       [run],
     ),
     setReviewSettings: useCallback(
-      (input: { mode: ReviewMode; thresholdPercent: number }) =>
+      (input: { mode: ReviewMode; thresholdPercent: number; secondRuleApprover?: boolean }) =>
         run((port) => port.setReviewSettings(input)),
       [run],
     ),
@@ -335,7 +343,7 @@ export interface EstimateVersionView {
   sections: { title: string; value: string; row: number }[];
   /** Строки с суммой ниже «ВСЕГО по смете» (F4): можно взять в правило */
   extras: { label: string; value: string; row: number }[];
-  /** «Сумма разделов 142 174,91 ₽, сходится с итогом без НДС»; null — нечего сверять */
+  /** «Сумма разделов 80 000,91 ₽, сходится с итогом без НДС»; null — нечего сверять */
   sectionsNote: string | null;
   labor: { value: string; row: number } | null;
   formula: string;
@@ -386,7 +394,7 @@ export function estimateVersionView(version: EstimateVersion, rule: CostRule): E
   };
 }
 
-/** «норма 57,6 чел.-ч, факт 41,5 ч» или null, если нормы нет */
+/** «норма 40,1 чел.-ч, факт 41,5 ч» или null, если нормы нет */
 export function normText(norm: NormVsFact): string | null {
   return norm.normHours === null ? null : fmtNormVsFact(norm);
 }
@@ -498,6 +506,10 @@ export function useGasDirectoryImport() {
     importDirectory: useCallback(
       (input: Parameters<GasOpsPort["importDirectory"]>[0]) =>
         run((port) => port.importDirectory(input)),
+      [run],
+    ),
+    undoDirectoryImport: useCallback(
+      (id: string) => run((port) => port.undoDirectoryImport({ id })),
       [run],
     ),
     addObject: useCallback(

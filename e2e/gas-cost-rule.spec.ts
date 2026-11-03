@@ -6,7 +6,7 @@ import { expect, expectA11y, open, test } from "./fixtures";
 
 /**
  * Конструктор «Что идёт в стоимость работ» (ADR-062, F2) и строки ниже «ВСЕГО» (F4).
- * Синтетическая ГРАНД-Смета: без НДС 189 158,24, материалы 23 703,01, «Технадзор» 5 000
+ * Синтетическая ГРАНД-Смета: без НДС 120 000,24, материалы 20 000,01, «Технадзор» 5 000
  * ниже «ВСЕГО». Файлов заказчика в репозитории нет.
  */
 function xlsx(): string {
@@ -55,7 +55,7 @@ for (const width of WIDTHS) {
       await open(page, "/gas/estimates");
       const parsed = await uploadLinked(page);
       await page.getByRole("button", { name: "Подтвердить смету" }).click();
-      await expect(page.getByText(/Смета подтверждена: 165\s455\s₽/)).toBeVisible();
+      await expect(page.getByText(/Смета подтверждена: 100\s000\s₽/)).toBeVisible();
       await expect(parsed).toHaveCount(0);
 
       const formula = page.getByTestId("cost-rule-formula");
@@ -64,20 +64,20 @@ for (const width of WIDTHS) {
       const builder = page.getByTestId("rule-builder");
       await expect(builder).toBeVisible();
       const total = page.getByTestId("rule-total");
-      await expect(total).toHaveText(/165\s455,23\s₽/);
+      await expect(total).toHaveText(/100\s000,23\s₽/);
       await expect(page.getByTestId("rule-example")).toContainText("строка 519");
       await expectA11y(page, `конструктор правила ${width.name}`);
 
       // Строка ниже «ВСЕГО» — слагаемое со строкой файла
       await expect(page.getByTestId("rule-term-extra:Технадзор")).toContainText("строка 525");
       await choose(page, "extra:Технадзор", "плюс");
-      await expect(total).toHaveText(/170\s455,23\s₽/);
+      await expect(total).toHaveText(/105\s000,23\s₽/);
       // Итога нет в смете: «нет строки», а не ноль
       await choose(page, "overhead", "минус");
       await expect(total).toHaveText("Посчитать нельзя");
       await expect(page.getByTestId("rule-example")).toContainText("нет строки");
       await choose(page, "overhead", "не входит");
-      await expect(total).toHaveText(/170\s455,23\s₽/);
+      await expect(total).toHaveText(/105\s000,23\s₽/);
 
       await page.getByRole("button", { name: "Сохранить редакцию" }).click();
       const toastText = page.getByText(/Правило сохранено, редакция 2: требует согласования/);
@@ -112,7 +112,7 @@ for (const width of WIDTHS) {
       await choose(page, "withoutVat", "не входит");
       await choose(page, "materials", "не входит");
       await choose(page, "total", "плюс");
-      await expect(page.getByTestId("rule-total")).toHaveText(/230\s773,05\s₽/);
+      await expect(page.getByTestId("rule-total")).toHaveText(/146\s400,29\s₽/);
       await page.getByRole("button", { name: "Сохранить редакцию" }).click();
       await expect(page.getByText(/Правило сохранено, редакция 1/)).toBeVisible();
       // Правило компании не изменилось
@@ -120,9 +120,9 @@ for (const width of WIDTHS) {
         "Всего без НДС минус материалы",
       );
       await page.getByTestId("estimate-pending").first().click();
-      await expect(page.getByTestId("estimate-candidate")).toHaveText(/230\s773,05\s₽/);
+      await expect(page.getByTestId("estimate-candidate")).toHaveText(/146\s400,29\s₽/);
       await page.getByRole("button", { name: "Подтвердить смету" }).click();
-      await expect(page.getByText(/Смета подтверждена: 230\s773\s₽/)).toBeVisible();
+      await expect(page.getByText(/Смета подтверждена: 146\s400\s₽/)).toBeVisible();
       await expect(
         page.locator("li").filter({ hasText: "ОБ-001" }).filter({ hasText: "своё правило" }),
       ).toHaveCount(1);

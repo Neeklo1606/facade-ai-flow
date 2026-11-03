@@ -63,6 +63,7 @@ function initial(contour: GasContour): GasOpsSnapshot {
     schedule: null,
     brigadeAvailability: [],
     reviewSettings: DEFAULT_REVIEW_SETTINGS,
+    directoryUndo: null,
     finalChecks: [],
     reportIssues: [],
     crew: seed.crew,

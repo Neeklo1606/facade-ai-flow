@@ -791,6 +791,22 @@ function VersionSheet({
                   Подтвердить правило объекта
                 </Button>
               ) : null}
+              {ownRule ? (
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  onClick={async () => {
+                    const result = await estimateActions.resetObjectRule(version.objectId!);
+                    if (result.ok)
+                      notify(
+                        `Объект снова по правилу компании. Пересчитано записей: ${result.value.changedEntries}`,
+                      );
+                    else toast.error(result.message);
+                  }}
+                >
+                  Вернуть правило компании
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </section>

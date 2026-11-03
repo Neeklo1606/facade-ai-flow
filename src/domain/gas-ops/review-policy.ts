@@ -26,6 +26,11 @@ export interface ReviewSettings {
   thresholdPercent: number;
   changedBy: string | null;
   changedAt: string | null;
+  /**
+   * Правило стоимости подтверждает не тот, кто его сохранил (ADR-062, решение владельца 1).
+   * По умолчанию выключено: менеджер подтверждает своё правило, история это называет
+   */
+  secondRuleApprover?: boolean;
 }
 
 export const DEFAULT_REVIEW_SETTINGS: ReviewSettings = {

@@ -91,7 +91,7 @@ import {
 import { clearInbox, linkButtons, messengerChannel, useGasInbox } from "@/api/gas-assistant";
 import { clearScenario } from "@/lib/guide/store";
 import { TOURS, getTourState, startTour, tourOfRole, tourSeen } from "@/lib/gas-ops/tour";
-import { showDemoMarks } from "@/lib/cabinet";
+import { cabinetOnly, showDemoMarks, showTestMode } from "@/lib/cabinet";
 import { useApp } from "@/lib/app-context";
 import { gasOnlyEnabled } from "@/lib/gas-ops/gas-only";
 import { resolveTheme, themeChoices, themeLabels } from "@/lib/theme";
@@ -108,6 +108,8 @@ import { AssistantButton } from "../assistant/AssistantPanel";
 import { Tour } from "../tour/Tour";
 import { ScreenStateGate } from "../ScreenStateGate";
 import { OfflineBar } from "@/components/ui/kit/offline-bar";
+import { TestModeBar } from "@/components/ui/kit/test-mode-bar";
+import { dataSource } from "@/api/config";
 import { useOffline } from "@/lib/ui/offline";
 
 export function isActive(screen: GasScreen, pathname: string) {
@@ -152,6 +154,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   useAppManifest("/manifest-gas.webmanifest", "Учёт выработки");
   useInstallHint();
   const network = useOffline();
+  const contourKind = useGasContour().kind;
   // Высота липкого верха: экран бота занимает остаток высоты
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -176,6 +179,9 @@ function GasShellFrame({ children }: { children: ReactNode }) {
           <GasPhoneHeader screen={screen} />
         </div>
         {network.offline ? <OfflineBar demo={network.simulated} /> : null}
+        {showTestMode({ dataSource, contour: contourKind, cabinet: cabinetOnly }) ? (
+          <TestModeBar />
+        ) : null}
       </div>
       <div className="lg:flex">
         {/* Левое меню только у ролей с меню: бригадир живёт в телефоне (таблица 3.3) */}

@@ -228,8 +228,9 @@ export function RuleBuilder({
                 </div>
                 <p className="text-body">{r.formula}</p>
                 <p className="text-meta text-text-3">
-                  Сохранил: {r.saved}
-                  {r.confirmed ? `. Подтвердил: ${r.confirmed}` : ""}
+                  {r.samePerson
+                    ? `Сохранил и подтвердил один человек: ${r.saved}. Подтвердил: ${r.confirmed}`
+                    : `Сохранил: ${r.saved}${r.confirmed ? `. Подтвердил: ${r.confirmed}` : ""}`}
                 </p>
               </li>
             ))}

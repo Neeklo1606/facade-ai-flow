@@ -491,7 +491,7 @@ export function normVsFact(
   return { normHours: laborHours, factMinutes, percent };
 }
 
-/** «норма 57,6 чел.-ч, факт 41,5 ч» */
+/** «норма 40,1 чел.-ч, факт 41,5 ч» */
 export function fmtNormVsFact(n: NormVsFact): string {
   const fact = (n.factMinutes / 60).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
   if (n.normHours === null) return `нормы нет, факт ${fact} ч`;

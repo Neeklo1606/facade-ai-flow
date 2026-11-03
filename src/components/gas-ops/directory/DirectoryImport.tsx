@@ -47,7 +47,7 @@ function readPlan(
 
 export function DirectoryImport({ kind }: { kind: DirectoryKind }) {
   const [open, setOpen] = useState(false);
-  const { state: directory, importDirectory } = useGasDirectoryImport();
+  const { state: directory, importDirectory, undoDirectoryImport } = useGasDirectoryImport();
   const title = `${DIRECTORY_KIND_LABEL[kind]} из Excel`;
   return (
     <>
@@ -140,9 +140,20 @@ export function DirectoryImport({ kind }: { kind: DirectoryKind }) {
             toast.error(result.message);
             return false;
           }
-          const { added, updated, skipped } = result.value;
+          const { added, updated, skipped, undoId } = result.value;
+          // Отмена тостом 6 секунд (ADR-062, решение владельца 2), в журнале изменений тоже
           notify(
             `${DIRECTORY_KIND_LABEL[kind]}: добавлено ${added}, обновлено ${updated}, пропущено ${skipped.length}`,
+            undoId
+              ? {
+                  undo: () =>
+                    void undoDirectoryImport(undoId).then((undone) =>
+                      undone.ok
+                        ? notify(`${DIRECTORY_KIND_LABEL[kind]}: импорт отменён`)
+                        : toast.error(undone.message),
+                    ),
+                }
+              : {},
           );
           return true;
         }}

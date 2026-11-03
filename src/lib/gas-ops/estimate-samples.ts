@@ -43,17 +43,17 @@ export const ESTIMATE_SAMPLES: Record<EstimateSample["key"], EstimateSample> = {
       "Субподрядные работы",
     ],
     totals: [
-      { label: "Всего прямые затраты (справочно)", value: 93_859.5 },
-      { label: "в том числе материалы", value: 23_703.01 },
-      { label: "Всего ФОТ (справочно)", value: 54_688.91 },
-      { label: "Всего накладные расходы", value: 59_669.28 },
-      { label: "Всего сметная прибыль", value: 35_629.46 },
-      { label: "Всего без НДС", value: 189_158.24 },
-      { label: "НДС 22%", value: 41_614.81 },
-      { label: "ВСЕГО по смете", value: 230_773.05 },
+      { label: "Всего прямые затраты (справочно)", value: 60_000.5 },
+      { label: "в том числе материалы", value: 20_000.01 },
+      { label: "Всего ФОТ (справочно)", value: 35_000.91 },
+      { label: "Всего накладные расходы", value: 38_000.28 },
+      { label: "Всего сметная прибыль", value: 22_000.46 },
+      { label: "Всего без НДС", value: 120_000.24 },
+      { label: "НДС 22%", value: 26_400.05 },
+      { label: "ВСЕГО по смете", value: 146_400.29 },
     ],
-    withoutVat: 189_158.24,
-    materials: 23_703.01,
+    withoutVat: 120_000.24,
+    materials: 20_000.01,
     laborHours: null,
   },
   resource: {
@@ -63,19 +63,19 @@ export const ESTIMATE_SAMPLES: Record<EstimateSample["key"], EstimateSample> = {
     vat: "НДС 5%",
     sections: ["Осн. з/п", "Эксплуатация машин", "З/п механизаторов", "Материалы"],
     totals: [
-      { label: "Итого прямые затраты", value: 97_497.56 },
-      { label: "Материалы", value: 68_706.25 },
-      { label: "ФОТ", value: 27_886.95 },
-      { label: "Накладные расходы", value: 28_160.4 },
-      { label: "Сметная прибыль", value: 16_516.95 },
-      { label: "Итого без НДС", value: 142_174.91 },
-      { label: "НДС 5%", value: 7_108.75 },
-      { label: "ВСЕГО по смете", value: 149_283.66 },
-      { label: "Трудозатраты", value: 57.644, unit: "чел.-ч" },
+      { label: "Итого прямые затраты", value: 55_000.56 },
+      { label: "Материалы", value: 30_000.25 },
+      { label: "ФОТ", value: 16_000.95 },
+      { label: "Накладные расходы", value: 16_500.4 },
+      { label: "Сметная прибыль", value: 9_500.95 },
+      { label: "Итого без НДС", value: 80_000.91 },
+      { label: "НДС 5%", value: 4_000.05 },
+      { label: "ВСЕГО по смете", value: 84_000.96 },
+      { label: "Трудозатраты", value: 40.125, unit: "чел.-ч" },
     ],
-    withoutVat: 142_174.91,
-    materials: 68_706.25,
-    laborHours: 57.644,
+    withoutVat: 80_000.91,
+    materials: 30_000.25,
+    laborHours: 40.125,
   },
 };
 
@@ -84,7 +84,7 @@ export function workCostCandidate(sample: EstimateSample): number {
   return Math.round(sample.withoutVat * 100 - sample.materials * 100) / 100;
 }
 
-/** «189 158,24 ₽» */
+/** «120 000,24 ₽» */
 export function fmtKopecks(value: number): string {
   return `${value.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
 }

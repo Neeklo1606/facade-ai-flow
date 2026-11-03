@@ -379,6 +379,32 @@ function ReviewModeGroup() {
           options={THRESHOLDS.map((t) => ({ value: String(t), label: `${t}%` }))}
         />
       </div>
+      {/* Решение владельца 1 (ADR-062): по умолчанию правило подтверждает и тот, кто сохранил */}
+      <div className="mt-2 flex flex-col gap-1">
+        <span className="block text-meta text-text-3">
+          Правило стоимости подтверждает: любой менеджер, и тот, кто сохранил, или только второй
+          человек
+        </span>
+        <Segmented
+          label="Правило стоимости подтверждает"
+          value={settings.secondRuleApprover ? "second" : "any"}
+          onChange={(value) =>
+            canChange
+              ? void actions
+                  .setReviewSettings({
+                    mode: settings.mode,
+                    thresholdPercent: settings.thresholdPercent,
+                    secondRuleApprover: value === "second",
+                  })
+                  .then((result) => (result.ok ? undefined : toast.error(result.message)))
+              : undefined
+          }
+          options={[
+            { value: "any", label: "Любой" },
+            { value: "second", label: "Второй человек" },
+          ]}
+        />
+      </div>
     </Group>
   );
 }

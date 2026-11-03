@@ -35,4 +35,13 @@ test.describe("кабинет заказчика", () => {
     await open(page, "/gas/more");
     await expect(page.getByRole("button", { name: /Сбросить демо/ })).toHaveCount(0);
   });
+
+  test("сборка проверки без сервера помечена «Тестовый режим» (решение владельца 3)", async ({
+    page,
+  }) => {
+    await open(page, "/gas");
+    await expect(page.getByTestId("test-mode-bar")).toHaveText(
+      "Тестовый режим: данные хранятся в этом браузере",
+    );
+  });
 });
