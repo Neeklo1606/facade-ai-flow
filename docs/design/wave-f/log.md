@@ -84,3 +84,13 @@ ADR-062. Ветка `feature/gas-wave-f` от `origin/main` cb6a9f7.
 
 - `tests/ui/cabinet.test.ts`: 4 из 4.
 - `bun run test:cabinet`: 2 из 2.
+
+### F7. Оболочка бригадира без сети (03.11.2026)
+
+Сделано:
+
+- `public/sw.js`, регистрация в `GasShell` (только сборка), область `/gas/`.
+
+Проверено:
+
+- `e2e/offline-shell.spec.ts` на 390: перезагрузка без сети показывает «Сегодня».

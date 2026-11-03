@@ -143,6 +143,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   const screen = gasScreenOf(pathname);
   useTourHighlight();
   useFirstTour(actor.role, screen.key);
+  useOfflineShell();
   // Бот бригадира на телефоне во весь экран: шапка чата вместо шапки контура, без панели
   const botOnly = actor.role === "foreman" && screen.key === "foreman";
   const field = isFieldRole(actor.role);
@@ -213,6 +214,19 @@ function useNavCounters(): Partial<Record<string, number>> {
     estimates: cost.versions.filter((v) => v.confirmedAt === null).length,
     reports: policy.finalList.length,
   };
+}
+
+/**
+ * Оболочка бригадира без сети (ADR-062, F7): сервис `public/sw.js` держит «Сегодня»
+ * и файлы сборки. Только в собранном приложении: в разработке файлы меняются на лету
+ */
+function useOfflineShell() {
+  useEffect(() => {
+    if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js", { scope: "/gas/" }).catch(() => {
+      // Браузер без сервиса или приватный режим: экран работает с сетью, как раньше
+    });
+  }, []);
 }
 
 /**
