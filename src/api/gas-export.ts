@@ -12,6 +12,10 @@ import {
   type ReportInput,
 } from "@/domain/gas-ops/report";
 import type { PeriodVersion } from "@/domain/gas-ops/week";
+import type { GasStore } from "@/adapters/gas-ops/store";
+import { gasExportInput } from "@/contracts/gas-api";
+import type { z } from "zod";
+import { GAS_MONEY_ROLES, GasAccessError } from "./gas-ops-server";
 
 /**
  * Content-Disposition с именем по RFC 6266 и RFC 5987: `filename*` в UTF-8 для браузеров
@@ -31,8 +35,8 @@ export function contentDisposition(name: string, ascii: string): string {
 /**
  * Запрос выгрузки (ADR-061, 11): какая неделя и какая версия, плюс данные недели. Строки
  * отчёта сервер считает сам доменными функциями: файл не собирается из того, что прислал
- * экран. В прототипе данные живут во вкладке, поэтому приходят телом; в T7 их прочитает
- * хранилище базы (`createGasDbStore().read()`), а тело сократится до недели и версии.
+ * экран. В демо данные живут во вкладке, поэтому приходят телом; на сервере их читает
+ * хранилище (`gasExportFromStore` ниже), а тело — только неделя, вид и версия (T7).
  */
 export interface GasExportRequest {
   /** «approved» — только принятые записи; «draft» — все, кроме отклонённых, с меткой */
@@ -102,11 +106,26 @@ export function exportPayloadOf(request: GasExportRequest): ExportPayload {
   };
 }
 
-/** Ответ серверного маршрута выгрузки: файл собирается здесь, библиотека Excel тяжёлая */
-export async function gasExportResponse(request: Request): Promise<Response> {
+/**
+ * Ответ серверного маршрута выгрузки: файл собирается здесь, библиотека Excel тяжёлая.
+ * Тело с `weekFrom` — запрос рабочего контура: записи читает хранилище (T7)
+ */
+export async function gasExportResponse(
+  request: Request,
+  stored?: { store: GasStore | null; userId: () => Promise<string | null> },
+): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response("Не разобрано тело запроса", { status: 400 });
+  }
+  if (stored && body && typeof body === "object" && "weekFrom" in body) {
+    return storedResponse(body, stored);
+  }
   let payload: ExportPayload;
   try {
-    payload = exportPayloadOf((await request.json()) as GasExportRequest);
+    payload = exportPayloadOf(body as GasExportRequest);
   } catch (error) {
     if (error instanceof ExportRequestError)
       return new Response(error.message, { status: error.status });
@@ -123,4 +142,87 @@ export async function gasExportResponse(request: Request): Promise<Response> {
       "cache-control": "no-store",
     },
   });
+}
+
+/* ---------------------------------------------------------------- Из хранилища (T7) */
+
+async function storedResponse(
+  body: object,
+  stored: { store: GasStore | null; userId: () => Promise<string | null> },
+): Promise<Response> {
+  if (!stored.store)
+    return new Response("Рабочая база учёта времени не подключена", { status: 501 });
+  try {
+    const result = await gasExportFromStore({
+      store: stored.store,
+      userId: await stored.userId(),
+      request: body as z.input<typeof gasExportInput>,
+    });
+    return new Response(result.file as unknown as BodyInit, {
+      headers: {
+        "content-type": XLSX_MIME,
+        "content-disposition": contentDisposition(result.fileName, result.asciiName),
+        "x-checksum-sha256": result.checksum,
+        "cache-control": "no-store",
+      },
+    });
+  } catch (error) {
+    if (error instanceof ExportRequestError || error instanceof GasAccessError) {
+      return new Response(error.message, { status: error.status });
+    }
+    throw error;
+  }
+}
+
+export interface GasStoredExport {
+  file: Uint8Array;
+  fileName: string;
+  asciiName: string;
+  /** sha256 файла: контрольная сумма версии выгрузки (HANDOFF v1.1, раздел 7) */
+  checksum: string;
+}
+
+/**
+ * Выгрузка недели на сервере из хранилища (ADR-061, 14): тело запроса — только неделя,
+ * вид и версия, записи читает сервер. Файл с суммами доступен ролям с деньгами
+ */
+export async function gasExportFromStore(input: {
+  store: GasStore;
+  userId: string | null;
+  request: z.input<typeof gasExportInput>;
+}): Promise<GasStoredExport> {
+  const parsed = gasExportInput.safeParse(input.request);
+  if (!parsed.success) throw new ExportRequestError(400, "Неверный запрос выгрузки");
+  const { kind, weekFrom, version } = parsed.data;
+  const snapshot = await input.store.read();
+  const user = snapshot.users.find((u) => u.id === input.userId);
+  if (!user) throw new GasAccessError(401, "Войдите, чтобы продолжить.");
+  if (!GAS_MONEY_ROLES.includes(user.role)) {
+    throw new GasAccessError(403, "Выгрузка с суммами недоступна вашей роли.");
+  }
+  if (snapshot.week.from !== weekFrom) {
+    throw new ExportRequestError(404, `Недели с ${weekFrom} в хранилище нет`);
+  }
+  const payload = exportPayloadOf({
+    kind,
+    version,
+    week: snapshot.week,
+    data: {
+      entries: snapshot.entries,
+      groups: snapshot.groups,
+      brigades: snapshot.brigades,
+      employees: snapshot.employees,
+      objects: snapshot.objects,
+      frames: snapshot.frames,
+      periods: snapshot.periods,
+    },
+  });
+  const file = new Uint8Array(await buildCustomerWorkbook(payload));
+  const digest = await crypto.subtle.digest("SHA-256", file);
+  return {
+    file,
+    fileName: customerFileName(payload.week, payload.label),
+    asciiName: gasReportFileNameAscii(payload.week, payload.label),
+    checksum: [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join(""),
+  };
 }

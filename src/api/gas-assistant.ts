@@ -4,6 +4,7 @@
  * ни реализации канала, ни модели.
  */
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import type { OutboundButton } from "@/ports/messenger";
 import { assistantModelStub } from "@/adapters/gas-ops/assistant-model-stub";
 import {
   clearInbox,
@@ -135,3 +136,8 @@ export function useSendReminders(): (clock?: string) => Promise<number> {
 }
 
 export const messengerChannel = messengerDemo.channel;
+
+/** Кнопки-ссылки сообщения для колокольчика: кнопки ответа боту там не нажимаются */
+export function linkButtons(buttons: readonly OutboundButton[]): { label: string; to: string }[] {
+  return buttons.filter((b): b is { label: string; to: string } => "to" in b);
+}

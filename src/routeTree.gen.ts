@@ -86,6 +86,7 @@ import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
 import { Route as ApiGasExecDocsRouteImport } from './routes/api/gas/exec-docs'
 import { Route as ApiGasExportRouteImport } from './routes/api/gas/export'
 import { Route as ApiGasRfqRouteImport } from './routes/api/gas/rfq'
+import { Route as ApiMaxWebhookRouteImport } from './routes/api/max/webhook'
 import { Route as ApiOfficeConnectionsRouteImport } from './routes/api/office/connections'
 import { Route as GasDocsIndexRouteImport } from './routes/gas/docs/index'
 import { Route as GasDocsDocIdRouteImport } from './routes/gas/docs/$docId'
@@ -486,6 +487,11 @@ const ApiGasRfqRoute = ApiGasRfqRouteImport.update({
   path: '/api/gas/rfq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMaxWebhookRoute = ApiMaxWebhookRouteImport.update({
+  id: '/api/max/webhook',
+  path: '/api/max/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOfficeConnectionsRoute = ApiOfficeConnectionsRouteImport.update({
   id: '/api/office/connections',
   path: '/api/office/connections',
@@ -639,6 +645,7 @@ export interface FileRoutesByFullPath {
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
+  '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
@@ -730,6 +737,7 @@ export interface FileRoutesByTo {
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
+  '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
@@ -824,6 +832,7 @@ export interface FileRoutesById {
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
+  '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
@@ -919,6 +928,7 @@ export interface FileRouteTypes {
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
+    | '/api/max/webhook'
     | '/api/office/connections'
     | '/gas/docs/$docId'
     | '/gas/supply/$requestId'
@@ -1010,6 +1020,7 @@ export interface FileRouteTypes {
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
+    | '/api/max/webhook'
     | '/api/office/connections'
     | '/gas/docs/$docId'
     | '/gas/supply/$requestId'
@@ -1103,6 +1114,7 @@ export interface FileRouteTypes {
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
+    | '/api/max/webhook'
     | '/api/office/connections'
     | '/gas/docs/$docId'
     | '/gas/supply/$requestId'
@@ -1166,6 +1178,7 @@ export interface RootRouteChildren {
   ApiGasExecDocsRoute: typeof ApiGasExecDocsRoute
   ApiGasExportRoute: typeof ApiGasExportRoute
   ApiGasRfqRoute: typeof ApiGasRfqRoute
+  ApiMaxWebhookRoute: typeof ApiMaxWebhookRoute
   ApiOfficeConnectionsRoute: typeof ApiOfficeConnectionsRoute
   ProjectsIdDeliveriesRoute: typeof ProjectsIdDeliveriesRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
@@ -1719,6 +1732,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGasRfqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/max/webhook': {
+      id: '/api/max/webhook'
+      path: '/api/max/webhook'
+      fullPath: '/api/max/webhook'
+      preLoaderRoute: typeof ApiMaxWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/office/connections': {
       id: '/api/office/connections'
       path: '/api/office/connections'
@@ -1954,6 +1974,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGasExecDocsRoute: ApiGasExecDocsRoute,
   ApiGasExportRoute: ApiGasExportRoute,
   ApiGasRfqRoute: ApiGasRfqRoute,
+  ApiMaxWebhookRoute: ApiMaxWebhookRoute,
   ApiOfficeConnectionsRoute: ApiOfficeConnectionsRoute,
   ProjectsIdDeliveriesRoute: ProjectsIdDeliveriesRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,

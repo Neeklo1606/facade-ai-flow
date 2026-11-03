@@ -88,7 +88,7 @@ import {
   type GasScreen,
   type GasScreenKey,
 } from "@/lib/gas-ops/screens";
-import { clearInbox, messengerChannel, useGasInbox } from "@/api/gas-assistant";
+import { clearInbox, linkButtons, messengerChannel, useGasInbox } from "@/api/gas-assistant";
 import { clearScenario } from "@/lib/guide/store";
 import { TOURS, getTourState, startTour, tourOfRole, tourSeen } from "@/lib/gas-ops/tour";
 import { useApp } from "@/lib/app-context";
@@ -436,7 +436,7 @@ function GasTopBar() {
             messages={inbox.map((m) => ({
               key: m.key,
               text: m.text,
-              links: m.buttons,
+              links: linkButtons(m.buttons),
               note:
                 messengerChannel === "demo" ? "Демо: показано здесь, в MAX не отправлено" : null,
             }))}

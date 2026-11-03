@@ -16,6 +16,7 @@
     "data:public": "bun scripts/make-public-dataset.ts",
     "db:fixtures-sql": "bun scripts/fixtures-sql.ts",
     "db:gas-schema": "bun scripts/gas-schema.ts",
+    "api:openapi": "bun scripts/gas-openapi.ts",
     "db:gas-seed": "bun scripts/gas-seed.ts",
     "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
     "db:seed": "bun scripts/db-seed.ts",

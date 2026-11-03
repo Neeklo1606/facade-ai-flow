@@ -24,7 +24,7 @@ import {
 import type { AuditLog, Role, User } from "@/domain/gas-ops/model";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
 import { DocsError, type GasDocsPort } from "@/ports/gas-docs";
-import { demoStore, type GasStore } from "./store";
+import { demoStore, retrying, type GasStore } from "./store";
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -361,4 +361,5 @@ export function createGasDocsDemo(store: GasStore = demoStore): GasDocsPort {
   };
 }
 
-export const gasDocs = createGasDocsDemo();
+/** Порт вкладки: действие по устаревшему снимку повторяется на свежем */
+export const gasDocs = retrying(createGasDocsDemo());

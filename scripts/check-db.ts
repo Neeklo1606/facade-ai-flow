@@ -12,7 +12,7 @@
 import { spawnSync } from "node:child_process";
 import pg from "pg";
 import { enums, sqlName, tables } from "../src/contracts";
-import { gasTables } from "../src/contracts/gas";
+import { gasTabelTables, gasTables } from "../src/contracts/gas";
 import { checkGas } from "./check-db-gas";
 import { checklistFor, deliveryFamilies } from "../src/domain/deliveries";
 import { createDemoRepositories, setClockSource, type ClockSource } from "../src/adapters/demo";
@@ -72,7 +72,7 @@ async function checkColumns(db: Driver) {
   const problems: string[] = [];
   const expected = new Set<string>();
   // Модули сервиса v1 (ADR-060) сверяются тем же правилом: их таблицы в своём реестре
-  for (const def of [...tables, ...gasTables]) {
+  for (const def of [...tables, ...gasTables, ...gasTabelTables]) {
     for (const [key, column] of Object.entries(def.columns)) {
       const name = `${def.meta.name}.${sqlName(key)}`;
       expected.add(name);
@@ -132,7 +132,7 @@ async function checkColumns(db: Driver) {
     return true;
   }
   console.log(
-    `✓ колонки и перечисления базы совпадают с контрактами: ${tables.length + gasTables.length} таблиц, ${expected.size} колонок, ${enumNames.size} перечислений`,
+    `✓ колонки и перечисления базы совпадают с контрактами: ${tables.length + gasTables.length + gasTabelTables.length} таблиц, ${expected.size} колонок, ${enumNames.size} перечислений`,
   );
   return false;
 }

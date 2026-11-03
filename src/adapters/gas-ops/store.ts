@@ -23,9 +23,17 @@ export interface GasStore {
   ): Promise<GasOpsSnapshot>;
 }
 
+/**
+ * Вкладка проверяет устаревшее решение так же, как база: между чтением и записью могло
+ * пройти другое действие (двойная отправка формы, повтор очереди), и тогда изменение
+ * повторяется на свежем снимке, а не пишет второй номер поверх первого
+ */
 export const demoStore: GasStore = {
   read: async () => getSnapshot(),
-  update: async (change) => update(change),
+  update: async (change, base) => {
+    if (base && base !== getSnapshot()) throw new GasStaleError();
+    return update(change);
+  },
 };
 
 /** Состояние изменилось между чтением и записью: действие нужно выполнить заново */

@@ -8,23 +8,47 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { gasOps } from "@/adapters/gas-ops/demo";
 import { gasSupply } from "@/adapters/gas-ops/supply-demo";
 import { gasDocs } from "@/adapters/gas-ops/docs-demo";
+import { createGasOpsRemote, type GasRemoteResult } from "@/adapters/gas-ops/remote";
+import { dataSource } from "@/api/config";
 import {
   getServerSnapshotFor,
   getSnapshot,
   hydrate,
   setContour,
   subscribe,
+  update,
 } from "@/adapters/gas-ops/state";
 import { useGasContour } from "@/lib/gas-ops/contour";
-import type { GasOpsPort, GasOpsSnapshot } from "@/ports/gas-ops";
+import { GAS_OPS_METHODS, type GasOpsPort, type GasOpsSnapshot } from "@/ports/gas-ops";
 import type { GasSupplyPort } from "@/ports/gas-supply";
 import type { GasDocsPort } from "@/ports/gas-docs";
 import { actorOf, type GasData } from "@/domain/gas-ops/view";
 import type { Role } from "@/domain/gas-ops/model";
 
-/** Порт направления: в прототипе это демо-адаптер */
+/**
+ * Сервер (ADR-061, 14): серверная функция на каждый метод, снимок после действия ложится
+ * в то же состояние вкладки, откуда его читают экраны. В демо-сборке ветка вырезана:
+ * `dataSource` подставляется константой, серверная функция грузится только в ней
+ */
+const remote =
+  dataSource === "server"
+    ? createGasOpsRemote(
+        GAS_OPS_METHODS,
+        async (method, args) =>
+          JSON.parse(
+            await (
+              await import("@/api/gas-ops-functions")
+            ).gasOpsCallFn({
+              data: { method, args },
+            }),
+          ) as GasRemoteResult,
+        (snapshot) => update(() => snapshot),
+      )
+    : null;
+
+/** Порт направления: демо-адаптер вкладки или сервер по `VITE_DATA_SOURCE` */
 export function useGasOps(): GasOpsPort {
-  return gasOps;
+  return remote ?? gasOps;
 }
 
 /** Порт снабжения (ADR-057): то же состояние, свой набор действий */
@@ -57,7 +81,11 @@ export const setGasContour = setContour;
  */
 export function useGasHydration(): void {
   const kind = useGasContour().kind;
-  useEffect(hydrate, [kind]);
+  useEffect(() => {
+    // Сервер: снимок пользователя сессии вместо сохранённого во вкладке
+    if (remote) void remote.snapshot().catch(() => undefined);
+    else hydrate();
+  }, [kind]);
 }
 
 /** Тот же снимок в виде данных для доменных сборок */

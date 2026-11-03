@@ -247,4 +247,40 @@ export interface GasOpsPort {
   reset(): Promise<GasOpsSnapshot>;
 }
 
+/**
+ * Имена методов порта по порядку объявления: по ним собирается серверная реализация
+ * (`adapters/gas-ops/remote.ts`) и таблица доступа сервера (`api/gas-ops-server.ts`)
+ */
+export const GAS_OPS_METHODS = [
+  "snapshot",
+  "signIn",
+  "createEntry",
+  "updateEntry",
+  "submitEntry",
+  "review",
+  "undoReview",
+  "setEstimate",
+  "addEstimateVersion",
+  "discardEstimateVersion",
+  "setUserRole",
+  "linkEstimateVersion",
+  "reviewEstimateIssues",
+  "confirmEstimateVersion",
+  "confirmCostRule",
+  "applySchedule",
+  "restoreSchedule",
+  "setBrigadeWeek",
+  "setReviewSettings",
+  "finalCheck",
+  "issueReport",
+  "fieldSnapshot",
+  "answerClarify",
+  "closeWeek",
+  "reopenWeek",
+  "setRate",
+  "addCrewMember",
+  "endCrewMember",
+  "reset",
+] as const satisfies readonly (keyof GasOpsPort)[];
+
 export type { Role };
