@@ -454,8 +454,9 @@ export const ROLE_ABOUT: Record<Role, string> = {
  * Пункт «Уточнения» появится вместе с экраном (T2): чего нет, в меню не показывается.
  */
 export const ROLE_TABS: Record<Role, readonly GasScreenKey[]> = {
-  manager: ["moderation", "entries", "reports"],
-  director: ["week", "reports", "entries"],
+  // Финальный промт, 2.3–2.4: у менеджера четыре раздела дня, у руководителя одна «Неделя»
+  manager: ["moderation", "reports", "week", "directory"],
+  director: ["week"],
   admin: ["directory", "objects", "moderation"],
   foreman: ["brigade", "foreman", "entries"],
   // Прораб живёт в своём экране телефона: панели нет
@@ -470,12 +471,13 @@ export const FOREMAN_TAB_LABEL: Partial<Record<GasScreenKey, string>> = {
   entries: "Мои записи",
 };
 
-export type GasNavGroup = "work" | "catalogs" | "settings";
+export type GasNavGroup = "work" | "catalogs" | "settings" | "more";
 
 export const GAS_NAV_LABEL: Record<GasNavGroup, string> = {
   work: "Работа",
   catalogs: "Справочники",
   settings: "Настройки",
+  more: "Ещё",
 };
 
 export interface GasNavSection {
@@ -490,20 +492,36 @@ export interface GasNavSection {
  * до тех пор профиль выгрузки и ставки живут в «Справочниках» группы «Настройки».
  */
 export const ROLE_NAV: Record<Role, readonly GasNavSection[]> = {
+  /*
+   * Финальный промт, 2.3–2.4 (ADR-064): в меню только сценарий дня роли, остальное в «Ещё».
+   * Экраны не удалены: журнал, объекты, бригады, сотрудники и сметы открываются из «Ещё»
+   * и поиска, ссылки на них ведут как раньше
+   */
   manager: [
-    { group: "work", items: ["moderation", "entries", "reports", "week"] },
-    { group: "catalogs", items: ["objects", "brigades", "employees", "estimates"] },
-    { group: "settings", items: ["directory"] },
+    { group: "work", items: ["moderation", "reports", "week", "directory"] },
+    { group: "more", items: ["entries", "estimates", "objects", "brigades", "employees"] },
   ],
   director: [
-    { group: "work", items: ["week", "reports", "entries", "supplyOverview", "docsOverview"] },
-    { group: "catalogs", items: ["objects", "brigades"] },
-    { group: "settings", items: ["directory"] },
+    { group: "work", items: ["week"] },
+    {
+      group: "more",
+      items: [
+        "reports",
+        "entries",
+        "objects",
+        "brigades",
+        "directory",
+        "supplyOverview",
+        "docsOverview",
+      ],
+    },
   ],
   admin: [
-    { group: "work", items: ["moderation", "entries", "reports", "week", "supply", "docs"] },
-    { group: "catalogs", items: ["objects", "brigades", "employees", "estimates"] },
-    { group: "settings", items: ["directory", "admin"] },
+    { group: "work", items: ["directory", "moderation", "reports", "week", "admin"] },
+    {
+      group: "more",
+      items: ["entries", "estimates", "objects", "brigades", "employees", "supply", "docs"],
+    },
   ],
   foreman: [],
   prorab: [],

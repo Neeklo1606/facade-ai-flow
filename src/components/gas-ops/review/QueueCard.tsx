@@ -4,6 +4,7 @@
  * метки замечаний (не больше двух и «+N») и сумма для ролей с доступом к деньгам.
  * На телефоне метки уходят третьей строкой. Номер записи и источник читаются экранной читалкой.
  */
+import { isAutoAccepted } from "@/api/gas-ops";
 import { forwardRef } from "react";
 import { costBreakdown, fmtRub, useGasActor, type EntryView, type Remark } from "@/api/gas-ops";
 import { Chip } from "@/components/ui/kit/status";
@@ -65,7 +66,13 @@ export const QueueCard = forwardRef<
           {view.brigade?.name ?? "Бригада не указана"} · {view.object?.label ?? "Объект не указан"}
         </span>
         <span className="flex min-w-0 items-center gap-1.5 text-meta text-text-2 tnum">
-          {showStatus ? <EntryStatusBadge status={entry.status} className="shrink-0" /> : null}
+          {showStatus ? (
+            <EntryStatusBadge
+              status={entry.status}
+              auto={isAutoAccepted(entry)}
+              className="shrink-0"
+            />
+          ) : null}
           {showStatus ? <span aria-hidden>·</span> : null}
           <span className="truncate">{rowLine(view)}</span>
         </span>

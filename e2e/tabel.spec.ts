@@ -38,7 +38,10 @@ test.describe("табель 1440", () => {
     expect(Math.round(after.y)).toBe(Math.round(before.y));
     expect(Math.round(after.x)).toBe(Math.round(before.x));
     // Легенда под сеткой и янтарные ячейки непроверенных записей
-    await expect(page.getByRole("list", { name: "Легенда" })).toContainText("непроверенные");
+    // Легенда по финальному промту (1.3): принято, ждёт проверки, нет записи по графику, нет сметы
+    const legend = page.getByRole("list", { name: "Легенда" });
+    for (const text of ["принято", "ждёт проверки", "нет записи по графику", "нет сметы"])
+      await expect(legend).toContainText(text);
     await expect(grid(page).locator('[data-status="draft"]').first()).toBeAttached();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440);
   });
@@ -112,7 +115,8 @@ test.describe("табель 1440", () => {
     const counters = page.getByTestId("week-counters");
     await expect(counters).toContainText("не проверено");
     await expect(counters).toContainText("начислено");
-    await expect(counters).toContainText("чел.-ч: не рассчитано");
+    // Демо-неделя (ADR-062, F5): сумма по записям с составом и число записей без состава
+    await expect(counters).toContainText(/чел\.-ч: [^·]+чел\.-ч\s*· в \d+ записях нет состава/);
   });
 
   test("«Колонки»: чел.-ч и порядок показателей, «По людям» без состава выключен", async ({
@@ -148,7 +152,11 @@ test.describe("табель 1440", () => {
       await expect(menu).toBeVisible();
     };
     await openExport();
-    await expect(page.getByRole("menu")).toContainText("Облачная таблица: не подключено");
+    // Неподключённая таблица названа рядом со значением, пунктов-обещаний нет (ADR-063, 1.4)
+    await expect(page.getByTestId("sheet-status")).toHaveText("Облачная таблица: не подключена");
+    await expect(
+      page.getByRole("menuitem", { name: /Синхронизировать|Обновить таблицу/ }),
+    ).toHaveCount(0);
     const [approved] = await Promise.all([
       page.waitForEvent("download"),
       page.getByRole("menuitem", { name: /Excel утверждённый/ }).click(),
@@ -164,10 +172,6 @@ test.describe("табель 1440", () => {
     expect(draft.suggestedFilename()).not.toBe(FILE);
     expect(draft.suggestedFilename()).toMatch(/черновик/i);
     await expect(toast(page, "Черновик выгружен")).toBeVisible();
-
-    await openExport();
-    await page.getByRole("menuitem", { name: "Синхронизировать с Google Таблицами" }).click();
-    await expect(toast(page, "Синхронизация не подключена")).toBeVisible();
   });
 
   test("/gas/reports перенаправляет в «Табель», переход из сценария сохраняется", async ({

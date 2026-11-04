@@ -14,4 +14,8 @@ interface ImportMetaEnv {
   /** Газовый контур без снабжения, ПТО и общего лендинга (ADR-061); "0" возвращает модули */
   readonly VITE_GAS_ONLY?: string;
   readonly VITE_GAS_SPLIT_TIME?: string;
+  /** Режим кабинета заказчика (ADR-062, F6): "1" — только /gas, без демо-меток и показа */
+  readonly VITE_CABINET_ONLY?: string;
+  /** Название заказчика для заголовка вкладки кабинета: в коде его нет */
+  readonly VITE_CABINET_CLIENT?: string;
 }

@@ -41,6 +41,7 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   submitEntry: TIME,
   review: OFFICE,
   undoReview: OFFICE,
+  undoAutoAccept: OFFICE,
   setEstimate: OFFICE,
   addEstimateVersion: OFFICE,
   discardEstimateVersion: OFFICE,
@@ -49,6 +50,9 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   reviewEstimateIssues: OFFICE,
   confirmEstimateVersion: OFFICE,
   confirmCostRule: OFFICE,
+  saveCostRule: OFFICE,
+  undoCostRule: OFFICE,
+  resetObjectRule: OFFICE,
   applySchedule: OFFICE,
   restoreSchedule: OFFICE,
   setBrigadeWeek: OFFICE,
@@ -62,6 +66,10 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   setRate: WEEK,
   addCrewMember: OFFICE,
   endCrewMember: OFFICE,
+  // Ставки импортирует руководитель, бригады и сотрудников — менеджер: тип проверяет порт
+  importDirectory: ["manager", "admin", "director"],
+  undoDirectoryImport: ["manager", "admin", "director"],
+  addObject: OFFICE,
   reset: [],
 };
 

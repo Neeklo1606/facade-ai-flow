@@ -1,3 +1,4 @@
+import { cabinetOnly, cabinetTitle } from "@/lib/cabinet";
 type PageMeta = { title?: string; name?: string; property?: string; content?: string };
 
 /** Complete leaf metadata while retaining the route's dynamic title and existing tags. */
@@ -6,7 +7,10 @@ export function completePageHead(
   fallbackTitle: string,
   fallbackDescription: string,
 ) {
-  const meta = [...head.meta];
+  // Кабинет заказчика (ADR-062, F6): одна вкладка «Учёт времени · <заказчик>» на всех экранах
+  const meta = cabinetOnly
+    ? [...head.meta.filter((tag) => !tag.title), { title: cabinetTitle() }]
+    : [...head.meta];
   const title = meta.find((tag) => tag.title)?.title ?? fallbackTitle;
   const description =
     meta.find((tag) => tag.name === "description")?.content ?? fallbackDescription;

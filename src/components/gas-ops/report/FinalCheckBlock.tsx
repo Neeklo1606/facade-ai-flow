@@ -42,6 +42,9 @@ export function FinalCheckBlock() {
     else notify(`Отчёт недели сдан: ${fmtRub(result.value.totalRub)}`);
   };
 
+  // Всё подтвердил человек и отчёта ещё не сдавали: проверять нечего, блок не нужен (2.4)
+  if (policy.settings.mode === "all" && policy.finalList.length === 0 && !last) return null;
+
   return (
     <section
       aria-labelledby="final-check"

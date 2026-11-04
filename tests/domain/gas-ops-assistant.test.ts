@@ -222,9 +222,26 @@ describe("напоминания: кому что напомнить на мом
 
   test("повторная проверка в тот же день не шлёт то же сообщение", () => {
     const data = seed();
-    const first = remindersAt(reminderInput(data, "2026-10-03T18:00"));
+    // Сводка менеджеру уходит в 19:00 (1.7): после неё за день нового нет
+    const first = remindersAt(reminderInput(data, "2026-10-03T19:00"));
     const sent = new Set(first.map((r) => r.key));
     expect(unsent(remindersAt(reminderInput(data, "2026-10-03T21:00")), sent)).toEqual([]);
+  });
+
+  test("сроки (финальный промт, 1.7): вопрос сразу, напоминание в 18:00, сводка в 19:00", () => {
+    const data = seed();
+    data.entries = data.entries.map((e) =>
+      e.number === "ГЗ-00095" ? { ...e, status: "clarify" } : e,
+    );
+    const kinds = (at: string) => [
+      ...new Set(remindersAt(reminderInput(data, at)).map((r) => r.kind)),
+    ];
+    expect(kinds("2026-10-03T09:00")).toEqual(["clarify"]);
+    expect(kinds("2026-10-03T18:00").sort()).toEqual(["clarify", "missing"]);
+    expect(kinds("2026-10-03T19:00").sort()).toEqual(["clarify", "missing", "summary"]);
+    // Своё время сводки
+    const late = { ...reminderInput(data, "2026-10-03T19:30"), summaryTime: "20:00" };
+    expect(remindersAt(late).some((r) => r.kind === "summary")).toBe(false);
   });
 
   test("неверное время напоминания ничего не отправляет", () => {

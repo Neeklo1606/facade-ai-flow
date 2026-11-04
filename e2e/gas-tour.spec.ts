@@ -104,6 +104,78 @@ test.describe("показ 1440: сброс и новая вкладка", () => 
   });
 });
 
+/*
+ * F1: тур не перехватывает навигацию. Автостарт только на домашнем экране роли, переход на
+ * экран шага только по нажатию человека, уход со страницы шага ставит тур на паузу
+ */
+for (const width of WIDTHS) {
+  test.describe(`тур не уводит со страницы ${width.name}`, () => {
+    test.use({ viewport: width.viewport, hasTouch: width.hasTouch });
+
+    test.beforeEach(async ({ page }) => {
+      await page.addInitScript(() => {
+        if (!sessionStorage.getItem("tour-test-started")) {
+          sessionStorage.setItem("tour-test-started", "1");
+          localStorage.setItem("gaika-tour-seen", "[]");
+        }
+      });
+    });
+
+    test("прямая ссылка на Журнал при первом входе открывает Журнал", async ({ page }) => {
+      await open(page, "/gas/entries");
+      await page.locator("main").waitFor();
+      await expect(
+        page.getByRole("heading", { name: "Журнал", exact: true }).first(),
+      ).toBeAttached();
+      // Даём туру время, за которое прежний перехват успевал увести на «Проверку»
+      await page.waitForTimeout(1500);
+      await expect(page).toHaveURL(/\/gas\/entries$/);
+      await expect(card(page)).toHaveCount(0);
+      await expect(page.getByTestId("tour-paused")).toHaveCount(0);
+    });
+
+    test("клик в меню во время тура срабатывает, тур на паузе и продолжается", async ({ page }) => {
+      await open(page, "/gas/moderation");
+      await expect(card(page)).toHaveAccessibleName("Тур менеджера");
+      await expect(step(page)).toHaveText("Шаг 1 из 4");
+      // Пункт меню: на компьютере левая панель, на телефоне нижняя; «Табель» есть в обеих
+      await page
+        .getByRole("link", { name: /^Табель/ })
+        .filter({ visible: true })
+        .first()
+        .click();
+      await expect(page).toHaveURL(/\/gas\/tabel$/);
+      await page.waitForTimeout(1500);
+      await expect(page).toHaveURL(/\/gas\/tabel$/);
+      await expect(card(page)).toHaveCount(0);
+      const paused = page.getByTestId("tour-paused");
+      await expect(paused).toBeVisible();
+      // «Продолжить тур» — нажатие человека: тур возвращает на экран шага
+      await paused.getByRole("button", { name: "Продолжить тур" }).click();
+      await expect(page).toHaveURL(/\/gas\/moderation$/);
+      await expect(step(page)).toHaveText("Шаг 1 из 4");
+      await expect(paused).toHaveCount(0);
+      // Снова ушли и закрыли тур крестиком на плашке: тур больше не появляется
+      await page
+        .getByRole("link", { name: /^Табель/ })
+        .filter({ visible: true })
+        .first()
+        .click();
+      await expect(paused).toBeVisible();
+      await paused.getByRole("button", { name: "Закрыть тур" }).click();
+      await expect(paused).toHaveCount(0);
+      await page
+        .getByRole("link", { name: /^Проверка/ })
+        .filter({ visible: true })
+        .first()
+        .click();
+      await expect(page).toHaveURL(/\/gas\/moderation$/);
+      await page.locator("main").waitFor();
+      await expect(card(page)).toHaveCount(0);
+    });
+  });
+}
+
 test.describe("тур роли 1440", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -128,22 +200,27 @@ test.describe("тур роли 1440", () => {
     await page.getByRole("button", { name: "Справка", exact: true }).click();
     await page.getByRole("button", { name: "Пройти тур: менеджера" }).click();
     await expect(step(page)).toHaveText("Шаг 1 из 4");
+    // Все шаги тура роли на её домашнем экране (финальный промт, 2.5; ADR-064)
     for (let i = 0; i < 3; i++) await next(page).click();
-    await expect(page).toHaveURL(/\/gas\/entries$/);
-    await expect(card(page).getByRole("heading")).toHaveText("Журнал");
+    await expect(page).toHaveURL(/\/gas\/moderation$/);
+    await expect(card(page).getByRole("heading")).toHaveText("Новые, уточнения, принятые");
   });
 
-  test("тур руководителя ведёт по «Неделе» и «Табелю»", async ({ page }) => {
+  test("тур руководителя: четыре шага на «Неделе»", async ({ page }) => {
     await open(page, "/gas/week");
     await gasRole(page, "Руководитель");
     await page.getByRole("button", { name: "Справка", exact: true }).click();
     await page.getByRole("button", { name: "Пройти тур: руководителя" }).click();
     await expect(page).toHaveURL(/\/gas\/week$/);
     await expect(card(page).getByRole("heading")).toHaveText("Неделя");
+    await expect(step(page)).toHaveText("Шаг 1 из 4");
     await next(page).click();
     await next(page).click();
-    await expect(page).toHaveURL(/\/gas\/tabel$/);
-    await expect(card(page).getByRole("heading")).toHaveText("Табель");
+    await expect(page).toHaveURL(/\/gas\/week$/);
+    await expect(card(page).getByRole("heading")).toHaveText("Что мешает закрыть");
+    await next(page).click();
+    await expect(page).toHaveURL(/\/gas\/week$/);
+    await expect(card(page).getByRole("heading")).toHaveText("Файл недели");
   });
 });
 

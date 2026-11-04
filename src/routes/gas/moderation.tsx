@@ -2,6 +2,7 @@ import { completePageHead } from "@/lib/page-head";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCheck, ClipboardCheck, Inbox } from "lucide-react";
+import { ModeSuggestion } from "@/components/gas-ops/review/ModeSuggestion";
 import { QueueCard } from "@/components/gas-ops/review/QueueCard";
 import {
   ReviewPanel,
@@ -26,6 +27,7 @@ import {
   remarksOf,
   useGasActions,
   useGasActor,
+  useGasAudit,
   useGasDirectory,
   useGasEntry,
   useGasQueue,
@@ -125,6 +127,8 @@ function ModerationPage() {
   const pendingRows = useGasQueue("pending");
   const info = useMemo(() => infoCounts(pendingRows), [pendingRows]);
   const users = useGasUsers();
+  // Пустая очередь называет время последнего изменения отчёта (финальный промт, 2.3)
+  const lastChange = useGasAudit()[0]?.at.slice(11, 16) ?? null;
   const userIds = useMemo(() => new Set(users.map((u) => u.id)), [users]);
 
   /*
@@ -355,6 +359,15 @@ function ModerationPage() {
       canDecide={actor.canReview}
       onConfirm={() => void decide(current, "confirm")}
       onDecide={(action, comment) => decide(current, action, comment)}
+      onUndoAuto={() =>
+        void actions
+          .undoAutoAccept(current.entry.id)
+          .then((result) =>
+            result.ok
+              ? toast.success(`${current.entry.number} снова в очереди проверки`)
+              : toast.error(result.message),
+          )
+      }
       onCorrect={(input) => correct(current, input)}
       {...(wide ? {} : { onClose: () => setSheetOpen(false) })}
     />
@@ -460,8 +473,13 @@ function ModerationPage() {
         {bulk}
       </ScreenActions>
 
+      <ModeSuggestion />
+
       <ScreenCounters>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2"
+          data-tour="review-tabs"
+        >
           <StatusPills
             label="Статус записи"
             value={tab}
@@ -511,7 +529,9 @@ function ModerationPage() {
                 activeFilters || search
                   ? "По фильтрам ничего нет"
                   : tab === "pending"
-                    ? "Очередь пуста"
+                    ? lastChange
+                      ? `Всё проверено, отчёт обновлён в ${lastChange}`
+                      : "Всё проверено"
                     : "Здесь пусто"
               }
               text={

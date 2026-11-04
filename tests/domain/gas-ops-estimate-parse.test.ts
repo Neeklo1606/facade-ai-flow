@@ -47,21 +47,21 @@ const grandRows: Row[] = [
   [43, at({ 10: "всего с учетом коэффициентов", 15: "всего в текущем уровне цен" })],
   [45, at({ 0: "Раздел 1. Монтаж стальных газопроводов" })],
   [50, at({ 2: "Итого прямые затраты", 15: 1319.42 })],
-  [450, at({ 2: "Всего по разделу 1 Монтаж стальных газопроводов", 15: 149852.08 })],
+  [450, at({ 2: "Всего по разделу 1 Монтаж стальных газопроводов", 15: 90000.08 })],
   [454, at({ 0: "Раздел 2. Испытания газопроводов" })],
   [473, at({ 2: " Материалы", 15: 212.08 })],
-  [483, at({ 2: "Всего по разделу 2 Испытания газопроводов", 15: 39306.16 })],
+  [483, at({ 2: "Всего по разделу 2 Испытания газопроводов", 15: 30000.16 })],
   [487, at({ 2: "Итоги по смете:" })],
-  [488, at({ 2: " Всего прямые затраты (справочно)", 15: 93859.5 })],
-  [493, at({ 2: " Материалы", 15: 23703.01 })],
+  [488, at({ 2: " Всего прямые затраты (справочно)", 15: 60000.5 })],
+  [493, at({ 2: " Материалы", 15: 20000.01 })],
   [500, at({ 2: " материалы", 15: 14129.33 })],
-  [519, at({ 2: "Всего", 15: 189158.24 })],
-  [520, at({ 2: " Всего ФОТ (справочно)", 15: 54688.91 })],
-  [521, at({ 2: " Всего накладные расходы (справочно)", 15: 59669.28 })],
-  [522, at({ 2: " Всего сметная прибыль (справочно)", 15: 35629.46 })],
-  [523, at({ 2: " НДС 22%", 15: 41614.81 })],
-  [524, at({ 2: "ВСЕГО по смете", 15: 230773.05 })],
-  [526, at({ 2: " Затраты труда рабочих", 10: "77,5712008" })],
+  [519, at({ 2: "Всего", 15: 120000.24 })],
+  [520, at({ 2: " Всего ФОТ (справочно)", 15: 35000.91 })],
+  [521, at({ 2: " Всего накладные расходы (справочно)", 15: 38000.28 })],
+  [522, at({ 2: " Всего сметная прибыль (справочно)", 15: 22000.46 })],
+  [523, at({ 2: " НДС 22%", 15: 26400.05 })],
+  [524, at({ 2: "ВСЕГО по смете", 15: 146400.29 })],
+  [526, at({ 2: " Затраты труда рабочих", 10: "50,2512008" })],
   [530, at({ 1: "Составил:" })],
 ];
 
@@ -71,31 +71,31 @@ const resourceRows: Row[] = [
   [22, at({ 4: "на ед.", 7: "общая" })],
   [23, at({ 8: "Осн.З/п", 9: "Эк.Маш.", 10: "З/пМех", 11: "Мат" })],
   [26, at({ 0: "Раздел 3. Монтаж стальных газопроводов" })],
-  [52, at({ 0: " Итого", 7: "130000,00" })],
-  [154, at({ 0: " Итого по разделу 3 Монтаж стальных газопроводов", 7: "137783,32" })],
-  [167, at({ 0: " Итого по разделу 7 Субподрядные работы", 7: "3818,24", 12: "2,87" })],
+  [52, at({ 0: " Итого", 7: "70000,00" })],
+  [154, at({ 0: " Итого по разделу 3 Монтаж стальных газопроводов", 7: "75000,32" })],
+  [167, at({ 0: " Итого по разделу 7 Субподрядные работы", 7: "4427,24", 12: "2,87" })],
   [176, at({ 0: " Итого по разделу 9 Корректировки для загрузки", 7: "573,35" })],
   [177, at({ 0: "ИТОГИ ПО СМЕТЕ:" })],
-  [178, at({ 0: "Итого прямые затраты по смете в текущих ценах", 7: "97497,56" })],
-  [179, at({ 0: "Накладные расходы", 7: "28160,40" })],
-  [180, at({ 0: "Сметная прибыль", 7: "16516,95" })],
+  [178, at({ 0: "Итого прямые затраты по смете в текущих ценах", 7: "55000,56" })],
+  [179, at({ 0: "Накладные расходы", 7: "16500,40" })],
+  [180, at({ 0: "Сметная прибыль", 7: "9500,95" })],
   [181, at({ 0: "Итоги по смете:" })],
-  [182, at({ 0: " Итого", 7: "142174,91", 12: "57,644" })],
-  [184, at({ 0: " Материалы", 7: "68706,25" })],
+  [182, at({ 0: " Итого", 7: "80000,91", 12: "40,125" })],
+  [184, at({ 0: " Материалы", 7: "30000,25" })],
   [185, at({ 0: " Машины и механизмы", 7: "904,36" })],
-  [186, at({ 0: " ФОТ", 7: "27886,95" })],
-  [187, at({ 0: " Накладные расходы", 7: "28160,40" })],
-  [188, at({ 0: " Сметная прибыль", 7: "16516,95" })],
-  [189, at({ 0: " НДС 5%", 7: "7108,75" })],
-  [190, at({ 0: " ВСЕГО по смете", 7: "149283,66", 12: "57,644" })],
+  [186, at({ 0: " ФОТ", 7: "16000,95" })],
+  [187, at({ 0: " Накладные расходы", 7: "16500,40" })],
+  [188, at({ 0: " Сметная прибыль", 7: "9500,95" })],
+  [189, at({ 0: " НДС 5%", 7: "4000,05" })],
+  [190, at({ 0: " ВСЕГО по смете", 7: "84000,96", 12: "40,125" })],
   [194, at({ 0: "Составил: ___________________________" })],
 ];
 
 describe("числа из ячеек", () => {
   test("число, строка с запятой, строка с точкой, пробелы разрядов", () => {
-    expect(cellNumber(12622.61)).toBe(12622.61);
-    expect(cellNumber("12622,61")).toBe(12622.61);
-    expect(cellNumber("126779.78")).toBe(126779.78);
+    expect(cellNumber(12345.67)).toBe(12345.67);
+    expect(cellNumber("12345,67")).toBe(12345.67);
+    expect(cellNumber("123456.78")).toBe(123456.78);
     expect(cellNumber("1 234,50")).toBe(1234.5);
     expect(cellNumber("руб.")).toBeNull();
     expect(cellNumber("'48")).toBeNull();
@@ -110,32 +110,32 @@ describe("формат А, ГРАНД-Смета", () => {
     expect(parsed.format).toBe("grand");
     expect(parsed.status).toBe("parsed");
     expect(parsed.issues).toEqual([]);
-    expect(parsed.totals.withoutVat).toEqual({ kopecks: 18_915_824, row: 519 });
-    expect(parsed.totals.materials).toEqual({ kopecks: 2_370_301, row: 493 });
-    expect(parsed.totals.vat).toEqual({ kopecks: 4_161_481, row: 523 });
-    expect(parsed.totals.total).toEqual({ kopecks: 23_077_305, row: 524 });
-    expect(parsed.totals.direct?.kopecks).toBe(9_385_950);
-    expect(parsed.totals.payroll?.kopecks).toBe(5_468_891);
-    expect(parsed.totals.overhead?.kopecks).toBe(5_966_928);
-    expect(parsed.totals.profit?.kopecks).toBe(3_562_946);
+    expect(parsed.totals.withoutVat).toEqual({ kopecks: 12_000_024, row: 519 });
+    expect(parsed.totals.materials).toEqual({ kopecks: 2_000_001, row: 493 });
+    expect(parsed.totals.vat).toEqual({ kopecks: 2_640_005, row: 523 });
+    expect(parsed.totals.total).toEqual({ kopecks: 14_640_029, row: 524 });
+    expect(parsed.totals.direct?.kopecks).toBe(6_000_050);
+    expect(parsed.totals.payroll?.kopecks).toBe(3_500_091);
+    expect(parsed.totals.overhead?.kopecks).toBe(3_800_028);
+    expect(parsed.totals.profit?.kopecks).toBe(2_200_046);
     expect(parsed.vatRate).toBe(22);
     expect(parsed.sections.map((s) => [s.title, s.kopecks, s.row])).toEqual([
-      ["Раздел 1 Монтаж стальных газопроводов", 14_985_208, 450],
-      ["Раздел 2 Испытания газопроводов", 3_930_616, 483],
+      ["Раздел 1 Монтаж стальных газопроводов", 9_000_008, 450],
+      ["Раздел 2 Испытания газопроводов", 3_000_016, 483],
     ]);
     expect(sectionsSum(parsed)).toBe(parsed.totals.withoutVat!.kopecks);
-    expect(parsed.laborHours).toEqual({ value: 77.5712008, row: 526 });
+    expect(parsed.laborHours).toEqual({ value: 50.2512008, row: 526 });
   });
 
-  test("кандидат «без НДС минус материалы» 165 455,23", () => {
+  test("кандидат «без НДС минус материалы» 100 000,23", () => {
     const parsed = parseEstimateGrid(gridOf(grandRows));
     const result = applyRule(parsed.totals, DEFAULT_RULE_TERMS);
-    expect(result).toEqual({ ok: true, kopecks: 16_545_523 });
+    expect(result).toEqual({ ok: true, kopecks: 10_000_023 });
   });
 });
 
 describe("формат Б, ресурсная смета 14 граф", () => {
-  test("итоги, НДС 5 %, разделы и трудозатраты 57,644", async () => {
+  test("итоги, НДС 5 %, разделы и трудозатраты 40,125", async () => {
     // Рядом пустой лист-шаблон «12 граф», как в файлах заказчика: он не должен победить
     const sheets = await sheetsOfXlsx(
       await xlsxOf([
@@ -147,21 +147,21 @@ describe("формат Б, ресурсная смета 14 граф", () => {
     expect(parsed.sheet).toBe("Ресурсная смета 14 граф");
     expect(parsed.format).toBe("resource");
     expect(parsed.status).toBe("parsed");
-    expect(parsed.totals.withoutVat).toEqual({ kopecks: 14_217_491, row: 182 });
-    expect(parsed.totals.materials).toEqual({ kopecks: 6_870_625, row: 184 });
-    expect(parsed.totals.vat).toEqual({ kopecks: 710_875, row: 189 });
-    expect(parsed.totals.total).toEqual({ kopecks: 14_928_366, row: 190 });
-    expect(parsed.totals.direct?.kopecks).toBe(9_749_756);
-    expect(parsed.totals.payroll?.kopecks).toBe(2_788_695);
+    expect(parsed.totals.withoutVat).toEqual({ kopecks: 8_000_091, row: 182 });
+    expect(parsed.totals.materials).toEqual({ kopecks: 3_000_025, row: 184 });
+    expect(parsed.totals.vat).toEqual({ kopecks: 400_005, row: 189 });
+    expect(parsed.totals.total).toEqual({ kopecks: 8_400_096, row: 190 });
+    expect(parsed.totals.direct?.kopecks).toBe(5_500_056);
+    expect(parsed.totals.payroll?.kopecks).toBe(1_600_095);
     expect(parsed.vatRate).toBe(5);
-    expect(parsed.laborHours).toEqual({ value: 57.644, row: 182 });
+    expect(parsed.laborHours).toEqual({ value: 40.125, row: 182 });
     expect(parsed.sections).toHaveLength(3);
-    expect(sectionsSum(parsed)).toBe(14_217_491);
+    expect(sectionsSum(parsed)).toBe(8_000_091);
   });
 
-  test("кандидат «без НДС минус материалы» 73 468,66", () => {
+  test("кандидат «без НДС минус материалы» 50 000,66", () => {
     const parsed = parseEstimateGrid(gridOf(resourceRows));
-    expect(applyRule(parsed.totals, DEFAULT_RULE_TERMS)).toEqual({ ok: true, kopecks: 7_346_866 });
+    expect(applyRule(parsed.totals, DEFAULT_RULE_TERMS)).toEqual({ ok: true, kopecks: 5_000_066 });
   });
 });
 
@@ -199,19 +199,19 @@ describe("молчаливого числа нет", () => {
   test("строки с суммой ниже «ВСЕГО по смете»: замечание с номером строки", () => {
     const rows: Row[] = [
       ...resourceRows.filter(([n]) => n < 194),
-      [191, at({ 6: "Технадзор", 7: "11875.51" })],
-      [193, at({ 6: "Итого", 7: "161159.17" })],
+      [191, at({ 6: "Технадзор", 7: "6000.51" })],
+      [193, at({ 6: "Итого", 7: "90001.47" })],
     ];
     const parsed = parseEstimateGrid(gridOf(rows));
     expect(parsed.status).toBe("needs-review");
     expect(parsed.issues.map((i) => i.row)).toEqual([191, 193]);
     // Итог берётся из строки «ВСЕГО по смете», а не из последнего «Итого»
-    expect(parsed.totals.total?.kopecks).toBe(14_928_366);
+    expect(parsed.totals.total?.kopecks).toBe(8_400_096);
   });
 
   test("без НДС плюс НДС не равно ВСЕГО", () => {
     const rows: Row[] = resourceRows.map(([n, cells]) =>
-      n === 190 ? [n, at({ 0: " ВСЕГО по смете", 7: "149300,00" })] : [n, cells],
+      n === 190 ? [n, at({ 0: " ВСЕГО по смете", 7: "84100,00" })] : [n, cells],
     );
     const parsed = parseEstimateGrid(gridOf(rows));
     expect(parsed.status).toBe("needs-review");

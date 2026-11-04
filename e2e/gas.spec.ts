@@ -114,11 +114,11 @@ test.describe("@mobile телефон", () => {
     });
   }
 
-  test("нижняя панель по роли: три раздела и «Ещё» с остальным", async ({ page }) => {
+  test("нижняя панель по роли: разделы дня и «Ещё» с остальным", async ({ page }) => {
     await open(page, "/gas/moderation");
     const nav = page.getByRole("navigation", { name: "Основные разделы" });
-    // Три раздела роли и «Ещё» вкладкой-экраном (ADR-061, таблица 3.3; ADR-048)
-    await expect(nav.getByRole("link")).toHaveCount(4);
+    // Менеджер: Проверка, Табель, Неделя, Справочники и «Ещё» (финальный промт, 2.3; ADR-064)
+    await expect(nav.getByRole("link")).toHaveCount(5);
     await nav.getByRole("link", { name: "Ещё" }).click();
     await expect(page).toHaveURL(/\/gas\/more$/);
     await expect(page.getByRole("main").getByRole("link", { name: "Инструкция" })).toBeVisible();

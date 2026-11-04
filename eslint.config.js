@@ -13,7 +13,18 @@ const serverOnly = {
 
 export default tseslint.config(
   // `.verify` — вывод проверок: журналы, снимки и одноразовые сценарии, не исходный код
-  { ignores: ["dist", ".output", ".vinxi", ".wrangler", ".verify", ".local"] },
+  {
+    ignores: [
+      "dist",
+      ".output",
+      ".output-cabinet",
+      ".output-main",
+      ".vinxi",
+      ".wrangler",
+      ".verify",
+      ".local",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

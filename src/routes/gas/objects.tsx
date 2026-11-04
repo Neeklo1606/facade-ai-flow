@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import { SearchX } from "lucide-react";
@@ -17,6 +18,7 @@ import { plural } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useGasBrand, useIsClientContour } from "@/lib/gas-ops/contour";
 import { ScheduleImport } from "@/components/gas-ops/schedule/ScheduleImport";
+import { AddObject } from "@/components/gas-ops/directory/AddObject";
 import { useGasActor } from "@/api/gas-ops";
 import {
   SCHEDULE_TEMPLATE,
@@ -217,6 +219,7 @@ function ObjectsPage() {
 
   return (
     <div className="flex flex-col gap-block">
+      <DirectoryTabs />
       <p className="text-meta text-text-3">
         Объекты из графика на неделю {brand.periodLabel}
         {/* Граница договора заказчика называется только в его личном контуре (L3) */}
@@ -227,8 +230,9 @@ function ObjectsPage() {
             : " · график недели: демо"}
       </p>
       {actor.role === "manager" || actor.role === "admin" ? (
-        <div>
+        <div className="flex flex-wrap gap-2">
           <ScheduleImport />
+          <AddObject />
         </div>
       ) : null}
 

@@ -6,6 +6,7 @@
  * красный блокирует решение, янтарный требует решения, серый только сообщает. На карточке
  * списка не больше двух признаков, остальные «+N» и в деталях. «Факт» и «Демо» тихой подписью.
  */
+import { showDemoMarks } from "@/lib/cabinet";
 import {
   ENTRY_STATUS_LABEL,
   fmtHours,
@@ -33,14 +34,19 @@ const STATUS_DOT: Record<EntryStatus, string> = {
 /** Статус записи: текст с цветной точкой, без плашки. Один на запись */
 export function EntryStatusBadge({
   status,
+  auto = false,
   className,
   labelClassName,
 }: {
   status: EntryStatus;
+  /** Принята системой без менеджера (финальный промт, 1.2): метка видна в журнале и проверке */
+  auto?: boolean;
   className?: string;
   /** Узкая колонка журнала прячет текст до точки, оставляя его экранной читалке */
   labelClassName?: string;
 }) {
+  const label =
+    auto && status === "confirmed" ? "Принята автоматически" : ENTRY_STATUS_LABEL[status];
   return (
     <span
       className={cn(
@@ -49,11 +55,7 @@ export function EntryStatusBadge({
       )}
     >
       <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
-      {labelClassName ? (
-        <span className={labelClassName}>{ENTRY_STATUS_LABEL[status]}</span>
-      ) : (
-        ENTRY_STATUS_LABEL[status]
-      )}
+      {labelClassName ? <span className={labelClassName}>{label}</span> : label}
     </span>
   );
 }
@@ -67,7 +69,8 @@ export function SourceMark({
   className?: string;
 }) {
   const kind = useGasContour().kind;
-  if (source === null) return null;
+  // Кабинет заказчика (ADR-062, F6): меток источника «Демо» и «Пример» нет
+  if (source === null || !showDemoMarks) return null;
   const text = sourceLabel(source, kind);
   return <span className={cn("text-meta whitespace-nowrap text-text-3", className)}>{text}</span>;
 }

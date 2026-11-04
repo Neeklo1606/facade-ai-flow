@@ -11,6 +11,7 @@ import {
   latestConfirmed,
   nextVersion,
   normVsFact,
+  recalcNote,
   recalcObject,
   ruleFor,
   ruleFormula,
@@ -33,13 +34,13 @@ const version = (over: Partial<EstimateVersion>): EstimateVersion => ({
   format: "resource",
   parseStatus: "parsed",
   totals: {
-    withoutVat: { kopecks: 14_217_491, row: 182 },
-    materials: { kopecks: 6_870_625, row: 184 },
-    vat: { kopecks: 710_875, row: 189 },
-    total: { kopecks: 14_928_366, row: 190 },
+    withoutVat: { kopecks: 8_000_091, row: 182 },
+    materials: { kopecks: 3_000_025, row: 184 },
+    vat: { kopecks: 400_005, row: 189 },
+    total: { kopecks: 8_400_096, row: 190 },
   },
   vatRate: 5,
-  laborHours: { value: 57.644, row: 182 },
+  laborHours: { value: 40.125, row: 182 },
   sections: [],
   issues: [],
   issuesReviewedBy: null,
@@ -99,8 +100,8 @@ describe("правило состава", () => {
     );
   });
 
-  test("стоимость целыми рублями: 73 468,66 → 73 469", () => {
-    expect(workCostRub(version({}), DEFAULT_COMPANY_RULE)).toBe(73_469);
+  test("стоимость целыми рублями: 50 000,66 → 50 001", () => {
+    expect(workCostRub(version({}), DEFAULT_COMPANY_RULE)).toBe(50_001);
   });
 });
 
@@ -137,13 +138,13 @@ describe("распределение по минутам", () => {
       { id: "c", minutes: 1 },
     ]);
     expect([...shares.values()]).toEqual([34, 33, 33]);
-    const odd = allocateByMinutes(73_469, [
+    const odd = allocateByMinutes(50_001, [
       { id: "a", minutes: 395 },
       { id: "b", minutes: 150 },
       { id: "c", minutes: 245 },
     ]);
-    expect([...odd.values()].reduce((x, y) => x + y, 0)).toBe(73_469);
-    expect(odd.get("a")).toBe(36_734);
+    expect([...odd.values()].reduce((x, y) => x + y, 0)).toBe(50_001);
+    expect(odd.get("a")).toBe(25_000);
   });
 
   test("нулевые минуты: деление запрещено, вся сумма первой записи", () => {
@@ -174,15 +175,43 @@ describe("пересчёт при смене версии", () => {
     expect(result.entries.find((e) => e.id === "n")!.amountRub).toBeNull();
     expect(result.changed).toEqual([{ id: "b", from: 4_000, to: 10_000 }]);
     expect(result.confirmedMismatch).toEqual(["a"]);
+    expect(result.waiting).toBe(1);
+  });
+
+  test("F4: проверенная без суммы получает долю, закрытая неделя не меняется", () => {
+    const entries = [
+      entry({ id: "a", minutes: 60, status: "confirmed", amountRub: null }),
+      entry({ id: "b", minutes: 60, status: "confirmed", amountRub: null, day: "2026-09-28" }),
+      entry({ id: "c", minutes: 60, status: "pending", amountRub: null }),
+    ];
+    const result = recalcObject(entries, "obj-1", 3_000, (day) => day === "2026-09-28");
+    expect(result.entries.map((e) => e.amountRub)).toEqual([1_000, null, null]);
+    expect(result.changed).toEqual([{ id: "a", from: null, to: 1_000 }]);
+    expect(result).toMatchObject({ waiting: 1, locked: 1 });
+  });
+
+  test("F4: тост объясняет ноль", () => {
+    expect(recalcNote({ changed: 2, waiting: 0, locked: 0, kept: 0 })).toBe(
+      "Пересчитано записей: 2",
+    );
+    expect(recalcNote({ changed: 0, waiting: 3, locked: 0, kept: 0 })).toBe(
+      "Пересчитано записей: 0, у объекта нет проверенных записей недели; ждут проверки и получат стоимость при ней: 3",
+    );
+    expect(recalcNote({ changed: 0, waiting: 0, locked: 0, kept: 1 })).toBe(
+      "Пересчитано записей: 0; проверенные с суммой сохранили её: 1",
+    );
+    expect(recalcNote({ changed: 0, waiting: 0, locked: 0, kept: 0 })).toBe(
+      "Пересчитано записей: 0, у объекта нет записей с фактом",
+    );
   });
 });
 
 describe("норма против факта", () => {
-  test("«норма 57,6 чел.-ч, факт 41,5 ч»", () => {
+  test("«норма 40,1 чел.-ч, факт 41,5 ч»", () => {
     const entries = [entry({ id: "a", minutes: 1_500 }), entry({ id: "b", minutes: 990 })];
-    const n = normVsFact(57.644, entries, "obj-1");
-    expect(fmtNormVsFact(n)).toBe("норма 57,6 чел.-ч, факт 41,5 ч");
-    expect(n.percent).toBe(72);
+    const n = normVsFact(40.125, entries, "obj-1");
+    expect(fmtNormVsFact(n)).toBe("норма 40,1 чел.-ч, факт 41,5 ч");
+    expect(n.percent).toBe(103);
     expect(fmtNormVsFact(normVsFact(null, entries, "obj-1"))).toBe("нормы нет, факт 41,5 ч");
   });
 });

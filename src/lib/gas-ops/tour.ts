@@ -1,8 +1,9 @@
 /**
  * Туры учёта времени (ADR-061, 13; раздел 4.8 документа табеля) вместо полосы показа.
  * Подсказка у элемента `data-tour`, «Шаг N из M», «Назад», «Далее», ×. Действия зрителя
- * не обязательны: «Далее» сам переключает роль и экран. Состояние тура живёт во вкладке
- * (sessionStorage), отметка «тур роли пройден» — в браузере (localStorage).
+ * не обязательны: «Далее» сам переключает роль и экран. Сам по себе тур никуда не ведёт
+ * (F1): переход на экран шага идёт только по нажатию человека, счётчик `request`. Состояние
+ * тура живёт во вкладке (sessionStorage), отметка «тур роли пройден» — в браузере (localStorage).
  */
 import { useSyncExternalStore } from "react";
 import type { Role } from "@/domain/gas-ops/model";
@@ -52,12 +53,12 @@ const MANAGER: TourStep[] = [
     text: "Откройте запись: что проверить, откуда сумма. Принять, исправить с причиной или вернуть с вопросом.",
   },
   {
-    id: "m-journal",
+    id: "m-tabs",
     role: "manager",
-    path: "/gas/entries",
-    target: "journal-table",
-    title: "Журнал",
-    text: "Все записи недели с поиском и фильтрами. Здесь же история изменений каждой записи.",
+    path: "/gas/moderation",
+    target: "review-tabs",
+    title: "Новые, уточнения, принятые",
+    text: "Переключатель над очередью: ответы бригадиров на вопросы и уже принятые записи. Все записи недели в «Журнале», он в «Ещё».",
   },
 ];
 
@@ -76,23 +77,23 @@ const DIRECTOR: TourStep[] = [
     path: "/gas/week",
     target: "week-close",
     title: "Закрыть неделю",
-    text: "Кнопка показывает число причин. Закрытие фиксирует версию и собирает файл на сервере.",
+    text: "Кнопка показывает число причин. Закрытие фиксирует версию недели и её файл.",
   },
   {
-    id: "d-tabel",
+    id: "d-reasons",
     role: "director",
-    path: "/gas/tabel",
-    target: "tabel-toolbar",
-    title: "Табель",
-    text: "Неделя в формате заказчика или по людям. Ячейки выделяются и копируются в Excel.",
+    path: "/gas/week",
+    target: "week-reasons",
+    title: "Что мешает закрыть",
+    text: "Каждая причина со ссылкой на записи. То, что согласовано, принимается как есть с причиной.",
   },
   {
     id: "d-export",
     role: "director",
-    path: "/gas/tabel",
-    target: "export",
-    title: "Выгрузка",
-    text: "Утверждённый файл или черновик в структуре отчёта заказчика.",
+    path: "/gas/week",
+    target: "week-actions",
+    title: "Файл недели",
+    text: "Черновик Excel готов в любой момент, утверждённый файл появляется при закрытии недели. Табель в «Ещё».",
   },
 ];
 
@@ -137,8 +138,23 @@ const SHOW: TourStep[] = [
     text: "Тот же ввод времени диалогом: кнопками или голосом. В демо канал MAX не подключён.",
   },
   FOREMAN[1]!,
-  DIRECTOR[2]!,
-  DIRECTOR[3]!,
+  // Табель в показе остаётся: показ сквозной, тур роли — только домашний экран (ADR-064, 2.5)
+  {
+    id: "d-tabel",
+    role: "director",
+    path: "/gas/tabel",
+    target: "tabel-toolbar",
+    title: "Табель",
+    text: "Неделя в формате заказчика или по людям. Ячейки выделяются и копируются в Excel.",
+  },
+  {
+    id: "d-tabel-export",
+    role: "director",
+    path: "/gas/tabel",
+    target: "export",
+    title: "Выгрузка",
+    text: "Утверждённый файл или черновик в структуре отчёта заказчика.",
+  },
   DIRECTOR[1]!,
   {
     id: "s-finish",
@@ -170,11 +186,17 @@ export function tourOfRole(role: Role): TourId | null {
 export interface TourState {
   tourId: TourId | null;
   index: number;
+  /**
+   * Номер нажатия человека («Далее», «Назад», «Продолжить тур», запуск кнопкой): только по
+   * новому номеру тур переводит на роль и экран шага. Не хранится: после перезагрузки тур
+   * на чужом экране стоит на паузе, а не уводит человека
+   */
+  request: number;
 }
 
 const STATE_KEY = "gaika-tour";
 export const TOUR_SEEN_KEY = "gaika-tour-seen";
-const initial: TourState = { tourId: null, index: 0 };
+const initial: TourState = { tourId: null, index: 0, request: 0 };
 
 let state: TourState = initial;
 let loaded = false;
@@ -185,7 +207,7 @@ function load() {
   loaded = true;
   try {
     const raw = window.sessionStorage.getItem(STATE_KEY);
-    if (raw) state = { ...initial, ...(JSON.parse(raw) as Partial<TourState>) };
+    if (raw) state = { ...initial, ...(JSON.parse(raw) as Partial<TourState>), request: 0 };
   } catch {
     // Хранилище недоступно: тур начнётся заново после перезагрузки
   }
@@ -194,7 +216,8 @@ function load() {
 function commit(next: TourState) {
   state = next;
   try {
-    window.sessionStorage.setItem(STATE_KEY, JSON.stringify(next));
+    const { request: _request, ...stored } = next;
+    window.sessionStorage.setItem(STATE_KEY, JSON.stringify(stored));
   } catch {
     // см. load()
   }
@@ -244,16 +267,36 @@ function markSeen(id: TourId) {
   }
 }
 
-export function startTour(id: TourId) {
+/**
+ * Начать тур. Кнопка («Пройти тур», «Показать за 3 минуты») ведёт на первый шаг; автостарт
+ * первого входа (`go: false`) идёт только на месте первого шага и никуда не переводит
+ */
+export function startTour(id: TourId, options?: { go?: boolean }) {
   load();
-  commit({ tourId: id, index: 0 });
+  commit({
+    tourId: id,
+    index: 0,
+    request: options?.go === false ? state.request : state.request + 1,
+  });
 }
 
+/** «Далее», «Назад», стрелки: шаг и переход на его экран по нажатию человека */
 export function goToStep(index: number) {
   load();
   if (!state.tourId) return;
   const total = TOURS[state.tourId].steps.length;
-  commit({ ...state, index: Math.max(0, Math.min(total - 1, index)) });
+  commit({
+    ...state,
+    index: Math.max(0, Math.min(total - 1, index)),
+    request: state.request + 1,
+  });
+}
+
+/** «Продолжить тур» с паузы: вернуться на роль и экран текущего шага */
+export function resumeTour() {
+  load();
+  if (!state.tourId) return;
+  commit({ ...state, request: state.request + 1 });
 }
 
 /** Закрыть тур: × или «Готово» на последнем шаге. Тур роли больше сам не открывается */

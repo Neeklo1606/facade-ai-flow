@@ -63,7 +63,7 @@ for (const [name, viewport] of [
     test.use({ viewport });
 
     test("бригадир → менеджер → руководитель: версия v1, переоткрытие, v2", async ({ page }) => {
-      // 1. Бригадир: «Сегодня», форма, проверка перед отправкой, «Принято сервером»
+      // 1. Бригадир: «Сегодня», форма, проверка перед отправкой, «Записано»
       await page.goto("/gas/brigade", { waitUntil: "domcontentloaded" });
       await page.waitForSelector("html[data-booted]", { timeout: 60_000 });
       await expect(page.getByText("Бригада 1 ·")).toBeVisible();
@@ -78,7 +78,7 @@ for (const [name, viewport] of [
       await page.getByRole("button", { name: "Проверить" }).click();
       await expect(page.getByText("4 чел., по 4 ч на человека, всего 16 чел.-ч")).toBeVisible();
       await page.getByRole("button", { name: "Отправить" }).click();
-      await expect(page.getByText("Принято сервером")).toBeVisible();
+      await expect(page.getByText("Записано", { exact: true })).toBeVisible();
       const heading = await page
         .getByRole("heading", { name: /Запись ГЗ-\d+ принята/ })
         .textContent();

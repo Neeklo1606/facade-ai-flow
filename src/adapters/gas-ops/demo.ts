@@ -10,10 +10,17 @@ import { effectiveMinutes, flagsOf, MINUTES_ERROR_TEXT } from "@/domain/gas-ops/
 import {
   allocateByMinutes,
   canConfirmVersion,
+  confirmRule,
+  latestConfirmed,
   nextVersion,
   recalcObject,
+  reviseRule,
+  revertRule,
   ruleFor,
   ruleFormula,
+  ruleHistory,
+  sameTerms,
+  validateTerms,
   workCostRub,
   type CostRule,
   type EstimateVersion,
@@ -21,6 +28,7 @@ import {
 import { setBrigadeStatus } from "@/domain/gas-ops/schedule";
 import {
   AUTO_ACTOR,
+  isAutoAccepted,
   REVIEW_MODE_LABEL,
   accuracyOf,
   finalCheckList,
@@ -39,9 +47,19 @@ import {
   type Review,
   type Role,
   type TimeEntry,
+  type Brigade,
+  type Employee,
+  type WorkObject,
 } from "@/domain/gas-ops/model";
+import {
+  directoryFingerprint,
+  normName,
+  planDirectoryImport,
+  type DirectoryState,
+} from "@/domain/gas-ops/directory-import";
 import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
+  crewOn,
   defaultHeadcount,
   frameOfPeople,
   personRows,
@@ -61,6 +79,7 @@ import {
 } from "@/domain/gas-ops/week";
 import {
   GasOpsError,
+  type CostRuleChange,
   type CreateEntryInput,
   type GasOpsPort,
   type GasOpsSnapshot,
@@ -94,6 +113,27 @@ function nextNumber(snapshot: GasOpsSnapshot): string {
     return Number.isFinite(n) ? Math.max(a, n) : a;
   }, 0);
   return `ГЗ-${String(max + 1).padStart(5, "0")}`;
+}
+
+/** ISO-дата накануне: новая ставка или переход в другую бригаду закрывает прежнюю */
+function dayBefore(day: string): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Что справочник знает для плана импорта (F3) */
+function directoryState(s: GasOpsSnapshot): DirectoryState {
+  return {
+    brigades: s.brigades.map((b) => ({
+      id: b.id,
+      name: b.name,
+      phone: b.phone ?? null,
+      leadName: s.employees.find((e) => e.brigadeId === b.id && e.isLead)?.name ?? null,
+    })),
+    crew: s.crew,
+    rates: s.rates,
+  };
 }
 
 function newId(prefix: string): string {
@@ -198,6 +238,8 @@ function routed(snapshot: GasOpsSnapshot, draft: TimeEntry): TimeEntry {
       (e) => e.objectId === draft.objectId && e.status === "confirmed",
     ),
     objectDays,
+    // Состав больше бригады — тоже замечание: без размера состава признак не ставился вовсе
+    crewSize: crewOn(snapshot.crew, draft.brigadeId, draft.day).length || null,
   });
   if (routeEntry(snapshot.reviewSettings.mode, flags) === "queue") return draft;
   return {
@@ -218,8 +260,15 @@ function applyCost(
   objectId: string,
   amountRub: number,
   reason: string,
-): { snapshot: GasOpsSnapshot; changed: number; stale: number } {
-  const recalc = recalcObject(s.entries, objectId, amountRub);
+): {
+  snapshot: GasOpsSnapshot;
+  changed: number;
+  stale: number;
+  waiting: number;
+  locked: number;
+  kept: number;
+} {
+  const recalc = recalcObject(s.entries, objectId, amountRub, (day) => isDayLocked(s.periods, day));
   let stale = 0;
   const reportIssues = s.reportIssues.map((r) => {
     if (r.stale || !r.objectIds.includes(objectId)) return r;
@@ -230,7 +279,69 @@ function applyCost(
     snapshot: { ...s, entries: recalc.entries, reportIssues },
     changed: recalc.changed.length,
     stale,
+    waiting: recalc.waiting,
+    locked: recalc.locked,
+    kept: recalc.confirmedMismatch.length,
   };
+}
+
+/**
+ * Смена правила (F2): поставить правило уровня и пересчитать стоимость объектов, у которых
+ * оно действует и есть подтверждённая смета. Ручная стоимость не трогается. Нет строки
+ * правила в смете — стоимость объекта не меняется, объект считается в `missingObjects`
+ */
+function applyRuleChange(
+  s: GasOpsSnapshot,
+  objectId: string | null,
+  rule: CostRule | null,
+  reason: string,
+): { snapshot: GasOpsSnapshot; change: CostRuleChange } {
+  const costRules = [
+    ...s.costRules.filter((r) => r.objectId !== objectId),
+    ...(rule ? [rule] : []),
+  ];
+  let next: GasOpsSnapshot = { ...s, costRules };
+  const change: CostRuleChange = {
+    rule,
+    changedObjects: 0,
+    changedEntries: 0,
+    missingObjects: 0,
+    staleReports: 0,
+  };
+  for (const estimate of s.estimates) {
+    if (estimate.origin !== "estimate" || estimate.status !== "confirmed") continue;
+    const target = estimate.objectId;
+    // Правило компании меняет объекты без своего; правило объекта — только его
+    if (objectId === null ? costRules.some((r) => r.objectId === target) : target !== objectId)
+      continue;
+    const version = latestConfirmed(target, next.estimateVersions);
+    if (!version) continue;
+    const objectRule = ruleFor(target, costRules);
+    const amountRub = workCostRub(version, objectRule);
+    if (amountRub === null) {
+      change.missingObjects++;
+      continue;
+    }
+    if (amountRub === estimate.amountRub) continue;
+    change.changedObjects++;
+    next = {
+      ...next,
+      estimates: next.estimates.map((e) =>
+        e.id === estimate.id
+          ? {
+              ...e,
+              amountRub,
+              note: `${ruleFormula(objectRule.terms)}${objectRule.status === "needs-agreement" ? " (правило требует согласования)" : ""}`,
+            }
+          : e,
+      ),
+    };
+    const applied = applyCost(next, target, amountRub, reason);
+    next = applied.snapshot;
+    change.changedEntries += applied.changed;
+    change.staleReports += applied.stale;
+  }
+  return { snapshot: next, change };
 }
 
 function mustVersion(snapshot: GasOpsSnapshot, id: string): EstimateVersion {
@@ -683,6 +794,41 @@ export function createGasOpsDemo(
       return done(next.entries.find((e) => e.id === id)!);
     },
 
+    undoAutoAccept: async (id) => {
+      const snapshot = await store.read();
+      mustTimeRole(snapshot);
+      const entry = mustFind(snapshot, id);
+      const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      if (actor?.role === "foreman") {
+        throw new GasOpsError("not-allowed", "Проверку ведёт менеджер.");
+      }
+      mustBeOpen(snapshot, entry.day);
+      if (!isAutoAccepted(entry)) {
+        throw new GasOpsError(
+          "nothing-to-undo",
+          "Запись принята не автоматически: отменять нечего.",
+        );
+      }
+      const back: TimeEntry = { ...entry, status: "pending", reviewedBy: null, reviewedAt: null };
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === id ? back : e)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "entry.auto.undo",
+              entityId: id,
+              detail: `${entry.number}: автоматический приём отменён, запись снова в очереди проверки`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(next.entries.find((e) => e.id === id)!);
+    },
+
     setEstimate: async (input) => {
       const snapshot = await store.read();
       mustTimeRole(snapshot);
@@ -750,6 +896,7 @@ export function createGasOpsDemo(
         vatRate: parsed.vatRate,
         laborHours: parsed.laborHours,
         sections: parsed.sections,
+        extras: parsed.extras ?? [],
         issues: parsed.issues,
         issuesReviewedBy: null,
         confirmedBy: null,
@@ -926,6 +1073,9 @@ export function createGasOpsDemo(
       };
       let changed = 0;
       let stale = 0;
+      let waiting = 0;
+      let locked = 0;
+      let kept = 0;
       const next = await store.update((s) => {
         const withVersion: GasOpsSnapshot = {
           ...s,
@@ -942,6 +1092,9 @@ export function createGasOpsDemo(
         );
         changed = applied.changed;
         stale = applied.stale;
+        waiting = applied.waiting;
+        locked = applied.locked;
+        kept = applied.kept;
         return {
           ...applied.snapshot,
           audit: [
@@ -959,6 +1112,9 @@ export function createGasOpsDemo(
         version: mustVersion(next, id),
         estimate: next.estimates.find((e) => e.id === estimate.id)!,
         changedEntries: changed,
+        waitingEntries: waiting,
+        lockedEntries: locked,
+        keptEntries: kept,
         staleReports: stale,
       });
     },
@@ -966,14 +1122,24 @@ export function createGasOpsDemo(
     confirmCostRule: async (input) => {
       const snapshot = await store.read();
       mustManager(snapshot, "Правило подтверждает сметчик или менеджер.");
-      const rule: CostRule = {
-        id: input.objectId ? `rule-${input.objectId}` : "rule-company",
-        objectId: input.objectId,
-        terms: input.terms,
-        status: "confirmed",
-        confirmedBy: snapshot.actorId,
-        confirmedAt: nowOf(snapshot),
-      };
+      const current =
+        snapshot.costRules.find((r) => r.objectId === input.objectId) ??
+        (input.objectId === null ? ruleFor("", snapshot.costRules) : null);
+      if (!current || !sameTerms(current.terms, input.terms)) {
+        throw new GasOpsError(
+          "rule-changed",
+          "Правило уже изменили. Обновите экран и проверьте состав.",
+        );
+      }
+      const savedBy = ruleHistory(current).at(-1)?.savedBy ?? null;
+      const samePerson = savedBy === snapshot.actorId;
+      if (samePerson && snapshot.reviewSettings.secondRuleApprover) {
+        throw new GasOpsError(
+          "same-person",
+          "Правило подтверждает другой человек: так настроено в «Режиме проверки».",
+        );
+      }
+      const rule = confirmRule(current, snapshot.actorId, nowOf(snapshot));
       const next = await store.update(
         (s) => ({
           ...s,
@@ -983,7 +1149,7 @@ export function createGasOpsDemo(
               actor: s.actorId,
               action: "cost-rule.confirm",
               entityId: rule.id,
-              detail: `${input.objectId ? "Для объекта" : "Для компании"}: ${ruleFormula(rule.terms)}`,
+              detail: `${input.objectId ? "Для объекта" : "Для компании"}, редакция ${rule.revision}: ${ruleFormula(rule.terms)}${samePerson ? ", сохранил и подтвердил один человек" : ""}`,
             }),
             ...s.audit,
           ],
@@ -991,6 +1157,120 @@ export function createGasOpsDemo(
         snapshot,
       );
       return done(next.costRules.find((r) => r.id === rule.id)!);
+    },
+
+    saveCostRule: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Правило меняет сметчик или менеджер.");
+      const invalid = validateTerms(input.terms);
+      if (invalid) throw new GasOpsError("rule-invalid", invalid);
+      if (input.objectId && !snapshot.objects.some((o) => o.id === input.objectId)) {
+        throw new GasOpsError("not-found", "Объект не найден. Обновите экран.");
+      }
+      const own = snapshot.costRules.find((r) => r.objectId === input.objectId) ?? null;
+      const current = own ?? (input.objectId === null ? ruleFor("", snapshot.costRules) : null);
+      if (current && sameTerms(current.terms, input.terms)) {
+        throw new GasOpsError("rule-invalid", "Состав не изменился.");
+      }
+      const rule = reviseRule(
+        own ?? (input.objectId ? null : current),
+        input,
+        snapshot.actorId,
+        nowOf(snapshot),
+      );
+      let change: CostRuleChange | null = null;
+      await store.update((s) => {
+        const applied = applyRuleChange(
+          s,
+          input.objectId,
+          rule,
+          `Правило стоимости, редакция ${rule.revision}: ${ruleFormula(rule.terms)}`,
+        );
+        change = applied.change;
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "cost-rule.save",
+              entityId: rule.id,
+              detail: `${input.objectId ? "Для объекта" : "Для компании"}, редакция ${rule.revision}: ${ruleFormula(rule.terms)}, пересчитано записей ${applied.change.changedEntries}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done(change!);
+    },
+
+    undoCostRule: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Правило меняет сметчик или менеджер.");
+      const own = snapshot.costRules.find((r) => r.objectId === input.objectId);
+      const last = own ? ruleHistory(own).at(-1) : null;
+      if (!own || !last || last.revision !== input.revision || !last.savedBy) {
+        throw new GasOpsError(
+          "nothing-to-undo",
+          "Эту редакцию уже не отменить: правило изменилось.",
+        );
+      }
+      const previous = revertRule(own);
+      let change: CostRuleChange | null = null;
+      await store.update((s) => {
+        const applied = applyRuleChange(
+          s,
+          input.objectId,
+          previous,
+          `Отменена редакция ${input.revision} правила стоимости`,
+        );
+        change = applied.change;
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "cost-rule.undo",
+              entityId: own.id,
+              detail: `Отменена редакция ${input.revision}: ${previous ? ruleFormula(previous.terms) : "правило компании"}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done(change!);
+    },
+
+    resetObjectRule: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Правило меняет сметчик или менеджер.");
+      const own = snapshot.costRules.find((r) => r.objectId === input.objectId);
+      if (!own) {
+        throw new GasOpsError("nothing-to-undo", "У объекта уже правило компании.");
+      }
+      const object = snapshot.objects.find((o) => o.id === input.objectId);
+      let change: CostRuleChange | null = null;
+      await store.update((s) => {
+        const applied = applyRuleChange(
+          s,
+          input.objectId,
+          null,
+          "Объект снова по правилу компании",
+        );
+        change = applied.change;
+        return {
+          ...applied.snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "cost-rule.reset",
+              entityId: own.id,
+              detail: `${object?.code ?? "Объект"}: своё правило снято, действует правило компании «${ruleFormula(ruleFor(input.objectId, applied.snapshot.costRules).terms)}», пересчитано записей ${applied.change.changedEntries}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done(change!);
     },
 
     applySchedule: async (input) => {
@@ -1076,13 +1356,15 @@ export function createGasOpsDemo(
             thresholdPercent: threshold,
             changedBy: s.actorId,
             changedAt: nowOf(s),
+            secondRuleApprover:
+              input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover ?? false,
           },
           audit: [
             audit(s, {
               actor: s.actorId,
               action: "review.mode",
               entityId: "review-settings",
-              detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%`,
+              detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%${(input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover) ? ", правило подтверждает второй человек" : ""}`,
             }),
             ...s.audit,
           ],
@@ -1408,11 +1690,282 @@ export function createGasOpsDemo(
       return done(ended);
     },
 
+    importDirectory: async (input) => {
+      const snapshot = await store.read();
+      if (input.kind === "rates")
+        mustDirector(snapshot, "Ставки задаёт руководитель или администратор.");
+      else mustManager(snapshot, "Бригады и сотрудников ведёт менеджер или администратор.");
+      const plan = planDirectoryImport(
+        input.kind,
+        input.rows,
+        directoryState(snapshot),
+        input.skipped ?? [],
+      );
+      const changes = [...plan.added, ...plan.updated].sort((a, b) => a.row - b.row);
+      if (changes.length === 0) {
+        return done({ added: 0, updated: 0, skipped: plan.skipped, undoId: null });
+      }
+      const undoId = newId("imp");
+      await store.update((s) => {
+        let next: GasOpsSnapshot = s;
+        for (const change of changes) {
+          if (change.kind === "brigade-add") {
+            const id = newId("brg");
+            const codes = next.brigades.map((b) => Number(b.code)).filter(Number.isFinite);
+            const brigade: Brigade = {
+              id,
+              groupId: next.brigades.at(-1)?.groupId ?? next.groups[0]!.id,
+              name: change.name,
+              code: String(Math.max(0, ...codes) + 1),
+              excelRow: null,
+              source: "mock",
+              phone: change.phone,
+            };
+            next = { ...next, brigades: [...next.brigades, brigade] };
+            if (change.lead) next = withLead(next, id, change.lead);
+          } else if (change.kind === "brigade-update") {
+            next = {
+              ...next,
+              brigades: next.brigades.map((b) =>
+                b.id === change.brigadeId && change.phone !== null
+                  ? { ...b, phone: change.phone }
+                  : b,
+              ),
+            };
+            if (change.lead) next = withLead(next, change.brigadeId, change.lead);
+          } else if (change.kind === "member-add") {
+            next = {
+              ...next,
+              crew: [
+                ...next.crew,
+                {
+                  id: newId("crw"),
+                  brigadeId: change.brigadeId,
+                  employeeId: newId("emp"),
+                  name: change.name,
+                  role: "worker",
+                  from: change.from,
+                  to: null,
+                  source: "mock",
+                },
+              ],
+            };
+          } else if (change.kind === "member-move") {
+            next = {
+              ...next,
+              crew: [
+                ...next.crew.map((m) =>
+                  m.id === change.memberId
+                    ? {
+                        ...m,
+                        to: m.from && m.from >= change.from ? m.from : dayBefore(change.from),
+                      }
+                    : m,
+                ),
+                {
+                  id: newId("crw"),
+                  brigadeId: change.brigadeId,
+                  employeeId: change.employeeId,
+                  name: change.name,
+                  role: "worker",
+                  from: change.from,
+                  to: null,
+                  source: "mock",
+                },
+              ],
+            };
+          } else {
+            const same = (r: Rate) =>
+              r.employeeId === change.employeeId &&
+              (change.employeeId !== null || r.brigadeId === change.brigadeId);
+            next = {
+              ...next,
+              rates: change.update
+                ? next.rates.map((r) =>
+                    same(r) && r.from === change.from ? { ...r, rubPerHour: change.rubPerHour } : r,
+                  )
+                : [
+                    ...next.rates.map((r) =>
+                      same(r) && r.to === null && r.from < change.from
+                        ? { ...r, to: dayBefore(change.from) }
+                        : r,
+                    ),
+                    {
+                      id: newId("rate"),
+                      employeeId: change.employeeId,
+                      brigadeId: change.employeeId ? null : change.brigadeId,
+                      rubPerHour: change.rubPerHour,
+                      from: change.from,
+                      to: null,
+                      source: "mock",
+                    },
+                  ],
+            };
+          }
+        }
+        return {
+          ...next,
+          directoryUndo: {
+            id: undoId,
+            kind: input.kind,
+            by: s.actorId,
+            at: nowOf(s),
+            added: plan.added.length,
+            updated: plan.updated.length,
+            before: { brigades: s.brigades, employees: s.employees, crew: s.crew, rates: s.rates },
+            after: directoryFingerprint(next),
+          },
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "directory.import",
+              entityId: input.kind,
+              // Имена людей в журнал не пишутся: только счётчики
+              detail: `Импорт «${input.kind}»: добавлено ${plan.added.length}, обновлено ${plan.updated.length}, пропущено ${plan.skipped.length}`,
+            }),
+            ...s.audit,
+          ],
+        };
+      }, snapshot);
+      return done({
+        added: plan.added.length,
+        updated: plan.updated.length,
+        skipped: plan.skipped,
+        undoId,
+      });
+    },
+
+    undoDirectoryImport: async (input) => {
+      const snapshot = await store.read();
+      const last = snapshot.directoryUndo ?? null;
+      if (!last || last.id !== input.id) {
+        throw new GasOpsError("nothing-to-undo", "Этот импорт уже не отменить.");
+      }
+      if (last.kind === "rates")
+        mustDirector(snapshot, "Ставки задаёт руководитель или администратор.");
+      else mustManager(snapshot, "Бригады и сотрудников ведёт менеджер или администратор.");
+      if (directoryFingerprint(snapshot) !== last.after) {
+        throw new GasOpsError(
+          "nothing-to-undo",
+          "После импорта справочник уже меняли: отмена стёрла бы эти правки. Исправьте по одной.",
+        );
+      }
+      await store.update(
+        (s) => ({
+          ...s,
+          brigades: last.before.brigades,
+          employees: last.before.employees,
+          crew: last.before.crew,
+          rates: last.before.rates,
+          directoryUndo: null,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "directory.import.undo",
+              entityId: last.kind,
+              detail: `Отменён импорт «${last.kind}»: добавлено было ${last.added}, обновлено ${last.updated}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done({ added: last.added, updated: last.updated });
+    },
+
+    addObject: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Объект добавляет менеджер или администратор.");
+      const label = input.label.trim();
+      const code = input.code.trim();
+      if (!label) throw new GasOpsError("comment-required", "Укажите адрес объекта.");
+      if (!code) throw new GasOpsError("comment-required", "Укажите номер объекта.");
+      const taken = snapshot.objects.find((o) => normName(o.code) === normName(code));
+      if (taken) {
+        throw new GasOpsError("duplicate", `Номер ${code} уже у объекта «${taken.label}».`);
+      }
+      const object: WorkObject = {
+        id: newId("obj"),
+        label,
+        settlement: null,
+        workType: input.workType?.trim() || null,
+        code,
+        source: "mock",
+      };
+      await store.update(
+        (s) => ({
+          ...s,
+          objects: [...s.objects, object],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "object.add",
+              entityId: object.id,
+              detail: `Объект ${code} добавлен вручную`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(object);
+    },
+
     reset: async () => {
       if (!reset) throw new GasOpsError("not-allowed", "Сброс доступен только в демонстрации.");
       return reset();
     },
   };
+}
+
+/**
+ * Бригадир из импорта (F3): прежний бригадир становится монтажником, новый — сотрудник
+ * с ролью «Бригадир» и строка состава. Тот же человек уже в бригаде — меняется только роль
+ */
+function withLead(s: GasOpsSnapshot, brigadeId: string, name: string): GasOpsSnapshot {
+  const existing = s.employees.find(
+    (e) => e.brigadeId === brigadeId && normName(e.name) === normName(name),
+  );
+  const lead: Employee = existing
+    ? { ...existing, isLead: true }
+    : {
+        id: newId("emp"),
+        brigadeId,
+        name,
+        isLead: true,
+        maxId: null,
+        excelRow: null,
+        source: "mock",
+      };
+  const employees = [
+    ...s.employees
+      .filter((e) => e.id !== lead.id)
+      .map((e) => (e.brigadeId === brigadeId && e.isLead ? { ...e, isLead: false } : e)),
+    lead,
+  ];
+  const member = s.crew.find((m) => m.brigadeId === brigadeId && m.employeeId === lead.id);
+  const crew = [
+    ...s.crew.map((m) => {
+      if (m.brigadeId !== brigadeId) return m;
+      if (m.employeeId === lead.id) return { ...m, role: "lead" as const };
+      return m.role === "lead" ? { ...m, role: "worker" as const } : m;
+    }),
+    ...(member
+      ? []
+      : [
+          {
+            id: `crw-${lead.id}`,
+            brigadeId,
+            employeeId: lead.id,
+            name,
+            role: "lead" as const,
+            from: null,
+            to: null,
+            source: "mock" as const,
+          },
+        ]),
+  ];
+  return { ...s, employees, crew };
 }
 
 /** Порт вкладки: действие по устаревшему снимку повторяется на свежем */

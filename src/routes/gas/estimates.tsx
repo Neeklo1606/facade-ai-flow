@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Download, Upload } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   estimateVersionView,
   formulaOf,
   normText,
+  recalcNote,
   ESTIMATE_TEMPLATE,
   downloadTemplate,
   suggestEstimateObject,
@@ -29,6 +31,7 @@ import {
 } from "@/api/gas-estimates";
 import { toast } from "@/lib/toast";
 import { ImportWizard, type WizardState } from "@/components/gas-ops/import/ImportWizard";
+import { RuleBuilder } from "@/components/gas-ops/estimates/RuleBuilder";
 import { cn } from "@/lib/utils";
 
 /**
@@ -48,7 +51,7 @@ export const Route = createFileRoute("/gas/estimates")({
 });
 
 function EstimatesPage() {
-  const { rows, unlinked, companyRule, versions } = useGasWorkCost();
+  const { rows, unlinked, companyRule, versions, latestUploaded } = useGasWorkCost();
   const actor = useGasActor();
   const actions = useGasActions();
   const estimateActions = useGasEstimateActions();
@@ -63,6 +66,11 @@ function EstimatesPage() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(false);
+  // Конструктор правила (F2): компании или объекта, пример на смете версии
+  const [builder, setBuilder] = useState<{
+    objectId: string | null;
+    versionId: string | null;
+  } | null>(null);
   // Разбор с поправками мастера: лист, колонка сумм, строка начала (ADR-061, 12)
   const parsedOf = (state: WizardState) =>
     state.tools.parseEstimateWorkbook(state.sheets, {
@@ -103,10 +111,13 @@ function EstimatesPage() {
 
   return (
     <div className="flex flex-col gap-block">
+      <DirectoryTabs />
       <RuleCard
         formula={formulaOf(companyRule)}
         status={companyRule.status}
+        revision={companyRule.revision ?? 1}
         canConfirm={actor.canManageEstimates}
+        onSetup={() => setBuilder({ objectId: null, versionId: null })}
         onConfirm={async () => {
           const result = await estimateActions.confirmRule({
             objectId: null,
@@ -248,6 +259,7 @@ function EstimatesPage() {
             ))}
           </div>
         }
+        recognized={(state) => parsedOf(state).format !== null}
         evaluate={(state) => {
           const parsed = parsedOf(state);
           const total = parsed.totals.total;
@@ -272,8 +284,17 @@ function EstimatesPage() {
                   </p>
                 ) : null}
                 <p>Разделов: {parsed.sections.length}</p>
+                {parsed.extras.length ? (
+                  <p>
+                    Ниже «ВСЕГО по смете»:{" "}
+                    {parsed.extras
+                      .map((e) => `${e.label} ${fmtRub(e.kopecks / 100)}, строка ${e.row}`)
+                      .join("; ")}
+                    . Взять в стоимость можно в правиле.
+                  </p>
+                ) : null}
                 <p className="text-text">
-                  Добавится версия сметы. Стоимость работ без материалов будет кандидатом с меткой
+                  Добавится версия сметы. Стоимость работ по правилу будет кандидатом с меткой
                   «требует подтверждения»: её подтверждает менеджер.
                 </p>
               </div>
@@ -315,6 +336,25 @@ function EstimatesPage() {
             setOpenId(null);
             setManual(true);
           }}
+          onRule={(objectIdOf) => {
+            setOpenId(null);
+            setBuilder({ objectId: objectIdOf, versionId: opened.id });
+          }}
+        />
+      ) : null}
+
+      {builder ? (
+        <RuleBuilder
+          key={`${builder.objectId ?? "company"}-${builder.versionId ?? ""}`}
+          objectId={builder.objectId}
+          objectLabel={(() => {
+            const o = directory.objects.find((x) => x.id === builder.objectId);
+            return o ? `${o.code} · ${o.label}` : null;
+          })()}
+          rule={builder.objectId ? ruleOf(builder.objectId) : companyRule}
+          companyRule={companyRule}
+          example={versions.find((v) => v.id === builder.versionId) ?? latestUploaded}
+          onClose={() => setBuilder(null)}
         />
       ) : null}
 
@@ -395,12 +435,16 @@ function EstimatesPage() {
 function RuleCard({
   formula,
   status,
+  revision,
   canConfirm,
+  onSetup,
   onConfirm,
 }: {
   formula: string;
   status: CostRule["status"];
+  revision: number;
   canConfirm: boolean;
+  onSetup: () => void;
   onConfirm: () => void;
 }) {
   return (
@@ -410,19 +454,25 @@ function RuleCard({
           Стоимость работ для выработки
         </h2>
         <Chip tone={status === "confirmed" ? "ok" : "decide"}>{RULE_STATUS_LABEL[status]}</Chip>
+        <span className="text-meta text-text-3 tnum">редакция {revision}</span>
       </div>
       <p className="text-body" data-testid="cost-rule-formula">
         {formula}
       </p>
       <p className="text-meta text-text-3">
         Правило подтверждает сметчик или менеджер один раз на компанию, для отдельного объекта его
-        можно переопределить. Какие строки входят, решает заказчик: открытый вопрос.
+        можно переопределить в шторке сметы. Какие строки входят, решает заказчик в «Настроить».
       </p>
-      {canConfirm && status !== "confirmed" ? (
-        <div>
-          <Button variant="secondary" size="sm" onClick={onConfirm}>
-            Подтвердить правило
+      {canConfirm ? (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" onClick={onSetup}>
+            Настроить
           </Button>
+          {status !== "confirmed" ? (
+            <Button variant="secondary" size="sm" onClick={onConfirm}>
+              Подтвердить правило
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -437,6 +487,7 @@ const ESTIMATE_STATUS: Record<string, { word: string; dot: string }> = {
 
 function ObjectRow({ row }: { row: WorkCostRow }) {
   const { object, estimate, confirmed, norm } = row;
+  const ownRule = row.rule.objectId === object.id;
   const status = ESTIMATE_STATUS[estimate?.status ?? "missing"]!;
   const origin =
     estimate?.origin === "manual"
@@ -453,6 +504,7 @@ function ObjectRow({ row }: { row: WorkCostRow }) {
           <span className="truncate">
             {status.word} · {object.code}
             {origin ? ` · ${origin}` : ""}
+            {ownRule ? " · своё правило" : ""}
             {normText(norm) ? ` · ${normText(norm)}` : ""}
           </span>
         </span>
@@ -477,6 +529,7 @@ function VersionSheet({
   canManage,
   onClose,
   onManual,
+  onRule,
 }: {
   version: EstimateVersion;
   suggestion: string | null;
@@ -484,6 +537,8 @@ function VersionSheet({
   canManage: boolean;
   onClose: () => void;
   onManual: () => void;
+  /** Конструктор своего правила объекта (F2) */
+  onRule: (objectId: string) => void;
 }) {
   const directory = useGasDirectory();
   const estimateActions = useGasEstimateActions();
@@ -495,6 +550,7 @@ function VersionSheet({
   const view = estimateVersionView(version, rule);
   const ready = view.ready;
   const confirmed = version.confirmedAt !== null;
+  const ownRule = rule.objectId !== null && rule.objectId === version.objectId;
   const desktop = useIsDesktop();
 
   const link = async (id: string) => {
@@ -510,11 +566,15 @@ function VersionSheet({
       toast.error(result.message);
       return;
     }
-    const { estimate, changedEntries, staleReports } = result.value;
+    const { estimate, changedEntries, waitingEntries, lockedEntries, keptEntries, staleReports } =
+      result.value;
     notify(
-      `Смета подтверждена: ${fmtRub(estimate.amountRub)}. Пересчитано записей: ${changedEntries}${
-        staleReports ? `, отчётов требует обновления: ${staleReports}` : ""
-      }`,
+      `Смета подтверждена: ${fmtRub(estimate.amountRub)}. ${recalcNote({
+        changed: changedEntries,
+        waiting: waitingEntries,
+        locked: lockedEntries,
+        kept: keptEntries,
+      })}${staleReports ? `, отчётов требует обновления: ${staleReports}` : ""}`,
     );
     onClose();
   };
@@ -657,6 +717,31 @@ function VersionSheet({
           </section>
         ) : null}
 
+        {view.extras.length > 0 ? (
+          <section aria-labelledby="estimate-extras">
+            <h3 id="estimate-extras" className="text-meta-strong text-text-2">
+              Ниже «ВСЕГО по смете»
+            </h3>
+            <table className="mt-1 w-full text-body">
+              <tbody className="divide-y divide-line">
+                {view.extras.map((extra) => (
+                  <tr key={extra.row}>
+                    <th scope="row" className="py-2 pe-3 text-left font-normal">
+                      {extra.label}
+                      <span className="block text-meta text-text-3">строка {extra.row}</span>
+                    </th>
+                    <td className="py-2 text-right tnum">{extra.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-1 text-meta text-text-3">
+              В итог не входят. Взять в стоимость можно в «Своё правило для объекта» или в правиле
+              компании.
+            </p>
+          </section>
+        ) : null}
+
         {view.labor ? (
           <p className="text-body">
             Трудозатраты рабочих по смете: <span className="tnum">{view.labor.value}</span>{" "}
@@ -672,6 +757,7 @@ function VersionSheet({
             <h3 id="estimate-cost" className="text-heading">
               Стоимость работ
             </h3>
+            {ownRule ? <Chip tone="info">Своё правило</Chip> : null}
             <Chip tone={rule.status === "confirmed" ? "ok" : "decide"}>
               {RULE_STATUS_LABEL[rule.status]}
             </Chip>
@@ -685,6 +771,45 @@ function VersionSheet({
           </p>
           {!ready.ok && !confirmed ? (
             <p className="mt-2 text-meta text-warn">{ready.reason}</p>
+          ) : null}
+          {canManage && version.objectId ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => onRule(version.objectId!)}>
+                Своё правило для объекта
+              </Button>
+              {ownRule && rule.status !== "confirmed" ? (
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  onClick={async () => {
+                    const result = await estimateActions.confirmRule({
+                      objectId: version.objectId,
+                      terms: rule.terms,
+                    });
+                    if (result.ok) notify("Правило объекта подтверждено и записано в журнал");
+                    else toast.error(result.message);
+                  }}
+                >
+                  Подтвердить правило объекта
+                </Button>
+              ) : null}
+              {ownRule ? (
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  onClick={async () => {
+                    const result = await estimateActions.resetObjectRule(version.objectId!);
+                    if (result.ok)
+                      notify(
+                        `Объект снова по правилу компании. Пересчитано записей: ${result.value.changedEntries}`,
+                      );
+                    else toast.error(result.message);
+                  }}
+                >
+                  Вернуть правило компании
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </section>
       </div>

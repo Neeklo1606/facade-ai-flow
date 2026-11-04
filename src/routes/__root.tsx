@@ -7,6 +7,7 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode, lazy, Suspense } from "react";
@@ -28,6 +29,7 @@ import { queries } from "@/api/queries";
 import { api } from "@/api/client";
 import { dataSource, demoShow } from "@/api/config";
 import { isSitePath } from "@/lib/site/paths";
+import { cabinetOnly, cabinetRedirect, cabinetTitle } from "@/lib/cabinet";
 
 function NotFoundComponent() {
   return (
@@ -81,6 +83,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
    * ссылки. Приложение остаётся как было: в демо-сборке экраны рисуются во вкладке (ADR-004)
    */
   ssr: ({ location }) => (isSitePath(location.pathname) ? true : undefined),
+  // Кабинет заказчика (ADR-062, F6): любой путь вне /gas ведёт в /gas
+  beforeLoad: ({ location }) => {
+    const to = cabinetRedirect(location.pathname);
+    if (to) throw redirect({ to, replace: true });
+  },
   // Часы и справочники нужны почти каждому экрану: без них SSR отдал бы «—» вместо имён и сроков
   // Рабочий контур: персона — из сессии запроса (ADR-012). Сервер и первый рендер клиента
   // начинают с неё, иначе разметка роли по умолчанию и роли вкладки расходились при гидратации
@@ -108,12 +115,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: "Гайка" },
+      { name: "apple-mobile-web-app-title", content: cabinetOnly ? cabinetTitle() : "Гайка" },
       // Умолчание — светлая тема «Монохрома» (ADR-055): холст canvas; дальше ставит applyTheme
       { name: "theme-color", content: "#efefed" },
       // Значения по умолчанию для всех экранов: заголовок и описание экраны переопределяют,
       // картинка превью и запрет индексации общие (TASK-A5, п. 2 и 3)
-      { title: previewMeta.title },
+      { title: cabinetOnly ? cabinetTitle() : previewMeta.title },
       { name: "description", content: previewMeta.description },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:type", content: "website" },

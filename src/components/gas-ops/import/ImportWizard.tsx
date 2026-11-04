@@ -3,6 +3,8 @@
  * и недельного графика. Шаги: файл → лист и строка начала → что в каких колонках (с примером
  * значения) → проверка с плашкой и предпросмотр изменений → «Всё верно, применить» с отменой.
  * Рядом «Показать файл как есть» и «Скачать шаблон (.xlsx)». Правила — в domain, здесь вид.
+ * Формат распознан (`recognized`) — шаг 3 свёрнут в строку «Колонки определены автоматически
+ * · Изменить» (ADR-062, F4): человек не разбирает колонки, которые на итог не влияют.
  */
 import { Download, FileSpreadsheet, Table2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -59,6 +61,7 @@ export function ImportWizard({
   detect,
   evaluate,
   options,
+  recognized,
   onApply,
 }: {
   open: boolean;
@@ -82,6 +85,8 @@ export function ImportWizard({
   evaluate: (state: WizardState) => WizardResult;
   /** Настройки вида «цены с НДС / без», если нужны */
   options?: ReactNode;
+  /** Формат файла узнан: шаг колонок свёрнут, пока человек не нажмёт «Изменить» */
+  recognized?: (state: WizardState) => boolean;
   /** Применить; true — мастер закрывается */
   onApply: (state: WizardState) => Promise<boolean>;
 }) {
@@ -90,6 +95,7 @@ export function ImportWizard({
   const [error, setError] = useState<string | null>(null);
   const [raw, setRaw] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [columnsOpen, setColumnsOpen] = useState(false);
 
   // Закрыли мастер — следующее открытие начинается с выбора файла
   useEffect(() => {
@@ -97,6 +103,7 @@ export function ImportWizard({
       setState(null);
       setError(null);
       setRaw(false);
+      setColumnsOpen(false);
     }
   }, [open]);
 
@@ -114,6 +121,7 @@ export function ImportWizard({
       ? defaultSheet(tools, result.sheets)
       : tools.firstFilledSheet(result.sheets);
     const grid = result.sheets[sheetIndex]?.grid ?? [];
+    setColumnsOpen(false);
     setState({
       tools,
       sheets: result.sheets,
@@ -132,6 +140,7 @@ export function ImportWizard({
   const grid = state ? (state.sheets[state.sheetIndex]?.grid ?? []) : [];
   const columns = state ? state.tools.columnsOf(grid, state.headerRow) : [];
   const result = state ? evaluate(state) : null;
+  const collapsed = !!state && !columnsOpen && !!recognized?.(state);
 
   const apply = async () => {
     if (!state || !result?.canApply) return;
@@ -305,7 +314,21 @@ export function ImportWizard({
 
             <li>
               <h3 className="text-meta-strong text-text-2">3. Что в каких колонках</h3>
-              <ul className="mt-2 flex flex-col gap-2" aria-label="Колонки">
+              {collapsed ? (
+                <p
+                  className="mt-1 flex flex-wrap items-center gap-x-1 text-body text-text-2"
+                  data-testid="columns-auto"
+                >
+                  Колонки определены автоматически ·
+                  <Button variant="quiet" onClick={() => setColumnsOpen(true)}>
+                    Изменить
+                  </Button>
+                </p>
+              ) : null}
+              <ul
+                className={collapsed ? "hidden" : "mt-2 flex flex-col gap-2"}
+                aria-label="Колонки"
+              >
                 {fields.map((field) => {
                   const chosen = columns.find((c) => c.index === state.map[field.key]);
                   return (

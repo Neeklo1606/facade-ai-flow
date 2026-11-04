@@ -1,18 +1,26 @@
 /**
  * Тур (ADR-061, 13; раздел 4.8): затемнение с окном вокруг элемента `data-tour`, подсказка
  * «Шаг N из M», «Назад», «Далее», ×. Действия зрителя не обязательны: «Далее» сам меняет
- * роль и экран. Элемент ищется кадрами анимации не дольше 2 секунд после перехода, затем
+ * роль и экран. Без нажатия тур никуда не ведёт (F1): человек ушёл со страницы шага или
+ * сменил роль, и тур встаёт на паузу с плашкой «Продолжить тур». Элемент ищется кадрами анимации не дольше 2 секунд после перехода, затем
  * положение следит ResizeObserver элемента и прокрутка: наблюдения за всем документом нет.
  * Затемнение не перехватывает нажатия: экран под туром остаётся рабочим.
  */
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Signpost, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ROLE_LABEL, useGasActor } from "@/api/gas-ops";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { TOURS, closeTour, goToStep, useTourState, type TourStep } from "@/lib/gas-ops/tour";
+import {
+  TOURS,
+  closeTour,
+  goToStep,
+  resumeTour,
+  useTourState,
+  type TourStep,
+} from "@/lib/gas-ops/tour";
 import { useRoleSwitch } from "../shell/use-role-switch";
 
 const FIND_MS = 2000;
@@ -26,27 +34,37 @@ function findTarget(target: string): HTMLElement | null {
   return null;
 }
 
-/** Роль и экран шага: «Далее» переводит туда сам */
-function useStepPlace(step: TourStep | null): boolean {
+type Place = "here" | "moving" | "away";
+
+/**
+ * Роль и экран шага. Переход только по новому нажатию человека (`request`): прямая ссылка,
+ * пункт меню и смена роли не возвращают на шаг, тур встаёт на паузу («away»)
+ */
+function useStepPlace(step: TourStep | null, request: number): Place {
   const actor = useGasActor();
   const switchRole = useRoleSwitch();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const roleOk = !step || actor.role === step.role;
   const here = !step || pathname === step.path;
-  const pending = useRef<string | null>(null);
+  const handled = useRef(0);
+  const [moving, setMoving] = useState(false);
   useEffect(() => {
-    if (!step || (roleOk && here)) return;
-    // Один переход на шаг: повторный рендер во время смены роли не запускает второй
-    if (pending.current === step.id) return;
-    pending.current = step.id;
+    if (!step || request === handled.current) return;
+    handled.current = request;
+    if (roleOk && here) return;
+    setMoving(true);
     void (async () => {
-      if (!roleOk && !(await switchRole(step.role, { stay: true, quiet: true }))) return;
-      if (!here) await navigate({ to: step.path });
-      pending.current = null;
+      try {
+        if (!roleOk && !(await switchRole(step.role, { stay: true, quiet: true }))) return;
+        if (!here) await navigate({ to: step.path });
+      } finally {
+        setMoving(false);
+      }
     })();
-  }, [step, roleOk, here, switchRole, navigate]);
-  return roleOk && here;
+  }, [step, request, roleOk, here, switchRole, navigate]);
+  if (roleOk && here) return "here";
+  return moving ? "moving" : "away";
 }
 
 /** Прямоугольник элемента шага; null — элемента нет, подсказка по центру */
@@ -107,18 +125,19 @@ function cardStyle(rect: DOMRect | null, phone: boolean): CSSProperties {
 }
 
 export function Tour() {
-  const { tourId, index } = useTourState();
+  const { tourId, index, request } = useTourState();
   const tour = tourId ? TOURS[tourId] : null;
   const step = tour?.steps[index] ?? null;
-  const ready = useStepPlace(step);
+  const place = useStepPlace(step, request);
+  const ready = place === "here";
   const rect = useTargetRect(step, ready);
   const phone = useMediaQuery("(max-width: 767px)", false);
   const [mounted, setMounted] = useState(false);
   useLayoutEffect(() => setMounted(true), []);
 
-  // Клавиши: Esc закрывает, стрелки листают. Поля ввода не перехватываются
+  // Клавиши: Esc закрывает, стрелки листают. Поля ввода не перехватываются, на паузе тоже
   useEffect(() => {
-    if (!tour) return;
+    if (!tour || !ready) return;
     const onKey = (event: KeyboardEvent) => {
       const field = (event.target as HTMLElement | null)?.closest("input, textarea, select");
       if (field || event.defaultPrevented) return;
@@ -128,9 +147,10 @@ export function Tour() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tour, index]);
+  }, [tour, index, ready]);
 
-  if (!mounted || !tour || !step) return null;
+  if (!mounted || !tour || !step || place === "moving") return null;
+  if (place === "away") return createPortal(<TourPaused title={tour.title} />, document.body);
   const last = index === tour.steps.length - 1;
   /*
    * Элемент во весь экран телефона (бот): компактная строка внизу, над отступом ленты.
@@ -238,5 +258,33 @@ export function Tour() {
       )}
     </div>,
     document.body,
+  );
+}
+
+/**
+ * Пауза (F1): человек ушёл со страницы шага. Экран не закрыт, внизу плашка: вернуться
+ * на шаг или закрыть тур. Слева, чтобы не закрывать кнопку помощника справа
+ */
+function TourPaused({ title }: { title: string }) {
+  return (
+    <section
+      role="region"
+      aria-label={`${title}: пауза`}
+      data-testid="tour-paused"
+      className="fixed left-4 z-[70] flex max-w-[calc(100vw-96px)] items-center gap-1 rounded-full bg-surface py-1 ps-1 pe-1 shadow-floating ring-1 ring-line max-lg:bottom-[calc(var(--bottom-inset,0px)+16px)] lg:bottom-6 lg:left-6"
+    >
+      <Button variant="quiet" onClick={resumeTour}>
+        <Signpost aria-hidden />
+        Продолжить тур
+      </Button>
+      <button
+        type="button"
+        aria-label="Закрыть тур"
+        onClick={closeTour}
+        className="grid size-11 shrink-0 place-items-center rounded-full text-text-3 focus-ring is-hover:bg-surface-2"
+      >
+        <X className="size-5" aria-hidden />
+      </button>
+    </section>
   );
 }

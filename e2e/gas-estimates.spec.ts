@@ -25,7 +25,7 @@ test.describe("сметы", () => {
     await page.getByRole("button", { name: "Всё верно, применить" }).click();
     const parsed = page.getByTestId("estimate-parsed");
     await expect(parsed).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("estimate-candidate")).toHaveText(/165\s455,23\s₽/);
+    await expect(page.getByTestId("estimate-candidate")).toHaveText(/100\s000,23\s₽/);
     await expect(parsed.getByText("строка 519")).toBeVisible();
     await expect(parsed.getByText("Разобрана")).toBeVisible();
     await expectA11y(page, "разбор сметы");
@@ -43,6 +43,12 @@ test.describe("сметы", () => {
       .click();
     await expect(confirm).toBeEnabled();
     await confirm.click();
-    await expect(page.getByText(/Смета подтверждена: 165\s455\s₽/)).toBeVisible();
+    const done = page.getByText(/Смета подтверждена: 100\s000\s₽/);
+    await expect(done).toBeVisible();
+    // Тост объясняет число пересчитанных (ADR-062, F4): у ОБ-001 проверенные записи
+    // со своей суммой, они не меняются молча
+    await expect(done).toContainText(
+      /Пересчитано записей: 0; проверенные с суммой сохранили её: \d+/,
+    );
   });
 });

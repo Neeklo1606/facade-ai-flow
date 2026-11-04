@@ -24,7 +24,7 @@ import {
   type ReviewMode,
 } from "@/api/gas-estimates";
 import { useGasActor } from "@/api/gas-ops";
-import { REMINDER_TIME_KEY, useSendReminders } from "@/api/gas-assistant";
+import { REMINDER_TIME_KEY, summaryTimeOf, useSendReminders } from "@/api/gas-assistant";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -248,8 +248,9 @@ function AdminPage() {
             <span className="min-w-0">
               <span className="block text-body">Время напоминаний бригадирам</span>
               <span className="block text-meta text-text-3">
-                Тем, у кого по графику нет записи за день, и менеджеру сводка. В MAX уйдёт, когда
-                канал подключат. В демо они приходят в колокольчик и ленту бота этой вкладки
+                Тем, у кого по графику нет записи за день. Сводка менеджеру через час после
+                напоминания, вопрос по записи бригадиру сразу. В MAX уйдёт, когда канал подключат. В
+                демо они приходят в колокольчик и ленту бота этой вкладки
               </span>
             </span>
             <span className="flex flex-wrap items-center gap-2">
@@ -265,8 +266,8 @@ function AdminPage() {
               <Button
                 variant="secondary"
                 onClick={async () => {
-                  // Демо: момент проверки — время напоминания сегодняшнего дня недели
-                  const count = await sendReminders(reminder);
+                  // Демо: момент проверки — время сводки сегодняшнего дня, уходит всё, что положено
+                  const count = await sendReminders(summaryTimeOf(reminder) ?? reminder);
                   if (count)
                     toast.success(`Отправлено напоминаний: ${count}`, {
                       description: "Демо: в колокольчике и в ленте бота, в MAX не отправлено",
@@ -377,6 +378,32 @@ function ReviewModeGroup() {
           value={String(settings.thresholdPercent)}
           onChange={(value) => (canChange ? void choose(settings.mode, Number(value)) : undefined)}
           options={THRESHOLDS.map((t) => ({ value: String(t), label: `${t}%` }))}
+        />
+      </div>
+      {/* Решение владельца 1 (ADR-062): по умолчанию правило подтверждает и тот, кто сохранил */}
+      <div className="mt-2 flex flex-col gap-1">
+        <span className="block text-meta text-text-3">
+          Правило стоимости подтверждает: любой менеджер, и тот, кто сохранил, или только второй
+          человек
+        </span>
+        <Segmented
+          label="Правило стоимости подтверждает"
+          value={settings.secondRuleApprover ? "second" : "any"}
+          onChange={(value) =>
+            canChange
+              ? void actions
+                  .setReviewSettings({
+                    mode: settings.mode,
+                    thresholdPercent: settings.thresholdPercent,
+                    secondRuleApprover: value === "second",
+                  })
+                  .then((result) => (result.ok ? undefined : toast.error(result.message)))
+              : undefined
+          }
+          options={[
+            { value: "any", label: "Любой" },
+            { value: "second", label: "Второй человек" },
+          ]}
         />
       </div>
     </Group>

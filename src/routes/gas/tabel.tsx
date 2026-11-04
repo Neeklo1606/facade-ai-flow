@@ -44,6 +44,8 @@ import {
   metricOrder,
   metricValue,
   peopleTotals,
+  pushWeekSheet,
+  sheetStatus,
   sheetSync,
   useGasActor,
   useGasDirectory,
@@ -51,7 +53,6 @@ import {
   useWeekExport,
   visibleTabelRows,
   type Metric,
-  type SheetProvider,
   type TabelCell,
   type TabelRow,
 } from "@/api/gas-ops";
@@ -384,10 +385,15 @@ function TabelPage() {
       setBusy(false);
     }
   };
-  const sync = async (provider: SheetProvider) => {
-    const result = await sheetSync.sync({ provider, weekFrom: tabel.week.from });
-    if (result.ok) toast.success("Таблица обновлена", { description: result.url });
-    else toast.info("Синхронизация не подключена", { description: result.reason });
+  const sync = async () => {
+    const result = await pushWeekSheet({
+      weekFrom: tabel.week.from,
+      weekTo: tabel.week.to,
+      days: tabel.days,
+      rows: tabel.rows,
+    });
+    if (result.ok) toast.success(sheetStatus(), { description: result.url });
+    else toast.info("Таблица не обновлена", { description: result.reason });
   };
 
   const people_enabled = tabel.people.length > 0;
@@ -563,15 +569,15 @@ function TabelPage() {
             <span className="ms-auto text-meta text-text-3">с непроверенными</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-meta font-normal text-text-3">
-            Облачная таблица: не подключено
+          <DropdownMenuLabel
+            className="text-meta font-normal text-text-3"
+            data-testid="sheet-status"
+          >
+            {sheetStatus()}
           </DropdownMenuLabel>
-          <DropdownMenuItem onSelect={() => void sync("google")}>
-            Синхронизировать с Google Таблицами
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void sync("yandex")}>
-            Синхронизировать с Яндекс Таблицами
-          </DropdownMenuItem>
+          {sheetSync.connected ? (
+            <DropdownMenuItem onSelect={() => void sync()}>Обновить таблицу</DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -583,14 +589,14 @@ function TabelPage() {
       className="flex flex-wrap items-center gap-x-4 gap-y-1 text-meta text-text-2"
     >
       <li className="flex items-center gap-1.5">
-        <span aria-hidden className="size-4 rounded-sm border border-line" /> все записи приняты
+        <span aria-hidden className="size-4 rounded-sm border border-line" /> принято
       </li>
       <li className="flex items-center gap-1.5">
-        <span aria-hidden className="size-4 rounded-sm bg-warn-bg" /> есть непроверенные (черновик)
+        <span aria-hidden className="size-4 rounded-sm bg-warn-bg" /> ждёт проверки (черновик)
       </li>
       <li className="flex items-center gap-1.5">
         <span aria-hidden className="size-4 rounded-sm shadow-[inset_0_0_0_1.5px_var(--danger)]" />{" "}
-        по графику ждали запись, её нет
+        нет записи по графику
       </li>
       <li className="flex items-center gap-1.5">
         <span aria-hidden className="size-4 rounded-sm bg-surface-2" /> выходной или день без

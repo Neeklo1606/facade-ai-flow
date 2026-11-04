@@ -101,7 +101,7 @@ export function NotCalculated({
         <Link
           to="/gas/entries"
           search={{ crew: "none" }}
-          className="inline-flex min-h-control-sm items-center text-meta-strong text-orange focus-ring"
+          className="inline-flex min-h-11 items-center text-meta-strong text-orange focus-ring lg:min-h-control-sm"
         >
           Показать записи
         </Link>

@@ -10,7 +10,10 @@ import { dayOf, diffSchedule, guessHeader, readSchedule } from "@/domain/gas-ops
 import {
   ACCURACY_MIN_SAMPLE,
   AUTO_ACTOR,
+  DEFAULT_REVIEW_SETTINGS,
   accuracyOf,
+  flaggedModeSuggestion,
+  isAutoAccepted,
   finalCheckList,
   modeAvailability,
   routeEntry,
@@ -124,11 +127,59 @@ describe("режимы проверки", () => {
     expect(modeAvailability("flagged", few, 95).ok).toBe(true);
   });
 
+  test("предложение «только с замечаниями»: после двух недель и 95% за 50 решений", () => {
+    const reviews = Array.from({ length: 50 }, (_, i) => review(i, "confirm"));
+    const accuracy = accuracyOf(reviews);
+    const settings = DEFAULT_REVIEW_SETTINGS;
+    const first = reviews.map((r) => r.at).sort()[0]!;
+    const after = (days: number) => new Date(Date.parse(first) + days * 86_400_000).toISOString();
+    expect(flaggedModeSuggestion({ settings, accuracy, reviews, now: after(13) })).toBeNull();
+    expect(flaggedModeSuggestion({ settings, accuracy, reviews, now: after(14) })).toEqual({
+      percent: 100,
+      decided: 50,
+    });
+    // Окно не полное: 49 решений — рано
+    const few = reviews.slice(1);
+    expect(
+      flaggedModeSuggestion({ settings, accuracy: accuracyOf(few), reviews: few, now: after(30) }),
+    ).toBeNull();
+    // Точность ниже 95%: 3 правки из 50
+    const rough = [...reviews.slice(0, 47), ...[200, 201, 202].map((i) => review(i, "reject"))];
+    expect(accuracyOf(rough).percent).toBe(94);
+    expect(
+      flaggedModeSuggestion({
+        settings,
+        accuracy: accuracyOf(rough),
+        reviews: rough,
+        now: after(30),
+      }),
+    ).toBeNull();
+    // Режим уже не «все»: предлагать нечего
+    expect(
+      flaggedModeSuggestion({
+        settings: { ...settings, mode: "flagged" },
+        accuracy,
+        reviews,
+        now: after(30),
+      }),
+    ).toBeNull();
+  });
+
+  test("принята автоматически: только подтверждённая системой", () => {
+    expect(isAutoAccepted({ status: "confirmed", reviewedBy: AUTO_ACTOR })).toBe(true);
+    expect(isAutoAccepted({ status: "confirmed", reviewedBy: "u-manager" })).toBe(false);
+    expect(isAutoAccepted({ status: "pending", reviewedBy: AUTO_ACTOR })).toBe(false);
+  });
+
   test("маршрут записи по режиму", () => {
     expect(routeEntry("all", [])).toBe("queue");
     expect(routeEntry("flagged", [])).toBe("auto");
     expect(routeEntry("flagged", ["overlap"])).toBe("queue");
     expect(routeEntry("none", ["overlap"])).toBe("auto");
+    // «Объект на несколько дней» — сведение, не замечание: автоприём не держит
+    expect(routeEntry("flagged", ["multi-day-object"])).toBe("auto");
+    expect(routeEntry("flagged", ["multi-day-object", "no-estimate"])).toBe("queue");
+    expect(routeEntry("flagged", ["over-crew"])).toBe("queue");
   });
 
   test("итоговая проверка: записи недели без ручного подтверждения, ещё не проверенные", () => {
@@ -179,6 +230,7 @@ describe("бот бригадира берёт объекты из график�
         code: "Б-1",
         excelRow: null,
         source: "mock" as const,
+        phone: null,
       },
     ];
     const week = { from: "2026-10-26", to: "2026-11-01", days: ["2026-10-27"] };

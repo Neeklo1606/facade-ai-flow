@@ -21,6 +21,12 @@ import type {
 import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
 import type { CostRule, CostRuleTerm, EstimateVersion } from "@/domain/gas-ops/work-cost";
 import type {
+  DirectoryKind,
+  DirectoryRow,
+  DirectoryUndo,
+  Skipped,
+} from "@/domain/gas-ops/directory-import";
+import type {
   BrigadeAvailability,
   BrigadeWeekStatus,
   ScheduleRow,
@@ -51,6 +57,28 @@ export interface ReportIssue {
   /** Отчёт требует обновления: после сдачи подтверждена новая версия сметы его объекта */
   stale: boolean;
   staleReason: string | null;
+}
+
+/** Итог импорта справочника: «добавлено N, обновлено M, пропущено K с причинами» */
+export interface DirectoryImportReport {
+  added: number;
+  updated: number;
+  skipped: Skipped[];
+  /** Импорт можно отменить этим номером (решение владельца 2); null — менять было нечего */
+  undoId: string | null;
+}
+
+/** Итог смены правила: что пересчитано и где посчитать нельзя */
+export interface CostRuleChange {
+  /** Действующее правило уровня после смены; null — правило объекта снято */
+  rule: CostRule | null;
+  /** Объекты, у которых сменилась стоимость */
+  changedObjects: number;
+  /** Неподтверждённые записи с новой суммой */
+  changedEntries: number;
+  /** Объекты с подтверждённой сметой, где нет строки правила: стоимость не менялась */
+  missingObjects: number;
+  staleReports: number;
 }
 
 export interface GasOpsSnapshot {
@@ -92,6 +120,8 @@ export interface GasOpsSnapshot {
   supply: SupplyState;
   /** Исполнительная документация (ADR-058) */
   docs: DocsState;
+  /** Последний импорт справочников для отмены тостом (ADR-062); нет — отменять нечего */
+  directoryUndo?: DirectoryUndo<Brigade, Employee, CrewMember, Rate> | null;
 }
 
 export interface CreateEntryInput {
@@ -150,7 +180,10 @@ export class GasOpsError extends Error {
       | "mode-unavailable"
       | "final-check-required"
       | "period-closed"
-      | "close-blocked",
+      | "close-blocked"
+      | "rule-invalid"
+      | "rule-changed"
+      | "same-person",
     message: string,
   ) {
     super(message);
@@ -172,6 +205,11 @@ export interface GasOpsPort {
    * в журнал действий пишется отмена. Исправление времени так не отменяется.
    */
   undoReview(id: string): Promise<TimeEntry>;
+  /**
+   * Вернуть запись, принятую системой без менеджера, в очередь проверки (финальный промт, 1.2).
+   * Доступно до закрытия недели; запись снова ждёт решения человека.
+   */
+  undoAutoAccept(id: string): Promise<TimeEntry>;
   /** Ручная сумма по объекту без сметы: подтверждает менеджер (OPEN-QUESTION 4) */
   setEstimate(input: {
     objectId: string;
@@ -202,11 +240,33 @@ export interface GasOpsPort {
   confirmEstimateVersion(id: string): Promise<{
     version: EstimateVersion;
     estimate: Estimate;
+    /** Записи, получившие новую сумму (F4: и подтверждённые без суммы) */
     changedEntries: number;
+    /** Непроверенные без суммы: стоимость придёт при проверке */
+    waitingEntries: number;
+    /** Записи закрытой недели: не менялись */
+    lockedEntries: number;
+    /** Проверенные с суммой: сумма не менялась, сданный отчёт помечается */
+    keptEntries: number;
     staleReports: number;
   }>;
-  /** Подтвердить правило состава: objectId null — для компании */
+  /**
+   * Подтвердить действующую редакцию правила: objectId null — для компании. `terms` — то,
+   * что видел человек: правило успело смениться — отказ, а не подтверждение чужой редакции
+   */
   confirmCostRule(input: { objectId: string | null; terms: CostRuleTerm[] }): Promise<CostRule>;
+  /**
+   * Новая редакция правила из конструктора (ADR-062, F2): статус «Требует согласования»,
+   * пересчёт стоимости объектов с подтверждённой сметой и их неподтверждённых записей
+   */
+  saveCostRule(input: { objectId: string | null; terms: CostRuleTerm[] }): Promise<CostRuleChange>;
+  /** Отмена редакции (тост 6 секунд): вернуть правило до неё и пересчитать обратно */
+  undoCostRule(input: { objectId: string | null; revision: number }): Promise<CostRuleChange>;
+  /**
+   * Снять своё правило объекта (ADR-062, решение владельца 2): объект снова считается
+   * по правилу компании, стоимость пересчитывается, в журнал пишется снятие
+   */
+  resetObjectRule(input: { objectId: string }): Promise<CostRuleChange>;
   /** Применить недельный график; возвращает прежний для отмены */
   applySchedule(input: { rows: ScheduleRow[]; fileName: string }): Promise<WeekSchedule | null>;
   /** Отменить применение графика: вернуть прежний (тост 6 секунд) */
@@ -216,7 +276,12 @@ export interface GasOpsPort {
     weekFrom: string;
     status: BrigadeWeekStatus;
   }): Promise<BrigadeAvailability[]>;
-  setReviewSettings(input: { mode: ReviewMode; thresholdPercent: number }): Promise<ReviewSettings>;
+  setReviewSettings(input: {
+    mode: ReviewMode;
+    thresholdPercent: number;
+    /** Нет — прежнее значение */
+    secondRuleApprover?: boolean | undefined;
+  }): Promise<ReviewSettings>;
   /** Итоговая проверка: подтверждение записей без ручного решения одним действием */
   finalCheck(): Promise<FinalCheck>;
   /** Сдать отчёт недели: только после итоговой проверки */
@@ -243,6 +308,22 @@ export interface GasOpsPort {
   addCrewMember(input: { brigadeId: string; name: string; from: string }): Promise<CrewMember>;
   /** Вывести из состава: последний день включительно */
   endCrewMember(input: { id: string; to: string }): Promise<CrewMember>;
+  /**
+   * Импорт справочника из Excel (ADR-062, F3): строки файла, план порт считает сам.
+   * Бригады и сотрудников ведёт менеджер, ставки — руководитель
+   */
+  importDirectory(input: {
+    kind: DirectoryKind;
+    rows: DirectoryRow[];
+    skipped?: Skipped[] | undefined;
+  }): Promise<DirectoryImportReport>;
+  /**
+   * Отменить импорт справочника (ADR-062, решение владельца 2): справочники возвращаются
+   * к состоянию до импорта, в журнал пишется отмена. Отказ, если после импорта их меняли
+   */
+  undoDirectoryImport(input: { id: string }): Promise<{ added: number; updated: number }>;
+  /** Добавить объект вручную (F3): адрес, свой номер, вид работ */
+  addObject(input: { label: string; code: string; workType: string | null }): Promise<WorkObject>;
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }
@@ -259,6 +340,7 @@ export const GAS_OPS_METHODS = [
   "submitEntry",
   "review",
   "undoReview",
+  "undoAutoAccept",
   "setEstimate",
   "addEstimateVersion",
   "discardEstimateVersion",
@@ -267,6 +349,9 @@ export const GAS_OPS_METHODS = [
   "reviewEstimateIssues",
   "confirmEstimateVersion",
   "confirmCostRule",
+  "saveCostRule",
+  "undoCostRule",
+  "resetObjectRule",
   "applySchedule",
   "restoreSchedule",
   "setBrigadeWeek",
@@ -280,6 +365,9 @@ export const GAS_OPS_METHODS = [
   "setRate",
   "addCrewMember",
   "endCrewMember",
+  "importDirectory",
+  "undoDirectoryImport",
+  "addObject",
   "reset",
 ] as const satisfies readonly (keyof GasOpsPort)[];
 

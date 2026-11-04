@@ -11,8 +11,17 @@
  * с ключом: без сети запись «Сохранено на телефоне», после ответа «Принято сервером»;
  * повтор с тем же ключом дубля не создаёт.
  */
+import { SENT_LABEL, isAutoAccepted } from "@/api/gas-ops";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Bot, ChevronRight, Clock3, MessageCircleQuestion, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Bot,
+  ChevronRight,
+  Clock3,
+  MessageCircleQuestion,
+  Plus,
+  Repeat,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   busyLine,
@@ -29,6 +38,8 @@ import {
   useGasActions,
   useGasActor,
   useGasBusy,
+  lastEntryBefore,
+  sameAsYesterday,
   useGasField,
   type FieldEntry,
   type PersonInput,
@@ -160,6 +171,7 @@ export function BrigadeToday() {
     key: string;
     state: "local" | "server";
     number: string | null;
+    auto?: boolean;
   } | null>(null);
 
   useEffect(() => setQueue(readQueue(storage())), []);
@@ -173,6 +185,17 @@ export function BrigadeToday() {
   const doneObjects = new Set(today.map((e) => e.objectId));
   const expected = field.todayObjects.filter((o) => !doneObjects.has(o.id));
 
+  // Перерыв и люди по умолчанию как в прошлой записи бригады (финальный промт, 2.2)
+  const last = lastEntryBefore(field.entries, field.today);
+  const lastBreak = last ? String(last.breakMinutes) : "60";
+  const knownBreak = BREAKS.some((b) => b.value === lastBreak);
+  const yesterdayEntry = sameAsYesterday({
+    entries: field.entries,
+    yesterday: field.yesterday,
+    today: field.today,
+    todayObjectIds: field.todayObjects.map((o) => o.id),
+  });
+
   const startDraft = () => {
     setDraft({
       // Первым — объект из графика, по которому ещё нет записи
@@ -181,9 +204,9 @@ export function BrigadeToday() {
       timeText: "",
       start: null,
       end: null,
-      breakMinutes: "60",
-      otherBreak: "",
-      headcount: Math.max(1, crewSize),
+      breakMinutes: knownBreak ? (lastBreak as Draft["breakMinutes"]) : "other",
+      otherBreak: knownBreak ? "" : lastBreak,
+      headcount: Math.max(1, last?.headcount ?? crewSize),
       marked: null,
       split: false,
       people: field.crew.map((m) => ({
@@ -199,11 +222,42 @@ export function BrigadeToday() {
     setStep("form");
   };
 
+  /** «Как вчера»: тот же объект, время, перерыв и люди сегодня; сразу к проверке перед отправкой */
+  const likeYesterday = () => {
+    if (!yesterdayEntry) return;
+    const start = yesterdayEntry.startMinutes!;
+    const end = yesterdayEntry.endMinutes!;
+    const pause = String(yesterdayEntry.breakMinutes);
+    const known = BREAKS.some((b) => b.value === pause);
+    setDraft({
+      objectId: yesterdayEntry.objectId,
+      day: field.today,
+      timeText: `${formatClock(start)}–${formatClock(end)}`,
+      start,
+      end,
+      breakMinutes: known ? (pause as Draft["breakMinutes"]) : "other",
+      otherBreak: known ? "" : pause,
+      headcount: Math.max(1, yesterdayEntry.headcount ?? crewSize),
+      marked: null,
+      split: false,
+      people: [],
+      note: "",
+      clientKey: newClientKey(),
+    });
+    setError(null);
+    setStep("check");
+  };
+
   /** Отправка в порт: сбой связи оставляет запись в очереди, отказ правила снимает её */
   const send = useCallback(
     async (item: QueuedEntry): Promise<SendResult> => {
       const result = await actions.createEntry(item.input);
-      if (result.ok) return { ok: true, number: result.value.number };
+      if (result.ok)
+        return {
+          ok: true,
+          number: result.value.number,
+          auto: isAutoAccepted(result.value),
+        };
       return { ok: false, network: result.code === "unknown", message: result.message };
     },
     [actions],
@@ -217,7 +271,8 @@ export function BrigadeToday() {
       writeQueue(storage(), result.queue);
       setQueue(result.queue);
       const mine = result.accepted.find((a) => a.clientKey === sent?.key);
-      if (mine) setSent({ key: mine.clientKey, state: "server", number: mine.number });
+      if (mine)
+        setSent({ key: mine.clientKey, state: "server", number: mine.number, auto: mine.auto });
     })();
   }, [network.offline, queue, send, sent?.key]);
 
@@ -357,7 +412,12 @@ export function BrigadeToday() {
                   setError(result.message);
                   return;
                 }
-                setSent({ key: item.clientKey, state: "server", number: result.number });
+                setSent({
+                  key: item.clientKey,
+                  state: "server",
+                  number: result.number,
+                  auto: result.auto ?? false,
+                });
                 setStep("sent");
               }}
             >
@@ -375,13 +435,15 @@ export function BrigadeToday() {
   if (step === "sent" && sent) {
     return (
       <div className="flex flex-col items-start gap-4">
-        <OfflineBadge state={sent.state} />
+        <OfflineBadge state={sent.state} sentLabel={SENT_LABEL} />
         <h2 className="type-screen">
           {sent.state === "server" ? `Запись ${sent.number ?? ""} принята` : "Запись на телефоне"}
         </h2>
         <p className="type-text text-ink-2">
           {sent.state === "server"
-            ? "Ждёт проверки. Если у менеджера появится вопрос, он придёт в «Уточнения»."
+            ? sent.auto
+              ? "Замечаний нет: запись принята и учтена в отчёте недели."
+              : "Ждёт проверки. Если у менеджера появится вопрос, он придёт в «Уточнения»."
             : "Сохранено на телефоне, отправим при связи. Повторно вносить не нужно."}
         </p>
         <Button field className="w-full" onClick={() => setStep("today")}>
@@ -440,6 +502,19 @@ export function BrigadeToday() {
             <OfflineBadge state="local" />
             <span className="type-label text-ink-2">Ждут отправки: {queue.length}</span>
           </p>
+        ) : null}
+        {yesterdayEntry ? (
+          <Button
+            field
+            variant="secondary"
+            className="w-full"
+            data-testid="like-yesterday"
+            onClick={likeYesterday}
+          >
+            <Repeat aria-hidden />
+            Как вчера: {yesterdayEntry.objectLabel}, {formatClock(yesterdayEntry.startMinutes!)}–
+            {formatClock(yesterdayEntry.endMinutes!)}
+          </Button>
         ) : null}
         <Button field className="w-full" data-tour="today-add" onClick={startDraft}>
           <Plus aria-hidden />
@@ -620,6 +695,9 @@ function EntryForm({
   );
   const nameOf = (id: string) => field.crew.find((m) => m.employeeId === id)?.name ?? "Сотрудник";
   const allowSplit = splitTimeEnabled();
+  // Перерыв и состав свёрнуты одной строкой: обычно они как вчера (финальный промт, 2.2)
+  const [details, setDetails] = useState(false);
+  const open = details || draft.split || draft.marked !== null;
 
   const earlier = Array.from({ length: DAYS_BACK - 1 }, (_, i) => daysBefore(field.today, i + 2));
   const dayMode =
@@ -774,7 +852,25 @@ function EntryForm({
         )}
       </div>
 
-      {draft.split ? null : (
+      {open ? null : (
+        <div
+          className="mono-inset flex min-h-12 items-center justify-between gap-3"
+          data-testid="form-defaults"
+        >
+          <span className="type-label text-ink-2">
+            Перерыв {breakOf(draft)} мин · {draft.headcount} чел.
+          </span>
+          <button
+            type="button"
+            className="mono-row focus-ring rounded-pill px-0 type-label underline underline-offset-4"
+            onClick={() => setDetails(true)}
+          >
+            Изменить
+          </button>
+        </div>
+      )}
+
+      {draft.split || !open ? null : (
         <div className="flex flex-col gap-2">
           <span className="type-label text-ink-2">Перерыв, минут</span>
           <SegmentedPills
@@ -800,7 +896,7 @@ function EntryForm({
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className={cn("flex flex-col gap-2", !open && "hidden")}>
         <span className="type-label text-ink-2">Кто работал</span>
         {draft.split ? (
           <ul className="flex flex-col gap-3" aria-label="Время по сотрудникам">

@@ -52,14 +52,15 @@ export function writeQueue(storage: Storage | null, list: readonly QueuedEntry[]
 }
 
 export type SendResult =
-  | { ok: true; number: string }
+  /** `auto` — запись принята системой без менеджера (режим «только с замечаниями») */
+  | { ok: true; number: string; auto?: boolean }
   /** `network` — не дошло до сервера: запись остаётся и уйдёт при следующей попытке */
   | { ok: false; network: boolean; message: string };
 
 export interface DrainResult {
   /** Что осталось на телефоне */
   queue: QueuedEntry[];
-  accepted: { clientKey: string; number: string }[];
+  accepted: { clientKey: string; number: string; auto: boolean }[];
   /** Отказ правила: запись снята с очереди, причину надо показать бригадиру */
   refused: { clientKey: string; message: string }[];
 }
@@ -80,7 +81,8 @@ export async function drainQueue(
     const result = await send(item);
     if (!result.ok && result.network) break;
     queue.shift();
-    if (result.ok) accepted.push({ clientKey: item.clientKey, number: result.number });
+    if (result.ok)
+      accepted.push({ clientKey: item.clientKey, number: result.number, auto: !!result.auto });
     else refused.push({ clientKey: item.clientKey, message: result.message });
   }
   return { queue, accepted, refused };

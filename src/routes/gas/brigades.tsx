@@ -1,4 +1,6 @@
 import { completePageHead } from "@/lib/page-head";
+import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
+import { DirectoryImport } from "@/components/gas-ops/directory/DirectoryImport";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
@@ -10,7 +12,14 @@ import { Sheet } from "@/components/ui/kit/sheet";
 import { Segmented } from "@/components/ui/kit/controls";
 import { FieldGroup, FieldRow, MetricCard } from "@/components/ui/kit/data";
 import { notify } from "@/components/ui/kit/toast";
-import { fmtHours, fmtRate, fmtRub, useGasBrigades, useGasEntries } from "@/api/gas-ops";
+import {
+  fmtHours,
+  fmtRate,
+  fmtRub,
+  useGasActor,
+  useGasBrigades,
+  useGasEntries,
+} from "@/api/gas-ops";
 import { entryLine, fmtShortDay } from "@/components/gas-ops/review/rules";
 import { useGasEstimateActions, useGasSchedule } from "@/api/gas-estimates";
 import { toast } from "@/lib/toast";
@@ -39,6 +48,9 @@ interface Draft {
 }
 
 function BrigadesPage() {
+  // Импорт бригад из Excel — первое действие вкладки для тех, кто ведёт справочник (2.3)
+  const actor = useGasActor();
+  const office = actor.role === "manager" || actor.isAdmin;
   const cards = useGasBrigades("confirmed");
   const week = useGasSchedule();
   const estimateActions = useGasEstimateActions();
@@ -74,6 +86,12 @@ function BrigadesPage() {
 
   return (
     <div className="flex flex-col gap-block">
+      <DirectoryTabs />
+      {office ? (
+        <div className="flex flex-wrap gap-2">
+          <DirectoryImport kind="brigades" />
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-2">
         <Segmented
           label="Вид списка"

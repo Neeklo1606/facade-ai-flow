@@ -80,6 +80,7 @@ export function buildSeedFrom(factReport: FactReport, places: ScenarioPlaces): G
     code: b.code,
     excelRow: b.excelRow,
     source: "fact-report",
+    phone: null,
   }));
 
   const employees: Employee[] = factReport.employees.map((e, i) => ({

@@ -36,6 +36,8 @@ export interface Brigade {
   code: string;
   excelRow: number | null;
   source: DataSource;
+  /** Телефон бригады из справочника (F3); null — не указан */
+  phone: string | null;
 }
 
 export interface Employee {

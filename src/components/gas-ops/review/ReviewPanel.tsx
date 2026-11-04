@@ -6,6 +6,7 @@
  * Принятие в одно касание. Возврат, исправление и отклонение требуют причину:
  * частые причины кнопками, свой текст полем. Esc закрывает форму причины.
  */
+import { isAutoAccepted } from "@/api/gas-ops";
 import { Check, MessageCircleQuestion, MoreHorizontal, Pencil, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -52,6 +53,7 @@ export function ReviewPanel({
   onConfirm,
   onDecide,
   onCorrect,
+  onUndoAuto,
   onClose,
 }: {
   view: EntryView;
@@ -62,6 +64,8 @@ export function ReviewPanel({
   onConfirm: () => void;
   onDecide: (action: "reject" | "clarify", comment: string) => Promise<DecideResult>;
   onCorrect: (input: CorrectInput) => Promise<DecideResult>;
+  /** Вернуть автоматически принятую запись в очередь (до закрытия недели) */
+  onUndoAuto?: () => void;
   onClose?: () => void;
 }) {
   const { entry } = view;
@@ -96,6 +100,7 @@ export function ReviewPanel({
   }, [mode]);
 
   const decided = entry.status === "confirmed";
+  const auto = isAutoAccepted(entry);
 
   return (
     <div className={cn("flex min-h-0 flex-col", !sheet && "h-full")}>
@@ -104,7 +109,7 @@ export function ReviewPanel({
           <p className="min-w-0 flex-1 truncate text-meta text-text-3">
             {entry.number} · {sheet ? fmtShortDay(entry.day) : fmtEntryDay(entry.day)}
           </p>
-          <EntryStatusBadge status={entry.status} />
+          <EntryStatusBadge status={entry.status} auto={auto} />
           {onClose ? (
             <button
               type="button"
@@ -181,7 +186,20 @@ export function ReviewPanel({
       ) : null}
       {mode || !canDecide ? null : (
         <ActionBar sheet={sheet} floatingBottom={floatingBottom}>
-          {decided ? (
+          {decided && auto && onUndoAuto ? (
+            <>
+              <p className="flex min-h-12 min-w-0 flex-1 items-center px-3 text-body text-text-2">
+                Принята автоматически и учтена в отчёте.
+              </p>
+              <button
+                type="button"
+                onClick={onUndoAuto}
+                className="inline-flex h-12 shrink-0 items-center justify-center rounded-control border border-line-2 px-4 text-body focus-ring press-98"
+              >
+                Вернуть в проверку
+              </button>
+            </>
+          ) : decided ? (
             <p className="flex min-h-12 flex-1 items-center px-3 text-body text-text-2">
               Принято и учтено в недельном отчёте.
             </p>

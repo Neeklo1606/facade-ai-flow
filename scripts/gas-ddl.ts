@@ -5,7 +5,12 @@
  * Тест tests/db/gas-contracts.test.ts держит файлы равными выводу, `check:db` — базу равной контрактам.
  */
 import { enums, sqlName, type ColumnMeta, type TableDef } from "../src/contracts";
-import { GAS_T7_COLUMNS, gasTabelTables, gasTables } from "../src/contracts/gas";
+import {
+  GAS_T7_COLUMNS,
+  GAS_WAVE_F_COLUMNS,
+  gasTabelTables,
+  gasTables,
+} from "../src/contracts/gas";
 
 const q = (name: string) => `"${name}"`;
 
@@ -38,9 +43,13 @@ const gasEnumNames = enumNamesOf(gasTables);
 
 export const gasEnums = enums.filter((item) => gasEnumNames.has(item.name));
 
-/** Колонки таблицы v1: без тех, что добавляет миграция T7 */
+/** Колонки таблицы v1: без тех, что добавляют миграции T7 и волны F */
 const v1Columns = (def: TableDef) =>
-  Object.entries(def.columns).filter(([key]) => !GAS_T7_COLUMNS[def.meta.name]?.includes(key));
+  Object.entries(def.columns).filter(
+    ([key]) =>
+      !GAS_T7_COLUMNS[def.meta.name]?.includes(key) &&
+      !GAS_WAVE_F_COLUMNS[def.meta.name]?.includes(key),
+  );
 
 function commentSql(table: string, key: string, column: ColumnMeta): string[] {
   return column.comment
@@ -179,6 +188,33 @@ export function gasT7Migration(): string {
       keys.map((key) => `alter table ${table} drop column if exists ${q(sqlName(key))};`),
     ),
     ...[...own].reverse().map((item) => `drop type if exists ${item.name};`),
+    "",
+  );
+  return out.join("\n");
+}
+
+/** Миграция волны F (ADR-062): телефон бригады для импорта справочников (F3) */
+export function gasWaveFMigration(): string {
+  const out: string[] = [
+    "-- migrate:up",
+    "-- Волна F (ADR-062): телефон бригады из импорта справочников.",
+    "-- Сгенерировано scripts/gas-schema.ts из src/contracts/gas.ts. Не редактировать вручную.",
+    "",
+  ];
+  for (const [table, keys] of Object.entries(GAS_WAVE_F_COLUMNS)) {
+    const def = [...gasTables, ...gasTabelTables].find((t) => t.meta.name === table)!;
+    for (const key of keys) {
+      const column = def.columns[key]!;
+      out.push(`alter table ${table} add column ${columnSql(key, column)};`);
+      out.push(...commentSql(table, key, column));
+    }
+  }
+  out.push(
+    "",
+    "-- migrate:down",
+    ...Object.entries(GAS_WAVE_F_COLUMNS).flatMap(([table, keys]) =>
+      keys.map((key) => `alter table ${table} drop column if exists ${q(sqlName(key))};`),
+    ),
     "",
   );
   return out.join("\n");

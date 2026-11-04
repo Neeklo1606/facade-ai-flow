@@ -24,7 +24,7 @@ async function errorCode(run: () => Promise<unknown>): Promise<string | null> {
   }
 }
 
-/** Смета 14 граф: без НДС 142 174,91, материалы 68 706,25 — стоимость работ 73 469 ₽ */
+/** Смета 14 граф: без НДС 80 000,91, материалы 30 000,25 — стоимость работ 50 001 ₽ */
 const resourceGrid = () => {
   const grid: (string | null)[][] = [];
   const put = (row: number, cols: Record<number, string>) => {
@@ -32,12 +32,12 @@ const resourceGrid = () => {
   };
   put(22, { 7: "общая", 12: "Т/з осн. раб." });
   put(23, { 8: "Осн.З/п", 9: "Эк.Маш.", 10: "З/пМех", 11: "Мат" });
-  put(154, { 0: " Итого по разделу 3 Монтаж", 7: "142174,91" });
+  put(154, { 0: " Итого по разделу 3 Монтаж", 7: "80000,91" });
   put(181, { 0: "Итоги по смете:" });
-  put(182, { 0: " Итого", 7: "142174,91", 12: "57,644" });
-  put(184, { 0: " Материалы", 7: "68706,25" });
-  put(189, { 0: " НДС 5%", 7: "7108,75" });
-  put(190, { 0: " ВСЕГО по смете", 7: "149283,66" });
+  put(182, { 0: " Итого", 7: "80000,91", 12: "40,125" });
+  put(184, { 0: " Материалы", 7: "30000,25" });
+  put(189, { 0: " НДС 5%", 7: "4000,05" });
+  put(190, { 0: " ВСЕГО по смете", 7: "84000,96" });
   for (let i = 0; i < grid.length; i++) grid[i] ??= [];
   return grid;
 };
@@ -62,7 +62,7 @@ describe("версия сметы", () => {
     const { objectId } = await freeSlot();
     await port.linkEstimateVersion({ id: v.id, objectId });
     const result = await port.confirmEstimateVersion(v.id);
-    expect(result.estimate.amountRub).toBe(73_469);
+    expect(result.estimate.amountRub).toBe(50_001);
     expect(result.estimate.origin).toBe("estimate");
     expect(result.estimate.note).toContain("Всего без НДС минус материалы");
     const s = await port.snapshot();
@@ -73,14 +73,14 @@ describe("версия сметы", () => {
 
   test("смета с замечаниями не подтверждается, пока сметчик не отметил их проверенными", async () => {
     const grid = resourceGrid();
-    grid[190] = [null, null, null, null, null, null, "Технадзор", "11875.51"];
+    grid[190] = [null, null, null, null, null, null, "Технадзор", "6000.51"];
     const parsed = { ...parseEstimateGrid(grid), sheet: "Смета" };
     expect(parsed.status).toBe("needs-review");
     const { objectId } = await freeSlot();
     const v = await port.addEstimateVersion({ parsed, fileName: "с.xls", objectId });
     expect(await errorCode(() => port.confirmEstimateVersion(v.id))).toBe("estimate-not-ready");
     await port.reviewEstimateIssues(v.id);
-    expect((await port.confirmEstimateVersion(v.id)).estimate.amountRub).toBe(73_469);
+    expect((await port.confirmEstimateVersion(v.id)).estimate.amountRub).toBe(50_001);
   });
 
   test("бригадир и руководитель смету не загружают", async () => {
@@ -124,6 +124,31 @@ describe("режимы проверки и итоговая проверка", (
     expect(after.reportIssues[0]?.totalRub).toBe(report.totalRub);
     // Подтверждённая запись тоже не поменялась
     expect(after.entries.find((e) => e.id === entry.id)?.amountRub).toBe(entry.amountRub);
+  });
+
+  test("автоприём можно вернуть в очередь до закрытия недели, бригадир этого не может", async () => {
+    const slot = await freeSlot();
+    await port.setEstimate({ objectId: slot.objectId, amountRub: 9_000, note: "договор" });
+    await port.setReviewSettings({ mode: "flagged", thresholdPercent: 95 });
+    const entry = await port.createEntry({
+      ...slot,
+      employeeId: null,
+      start: "5:00",
+      end: "6:00",
+      breakMinutes: 0,
+      submit: true,
+    });
+    expect(entry.reviewedBy).toBe("auto");
+    const back = await port.undoAutoAccept(entry.id);
+    expect(back.status).toBe("pending");
+    expect(back.reviewedBy).toBeNull();
+    const s = await port.snapshot();
+    expect(s.audit[0]?.action).toBe("entry.auto.undo");
+    // Повтор: запись уже в очереди, отменять нечего
+    expect(await errorCode(() => port.undoAutoAccept(entry.id))).toBe("nothing-to-undo");
+    // Бригадир автоприём не отменяет
+    await port.signIn("u-foreman-1");
+    expect(await errorCode(() => port.undoAutoAccept(entry.id))).toBe("not-allowed");
   });
 
   test("«проверять все»: запись ждёт менеджера", async () => {

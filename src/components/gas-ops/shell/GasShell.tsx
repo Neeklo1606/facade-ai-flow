@@ -91,6 +91,7 @@ import {
 import { clearInbox, linkButtons, messengerChannel, useGasInbox } from "@/api/gas-assistant";
 import { clearScenario } from "@/lib/guide/store";
 import { TOURS, getTourState, startTour, tourOfRole, tourSeen } from "@/lib/gas-ops/tour";
+import { cabinetOnly, showDemoMarks, showTestMode } from "@/lib/cabinet";
 import { useApp } from "@/lib/app-context";
 import { gasOnlyEnabled } from "@/lib/gas-ops/gas-only";
 import { resolveTheme, themeChoices, themeLabels } from "@/lib/theme";
@@ -107,6 +108,8 @@ import { AssistantButton } from "../assistant/AssistantPanel";
 import { Tour } from "../tour/Tour";
 import { ScreenStateGate } from "../ScreenStateGate";
 import { OfflineBar } from "@/components/ui/kit/offline-bar";
+import { TestModeBar } from "@/components/ui/kit/test-mode-bar";
+import { dataSource } from "@/api/config";
 import { useOffline } from "@/lib/ui/offline";
 
 export function isActive(screen: GasScreen, pathname: string) {
@@ -142,6 +145,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   const screen = gasScreenOf(pathname);
   useTourHighlight();
   useFirstTour(actor.role, screen.key);
+  useOfflineShell();
   // Бот бригадира на телефоне во весь экран: шапка чата вместо шапки контура, без панели
   const botOnly = actor.role === "foreman" && screen.key === "foreman";
   const field = isFieldRole(actor.role);
@@ -150,6 +154,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   useAppManifest("/manifest-gas.webmanifest", "Учёт выработки");
   useInstallHint();
   const network = useOffline();
+  const contourKind = useGasContour().kind;
   // Высота липкого верха: экран бота занимает остаток высоты
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -174,6 +179,9 @@ function GasShellFrame({ children }: { children: ReactNode }) {
           <GasPhoneHeader screen={screen} />
         </div>
         {network.offline ? <OfflineBar demo={network.simulated} /> : null}
+        {showTestMode({ dataSource, contour: contourKind, cabinet: cabinetOnly }) ? (
+          <TestModeBar />
+        ) : null}
       </div>
       <div className="lg:flex">
         {/* Левое меню только у ролей с меню: бригадир живёт в телефоне (таблица 3.3) */}
@@ -215,19 +223,34 @@ function useNavCounters(): Partial<Record<string, number>> {
 }
 
 /**
+ * Оболочка бригадира без сети (ADR-062, F7): сервис `public/sw.js` держит «Сегодня»
+ * и файлы сборки. Только в собранном приложении: в разработке файлы меняются на лету
+ */
+function useOfflineShell() {
+  useEffect(() => {
+    if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js", { scope: "/gas/" }).catch(() => {
+      // Браузер без сервиса или приватный режим: экран работает с сетью, как раньше
+    });
+  }, []);
+}
+
+/**
  * «Показать на экране» из инструкции (F2): адрес `?tour=цель` подсвечивает элемент
  * с `data-tour="цель"` на 4 секунды и прокручивает к нему. Элемент может появиться позже
  * первой отрисовки (данные, шторка), поэтому ждём его до 3 секунд.
  */
 /**
- * Тур роли при первом входе (4.8): один раз на браузер, если другой тур не идёт. На стартовом
- * экране не открывается: там своя кнопка показа
+ * Тур роли при первом входе (4.8): один раз на браузер, если другой тур не идёт. Только на
+ * домашнем экране роли (F1): прямая ссылка на другой экран открывает этот экран без тура.
+ * Автостарт никуда не переводит, первый шаг тура и стоит на домашнем экране
  */
 function useFirstTour(role: Role, screenKey: GasScreenKey) {
   useEffect(() => {
-    if (screenKey === "start" || getTourState().tourId) return;
+    if (screenKey !== ROLE_HOME[role] || getTourState().tourId) return;
     const id = tourOfRole(role);
-    if (id && !tourSeen(id)) startTour(id);
+    // Администратор смотрит тур менеджера: его шаги на чужой роли, сам он не открывается
+    if (id && !tourSeen(id) && TOURS[id].steps[0]?.role === role) startTour(id, { go: false });
   }, [role, screenKey]);
 }
 
@@ -479,7 +502,7 @@ function CompanyMenu() {
           >
             На старт
           </Link>
-          <ResetButton wide />
+          {showDemoMarks ? <ResetButton wide /> : null}
           <AboutSystem />
         </div>
       </PopoverContent>

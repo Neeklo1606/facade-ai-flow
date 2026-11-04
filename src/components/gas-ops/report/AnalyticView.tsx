@@ -2,6 +2,7 @@
  * Аналитическая таблица отчёта (ТЗ, п. 9): плоские записи с фильтрами. На десктопе фильтры
  * над таблицей, на телефоне в шторке «Фильтры (N)», записи карточками вместо таблицы.
  */
+import { showDemoMarks } from "@/lib/cabinet";
 import { SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -67,7 +68,9 @@ export function AnalyticView({
           <span className="max-w-[320px] truncate" title={row.objectLabel}>
             {row.objectLabel}
           </span>
-          {row.source === "mock" ? <span className="text-meta text-text-3">Демо</span> : null}
+          {row.source === "mock" && showDemoMarks ? (
+            <span className="text-meta text-text-3">Демо</span>
+          ) : null}
         </span>
       ),
     },
@@ -148,7 +151,9 @@ export function AnalyticView({
               <p className="text-body-strong mt-1 font-medium">{row.objectLabel}</p>
               <p className="text-meta mt-0.5 text-text-2">
                 {row.brigadeName}
-                {row.source === "mock" ? <span className="text-text-3"> · Демо</span> : null}
+                {row.source === "mock" && showDemoMarks ? (
+                  <span className="text-text-3"> · Демо</span>
+                ) : null}
               </p>
               <p className="text-body mt-1.5 tnum">
                 {row.amountRub === null ? "–" : fmtRub(row.amountRub)} ·{" "}

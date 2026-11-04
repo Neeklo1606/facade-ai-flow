@@ -4,6 +4,15 @@
  * Экраны и компоненты берут отсюда и готовые цифры, и действия, и подписи. Порт, домен
  * и адаптер ниже этого слоя: когда демо-адаптер сменится на сервер, экраны не изменятся.
  */
+import { sheetSyncDemo } from "@/adapters/gas-ops/sheet-sync-demo";
+import {
+  factReportSheet,
+  nextPushAt,
+  sheetStatusText,
+  type WeekSheet,
+} from "@/domain/gas-ops/cloud-sheet";
+import type { SheetSyncPort, SheetSyncResult } from "@/ports/sheet-sync";
+import { dataSource } from "@/api/config";
 import { useCallback, useMemo } from "react";
 import {
   effectiveMinutes,
@@ -83,12 +92,14 @@ import {
   expectations,
   periodState,
   weekMetrics,
+  weekReadyNotice,
   type Acceptance,
   type CloseReason,
   type Expectation,
   type PeriodState,
   type PeriodVersion,
   type WeekMetrics,
+  type WeekReady,
 } from "@/domain/gas-ops/week";
 import { CHANNEL_LABEL, type EntryChannel } from "@/domain/gas-ops/model";
 import { AUTO_ACTOR } from "@/domain/gas-ops/review-policy";
@@ -159,6 +170,8 @@ export interface GasWeekView {
   expectationSource: "schedule" | "assignment" | null;
   reasons: CloseReason[];
   period: PeriodState;
+  /** С пятницы 18:00 открытая неделя «готова к закрытию» (ADR-063, 1.5) */
+  ready: WeekReady | null;
   /** По объектам: подтверждённое, часы, человеко-часы, выработка, готовность */
   objects: {
     id: string;
@@ -219,13 +232,23 @@ export function useGasWeekView(): GasWeekView {
         ready: list.every((e) => e.status === "confirmed" && !blocked.has(e.id)),
       };
     });
+    const period = periodState(data.periods, data.week.from);
+    const metrics = weekMetrics(data.entries, days, data.rates);
+    const clock = new Date();
     return {
-      metrics: weekMetrics(data.entries, days, data.rates),
+      metrics,
       byDay: accruedByDay(data.entries, days),
       coverage: cov,
       expectationSource: expected[0]?.source ?? null,
       reasons,
-      period: periodState(data.periods, data.week.from),
+      period,
+      ready: weekReadyNotice({
+        weekFrom: data.week.from,
+        now: `${data.today}T${String(clock.getHours()).padStart(2, "0")}:${String(clock.getMinutes()).padStart(2, "0")}`,
+        closed: period.closed !== null,
+        entries: own.filter((e) => e.status !== "draft").length,
+        remarks: reasons.length,
+      }),
       objects: objects.sort((a, b) => b.accruedRub - a.accruedRub),
     };
   }, [data]);
@@ -265,6 +288,13 @@ export type {
   BotState,
 } from "@/domain/gas-ops/bot-dialog";
 export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
+export { isAutoAccepted } from "@/domain/gas-ops/review-policy";
+export { lastEntryBefore, sameAsYesterday } from "@/domain/gas-ops/field";
+/**
+ * Подпись отправленной записи бригадира: в демонстрации запись лежит во вкладке, и «Принято
+ * сервером» обещало бы то, чего нет (финальный промт, правило 3)
+ */
+export const SENT_LABEL = dataSource === "server" ? "Принято сервером" : "Записано";
 export { parseTimeInput, rangeLabel, TIME_INPUT_TEXT } from "@/domain/gas-ops/time-input";
 export { busyLine, intervalLabel } from "@/domain/gas-ops/time-slots";
 /** Табель (ADR-061, 11): статус ячеек, выделение, TSV, «По людям», контрольная сумма версии */
@@ -298,8 +328,42 @@ export type {
   TabelCell,
   TabelRow,
 } from "@/domain/gas-ops/tabel";
-export { sheetSyncDemo as sheetSync } from "@/adapters/gas-ops/sheet-sync-demo";
-export type { SheetProvider } from "@/ports/sheet-sync";
+export type { SheetProvider, SheetSyncResult } from "@/ports/sheet-sync";
+
+/*
+ * Облачная таблица (ADR-063, 1.4). Во вкладке порт — заглушка: ключ сервисного аккаунта живёт
+ * только на сервере (`googleSheetSyncFromEnv`). Здесь помнится, что ушло в прошлый раз:
+ * следующая отправка — только изменившиеся диапазоны и не чаще раза в минуту.
+ */
+export const sheetSync: SheetSyncPort = sheetSyncDemo;
+let lastSheet: WeekSheet | null = null;
+let lastPushAt: string | null = null;
+
+export function sheetStatus(): string {
+  return sheetStatusText({ connected: sheetSync.connected, updatedAt: lastPushAt });
+}
+
+export async function pushWeekSheet(input: {
+  weekFrom: string;
+  weekTo: string;
+  days: readonly string[];
+  rows: readonly TabelRow[];
+}): Promise<SheetSyncResult> {
+  const now = new Date().toISOString();
+  const allowed = nextPushAt(lastPushAt, now);
+  if (allowed > now)
+    return {
+      ok: false,
+      reason: `Таблица обновлялась меньше минуты назад: следующее обновление в ${allowed.slice(11, 16)}.`,
+    };
+  const sheet = factReportSheet(input);
+  const result = await sheetSync.push({ sheet, prev: lastSheet });
+  if (result.ok) {
+    lastSheet = sheet;
+    lastPushAt = result.syncedAt;
+  }
+  return result;
+}
 
 /** Четыре типа сведений о записи, «не рассчитано» и расшифровка суммы (ADR-061, 10) */
 export {
@@ -607,6 +671,8 @@ export function useGasActions(): {
   review: (input: ReviewInput) => Promise<ActionResult<TimeEntry>>;
   /** Отменить последнее решение проверки: тост «Отменить» */
   undoReview: (id: string) => Promise<ActionResult<TimeEntry>>;
+  /** Вернуть автоматически принятую запись в очередь проверки */
+  undoAutoAccept: (id: string) => Promise<ActionResult<TimeEntry>>;
   setEstimate: (input: {
     objectId: string;
     amountRub: number;
@@ -639,6 +705,7 @@ export function useGasActions(): {
     submitEntry: useCallback((id) => run(() => port.submitEntry(id)), [run, port]),
     review: useCallback((input) => run(() => port.review(input)), [run, port]),
     undoReview: useCallback((id) => run(() => port.undoReview(id)), [run, port]),
+    undoAutoAccept: useCallback((id) => run(() => port.undoAutoAccept(id)), [run, port]),
     setEstimate: useCallback((input) => run(() => port.setEstimate(input)), [run, port]),
     reset: useCallback(() => run(() => port.reset()), [run, port]),
     answerClarify: useCallback((input) => run(() => port.answerClarify(input)), [run, port]),

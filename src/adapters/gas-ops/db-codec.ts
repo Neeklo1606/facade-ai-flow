@@ -31,6 +31,7 @@ const STATE_KEYS = [
   "schedule",
   "brigadeAvailability",
   "reviewSettings",
+  "directoryUndo",
   "finalChecks",
   "reportIssues",
 ] as const;

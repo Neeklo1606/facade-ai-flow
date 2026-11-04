@@ -18,6 +18,7 @@ import {
   normVsFact,
   ruleFor,
   ruleFormula,
+  ruleHistory,
   workCostRub,
   type CostRule,
   type CostRuleTerm,
@@ -27,6 +28,8 @@ import {
 import { brigadeStatus, type BrigadeWeekStatus, type ScheduleRow } from "@/domain/gas-ops/schedule";
 import {
   accuracyOf,
+  flaggedModeSuggestion,
+  type ModeSuggestion,
   finalCheckList,
   modeAvailability,
   type Accuracy,
@@ -35,7 +38,7 @@ import {
   type ReviewSettings,
 } from "@/domain/gas-ops/review-policy";
 import { useGasAction, useGasSnapshot } from "@/lib/gas-ops/use-gas-ops";
-import type { ReportIssue, WeekSchedule } from "@/ports/gas-ops";
+import type { GasOpsPort, ReportIssue, WeekSchedule } from "@/ports/gas-ops";
 import type { Estimate, TimeEntry } from "@/domain/gas-ops/model";
 
 export interface WorkCostRow {
@@ -57,6 +60,8 @@ export function useGasWorkCost(): {
   unlinked: EstimateVersion[];
   companyRule: CostRule;
   versions: EstimateVersion[];
+  /** Последняя загруженная смета: на ней конструктор правила показывает пример (F2) */
+  latestUploaded: EstimateVersion | null;
 } {
   const s = useGasSnapshot();
   return useMemo(() => {
@@ -84,8 +89,44 @@ export function useGasWorkCost(): {
         s.costRules.filter((r) => r.objectId === null),
       ),
       versions: s.estimateVersions,
+      latestUploaded:
+        [...s.estimateVersions].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))[0] ?? null,
     };
   }, [s.objects, s.estimateVersions, s.costRules, s.estimates, s.entries]);
+}
+
+/** Редакция правила для истории: формула, кто и когда сохранил и подтвердил */
+export interface RuleRevisionView {
+  revision: number;
+  formula: string;
+  saved: string;
+  confirmed: string | null;
+  /** Сохранил и подтвердил один человек (ADR-062, решение владельца 1) */
+  samePerson: boolean;
+}
+
+const stamp = (at: string) => `${at.slice(8, 10)}.${at.slice(5, 7)} в ${at.slice(11, 16)}`;
+
+/** История редакций правила (F2), новые сверху */
+export function useGasRuleHistory(rule: CostRule | null): RuleRevisionView[] {
+  const s = useGasSnapshot();
+  return useMemo(() => {
+    if (!rule) return [];
+    const name = (id: string) => s.users.find((u) => u.id === id)?.name ?? id;
+    return ruleHistory(rule)
+      .map((r) => ({
+        revision: r.revision,
+        formula: ruleFormula(r.terms),
+        saved:
+          r.savedBy && r.savedAt
+            ? `${name(r.savedBy)}, ${stamp(r.savedAt)}`
+            : "Исходное правило системы",
+        confirmed:
+          r.confirmedBy && r.confirmedAt ? `${name(r.confirmedBy)}, ${stamp(r.confirmedAt)}` : null,
+        samePerson: !!r.savedBy && r.savedBy === r.confirmedBy,
+      }))
+      .reverse();
+  }, [rule, s.users]);
 }
 
 /** Норма против факта по одному объекту: для карточки объекта и отчёта */
@@ -105,6 +146,8 @@ export interface ReviewPolicyData {
   finalList: TimeEntry[];
   reports: ReportIssue[];
   lastCheck: { at: string; by: string; count: number } | null;
+  /** Предложение перейти на «только с замечаниями»; null — предлагать рано или нечего */
+  suggestion: ModeSuggestion | null;
 }
 
 export function useGasReviewPolicy(): ReviewPolicyData {
@@ -130,8 +173,23 @@ export function useGasReviewPolicy(): ReviewPolicyData {
             count: last.entryIds.length,
           }
         : null,
+      suggestion: flaggedModeSuggestion({
+        settings: s.reviewSettings,
+        accuracy,
+        reviews: s.reviews,
+        now: `${s.today}T23:59:00`,
+      }),
     };
-  }, [s.reviews, s.reviewSettings, s.finalChecks, s.entries, s.week.days, s.reportIssues, s.users]);
+  }, [
+    s.reviews,
+    s.reviewSettings,
+    s.finalChecks,
+    s.entries,
+    s.week.days,
+    s.reportIssues,
+    s.users,
+    s.today,
+  ]);
 }
 
 /** График недели и отметки бригад */
@@ -177,6 +235,22 @@ export function useGasEstimateActions() {
         run((port) => port.confirmCostRule(input)),
       [run],
     ),
+    /** Новая редакция из конструктора (F2) */
+    saveRule: useCallback(
+      (input: { objectId: string | null; terms: CostRuleTerm[] }) =>
+        run((port) => port.saveCostRule(input)),
+      [run],
+    ),
+    undoRule: useCallback(
+      (input: { objectId: string | null; revision: number }) =>
+        run((port) => port.undoCostRule(input)),
+      [run],
+    ),
+    /** «Вернуть правило компании» у объекта (решение владельца 2) */
+    resetObjectRule: useCallback(
+      (objectId: string) => run((port) => port.resetObjectRule({ objectId })),
+      [run],
+    ),
     applySchedule: useCallback(
       (input: { rows: ScheduleRow[]; fileName: string }) =>
         run((port) => port.applySchedule(input)),
@@ -192,7 +266,7 @@ export function useGasEstimateActions() {
       [run],
     ),
     setReviewSettings: useCallback(
-      (input: { mode: ReviewMode; thresholdPercent: number }) =>
+      (input: { mode: ReviewMode; thresholdPercent: number; secondRuleApprover?: boolean }) =>
         run((port) => port.setReviewSettings(input)),
       [run],
     ),
@@ -261,17 +335,34 @@ export async function readScheduleFile(
 /* ---------------------------------------------------------------- Готовый вид для экранов */
 
 export { ESTIMATE_FORMAT_LABEL, PARSE_STATUS_LABEL } from "@/domain/gas-ops/estimate-labels";
-export { RULE_STATUS_LABEL } from "@/domain/gas-ops/work-cost";
-export type { CostRule, EstimateVersion } from "@/domain/gas-ops/work-cost";
+export {
+  RULE_STATUS_LABEL,
+  recalcNote,
+  ruleExample,
+  sameTerms,
+  termChoices,
+  termLabel,
+  validateTerms,
+} from "@/domain/gas-ops/work-cost";
+export type {
+  CostRule,
+  CostRuleTerm,
+  EstimateVersion,
+  RuleExample,
+  TermKey,
+} from "@/domain/gas-ops/work-cost";
+export type { CostRuleChange } from "@/ports/gas-ops";
 
-const kop = (kopecks: number) =>
+export const kop = (kopecks: number) =>
   `${(kopecks / 100).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
 
 export interface EstimateVersionView {
   /** Итоги с подписью, суммой и строкой файла */
   totals: { key: string; label: string; value: string; row: number }[];
   sections: { title: string; value: string; row: number }[];
-  /** «Сумма разделов 142 174,91 ₽, сходится с итогом без НДС»; null — нечего сверять */
+  /** Строки с суммой ниже «ВСЕГО по смете» (F4): можно взять в правило */
+  extras: { label: string; value: string; row: number }[];
+  /** «Сумма разделов 80 000,91 ₽, сходится с итогом без НДС»; null — нечего сверять */
   sectionsNote: string | null;
   labor: { value: string; row: number } | null;
   formula: string;
@@ -286,7 +377,7 @@ export interface EstimateVersionView {
 export function estimateVersionView(version: EstimateVersion, rule: CostRule): EstimateVersionView {
   const sum = version.sections.reduce((a, s) => a + s.kopecks, 0);
   const withoutVat = version.totals.withoutVat?.kopecks ?? null;
-  const cost = applyRule(version.totals, rule.terms);
+  const cost = applyRule(version.totals, rule.terms, version.extras ?? []);
   return {
     totals: TOTAL_ORDER.filter((key) => version.totals[key]).map((key) => ({
       key,
@@ -296,6 +387,11 @@ export function estimateVersionView(version: EstimateVersion, rule: CostRule): E
       row: version.totals[key]!.row,
     })),
     sections: version.sections.map((s) => ({ title: s.title, value: kop(s.kopecks), row: s.row })),
+    extras: (version.extras ?? []).map((e) => ({
+      label: e.label,
+      value: kop(e.kopecks),
+      row: e.row,
+    })),
     sectionsNote:
       withoutVat === null || version.sections.length === 0
         ? null
@@ -317,7 +413,7 @@ export function estimateVersionView(version: EstimateVersion, rule: CostRule): E
   };
 }
 
-/** «норма 57,6 чел.-ч, факт 41,5 ч» или null, если нормы нет */
+/** «норма 40,1 чел.-ч, факт 41,5 ч» или null, если нормы нет */
 export function normText(norm: NormVsFact): string | null {
   return norm.normHours === null ? null : fmtNormVsFact(norm);
 }
@@ -353,6 +449,44 @@ export async function readExcelSheets(
   }
 }
 
+export { RECONCILE_REASON_LABEL } from "@/domain/gas-ops/reconcile-file";
+export type { Discrepancy, FileReconciliation } from "@/domain/gas-ops/reconcile-file";
+
+/**
+ * Сверка недели с Excel заказчика (ADR-063, 1.8): файл читается в браузере, сравнивается
+ * с принятыми записями этой вкладки. Разбор грузится только после выбора файла
+ */
+export function useFileReconcile(): (
+  file: File,
+) => Promise<
+  | { ok: true; result: import("@/domain/gas-ops/reconcile-file").FileReconciliation }
+  | { ok: false; message: string }
+> {
+  const s = useGasSnapshot();
+  return useCallback(
+    async (file: File) => {
+      const read = await readExcelSheets(file);
+      if (!read.ok) return read;
+      const { readFileWeek, reconcileFile } = await import("@/domain/gas-ops/reconcile-file");
+      for (const sheet of read.sheets) {
+        const week = readFileWeek(sheet.grid, s.objects);
+        if (!week) continue;
+        if (!week.days.some((d) => s.week.days.includes(d)))
+          return {
+            ok: false,
+            message: `В файле неделя ${week.days[0]} – ${week.days.at(-1)}, а открыта ${s.week.from} – ${s.week.to}.`,
+          };
+        return { ok: true, result: reconcileFile(week, s.entries, s.objects) };
+      }
+      return {
+        ok: false,
+        message: "Не нашли строку с датами дней: это не «Фактический отчёт» за неделю.",
+      };
+    },
+    [s.objects, s.entries, s.week],
+  );
+}
+
 /** Подсказка объекта сметы по имени файла: её подтверждает человек */
 export async function suggestEstimateObject(
   fileName: string,
@@ -382,7 +516,65 @@ export function loadImportTools() {
     import("@/domain/gas-ops/import-wizard"),
     import("@/domain/gas-ops/estimate-parse"),
     import("@/domain/gas-ops/schedule-import"),
-  ]).then(([wizard, estimate, schedule]) => ({ ...wizard, ...estimate, ...schedule }));
+    import("@/domain/gas-ops/directory-import"),
+  ]).then(([wizard, estimate, schedule, directory]) => ({
+    ...wizard,
+    ...estimate,
+    ...schedule,
+    ...directory,
+  }));
+}
+
+/* ---------------------------------------------------------------- Справочники из Excel (F3) */
+
+export {
+  DIRECTORY_FIELDS,
+  DIRECTORY_FIELD_LABEL,
+  DIRECTORY_KIND_LABEL,
+  DIRECTORY_TEMPLATE,
+} from "@/domain/gas-ops/directory-import";
+export type {
+  DirectoryField,
+  DirectoryKind,
+  DirectoryPlan,
+  DirectoryState,
+} from "@/domain/gas-ops/directory-import";
+export type { DirectoryImportReport } from "@/ports/gas-ops";
+
+/** Справочник для предпросмотра импорта и действия импорта и «Добавить объект» */
+export function useGasDirectoryImport() {
+  const s = useGasSnapshot();
+  const run = useGasAction();
+  const state = useMemo(
+    () => ({
+      brigades: s.brigades.map((b) => ({
+        id: b.id,
+        name: b.name,
+        phone: b.phone ?? null,
+        leadName: s.employees.find((e) => e.brigadeId === b.id && e.isLead)?.name ?? null,
+      })),
+      crew: s.crew,
+      rates: s.rates,
+    }),
+    [s.brigades, s.employees, s.crew, s.rates],
+  );
+  return {
+    state,
+    importDirectory: useCallback(
+      (input: Parameters<GasOpsPort["importDirectory"]>[0]) =>
+        run((port) => port.importDirectory(input)),
+      [run],
+    ),
+    undoDirectoryImport: useCallback(
+      (id: string) => run((port) => port.undoDirectoryImport({ id })),
+      [run],
+    ),
+    addObject: useCallback(
+      (input: { label: string; code: string; workType: string | null }) =>
+        run((port) => port.addObject(input)),
+      [run],
+    ),
+  };
 }
 export type ImportTools = Awaited<ReturnType<typeof loadImportTools>>;
 export type { ImportCheck, ColumnOption } from "@/domain/gas-ops/import-wizard";

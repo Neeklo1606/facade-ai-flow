@@ -9,6 +9,7 @@
 import { Link } from "@tanstack/react-router";
 import { NotCalculated } from "../review/remarks";
 import { FinalCheckBlock } from "../report/FinalCheckBlock";
+import { ReconcileUpload } from "./ReconcileUpload";
 import { ScreenActions, ScreenCounters } from "../shell/screen-header";
 import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, Lock, Unlock } from "lucide-react";
 import { useRef, useState } from "react";
@@ -191,16 +192,46 @@ export function WeekScreen() {
           data-tour="week-counters"
         >
           {counters.join(" · ")} ·{" "}
-          {man.value ? (
-            <span>
-              чел.-ч: {man.value}
-              {man.reason ? `, ${man.reason}` : ""}
-            </span>
+          {man.value && !man.reason ? (
+            <span>чел.-ч: {man.value}</span>
+          ) : man.value ? (
+            // Сумма по записям с составом и ссылка на записи без него (ADR-062, F5)
+            <NotCalculated reason={man.reason}>чел.-ч: {man.value}</NotCalculated>
           ) : (
             <NotCalculated reason={man.reason}>чел.-ч: не рассчитано</NotCalculated>
           )}
         </p>
       </ScreenCounters>
+
+      {view.ready && canClose ? (
+        <section
+          aria-label="Неделя готова к закрытию"
+          data-testid="week-ready"
+          className="mono-inset flex flex-col gap-3 md:flex-row md:items-center"
+        >
+          <p className="min-w-0 flex-1 type-text">
+            Неделя готова к закрытию: {view.ready.entries}{" "}
+            {plural(view.ready.entries, "запись", "записи", "записей")}, {view.ready.remarks}{" "}
+            {plural(view.ready.remarks, "замечание", "замечания", "замечаний")}. Черновик файла
+            готов.
+          </p>
+          <Button
+            variant="secondary"
+            className="shrink-0"
+            onClick={async () => {
+              try {
+                const name = await exportWeek("draft");
+                toast.success(`Черновик выгружен: ${name}`);
+              } catch {
+                toast.error("Не удалось выгрузить черновик. Повторите.");
+              }
+            }}
+          >
+            <Download aria-hidden />
+            Скачать черновик
+          </Button>
+        </section>
+      ) : null}
 
       {!canClose ? <p className="type-label text-ink-3">Закрывает неделю руководитель.</p> : null}
       {error ? (
@@ -247,7 +278,10 @@ export function WeekScreen() {
 
       <div ref={reasonsRef} tabIndex={-1} className="scroll-mt-24 outline-none">
         <Card
-          title={closed ? "Неделя закрыта" : "Что мешает закрыть"}
+          title={
+            // Цель тура — заголовок, а не весь список: высокий список двигал подсказку
+            <span data-tour="week-reasons">{closed ? "Неделя закрыта" : "Что мешает закрыть"}</span>
+          }
           action={
             closed ? null : (
               <span className="type-label text-ink-3">
@@ -352,7 +386,11 @@ export function WeekScreen() {
         </p>
       </Card>
 
-      <section aria-label="Действия недели" className="flex flex-wrap items-center gap-3">
+      <section
+        aria-label="Действия недели"
+        data-tour="week-actions"
+        className="flex flex-wrap items-center gap-3"
+      >
         <Link to="/gas/tabel" className="mono-btn mono-btn-secondary focus-ring">
           <FileSpreadsheet aria-hidden />
           Открыть табель
@@ -372,6 +410,8 @@ export function WeekScreen() {
           Выгрузить черновик Excel
         </Button>
       </section>
+
+      {canClose ? <ReconcileUpload /> : null}
 
       {period.versions.length ? (
         <Card title="Версии недели">
@@ -538,7 +578,7 @@ function ReasonRow({
           <Link
             to="/gas/moderation"
             search={{ open: first }}
-            className="type-label underline underline-offset-4 focus-ring"
+            className="inline-flex min-h-11 items-center type-label underline underline-offset-4 focus-ring"
           >
             Открыть
           </Link>
@@ -552,7 +592,7 @@ function ReasonRow({
         value === undefined ? (
           <button
             type="button"
-            className="self-start type-label underline underline-offset-4 focus-ring"
+            className="min-h-11 self-start type-label underline underline-offset-4 focus-ring"
             onClick={() => onChange("")}
           >
             Принять как есть
