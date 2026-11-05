@@ -3579,15 +3579,16 @@ main {
   box-shadow: var(--gas-shadow);
 }
 
-/* Шапка и нижняя панель телефона: матовое стекло поверх контента */
+/* Шапка и нижняя панель телефона: матовое стекло поверх контента. Плотность 94 %: под панелью
+   может оказаться тёмная карточка, и серые подписи должны держать контраст 4,5:1 */
 :root[data-skin="gas"] .gas-phone-header {
-  background: color-mix(in oklab, var(--canvas) 78%, transparent);
+  background: color-mix(in oklab, var(--canvas) 94%, transparent);
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border-bottom-color: transparent;
 }
 :root[data-skin="gas"] .mono-tabbar {
-  background: color-mix(in oklab, var(--card) 80%, transparent);
+  background: color-mix(in oklab, var(--card) 94%, transparent);
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
 }
@@ -3617,15 +3618,17 @@ main {
   border-radius: 999px;
   background: radial-gradient(circle at 35% 35%, #ffb27a 0%, #f0581a 38%, transparent 70%);
   filter: blur(6px);
-  animation: orb-gas-drift 7s ease-in-out infinite;
+  animation: orb-gas-rise 900ms var(--ease-out) both;
 }
-@keyframes orb-gas-drift {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
+/* Свечение появляется один раз: бесконечная анимация отвлекает и не даёт экрану успокоиться */
+@keyframes orb-gas-rise {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
   }
-  50% {
-    transform: translate(-14px, 10px) scale(1.08);
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 @utility pulse-ring-gas {
@@ -3634,7 +3637,7 @@ main {
   border-radius: 999px;
   border: 2px solid var(--flame);
   pointer-events: none;
-  animation: pulse-ring-gas 1.6s ease-out infinite;
+  animation: pulse-ring-gas 1.6s ease-out 3;
 }
 @keyframes pulse-ring-gas {
   from {

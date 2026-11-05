@@ -476,12 +476,11 @@ function ModerationPage() {
 
       <ModeSuggestion />
 
-      {tab === "pending" ? (
+      {/* Пока очередь не пуста, счётчики в строке над ней: очередь сразу под шапкой */}
+      {tab === "pending" && counts.pending === 0 ? (
         <ReviewSummary
-          pending={counts.pending}
           clarify={counts.clarify}
           confirmed={counts.confirmed}
-          clean={clean.length}
           lastChange={lastChange}
         />
       ) : null}

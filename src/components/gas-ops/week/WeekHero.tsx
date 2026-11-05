@@ -52,7 +52,7 @@ export function WeekHero({ view, today }: { view: GasWeekView; today: string }) 
     <section
       aria-label="Итог недели"
       data-testid="week-hero"
-      className="hero-gas flex flex-col gap-5 p-6 lg:p-8"
+      className="hero-gas flex flex-col gap-5 p-5 lg:p-8"
     >
       <span aria-hidden className="orb-gas -top-20 -right-10 size-72 lg:right-24" />
       <div className="flex flex-col gap-1">
@@ -86,8 +86,8 @@ export function WeekHero({ view, today }: { view: GasWeekView; today: string }) 
       {view.byDay.length ? (
         <div className="flex flex-col gap-3">
           <div
-            className="flex h-36 items-end gap-2 lg:gap-4"
-            role="list"
+            className="flex h-36 items-end gap-1 lg:gap-4"
+            role="group"
             aria-label="Начислено по дням"
           >
             {view.byDay.map((d) => {
@@ -98,7 +98,6 @@ export function WeekHero({ view, today }: { view: GasWeekView; today: string }) 
                 <button
                   key={d.day}
                   type="button"
-                  role="listitem"
                   aria-pressed={active}
                   aria-label={`${weekday(d.day)}: ${d.value === null ? "записей нет" : fmtRub(value)}`}
                   onClick={() => setDay(active ? null : d.day)}
@@ -115,7 +114,7 @@ export function WeekHero({ view, today }: { view: GasWeekView; today: string }) 
               );
             })}
           </div>
-          <div className="flex gap-2 lg:gap-4">
+          <div className="flex gap-1 lg:gap-4">
             {view.byDay.map((d) => (
               <span
                 key={d.day}

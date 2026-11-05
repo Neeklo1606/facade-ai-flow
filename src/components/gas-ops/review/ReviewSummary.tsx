@@ -1,25 +1,19 @@
 /**
- * Сводка «Проверки» в теме «Газ v4» (ADR-065): кольцо проверенного за неделю и одна строка,
- * что ждёт решения. Цифры из счётчиков очереди: принятые, ожидающие, на уточнении.
+ * Итог «Проверки» в теме «Газ v4» (ADR-065), когда новых записей не осталось: кольцо принятого
+ * за неделю и время последнего изменения. Пока очередь не пуста, счётчики показывает строка
+ * над очередью, а очередь стоит сразу под шапкой (приёмка: первая карточка не ниже 200 px).
  */
-import { plural } from "@/lib/format";
-
 export function ReviewSummary({
-  pending,
   clarify,
   confirmed,
-  clean,
   lastChange,
 }: {
-  pending: number;
   clarify: number;
   confirmed: number;
-  clean: number;
   lastChange: string | null;
 }) {
-  const total = pending + clarify + confirmed;
+  const total = clarify + confirmed;
   const share = total ? confirmed / total : 1;
-  const remarks = Math.max(0, pending - clean);
   return (
     <section
       aria-label="Итог проверки"
@@ -52,24 +46,11 @@ export function ReviewSummary({
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        {pending ? (
-          <>
-            <p className="type-kpi">
-              {pending} {plural(pending, "ждёт", "ждут", "ждут")} проверки
-            </p>
-            <p className="mt-1 type-text text-ink-2">
-              {remarks} с замечаниями · {clean} без замечаний
-              {clarify ? ` · ${clarify} на уточнении` : ""}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="type-kpi text-up">Всё проверено</p>
-            <p className="mt-1 type-text text-ink-2">
-              {lastChange ? `Отчёт обновлён в ${lastChange}` : "Новые записи появятся здесь сами"}
-            </p>
-          </>
-        )}
+        <p className="type-kpi text-up">Всё проверено</p>
+        <p className="mt-1 type-text text-ink-2">
+          {clarify ? `${clarify} на уточнении у бригадиров. ` : ""}
+          {lastChange ? `Отчёт обновлён в ${lastChange}` : "Новые записи появятся здесь сами"}
+        </p>
       </div>
     </section>
   );
