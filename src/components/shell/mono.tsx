@@ -356,6 +356,8 @@ export interface TabItem {
   to: string;
   label: string;
   icon: LucideIcon;
+  /** Главное действие роли посередине панели: тема «Газ v4» поднимает его кружком (ADR-065) */
+  raised?: boolean;
 }
 
 /**
@@ -387,6 +389,7 @@ export function PhoneTabBar({
                 to={item.to}
                 aria-current={active ? "page" : undefined}
                 data-tour={`tab-${item.key}`}
+                data-raised={item.raised || undefined}
                 onClick={(event) => {
                   if (!onSelect) return;
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0)

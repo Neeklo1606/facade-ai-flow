@@ -791,6 +791,13 @@
   --color-capsule: var(--capsule);
   --color-on-capsule: var(--on-capsule);
   --color-on-record: var(--on-record);
+  /* ADR-065: тема «Газ v4», только в контуре газа (ворота check:typography) */
+  --color-flame: var(--flame);
+  --color-on-flame: var(--on-flame);
+  --color-flame-soft: var(--flame-soft);
+  --color-flame-text: var(--flame-text);
+  --color-on-hero: var(--on-hero);
+  --color-on-hero-2: var(--on-hero-2);
   --color-up: var(--up);
   --color-up-bg: var(--up-bg);
   --color-down: var(--down);
@@ -3482,4 +3489,204 @@ main {
 /* Экран задаёт свои счётчики — строка оболочки по умолчанию прячется */
 .gas-counters-row:has(.gas-counters-custom:not(:empty)) .gas-counters-default {
   display: none;
+}
+
+/* ================================================================ Тема «Газ v4» (ADR-065) */
+/*
+ * Включается только в /gas: GasShell ставит data-skin="gas" на <html>. Тёплый холст, белые
+ * карточки с мягкой тенью, крупные скругления, оранжевый --flame у голоса и подсказок ИИ.
+ * Вне /gas атрибута нет, и токены ниже не действуют.
+ */
+:root {
+  --flame: var(--record);
+  --on-flame: var(--on-record);
+  --flame-soft: var(--accent-soft);
+  --flame-text: var(--record);
+  --on-hero: #ffffff;
+  --on-hero-2: rgba(255, 255, 255, 0.66);
+  --hero-gas: #22211e;
+  --gas-shadow: none;
+}
+:root[data-skin="gas"] {
+  --rail: #0e0e0c;
+  --canvas: #0e0e0c;
+  --card: #191916;
+  --panel-2: #22211e;
+  --panel-3: #2c2b27;
+  --line: #ffffff12;
+  --line-2: #ffffff24;
+  --ink: #f3f1ec;
+  --ink-2: #aaa69c;
+  --ink-3: #9a968c;
+  --flame: #ff7a3d;
+  --on-flame: #1a0e08;
+  --flame-soft: #3a2116;
+  --flame-text: #ff9b6b;
+  --hero-gas: #22211e;
+  --r-control: 14px;
+  --r-card: 20px;
+  --r-bubble: 24px;
+  --r-sheet: 28px;
+  --r-surface: 24px;
+  --r-inset: 18px;
+  --gas-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+:root[data-theme="light"][data-skin="gas"] {
+  --rail: #f4f2ee;
+  --canvas: #f4f2ee;
+  --card: #ffffff;
+  --panel-2: #efece6;
+  --panel-3: #e7e3db;
+  --line: #17160f14;
+  --line-2: #17160f26;
+  --ink: #17160f;
+  --ink-2: #5f5b52;
+  --ink-3: #6f6b62;
+  --inverse: #17160f;
+  --accent-hover: #2c2a22;
+  --capsule: #17160f;
+  --flame: #c94410;
+  --on-flame: #ffffff;
+  --flame-soft: #fde8dc;
+  --flame-text: #a8390c;
+  --hero-gas: #17160f;
+  --gas-shadow: 0 1px 2px rgba(23, 22, 15, 0.04), 0 8px 24px -12px rgba(23, 22, 15, 0.14);
+}
+
+/* Карточки: в светлой теме тень вместо рамки, слои различаются фоном */
+:root[data-theme="light"][data-skin="gas"] :is(.card-v3, .mono-card, .hero-field) {
+  border-color: transparent;
+  box-shadow: var(--gas-shadow);
+}
+
+/* Оболочка компьютера: меню на холсте без рамок, активный пункт белой карточкой */
+:root[data-skin="gas"] .gas-topbar {
+  background: var(--canvas);
+  border-bottom-color: transparent;
+}
+:root[data-skin="gas"] .gas-sidenav {
+  background: var(--canvas);
+  border-right-color: transparent;
+  padding-inline: 12px;
+}
+:root[data-skin="gas"] .gas-nav-item {
+  height: 44px;
+  border-radius: var(--r-control);
+  font-size: 15px;
+}
+:root[data-skin="gas"] .gas-nav-item[aria-current="page"] {
+  background: var(--card);
+  box-shadow: var(--gas-shadow);
+}
+
+/* Шапка и нижняя панель телефона: матовое стекло поверх контента */
+:root[data-skin="gas"] .gas-phone-header {
+  background: color-mix(in oklab, var(--canvas) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border-bottom-color: transparent;
+}
+:root[data-skin="gas"] .mono-tabbar {
+  background: color-mix(in oklab, var(--card) 80%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+:root[data-skin="gas"] .mono-tab[aria-current="page"] .mono-tab-icon {
+  background: var(--panel-3);
+  color: var(--ink);
+}
+
+/* Тёмная карточка главной цифры: одна на экран, свечение orb-gas за цифрой */
+@utility hero-gas {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--r-surface);
+  background: var(--hero-gas);
+  color: var(--on-hero);
+  --ink: var(--on-hero);
+  --ink-2: var(--on-hero-2);
+  --ink-3: var(--on-hero-2);
+  --panel-2: rgba(255, 255, 255, 0.1);
+  --line: rgba(255, 255, 255, 0.12);
+}
+@utility orb-gas {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 35%, #ffb27a 0%, #f0581a 38%, transparent 70%);
+  filter: blur(6px);
+  animation: orb-gas-drift 7s ease-in-out infinite;
+}
+@keyframes orb-gas-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-14px, 10px) scale(1.08);
+  }
+}
+@utility pulse-ring-gas {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid var(--flame);
+  pointer-events: none;
+  animation: pulse-ring-gas 1.6s ease-out infinite;
+}
+@keyframes pulse-ring-gas {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .orb-gas,
+  .pulse-ring-gas {
+    animation: none;
+  }
+}
+
+/* Главная цифра тёмной карточки «Газ v4»: одна на экран */
+@utility type-hero-gas {
+  font-size: clamp(2.75rem, 10vw, 4.75rem);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+/* Столбик графика по дням: высота задаётся --bar, рост при первом показе */
+@utility bar-gas {
+  height: var(--bar, 0%);
+  min-height: 4px;
+  border-radius: 12px;
+  transition:
+    height 700ms var(--ease-out),
+    background-color 150ms ease;
+}
+
+/* Нижняя панель бригадира: микрофон кружком посередине, поднят над панелью (ADR-065) */
+:root[data-skin="gas"] .mono-tab[data-raised] .mono-tab-icon {
+  width: 60px;
+  height: 60px;
+  margin-top: -26px;
+  background: var(--flame);
+  color: var(--on-flame);
+  box-shadow:
+    0 0 0 6px var(--canvas),
+    0 14px 30px -8px var(--flame);
+}
+:root[data-skin="gas"] .mono-tab[data-raised] .mono-tab-icon svg {
+  width: 26px;
+  height: 26px;
+}
+:root[data-skin="gas"] .mono-tab[data-raised][aria-current="page"] .mono-tab-icon {
+  background: var(--flame);
+  color: var(--on-flame);
 }
