@@ -1,7 +1,15 @@
 import { completePageHead } from "@/lib/page-head";
 import { track } from "@/lib/site/analytics";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -822,6 +830,7 @@ function PhoneList({
   money: boolean;
   highlight: string | null;
 }) {
+  const [day, setDay] = useState<string | null>(null);
   const brigades = rows.filter((r) => r.kind === "brigade");
   const under = (id: string): TabelRow[] => {
     const children = rows.filter((r) => r.parentId === id);
@@ -837,53 +846,94 @@ function PhoneList({
       .join(" · ");
   if (!brigades.length)
     return <EmptyBlock icon={Users} title="Ничего не найдено" text="Измените поиск." />;
+  // Полоса дней (ADR-065): часы всех бригад за день столбиком, касание оставляет один день
+  const dayMinutes = days.map((_, i) =>
+    brigades.reduce((sum, b) => sum + (b.days[i]?.minutes ?? 0), 0),
+  );
+  const maxDay = Math.max(1, ...dayMinutes);
+  const pickedIndex = day === null ? -1 : days.indexOf(day);
   return (
-    <ul className="flex flex-col gap-block" aria-label="Табель по бригадам">
-      {brigades.map((brigade) => (
-        <li key={brigade.id}>
-          <details
-            className="surface-1 group"
-            data-tabel-brigade={brigade.id}
-            open={!!highlight && brigade.total.entryIds.includes(highlight)}
-          >
-            <summary className="flex min-h-row-compact cursor-pointer list-none items-center justify-between gap-3 px-row focus-ring [&::-webkit-details-marker]:hidden">
-              <span className="text-body-strong">{brigade.label}</span>
-              <span className="text-meta text-text-2 tnum">{triple(brigade.total)}</span>
-            </summary>
-            <ul className="border-t border-line">
-              {under(brigade.id).map((address) => (
-                <li
-                  key={address.id}
-                  data-tour={
-                    highlight && address.total.entryIds.includes(highlight)
-                      ? "report-row"
-                      : undefined
-                  }
-                  className="border-b border-line px-row py-2 last:border-b-0"
-                >
-                  <p className="text-body">{address.label}</p>
-                  <ul className="mt-1 flex flex-col gap-0.5">
-                    {address.days.map((cell, i) =>
-                      cell.entryIds.length ? (
-                        <li
-                          key={days[i]}
-                          className={cn(
-                            "flex justify-between gap-2 rounded-sm px-1 text-meta tnum",
-                            cell.status === "draft" && "bg-warn-bg italic",
-                          )}
-                        >
-                          <span className="text-text-2">{dayLabel(days[i]!)}</span>
-                          <span>{triple(cell)}</span>
-                        </li>
-                      ) : null,
-                    )}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          </details>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-block">
+      <div role="group" aria-label="День недели" className="card-v3 flex gap-1 p-1.5">
+        {days.map((d, i) => {
+          const on = day === d;
+          return (
+            <button
+              key={d}
+              type="button"
+              aria-pressed={on}
+              aria-label={`${dayLabel(d)}: ${dayMinutes[i] ? fmtHours(dayMinutes[i]! / 60) : "записей нет"}`}
+              onClick={() => setDay(on ? null : d)}
+              className={cn(
+                "flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-control px-1 py-2.5 transition-colors focus-ring",
+                on ? "bg-inverse text-on-inverse" : "is-hover:bg-surface-2",
+              )}
+            >
+              <span className="type-small opacity-70">{dayLabel(d).slice(0, 2)}</span>
+              <span className="flex h-10 w-2.5 items-end overflow-hidden rounded-pill bg-surface-2">
+                <span
+                  className={cn("bar-gas block w-full", on ? "bg-flame" : "bg-ink-3")}
+                  style={{ "--bar": `${(dayMinutes[i]! / maxDay) * 100}%` } as CSSProperties}
+                />
+              </span>
+              <span className="type-small font-semibold tnum">
+                {dayMinutes[i] ? Math.round(dayMinutes[i]! / 60) : "–"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <ul className="flex flex-col gap-block" aria-label="Табель по бригадам">
+        {brigades.map((brigade) => (
+          <li key={brigade.id}>
+            <details
+              className="surface-1 group"
+              data-tabel-brigade={brigade.id}
+              open={!!highlight && brigade.total.entryIds.includes(highlight)}
+            >
+              <summary className="flex min-h-row-compact cursor-pointer list-none items-center justify-between gap-3 px-row focus-ring [&::-webkit-details-marker]:hidden">
+                <span className="text-body-strong">{brigade.label}</span>
+                <span className="text-meta text-text-2 tnum">
+                  {pickedIndex >= 0
+                    ? triple(brigade.days[pickedIndex]!) || "нет записей"
+                    : triple(brigade.total)}
+                </span>
+              </summary>
+              <ul className="border-t border-line">
+                {under(brigade.id).map((address) => (
+                  <li
+                    key={address.id}
+                    data-tour={
+                      highlight && address.total.entryIds.includes(highlight)
+                        ? "report-row"
+                        : undefined
+                    }
+                    className="border-b border-line px-row py-2 last:border-b-0"
+                  >
+                    <p className="text-body">{address.label}</p>
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {address.days.map((cell, i) =>
+                        cell.entryIds.length && (pickedIndex < 0 || pickedIndex === i) ? (
+                          <li
+                            key={days[i]}
+                            className={cn(
+                              "flex justify-between gap-2 rounded-sm px-1 text-meta tnum",
+                              cell.status === "draft" && "bg-warn-bg italic",
+                            )}
+                          >
+                            <span className="text-text-2">{dayLabel(days[i]!)}</span>
+                            <span>{triple(cell)}</span>
+                          </li>
+                        ) : null,
+                      )}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

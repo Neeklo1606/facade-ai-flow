@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Clock3,
   MessageCircleQuestion,
+  Mic,
   Plus,
   Repeat,
 } from "lucide-react";
@@ -471,16 +472,21 @@ export function BrigadeToday() {
             <ChevronRight className="size-5 shrink-0" aria-hidden />
           </a>
         ) : null}
-        <Card as="div" className="flex flex-col gap-2">
-          <h2 className="type-label text-ink-2">Сдано сегодня</h2>
+        {/* Тема «Газ v4» (ADR-065): итог дня тёмной карточкой, часы крупной цифрой */}
+        <div className="hero-gas flex flex-col gap-3 p-6" data-testid="today-hero">
+          <span aria-hidden className="orb-gas -top-16 -right-10 size-56" />
+          <h2 className="type-label text-on-hero-2">Сдано сегодня</h2>
+          <p className="type-hero-gas">
+            {today.length === 0 ? "0 ч" : minutesText(today.reduce((sum, e) => sum + e.minutes, 0))}
+          </p>
           {today.length === 0 ? (
-            <p className="type-text text-ink-3">Записей пока нет.</p>
+            <p className="type-text text-on-hero-2">Записей пока нет.</p>
           ) : (
             <ul className="flex flex-col gap-1" aria-label="Сдано сегодня">
               {today.map((e) => (
                 <li key={e.id} className="type-text">
                   <span className="font-medium">{e.objectLabel}</span>
-                  <span className="text-ink-2">
+                  <span className="text-on-hero-2">
                     {" "}
                     · {e.startMinutes !== null ? entryFrame(e) : minutesText(e.minutes)}
                     {e.headcount ? ` · ${e.headcount} чел.` : ""} · {STATUS_SHORT[e.status]}
@@ -489,7 +495,23 @@ export function BrigadeToday() {
               ))}
             </ul>
           )}
-        </Card>
+        </div>
+        <Link
+          to="/gas/foreman"
+          data-testid="today-voice"
+          className="card-v3 focus-ring flex items-center gap-4 p-3"
+        >
+          <span className="relative grid size-16 shrink-0 place-items-center rounded-pill bg-flame text-on-flame">
+            <span aria-hidden className="pulse-ring-gas" />
+            <Mic className="size-7" aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="block type-card">Скажите, что сделали</span>
+            <span className="block type-label text-ink-2">
+              «Заводская, с 8 до 17, вчетвером, обед час». В боте MAX, демо
+            </span>
+          </span>
+        </Link>
         {expected.length > 0 ? (
           <p className="type-label text-ink-2">
             По графику ещё {expected.length}{" "}

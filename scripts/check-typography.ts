@@ -42,6 +42,10 @@ const RECORD_ALLOWED = new Set([
   "src/components/site/SiteLayout.tsx",
   "src/components/design-system/MonochromeGallery.tsx",
 ]);
+/** ADR-065: оранжевый темы «Газ v4» (`*-flame`, `var(--flame…)`) только в контуре газа */
+const FLAME_ROOTS = ["src/components/gas-ops/", "src/routes/gas/"];
+const FLAME_TOKEN =
+  /\b(?:bg|text|border|ring|fill|stroke|outline|shadow|from|to|via|decoration)-(?:on-)?flame(?:-[a-z]+)?\b|var\(--(?:on-)?flame(?:-[a-z]+)?\)/g;
 /** Классы и переменные, а не слово «record» в коде: только внутри строк и className */
 const RECORD_TOKEN =
   /\b(?:bg|text|border|ring|fill|stroke|outline|glow|shadow|from|to|via)-(?:on-)?record\b|var\(--(?:on-)?record\)/g;
@@ -76,6 +80,9 @@ interface Budget {
 const current = count(PATTERN);
 const recordOutside = Object.entries(count(RECORD_TOKEN)).filter(
   ([path]) => !RECORD_ALLOWED.has(path),
+);
+const flameOutside = Object.entries(count(FLAME_TOKEN)).filter(
+  ([path]) => !FLAME_ROOTS.some((root) => path.startsWith(root)),
 );
 const colors = count(COLOR);
 const colorTotal = Object.values(colors).reduce((a, n) => a + n, 0);
@@ -124,6 +131,14 @@ if (recordOutside.length) {
     "Оранжевый бренда вне записи голоса и знака лендинга (ADR-055). В приложении действие чёрное: bg-accent, bg-inverse:",
   );
   for (const [path, n] of recordOutside) console.error(`  ${path}: ${n}`);
+  process.exit(1);
+}
+
+if (flameOutside.length) {
+  console.error(
+    "Оранжевый темы «Газ v4» вне контура газа (ADR-065): только src/components/gas-ops и src/routes/gas:",
+  );
+  for (const [path, n] of flameOutside) console.error(`  ${path}: ${n}`);
   process.exit(1);
 }
 

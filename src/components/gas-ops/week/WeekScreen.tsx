@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { NotCalculated } from "../review/remarks";
 import { FinalCheckBlock } from "../report/FinalCheckBlock";
 import { ReconcileUpload } from "./ReconcileUpload";
+import { WeekHero } from "./WeekHero";
 import { ScreenActions, ScreenCounters } from "../shell/screen-header";
 import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, Lock, Unlock } from "lucide-react";
 import { useRef, useState } from "react";
@@ -202,6 +203,8 @@ export function WeekScreen() {
           )}
         </p>
       </ScreenCounters>
+
+      <WeekHero view={view} today={week.today} />
 
       {view.ready && canClose ? (
         <section

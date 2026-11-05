@@ -18,6 +18,7 @@ import {
   Info,
   LogOut,
   MessageSquareWarning,
+  Mic,
   MoreHorizontal,
   RotateCcw,
   Search,
@@ -137,6 +138,17 @@ export function GasShell({ children }: { children: ReactNode }) {
   );
 }
 
+/** Тема «Газ v4» (ADR-065): атрибут на <html>, чтобы шторки и окна в порталах тоже её брали */
+function useGasSkin() {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset["skin"] = "gas";
+    return () => {
+      delete root.dataset["skin"];
+    };
+  }, []);
+}
+
 function GasShellFrame({ children }: { children: ReactNode }) {
   // Введённые записи переживают перезагрузку: снимок поднимается после первой отрисовки
   useGasHydration();
@@ -155,6 +167,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   useInstallHint();
   const network = useOffline();
   const contourKind = useGasContour().kind;
+  useGasSkin();
   // Высота липкого верха: экран бота занимает остаток высоты
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1149,12 +1162,17 @@ function GasBottomNav({ pathname }: { pathname: string }) {
 
   // Нижняя панель «Монохрома» (2.5): 64 + safe-area, активный — чёрная таблетка за иконкой
   const items: TabItem[] = [
-    ...tabs.map((tab) => ({
-      key: tab.key,
-      to: tab.to,
-      label: (foreman ? FOREMAN_TAB_LABEL[tab.key] : undefined) ?? tab.short,
-      icon: SCREEN_ICON[tab.key],
-    })),
+    ...tabs.map((tab) => {
+      // У бригадира бот — главный вход голосом: кружок микрофона посередине (ADR-065)
+      const voice = foreman && tab.key === "foreman";
+      return {
+        key: tab.key,
+        to: tab.to,
+        label: (foreman ? FOREMAN_TAB_LABEL[tab.key] : undefined) ?? tab.short,
+        icon: voice ? Mic : SCREEN_ICON[tab.key],
+        raised: voice,
+      };
+    }),
     foreman
       ? { key: GAS_MORE_TAB.key, to: GAS_MORE_TAB.root, label: "Профиль", icon: UserRound }
       : { key: GAS_MORE_TAB.key, to: GAS_MORE_TAB.root, label: "Ещё", icon: MoreHorizontal },

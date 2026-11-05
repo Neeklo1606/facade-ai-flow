@@ -5,7 +5,7 @@
  */
 import { showDemoMarks } from "@/lib/cabinet";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, UserMinus, UserPlus } from "lucide-react";
+import { ArrowUpRight, Upload, UserMinus, UserPlus } from "lucide-react";
 import { useState } from "react";
 import {
   CREW_ROLE_LABEL,
@@ -98,19 +98,31 @@ function ImportCard() {
   const rates = actor.role === "director" || actor.isAdmin;
   if (!office && !rates) return null;
   return (
-    <Card title="Загрузить списком из Excel">
-      <div className="flex flex-col gap-3">
-        <p className="type-small text-ink-3">
-          Мастер покажет, что добавится, обновится и что пропущено с причиной. У каждого списка свой
-          шаблон .xlsx.
-        </p>
-        <div className="flex flex-wrap gap-2">
+    // Тема «Газ v4» (ADR-065): одна зона загрузки, мастер прежний и показывает изменения
+    <section
+      aria-labelledby="directory-import"
+      className="rounded-surface border-2 border-dashed border-line-2 bg-surface p-6 lg:p-8"
+    >
+      <div className="flex flex-col items-center gap-4 text-center lg:flex-row lg:text-left">
+        <span className="grid size-16 shrink-0 place-items-center rounded-card bg-inverse text-on-inverse">
+          <Upload className="size-7" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 id="directory-import" className="type-card">
+            Загрузить списком из Excel
+          </h2>
+          <p className="mt-1 type-text text-ink-2">
+            Мастер покажет, что добавится, обновится и что пропущено с причиной. У каждого списка
+            свой шаблон .xlsx.
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-2">
           {office ? <DirectoryImport kind="brigades" /> : null}
           {office ? <DirectoryImport kind="employees" /> : null}
           {rates ? <DirectoryImport kind="rates" /> : null}
         </div>
       </div>
-    </Card>
+    </section>
   );
 }
 
