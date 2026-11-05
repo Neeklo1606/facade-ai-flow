@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCheck, ClipboardCheck, Inbox } from "lucide-react";
 import { ModeSuggestion } from "@/components/gas-ops/review/ModeSuggestion";
 import { QueueCard } from "@/components/gas-ops/review/QueueCard";
+import { ReviewSummary } from "@/components/gas-ops/review/ReviewSummary";
 import {
   ReviewPanel,
   type CorrectInput,
@@ -474,6 +475,16 @@ function ModerationPage() {
       </ScreenActions>
 
       <ModeSuggestion />
+
+      {tab === "pending" ? (
+        <ReviewSummary
+          pending={counts.pending}
+          clarify={counts.clarify}
+          confirmed={counts.confirmed}
+          clean={clean.length}
+          lastChange={lastChange}
+        />
+      ) : null}
 
       <ScreenCounters>
         <div

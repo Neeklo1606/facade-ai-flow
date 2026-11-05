@@ -3690,3 +3690,7 @@ main {
   background: var(--flame);
   color: var(--on-flame);
 }
+:root[data-theme="light"][data-skin="gas"] .surface-1 {
+  border-color: transparent;
+  box-shadow: var(--gas-shadow);
+}
