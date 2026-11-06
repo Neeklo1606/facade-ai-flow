@@ -19,7 +19,12 @@ import type {
   WorkObject,
 } from "@/domain/gas-ops/model";
 import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
-import type { CostRule, CostRuleTerm, EstimateVersion } from "@/domain/gas-ops/work-cost";
+import type {
+  CorrectionTarget,
+  CostRule,
+  CostRuleTerm,
+  EstimateVersion,
+} from "@/domain/gas-ops/work-cost";
 import type {
   DirectoryKind,
   DirectoryRow,
@@ -234,6 +239,16 @@ export interface GasOpsPort {
   /** Сметчик проверил замечания разбора */
   reviewEstimateIssues(id: string): Promise<EstimateVersion>;
   /**
+   * Поправить значение разбора до подтверждения (ADR-066): итог, раздел или строку ниже
+   * «ВСЕГО». Основание обязательно, «было» сохраняется, правка пишется в журнал
+   */
+  correctEstimateValue(input: {
+    id: string;
+    target: CorrectionTarget;
+    kopecks: number;
+    note: string;
+  }): Promise<EstimateVersion>;
+  /**
    * Подтвердить версию: стоимость объекта по правилу, пересчёт неподтверждённых записей,
    * пометка сданных отчётов «требует обновления»
    */
@@ -324,6 +339,8 @@ export interface GasOpsPort {
   undoDirectoryImport(input: { id: string }): Promise<{ added: number; updated: number }>;
   /** Добавить объект вручную (F3): адрес, свой номер, вид работ */
   addObject(input: { label: string; code: string; workType: string | null }): Promise<WorkObject>;
+  /** Добавить бригаду вручную (ADR-066): название уникально, подразделение из справочника */
+  addBrigade(input: { name: string; groupId: string; phone: string | null }): Promise<Brigade>;
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }
@@ -347,6 +364,7 @@ export const GAS_OPS_METHODS = [
   "setUserRole",
   "linkEstimateVersion",
   "reviewEstimateIssues",
+  "correctEstimateValue",
   "confirmEstimateVersion",
   "confirmCostRule",
   "saveCostRule",
@@ -368,6 +386,7 @@ export const GAS_OPS_METHODS = [
   "importDirectory",
   "undoDirectoryImport",
   "addObject",
+  "addBrigade",
   "reset",
 ] as const satisfies readonly (keyof GasOpsPort)[];
 

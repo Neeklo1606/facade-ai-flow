@@ -48,6 +48,8 @@ export interface GasScreen {
   roles: readonly Role[];
   /** Два-три шага действием: строка «Что делать здесь» под заголовком */
   steps: readonly string[];
+  /** Экраны-вкладки раздела: пункт меню подсвечен и на них (ADR-066) */
+  alsoActive?: readonly string[];
 }
 
 /** Роли учёта времени (модуль 1): журнал записей и прежние экраны контура */
@@ -111,6 +113,7 @@ export const GAS_SCREENS: readonly GasScreen[] = [
     short: "Справочн.",
     group: "catalogs",
     roles: ["admin", "manager", "director"],
+    alsoActive: ["/gas/estimates", "/gas/objects", "/gas/brigades", "/gas/employees"],
     steps: [
       "Проверьте состав бригад: кто и с какой даты в бригаде.",
       "Задайте ставки с датой начала: без них стоимость труда скрыта.",
@@ -497,9 +500,13 @@ export const ROLE_NAV: Record<Role, readonly GasNavSection[]> = {
    * Экраны не удалены: журнал, объекты, бригады, сотрудники и сметы открываются из «Ещё»
    * и поиска, ссылки на них ведут как раньше
    */
+  /*
+   * ADR-066: сметы, объекты, бригады и сотрудники открываются вкладками «Справочников», а не
+   * вторым пунктом меню рядом с ними. Экраны и ссылки на них прежние
+   */
   manager: [
     { group: "work", items: ["moderation", "reports", "week", "directory"] },
-    { group: "more", items: ["entries", "estimates", "objects", "brigades", "employees"] },
+    { group: "more", items: ["entries"] },
   ],
   director: [
     { group: "work", items: ["week"] },
@@ -520,7 +527,7 @@ export const ROLE_NAV: Record<Role, readonly GasNavSection[]> = {
     { group: "work", items: ["directory", "moderation", "reports", "week", "admin"] },
     {
       group: "more",
-      items: ["entries", "estimates", "objects", "brigades", "employees", "supply", "docs"],
+      items: ["entries", "supply", "docs"],
     },
   ],
   foreman: [],

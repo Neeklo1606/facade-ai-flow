@@ -25,13 +25,18 @@ import {
   suggestEstimateObject,
   useGasEstimateActions,
   useGasWorkCost,
+  correctionOf,
   type CostRule,
   type EstimateVersion,
+  type TotalKey,
   type WorkCostRow,
 } from "@/api/gas-estimates";
 import { toast } from "@/lib/toast";
 import { ImportWizard, type WizardState } from "@/components/gas-ops/import/ImportWizard";
 import { RuleBuilder } from "@/components/gas-ops/estimates/RuleBuilder";
+import { EditableAmount } from "@/components/gas-ops/estimates/EditableAmount";
+import { FilterChip, FilterRow } from "@/components/gas-ops/filters/FilterChip";
+import { SearchBar } from "@/components/ui/kit/controls";
 import { cn } from "@/lib/utils";
 
 /**
@@ -66,6 +71,8 @@ function EstimatesPage() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(false);
+  const [query, setQuery] = useState("");
+  const [has, setHas] = useState("all");
   // Конструктор правила (F2): компании или объекта, пример на смете версии
   const [builder, setBuilder] = useState<{
     objectId: string | null;
@@ -89,6 +96,14 @@ function EstimatesPage() {
   const object = directory.objects.find((o) => o.id === objectId) ?? null;
   const opened = versions.find((v) => v.id === openId) ?? null;
   const pending = versions.filter((v) => v.confirmedAt === null);
+  const text = query.trim().toLowerCase();
+  const listed = rows.filter(
+    (r) =>
+      (has === "all" || (has === "yes") === hasCost(r)) &&
+      (!text ||
+        r.object.label.toLowerCase().includes(text) ||
+        r.object.code.toLowerCase().includes(text)),
+  );
   const ruleOf = (objectIdOf: string | null): CostRule =>
     rows.find((r) => r.object.id === objectIdOf)?.rule ?? companyRule;
 
@@ -197,8 +212,41 @@ function EstimatesPage() {
         <h2 id="estimates-list" className="flex h-7 items-center text-meta text-text-3">
           Объекты и стоимость работ
         </h2>
-        <ul className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
-          {rows.map((row) => (
+        <div className="mb-2 flex flex-col gap-2 md:flex-row md:items-center">
+          <SearchBar
+            className="min-w-0 md:w-80"
+            label="Поиск объекта"
+            placeholder="Адрес или номер"
+            value={query}
+            onChange={setQuery}
+          />
+          <FilterRow active={Number(has !== "all")} onReset={() => setHas("all")}>
+            <FilterChip
+              label="Стоимость"
+              value={has}
+              onChange={setHas}
+              options={[
+                {
+                  value: "yes",
+                  label: "Есть стоимость",
+                  hint: String(rows.filter((r) => hasCost(r)).length),
+                },
+                {
+                  value: "no",
+                  label: "Нет сметы",
+                  hint: String(rows.filter((r) => !hasCost(r)).length),
+                },
+              ]}
+            />
+          </FilterRow>
+        </div>
+        {listed.length === 0 ? (
+          <p className="surface-1 px-row py-6 text-center text-body text-text-3">
+            Ничего не нашлось. Сбросьте поиск или фильтр.
+          </p>
+        ) : null}
+        <ul className="surface-1 overflow-hidden empty:hidden [&>li+li]:border-t [&>li+li]:border-line">
+          {listed.map((row) => (
             <li key={row.object.id}>
               <ObjectRow row={row} />
             </li>
@@ -485,6 +533,11 @@ const ESTIMATE_STATUS: Record<string, { word: string; dot: string }> = {
   missing: { word: "Нет сметы", dot: "bg-text-3" },
 };
 
+/** У объекта есть стоимость: подтверждённая смета или ручной ввод */
+function hasCost(row: WorkCostRow): boolean {
+  return !!row.estimate && row.estimate.status !== "missing";
+}
+
 function ObjectRow({ row }: { row: WorkCostRow }) {
   const { object, estimate, confirmed, norm } = row;
   const ownRule = row.rule.objectId === object.id;
@@ -552,6 +605,8 @@ function VersionSheet({
   const confirmed = version.confirmedAt !== null;
   const ownRule = rule.objectId !== null && rule.objectId === version.objectId;
   const desktop = useIsDesktop();
+  // Правка значений до подтверждения: то, о чём договорились с заказчиком (ADR-066)
+  const editable = canManage && !confirmed;
 
   const link = async (id: string) => {
     const result = await estimateActions.link({ id: version.id, objectId: id });
@@ -678,19 +733,23 @@ function VersionSheet({
           <h3 id="estimate-totals" className="text-meta-strong text-text-2">
             Итоги сметы
           </h3>
-          <table className="mt-1 w-full text-body">
-            <tbody className="divide-y divide-line">
-              {view.totals.map((row) => (
-                <tr key={row.key}>
-                  <th scope="row" className="py-2 pe-3 text-left font-normal text-text-2">
-                    {row.label}
-                    <span className="block text-meta text-text-3">строка {row.row}</span>
-                  </th>
-                  <td className="py-2 text-right tnum">{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="mt-1 divide-y divide-line">
+            {view.totals.map((row) => {
+              const target = { kind: "total", key: row.key as TotalKey } as const;
+              return (
+                <EditableAmount
+                  key={row.key}
+                  versionId={version.id}
+                  target={target}
+                  label={row.label}
+                  row={row.row}
+                  kopecks={version.totals[row.key as TotalKey]?.kopecks ?? 0}
+                  correction={correctionOf(version, target)}
+                  canEdit={editable}
+                />
+              );
+            })}
+          </ul>
         </section>
 
         {view.sections.length > 0 ? (
@@ -698,19 +757,23 @@ function VersionSheet({
             <h3 id="estimate-sections" className="text-meta-strong text-text-2">
               Разделы
             </h3>
-            <table className="mt-1 w-full text-body">
-              <tbody className="divide-y divide-line">
-                {view.sections.map((section) => (
-                  <tr key={section.row}>
-                    <th scope="row" className="py-2 pe-3 text-left font-normal">
-                      {section.title}
-                      <span className="block text-meta text-text-3">строка {section.row}</span>
-                    </th>
-                    <td className="py-2 text-right tnum">{section.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className="mt-1 divide-y divide-line">
+              {version.sections.map((section) => {
+                const target = { kind: "section", row: section.row } as const;
+                return (
+                  <EditableAmount
+                    key={section.row}
+                    versionId={version.id}
+                    target={target}
+                    label={section.title}
+                    row={section.row}
+                    kopecks={section.kopecks}
+                    correction={correctionOf(version, target)}
+                    canEdit={editable}
+                  />
+                );
+              })}
+            </ul>
             {view.sectionsNote ? (
               <p className="mt-1 text-meta text-text-3">{view.sectionsNote}</p>
             ) : null}
@@ -722,19 +785,23 @@ function VersionSheet({
             <h3 id="estimate-extras" className="text-meta-strong text-text-2">
               Ниже «ВСЕГО по смете»
             </h3>
-            <table className="mt-1 w-full text-body">
-              <tbody className="divide-y divide-line">
-                {view.extras.map((extra) => (
-                  <tr key={extra.row}>
-                    <th scope="row" className="py-2 pe-3 text-left font-normal">
-                      {extra.label}
-                      <span className="block text-meta text-text-3">строка {extra.row}</span>
-                    </th>
-                    <td className="py-2 text-right tnum">{extra.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className="mt-1 divide-y divide-line">
+              {(version.extras ?? []).map((extra) => {
+                const target = { kind: "extra", row: extra.row } as const;
+                return (
+                  <EditableAmount
+                    key={extra.row}
+                    versionId={version.id}
+                    target={target}
+                    label={extra.label}
+                    row={extra.row}
+                    kopecks={extra.kopecks}
+                    correction={correctionOf(version, target)}
+                    canEdit={editable}
+                  />
+                );
+              })}
+            </ul>
             <p className="mt-1 text-meta text-text-3">
               В итог не входят. Взять в стоимость можно в «Своё правило для объекта» или в правиле
               компании.

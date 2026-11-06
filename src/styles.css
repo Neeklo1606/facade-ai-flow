@@ -3697,3 +3697,248 @@ main {
   border-color: transparent;
   box-shadow: var(--gas-shadow);
 }
+
+/* ------------------------------------------------------------------------------------------
+ * «Газ v5» (ADR-066): фильтр-чипы, список вариантов, меню выгрузки, сетка табеля.
+ * Классы работают и без темы газа: цвета через общие токены, оранжевый только у выбранного.
+ * ---------------------------------------------------------------------------------------- */
+.filter-chip {
+  display: inline-flex;
+  min-height: 44px;
+  max-width: 260px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  padding-inline: 14px 12px;
+  font-size: var(--type-body);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition:
+    background-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    transform 120ms var(--ease-out);
+}
+.filter-chip:hover {
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.filter-chip:active {
+  transform: scale(0.97);
+}
+.filter-chip[data-active] {
+  background: var(--flame-soft);
+  color: var(--flame-text);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--flame) 40%, transparent);
+}
+.filter-chip[data-active] .text-ink-3 {
+  color: color-mix(in oklab, var(--flame-text) 70%, transparent);
+}
+.filter-chip-caret {
+  transition: transform 200ms var(--ease-out);
+}
+.filter-chip[aria-expanded="true"] .filter-chip-caret {
+  transform: rotate(180deg);
+}
+.filter-chip-clear {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin-inline-start: -6px;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--flame-text);
+}
+.filter-row {
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar {
+  display: none;
+}
+.filter-pop {
+  border-radius: var(--r-card, 16px);
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 18px 48px -12px rgba(20, 18, 12, 0.28);
+}
+.filter-option {
+  display: flex;
+  min-height: 44px;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--r-control, 10px);
+  padding-inline: 12px;
+  color: var(--ink);
+  transition: background-color 120ms var(--ease-out);
+}
+.filter-option:hover,
+.filter-option:focus-visible {
+  background: var(--panel-2);
+}
+.filter-option[aria-selected="true"] {
+  font-weight: 600;
+}
+/* Мышь на широком экране: чип ниже, строка инструментов остаётся одной (касание от 44 на телефоне) */
+@media (min-width: 1024px) and (pointer: fine) {
+  .filter-chip {
+    min-height: 36px;
+  }
+  .filter-chip-clear {
+    width: 36px;
+    height: 36px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .filter-chip,
+  .filter-chip-caret {
+    transition: none;
+  }
+}
+
+/* Пункт меню выгрузки: значок, название и что войдёт в файл */
+.export-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+/* Сетка табеля в теме газа: выходные штриховкой, а не заливкой; уровни строк по весу */
+:root[data-skin="gas"] .gas-grid td[data-status="off"] {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    color-mix(in oklab, var(--line) 45%, transparent) 6px 7px
+  );
+}
+:root[data-skin="gas"] .gas-grid tr[data-kind="group"] > * {
+  background-color: color-mix(in oklab, var(--panel-2) 80%, var(--surface));
+}
+:root[data-skin="gas"] .gas-grid tr[data-kind="total"] > * {
+  border-top: 2px solid var(--ink);
+}
+:root[data-skin="gas"] .gas-grid td[data-status="draft"] {
+  background-color: color-mix(in oklab, var(--flame-soft) 70%, var(--surface));
+  font-style: normal;
+}
+:root[data-skin="gas"] .gas-grid td[data-status="draft"]::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-inline-end: 6px;
+  border-radius: 999px;
+  background: var(--flame);
+  vertical-align: 1px;
+}
+.filter-panel {
+  max-height: min(70dvh, 560px);
+}
+.filter-panel .filter-list {
+  max-height: 224px;
+}
+/* Вкладки «Справочников»: дорожка и выбранная вкладка карточкой */
+.dir-tab {
+  transition:
+    background-color 180ms var(--ease-out),
+    color 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out);
+}
+.dir-tab:hover {
+  color: var(--ink);
+}
+.dir-tab[aria-current="page"] {
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow:
+    0 1px 2px rgba(20, 18, 12, 0.08),
+    0 0 0 1px var(--line);
+}
+/* Доля в начислении недели: полоса растёт один раз при появлении */
+.share-bar {
+  width: var(--share);
+  animation: share-grow 600ms var(--ease-out) both;
+}
+@keyframes share-grow {
+  from {
+    width: 0;
+  }
+}
+/* Готовность недели: решённые причины зелёным, оставшиеся оранжевым */
+.ready-track {
+  display: flex;
+  height: 8px;
+  gap: 3px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+}
+.ready-track > span {
+  border-radius: var(--r-pill);
+  transition: flex-grow 400ms var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .share-bar {
+    animation: none;
+  }
+  .ready-track > span {
+    transition: none;
+  }
+}
+/* Чат агента: появление панели, реплики, «печатает» тремя точками */
+.agent-panel {
+  animation: agent-in 260ms var(--ease-out) both;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@keyframes agent-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.agent-bubble,
+.agent-bubble-user {
+  animation: agent-msg 220ms var(--ease-out) both;
+}
+@keyframes agent-msg {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.agent-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.agent-dots > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--flame);
+  animation: agent-dot 1s ease-in-out infinite;
+}
+.agent-dots > span:nth-child(2) {
+  animation-delay: 150ms;
+}
+.agent-dots > span:nth-child(3) {
+  animation-delay: 300ms;
+}
+@keyframes agent-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-panel,
+  .agent-bubble,
+  .agent-bubble-user,
+  .agent-dots > span {
+    animation: none;
+  }
+}

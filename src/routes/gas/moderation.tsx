@@ -15,8 +15,8 @@ import { StatusPills } from "@/components/gas-ops/review/remarks";
 import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
 import { ScreenActions, ScreenCounters } from "@/components/gas-ops/shell/screen-header";
 import { Button } from "@/components/ui/button";
-import { FiltersButton, SearchBar } from "@/components/ui/kit/controls";
-import { FiltersSheet } from "@/components/ui/kit/sheet";
+import { SearchBar } from "@/components/ui/kit/controls";
+import { FilterChip, FilterRow } from "@/components/gas-ops/filters/FilterChip";
 import { EmptyBlock } from "@/components/ui/kit/states";
 import {
   costBreakdown,
@@ -121,7 +121,6 @@ function ModerationPage() {
   const [brigadeId, setBrigadeId] = useState("all");
   const [kind, setKind] = useState<KindFilter>("all");
   const [search, setSearch] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const counts = useGasQueueCounts();
   const rows = useGasQueue(tab);
@@ -396,29 +395,6 @@ function ModerationPage() {
     counts.clarify ? `${counts.clarify} на уточнении` : null,
   ].filter((part): part is string => !!part);
 
-  const select = (
-    label: string,
-    value: string,
-    onChange: (value: string) => void,
-    options: { value: string; label: string }[],
-  ) => (
-    <label className="relative min-w-0">
-      <span className="sr-only">{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={`h-control-sm max-w-[176px] truncate rounded-control border bg-surface ps-3 pe-7 text-body text-text focus-ring ${value !== "all" ? "border-text" : "border-line-2"}`}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-
   const bulk = (
     <Button
       data-tour="review-accept-clean"
@@ -431,18 +407,48 @@ function ModerationPage() {
     </Button>
   );
 
-  const option = (on: boolean, label: string, pick: () => void) => (
-    <button
-      key={label}
-      type="button"
-      aria-pressed={on}
-      onClick={pick}
-      className={`inline-flex min-h-11 items-center rounded-full border px-3 text-body focus-ring ${
-        on ? "border-orange-strong bg-orange-dim text-text" : "border-line-2 text-text-2"
-      }`}
-    >
-      {label}
-    </button>
+  const count = (key: (v: (typeof rows)[number]) => string) => {
+    const map = new Map<string, number>();
+    for (const v of rows) map.set(key(v), (map.get(key(v)) ?? 0) + 1);
+    return map;
+  };
+  const byObject = count((v) => v.entry.objectId);
+  const byBrigade = count((v) => v.entry.brigadeId);
+  const filters = (compact: boolean) => (
+    <FilterRow active={activeFilters} onReset={resetFilters}>
+      <FilterChip
+        label="Тип замечания"
+        compact={compact}
+        allLabel="Все замечания"
+        value={kind}
+        onChange={(value) => setKind(value as KindFilter)}
+        options={KIND_OPTIONS.filter((o) => o.value !== "all")}
+      />
+      <FilterChip
+        label="Бригада"
+        compact={compact}
+        allLabel="Все бригады"
+        value={brigadeId}
+        onChange={setBrigadeId}
+        options={queueBrigades.map(([id, brigade]) => ({
+          value: id,
+          label: brigade?.name ?? id,
+          hint: String(byBrigade.get(id) ?? 0),
+        }))}
+      />
+      <FilterChip
+        label="Объект"
+        compact={compact}
+        allLabel="Все объекты"
+        value={objectId}
+        onChange={setObjectId}
+        options={queueObjects.map(([id, object]) => ({
+          value: id,
+          label: object?.label ?? objectName(id),
+          hint: object?.code ?? String(byObject.get(id) ?? 0),
+        }))}
+      />
+    </FilterRow>
   );
 
   return (
@@ -450,18 +456,7 @@ function ModerationPage() {
       <ScreenActions>
         {desktop ? (
           <>
-            {select("Объект", objectId, setObjectId, [
-              { value: "all", label: "Все объекты" },
-              ...queueObjects.map(([id, object]) => ({
-                value: id,
-                label: object?.code ?? object?.label ?? objectName(id),
-              })),
-            ])}
-            {select("Бригада", brigadeId, setBrigadeId, [
-              { value: "all", label: "Все бригады" },
-              ...queueBrigades.map(([id, brigade]) => ({ value: id, label: brigade?.name ?? id })),
-            ])}
-            {select("Тип замечания", kind, (value) => setKind(value as KindFilter), KIND_OPTIONS)}
+            {filters(true)}
             <SearchBar
               className="w-[200px] [&_input]:h-control-sm"
               label="Поиск в очереди"
@@ -526,9 +521,9 @@ function ModerationPage() {
             value={search}
             onChange={setSearch}
           />
-          <FiltersButton active={activeFilters} onClick={() => setFiltersOpen(true)} />
         </div>
       )}
+      {desktop ? null : <div className="mb-3">{filters(false)}</div>}
 
       <div className="grid min-w-0 gap-section md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6">
         <div className="min-w-0">
@@ -625,38 +620,6 @@ function ModerationPage() {
           {panel}
         </PhoneSheet>
       )}
-
-      <FiltersSheet
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        count={ordered.length}
-        onReset={resetFilters}
-      >
-        <section>
-          <h3 className="text-meta-strong text-text-2">Тип замечания</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {KIND_OPTIONS.map((o) => option(kind === o.value, o.label, () => setKind(o.value)))}
-          </div>
-        </section>
-        <section>
-          <h3 className="text-meta-strong text-text-2">Бригада</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {option(brigadeId === "all", "Все", () => setBrigadeId("all"))}
-            {queueBrigades.map(([id, brigade]) =>
-              option(brigadeId === id, brigade?.name ?? id, () => setBrigadeId(id)),
-            )}
-          </div>
-        </section>
-        <section>
-          <h3 className="text-meta-strong text-text-2">Объект</h3>
-          <div className="mt-2 flex flex-col">
-            {option(objectId === "all", "Все объекты", () => setObjectId("all"))}
-            {queueObjects.map(([id, object]) =>
-              option(objectId === id, object?.label ?? objectName(id), () => setObjectId(id)),
-            )}
-          </div>
-        </section>
-      </FiltersSheet>
     </div>
   );
 }

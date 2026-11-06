@@ -14,7 +14,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns3,
-  Download,
   Maximize2,
   Minimize2,
   Rows3,
@@ -23,18 +22,18 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FiltersButton, SearchBar } from "@/components/ui/kit/controls";
-import { FiltersSheet } from "@/components/ui/kit/sheet";
+import { SearchBar } from "@/components/ui/kit/controls";
+import {
+  ActiveChip,
+  FilterChip,
+  FilterGroup,
+  FilterPanel,
+  FilterRow,
+  ToggleChip,
+} from "@/components/gas-ops/filters/FilterChip";
+import { ExportMenu } from "@/components/gas-ops/tabel/ExportMenu";
 import { EmptyBlock } from "@/components/ui/kit/states";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Grid,
   type GridCell,
@@ -58,6 +57,7 @@ import {
   useGasActor,
   useGasDirectory,
   useGasTabel,
+  useGasWeekView,
   useWeekExport,
   visibleTabelRows,
   type Metric,
@@ -132,6 +132,7 @@ function TabelPage() {
   const tabel = useGasTabel();
   const directory = useGasDirectory();
   const exportWeek = useWeekExport();
+  const weekView = useGasWeekView();
   const policy = useGasReviewPolicy();
   const workCost = useGasWorkCost();
   const clientContour = useIsClientContour();
@@ -148,7 +149,6 @@ function TabelPage() {
   const [groupId, setGroupId] = useState("all");
   const [brigadeId, setBrigadeId] = useState("all");
   const [onlyDraft, setOnlyDraft] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [labelWidth, setLabelWidth] = useState(320);
   const [widths, setWidths] = useState<Record<string, number>>({});
@@ -404,8 +404,101 @@ function TabelPage() {
     else toast.info("Таблица не обновлена", { description: result.reason });
   };
 
+  const activeCount = Number(groupId !== "all") + Number(brigadeId !== "all") + Number(onlyDraft);
+  const resetFilters = () => {
+    setGroupId("all");
+    setBrigadeId("all");
+    setOnlyDraft(false);
+  };
+  const shownRows = visible.filter((r) => r.kind === "address").length;
+  const exportMenu = (wide: boolean) => (
+    <ExportMenu
+      wide={wide}
+      confirmed={weekView.metrics.confirmed}
+      unchecked={weekView.metrics.pending + weekView.metrics.clarify}
+      finalLeft={policy.finalList.length}
+      busy={busy}
+      onDownload={(kind) => void download(kind)}
+      sheetStatus={sheetStatus()}
+      sheetConnected={sheetSync.connected}
+      onSync={() => void sync()}
+    />
+  );
+
+  const filterChips = (
+    <FilterRow active={activeCount} onReset={resetFilters}>
+      {view === "customer" ? (
+        <FilterChip
+          label="Подразделение"
+          value={groupId}
+          onChange={setGroupId}
+          options={directory.groups.map((g) => ({ value: g.id, label: g.name }))}
+        />
+      ) : null}
+      <FilterChip
+        label="Бригада"
+        value={brigadeId}
+        onChange={setBrigadeId}
+        options={directory.brigades.map((b) => ({ value: b.id, label: b.name }))}
+      />
+      {view === "customer" ? (
+        <ToggleChip pressed={onlyDraft} onChange={setOnlyDraft}>
+          Только непроверенные
+        </ToggleChip>
+      ) : null}
+    </FilterRow>
+  );
+
+  // Компьютер: одна кнопка «Фильтры» с окном и выбранные фильтры чипами в той же панели
+  const filterPanel = (
+    <>
+      <FilterPanel
+        active={activeCount}
+        onReset={resetFilters}
+        summary={`Показано ${shownRows} ${plural(shownRows, "строка", "строки", "строк")}`}
+      >
+        {view === "customer" ? (
+          <FilterGroup
+            label="Подразделение"
+            value={groupId}
+            onChange={setGroupId}
+            options={directory.groups.map((g) => ({ value: g.id, label: g.name }))}
+          />
+        ) : null}
+        <FilterGroup
+          label="Бригада"
+          value={brigadeId}
+          onChange={setBrigadeId}
+          options={directory.brigades.map((b) => ({ value: b.id, label: b.name }))}
+        />
+        {view === "customer" ? (
+          <section className="px-2">
+            <h3 className="pt-1 pb-1.5 type-small text-ink-3">Статус</h3>
+            <ToggleChip pressed={onlyDraft} onChange={setOnlyDraft}>
+              Только непроверенные
+            </ToggleChip>
+          </section>
+        ) : null}
+      </FilterPanel>
+      {groupId !== "all" ? (
+        <ActiveChip
+          label={directory.groups.find((g) => g.id === groupId)?.name ?? "Подразделение"}
+          onClear={() => setGroupId("all")}
+        />
+      ) : null}
+      {brigadeId !== "all" ? (
+        <ActiveChip
+          label={directory.brigades.find((b) => b.id === brigadeId)?.name ?? "Бригада"}
+          onClear={() => setBrigadeId("all")}
+        />
+      ) : null}
+      {onlyDraft ? (
+        <ActiveChip label="Только непроверенные" onClear={() => setOnlyDraft(false)} />
+      ) : null}
+    </>
+  );
+
   const people_enabled = tabel.people.length > 0;
-  const activeFilters = Number(groupId !== "all") + Number(brigadeId !== "all") + Number(onlyDraft);
   const normRows = workCost.rows
     .filter((row) => row.confirmed && normText(row.norm))
     .map((row) => ({ id: row.object.id, label: row.object.label, text: normText(row.norm)! }));
@@ -474,7 +567,7 @@ function TabelPage() {
         value={search}
         onChange={setSearch}
       />
-      <FiltersButton active={activeFilters} onClick={() => setFiltersOpen(true)} />
+      {filterPanel}
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline">
@@ -560,34 +653,7 @@ function TabelPage() {
       >
         {fullscreen ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button data-tour="export">
-            <Download aria-hidden />
-            Выгрузить
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[280px]">
-          <DropdownMenuItem disabled={busy} onSelect={() => void download("approved")}>
-            Excel утверждённый
-            <span className="ms-auto text-meta text-text-3">только принятые</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem disabled={busy} onSelect={() => void download("draft")}>
-            Excel черновик
-            <span className="ms-auto text-meta text-text-3">с непроверенными</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel
-            className="text-meta font-normal text-text-3"
-            data-testid="sheet-status"
-          >
-            {sheetStatus()}
-          </DropdownMenuLabel>
-          {sheetSync.connected ? (
-            <DropdownMenuItem onSelect={() => void sync()}>Обновить таблицу</DropdownMenuItem>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <span className="ms-auto">{exportMenu(false)}</span>
     </div>
   );
 
@@ -629,11 +695,18 @@ function TabelPage() {
             value={search}
             onChange={setSearch}
           />
-          <Button variant="outline" onClick={() => setAsTable(true)}>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-11 shrink-0"
+            aria-label="Открыть как таблицу"
+            title="Открыть как таблицу"
+            onClick={() => setAsTable(true)}
+          >
             <Table2 aria-hidden />
-            Открыть как таблицу
           </Button>
         </div>
+        {filterChips}
         <PhoneList
           rows={filtered}
           days={tabel.days}
@@ -643,15 +716,7 @@ function TabelPage() {
         {legend}
         {/* Сверка с файлом заказчика только в его личном контуре (ADR-047) */}
         {clientContour ? <ReconcileBlock /> : null}
-        <Button
-          variant="outline"
-          data-tour="export"
-          disabled={busy}
-          onClick={() => void download("approved")}
-        >
-          <Download aria-hidden />
-          Выгрузить Excel
-        </Button>
+        {exportMenu(true)}
       </div>
     );
   }
@@ -742,79 +807,7 @@ function TabelPage() {
           onClose={() => setOpen(null)}
         />
       ) : null}
-
-      <FiltersSheet
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        count={visible.filter((r) => r.kind === "address").length}
-        noun={["строка", "строки", "строк"]}
-        onReset={() => {
-          setGroupId("all");
-          setBrigadeId("all");
-          setOnlyDraft(false);
-        }}
-      >
-        <FilterSection
-          title="Подразделение"
-          value={groupId}
-          onChange={setGroupId}
-          options={directory.groups.map((g) => ({ value: g.id, label: g.name }))}
-        />
-        <FilterSection
-          title="Бригада"
-          value={brigadeId}
-          onChange={setBrigadeId}
-          options={directory.brigades.map((b) => ({ value: b.id, label: b.name }))}
-        />
-        <section>
-          <h3 className="text-meta-strong text-text-2">Статус</h3>
-          <label className="mt-2 flex min-h-11 items-center gap-2 text-body">
-            <input
-              type="checkbox"
-              checked={onlyDraft}
-              onChange={(e) => setOnlyDraft(e.target.checked)}
-              className="size-5 accent-[var(--orange-strong)]"
-            />
-            Только строки с непроверенными записями
-          </label>
-        </section>
-      </FiltersSheet>
     </div>
-  );
-}
-
-function FilterSection({
-  title,
-  value,
-  onChange,
-  options,
-}: {
-  title: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <section>
-      <h3 className="text-meta-strong text-text-2">{title}</h3>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {[{ value: "all", label: "Все" }, ...options].map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={value === option.value}
-            onClick={() => onChange(option.value)}
-            className={`inline-flex min-h-11 items-center rounded-full border px-3 text-body focus-ring ${
-              value === option.value
-                ? "border-orange-strong bg-orange-dim text-text"
-                : "border-line-2 text-text-2"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -870,9 +863,12 @@ function PhoneList({
               )}
             >
               <span className="type-small opacity-70">{dayLabel(d).slice(0, 2)}</span>
-              <span className="flex h-10 w-2.5 items-end overflow-hidden rounded-pill bg-surface-2">
+              <span className="flex h-12 w-full max-w-7 items-end overflow-hidden rounded-control bg-surface-2">
                 <span
-                  className={cn("bar-gas block w-full", on ? "bg-flame" : "bg-ink-3")}
+                  className={cn(
+                    "bar-gas block w-full rounded-control",
+                    on ? "bg-flame" : "bg-ink-3",
+                  )}
                   style={{ "--bar": `${(dayMinutes[i]! / maxDay) * 100}%` } as CSSProperties}
                 />
               </span>

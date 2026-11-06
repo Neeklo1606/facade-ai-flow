@@ -43,6 +43,7 @@
     "check:copy": "bun scripts/check-copy.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "1.1.0",
     "@radix-ui/react-accordion": "^1.2.12",

@@ -5,6 +5,7 @@
  */
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useGasActor } from "@/api/gas-ops";
+import { SCREEN_ICON } from "@/components/gas-ops/shell/icons";
 import { gasScreen, type GasScreenKey } from "@/lib/gas-ops/screens";
 import { cn } from "@/lib/utils";
 
@@ -23,19 +24,22 @@ export function DirectoryTabs() {
   if (tabs.length < 2) return null;
   return (
     <nav aria-label="Справочники" className="-mx-gutter overflow-x-auto px-gutter">
-      <ul className="flex w-max gap-2">
+      {/* Одна дорожка вкладок (ADR-066): выбранная белой карточкой, значок раздела рядом */}
+      <ul className="dir-tabs flex w-max gap-1 rounded-pill bg-panel-2 p-1">
         {tabs.map((tab) => {
           const on = pathname === tab.to;
+          const Icon = SCREEN_ICON[tab.key];
           return (
             <li key={tab.key}>
               <Link
                 to={tab.to}
                 aria-current={on ? "page" : undefined}
                 className={cn(
-                  "inline-flex min-h-11 items-center rounded-full border px-4 text-body whitespace-nowrap focus-ring",
-                  on ? "border-orange-strong bg-orange-dim text-text" : "border-line-2 text-text-2",
+                  "dir-tab inline-flex min-h-11 items-center gap-2 rounded-pill px-4 text-body whitespace-nowrap focus-ring",
+                  on ? "text-ink" : "text-ink-2",
                 )}
               >
+                <Icon aria-hidden className="size-4 shrink-0" />
                 {tab.label}
               </Link>
             </li>
