@@ -1,9 +1,9 @@
-/** Заглушка модели помощника (ADR-061, 13): ключа нет, свободный вопрос не уходит никуда */
+/** Заглушка модели агента (ADR-061, 13): ключа нет, свободный вопрос не уходит никуда */
 import type { GasAssistantModel } from "@/ports/gas-assistant";
 
 export const assistantModelStub: GasAssistantModel = {
-  available: false,
+  status: async () => ({ available: false, model: null }),
   ask: async () => {
-    throw new Error("Модель помощника не подключена");
+    throw new Error("Модель агента не подключена");
   },
 };

@@ -11,8 +11,11 @@ import { NotCalculated } from "../review/remarks";
 import { FinalCheckBlock } from "../report/FinalCheckBlock";
 import { ReconcileUpload } from "./ReconcileUpload";
 import { WeekHero } from "./WeekHero";
+import { WeekBreakdown } from "./WeekBreakdown";
+import { ExportMenu } from "../tabel/ExportMenu";
 import { ScreenActions, ScreenCounters } from "../shell/screen-header";
 import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, Lock, Unlock } from "lucide-react";
+import { useGasReviewPolicy } from "@/api/gas-estimates";
 import { useRef, useState } from "react";
 import {
   blockingReasons,
@@ -24,6 +27,8 @@ import {
   useGasWeek,
   useGasWeekView,
   useWeekExport,
+  sheetStatus,
+  sheetSync,
   versionChecksum,
   type CloseReason,
   type PeriodVersion,
@@ -94,6 +99,8 @@ export function WeekScreen() {
   const actor = useGasActor();
   const actions = useGasActions();
   const exportWeek = useWeekExport();
+  const policy = useGasReviewPolicy();
+  const [busy, setBusy] = useState(false);
   const canClose = actor.role === "director" || actor.isAdmin;
   const [accepted, setAccepted] = useState<Record<string, string>>({});
   const [confirm, setConfirm] = useState(false);
@@ -301,6 +308,9 @@ export function WeekScreen() {
             </p>
           ) : (
             <div className="flex flex-col gap-5">
+              {view.reasons.length > 0 ? (
+                <Readiness total={view.reasons.length} left={left} />
+              ) : null}
               {/* Итоговая проверка (ADR-053, 5) переехала сюда из «Отчёта» (ADR-061, 11) */}
               <FinalCheckBlock />
               {view.reasons.length === 0 ? (
@@ -333,61 +343,7 @@ export function WeekScreen() {
         </Card>
       </div>
 
-      <Card title="По объектам">
-        <DataView
-          label="Объекты недели"
-          rows={allObjects ? view.objects : view.objects.slice(0, OBJECTS_PREVIEW)}
-          rowId={(o) => o.id}
-          keyboard={false}
-          columns={[
-            { key: "object", header: "Объект", cell: (o) => o.label, width: "40%" },
-            {
-              key: "man",
-              header: "Чел.-ч",
-              cell: (o) =>
-                o.manMinutes === null ? "не рассчитано" : fmtManHours(o.manMinutes, "чел.-ч"),
-              align: "end",
-            },
-            { key: "sum", header: "Начислено", cell: (o) => fmtRub(o.accruedRub), align: "end" },
-            {
-              key: "rate",
-              header: "Доходность часа",
-              cell: (o) =>
-                o.outputPerHour === null ? "нет часов" : `${fmtRub(o.outputPerHour)}/ч`,
-              align: "end",
-            },
-            {
-              key: "ready",
-              header: "Статус",
-              cell: (o) =>
-                o.ready ? (
-                  <StatusChip tone="up">Готов</StatusChip>
-                ) : (
-                  <StatusChip tone="caution">Уточнение</StatusChip>
-                ),
-            },
-          ]}
-          title={(o) => o.label}
-          meta={(o) =>
-            `${o.manMinutes === null ? "чел.-ч не рассчитаны" : fmtManHours(o.manMinutes, "чел.-ч")} · ${o.ready ? "готов" : "уточнение"}`
-          }
-          aside={(o) => fmtRub(o.accruedRub)}
-          empty={<EmptyState title="Записей за неделю нет" />}
-        />
-        {view.objects.length > OBJECTS_PREVIEW ? (
-          <button
-            type="button"
-            className="mt-2 min-h-11 type-label text-ink-2 underline underline-offset-4 focus-ring"
-            onClick={() => setAllObjects(!allObjects)}
-          >
-            {allObjects ? "Свернуть" : `Показать все объекты: ${view.objects.length}`}
-          </button>
-        ) : null}
-        <p className="mt-3 type-small text-ink-3">
-          Доходность часа = начислено ÷ часы записей за неделю, как в Excel заказчика.
-          Человеко-часы: часы каждого человека суммой; без состава не рассчитываются.
-        </p>
-      </Card>
+      <WeekBreakdown view={view} />
 
       <section
         aria-label="Действия недели"
@@ -398,20 +354,29 @@ export function WeekScreen() {
           <FileSpreadsheet aria-hidden />
           Открыть табель
         </Link>
-        <Button
-          variant="secondary"
-          onClick={async () => {
+        <ExportMenu
+          tour={false}
+          confirmed={metrics.confirmed}
+          unchecked={metrics.pending + metrics.clarify}
+          finalLeft={policy.finalList.length}
+          busy={busy}
+          onDownload={async (kind) => {
+            setBusy(true);
             try {
-              const name = await exportWeek("draft");
-              toast.success(`Черновик выгружен: ${name}`);
+              const name = await exportWeek(kind);
+              toast.success(
+                kind === "approved" ? `Утверждённый файл: ${name}` : `Черновик выгружен: ${name}`,
+              );
             } catch {
-              toast.error("Не удалось выгрузить черновик. Повторите.");
+              toast.error("Не удалось выгрузить файл. Повторите.");
+            } finally {
+              setBusy(false);
             }
           }}
-        >
-          <Download aria-hidden />
-          Выгрузить черновик Excel
-        </Button>
+          sheetStatus={sheetStatus()}
+          sheetConnected={sheetSync.connected}
+          onSync={() => undefined}
+        />
       </section>
 
       {canClose ? <ReconcileUpload /> : null}
@@ -470,6 +435,53 @@ export function WeekScreen() {
           toast.success(`Неделя закрыта, версия v${result.value.version}`);
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * Готовность недели (ADR-066): шкала «решено / осталось» и оставшиеся причины по видам.
+ * Решённой считается причина, принятая как есть с текстом причины
+ */
+function Readiness({ total, left }: { total: number; left: readonly CloseReason[] }) {
+  const done = total - left.length;
+  const kinds = groupsOf(left);
+  return (
+    <div className="flex flex-col gap-2.5" data-testid="week-readiness">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-body-strong">
+          {left.length === 0
+            ? "Все причины решены"
+            : `Осталось ${left.length} ${plural(left.length, "причина", "причины", "причин")}`}
+        </p>
+        <span className="type-small text-ink-3 tnum">
+          решено {done} из {total}
+        </span>
+      </div>
+      <div
+        className="ready-track"
+        role="progressbar"
+        aria-label="Готовность недели к закрытию"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={done}
+      >
+        {done > 0 ? <span className="bg-up" style={{ flexGrow: done }} /> : null}
+        {left.length > 0 ? <span className="bg-flame" style={{ flexGrow: left.length }} /> : null}
+      </div>
+      {kinds.length ? (
+        <ul className="flex flex-wrap gap-1.5" aria-label="Осталось по видам">
+          {kinds.map(([kind, list]) => (
+            <li
+              key={kind}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-pill bg-panel-2 px-3 type-small"
+            >
+              {KIND_TITLE[kind]}
+              <span className="font-semibold tnum">{list.length}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

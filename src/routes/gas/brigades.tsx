@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Field } from "@/components/ui/kit/field";
 import { ListRow } from "@/components/ui/kit/list";
 import { Sheet } from "@/components/ui/kit/sheet";
+import { AdaptiveSheet } from "@/components/gas-ops/AdaptiveSheet";
 import { Segmented } from "@/components/ui/kit/controls";
 import { FieldGroup, FieldRow, MetricCard } from "@/components/ui/kit/data";
 import { notify } from "@/components/ui/kit/toast";
@@ -18,10 +19,11 @@ import {
   fmtRub,
   useGasActor,
   useGasBrigades,
+  useGasDirectory,
   useGasEntries,
 } from "@/api/gas-ops";
 import { entryLine, fmtShortDay } from "@/components/gas-ops/review/rules";
-import { useGasEstimateActions, useGasSchedule } from "@/api/gas-estimates";
+import { useGasDirectoryImport, useGasEstimateActions, useGasSchedule } from "@/api/gas-estimates";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +31,8 @@ import { cn } from "@/lib/utils";
  * Бригады и подгруппы (ТЗ, п. 8; вид ADR-045, 5.8). Строка бригады: бригадир, часы
  * и доходность недели, статус недели точкой «Работает» или «В отпуске». «Состав на неделю»
  * настоящий (ADR-053, 4): отметка пишется в журнал, график и бот видят только работающие
- * бригады. Добавление бригады — демо раздела «Развитие».
+ * бригады. «Добавить бригаду» настоящее (ADR-066): название, подразделение, телефон и сразу
+ * состав по одному человеку в строке; бригада видна в фильтрах «Табеля» и «Проверки».
  */
 export const Route = createFileRoute("/gas/brigades")({
   head: () =>
@@ -43,8 +46,10 @@ export const Route = createFileRoute("/gas/brigades")({
 
 interface Draft {
   name: string;
-  lead: string;
+  groupId: string;
   phone: string;
+  /** Состав: по одному человеку в строке, первый — бригадир */
+  people: string;
 }
 
 function BrigadesPage() {
@@ -66,20 +71,50 @@ function BrigadesPage() {
   const [view, setView] = useState<"list" | "crew">("list");
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState<Draft>({ name: "", lead: "", phone: "" });
+  const directory = useGasDirectory();
+  const { addBrigade, addCrewMember } = useGasDirectoryImport();
+  const empty = (): Draft => ({
+    name: "",
+    groupId: directory.groups[0]?.id ?? "",
+    phone: "",
+    people: "",
+  });
+  const [draft, setDraft] = useState<Draft>(empty);
   const [tried, setTried] = useState(false);
-  const [added, setAdded] = useState<Draft[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const groups = [...new Set(cards.map((card) => card.group?.name ?? "Без подразделения"))];
   const current = cards.find((card) => card.brigade.id === open) ?? null;
   const history = useGasEntries({ brigadeId: open ?? "__none__" }).slice(0, 5);
 
-  const save = () => {
+  const save = async () => {
     setTried(true);
-    if (!draft.name.trim()) return;
-    setAdded((list) => [...list, draft]);
-    notify(`${draft.name.trim()} добавлена в демо`);
-    setDraft({ name: "", lead: "", phone: "" });
+    if (!draft.name.trim() || !draft.groupId) return;
+    setSaving(true);
+    const result = await addBrigade({
+      name: draft.name,
+      groupId: draft.groupId,
+      phone: draft.phone.trim() || null,
+    });
+    if (!result.ok) {
+      setSaving(false);
+      toast.error(result.message);
+      return;
+    }
+    const names = draft.people
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const name of names) {
+      await addCrewMember({ brigadeId: result.value.id, name, from: week.weekFrom });
+    }
+    setSaving(false);
+    notify(
+      `${result.value.name} добавлена, код ${result.value.code}${
+        names.length ? `, в составе ${names.length}` : ""
+      }`,
+    );
+    setDraft(empty());
     setTried(false);
     setAdding(false);
   };
@@ -179,22 +214,6 @@ function BrigadesPage() {
         );
       })}
 
-      {added.length ? (
-        <section aria-label="Добавлено в демо">
-          <h2 className="flex h-7 items-center text-meta text-text-3">Добавлено в демо</h2>
-          <ul className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line">
-            {added.map((item, index) => (
-              <li key={`${item.name}-${index}`}>
-                <ListRow
-                  title={item.name}
-                  meta={`${item.lead || "бригадир не указан"} · Демо, в расчёт не входит`}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       <p className="text-meta text-text-3">
         Цифры по подтверждённым записям. Доходность бригады: сумма за неделю, делённая на её часы, а
         не среднее по строкам: среднее завысило бы короткие дорогие работы.
@@ -274,15 +293,22 @@ function BrigadesPage() {
         ) : null}
       </Sheet>
 
-      <Sheet
+      <AdaptiveSheet
         open={adding}
         onOpenChange={setAdding}
         id="brigade-add"
         title="Новая бригада"
-        description="Демо: бригада появится в списке этой вкладки, в расчёт не входит"
+        description="Бригада сразу видна в «Табеле», «Проверке» и боте бригадира"
         actions={
           <>
-            <Button variant="primary" size="lg" className="flex-1" onClick={save}>
+            <Button
+              variant="primary"
+              size="lg"
+              className="flex-1"
+              loading={saving}
+              loadingText="Сохраняю..."
+              onClick={() => void save()}
+            >
               Сохранить
             </Button>
             <Button variant="outline" size="lg" onClick={() => setAdding(false)}>
@@ -292,7 +318,6 @@ function BrigadesPage() {
         }
       >
         <div className="flex flex-col gap-block">
-          <p className="text-meta text-text-3">Развитие · демо: справочник ведёт администратор.</p>
           <Field
             label="Название"
             value={draft.name}
@@ -301,12 +326,37 @@ function BrigadesPage() {
             error={draft.name.trim() ? null : "Укажите название"}
             showError={tried}
           />
-          <Field
-            label="Бригадир"
-            value={draft.lead}
-            onChange={(lead) => setDraft((d) => ({ ...d, lead }))}
-            placeholder="Фамилия И. О."
-          />
+          <div role="radiogroup" aria-label="Подразделение" className="flex flex-col gap-1.5">
+            <span className="text-meta text-text-2">Подразделение</span>
+            <div className="flex flex-wrap gap-2">
+              {directory.groups.map((group) => (
+                <button
+                  key={group.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={draft.groupId === group.id}
+                  onClick={() => setDraft((d) => ({ ...d, groupId: group.id }))}
+                  data-active={draft.groupId === group.id || undefined}
+                  className="filter-chip focus-ring"
+                >
+                  {group.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-meta text-text-2">Состав, по одному в строке</span>
+            <textarea
+              value={draft.people}
+              onChange={(event) => setDraft((d) => ({ ...d, people: event.target.value }))}
+              rows={4}
+              placeholder={"Иванов И. И.\nПетров П. П."}
+              className="min-h-28 w-full rounded-control border border-line-2 bg-surface px-3 py-2.5 text-body text-text focus-ring"
+            />
+            <span className="text-meta text-text-3">
+              Можно позже: состав меняется во вкладке «Ставки и состав»
+            </span>
+          </label>
           <Field
             label="Телефон для MAX"
             value={draft.phone}
@@ -317,7 +367,7 @@ function BrigadesPage() {
             hint="Бот MAX в демо не подключён"
           />
         </div>
-      </Sheet>
+      </AdaptiveSheet>
     </div>
   );
 }

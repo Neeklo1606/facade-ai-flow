@@ -101,11 +101,21 @@ export function WeekHero({ view, today }: { view: GasWeekView; today: string }) 
                   aria-pressed={active}
                   aria-label={`${weekday(d.day)}: ${d.value === null ? "записей нет" : fmtRub(value)}`}
                   onClick={() => setDay(active ? null : d.day)}
-                  className="flex h-full flex-1 flex-col justify-end focus-ring"
+                  className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1 focus-ring"
                 >
+                  {/* Подпись суммы над столбиком: «395 тыс.» без нажатия */}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "max-w-full truncate type-small tnum",
+                      active || isToday ? "text-on-hero" : "text-on-hero-2",
+                    )}
+                  >
+                    {value ? shortRub(value).replace(" тыс.", "к").replace(" млн", "м") : "–"}
+                  </span>
                   <span
                     className={cn(
-                      "bar-gas block w-full",
+                      "bar-gas block w-full max-w-16 rounded-t-control rounded-b-sm",
                       active ? "bg-flame" : isToday ? "bg-on-hero" : "bg-on-hero-2 opacity-40",
                     )}
                     style={{ "--bar": `${grown ? (value / max) * 100 : 0}%` } as CSSProperties}

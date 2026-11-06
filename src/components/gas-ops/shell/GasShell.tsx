@@ -113,9 +113,16 @@ import { TestModeBar } from "@/components/ui/kit/test-mode-bar";
 import { dataSource } from "@/api/config";
 import { useOffline } from "@/lib/ui/offline";
 
-export function isActive(screen: GasScreen, pathname: string) {
+export function isActive(screen: GasScreen, pathname: string, loose = true) {
   if (screen.to === "/gas") return pathname === "/gas" || pathname === "/gas/";
-  return pathname === screen.to || pathname.startsWith(`${screen.to}/`);
+  if (pathname === screen.to || pathname.startsWith(`${screen.to}/`)) return true;
+  // Вкладки раздела (ADR-066): «Сметы» внутри «Справочников» подсвечивают «Справочники»
+  return loose && (screen.alsoActive ?? []).some((to) => pathname === to);
+}
+
+/** Есть ли в меню пункт ровно этого экрана: тогда раздел-владелец не подсвечивается вторым */
+function exactIn(sections: { items: readonly GasScreenKey[] }[], pathname: string) {
+  return sections.some((s) => s.items.some((key) => isActive(gasScreen(key), pathname, false)));
 }
 
 /**
@@ -387,7 +394,9 @@ function GasSideNav({ pathname }: { pathname: string }) {
             const link = (
               <Link
                 to={screen.to}
-                aria-current={isActive(screen, pathname) ? "page" : undefined}
+                aria-current={
+                  isActive(screen, pathname, !exactIn(sections, pathname)) ? "page" : undefined
+                }
                 aria-label={collapsed ? screen.title : undefined}
                 data-tour={`nav-${key}`}
                 className={cn("gas-nav-item focus-ring", collapsed && "justify-center px-0")}
@@ -932,7 +941,9 @@ function ProfileBody({ onDone, withNav = false }: { onDone: () => void; withNav?
                     key={key}
                     to={screen.to}
                     onClick={onDone}
-                    aria-current={isActive(screen, pathname) ? "page" : undefined}
+                    aria-current={
+                      isActive(screen, pathname, !exactIn(sections, pathname)) ? "page" : undefined
+                    }
                     className={cn(
                       row,
                       "aria-[current=page]:bg-panel-2 aria-[current=page]:font-semibold",
@@ -1155,7 +1166,9 @@ function GasBottomNav({ pathname }: { pathname: string }) {
     [tabs],
   );
   const ownerOf = useCallback(
-    (path: string) => tabs.find((tab) => isActive(tab, path))?.key ?? "more",
+    (path: string) =>
+      (tabs.find((tab) => isActive(tab, path, false)) ?? tabs.find((tab) => isActive(tab, path)))
+        ?.key ?? "more",
     [tabs],
   );
   const stack = useTabStack("gas", defs, ownerOf, GAS_TRANSIENT);

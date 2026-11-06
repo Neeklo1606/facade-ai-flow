@@ -48,6 +48,7 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   setUserRole: ["admin"],
   linkEstimateVersion: OFFICE,
   reviewEstimateIssues: OFFICE,
+  correctEstimateValue: OFFICE,
   confirmEstimateVersion: OFFICE,
   confirmCostRule: OFFICE,
   saveCostRule: OFFICE,
@@ -70,6 +71,7 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   importDirectory: ["manager", "admin", "director"],
   undoDirectoryImport: ["manager", "admin", "director"],
   addObject: OFFICE,
+  addBrigade: OFFICE,
   reset: [],
 };
 

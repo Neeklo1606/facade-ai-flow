@@ -229,6 +229,12 @@ export function useGasEstimateActions() {
       [run],
     ),
     reviewIssues: useCallback((id: string) => run((port) => port.reviewEstimateIssues(id)), [run]),
+    /** Правка значения разбора до подтверждения с основанием (ADR-066) */
+    correct: useCallback(
+      (input: Parameters<GasOpsPort["correctEstimateValue"]>[0]) =>
+        run((port) => port.correctEstimateValue(input)),
+      [run],
+    ),
     confirm: useCallback((id: string) => run((port) => port.confirmEstimateVersion(id)), [run]),
     confirmRule: useCallback(
       (input: { objectId: string | null; terms: CostRuleTerm[] }) =>
@@ -335,6 +341,9 @@ export async function readScheduleFile(
 /* ---------------------------------------------------------------- Готовый вид для экранов */
 
 export { ESTIMATE_FORMAT_LABEL, PARSE_STATUS_LABEL } from "@/domain/gas-ops/estimate-labels";
+export type { TotalKey } from "@/domain/gas-ops/estimate-labels";
+export { correctionOf } from "@/domain/gas-ops/work-cost";
+export type { CorrectionTarget, EstimateCorrection } from "@/domain/gas-ops/work-cost";
 export {
   RULE_STATUS_LABEL,
   recalcNote,
@@ -572,6 +581,16 @@ export function useGasDirectoryImport() {
     addObject: useCallback(
       (input: { label: string; code: string; workType: string | null }) =>
         run((port) => port.addObject(input)),
+      [run],
+    ),
+    addBrigade: useCallback(
+      (input: { name: string; groupId: string; phone: string | null }) =>
+        run((port) => port.addBrigade(input)),
+      [run],
+    ),
+    addCrewMember: useCallback(
+      (input: { brigadeId: string; name: string; from: string }) =>
+        run((port) => port.addCrewMember(input)),
       [run],
     ),
   };

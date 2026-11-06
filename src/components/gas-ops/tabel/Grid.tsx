@@ -318,7 +318,7 @@ export function Grid({
          */}
         <table
           role="presentation"
-          className="border-separate border-spacing-0 text-body tnum"
+          className="gas-grid border-separate border-spacing-0 text-body tnum"
           style={{ width: tableWidth, tableLayout: "fixed" }}
         >
           <colgroup>
@@ -406,6 +406,7 @@ export function Grid({
                   role="row"
                   aria-rowindex={r + 3}
                   data-tabel-row={row.id}
+                  data-kind={row.kind}
                   data-tour={row.tour ? "report-row" : undefined}
                   className="group/row"
                   style={{ height: rowHeight }}

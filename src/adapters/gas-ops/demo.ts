@@ -22,6 +22,7 @@ import {
   sameTerms,
   validateTerms,
   workCostRub,
+  correctVersion,
   type CostRule,
   type EstimateVersion,
 } from "@/domain/gas-ops/work-cost";
@@ -1042,6 +1043,39 @@ export function createGasOpsDemo(
       return done(mustVersion(next, id));
     },
 
+    correctEstimateValue: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Смету правит сметчик или менеджер.");
+      const v = mustVersion(snapshot, input.id);
+      const result = correctVersion(
+        v,
+        { target: input.target, kopecks: input.kopecks, note: input.note },
+        snapshot.actorId,
+        nowOf(snapshot),
+      );
+      if (!result.ok) throw new GasOpsError("comment-required", result.reason);
+      const { correction } = result;
+      const rub = (k: number) =>
+        (k / 100).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          estimateVersions: s.estimateVersions.map((x) => (x.id === v.id ? result.version : x)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.corrected",
+              entityId: v.id,
+              detail: `${correction.label}: ${rub(correction.fromKopecks)} → ${rub(correction.toKopecks)} ₽. Основание: ${correction.note}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(mustVersion(next, v.id));
+    },
+
     confirmEstimateVersion: async (id) => {
       const snapshot = await store.read();
       mustManager(snapshot, "Смету подтверждает менеджер или сметчик.");
@@ -1909,6 +1943,48 @@ export function createGasOpsDemo(
         snapshot,
       );
       return done(object);
+    },
+
+    addBrigade: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Бригаду добавляет менеджер или администратор.");
+      const name = input.name.trim();
+      if (!name) throw new GasOpsError("comment-required", "Укажите название бригады.");
+      if (!snapshot.groups.some((g) => g.id === input.groupId)) {
+        throw new GasOpsError("not-found", "Подразделение не найдено в справочнике.");
+      }
+      const taken = snapshot.brigades.find((b) => normName(b.name) === normName(name));
+      if (taken) throw new GasOpsError("duplicate", `Бригада «${taken.name}» уже есть.`);
+      // Код по порядку: Б-9, Б-10; занятые коды не повторяются
+      const codes = new Set(snapshot.brigades.map((b) => normName(b.code)));
+      let n = snapshot.brigades.length + 1;
+      while (codes.has(normName(`Б-${n}`))) n += 1;
+      const brigade: Brigade = {
+        id: newId("brg"),
+        groupId: input.groupId,
+        name,
+        code: `Б-${n}`,
+        excelRow: null,
+        source: "mock",
+        phone: input.phone?.trim() || null,
+      };
+      await store.update(
+        (s) => ({
+          ...s,
+          brigades: [...s.brigades, brigade],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "brigade.add",
+              entityId: brigade.id,
+              detail: `Бригада «${name}» добавлена вручную, код ${brigade.code}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(brigade);
     },
 
     reset: async () => {
