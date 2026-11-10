@@ -29,9 +29,21 @@ import { queries } from "@/api/queries";
 import { api } from "@/api/client";
 import { dataSource, demoShow } from "@/api/config";
 import { isSitePath } from "@/lib/site/paths";
+// Страница 404 сайта отдельным куском: приложению оболочка сайта не нужна (ADR-067)
+const SiteNotFound = lazy(() =>
+  import("@/components/site/NotFound").then((m) => ({ default: m.SiteNotFound })),
+);
 import { cabinetOnly, cabinetRedirect, cabinetTitle } from "@/lib/cabinet";
 
 function NotFoundComponent() {
+  // Неизвестный адрес вне приложения: страница 404 сайта (ADR-067)
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  if (isSitePath(pathname))
+    return (
+      <Suspense fallback={null}>
+        <SiteNotFound />
+      </Suspense>
+    );
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="max-w-md text-center">

@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Кирпичи публичного сайта (01_SPEC 5): кнопки-капсулы и шапка страницы.
- * Ссылки остаются ссылками (`<a>` или `Link`), кнопкой их делает только вид.
+ * Кирпичи публичного сайта (01_SPEC 5, ADR-067): кнопки-капсулы, шапка страницы, секция,
+ * статус готовности, хлебная строка. Ссылки остаются ссылками (`<a>` или `Link`),
+ * кнопкой их делает только вид.
  */
 export const siteButton = {
   /** Главное действие экрана: одно на экран, чёрная таблетка «Монохрома» (ADR-055, ADR-059) */
@@ -21,19 +24,117 @@ export function SitePageHead({
   children,
   className,
 }: {
-  eyebrow?: string | undefined;
+  eyebrow?: ReactNode;
   title: string;
   lead?: ReactNode;
   children?: ReactNode;
   className?: string;
 }) {
   return (
-    <header className={cn("site-wrap pt-10 pb-12 lg:pt-20 lg:pb-16", className)}>
-      {eyebrow ? <p className="site-caption mb-4 font-medium text-text-2">{eyebrow}</p> : null}
-      <h1 className="site-h1 max-w-[16ch] text-text">{title}</h1>
+    <header className={cn("site-wrap site-page-head", className)}>
+      {eyebrow ? <div className="site-caption mb-4 font-medium text-text-2">{eyebrow}</div> : null}
+      <h1 className="site-h1 max-w-[18ch] text-text">{title}</h1>
       {lead ? <p className="site-lead mt-4 max-w-[640px] text-text-2 lg:mt-6">{lead}</p> : null}
       {children}
     </header>
+  );
+}
+
+/**
+ * Секция сайта (раздел 10): заголовок H2 с aria-labelledby, воздух вместо линий, фон
+ * чередуется холстом и карточкой
+ */
+export function SiteSection({
+  id,
+  title,
+  lead,
+  tone = "canvas",
+  children,
+  className,
+  headingClassName,
+}: {
+  id: string;
+  title: string;
+  lead?: ReactNode;
+  tone?: "canvas" | "card";
+  children: ReactNode;
+  className?: string;
+  headingClassName?: string;
+}) {
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className={cn("site-block", tone === "card" ? "bg-surface" : "bg-void", className)}
+    >
+      <div className="site-wrap">
+        <div data-reveal-group className={cn("max-w-[760px]", headingClassName)}>
+          <h2 id={`${id}-title`} className="site-h2 text-text" data-reveal>
+            {title}
+          </h2>
+          {lead ? (
+            <div className="site-body mt-3 max-w-[640px] text-text-2" data-reveal>
+              {lead}
+            </div>
+          ) : null}
+        </div>
+        <div className="site-block-body">{children}</div>
+      </div>
+    </section>
+  );
+}
+
+/** Статус готовности: точка и слово, не только цвет (раздел 10) */
+export function StatusBadge({
+  kind,
+  text,
+  className,
+}: {
+  kind: "live" | "demo";
+  text: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full bg-surface-2 px-3 py-1 text-meta text-text",
+        className,
+      )}
+      data-status={kind}
+    >
+      <span
+        aria-hidden
+        className={cn("size-2 shrink-0 rounded-full", kind === "live" ? "bg-ok" : "bg-text-3")}
+      />
+      {text}
+    </span>
+  );
+}
+
+/** Хлебная строка «Главная · Задачи · <название>» (раздел 6, шаблон 1) */
+export function Breadcrumbs({ items }: { items: readonly { name: string; to?: string }[] }) {
+  return (
+    <nav aria-label="Хлебные крошки" className="site-wrap pt-4">
+      <ol className="flex flex-wrap items-center gap-1 text-meta text-text-3">
+        {items.map((item, index) => (
+          <li key={item.name} className="flex items-center gap-1">
+            {index > 0 ? <ChevronRight className="size-3.5" aria-hidden /> : null}
+            {item.to ? (
+              <Link
+                to={item.to}
+                className="inline-flex min-h-11 items-center focus-ring is-hover:text-text"
+              >
+                {item.name}
+              </Link>
+            ) : (
+              <span aria-current="page" className="text-text-2">
+                {item.name}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }
 

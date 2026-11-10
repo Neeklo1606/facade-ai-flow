@@ -1,4 +1,5 @@
 import type { Lead, LeadSendResult, LeadSink } from "@/ports/leads";
+import { LEAD_TASK_LABEL } from "@/lib/site/lead-fields";
 
 /**
  * Адаптеры заявок (ADR-051). Ключи только в окружении хостинга. Ответ внешнего сервиса
@@ -24,6 +25,9 @@ async function post(fetcher: Fetch, url: string, body: unknown): Promise<LeadSen
 
 const SOURCE_LABEL: Record<Lead["source"], string> = {
   landing: "лендинг",
+  "task-time": "страница учёта времени",
+  "task-supply": "страница снабжения",
+  "task-docs": "страница документов",
   razbor: "экспресс-разбор",
   "demo-final": "финал демо",
   case: "кейс",
@@ -37,6 +41,7 @@ export function leadTelegramText(lead: Lead): string {
     `Компания: ${lead.company || "не указана"}`,
     `Телефон: ${lead.phone}`,
     `Бригад: ${lead.crews}`,
+    lead.task ? `Задача: ${LEAD_TASK_LABEL[lead.task]}` : null,
     `Источник: ${SOURCE_LABEL[lead.source]}`,
     lead.src ? `Партнёр: ${lead.src}` : null,
     lead.page ? `Страница: ${lead.page}` : null,

@@ -16,7 +16,19 @@ import { factReport } from "@/data/mock/fact-report";
 import { CUSTOMER_BRAND } from "@/server/customer-data";
 
 const ROOT = ".output/public";
-const PAGES = ["/", "/demo", "/case/gas", "/razbor", "/kit", "/privacy", "/gas", "/gas/tabel"];
+const PAGES = [
+  "/",
+  "/uchet-vremeni-brigad",
+  "/snabzhenie",
+  "/ispolnitelnaya-dokumentatsiya",
+  "/demo",
+  "/case/gas",
+  "/razbor",
+  "/kit",
+  "/privacy",
+  "/gas",
+  "/gas/tabel",
+];
 
 const plain = (text: string) => text.replace(/[\u00a0\u202f]/g, " ");
 const grouped = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");

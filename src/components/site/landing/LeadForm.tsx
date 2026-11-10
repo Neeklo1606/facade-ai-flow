@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils";
 import { siteButton } from "@/components/site/parts";
 import { track } from "@/lib/site/analytics";
 import { partnerSrc } from "@/lib/site/partner";
-import type { LeadSource } from "@/lib/site/lead-fields";
+import {
+  LEAD_TASK_LABEL,
+  LEAD_TASKS,
+  type LeadSource,
+  type LeadTask,
+} from "@/lib/site/lead-fields";
 
 /** «+7 (918) 123-45-67» из любых цифр: маска не мешает вставить номер целиком */
 export function maskPhone(raw: string): string {
@@ -34,15 +39,19 @@ export function leadText(fields: {
   phone: string;
   crews: string;
   source: LeadSource;
+  task?: LeadTask | null;
 }): string {
   return [
-    "Заявка с сайта ГАЙКИ: разобрать учёт выработки на наших данных.",
+    "Заявка с сайта ГАЙКИ: показать наш процесс и обсудить пилот.",
     `Имя: ${fields.name}`,
     `Компания: ${fields.company}`,
     `Телефон: ${fields.phone}`,
     `Бригад: ${fields.crews}`,
+    fields.task ? `Задача: ${LEAD_TASK_LABEL[fields.task]}` : null,
     `Источник: ${fields.source}`,
-  ].join("\n");
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
 }
 
 /**
@@ -64,9 +73,17 @@ export function outcomeOf(status: number | null): LeadOutcome {
  */
 type Field = "name" | "phone" | "crews" | "consent";
 
-export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
+export function LeadForm({
+  source = "landing",
+  task: initialTask,
+}: {
+  source?: LeadSource;
+  /** Задача страницы выбрана заранее, человек может снять выбор (ADR-067) */
+  task?: LeadTask;
+}) {
   const { lead } = LANDING;
   const id = useId();
+  const [task, setTask] = useState<LeadTask | null>(initialTask ?? null);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
@@ -88,7 +105,7 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
   const [outcome, setOutcome] = useState<LeadOutcome | null>(null);
 
   const telegramUrl = contactTgUrl(
-    leadText({ name: name.trim(), company: company.trim(), phone, crews, source }),
+    leadText({ name: name.trim(), company: company.trim(), phone, crews, source, task }),
   );
 
   const submit = async (event: FormEvent) => {
@@ -112,6 +129,7 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
           phone,
           crews,
           source,
+          ...(task ? { task } : {}),
           src: partnerSrc(),
           page: window.location.pathname,
           consent: true,
@@ -124,7 +142,7 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
     }
     setSending(false);
     const next = outcomeOf(status);
-    if (next === "sent") track("lead_submit", { source });
+    if (next === "sent") track("lead_submit", { source, task: task ?? "" });
     setOutcome(next);
   };
 
@@ -142,7 +160,7 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
         </span>
         <p className="site-h3 text-text">Заявка отправлена</p>
         <p className="site-body text-text-2">
-          Свяжемся в течение рабочего дня и пришлём, куда отправить сообщения бригадиров и отчёт.
+          Свяжемся в течение рабочего дня и пришлём, куда отправить пример недели и отчёт.
         </p>
       </div>
     );
@@ -243,6 +261,29 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
           ))}
         </div>
       </fieldset>
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="site-caption mb-1.5 text-text-2">
+          {lead.task} <span className="text-text-3">({lead.taskHint})</span>
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {LEAD_TASKS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={task === option}
+              onClick={() => setTask(task === option ? null : option)}
+              className={cn(
+                "min-h-12 rounded-full border px-4 text-body-strong transition-colors duration-100 focus-ring",
+                task === option
+                  ? "border-transparent bg-text text-void"
+                  : "border-line-2 bg-surface text-text",
+              )}
+            >
+              {LEAD_TASK_LABEL[option]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
       <label className="flex min-h-12 items-start gap-3 py-1">
         <input
           id={`${id}-consent`}
@@ -250,7 +291,7 @@ export function LeadForm({ source = "landing" }: { source?: LeadSource }) {
           type="checkbox"
           checked={consent}
           onChange={(event) => setConsent(event.target.checked)}
-          className="mt-1 size-5 shrink-0 accent-[var(--orange-strong)]"
+          className="mt-1 size-5 shrink-0 accent-[var(--inverse)]"
         />
         <span className="site-caption text-text-2">
           {lead.consent}{" "}

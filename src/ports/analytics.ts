@@ -14,7 +14,13 @@ export type AnalyticsEvent =
   | "excel_download"
   | "lead_submit"
   | "kit_copy"
-  | "kit_share";
+  | "kit_share"
+  /** Сайт v2 (ADR-067): страница задачи, карточка задачи, шаг пути, вопрос, переход в Telegram */
+  | "task_page_view"
+  | "task_card_click"
+  | "workflow_step_select"
+  | "faq_open"
+  | "telegram_click";
 
 export type AnalyticsParams = Record<string, string | number>;
 

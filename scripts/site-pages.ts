@@ -24,7 +24,8 @@ const DEFAULT = [
 ];
 const paths = process.argv[4] ? process.argv[4].split(",") : DEFAULT;
 
-const name = (path: string) => (path === "/" ? "home" : path.replace(/^\//, "").replace(/\//g, "-"));
+const name = (path: string) =>
+  path === "/" ? "home" : path.replace(/^\//, "").replace(/\//g, "-");
 
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch();

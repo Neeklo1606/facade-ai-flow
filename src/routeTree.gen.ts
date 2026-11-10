@@ -27,6 +27,7 @@ import { Route as GasRouteImport } from './routes/gas'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as IspolnitelnayaDokumentatsiyaRouteImport } from './routes/ispolnitelnaya-dokumentatsiya'
 import { Route as KitRouteImport } from './routes/kit'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LoginRouteImport } from './routes/login'
@@ -36,11 +37,15 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RazborRouteImport } from './routes/razbor'
 import { Route as RisksRouteImport } from './routes/risks'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SnabzhenieRouteImport } from './routes/snabzhenie'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TodayRouteImport } from './routes/today'
+import { Route as UchetVremeniBrigadRouteImport } from './routes/uchet-vremeni-brigad'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
@@ -192,6 +197,12 @@ const IntegrationsRoute = IntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IspolnitelnayaDokumentatsiyaRoute =
+  IspolnitelnayaDokumentatsiyaRouteImport.update({
+    id: '/ispolnitelnaya-dokumentatsiya',
+    path: '/ispolnitelnaya-dokumentatsiya',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const KitRoute = KitRouteImport.update({
   id: '/kit',
   path: '/kit',
@@ -237,6 +248,11 @@ const RisksRoute = RisksRouteImport.update({
   path: '/risks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ScheduleRoute = ScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
@@ -245,6 +261,16 @@ const ScheduleRoute = ScheduleRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SnabzhenieRoute = SnabzhenieRouteImport.update({
+  id: '/snabzhenie',
+  path: '/snabzhenie',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TasksRoute = TasksRouteImport.update({
@@ -260,6 +286,11 @@ const TemplatesRoute = TemplatesRouteImport.update({
 const TodayRoute = TodayRouteImport.update({
   id: '/today',
   path: '/today',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UchetVremeniBrigadRoute = UchetVremeniBrigadRouteImport.update({
+  id: '/uchet-vremeni-brigad',
+  path: '/uchet-vremeni-brigad',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersRoute = UsersRouteImport.update({
@@ -586,6 +617,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
+  '/ispolnitelnaya-dokumentatsiya': typeof IspolnitelnayaDokumentatsiyaRoute
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -595,11 +627,15 @@ export interface FileRoutesByFullPath {
   '/quality': typeof QualityRoute
   '/razbor': typeof RazborRoute
   '/risks': typeof RisksRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/snabzhenie': typeof SnabzhenieRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/today': typeof TodayRoute
+  '/uchet-vremeni-brigad': typeof UchetVremeniBrigadRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -679,6 +715,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
+  '/ispolnitelnaya-dokumentatsiya': typeof IspolnitelnayaDokumentatsiyaRoute
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -687,11 +724,15 @@ export interface FileRoutesByTo {
   '/quality': typeof QualityRoute
   '/razbor': typeof RazborRoute
   '/risks': typeof RisksRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/snabzhenie': typeof SnabzhenieRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/today': typeof TodayRoute
+  '/uchet-vremeni-brigad': typeof UchetVremeniBrigadRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -773,6 +814,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
+  '/ispolnitelnaya-dokumentatsiya': typeof IspolnitelnayaDokumentatsiyaRoute
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -782,11 +824,15 @@ export interface FileRoutesById {
   '/quality': typeof QualityRoute
   '/razbor': typeof RazborRoute
   '/risks': typeof RisksRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/snabzhenie': typeof SnabzhenieRoute
   '/tasks': typeof TasksRoute
   '/templates': typeof TemplatesRoute
   '/today': typeof TodayRoute
+  '/uchet-vremeni-brigad': typeof UchetVremeniBrigadRoute
   '/users': typeof UsersRoute
   '/zones': typeof ZonesRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -869,6 +915,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/integrations'
+    | '/ispolnitelnaya-dokumentatsiya'
     | '/kit'
     | '/knowledge'
     | '/login'
@@ -878,11 +925,15 @@ export interface FileRouteTypes {
     | '/quality'
     | '/razbor'
     | '/risks'
+    | '/robots.txt'
     | '/schedule'
     | '/settings'
+    | '/sitemap.xml'
+    | '/snabzhenie'
     | '/tasks'
     | '/templates'
     | '/today'
+    | '/uchet-vremeni-brigad'
     | '/users'
     | '/zones'
     | '/api/client-error'
@@ -962,6 +1013,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/integrations'
+    | '/ispolnitelnaya-dokumentatsiya'
     | '/kit'
     | '/knowledge'
     | '/login'
@@ -970,11 +1022,15 @@ export interface FileRouteTypes {
     | '/quality'
     | '/razbor'
     | '/risks'
+    | '/robots.txt'
     | '/schedule'
     | '/settings'
+    | '/sitemap.xml'
+    | '/snabzhenie'
     | '/tasks'
     | '/templates'
     | '/today'
+    | '/uchet-vremeni-brigad'
     | '/users'
     | '/zones'
     | '/api/client-error'
@@ -1055,6 +1111,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/integrations'
+    | '/ispolnitelnaya-dokumentatsiya'
     | '/kit'
     | '/knowledge'
     | '/login'
@@ -1064,11 +1121,15 @@ export interface FileRouteTypes {
     | '/quality'
     | '/razbor'
     | '/risks'
+    | '/robots.txt'
     | '/schedule'
     | '/settings'
+    | '/sitemap.xml'
+    | '/snabzhenie'
     | '/tasks'
     | '/templates'
     | '/today'
+    | '/uchet-vremeni-brigad'
     | '/users'
     | '/zones'
     | '/api/client-error'
@@ -1150,6 +1211,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
+  IspolnitelnayaDokumentatsiyaRoute: typeof IspolnitelnayaDokumentatsiyaRoute
   KitRoute: typeof KitRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LoginRoute: typeof LoginRoute
@@ -1159,11 +1221,15 @@ export interface RootRouteChildren {
   QualityRoute: typeof QualityRoute
   RazborRoute: typeof RazborRoute
   RisksRoute: typeof RisksRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SnabzhenieRoute: typeof SnabzhenieRoute
   TasksRoute: typeof TasksRoute
   TemplatesRoute: typeof TemplatesRoute
   TodayRoute: typeof TodayRoute
+  UchetVremeniBrigadRoute: typeof UchetVremeniBrigadRoute
   UsersRoute: typeof UsersRoute
   ZonesRoute: typeof ZonesRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
@@ -1319,6 +1385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ispolnitelnaya-dokumentatsiya': {
+      id: '/ispolnitelnaya-dokumentatsiya'
+      path: '/ispolnitelnaya-dokumentatsiya'
+      fullPath: '/ispolnitelnaya-dokumentatsiya'
+      preLoaderRoute: typeof IspolnitelnayaDokumentatsiyaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kit': {
       id: '/kit'
       path: '/kit'
@@ -1382,6 +1455,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RisksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/schedule': {
       id: '/schedule'
       path: '/schedule'
@@ -1394,6 +1474,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/snabzhenie': {
+      id: '/snabzhenie'
+      path: '/snabzhenie'
+      fullPath: '/snabzhenie'
+      preLoaderRoute: typeof SnabzhenieRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tasks': {
@@ -1415,6 +1509,13 @@ declare module '@tanstack/react-router' {
       path: '/today'
       fullPath: '/today'
       preLoaderRoute: typeof TodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/uchet-vremeni-brigad': {
+      id: '/uchet-vremeni-brigad'
+      path: '/uchet-vremeni-brigad'
+      fullPath: '/uchet-vremeni-brigad'
+      preLoaderRoute: typeof UchetVremeniBrigadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/users': {
@@ -1946,6 +2047,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,
+  IspolnitelnayaDokumentatsiyaRoute: IspolnitelnayaDokumentatsiyaRoute,
   KitRoute: KitRoute,
   KnowledgeRoute: KnowledgeRoute,
   LoginRoute: LoginRoute,
@@ -1955,11 +2057,15 @@ const rootRouteChildren: RootRouteChildren = {
   QualityRoute: QualityRoute,
   RazborRoute: RazborRoute,
   RisksRoute: RisksRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SnabzhenieRoute: SnabzhenieRoute,
   TasksRoute: TasksRoute,
   TemplatesRoute: TemplatesRoute,
   TodayRoute: TodayRoute,
+  UchetVremeniBrigadRoute: UchetVremeniBrigadRoute,
   UsersRoute: UsersRoute,
   ZonesRoute: ZonesRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,

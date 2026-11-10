@@ -1,11 +1,17 @@
 import { z } from "zod";
-import { CREW_OPTIONS, LEAD_SOURCES } from "@/lib/site/lead-fields";
+import { CREW_OPTIONS, LEAD_SOURCES, LEAD_TASKS } from "@/lib/site/lead-fields";
 
 /**
  * Порт заявок с сайта (ADR-051, 01_SPEC 11.1). Адаптер выбирается на сервере по окружению:
  * Telegram владельца, вебхук (например, таблица «Лиды») или ничего.
  */
-export { LEAD_SOURCES, CREW_OPTIONS, type LeadSource } from "@/lib/site/lead-fields";
+export {
+  LEAD_SOURCES,
+  CREW_OPTIONS,
+  LEAD_TASKS,
+  type LeadSource,
+  type LeadTask,
+} from "@/lib/site/lead-fields";
 
 export const leadInput = z
   .object({
@@ -18,6 +24,8 @@ export const leadInput = z
       .refine((value) => value.replace(/\D/g, "").length === 11, "phone"),
     crews: z.enum(CREW_OPTIONS),
     source: z.enum(LEAD_SOURCES),
+    /** Какая задача интересна (ADR-067): необязательно, без выбора поля нет */
+    task: z.enum(LEAD_TASKS).optional(),
     /** Код партнёра из ?src=: латиница, цифры, дефис */
     src: z
       .string()
