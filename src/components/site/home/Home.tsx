@@ -17,8 +17,8 @@ import { Shot, type ShotId } from "../visuals";
  */
 const TASK_VISUAL: Record<string, ShotId> = {
   time: "time-review",
-  supply: "supply-request",
-  docs: "docs-package",
+  supply: "supply-offers",
+  docs: "docs-act",
 };
 
 const HOW_VISUALS: readonly ShotId[] = ["time-brigade", "time-review", "time-week", "time-tabel"];

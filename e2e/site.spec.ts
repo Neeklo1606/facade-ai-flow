@@ -283,6 +283,61 @@ test.describe("главная 390 (ADR-067)", () => {
   });
 });
 
+test.describe("анимация (ADR-067, раздел 8)", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("первый экран собирается один раз: на проверке, затем подтверждено", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const hero = page.getByLabel("Пример из демо: неделя бригад");
+    // С сервера приходит состояние до подтверждения
+    const html = await (await page.request.get("/")).text();
+    expect(html).toContain("На проверке");
+    await expect(hero).toContainText("Подтверждено", { timeout: 5000 });
+    await expect(hero).not.toContainText("На проверке");
+  });
+
+  test("reduced-motion: фрагмент сразу в конечном состоянии, блоки не прячутся", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    await expect(page.getByLabel("Пример из демо: неделя бригад")).toContainText("Подтверждено", {
+      timeout: 1000,
+    });
+    // Блоки ниже экрана ждут прокрутки, но без сдвига: только прозрачность
+    const pending = page.locator("[data-reveal][data-pending]").first();
+    if (await pending.count()) {
+      expect(await pending.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+    }
+    // Шаги пути: переключение без автопрокрутки, кнопки есть только на компьютере
+    await scrollThrough(page);
+    await expect(page.locator("[data-reveal][data-pending]")).toHaveCount(0);
+  });
+});
+
+test.describe("путь из четырёх шагов на компьютере", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("кнопки и стрелки переключают шаг и снимок, автопрокрутки нет", async ({ page }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    const tabs = page.locator("#how").getByRole("tab");
+    await expect(tabs).toHaveCount(4);
+    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+    await page.waitForTimeout(1500);
+    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+    await tabs.nth(2).click();
+    await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
+    const visuals = page.locator("#how .site-step-visual");
+    await expect(visuals.nth(2)).toHaveAttribute("data-active", "");
+    await page.keyboard.press("ArrowDown");
+    await expect(tabs.nth(3)).toBeFocused();
+    await expect(visuals.nth(3)).toHaveAttribute("data-active", "");
+    await expect(visuals.nth(0)).not.toHaveAttribute("data-active", "");
+  });
+});
+
 test.describe("страницы задач (ADR-067, раздел 6)", () => {
   for (const width of [390, 1440]) {
     test(`${width}: H1, статус, снимок загружен, крошки, ссылки на другие задачи`, async ({

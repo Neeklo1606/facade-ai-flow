@@ -3500,6 +3500,17 @@ main {
 .site-task-visual {
   min-width: 0;
 }
+/* В карточке задачи снимки одной высоты: кадр 4:3 от верхнего края экрана */
+.site-task-visual .site-shot {
+  aspect-ratio: 4 / 3;
+  max-width: none;
+  border-radius: 16px;
+}
+.site-task-visual .site-shot img {
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
 
 /* Путь из четырёх шагов */
 .site-steps-desktop {
@@ -3692,7 +3703,7 @@ main {
 @media (min-width: 1024px) {
   .site-task-hero-inner {
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
     align-items: center;
     gap: 56px;
     padding-block: 48px 112px;

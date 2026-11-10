@@ -16,6 +16,20 @@ import { DEMO, TASKS } from "@/lib/site/copy";
 import { siteHead } from "@/lib/site/head";
 import { track } from "@/lib/site/analytics";
 import { cn } from "@/lib/utils";
+import { GAS_ONLY_KEY } from "@/lib/gas-ops/gas-only";
+
+/**
+ * Снабжение и ПТО в демо за флагом газового контура (ADR-061). Плитка задачи на сайте
+ * открывает их на эту сессию вкладки (ADR-067, решение 11): так в демо видно то, о чём
+ * говорит страница задачи. Сборка и личный контур заказчика не меняются
+ */
+function openFrozenModules() {
+  try {
+    window.sessionStorage.setItem(GAS_ONLY_KEY, "0");
+  } catch {
+    // Приватный режим: откроется газовый контур без снабжения и ПТО
+  }
+}
 
 /**
  * Вход в демо без регистрации (ADR-047, ADR-067 раздел 6.4): шапка и подвал сайта, три плитки
@@ -106,7 +120,10 @@ function DemoEntry() {
                       <Link
                         to={link.to}
                         search={link.search}
-                        onClick={() => track("demo_start", { task: task.key })}
+                        onClick={() => {
+                          if (!main) openFrozenModules();
+                          track("demo_start", { task: task.key });
+                        }}
                         className={cn(main ? siteButton.primary : siteButton.secondary, "mt-auto")}
                       >
                         {main ? <Play className="size-4 fill-current" aria-hidden /> : null}
