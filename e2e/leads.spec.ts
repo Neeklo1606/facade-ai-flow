@@ -216,7 +216,16 @@ test.describe("набор партнёра", () => {
   });
 
   test("ссылка на /kit нигде на сайте не выводится", async ({ page }) => {
-    for (const path of ["/", "/demo", "/case/gas", "/razbor", "/privacy"]) {
+    for (const path of [
+      "/",
+      "/uchet-vremeni-brigad",
+      "/snabzhenie",
+      "/ispolnitelnaya-dokumentatsiya",
+      "/demo",
+      "/case/gas",
+      "/razbor",
+      "/privacy",
+    ]) {
       await page.goto(path, { waitUntil: "load" });
       await expect(page.locator('a[href*="/kit"]')).toHaveCount(0);
     }
@@ -229,6 +238,9 @@ test.describe("превью ссылок", () => {
     ["/demo", "/og/demo.jpg"],
     ["/case/gas", "/og/case.jpg"],
     ["/razbor", "/og/razbor.jpg"],
+    ["/uchet-vremeni-brigad", "/og/task-time.jpg"],
+    ["/snabzhenie", "/og/task-supply.jpg"],
+    ["/ispolnitelnaya-dokumentatsiya", "/og/task-docs.jpg"],
   ] as const;
   const BOTS = [
     "TelegramBot (like TwitterBot)",

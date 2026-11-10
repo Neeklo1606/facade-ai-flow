@@ -145,6 +145,10 @@ try {
     { path: "/", persona: null },
     // Вход в демо с сайта (шаг L8): страница сайта, отрисованная на сервере
     { path: "/demo", persona: null },
+    // Сайт v2 (ADR-067): три страницы задач, доступность 100 и сдвиг до 0,05
+    { path: "/uchet-vremeni-brigad", persona: null },
+    { path: "/snabzhenie", persona: null },
+    { path: "/ispolnitelnaya-dokumentatsiya", persona: null },
     { path: "/today", persona: "e-gareev" },
     // Первый экран контура газа (ADR-045, V9): цифры FCP и LCP печатаются для отчёта
     { path: "/gas", persona: null },
@@ -215,9 +219,14 @@ try {
      * Лендинг (ADR-059, S7): сдвиг вёрстки первого экрана меньше 0,05. От сети он не зависит,
      * поэтому держит порог и локально. LCP 2,5 с снимается на опубликованном адресе
      */
-    if (path === "/" && (shift === undefined || shift >= 0.05)) {
+    const sitePage =
+      path === "/" ||
+      path.startsWith("/uchet") ||
+      path.startsWith("/snab") ||
+      path.startsWith("/ispol");
+    if (sitePage && (shift === undefined || shift >= 0.05)) {
       failures.push(
-        `/ · телефон · CLS ${shift === undefined ? "нет замера" : shift.toFixed(3)} ≥ 0,05`,
+        `${path} · телефон · CLS ${shift === undefined ? "нет замера" : shift.toFixed(3)} ≥ 0,05`,
       );
     }
     line.push(

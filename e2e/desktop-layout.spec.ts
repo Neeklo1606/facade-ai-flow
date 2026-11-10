@@ -138,7 +138,7 @@ test.describe("кабинет на компьютере 1280", () => {
 
 test.describe("сайт на компьютере и планшете", () => {
   for (const width of [768, 1024, 1280, 1440, 1920]) {
-    test(`лендинг ${width}: сетка, текст до 640, контент до 1200, неделя и модули по ширине`, async ({
+    test(`главная ${width}: сетка, текст до 640, контент до 1200, фрагмент и задачи по ширине`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -146,39 +146,57 @@ test.describe("сайт на компьютере и планшете", () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
       const lead = page.locator("main p.site-lead").first();
       expect((await lead.boundingBox())!.width).toBeLessThanOrEqual(640);
-      const wraps = await page
-        .locator("main .site-wrap")
-        .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
+      // ADR-067, раздел 10: контент до 1200, поле страницы сверх него
+      const wraps = await page.locator("main .site-wrap").evaluateAll((els) =>
+        els.map((el) => {
+          const style = getComputedStyle(el);
+          return (
+            el.getBoundingClientRect().width -
+            parseFloat(style.paddingLeft) -
+            parseFloat(style.paddingRight)
+          );
+        }),
+      );
       for (const w of wraps) expect(w).toBeLessThanOrEqual(1200);
       const title = (await page.locator("main h1").boundingBox())!;
-      const fragment = (await page.getByLabel("Пример: неделя в демо").boundingBox())!;
-      // ADR-059 (S7): с 1024 живая неделя справа от заголовка, уже — под ним
+      const fragment = (await page.getByLabel("Пример из демо: неделя бригад").boundingBox())!;
+      // С 1024 живой фрагмент справа от заголовка, уже под ним
       if (width >= 1024) expect(fragment.x).toBeGreaterThanOrEqual(title.x + title.width - 1);
       else expect(fragment.y).toBeGreaterThan(title.y + title.height);
-      // Три модуля с 1024 стоят в строку
       // Раскладка, а не кадр анимации: появление сдвигает карточки transform-ом
-      const modules = await page.locator(".landing-module").evaluateAll((els) =>
+      const cards = await page.locator(".site-task-card").evaluateAll((els) =>
         els.map((el) => {
           const box = el as HTMLElement;
           return { x: box.offsetLeft, y: box.offsetTop, width: box.offsetWidth };
         }),
       );
-      expect(modules).toHaveLength(3);
-      if (width >= 1024) {
-        for (const [i, card] of modules.entries()) {
-          const previous = modules[i - 1];
-          if (!previous) continue;
+      expect(cards).toHaveLength(3);
+      for (const [i, card] of cards.entries()) {
+        const previous = cards[i - 1];
+        if (!previous) continue;
+        if (width >= 1024) {
+          // Три задачи с 1024 стоят в строку
           expect(Math.abs(card.y - previous.y)).toBeLessThan(2);
           expect(card.x).toBeGreaterThan(previous.x + previous.width - 1);
+        } else {
+          // Планшет: одна колонка, снимок справа внутри карточки
+          expect(card.y).toBeGreaterThan(previous.y);
         }
+      }
+      if (width < 1024) {
+        const card = page.locator(".site-task-card").first();
+        const text = (await card.locator("h3").boundingBox())!;
+        const visual = (await card.locator(".site-task-visual").boundingBox())!;
+        expect(visual.x).toBeGreaterThanOrEqual(text.x + text.width - 1);
       }
     });
   }
 
-  test("/demo на компьютере: две карточки рядом", async ({ page }) => {
+  test("/demo на компьютере: три плитки задач рядом", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/demo", { waitUntil: "load" });
-    const cards = page.locator("main section[aria-labelledby]");
+    const cards = page.locator("main li > section[aria-labelledby]");
+    await expect(cards).toHaveCount(3);
     const a = (await cards.nth(0).boundingBox())!;
     const b = (await cards.nth(1).boundingBox())!;
     expect(Math.abs(a.y - b.y)).toBeLessThan(2);

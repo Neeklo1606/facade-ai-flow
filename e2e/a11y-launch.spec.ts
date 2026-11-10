@@ -9,7 +9,17 @@ import { gasRole } from "./gas-helpers";
  * без поломки на 390, названия для читалки.
  */
 
-const SITE = ["/", "/demo", "/case/gas", "/razbor", "/kit", "/privacy"];
+const SITE = [
+  "/",
+  "/uchet-vremeni-brigad",
+  "/snabzhenie",
+  "/ispolnitelnaya-dokumentatsiya",
+  "/demo",
+  "/case/gas",
+  "/razbor",
+  "/kit",
+  "/privacy",
+];
 
 const overflow = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

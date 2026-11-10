@@ -1,10 +1,10 @@
+import { loadSiteHead } from "@/lib/site/head-loader";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { SitePageHead, SiteSkeleton } from "@/components/site/parts";
 import { useForcedState } from "@/lib/screen-state";
 import { KIT } from "@/lib/site/copy";
-import { siteHead } from "@/lib/site/head";
 
 /**
  * Набор партнёра (01_SPEC 10.3). Не индексируется никогда, ссылка нигде на сайте не выводится.
@@ -14,7 +14,8 @@ const PartnerKit = lazy(() => import("@/components/site/kit/PartnerKit"));
 
 export const Route = createFileRoute("/kit")({
   ssr: true,
-  head: () => siteHead({ path: "/kit", ...KIT.meta }),
+  loader: () => loadSiteHead("/kit"),
+  head: ({ loaderData }) => loaderData?.head ?? {},
   component: KitPage,
 });
 
