@@ -1,18 +1,40 @@
+import { loadSiteHead } from "@/lib/site/head-loader";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Play } from "lucide-react";
+import { useEffect } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { SiteError, SiteSkeleton, siteButton } from "@/components/site/parts";
+import {
+  SiteError,
+  SitePageHead,
+  SiteSkeleton,
+  siteButton,
+  StatusBadge,
+} from "@/components/site/parts";
 import { useForcedState } from "@/lib/screen-state";
 import { DemoScenarioList, useStartCanonScenario } from "@/components/guide/DemoScenarios";
-import { useEffect } from "react";
 import { restartShow } from "@/lib/guide/store";
-import { DEMO } from "@/lib/site/copy";
-import { siteHead } from "@/lib/site/head";
+import { DEMO, TASKS } from "@/lib/site/copy";
+import { track } from "@/lib/site/analytics";
+import { cn } from "@/lib/utils";
+import { GAS_ONLY_KEY } from "@/lib/gas-ops/gas-only";
 
 /**
- * Вход в демо без регистрации (ADR-047, 01_SPEC 7.1). Главное: показ учёта выработки,
- * «Начать показ» открывает первый шаг сразу. Ниже голос с объекта: три сценария ГАЙКИ,
- * которые раньше жили на экране входа `/`.
+ * Снабжение и ПТО в демо за флагом газового контура (ADR-061). Плитка задачи на сайте
+ * открывает их на эту сессию вкладки (ADR-067, решение 11): так в демо видно то, о чём
+ * говорит страница задачи. Сборка и личный контур заказчика не меняются
+ */
+function openFrozenModules() {
+  try {
+    window.sessionStorage.setItem(GAS_ONLY_KEY, "0");
+  } catch {
+    // Приватный режим: откроется газовый контур без снабжения и ПТО
+  }
+}
+
+/**
+ * Вход в демо без регистрации (ADR-047, ADR-067 раздел 6.4): шапка и подвал сайта, три плитки
+ * задач. Учёт времени открывает показ /gas, снабжение и документы открывают свои экраны демо
+ * под нужной ролью. «Войти как» строкой, ниже голос с объекта: три сценария ГАЙКИ.
  */
 export const Route = createFileRoute("/demo")({
   ssr: true,
@@ -23,9 +45,20 @@ export const Route = createFileRoute("/demo")({
       ? { scenario: search["scenario"] }
       : {}),
   }),
-  head: () => siteHead({ path: "/demo", ...DEMO.meta, image: "/og/demo.jpg" }),
+  loader: () => loadSiteHead("/demo"),
+  head: ({ loaderData }) => loaderData?.head ?? {},
   component: DemoEntry,
 });
+
+/**
+ * Куда ведёт плитка: показ учёта времени или выбор роли с готовым экраном. Снабжение
+ * открывает экран прораба, документы экран ПТО (ADR-057, ADR-058): роль выбирается на /gas
+ */
+const TILE_LINK = {
+  time: { to: "/gas", search: { start: "1" } },
+  supply: { to: "/gas", search: { roles: "1" } },
+  docs: { to: "/gas", search: { roles: "1" } },
+} as const;
 
 function DemoEntry() {
   const { partner, scenario } = Route.useSearch();
@@ -46,10 +79,7 @@ function DemoEntry() {
 
   return (
     <SiteLayout>
-      <header className="site-wrap pt-8 pb-8 lg:pt-16 lg:pb-12">
-        <h1 className="site-h1 text-text">{DEMO.title}</h1>
-        <p className="site-lead mt-3 max-w-[640px] text-text-2 lg:mt-5">{DEMO.lead}</p>
-      </header>
+      <SitePageHead title={DEMO.title} lead={DEMO.lead} />
 
       {forced === "loading" ? (
         <div className="site-wrap pb-16 lg:pb-28">
@@ -63,56 +93,89 @@ function DemoEntry() {
           />
         </div>
       ) : (
-        <div className="site-wrap flex flex-col gap-12 pb-16 lg:grid lg:grid-cols-[1.15fr_1fr] lg:items-start lg:gap-10 lg:pb-28">
-          <section
-            aria-labelledby="demo-gas"
-            className="relative isolate overflow-hidden rounded-2xl bg-surface p-5 ring-1 ring-line sm:p-7 lg:p-10"
-          >
-            <span aria-hidden className="site-glow -z-10 opacity-40" />
-            <p className="site-caption font-medium text-orange">Главный сценарий</p>
-            <h2 id="demo-gas" className="site-h2 mt-2 text-text">
-              {DEMO.gas.title}
-            </h2>
-            <p className="site-body mt-3 text-text-2">{DEMO.gas.text}</p>
-            <p className="site-caption mt-4 text-text-3 tnum">{DEMO.gas.meta}</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-8">
-              <Link to="/gas" search={{ start: "1" }} className={siteButton.primary}>
-                <Play className="size-4 fill-current" aria-hidden />
-                {DEMO.gas.start}
-              </Link>
-              <Link to="/gas" search={{ roles: "1" }} className={siteButton.secondary}>
-                {DEMO.gas.roles}
-              </Link>
-            </div>
-          </section>
-
-          <section aria-labelledby="demo-voice" className="flex flex-col gap-4">
-            <div>
-              <h2 id="demo-voice" className="site-h3 text-text">
-                {DEMO.voice.title}
-              </h2>
-              <p className="site-body mt-1 text-text-2">{DEMO.voice.text}</p>
-            </div>
-            <DemoScenarioList />
-            <button
-              type="button"
-              onClick={pickRole}
-              className="inline-flex min-h-12 items-center gap-2 self-start rounded-full px-1 text-body-strong text-text focus-ring is-hover:text-orange"
-            >
-              {DEMO.voice.pick}
-              <ArrowRight className="size-4" aria-hidden />
-            </button>
-            {partner ? (
+        <>
+          <div className="site-wrap">
+            <ul className="grid gap-4 lg:grid-cols-3">
+              {TASKS.map((task) => {
+                const tile = DEMO.tiles[task.key];
+                const link = TILE_LINK[task.key];
+                const main = task.key === "time";
+                return (
+                  <li key={task.key}>
+                    <section
+                      aria-labelledby={`demo-${task.key}`}
+                      className="flex h-full flex-col gap-4 rounded-surface bg-surface p-6 lg:p-8"
+                    >
+                      <StatusBadge
+                        kind={task.status.kind}
+                        text={task.status.card}
+                        className="self-start"
+                      />
+                      <h2 id={`demo-${task.key}`} className="site-h3 text-text">
+                        {task.title}
+                      </h2>
+                      <p className="site-body text-text-2">{tile.text}</p>
+                      {main ? (
+                        <p className="site-caption text-text-3 tnum">{DEMO.gas.meta}</p>
+                      ) : null}
+                      <Link
+                        to={link.to}
+                        search={link.search}
+                        onClick={() => {
+                          if (!main) openFrozenModules();
+                          track("demo_start", { task: task.key });
+                        }}
+                        className={cn(main ? siteButton.primary : siteButton.secondary, "mt-auto")}
+                      >
+                        {main ? <Play className="size-4 fill-current" aria-hidden /> : null}
+                        {tile.open}
+                      </Link>
+                    </section>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="site-body mt-6 text-text-2">
               <Link
-                to="/kit"
-                className="inline-flex min-h-12 items-center gap-2 self-start rounded-full px-1 text-body text-text-2 focus-ring is-hover:text-text"
+                to="/gas"
+                search={{ roles: "1" }}
+                className="inline-flex min-h-11 items-center gap-1.5 font-medium text-text underline-offset-4 focus-ring is-hover:underline"
               >
-                {DEMO.partner}
+                {DEMO.roles}: бригадир, менеджер, прораб, снабженец, ПТО, руководитель
                 <ArrowRight className="size-4" aria-hidden />
               </Link>
-            ) : null}
+            </p>
+          </div>
+
+          <section aria-labelledby="demo-voice" className="site-block bg-void">
+            <div className="site-wrap flex max-w-[760px] flex-col gap-4 lg:ms-auto lg:me-auto">
+              <div>
+                <h2 id="demo-voice" className="site-h2 text-text">
+                  {DEMO.voice.title}
+                </h2>
+                <p className="site-body mt-2 text-text-2">{DEMO.voice.text}</p>
+              </div>
+              <DemoScenarioList />
+              <button
+                type="button"
+                onClick={pickRole}
+                className="inline-flex min-h-12 items-center gap-2 self-start rounded-full px-1 text-body-strong text-text focus-ring"
+              >
+                {DEMO.voice.pick}
+                <ArrowRight className="size-4" aria-hidden />
+              </button>
+              {partner ? (
+                <Link
+                  to="/kit"
+                  className="inline-flex min-h-12 items-center gap-2 self-start rounded-full px-1 text-body text-text-2 focus-ring is-hover:text-text"
+                >
+                  {DEMO.partner}
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              ) : null}
+            </div>
           </section>
-        </div>
+        </>
       )}
     </SiteLayout>
   );

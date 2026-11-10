@@ -68,3 +68,11 @@ export const SUPPLY_SAMPLE = {
   qty: "50\u00a0м",
   limit: "по смете 120\u00a0м, заказано 0, в заявке 50: в пределах сметы",
 };
+
+/**
+ * Запись ОБ-200 на первом экране (ADR-067, раздел 8): итог недели до её подтверждения
+ * и формат рублей для досчёта. Формулы и формат считает domain, компонент только рисует
+ */
+export const HERO_ENTRY_RUB = 14_700;
+export const HERO_BEFORE_RUB = WEEK_TOTAL_RUB - HERO_ENTRY_RUB;
+export const formatRub = (value: number) => fmtRub(value);

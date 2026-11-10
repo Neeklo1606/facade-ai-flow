@@ -6,7 +6,7 @@ import { rememberEnv } from "./lib/runtime-env";
 import { SESSION_PREFIX, sessionFromCookieHeader, verifySession } from "./lib/session-token";
 import { authAvailable, sessionEmployee } from "./api/auth-store";
 import { clientLinkGate } from "./lib/client-link";
-import { isSitePath } from "./lib/site/paths";
+import { isIndexablePath } from "./lib/site/paths";
 import { serverEnv } from "./lib/runtime-env";
 
 /** Экран входа: единственный адрес, открытый без сессии в рабочем контуре (ADR-021) */
@@ -65,12 +65,13 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 /**
  * Ответы страниц не индексируются: демонстрация живёт по ссылке, а не в поиске (TASK-A5, п. 2).
- * Страницы сайта открываются поиску только при SEO_INDEX=on; /kit закрыт всегда (ADR-047)
+ * Публичные страницы сайта открываются поиску только при SEO_INDEX=on, по тому же правилу,
+ * что мета robots и robots.txt (ADR-067, раздел 9): /kit, /og, приложение закрыты всегда
  */
 function withNoIndex(response: Response, pathname: string) {
   const type = response.headers.get("content-type") ?? "";
   if (!type.includes("text/html")) return response;
-  const indexable = serverEnv("SEO_INDEX") === "on" && isSitePath(pathname) && pathname !== "/kit";
+  const indexable = isIndexablePath(pathname, serverEnv("SEO_INDEX") === "on");
   if (indexable) return response;
   const headers = new Headers(response.headers);
   headers.set("x-robots-tag", "noindex, nofollow");

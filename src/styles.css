@@ -1613,7 +1613,9 @@
   z-index: 40;
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--card);
-  box-shadow: 0 -1px 0 var(--line), 0 -8px 24px rgba(17, 17, 19, 0.04);
+  box-shadow:
+    0 -1px 0 var(--line),
+    0 -8px 24px rgba(17, 17, 19, 0.04);
 }
 @utility mono-tab {
   display: flex;
@@ -3272,18 +3274,6 @@ main {
   background: var(--void);
   color: var(--text);
 }
-@media (prefers-reduced-motion: no-preference) {
-  html[data-booted] [data-reveal]:not([data-shown]) {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  [data-reveal] {
-    transition:
-      opacity 520ms var(--ease-out),
-      transform 520ms var(--ease-out);
-    transition-delay: var(--reveal-delay, 0ms);
-  }
-}
 /* Липкая кнопка телефона: над безопасной зоной, прячется сдвигом вниз */
 .site-sticky {
   transition:
@@ -3296,59 +3286,460 @@ main {
   pointer-events: none;
 }
 
-/* ADR-053: public landing composition, independent of app density. */
-.landing-page {
-  --landing-shadow: 0 12px 36px color-mix(in oklab, var(--text) 7%, transparent);
-  --landing-section-space: 80px;
-  --landing-title-size: 32px;
-  --landing-title-leading: 38px;
+/* ------------------------------------------------------------------
+ * Сайт v2 (ADR-067, раздел 10). Шкала: H1 32/38 и 56/60, H2 26/32 и 40/46, H3 18/24 и 20/28,
+ * подзаголовок 18/27 и 20/30, текст 16/24 и 17/26, подпись 14/20. Поле 20 и 32, контент
+ * до 1200, текст до 640, между секциями 72 и 128. Размеры в px: на компьютере html 14 px,
+ * а шкала сайта задана в пикселях. Секции отделяются воздухом и фоном, не линиями.
+ * ------------------------------------------------------------------ */
+.site-page {
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 24px;
+  --site-gutter: 20px;
+  --site-space: 72px;
+  --site-card-pad: 24px;
+  --site-gap: 16px;
+  --site-header: 56px;
 }
-.landing-page .site-wrap { max-width: 1200px; padding-inline: 24px; }
-.landing-page .site-h1 { font-size: var(--landing-title-size); line-height: var(--landing-title-leading); letter-spacing: 0; }
-.landing-page .site-h2 { font-size: 28px; line-height: 34px; letter-spacing: 0; }
-.landing-page .site-h3 { font-size: 19px; line-height: 26px; }
-.landing-page .site-body { font-size: 16px; line-height: 26px; }
-.landing-page .site-caption { font-size: 14px; line-height: 21px; }
-.landing-page .site-lead { font-size: 17px; line-height: 27px; }
-.landing-page .site-section { padding-block: var(--landing-section-space); }
-.landing-page .site-btn { min-height: 52px; font-size: 16px; padding-inline: 24px; }
-/* ADR-059 (S7): первый экран «Монохрома» без картинки, справа живая неделя демо */
-.landing-hero { background: var(--base); }
-.landing-hero-inner { padding-block: 36px 48px; }
-.landing-hero-copy { max-width: 640px; }
-.landing-hero-fragment { margin-top: var(--landing-section-space); min-width: 0; }
-.landing-point { padding: 24px 0; border-top: 1px solid var(--line-2); }
-.landing-section-heading { max-width: 800px; }
-.landing-faq { max-width: 900px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.landing-links svg { transition: transform 180ms var(--ease-out); }
-.landing-sticky-button { box-shadow: var(--landing-shadow); }
-.landing-page .site-btn svg { transition: transform 180ms var(--ease-out); }
-.landing-page .site-rise:nth-child(2) { animation-delay: 70ms; }
-.landing-page .site-rise:nth-child(3) { animation-delay: 140ms; }
-.landing-page .site-rise:nth-child(4) { animation-delay: 210ms; }
-.landing-page .site-rise:nth-child(5) { animation-delay: 280ms; }
-@media (min-width: 768px) {
-  .landing-page { --landing-title-size: 44px; --landing-title-leading: 50px; }
-  .landing-page .site-wrap { padding-inline: 40px; }
-  .landing-hero-inner { padding-block: 48px 56px; }
+.site-page [id] {
+  scroll-margin-top: calc(var(--site-header) + 16px + env(safe-area-inset-top));
 }
-@media (min-width: 1024px) {
-  .landing-page { --landing-title-size: 48px; --landing-title-leading: 54px; --landing-section-space: 96px; }
-  .landing-hero-inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--landing-section-space); }
-  .landing-hero-fragment { margin-top: 0; }
-  .landing-page .site-h2 { font-size: 38px; line-height: 46px; }
-  .landing-page .site-h3 { font-size: 21px; line-height: 29px; }
-  .landing-page .site-body { font-size: 18px; line-height: 28px; }
-  .landing-page .site-lead { font-size: 19px; line-height: 29px; }
-  .landing-hero-inner { padding-block: 28px 24px; }
+.site-page .site-wrap {
+  max-width: calc(1200px + 2 * var(--site-gutter));
+  padding-inline: var(--site-gutter);
+}
+.site-page .site-h1 {
+  font-size: 32px;
+  line-height: 38px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.site-page .site-h2 {
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.site-page .site-h3 {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.site-page .site-lead {
+  font-size: 18px;
+  line-height: 27px;
+}
+.site-page .site-body {
+  font-size: 16px;
+  line-height: 24px;
+}
+.site-page .site-caption {
+  font-size: 14px;
+  line-height: 20px;
+}
+.site-page .site-btn {
+  min-height: 52px;
+  padding-inline: 24px;
+  font-size: 16px;
+  line-height: 20px;
+}
+.site-page .site-btn {
+  white-space: nowrap;
+}
+.site-page [data-readiness] {
+  font-size: 14px;
+  line-height: 20px;
+}
+.site-hero-actions {
+  flex-wrap: wrap;
+}
+.site-page .site-btn-sm {
+  min-height: 48px;
+  padding-inline: 18px;
+  font-size: 15px;
+}
+.site-page .site-btn svg {
+  transition: transform 180ms var(--ease-out);
+}
+.site-block {
+  padding-block: var(--site-space);
+}
+.site-block-body {
+  margin-top: 32px;
+}
+.site-page-head {
+  padding-block: 32px 48px;
+}
+.site-page .rounded-card {
+  border-radius: 16px;
+}
+.site-page .rounded-surface {
+  border-radius: 24px;
+}
+
+/* Шапка и меню */
+.site-nav-desktop {
+  display: none;
+}
+.site-nav-mobile {
+  display: flex;
+}
+.site-menu-pop {
+  z-index: 40;
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 16px 40px color-mix(in oklab, var(--ink) 10%, transparent);
+}
+.site-header .site-nav-desktop :is(a, button):not(.site-btn) {
+  font-size: 15px;
+  line-height: 20px;
+}
+.site-header nav [aria-current="page"],
+.site-header nav button[aria-expanded="true"] {
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-menu-sheet[data-state="open"] {
+    animation: site-sheet-in 260ms var(--ease-out) both;
+  }
+  .site-menu-sheet[data-state="closed"] {
+    animation: site-sheet-out 200ms var(--ease) both;
+  }
+}
+@keyframes site-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+@keyframes site-sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* Первый экран */
+.site-hero-inner {
+  padding-block: 24px 56px;
+}
+.site-hero-copy {
+  max-width: 640px;
+}
+.site-hero-visual {
+  margin-top: 48px;
+  min-width: 0;
+}
+.site-hero-live .mono-card {
+  padding: 20px;
+}
+.site-metric {
+  font-size: 20px;
+  line-height: 26px;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.site-hero-bars {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  height: 112px;
+}
+.site-hero-bar {
+  display: block;
+  min-height: 4px;
+  border-radius: 6px 6px 2px 2px;
+  background: var(--panel-3, var(--panel-2));
+  transition: height 600ms var(--ease-out);
+}
+.site-hero-bar.is-last {
+  background: var(--ink);
+}
+.site-hero-chip {
+  font-size: 13px;
+  line-height: 18px;
+  transition:
+    background-color 240ms var(--ease),
+    color 240ms var(--ease);
+}
+
+/* Карточки задач: 1 колонка до 767, на планшете снимок справа, 3 колонки от 1024 */
+.site-task-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--site-gap);
+}
+.site-task-card {
+  min-width: 0;
+}
+.site-task-card {
+  transition:
+    transform 160ms var(--ease),
+    box-shadow 160ms var(--ease);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.site-card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .landing-page .site-btn:hover svg, .landing-links a:hover svg { transform: translateX(4px); }
+  .site-task-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 16px 36px color-mix(in oklab, var(--ink) 9%, transparent);
+  }
+  .site-task-card:hover .site-btn svg,
+  .site-page .site-btn:hover svg {
+    transform: translateX(3px);
+  }
 }
+.site-task-visual {
+  min-width: 0;
+}
+/* В карточке задачи снимки одной высоты: кадр 4:3 от верхнего края экрана */
+.site-task-visual .site-shot-desk.site-shot {
+  aspect-ratio: 4 / 3;
+  max-width: none;
+  border-radius: 16px;
+}
+.site-task-visual .site-shot-desk img {
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+
+/* Путь из четырёх шагов */
+.site-steps-desktop {
+  display: none;
+}
+.site-steps-mobile {
+  display: flex;
+}
+.site-step-stage {
+  display: grid;
+  min-width: 0;
+}
+.site-step-visual {
+  grid-area: 1 / 1;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 240ms var(--ease),
+    visibility 0ms linear 240ms;
+}
+.site-step-visual[data-active] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 240ms var(--ease),
+    visibility 0ms;
+}
+.site-step-tab {
+  transition: background-color 160ms var(--ease);
+}
+
+/* Снимки и фрагменты: радиус 16, тонкая граница, без браузерной рамки */
+.site-shot {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 1px 2px color-mix(in oklab, var(--ink) 4%, transparent),
+    0 12px 32px color-mix(in oklab, var(--ink) 6%, transparent);
+}
+.site-shot.is-phone {
+  max-width: 320px;
+  margin-inline: auto;
+  border-radius: 28px;
+}
+.site-shot.is-fragment {
+  background: var(--panel-2);
+  padding: 16px;
+}
+.site-shot.is-fragment.is-phone {
+  max-width: none;
+  border-radius: 16px;
+}
+/* Телефон: снимок компьютера заменяется телефонным снимком или живым фрагментом */
+.site-shot-desk {
+  display: none;
+}
+@media (min-width: 768px) {
+  .site-shot-phone {
+    display: none;
+  }
+  .site-shot-desk {
+    display: block;
+  }
+}
+.site-fragment-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.site-shot img {
+  background: var(--panel-2);
+}
+
+/* Появление при прокрутке (раздел 8): прячет только скрипт, см. components/site/motion.ts */
+.site-page [data-reveal] {
+  transition:
+    opacity 280ms var(--ease-out),
+    transform 280ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.site-page [data-reveal][data-pending] {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.site-sticky-button {
+  box-shadow: 0 12px 36px color-mix(in oklab, var(--ink) 14%, transparent);
+}
+
+@media (min-width: 768px) {
+  .site-page {
+    --site-gutter: 32px;
+    --site-space: 96px;
+  }
+  .site-task-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+  }
+  .site-task-visual {
+    padding: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .site-page {
+    font-size: 17px;
+    line-height: 26px;
+    --site-space: 128px;
+    --site-card-pad: 32px;
+    --site-gap: 24px;
+  }
+  .site-page .site-h1 {
+    font-size: 56px;
+    line-height: 60px;
+  }
+  .site-page .site-h2 {
+    font-size: 40px;
+    line-height: 46px;
+  }
+  .site-page .site-h3 {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  .site-page .site-lead {
+    font-size: 20px;
+    line-height: 30px;
+  }
+  .site-page .site-body {
+    font-size: 17px;
+    line-height: 26px;
+  }
+  .site-page .site-btn {
+    min-height: 56px;
+    padding-inline: 28px;
+    font-size: 17px;
+  }
+  .site-page .site-btn-sm {
+    min-height: 44px;
+    padding-inline: 18px;
+    font-size: 15px;
+  }
+  .site-block-body {
+    margin-top: 48px;
+  }
+  .site-page-head {
+    padding-block: 72px 64px;
+  }
+  .site-nav-desktop {
+    display: flex;
+  }
+  .site-nav-mobile {
+    display: none;
+  }
+  .site-hero-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    align-items: center;
+    gap: 64px;
+    padding-block: 72px 112px;
+  }
+  .site-hero-visual {
+    margin-top: 0;
+  }
+  .site-hero-live .mono-card {
+    padding: 28px;
+  }
+  .site-metric {
+    font-size: 26px;
+    line-height: 32px;
+  }
+  .site-hero-bars {
+    height: 132px;
+  }
+  .site-task-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .site-task-card {
+    display: flex;
+  }
+  .site-task-visual {
+    padding: 0 20px 20px;
+  }
+  .site-steps-desktop {
+    display: grid;
+  }
+  .site-steps-mobile {
+    display: none;
+  }
+}
+
+/* Страница задачи: снимок первого экрана справа на компьютере, под текстом на телефоне */
+.site-task-hero-inner {
+  padding-block: 16px 56px;
+}
+.site-task-hero-shot {
+  margin-top: 40px;
+  min-width: 0;
+}
+@media (min-width: 1024px) {
+  .site-task-hero-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+    align-items: center;
+    gap: 56px;
+    padding-block: 48px 112px;
+  }
+  .site-task-hero-shot {
+    margin-top: 0;
+  }
+}
+
+/* Без движения: только прозрачность, ни сдвигов, ни подъёма */
 @media (prefers-reduced-motion: reduce) {
-  .landing-page *, .landing-page *::before, .landing-page *::after { animation: none !important; transition: none !important; }
+  .site-page [data-reveal][data-pending] {
+    transform: none;
+  }
+  .site-page [data-reveal] {
+    transition: opacity 200ms linear;
+  }
+  .site-task-card,
+  .site-hero-bar,
+  .site-hero-chip,
+  .site-step-visual,
+  .site-page .site-btn svg {
+    transition: none;
+  }
 }
 
 /*

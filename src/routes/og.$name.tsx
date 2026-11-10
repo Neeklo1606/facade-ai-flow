@@ -6,6 +6,7 @@ import {
   DocsFragment,
   QueueFragment,
   ReportFragment,
+  SupplyFragment,
   WeekTableFragment,
 } from "@/components/site/landing/fragments";
 import { BRAND } from "@/lib/site/copy";
@@ -19,14 +20,38 @@ const FRAMES: Record<string, { eyebrow: string; title: string; text: string; art
   // ADR-059 (S7): кадр повторяет первый экран лендинга, фрагменты те же
   landing: {
     eyebrow: "Помощник подрядчика",
-    title: "Данные с объекта превращаются в отчёты и документы",
-    text: "Учёт времени бригад, снабжение и исполнительная документация. Без переписывания в Excel.",
+    title: "Табель, снабжение и документы ПТО из данных с объекта",
+    text: "Бригадир отмечает время, прораб пишет, чего не хватает. Проверяет человек.",
     art: (
       <>
         <QueueFragment />
         <DocsFragment />
       </>
     ),
+  },
+  // ADR-067: превью трёх страниц задач, H1 страницы и один фрагмент продукта
+  "task-time": {
+    eyebrow: "Учёт времени бригад",
+    title: "Учёт времени бригад и выработки по смете",
+    text: "Бригадир вносит время с телефона. Менеджер проверяет замечания.",
+    art: (
+      <>
+        <QueueFragment />
+        <ReportFragment />
+      </>
+    ),
+  },
+  "task-supply": {
+    eyebrow: "Снабжение объекта",
+    title: "Снабжение объекта: от заявки до приёмки",
+    text: "Прораб пишет, что нужно. Снабженец сравнивает предложения.",
+    art: <SupplyFragment />,
+  },
+  "task-docs": {
+    eyebrow: "Исполнительная документация",
+    title: "Исполнительная документация из подтверждённых данных объекта",
+    text: "Черновики АОСР и реестр ИД. Подписывают ваши специалисты.",
+    art: <DocsFragment />,
   },
   demo: {
     eyebrow: "Демо, 3 минуты, без регистрации",

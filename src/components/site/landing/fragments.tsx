@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Check, FileSpreadsheet } from "lucide-react";
 import { DOCS_SAMPLE, SAMPLE, SUPPLY_SAMPLE } from "@/lib/site/sample";
 import { cn } from "@/lib/utils";
@@ -9,61 +8,6 @@ import { cn } from "@/lib/utils";
  * но без его данных и контекста: импорт кирпичей бота притянул бы в лендинг весь набор демо.
  * Числа из записи показа ОБ-200 (`SAMPLE`), посчитаны domain.
  */
-
-/** Появление один раз, когда блок вошёл в экран. reduced-motion выключает анимацию в CSS */
-export function Reveal({
-  children,
-  delay = 0,
-  className,
-  as: Tag = "div",
-}: {
-  children: ReactNode;
-  delay?: number;
-  className?: string;
-  /** Внутри списка блок сам становится пунктом: `ol > div` невалидная разметка */
-  as?: "div" | "li";
-}) {
-  const ref = useRef<HTMLDivElement & HTMLLIElement>(null);
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setShown(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "0px 0px -10% 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  return (
-    <Tag
-      ref={ref}
-      data-reveal
-      data-shown={shown ? "" : undefined}
-      style={{ "--reveal-delay": `${delay}ms` } as CSSProperties}
-      className={className}
-    >
-      {children}
-    </Tag>
-  );
-}
-
-/** Подпись под фрагментом: откуда цифры */
-export function SampleNote({ className }: { className?: string }) {
-  return (
-    <p className={cn("site-caption text-text-3", className)}>
-      Пример из демо: {SAMPLE.code}, вымышленные данные
-    </p>
-  );
-}
 
 /** Сообщение бота и кнопки времени, как в мессенджере бригадира */
 export function BotFragment({ className }: { className?: string }) {

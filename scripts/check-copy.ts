@@ -25,6 +25,10 @@ const AREAS = [
   "src/routes/privacy.tsx",
   "src/routes/og.$name.tsx",
   "src/routes/finish.tsx",
+  // Сайт v2: страницы трёх задач (ADR-067)
+  "src/routes/uchet-vremeni-brigad.tsx",
+  "src/routes/snabzhenie.tsx",
+  "src/routes/ispolnitelnaya-dokumentatsiya.tsx",
   // Экраны «Ещё» и шторка роли (ADR-048)
   "src/routes/more.tsx",
   "src/components/layout/MoreScreen.tsx",
@@ -64,6 +68,12 @@ const CAPS_OK = new Set([
 const WORDS =
   /(?<!\p{L})(эффективно|удобно|удобный|удобная|удобное|легко|инновационн\p{L}*|революционн\p{L}*|уникальн\p{L}*)(?!\p{L})/iu;
 const EMOJI = /\p{Extended_Pictographic}/u;
+/** Сайт v2 (ADR-067, правило 3.6): ещё два слова-обещания только для сайта */
+const SITE_WORDS = /(?<!\p{L})(лучш\p{L}*|ИИ всё сделает)(?!\p{L})/iu;
+const SITE_AREAS = ["src/components/site", "src/lib/site"];
+/** Предложение сайта до 14 слов (ADR-067, правило 3.6). Набор партнёра и политика ниже KIT */
+const SITE_COPY = "src/lib/site/copy.ts";
+const MAX_WORDS = 14;
 const CAPS = /(?<![\p{L}-])[\p{Lu}]{4,}(?![\p{L}])/gu;
 
 function files(dir: string): string[] {
@@ -100,6 +110,31 @@ for (const area of AREAS) {
         problems.push(`${where}: капс «${word}»`);
       }
     });
+  }
+}
+
+for (const area of SITE_AREAS) {
+  for (const path of files(area)) {
+    stripComments(readFileSync(path, "utf8"))
+      .split("\n")
+      .forEach((line, index) => {
+        if (SITE_WORDS.test(line))
+          problems.push(`${path}:${index + 1}: ${line.match(SITE_WORDS)![0]}`);
+      });
+  }
+}
+
+{
+  const code = stripComments(readFileSync(SITE_COPY, "utf8"));
+  const site = code.slice(0, code.indexOf("export const KIT"));
+  for (const match of site.matchAll(/"([^"\n]*[а-яё][^"\n]*)"/gi)) {
+    for (const sentence of match[1]!.split(/(?<=[.!?])\s+/)) {
+      const words = sentence.split(/\s+/).filter((word) => /[\p{L}\d]/u.test(word)).length;
+      if (words > MAX_WORDS) {
+        const line = site.slice(0, match.index).split("\n").length;
+        problems.push(`${SITE_COPY}:${line}: предложение ${words} слов «${sentence.slice(0, 60)}»`);
+      }
+    }
   }
 }
 

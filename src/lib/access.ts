@@ -74,6 +74,7 @@ export function isPublicPath(pathname: string) {
     pathname.startsWith("/_build/") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
     pathname === "/manifest.webmanifest" ||
     pathname.startsWith("/icon-") ||
     pathname === "/og-preview.jpg"

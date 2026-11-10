@@ -238,9 +238,7 @@ for (const theme of ["dark", "light"] as const) {
 
       await page.getByTestId("finish-razbor").click();
       await expect(page).toHaveURL(/\/razbor\?from=demo-final$/);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-        "Экспресс-разбор учёта выработки",
-      );
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Покажем на ваших данных");
     });
 
     test("J6 партнёр: код, копирование, QR, ссылка с ?src= доходит до заявки", async ({

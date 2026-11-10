@@ -3,28 +3,28 @@ import { demoShow } from "@/api/config";
 import { useCurrentRole } from "@/lib/project-scope";
 import { homeRouteFor } from "@/lib/navigation";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { Landing } from "@/components/site/landing/Landing";
-import { LANDING } from "@/lib/site/copy";
-import { siteHead } from "@/lib/site/head";
+import { Home } from "@/components/site/home/Home";
+import { loadSiteHead } from "@/lib/site/head-loader";
 
 /**
- * Корень адреса (ADR-047). В демо-сборке это лендинг ГАЙКИ: сайт, а не приложение,
- * отрисованный на сервере. Вход в демо переехал на `/demo`.
+ * Корень адреса (ADR-047, ADR-067). В демо-сборке это главная сайта ГАЙКИ, отрисованная
+ * на сервере. Вход в демо на `/demo`.
  *
  * В рабочем контуре сайта нет: корень по-прежнему дверь на рабочий экран роли (ADR-028).
- * Прежний дашборд живёт на `/attention`.
  */
 export const Route = createFileRoute("/")({
   ssr: demoShow,
-  head: () => siteHead({ path: "/", ...LANDING.meta, image: "/og/landing.jpg" }),
-  component: Home,
+  // В рабочем контуре сайта нет: и меты сайта нет
+  loader: () => (demoShow ? loadSiteHead("/") : null),
+  head: ({ loaderData }) => loaderData?.head ?? {},
+  component: HomeRoute,
 });
 
-function Home() {
+function HomeRoute() {
   if (!demoShow) return <WorkHome />;
   return (
     <SiteLayout>
-      <Landing />
+      <Home />
     </SiteLayout>
   );
 }
