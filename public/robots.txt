@@ -1,4 +1,0 @@
-# Демонстрация закрыта от индексации: она открывается по ссылке с ключом (TASK-A5, docs/RUNBOOK.md).
-# Заголовок X-Robots-Tag: noindex, nofollow ставится сервером на каждый HTML-ответ.
-User-agent: *
-Disallow: /
