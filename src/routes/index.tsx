@@ -4,8 +4,7 @@ import { useCurrentRole } from "@/lib/project-scope";
 import { homeRouteFor } from "@/lib/navigation";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Home } from "@/components/site/home/Home";
-import { LANDING } from "@/lib/site/copy";
-import { faqLd, siteHead, softwareLd } from "@/lib/site/head";
+import { loadSiteHead } from "@/lib/site/head-loader";
 
 /**
  * Корень адреса (ADR-047, ADR-067). В демо-сборке это главная сайта ГАЙКИ, отрисованная
@@ -15,16 +14,9 @@ import { faqLd, siteHead, softwareLd } from "@/lib/site/head";
  */
 export const Route = createFileRoute("/")({
   ssr: demoShow,
-  head: () =>
-    siteHead({
-      path: "/",
-      ...LANDING.meta,
-      image: "/og/landing.jpg",
-      jsonLd: [
-        softwareLd({ name: "ГАЙКА", description: LANDING.meta.description, path: "/" }),
-        faqLd(LANDING.faq.items),
-      ],
-    }),
+  // В рабочем контуре сайта нет: и меты сайта нет
+  loader: () => (demoShow ? loadSiteHead("/") : null),
+  head: ({ loaderData }) => loaderData?.head ?? {},
   component: HomeRoute,
 });
 

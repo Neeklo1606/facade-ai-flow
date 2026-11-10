@@ -1,3 +1,4 @@
+import { loadSiteHead } from "@/lib/site/head-loader";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Play } from "lucide-react";
 import { useEffect } from "react";
@@ -13,7 +14,6 @@ import { useForcedState } from "@/lib/screen-state";
 import { DemoScenarioList, useStartCanonScenario } from "@/components/guide/DemoScenarios";
 import { restartShow } from "@/lib/guide/store";
 import { DEMO, TASKS } from "@/lib/site/copy";
-import { siteHead } from "@/lib/site/head";
 import { track } from "@/lib/site/analytics";
 import { cn } from "@/lib/utils";
 import { GAS_ONLY_KEY } from "@/lib/gas-ops/gas-only";
@@ -45,7 +45,8 @@ export const Route = createFileRoute("/demo")({
       ? { scenario: search["scenario"] }
       : {}),
   }),
-  head: () => siteHead({ path: "/demo", ...DEMO.meta, image: "/og/demo.jpg" }),
+  loader: () => loadSiteHead("/demo"),
+  head: ({ loaderData }) => loaderData?.head ?? {},
   component: DemoEntry,
 });
 

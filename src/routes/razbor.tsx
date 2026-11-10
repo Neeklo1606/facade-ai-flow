@@ -1,3 +1,4 @@
+import { loadSiteHead } from "@/lib/site/head-loader";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUpRight, Check } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -5,7 +6,6 @@ import { SitePageHead } from "@/components/site/parts";
 import { LeadForm } from "@/components/site/landing/LeadForm";
 import { contactTgUrl, PRICES, RAZBOR_CREDIT } from "@/lib/site/config";
 import { leadMessage, RAZBOR } from "@/lib/site/copy";
-import { siteHead } from "@/lib/site/head";
 import { track } from "@/lib/site/analytics";
 import { LEAD_SOURCES, LEAD_TASKS, type LeadSource, type LeadTask } from "@/lib/site/lead-fields";
 
@@ -31,7 +31,8 @@ export const Route = createFileRoute("/razbor")({
       ...((LEAD_TASKS as readonly string[]).includes(task) ? { task: task as LeadTask } : {}),
     };
   },
-  head: () => siteHead({ path: "/razbor", ...RAZBOR.meta, image: "/og/razbor.jpg" }),
+  loader: () => loadSiteHead("/razbor"),
+  head: ({ loaderData }) => loaderData?.head ?? {},
   component: RazborPage,
 });
 

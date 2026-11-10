@@ -1,9 +1,9 @@
+import { loadSiteHead } from "@/lib/site/head-loader";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { SitePageHead } from "@/components/site/parts";
 import { CONTACT_TG, contactTgUrl, LEGAL_LINE, PRIVACY_FINAL } from "@/lib/site/config";
 import { PRIVACY } from "@/lib/site/copy";
-import { siteHead } from "@/lib/site/head";
 
 /**
  * Политика обработки персональных данных для формы заявки (01_SPEC 10.4). Оператор
@@ -11,7 +11,8 @@ import { siteHead } from "@/lib/site/head";
  */
 export const Route = createFileRoute("/privacy")({
   ssr: true,
-  head: () => siteHead({ path: "/privacy", ...PRIVACY.meta }),
+  loader: () => loadSiteHead("/privacy"),
+  head: ({ loaderData }) => loaderData?.head ?? {},
   component: PrivacyPage,
 });
 

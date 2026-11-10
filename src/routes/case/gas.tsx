@@ -1,3 +1,4 @@
+import { loadSiteHead } from "@/lib/site/head-loader";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { SitePageHead, SiteSection } from "@/components/site/parts";
@@ -5,7 +6,6 @@ import { HeroActions, LeadSection, StickyCta } from "@/components/site/blocks";
 import { Shot } from "@/components/site/visuals";
 import { CASE_CLIENT_NAME, CASE_STATUS } from "@/lib/site/config";
 import { CASE } from "@/lib/site/copy";
-import { siteHead } from "@/lib/site/head";
 
 /**
  * Кейс газового подрядчика (01_SPEC 10.1, ADR-067 раздел 6.4): текст прежний, вид шаблона
@@ -13,7 +13,8 @@ import { siteHead } from "@/lib/site/head";
  */
 export const Route = createFileRoute("/case/gas")({
   ssr: true,
-  head: () => siteHead({ path: "/case/gas", ...CASE.meta, image: "/og/case.jpg" }),
+  loader: () => loadSiteHead("/case/gas"),
+  head: ({ loaderData }) => loaderData?.head ?? {},
   component: CasePage,
 });
 
