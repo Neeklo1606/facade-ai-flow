@@ -10,6 +10,7 @@ export const Route = createFileRoute("/snabzhenie")({
   component: () => (
     <TaskRoute
       task="supply"
+      heroPhone="supply-request"
       hero="supply-offers"
       steps={["supply-request", "supply-overview", "supply-offers", "supply-receive"]}
     />

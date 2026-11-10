@@ -40,7 +40,7 @@ function CasePage() {
           <HeroActions place="case" from="case" />
         </SitePageHead>
         <div className="site-wrap pb-16 lg:pb-28">
-          <Shot id="time-week" priority />
+          <Shot id="time-week" phone="time-brigade" priority />
         </div>
       </section>
       <SiteSection id="case-task" title={CASE.task.title} tone="card">

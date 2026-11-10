@@ -3346,7 +3346,7 @@ main {
 .site-page .site-btn {
   white-space: nowrap;
 }
-.site-page [data-status] {
+.site-page [data-readiness] {
   font-size: 14px;
   line-height: 20px;
 }
@@ -3501,12 +3501,12 @@ main {
   min-width: 0;
 }
 /* В карточке задачи снимки одной высоты: кадр 4:3 от верхнего края экрана */
-.site-task-visual .site-shot {
+.site-task-visual .site-shot-desk.site-shot {
   aspect-ratio: 4 / 3;
   max-width: none;
   border-radius: 16px;
 }
-.site-task-visual .site-shot img {
+.site-task-visual .site-shot-desk img {
   height: 100%;
   object-fit: cover;
   object-position: top left;
@@ -3565,6 +3565,18 @@ main {
 .site-shot.is-fragment.is-phone {
   max-width: none;
   border-radius: 16px;
+}
+/* Телефон: снимок компьютера заменяется телефонным снимком или живым фрагментом */
+.site-shot-desk {
+  display: none;
+}
+@media (min-width: 768px) {
+  .site-shot-phone {
+    display: none;
+  }
+  .site-shot-desk {
+    display: block;
+  }
 }
 .site-fragment-stage {
   display: flex;

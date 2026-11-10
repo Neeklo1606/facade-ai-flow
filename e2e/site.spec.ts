@@ -112,7 +112,7 @@ test.describe("сайт и вход в демо 390", () => {
     for (const [index, task] of TASKS.entries()) {
       const card = cards.nth(index);
       await expect(card.getByRole("link", { name: task.title })).toHaveAttribute("href", task.path);
-      await expect(card.locator("[data-status]")).toBeVisible();
+      await expect(card.locator("[data-readiness]")).toBeVisible();
     }
     // Вся карточка нажимается: касание в середину карточки ведёт на страницу задачи
     await cards.nth(1).click();
@@ -348,20 +348,21 @@ test.describe("страницы задач (ADR-067, раздел 6)", () => {
         const response = await page.goto(task.path, { waitUntil: "load" });
         expect(response?.status(), task.path).toBe(200);
         await expect(page.getByRole("heading", { level: 1 })).toHaveText(task.h1);
-        await expect(page.locator("main [data-status]").first()).toHaveText(task.status);
+        await expect(page.locator("main [data-readiness]").first()).toHaveText(task.status);
         const crumbs = page.getByRole("navigation", { name: "Хлебные крошки" });
         await expect(crumbs).toContainText("Главная");
         await expect(crumbs).toContainText(task.title);
         // Снимок первого экрана: картинка загрузилась или живой фрагмент на месте
         const hero = page.locator(".site-task-hero-shot");
-        const img = hero.locator("img");
+        // На телефоне снимок компьютера заменён телефонным снимком или фрагментом: смотрим видимое
+        const img = hero.locator("img:visible");
         if (await img.count()) {
           await expect
             .poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
             .toBe(true);
           expect(await img.getAttribute("alt")).toMatch(/ГАЙК|снабжения/);
         } else {
-          await expect(hero.locator("[data-fragment]")).toBeVisible();
+          await expect(hero.locator("[data-fragment]:visible")).toHaveCount(1);
         }
         for (const title of [
           "Кто работает",
@@ -434,6 +435,44 @@ test.describe("заявки со страниц 390 (ADR-051, ADR-067)", () => {
       });
       await expect(page.getByRole("status")).toContainText("Заявки с сайта пока не подключены");
     }
+  });
+});
+
+test.describe("состояния формы заявки 390 (ADR-067, раздел 11)", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  test.use({ expectedConsole: /^Failed to load resource: .*status of 500\b/ });
+
+  test("«Отправляю» пока ждём сервер, ошибка сохраняет введённое", async ({ page }) => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/api/leads", async (route) => {
+      await gate;
+      await route.fulfill({ status: 500, body: "" });
+    });
+    await page.goto("/snabzhenie", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    const form = page.locator("#lead");
+    await form.getByLabel("Имя").fill("Иван");
+    await form.getByLabel("Компания").fill("ООО Пример");
+    await form.getByLabel("Телефон").fill("9181234567");
+    await form.getByRole("button", { name: "4-10" }).click();
+    await form.getByRole("checkbox").check();
+    await form.getByRole("button", { name: "Отправить заявку" }).click();
+    // Отправляю: кнопка занята, «отправлено» не пишется до ответа сервера
+    await expect(form.getByRole("button", { name: "Отправляю" })).toBeDisabled();
+    await expect(form.locator("form")).toHaveAttribute("aria-busy", "true");
+    await expect(page.locator("body")).not.toContainText("Заявка отправлена");
+    release();
+    await expect(form.getByText("Не отправилось")).toBeVisible();
+    // Введённое на месте, задача страницы выбрана
+    await expect(form.getByLabel("Имя")).toHaveValue("Иван");
+    await expect(form.getByLabel("Компания")).toHaveValue("ООО Пример");
+    await expect(form.getByLabel("Телефон")).toHaveValue("+7 (918) 123-45-67");
+    await expect(form.getByRole("button", { name: "снабжение" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(form.getByRole("button", { name: "Отправить ещё раз" })).toBeEnabled();
   });
 });
 

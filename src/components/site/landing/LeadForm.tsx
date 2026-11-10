@@ -180,6 +180,7 @@ export function LeadForm({
           href={telegramUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => track("telegram_click", { place: "lead-none", source })}
           className={siteButton.primary}
         >
           <Send className="size-4" aria-hidden />
@@ -327,6 +328,7 @@ export function LeadForm({
               href={telegramUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => track("telegram_click", { place: "lead-error", source })}
               className="text-text underline underline-offset-4 focus-ring"
             >
               напишите в Telegram

@@ -7,11 +7,20 @@ import { TaskPage } from "./TaskPage";
 export function TaskRoute({
   task,
   hero,
+  heroPhone,
   steps,
 }: {
   task: LeadTask;
   hero: ShotId;
+  heroPhone?: ShotId;
   steps: readonly [ShotId, ShotId, ShotId, ShotId];
 }) {
-  return <TaskPage task={taskByKey(task)} hero={hero} steps={steps} />;
+  return (
+    <TaskPage
+      task={taskByKey(task)}
+      hero={hero}
+      {...(heroPhone ? { heroPhone } : {})}
+      steps={steps}
+    />
+  );
 }

@@ -10,6 +10,7 @@ export const Route = createFileRoute("/uchet-vremeni-brigad")({
   component: () => (
     <TaskRoute
       task="time"
+      heroPhone="time-brigade"
       hero="time-review"
       steps={["time-brigade", "time-review", "time-week", "time-tabel"]}
     />

@@ -16,10 +16,12 @@ import { Shot, type ShotId } from "../visuals";
 export function TaskPage({
   task,
   hero,
+  heroPhone,
   steps,
 }: {
   task: TaskCopy;
   hero: ShotId;
+  heroPhone?: ShotId;
   steps: readonly [ShotId, ShotId, ShotId, ShotId];
 }) {
   useEffect(() => track("task_page_view", { task: task.key }), [task.key]);
@@ -40,7 +42,12 @@ export function TaskPage({
               <p className="site-lead mt-4 max-w-[640px] text-text-2 lg:mt-6">{task.lead}</p>
               <HeroActions place={`task-${task.key}`} from={task.source} />
             </div>
-            <Shot id={hero} priority className="site-task-hero-shot" />
+            <Shot
+              id={hero}
+              {...(heroPhone ? { phone: heroPhone } : {})}
+              priority
+              className="site-task-hero-shot"
+            />
           </div>
         </section>
 

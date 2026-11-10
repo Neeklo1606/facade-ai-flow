@@ -73,14 +73,70 @@ const FALLBACK: Record<ShotId, () => ReactNode> = {
 
 export const hasShot = (id: ShotId) => Boolean(SHOT_SIZES[id]);
 
+function Picture({
+  id,
+  priority,
+  sizes,
+  lazy = !priority,
+}: {
+  id: ShotId;
+  priority: boolean;
+  sizes: string;
+  /** Скрытая на телефоне копия грузится лениво даже на первом экране: иначе телефон скачал бы её зря */
+  lazy?: boolean;
+}) {
+  const size = SHOT_SIZES[id]!;
+  return (
+    <picture>
+      <source
+        type="image/avif"
+        srcSet={size.widths.map((w) => `/site/shots/${id}-${w}.avif ${w}w`).join(", ")}
+        sizes={sizes}
+      />
+      <source
+        type="image/webp"
+        srcSet={size.widths.map((w) => `/site/shots/${id}-${w}.webp ${w}w`).join(", ")}
+        sizes={sizes}
+      />
+      <img
+        src={`/site/shots/${id}-${size.widths[0]}.webp`}
+        alt={SHOT_ALT[id]}
+        width={size.w}
+        height={size.h}
+        loading={lazy ? "lazy" : "eager"}
+        decoding="async"
+        {...(priority ? { fetchPriority: "high" as const } : {})}
+        className="block h-auto w-full"
+        data-shot={id}
+      />
+    </picture>
+  );
+}
+
+function Fragment({ id }: { id: ShotId }) {
+  return (
+    <div role="img" aria-label={SHOT_ALT[id]} className="site-fragment-stage" data-fragment={id}>
+      {FALLBACK[id]()}
+    </div>
+  );
+}
+
+/**
+ * Снимок экрана (раздел 7). На телефоне уменьшенный снимок компьютера не читается
+ * (раздел 5.2): до 768 вместо него стоит телефонный снимок `phone`, если он задан,
+ * или живой фрагмент тех же данных. Скрытая копия грузится лениво и не мешает первому экрану
+ */
 export function Shot({
   id,
+  phone: phoneId,
   priority = false,
   caption = true,
   className,
   sizes,
 }: {
   id: ShotId;
+  /** Телефонный снимок вместо снимка компьютера до 768 */
+  phone?: ShotId;
   /** Визуал первого экрана: грузится сразу, fetchpriority high (раздел 9.9) */
   priority?: boolean;
   caption?: boolean;
@@ -89,40 +145,43 @@ export function Shot({
 }) {
   const size = SHOT_SIZES[id];
   const phone = PHONE_SHOTS.has(id);
-  const body = size ? (
-    <picture>
-      <source
-        type="image/avif"
-        srcSet={size.widths.map((w) => `/site/shots/${id}-${w}.avif ${w}w`).join(", ")}
-        sizes={sizes ?? (phone ? "320px" : "(min-width: 1024px) 640px, 100vw")}
-      />
-      <source
-        type="image/webp"
-        srcSet={size.widths.map((w) => `/site/shots/${id}-${w}.webp ${w}w`).join(", ")}
-        sizes={sizes ?? (phone ? "320px" : "(min-width: 1024px) 640px, 100vw")}
-      />
-      <img
-        src={`/site/shots/${id}-${size.widths[0]}.webp`}
-        alt={SHOT_ALT[id]}
-        width={size.w}
-        height={size.h}
-        loading={priority ? "eager" : "lazy"}
-        decoding="async"
-        {...(priority ? { fetchPriority: "high" as const } : {})}
-        className="block h-auto w-full"
-        data-shot={id}
-      />
-    </picture>
-  ) : (
-    <div role="img" aria-label={SHOT_ALT[id]} className="site-fragment-stage" data-fragment={id}>
-      {FALLBACK[id]()}
-    </div>
-  );
+  const desktopSizes = sizes ?? "(min-width: 1024px) 640px, 100vw";
+  let body: ReactNode;
+  if (!size) {
+    body = (
+      <div className={cn("site-shot", phone ? "is-phone" : "is-desktop", "is-fragment")}>
+        <Fragment id={id} />
+      </div>
+    );
+  } else if (phone) {
+    body = (
+      <div className="site-shot is-phone">
+        <Picture id={id} priority={priority} sizes={sizes ?? "320px"} />
+      </div>
+    );
+  } else {
+    const small =
+      phoneId && SHOT_SIZES[phoneId] ? (
+        <div className="site-shot is-phone">
+          <Picture id={phoneId} priority={false} sizes="320px" />
+        </div>
+      ) : (
+        <div className="site-shot is-desktop is-fragment">
+          <Fragment id={id} />
+        </div>
+      );
+    body = (
+      <>
+        <div className="site-shot-phone">{small}</div>
+        <div className="site-shot-desk site-shot is-desktop">
+          <Picture id={id} priority={priority} sizes={desktopSizes} lazy />
+        </div>
+      </>
+    );
+  }
   return (
     <figure className={cn("m-0", className)}>
-      <div className={cn("site-shot", phone ? "is-phone" : "is-desktop", !size && "is-fragment")}>
-        {body}
-      </div>
+      {body}
       {caption ? (
         <figcaption className="site-caption mt-3 text-text-3">{SAMPLE_NOTE}</figcaption>
       ) : null}

@@ -100,7 +100,7 @@ export function StatusBadge({
         "inline-flex items-center gap-2 rounded-full bg-surface-2 px-3 py-1 text-meta text-text",
         className,
       )}
-      data-status={kind}
+      data-readiness={kind}
     >
       <span
         aria-hidden
