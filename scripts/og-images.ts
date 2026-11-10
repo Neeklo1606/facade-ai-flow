@@ -7,15 +7,7 @@ import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
 const base = (process.argv[2] ?? "http://localhost:5173").replace(/\/+$/, "");
-const NAMES = [
-  "landing",
-  "demo",
-  "case",
-  "razbor",
-  "task-time",
-  "task-supply",
-  "task-docs",
-];
+const NAMES = ["landing", "demo", "case", "razbor", "task-time", "task-supply", "task-docs"];
 
 mkdirSync("public/og", { recursive: true });
 const browser = await chromium.launch();

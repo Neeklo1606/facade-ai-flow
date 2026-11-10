@@ -62,7 +62,7 @@ function forbidden(): string[] {
   return [...list].filter((word) => word.length >= 3);
 }
 const FORBIDDEN = forbidden();
-const plain = (text: string) => text.replace(/[  ]/g, " ");
+const plain = (text: string) => text.replace(/[\u00a0\u202f]/g, " ");
 
 /** Что прячется на кадре: тосты, подсказки тура, кнопка помощника, полоса показа */
 const HIDE_CSS = `
@@ -165,7 +165,7 @@ async function shoot(id: string, target: Locator, maxHeight: number, pad = 0) {
   try {
     await frame(id, target, maxHeight, pad);
   } finally {
-    await hide.evaluate((el) => el.remove());
+    await hide.evaluate((el) => (el as HTMLElement).remove());
   }
 }
 
