@@ -39,7 +39,7 @@ export function useIsWide(): boolean {
 }
 
 /** Плавающие слои оболочки внизу экрана: нижняя панель телефона */
-const FLOATING = ['nav[aria-label="Основные разделы"]'];
+const FLOATING = ['nav[aria-label="Основные разделы"]', "[data-sticky-bulk]"];
 
 /**
  * Сколько пикселей снизу занято плавающими слоями оболочки, с зазором 8 px. На десктопе

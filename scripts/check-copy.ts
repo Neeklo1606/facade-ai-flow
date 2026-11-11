@@ -29,6 +29,11 @@ const AREAS = [
   "src/routes/uchet-vremeni-brigad.tsx",
   "src/routes/snabzhenie.tsx",
   "src/routes/ispolnitelnaya-dokumentatsiya.tsx",
+  // ADR-068: новые страницы сайта
+  "src/routes/dlya-kogo.tsx",
+  "src/routes/kak-rabotaet.tsx",
+  "src/routes/stati.index.tsx",
+  "src/routes/stati.$slug.tsx",
   // Экраны «Ещё» и шторка роли (ADR-048)
   "src/routes/more.tsx",
   "src/components/layout/MoreScreen.tsx",

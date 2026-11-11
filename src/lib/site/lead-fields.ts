@@ -11,6 +11,10 @@ export const LEAD_SOURCES = [
   "case",
   "razbor",
   "demo-final",
+  // Новые страницы сайта (ADR-068)
+  "audience",
+  "how",
+  "article",
 ] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 

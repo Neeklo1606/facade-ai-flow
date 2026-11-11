@@ -29,6 +29,7 @@ import {
 import { EntryDetails } from "../EntryDetails";
 import { EntryStatusBadge } from "../marks";
 import { RemarkChips } from "./remarks";
+import { RecordTrail } from "./RecordTrail";
 import { entryLine, fmtEntryDay, fmtShortDay } from "./rules";
 import { REASONS, REASON_SUBMIT, REASON_TITLE, reasonText, type ReasonMode } from "./reasons";
 import { cn } from "@/lib/utils";
@@ -125,6 +126,7 @@ export function ReviewPanel({
           {view.object?.label ?? "Объект не указан"}
         </h2>
         <p className="mt-0.5 text-meta text-text-2 tnum">{entryLine(view)}</p>
+        <RecordTrail view={view} remarkCount={remarks.length} />
         {money ? (
           <p className="mt-2 flex flex-wrap items-baseline gap-x-2" data-testid="amount-line">
             {cost.amountRub === null ? (

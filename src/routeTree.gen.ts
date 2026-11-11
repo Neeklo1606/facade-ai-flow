@@ -22,12 +22,14 @@ import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DemoStatsRouteImport } from './routes/demo-stats'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as DlyaKogoRouteImport } from './routes/dlya-kogo'
 import { Route as FinishRouteImport } from './routes/finish'
 import { Route as GasRouteImport } from './routes/gas'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as IspolnitelnayaDokumentatsiyaRouteImport } from './routes/ispolnitelnaya-dokumentatsiya'
+import { Route as KakRabotaetRouteImport } from './routes/kak-rabotaet'
 import { Route as KitRouteImport } from './routes/kit'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LoginRouteImport } from './routes/login'
@@ -86,6 +88,8 @@ import { Route as OfficeCatalogsRouteImport } from './routes/office/catalogs'
 import { Route as OfficeConnectionsRouteImport } from './routes/office/connections'
 import { Route as OgNameRouteImport } from './routes/og.$name'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as StatiIndexRouteImport } from './routes/stati.index'
+import { Route as StatiSlugRouteImport } from './routes/stati.$slug'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
 import { Route as ApiGasAssistantRouteImport } from './routes/api/gas/assistant'
@@ -173,6 +177,11 @@ const DesignSystemRoute = DesignSystemRouteImport.update({
   path: '/design-system',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DlyaKogoRoute = DlyaKogoRouteImport.update({
+  id: '/dlya-kogo',
+  path: '/dlya-kogo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinishRoute = FinishRouteImport.update({
   id: '/finish',
   path: '/finish',
@@ -204,6 +213,11 @@ const IspolnitelnayaDokumentatsiyaRoute =
     path: '/ispolnitelnaya-dokumentatsiya',
     getParentRoute: () => rootRouteImport,
   } as any)
+const KakRabotaetRoute = KakRabotaetRouteImport.update({
+  id: '/kak-rabotaet',
+  path: '/kak-rabotaet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KitRoute = KitRouteImport.update({
   id: '/kit',
   path: '/kit',
@@ -494,6 +508,16 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   path: '/projects/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatiIndexRoute = StatiIndexRouteImport.update({
+  id: '/stati/',
+  path: '/stati/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatiSlugRoute = StatiSlugRouteImport.update({
+  id: '/stati/$slug',
+  path: '/stati/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiExportProjectsRoute = ApiExportProjectsRouteImport.update({
   id: '/api/export/projects',
   path: '/api/export/projects',
@@ -618,12 +642,14 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/dlya-kogo': typeof DlyaKogoRoute
   '/finish': typeof FinishRoute
   '/gas': typeof GasRouteWithChildren
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/ispolnitelnaya-dokumentatsiya': typeof IspolnitelnayaDokumentatsiyaRoute
+  '/kak-rabotaet': typeof KakRabotaetRoute
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -679,9 +705,11 @@ export interface FileRoutesByFullPath {
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
   '/og/$name': typeof OgNameRoute
+  '/stati/$slug': typeof StatiSlugRoute
   '/gas/': typeof GasIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/stati/': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
@@ -718,11 +746,13 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/dlya-kogo': typeof DlyaKogoRoute
   '/finish': typeof FinishRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/ispolnitelnaya-dokumentatsiya': typeof IspolnitelnayaDokumentatsiyaRoute
+  '/kak-rabotaet': typeof KakRabotaetRoute
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -777,9 +807,11 @@ export interface FileRoutesByTo {
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
   '/og/$name': typeof OgNameRoute
+  '/stati/$slug': typeof StatiSlugRoute
   '/gas': typeof GasIndexRoute
   '/office': typeof OfficeIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/stati': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
@@ -817,12 +849,14 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/demo-stats': typeof DemoStatsRoute
   '/design-system': typeof DesignSystemRoute
+  '/dlya-kogo': typeof DlyaKogoRoute
   '/finish': typeof FinishRoute
   '/gas': typeof GasRouteWithChildren
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/integrations': typeof IntegrationsRoute
   '/ispolnitelnaya-dokumentatsiya': typeof IspolnitelnayaDokumentatsiyaRoute
+  '/kak-rabotaet': typeof KakRabotaetRoute
   '/kit': typeof KitRoute
   '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
@@ -878,9 +912,11 @@ export interface FileRoutesById {
   '/office/catalogs': typeof OfficeCatalogsRoute
   '/office/connections': typeof OfficeConnectionsRoute
   '/og/$name': typeof OgNameRoute
+  '/stati/$slug': typeof StatiSlugRoute
   '/gas/': typeof GasIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/stati/': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
@@ -919,12 +955,14 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-stats'
     | '/design-system'
+    | '/dlya-kogo'
     | '/finish'
     | '/gas'
     | '/help'
     | '/inbox'
     | '/integrations'
     | '/ispolnitelnaya-dokumentatsiya'
+    | '/kak-rabotaet'
     | '/kit'
     | '/knowledge'
     | '/login'
@@ -980,9 +1018,11 @@ export interface FileRouteTypes {
     | '/office/catalogs'
     | '/office/connections'
     | '/og/$name'
+    | '/stati/$slug'
     | '/gas/'
     | '/office/'
     | '/projects/'
+    | '/stati/'
     | '/api/export/projects'
     | '/api/export/shift'
     | '/api/gas/assistant'
@@ -1019,11 +1059,13 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-stats'
     | '/design-system'
+    | '/dlya-kogo'
     | '/finish'
     | '/help'
     | '/inbox'
     | '/integrations'
     | '/ispolnitelnaya-dokumentatsiya'
+    | '/kak-rabotaet'
     | '/kit'
     | '/knowledge'
     | '/login'
@@ -1078,9 +1120,11 @@ export interface FileRouteTypes {
     | '/office/catalogs'
     | '/office/connections'
     | '/og/$name'
+    | '/stati/$slug'
     | '/gas'
     | '/office'
     | '/projects'
+    | '/stati'
     | '/api/export/projects'
     | '/api/export/shift'
     | '/api/gas/assistant'
@@ -1117,12 +1161,14 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-stats'
     | '/design-system'
+    | '/dlya-kogo'
     | '/finish'
     | '/gas'
     | '/help'
     | '/inbox'
     | '/integrations'
     | '/ispolnitelnaya-dokumentatsiya'
+    | '/kak-rabotaet'
     | '/kit'
     | '/knowledge'
     | '/login'
@@ -1178,9 +1224,11 @@ export interface FileRouteTypes {
     | '/office/catalogs'
     | '/office/connections'
     | '/og/$name'
+    | '/stati/$slug'
     | '/gas/'
     | '/office/'
     | '/projects/'
+    | '/stati/'
     | '/api/export/projects'
     | '/api/export/shift'
     | '/api/gas/assistant'
@@ -1218,12 +1266,14 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRoute
   DemoStatsRoute: typeof DemoStatsRoute
   DesignSystemRoute: typeof DesignSystemRoute
+  DlyaKogoRoute: typeof DlyaKogoRoute
   FinishRoute: typeof FinishRoute
   GasRoute: typeof GasRouteWithChildren
   HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   IntegrationsRoute: typeof IntegrationsRoute
   IspolnitelnayaDokumentatsiyaRoute: typeof IspolnitelnayaDokumentatsiyaRoute
+  KakRabotaetRoute: typeof KakRabotaetRoute
   KitRoute: typeof KitRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LoginRoute: typeof LoginRoute
@@ -1250,7 +1300,9 @@ export interface RootRouteChildren {
   CaseGasRoute: typeof CaseGasRoute
   FieldBrigadeRoute: typeof FieldBrigadeRoute
   OgNameRoute: typeof OgNameRoute
+  StatiSlugRoute: typeof StatiSlugRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  StatiIndexRoute: typeof StatiIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
   ApiGasAssistantRoute: typeof ApiGasAssistantRoute
@@ -1363,6 +1415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DesignSystemRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dlya-kogo': {
+      id: '/dlya-kogo'
+      path: '/dlya-kogo'
+      fullPath: '/dlya-kogo'
+      preLoaderRoute: typeof DlyaKogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/finish': {
       id: '/finish'
       path: '/finish'
@@ -1403,6 +1462,13 @@ declare module '@tanstack/react-router' {
       path: '/ispolnitelnaya-dokumentatsiya'
       fullPath: '/ispolnitelnaya-dokumentatsiya'
       preLoaderRoute: typeof IspolnitelnayaDokumentatsiyaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kak-rabotaet': {
+      id: '/kak-rabotaet'
+      path: '/kak-rabotaet'
+      fullPath: '/kak-rabotaet'
+      preLoaderRoute: typeof KakRabotaetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kit': {
@@ -1811,6 +1877,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stati/': {
+      id: '/stati/'
+      path: '/stati'
+      fullPath: '/stati/'
+      preLoaderRoute: typeof StatiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stati/$slug': {
+      id: '/stati/$slug'
+      path: '/stati/$slug'
+      fullPath: '/stati/$slug'
+      preLoaderRoute: typeof StatiSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/export/projects': {
       id: '/api/export/projects'
       path: '/api/export/projects'
@@ -2062,12 +2142,14 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRoute,
   DemoStatsRoute: DemoStatsRoute,
   DesignSystemRoute: DesignSystemRoute,
+  DlyaKogoRoute: DlyaKogoRoute,
   FinishRoute: FinishRoute,
   GasRoute: GasRouteWithChildren,
   HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   IntegrationsRoute: IntegrationsRoute,
   IspolnitelnayaDokumentatsiyaRoute: IspolnitelnayaDokumentatsiyaRoute,
+  KakRabotaetRoute: KakRabotaetRoute,
   KitRoute: KitRoute,
   KnowledgeRoute: KnowledgeRoute,
   LoginRoute: LoginRoute,
@@ -2094,7 +2176,9 @@ const rootRouteChildren: RootRouteChildren = {
   CaseGasRoute: CaseGasRoute,
   FieldBrigadeRoute: FieldBrigadeRoute,
   OgNameRoute: OgNameRoute,
+  StatiSlugRoute: StatiSlugRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  StatiIndexRoute: StatiIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,
   ApiGasAssistantRoute: ApiGasAssistantRoute,

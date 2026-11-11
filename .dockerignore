@@ -1,0 +1,17 @@
+node_modules
+.output
+.output-*
+.git
+.github
+.verify
+.lovable
+.tanstack
+.wrangler
+test-results
+playwright-report
+docs/site/before
+docs/site/after
+docs/gaika/screenshots
+*.log
+.env*.local
+.DS_Store

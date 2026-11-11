@@ -95,8 +95,16 @@ export async function open(page: Page, path: string) {
  * и цвет, измеренные в этот момент, не те, что видит человек
  */
 async function settle(page: Page) {
+  // Бесконечные декоративные анимации сайта (сияние, бегущая строка, ADR-068) не кончаются
+  // никогда: ждём только конечные, у которых есть конечное состояние
   await page.waitForFunction(() =>
-    document.getAnimations().every((animation) => animation.playState !== "running"),
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          animation.playState !== "running" ||
+          animation.effect?.getTiming().iterations === Infinity,
+      ),
   );
 }
 
