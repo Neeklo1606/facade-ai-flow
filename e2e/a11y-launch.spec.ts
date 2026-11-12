@@ -19,6 +19,11 @@ const SITE = [
   "/razbor",
   "/kit",
   "/privacy",
+  // ADR-068
+  "/dlya-kogo",
+  "/kak-rabotaet",
+  "/stati",
+  "/stati/tabel-brigad-bez-perescheta",
 ];
 
 const overflow = (page: Page) =>

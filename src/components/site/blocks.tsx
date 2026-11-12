@@ -28,7 +28,7 @@ export function HeroActions({ place, from }: { place: string; from?: LeadSource 
       <Link
         to="/razbor"
         search={from ? { from } : {}}
-        className={siteButton.primary}
+        className={siteButton.grad}
         data-cta="razbor"
         onClick={() => track("cta_razbor", { place })}
       >

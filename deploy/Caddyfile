@@ -1,0 +1,5 @@
+# HTTPS сертификат Caddy получает сам, если DOMAIN указывает на этот сервер
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}

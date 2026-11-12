@@ -1,6 +1,6 @@
 import { completePageHead } from "@/lib/page-head";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CheckCheck, ClipboardCheck, Inbox } from "lucide-react";
 import { ModeSuggestion } from "@/components/gas-ops/review/ModeSuggestion";
 import { QueueCard } from "@/components/gas-ops/review/QueueCard";
@@ -42,6 +42,7 @@ import {
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useBottomLayer } from "@/lib/ui/bottom-layers";
 
 /**
  * «Проверка» (ADR-061, 10; раздел 4.3): очередь слева 60%, решение справа 40%. Шапка — главная
@@ -407,6 +408,8 @@ function ModerationPage() {
     </Button>
   );
 
+  const stickyBulk = !desktop && tab === "pending" && clean.length > 0;
+
   const count = (key: (v: (typeof rows)[number]) => string) => {
     const map = new Map<string, number>();
     for (const v of rows) map.set(key(v), (map.get(key(v)) ?? 0) + 1);
@@ -466,8 +469,15 @@ function ModerationPage() {
             />
           </>
         ) : null}
-        {bulk}
+        {stickyBulk ? null : bulk}
       </ScreenActions>
+
+      {/*
+       * Телефон (PROMPT_UX_FINAL 3.2, ADR-068): «Принять N без замечаний» липкой кнопкой над
+       * нижней панелью, пока в очереди есть что принять. Слой регистрирует высоту, и
+       * последняя карточка очереди не уходит под кнопку
+       */}
+      {stickyBulk ? <StickyBulk>{bulk}</StickyBulk> : null}
 
       <ModeSuggestion />
 
@@ -620,6 +630,22 @@ function ModerationPage() {
           {panel}
         </PhoneSheet>
       )}
+    </div>
+  );
+}
+
+/** Липкая панель массового действия над нижней панелью телефона */
+function StickyBulk({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useBottomLayer("review-bulk", ref);
+  return (
+    <div
+      ref={ref}
+      data-sticky-bulk
+      className="gas-sticky-bulk fixed inset-x-0 z-20 px-4 pt-3 pb-3"
+      style={{ bottom: "var(--tabbar-inset, 0px)" }}
+    >
+      {children}
     </div>
   );
 }

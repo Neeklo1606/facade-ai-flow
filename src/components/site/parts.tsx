@@ -12,6 +12,8 @@ export const siteButton = {
   /** Главное действие экрана: одно на экран, чёрная таблетка «Монохрома» (ADR-055, ADR-059) */
   primary: "site-btn mono-btn-primary focus-ring",
   /** Второе действие: тихая капсула с обводкой */
+  /** Главное действие первого экрана с градиентом (ADR-068): одно на страницу */
+  grad: "site-btn site-btn-grad focus-ring",
   secondary:
     "site-btn bg-surface text-text ring-1 ring-line-2 ring-inset focus-ring is-hover:bg-surface-2",
 };

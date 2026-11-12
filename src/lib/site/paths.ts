@@ -12,9 +12,26 @@ export const TASK_PATHS = [
   "/ispolnitelnaya-dokumentatsiya",
 ] as const;
 
+/**
+ * Статьи сайта (ADR-068). Адреса списком здесь, а не из текстов: модуль читает корень
+ * приложения, тексты статей сюда не едут. tests/site/paths.test.ts сверяет список с текстами
+ */
+export const ARTICLE_PATHS = [
+  "/stati/tabel-brigad-bez-perescheta",
+  "/stati/vyrabotka-po-smete-na-chas",
+  "/stati/zayavka-na-material-s-obekta",
+  "/stati/ispolnitelnaya-dokumentatsiya-iz-dannyh-obekta",
+  "/stati/pilot-za-dve-nedeli",
+  "/stati/brigadir-i-telefon",
+] as const;
+
+/** Новые страницы сайта (ADR-068) */
+export const GROWTH_PATHS = ["/dlya-kogo", "/kak-rabotaet", "/stati"] as const;
+
 export const SITE_PATHS = [
   "/",
   ...TASK_PATHS,
+  ...GROWTH_PATHS,
   "/demo",
   "/case/gas",
   "/razbor",
@@ -29,6 +46,8 @@ export const SITE_PATHS = [
 export const INDEXABLE_PATHS = [
   "/",
   ...TASK_PATHS,
+  ...GROWTH_PATHS,
+  ...ARTICLE_PATHS,
   "/case/gas",
   "/razbor",
   "/demo",

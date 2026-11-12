@@ -9,6 +9,14 @@ import { siteButton, SiteSection } from "../parts";
 import { FaqList, HeroActions, LeadSection, StepsSwitcher, StickyCta, TaskCard } from "../blocks";
 import { HeroLive } from "../landing/hero-live";
 import { Shot, type ShotId } from "../visuals";
+import { AUDIENCE, ARTICLES_PAGE } from "@/lib/site/pages";
+import {
+  ArticleGrid,
+  CapabilityMarquee,
+  HeroBackdrop,
+  LATEST_ARTICLES,
+  RoleCards,
+} from "../growth";
 
 /**
  * Главная сайта v2 (ADR-067, раздел 5): первый экран, три задачи, путь из четырёх шагов,
@@ -28,7 +36,9 @@ export function Home() {
   return (
     <div className="site-home">
       <Hero />
+      <CapabilityMarquee />
       <Tasks />
+      <Roles />
       <How />
       <Office />
       <Control />
@@ -36,6 +46,13 @@ export function Home() {
       <Start />
       <SiteSection id="faq" title={LANDING.faq.title} tone="card">
         <FaqList items={LANDING.faq.items} place="landing" />
+      </SiteSection>
+      <SiteSection id="articles" title={ARTICLES_PAGE.homeTitle} lead={ARTICLES_PAGE.homeLead}>
+        <ArticleGrid items={LATEST_ARTICLES} />
+        <Link to="/stati" className={cn(siteButton.secondary, "mt-8")}>
+          {ARTICLES_PAGE.back}
+          <ArrowRight className="size-5" aria-hidden />
+        </Link>
       </SiteSection>
       <LeadSection source="landing" />
       <StickyCta />
@@ -47,11 +64,12 @@ function Hero() {
   const { hero } = LANDING;
   return (
     <section data-hero aria-labelledby="hero-title" className="site-hero bg-void">
+      <HeroBackdrop />
       <div className="site-wrap site-hero-inner">
         <div className="site-hero-copy">
-          <p className="site-caption font-medium text-text-2">{hero.eyebrow}</p>
+          <p className="site-chip-grad font-medium">{hero.eyebrow}</p>
           <h1 id="hero-title" className="site-h1 site-hero-title mt-4 text-text">
-            {hero.title}
+            <GradTitle text={hero.title} accent={hero.accent} />
           </h1>
           <p className="site-lead mt-4 text-text-2 lg:mt-6">{hero.lead}</p>
           <HeroActions place="hero" />
@@ -65,6 +83,32 @@ function Hero() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Заголовок, где одно слово залито градиентом; текст для чтения и поиска тот же */
+function GradTitle({ text, accent }: { text: string; accent: string }) {
+  const at = text.indexOf(accent);
+  if (at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <span className="site-grad-text">{accent}</span>
+      {text.slice(at + accent.length)}
+    </>
+  );
+}
+
+function Roles() {
+  return (
+    <SiteSection
+      id="roles"
+      title={AUDIENCE.homeTitle}
+      lead={AUDIENCE.homeLead}
+      className="site-dark site-band"
+    >
+      <RoleCards />
+    </SiteSection>
   );
 }
 
@@ -185,10 +229,7 @@ function Start() {
       <ol className="grid gap-4 md:grid-cols-3" data-reveal-group>
         {start.steps.map((step, index) => (
           <li key={step.title} className="flex gap-4 rounded-card bg-surface p-6" data-reveal>
-            <span
-              aria-hidden
-              className="grid size-8 shrink-0 place-items-center rounded-full bg-text text-meta-strong text-void tnum"
-            >
+            <span aria-hidden className="site-step-num tnum">
               {index + 1}
             </span>
             <p className="site-body text-text-2">

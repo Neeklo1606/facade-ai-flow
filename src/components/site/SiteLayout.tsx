@@ -71,8 +71,17 @@ function SiteHeader() {
         </Link>
         <nav aria-label="Разделы сайта" className="site-nav-desktop items-center gap-1">
           <TasksMenu pathname={pathname} />
+          <Link to="/dlya-kogo" className={navLink}>
+            {NAV.audience}
+          </Link>
+          <Link to="/kak-rabotaet" className={navLink}>
+            {NAV.how}
+          </Link>
           <Link to="/case/gas" className={navLink}>
             {NAV.case}
+          </Link>
+          <Link to="/stati" className={navLink}>
+            {NAV.articles}
           </Link>
           <Link to="/demo" className={navLink}>
             {NAV.demoShort}
@@ -262,6 +271,20 @@ function MobileMenu() {
               ))}
             </ul>
             <ul className="mt-4 flex flex-col">
+              {(
+                [
+                  ["/dlya-kogo", NAV.audience],
+                  ["/kak-rabotaet", NAV.how],
+                  ["/stati", NAV.articles],
+                ] as const
+              ).map(([to, label]) => (
+                <li key={to}>
+                  <Link to={to} onClick={leave} className={row}>
+                    {label}
+                    <ArrowRight className="size-5 text-text-3" aria-hidden />
+                  </Link>
+                </li>
+              ))}
               <li>
                 <Link to="/case/gas" onClick={leave} className={row}>
                   {NAV.caseLong}
@@ -331,6 +354,21 @@ function SiteFooter() {
         <nav aria-label={FOOTER.more}>
           <p className="mb-1 text-text-3">{FOOTER.more}</p>
           <ul className="flex flex-col">
+            <li>
+              <Link to="/dlya-kogo" className={link}>
+                {NAV.audience}
+              </Link>
+            </li>
+            <li>
+              <Link to="/kak-rabotaet" className={link}>
+                {NAV.how}
+              </Link>
+            </li>
+            <li>
+              <Link to="/stati" className={link}>
+                {NAV.articles}
+              </Link>
+            </li>
             <li>
               <Link to="/case/gas" className={link}>
                 {NAV.case}

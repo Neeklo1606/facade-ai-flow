@@ -4333,3 +4333,410 @@ main {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Сайт: слой градиентов (ADR-068, запрос владельца 12.11.2026). Тонкие линии, свет
+ * за ключевыми блоками, градиент в акцентных словах и на главной кнопке. Цвета только
+ * здесь, токенами. reduced-motion: всё неподвижно, градиенты остаются.
+ * ------------------------------------------------------------------ */
+.site-page {
+  --g1: #ff6a3d;
+  --g2: #ff3d8b;
+  --g3: #7b5cff;
+  --g4: #22c7e8;
+  --grad: linear-gradient(100deg, var(--g1) 0%, var(--g2) 45%, var(--g3) 100%);
+  --grad-soft: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--g1) 14%, transparent),
+    color-mix(in oklab, var(--g3) 12%, transparent)
+  );
+  --grad-line: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--g2) 60%, transparent),
+    transparent
+  );
+}
+.site-grad-text {
+  background: var(--grad);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Контраст: в светлой теме чуть темнее, чтобы слово читалось на белом */
+:root[data-theme="light"] .site-page .site-grad-text {
+  background-image: linear-gradient(100deg, #e0481c 0%, #d81b6a 45%, #5a3be0 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-grad-text {
+    animation: site-grad-pan 8s ease-in-out infinite alternate;
+  }
+}
+@keyframes site-grad-pan {
+  to {
+    background-position: 100% 0;
+  }
+}
+
+/* Северное сияние за первым экраном: три пятна, медленный дрейф */
+.site-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.site-aurora::before,
+.site-aurora::after,
+.site-aurora > i {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(60px);
+  opacity: 0.5;
+}
+.site-aurora::before {
+  width: 520px;
+  height: 520px;
+  top: -220px;
+  right: -120px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--g1) 70%, transparent),
+    transparent
+  );
+}
+.site-aurora::after {
+  width: 460px;
+  height: 460px;
+  top: 80px;
+  right: 18%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--g3) 60%, transparent),
+    transparent
+  );
+}
+.site-aurora > i {
+  width: 380px;
+  height: 380px;
+  bottom: -160px;
+  left: -120px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--g2) 45%, transparent),
+    transparent
+  );
+}
+:root[data-theme="light"] .site-aurora::before,
+:root[data-theme="light"] .site-aurora::after,
+:root[data-theme="light"] .site-aurora > i {
+  opacity: 0.4;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-aurora::before {
+    animation: site-drift-a 18s ease-in-out infinite alternate;
+  }
+  .site-aurora::after {
+    animation: site-drift-b 22s ease-in-out infinite alternate;
+  }
+  .site-aurora > i {
+    animation: site-drift-a 26s ease-in-out infinite alternate-reverse;
+  }
+}
+@keyframes site-drift-a {
+  to {
+    transform: translate3d(-60px, 40px, 0) scale(1.08);
+  }
+}
+@keyframes site-drift-b {
+  to {
+    transform: translate3d(70px, -30px, 0) scale(0.94);
+  }
+}
+.site-hero,
+.site-page-hero {
+  position: relative;
+  isolation: isolate;
+}
+.site-hero > .site-wrap,
+.site-page-hero > * {
+  position: relative;
+  z-index: 1;
+}
+/* Сетка тонких линий под сиянием, гаснет к краям */
+.site-grid-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 60% 30%, #000 30%, transparent 80%);
+  opacity: 0.6;
+}
+
+/* Главная кнопка с градиентом: только одна на экран */
+.site-page .site-btn-grad {
+  position: relative;
+  color: #fff;
+  background: var(--grad);
+  background-size: 160% 100%;
+  box-shadow: 0 10px 30px -10px color-mix(in oklab, var(--g2) 70%, transparent);
+  transition:
+    background-position 400ms var(--ease-out),
+    transform 160ms var(--ease),
+    box-shadow 200ms var(--ease);
+}
+@media (hover: hover) {
+  .site-page .site-btn-grad:hover {
+    background-position: 100% 0;
+    box-shadow: 0 14px 36px -10px color-mix(in oklab, var(--g3) 70%, transparent);
+  }
+}
+.site-page .site-btn-grad:active {
+  transform: scale(0.98);
+}
+
+/* Карточка со светящейся градиентной обводкой */
+.site-glow-card {
+  position: relative;
+  border-radius: 24px;
+  background: var(--surface);
+  isolation: isolate;
+}
+.site-glow-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    140deg,
+    color-mix(in oklab, var(--g1) 55%, transparent),
+    var(--line) 40%,
+    var(--line) 60%,
+    color-mix(in oklab, var(--g3) 55%, transparent)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: -1;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .site-glow-card {
+    transition:
+      transform 200ms var(--ease-out),
+      box-shadow 200ms var(--ease-out);
+  }
+  .site-glow-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 50px -24px color-mix(in oklab, var(--g2) 55%, transparent);
+  }
+}
+
+/* Метка-таблетка с градиентной точкой */
+.site-chip-grad {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--grad-soft);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text);
+}
+.site-chip-grad::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--grad);
+}
+
+/* Бегущая строка возможностей: дублируется в разметке, сдвиг на половину */
+.site-marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.site-marquee-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-marquee-track {
+    animation: site-marquee 40s linear infinite;
+  }
+  .site-marquee:hover .site-marquee-track {
+    animation-play-state: paused;
+  }
+}
+@keyframes site-marquee {
+  to {
+    transform: translateX(calc(-50% - 6px));
+  }
+}
+.site-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 15px;
+  line-height: 20px;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+
+/* Тонкая градиентная черта между блоками */
+.site-hairline {
+  height: 1px;
+  background: var(--grad-line);
+}
+
+/* Номер шага в градиентном круге */
+.site-step-num {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--grad);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* Цепочка записи: точки соединены градиентной линией */
+.site-chain {
+  display: grid;
+  gap: 12px;
+  counter-reset: chain;
+}
+@media (min-width: 1024px) {
+  .site-chain {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+/* Статья: колонка чтения */
+.site-article {
+  max-width: 720px;
+}
+.site-article h2 {
+  margin-top: 40px;
+}
+.site-article p + p {
+  margin-top: 16px;
+}
+.site-article-note {
+  margin-top: 32px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: var(--grad-soft);
+  box-shadow: inset 3px 0 0 var(--g2);
+}
+/* Полоса прочитанного под шапкой */
+.site-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 40;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--progress, 0));
+  background: var(--grad);
+}
+
+/* Фильтр тем статей: горизонтальная прокрутка чипов на телефоне без полосы страницы */
+.site-chips-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.site-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+.site-filter-chip {
+  min-height: 44px;
+  padding-inline: 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 15px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--text-2);
+  transition:
+    background-color 160ms var(--ease),
+    color 160ms var(--ease);
+}
+.site-filter-chip[aria-pressed="true"] {
+  background: var(--text);
+  color: var(--void);
+  box-shadow: none;
+}
+/* Тёмная полоса ролей: своё сияние снизу */
+.site-band {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.site-band::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -320px;
+  width: 900px;
+  height: 600px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--g3) 35%, transparent),
+    transparent
+  );
+  pointer-events: none;
+}
+.site-dark .site-glow-card {
+  background: color-mix(in oklab, var(--surface) 85%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/* Липкая панель «Принять N без замечаний» на телефоне (ADR-068): над нижней панелью,
+   с мягким переходом от контента, чтобы кнопка не висела на голом фоне */
+.gas-sticky-bulk {
+  background: linear-gradient(to top, var(--void) 70%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gas-sticky-bulk {
+    animation: site-rise 240ms var(--ease-out) both;
+  }
+}
+:root[data-sheet-open] .gas-sticky-bulk {
+  display: none;
+}
+/* Длинная подпись кнопки переносится, а не раздвигает страницу на 360 */
+.site-page .site-btn.site-btn-wrap {
+  white-space: normal;
+  text-align: left;
+  padding-block: 10px;
+}

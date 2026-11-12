@@ -20,7 +20,10 @@ export type AnalyticsEvent =
   | "task_card_click"
   | "workflow_step_select"
   | "faq_open"
-  | "telegram_click";
+  | "telegram_click"
+  /** ADR-068: карточка роли и статья */
+  | "role_card_click"
+  | "article_click";
 
 export type AnalyticsParams = Record<string, string | number>;
 

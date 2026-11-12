@@ -389,6 +389,9 @@ export type {
   Remark,
   RemarkKey,
 } from "@/domain/gas-ops/entry-info";
+// Путь записи в детали проверки (ADR-068)
+export { trailOf } from "@/domain/gas-ops/record-trail";
+export type { TrailState, TrailStep } from "@/domain/gas-ops/record-trail";
 
 /** Разбор фразы бригадира правилом domain (ADR-049): экран бота зовёт его отсюда */
 export { parseTimeMessage } from "@/domain/gas-ops/parse-time-message";
