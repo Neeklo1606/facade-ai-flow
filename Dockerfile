@@ -6,6 +6,13 @@
 FROM oven/bun:1.3 AS build
 WORKDIR /app
 ARG MODE=production
+# Адрес сайта и счётчики подставляются при сборке (VITE_*): canonical, sitemap, og:url, JSON-LD.
+# Без VITE_PUBLIC_URL ссылки ведут на адрес Lovable, поэтому compose передаёт https://DOMAIN
+ARG VITE_PUBLIC_URL=
+ARG VITE_CONTACT_TG=
+ARG VITE_METRIKA_ID=
+ARG VITE_YANDEX_VERIFICATION=
+ARG VITE_GOOGLE_VERIFICATION=
 ENV NITRO_PRESET=node-server
 COPY package.json bun.lock bunfig.toml ./
 RUN bun install --frozen-lockfile

@@ -38,6 +38,11 @@ services:
       target: run
       args:
         MODE: ${GAIKA_MODE:-server}
+        VITE_PUBLIC_URL: https://${DOMAIN:?задайте DOMAIN}
+        VITE_CONTACT_TG: ${CONTACT_TG:-}
+        VITE_METRIKA_ID: ${METRIKA_ID:-}
+        VITE_YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
+        VITE_GOOGLE_VERIFICATION: ${GOOGLE_VERIFICATION:-}
     restart: unless-stopped
     environment:
       PORT: 3000

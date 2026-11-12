@@ -12,6 +12,7 @@ import { dataSource } from "@/api/config";
 import { routeTree } from "./routeTree.gen";
 import { actionLabels, recordAction, recordError } from "@/lib/guide/telemetry";
 import { toast } from "@/lib/toast";
+import { keepEarlyScroll } from "@/lib/scroll-restore";
 
 /**
  * Главные действия сессии — мутации с подписью `meta.action` (ADR-010): телеметрия пишет их,
@@ -70,7 +71,7 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: { queryClient },
-    scrollRestoration: true,
+    scrollRestoration: keepEarlyScroll(),
     defaultPreloadStaleTime: 0,
     // Рабочий режим: данные, загруженные на сервере, передаются клиенту вместе с HTML
     // Данные запросов — JSON из схем контрактов, но тип DehydratedState роутер проверить не может

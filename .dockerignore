@@ -15,3 +15,8 @@ docs/gaika/screenshots
 *.log
 .env*.local
 .DS_Store
+# Секреты сервера не попадают ни в один слой образа
+.env
+.env.*
+!.env.example
+deploy/.env

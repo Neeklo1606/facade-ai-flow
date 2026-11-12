@@ -14,6 +14,12 @@ openssl rand -hex 24   # значение для CLIENT_LINK_KEY
 Заполните `deploy/.env`: `DOMAIN`, `POSTGRES_PASSWORD`, `SESSION_SECRET`, `CLIENT_LINK_KEY`.
 `GAIKA_MODE=server` собирает рабочий контур с базой, `production` собирает демо как на публичном адресе.
 
+Адрес сайта для canonical, sitemap, og:url и JSON-LD вшивается при сборке: compose передаёт
+`VITE_PUBLIC_URL=https://$DOMAIN`. Так же при сборке подставляются `CONTACT_TG`, `METRIKA_ID`,
+`YANDEX_VERIFICATION`, `GOOGLE_VERIFICATION`: после их изменения нужен `up -d --build app`.
+`SEO_INDEX=on` читается при запуске и открывает сайт поисковикам (robots и sitemap); пусто:
+сайт закрыт, `/sitemap.xml` отвечает 404. Файл `deploy/.env` исключён из образа `.dockerignore`.
+
 ## 2. База и запуск
 
 ```bash
@@ -34,6 +40,7 @@ docker compose --env-file deploy/.env --profile tools run --rm migrate \
 ```bash
 docker compose --env-file deploy/.env ps          # app: healthy
 curl -I https://$DOMAIN/                           # 200 или переход на экран роли
+curl -s https://$DOMAIN/ | grep -o 'rel="canonical" href="[^"]*"'   # адрес вашего домена
 docker compose --env-file deploy/.env logs -f app  # журнал сервера
 ```
 
