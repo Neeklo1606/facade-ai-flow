@@ -1,0 +1,261 @@
+<title>ГАЙКА: готовность к пилоту</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: одна колонка отчёта, вердикт сверху, дальше по порядку чтения: что готово, что сделано, как проверено, как выпустить, что ждёт владельца */
+  :root {
+    --bg: #f7f6f4;
+    --surface: #ffffff;
+    --line: #e6e2dc;
+    --text: #1c1a17;
+    --text-2: #5c5750;
+    --text-3: #8a847b;
+    --accent: #e8590c;
+    --accent-soft: #fdeee4;
+    --ok: #2f7d4f;
+    --ok-soft: #e6f3ea;
+    --warn: #a35f00;
+    --warn-soft: #fbf0dc;
+    --bad: #b3261e;
+    --bad-soft: #fbe6e4;
+    --code-bg: #f1eee9;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141210; --surface: #1d1a17; --line: #34302b; --text: #f2efea; --text-2: #b9b2a8; --text-3: #8b847a;
+      --accent: #ff7a2e; --accent-soft: #3a2516; --ok: #6fcf93; --ok-soft: #17301f; --warn: #f0b45a; --warn-soft: #362812;
+      --bad: #ff8a80; --bad-soft: #3a1c1a; --code-bg: #26221e; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141210; --surface: #1d1a17; --line: #34302b; --text: #f2efea; --text-2: #b9b2a8; --text-3: #8b847a;
+    --accent: #ff7a2e; --accent-soft: #3a2516; --ok: #6fcf93; --ok-soft: #17301f; --warn: #f0b45a; --warn-soft: #362812;
+    --bad: #ff8a80; --bad-soft: #3a1c1a; --code-bg: #26221e; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+  .wrap { max-width: 980px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 40px; }
+  h1, h2, h3 { text-wrap: balance; font-weight: 600; margin: 0; }
+  h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.02em; }
+  h2 { font-size: 22px; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; }
+  p { margin: 0; max-width: 68ch; }
+  .meta { color: var(--text-3); font-size: 13px; font-family: var(--font-mono); }
+  .lead { color: var(--text-2); font-size: 17px; }
+  section { display: grid; gap: 16px; min-width: 0; }
+  .head { display: grid; gap: 12px; }
+  .verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .v { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 8px; align-content: start; }
+  .v .label { font-size: 13px; color: var(--text-2); }
+  .v .state { font-size: 20px; font-weight: 600; }
+  .v.ok { border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+  .v.ok .state { color: var(--ok); }
+  .v.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+  .v.warn .state { color: var(--warn); }
+  .v.bad { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+  .v.bad .state { color: var(--bad); }
+  .v p { color: var(--text-2); font-size: 14px; }
+  .bar { display: grid; gap: 6px; }
+  .bar-row { display: grid; grid-template-columns: minmax(120px, 210px) 1fr 52px; gap: 12px; align-items: center; font-size: 14px; }
+  .track { height: 10px; background: var(--code-bg); border-radius: 99px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 99px; background: var(--accent); }
+  .fill.ok { background: var(--ok); } .fill.warn { background: var(--warn); } .fill.bad { background: var(--bad); }
+  .pct { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--text-2); }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 500; color: var(--text-2); font-size: 13px; background: var(--code-bg); }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip { display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); }
+  .chip.acc { background: var(--accent-soft); color: var(--accent); }
+  ul.list { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 72ch; }
+  code, .mono { font-family: var(--font-mono); font-size: 13px; }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 6px; }
+  pre { margin: 0; background: var(--code-bg); border-radius: 12px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; }
+  .steps { counter-reset: s; display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; min-width: 0; }
+  .steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 99px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13px; font-family: var(--font-mono); }
+  .steps li > div { display: grid; gap: 6px; min-width: 0; }
+  .note { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; color: var(--text-2); max-width: 72ch; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .card h3 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .card p, .card li { color: var(--text-2); font-size: 14px; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  @media (max-width: 560px) { h1 { font-size: 27px; } .bar-row { grid-template-columns: 1fr 44px; } .bar-row .track { grid-column: 1 / -1; grid-row: 2; } }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div class="meta">12.11.2026 · ветки feature/launch-pilot (PR #10) и feature/server-pilot (ADR-069)</div>
+    <h1>ГАЙКА: готовность к работе на задачах заказчика</h1>
+    <p class="lead">Показ на демо-данных готов. Рабочий контур с базой PostgreSQL и входом по ссылке теперь проходит весь путь заказчика: от пустой компании до утверждённого Excel. Это проверено живым прогоном на сервере. Для сопровождаемого пилота осталось три шага владельца: сервер с доменом, «да» на миграции, влить ветки в <code>main</code>.</p>
+  </header>
+
+  <section aria-labelledby="verdict">
+    <h2 id="verdict">Вердикт</h2>
+    <div class="verdict">
+      <div class="v ok">
+        <div class="label">Показ заказчику, демо-данные</div>
+        <div class="state">Готово</div>
+        <p>Справочники, график, смета, формула, бот, проверка, Excel и сверка проходят от начала до конца на ноутбуке и телефоне.</p>
+      </div>
+      <div class="v ok">
+        <div class="label">Пилот с сопровождением, своя база</div>
+        <div class="state">Код готов, ждёт сервер</div>
+        <p>Пустая компания, люди по ссылкам, неделя по календарю сервера, данные в PostgreSQL, Excel из базы с проверкой роли. Живой прогон прошёл за 32 секунды.</p>
+      </div>
+      <div class="v warn">
+        <div class="label">Публичный адрес Lovable</div>
+        <div class="state">Нужны шаги владельца</div>
+        <p>Влить PR #9 и #10 в main и нажать Publish. Слияние в main требует вашего подтверждения: автоматически оно не прошло.</p>
+      </div>
+      <div class="v bad">
+        <div class="label">Самостоятельная работа без сопровождения</div>
+        <div class="state">Не готово</div>
+        <p>Нет кода входа по SMS или Telegram, экрана приглашений, бота MAX в мессенджере, распознавания речи.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="how">
+    <h2 id="how">Как работает сервис</h2>
+    <p>Подрядчик газовой компании ведёт учёт выработки бригад. Стоимость работ берётся из сметы и делится на время, которое бригада провела на объекте.</p>
+    <ol class="steps">
+      <li><div><h3>Справочники</h3><p>Администратор загружает бригады и сотрудников из Excel. Перед применением видно, что добавится, обновится и пропустится, с причиной по строке.</p></div></li>
+      <li><div><h3>Объекты и график</h3><p>Менеджер заводит объекты и загружает график недели: какая бригада на каком объекте в какой день.</p></div></li>
+      <li><div><h3>Смета и формула</h3><p>Смета из Excel разбирается по колонкам, привязывается к объекту и подтверждается. Формула решает, какие строки сметы идут плюсом, какие минусом: например, «всего без НДС плюс технадзор минус материалы».</p></div></li>
+      <li><div><h3>Время от бригадира</h3><p>Бригадир в боте выбирает объект из графика и пишет фразу «с 8 до 17», указывает перерыв. Денег он не видит. Запись уходит на проверку.</p></div></li>
+      <li><div><h3>Проверка</h3><p>Менеджер видит запись с долей сметы, источником суммы и ценой часа. «Принять» или «Исправить» с причиной.</p></div></li>
+      <li><div><h3>Отчёт</h3><p>Руководитель выгружает утверждённый Excel по форме заказчика с контрольной суммой и закрывает неделю. Неделя идёт с понедельника по субботу и сменяется сама.</p></div></li>
+    </ol>
+    <p class="note">В демо данные живут во вкладке браузера. В рабочем контуре всё лежит в PostgreSQL, права ролей проверяет сервер, а файл Excel собирается из базы, а не из того, что прислал экран.</p>
+  </section>
+
+  <section aria-labelledby="areas">
+    <h2 id="areas">Готовность по частям</h2>
+    <div class="bar">
+      <div class="bar-row"><span>Сайт и статьи</span><div class="track"><div class="fill ok" style="width:95%"></div></div><span class="pct">95 %</span></div>
+      <div class="bar-row"><span>Учёт выработки</span><div class="track"><div class="fill ok" style="width:90%"></div></div><span class="pct">90 %</span></div>
+      <div class="bar-row"><span>Проверка и табель</span><div class="track"><div class="fill ok" style="width:85%"></div></div><span class="pct">85 %</span></div>
+      <div class="bar-row"><span>Данные на сервере</span><div class="track"><div class="fill ok" style="width:80%"></div></div><span class="pct">80 %</span></div>
+      <div class="bar-row"><span>Развёртывание</span><div class="track"><div class="fill warn" style="width:75%"></div></div><span class="pct">75 %</span></div>
+      <div class="bar-row"><span>Вход и люди</span><div class="track"><div class="fill warn" style="width:55%"></div></div><span class="pct">55 %</span></div>
+      <div class="bar-row"><span>Агент-чат</span><div class="track"><div class="fill warn" style="width:50%"></div></div><span class="pct">50 %</span></div>
+      <div class="bar-row"><span>Бот MAX и речь</span><div class="track"><div class="fill bad" style="width:15%"></div></div><span class="pct">15 %</span></div>
+    </div>
+    <p class="meta">Оценка: доля сценария, которая работает по-настоящему. «Вход и люди» 55 %: вход по ссылке работает, код по SMS и экран приглашений нет.</p>
+  </section>
+
+  <section aria-labelledby="done">
+    <h2 id="done">Что сделано</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Рабочий контур <span class="chip acc">новое</span></h3>
+        <ul class="list">
+          <li><code>db:gas-init</code>: пустая компания без демо-данных и ссылка администратора</li>
+          <li><code>db:gas-user</code>: менеджер, руководитель, бригадир со своей бригадой, у каждого ссылка входа</li>
+          <li>«Сегодня» и неделя идут по часам сервера, прошлые недели остаются в базе</li>
+          <li>При отказе сервера экран говорит причину и даёт «Войти» и «Повторить», а не подменяет данные демо</li>
+          <li>Excel собирается из базы с проверкой роли: подставить сумму с экрана нельзя</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Сайт</h3>
+        <ul class="list">
+          <li>Градиенты и сияние первого экрана, бегущая строка возможностей</li>
+          <li>Страницы «Для кого», «Как работает», раздел статей и 6 статей</li>
+          <li>12 новых адресов в меню, подвале, sitemap</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Исправления</h3>
+        <ul class="list">
+          <li>Страница не прыгает наверх после загрузки, касание не уходит мимо ссылки</li>
+          <li>Экран «Сотрудники» из кнопки «+» больше не зависает: адрес спорил с переадресацией без конца</li>
+          <li>Ввод за бригаду не привязан к демо-бригаде</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Сервер и документы</h3>
+        <ul class="list">
+          <li>Docker, compose с PostgreSQL и HTTPS, часовой пояс компании</li>
+          <li>ADR-068, ADR-069, инструкции <code>docs/runbook/docker.md</code> и <code>docs/runbook/pilot.md</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="tests">
+    <h2 id="tests">Полная проверка</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Проверка</th><th>Результат</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Живой прогон рабочего контура: PostgreSQL, вход по 4 ссылкам, путь до Excel</td><td class="num">1 из 1 · 105 000 ₽ в файле · 2 строки, демо-объектов нет · запись пережила перезагрузку</td><td><span class="chip ok">прошло</span></td></tr>
+          <tr><td>Серверный путь от пустой компании под ролями, юнит</td><td>бригадир не может принять; новая неделя сменяется сама</td><td><span class="chip ok">прошло</span></td></tr>
+          <tr><td>Подставленная сумма 999 999 999 в запросе выгрузки</td><td>в файл не попадает; без входа 401, бригадиру 403</td><td><span class="chip ok">прошло</span></td></tr>
+          <tr id="ci-pilot"><td>Полный <code>bun run ci</code> ветки server-pilot с PostgreSQL</td><td class="num">CI_PILOT_RESULT</td><td>CI_PILOT_CHIP</td></tr>
+          <tr><td>Полный <code>bun run ci</code> ветки launch-pilot</td><td>все 22 шага, e2e 1313 с, Lighthouse, первый экран бригадира на 4G</td><td><span class="chip ok">прошло</span></td></tr>
+          <tr><td>CI на GitHub, PR #10</td><td>оба запуска зелёные</td><td><span class="chip ok">прошло</span></td></tr>
+          <tr><td>Сквозной показ заказчику, 1440 и 390</td><td class="num">105 000 ₽ · 8,00 ч · 13 125 ₽/ч</td><td><span class="chip ok">прошло</span></td></tr>
+          <tr><td>Обход всех экранов на 8 ширинах, тёмная тема</td><td>4 роли из 5 прошли; у пятой нашёлся цикл на «Сотрудниках». Исправлено, добавлен тест; повторный обход светлой темы не делался</td><td><span class="chip warn">исправлено</span></td></tr>
+          <tr><td>Docker-образ</td><td>200 на сайте и <code>/gas</code>, статус healthy</td><td><span class="chip ok">прошло</span></td></tr>
+          <tr><td>Публичный адрес сейчас</td><td>старая версия: новые страницы 404</td><td><span class="chip warn">ждёт Publish</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="pilot">
+    <h2 id="pilot">Инструкция: запуск пилота на сервере</h2>
+    <p>Подробно в <code>docs/runbook/pilot.md</code>. Нужны сервер с Docker, домен, имена и телефоны людей, файлы заказчика: бригады, график, сметы.</p>
+<pre>cp deploy/.env.example deploy/.env    # DOMAIN, GAIKA_MODE=server, POSTGRES_PASSWORD, SESSION_SECRET, APP_TIME_ZONE
+docker compose --env-file deploy/.env up -d db
+docker compose --env-file deploy/.env --profile tools run --rm migrate        # только с «да» владельца
+docker compose --env-file deploy/.env --profile tools run --rm migrate \
+  bun run db:gas-init --name "Имя Фамилия" --phone "+7…" --group "1. Стальные" --url "https://$DOMAIN"
+docker compose --env-file deploy/.env up -d --build app caddy</pre>
+    <ol class="steps">
+      <li><div><h3>Администратор</h3><p>Входит по ссылке из <code>db:gas-init</code>. «Данные»: «Бригады из Excel», «Сотрудники из Excel».</p></div></li>
+      <li><div><h3>Люди</h3><p><code>db:gas-user --role manager</code>, <code>director</code>, <code>foreman --brigade "Бригада 1"</code>. Каждая команда печатает ссылку на 72 часа, одноразовую. Передать лично.</p></div></li>
+      <li><div><h3>Первая неделя</h3><p>Менеджер: объекты, график, смета, формула. Бригадиры вносят время с телефона. Менеджер проверяет. Руководитель выгружает Excel и закрывает неделю.</p></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="demo">
+    <h2 id="demo">Инструкция: показ на демо</h2>
+    <p class="note">Перед встречей «Сбросить демо». Один раз скажите: бот MAX не подключён, бот на экране работает так же, как будет в MAX.</p>
+    <ol class="steps">
+      <li><div><h3>Справочники</h3><p><code>/gas/directory</code>: бригады и сотрудники из Excel, «Всё верно, применить».</p></div></li>
+      <li><div><h3>Объект, график, смета, формула</h3><p><code>/gas/objects</code>, <code>/gas/estimates</code>: «Подтвердить смету», «Настроить», «Сохранить редакцию».</p></div></li>
+      <li><div><h3>Бот бригадира</h3><p><code>/gas/foreman</code>: «Внести время», «с 8 до 17», перерыв, «Отправить».</p></div></li>
+      <li><div><h3>Проверка и Excel</h3><p><code>/gas/moderation</code> «Принять», затем <code>/gas/tabel</code> «Выгрузить Excel» и сверка на <code>/gas/week</code>.</p></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="owner">
+    <h2 id="owner">Что нужно от владельца</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Что</th><th>Зачем</th><th>Когда</th></tr></thead>
+        <tbody>
+          <tr><td>Влить PR #9, #10 и ветку server-pilot в main, нажать Publish</td><td>новая версия на публичном адресе</td><td><span class="chip acc">сейчас</span></td></tr>
+          <tr><td>Сервер с Docker, домен, «да» на миграции</td><td>данные заказчика в своей базе</td><td><span class="chip bad">до пилота</span></td></tr>
+          <tr><td>Канал кода: SMS или Telegram</td><td>вход без ссылки и без кода на экране</td><td><span class="chip warn">до самостоятельной работы</span></td></tr>
+          <tr><td>Токен MAX, ключи Claude и речи</td><td>бот в мессенджере, голос, свободные вопросы агенту</td><td><span class="chip warn">до самостоятельной работы</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="meta">Документы: docs/adr/ADR-069-server-pilot.md, docs/runbook/pilot.md, docs/runbook/docker.md, docs/launch/2026-11-12-final.md</footer>
+</div>

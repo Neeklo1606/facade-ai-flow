@@ -13,7 +13,7 @@ export default defineConfig<Options>({
   testDir: "e2e",
   // Обход продукта (Q8) — отдельный запуск: playwright.walkthrough.config.ts
   // Кабинет заказчика (ADR-062, F6) — своя сборка: playwright.cabinet.config.ts
-  testIgnore: ["**/walkthrough/**", "**/cabinet/**"],
+  testIgnore: ["**/walkthrough/**", "**/cabinet/**", "**/pilot/**"],
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

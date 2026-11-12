@@ -57,7 +57,6 @@ import {
   useGasEmployees,
   useGasEntries,
   useGasEstimates,
-  useGasHydration,
   useGasQueueCounts,
 } from "@/api/gas-ops";
 import { SearchField, SearchPalette } from "@/components/shell/SearchPalette";
@@ -104,6 +103,7 @@ import { useSegScroll } from "@/lib/ui/seg-scroll";
 import { useAppManifest, useInstallHint } from "@/lib/ui/pwa";
 import { SCREEN_ICON } from "./icons";
 import { RoleList } from "./RolePicker";
+import { GasServerGate } from "./ServerGate";
 import { SCREEN_ACTIONS_ID, SCREEN_COUNTERS_ID } from "./screen-header";
 import { AssistantButton } from "../assistant/AssistantPanel";
 import { Tour } from "../tour/Tour";
@@ -140,7 +140,9 @@ export function GasShell({ children }: { children: ReactNode }) {
   setGasContour(contour);
   return (
     <GasContourProvider value={contour}>
-      <GasShellFrame>{children}</GasShellFrame>
+      <GasServerGate>
+        <GasShellFrame>{children}</GasShellFrame>
+      </GasServerGate>
     </GasContourProvider>
   );
 }
@@ -157,8 +159,6 @@ function useGasSkin() {
 }
 
 function GasShellFrame({ children }: { children: ReactNode }) {
-  // Введённые записи переживают перезагрузку: снимок поднимается после первой отрисовки
-  useGasHydration();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const actor = useGasActor();
   const screen = gasScreenOf(pathname);

@@ -68,8 +68,10 @@ import {
   useGasData,
   useGasHydration,
   useGasOps,
+  useGasServerStatus,
   useGasSnapshot,
   type GasActor,
+  type GasServerStatus,
 } from "@/lib/gas-ops/use-gas-ops";
 import type { CreateEntryInput, ReviewInput, UpdateEntryInput } from "@/ports/gas-ops";
 import { fieldFor, type FieldEntry, type FieldSnapshot } from "@/domain/gas-ops/field";
@@ -125,7 +127,9 @@ export {
   hoursOfMinutes,
   useGasActor,
   useGasHydration,
+  useGasServerStatus,
 };
+export type { GasServerStatus };
 
 export { clashOf };
 
@@ -157,6 +161,12 @@ export type {
  * Интерфейс бригадира (ADR-056): та же выборка, что отдаёт порт, — без сумм и чужих бригад.
  * Менеджер и администратор смотрят им за выбранную бригаду
  */
+/** Бригада, за которую смотрят ввод менеджер и администратор (ADR-069): не демо-id вслепую */
+export function useGasViewBrigade(): string | null {
+  const brigades = useGasSnapshot().brigades;
+  return useMemo(() => viewBrigadeId(brigades), [brigades]);
+}
+
 export function useGasField(brigadeId?: string | null): FieldSnapshot {
   const data = useGasSnapshot();
   return useMemo(() => fieldFor(data, brigadeId), [data, brigadeId]);
@@ -288,6 +298,7 @@ export type {
   BotState,
 } from "@/domain/gas-ops/bot-dialog";
 export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
+import { viewBrigadeId } from "@/domain/gas-ops/pilot";
 export { isAutoAccepted } from "@/domain/gas-ops/review-policy";
 export { lastEntryBefore, sameAsYesterday } from "@/domain/gas-ops/field";
 /**

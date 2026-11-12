@@ -28,6 +28,9 @@ test.describe("модули за флагом", () => {
     "/projects/p-korona/documents",
     "/settings",
     "/quality",
+    // Шторка «+» открывает форму адресом: без флага это не должно спорить с границей (обход 12.11)
+    "/users?new=employee",
+    "/projects/p-korona/documents?new=document",
   ];
 
   for (const address of addresses) {

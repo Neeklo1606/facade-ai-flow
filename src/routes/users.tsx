@@ -9,6 +9,7 @@ import { useAccess } from "@/api/access";
 import { queries } from "@/api/queries";
 import { useSaveEmployee } from "@/api/mutations";
 import { dataSource } from "@/api/config";
+import { legacyModulesEnabled } from "@/lib/legacy-modules";
 import { fmtDateTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -78,8 +79,10 @@ function UsersPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   // Шторка «+» открывает форму адресом (ADR-026, п. 4): параметр гасится сразу после открытия
+  // Экран за флагом (ADR-038): без флага граница уводит на экран роли, и своя навигация
+  // сюда же спорила бы с ней без конца (находка обхода 12.11: /users ↔ /attention)
   useEffect(() => {
-    if (search.new !== "employee") return;
+    if (search.new !== "employee" || !legacyModulesEnabled()) return;
     setEditing("new");
     void navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true });
   }, [search.new, navigate]);

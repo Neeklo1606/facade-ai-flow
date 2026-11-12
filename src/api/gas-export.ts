@@ -123,6 +123,18 @@ export async function gasExportResponse(
   if (stored && body && typeof body === "object" && "weekFrom" in body) {
     return storedResponse(body, stored);
   }
+  /*
+   * С рабочей базой данные из тела не принимаются (ADR-069): экран присылает неделю целиком,
+   * а файл с суммами собирается только из хранилища, с проверкой роли сессии и контрольной
+   * суммой. Иначе любой мог бы получить файл заказчика с подставленными цифрами без входа
+   */
+  if (stored?.store && body && typeof body === "object") {
+    const sent = body as Partial<GasExportRequest>;
+    return storedResponse(
+      { kind: sent.kind, weekFrom: sent.week?.from, version: sent.version ?? null },
+      stored,
+    );
+  }
   let payload: ExportPayload;
   try {
     payload = exportPayloadOf(body as GasExportRequest);

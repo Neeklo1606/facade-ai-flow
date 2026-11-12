@@ -27,6 +27,8 @@ services:
     environment:
       DATABASE_URL: postgres://gaika:${POSTGRES_PASSWORD}@db:5432/gaika?sslmode=disable
       SESSION_SECRET: ${SESSION_SECRET:?задайте SESSION_SECRET}
+      # Команды пилота (ADR-069): db:gas-init и db:gas-user считают день в том же поясе
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Europe/Moscow}
     depends_on:
       db:
         condition: service_healthy

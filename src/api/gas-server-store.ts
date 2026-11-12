@@ -13,9 +13,13 @@ export function gasServerStore(): Promise<GasStore | null> {
     const config = driverConfigFromEnv(process.env);
     if (!config) return null;
     const { createGasDbStore } = await import("@/adapters/gas-ops/db-store");
-    return createGasDbStore(createDriver(config), {
-      timeZone: process.env["APP_TIME_ZONE"]?.trim() || "Europe/Moscow",
-    });
+    const { withRealCalendar } = await import("@/adapters/gas-ops/calendar-store");
+    const { localDay } = await import("@/domain/gas-ops/pilot");
+    const timeZone = process.env["APP_TIME_ZONE"]?.trim() || "Europe/Moscow";
+    // Календарь по часам сервера (ADR-069): неделя сменяется сама, а не остаётся демо-неделей
+    return withRealCalendar(createGasDbStore(createDriver(config), { timeZone }), () =>
+      localDay(new Date(), timeZone),
+    );
   })();
   return store;
 }
