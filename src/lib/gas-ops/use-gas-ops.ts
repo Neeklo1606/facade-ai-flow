@@ -83,9 +83,53 @@ export function useGasHydration(): void {
   const kind = useGasContour().kind;
   useEffect(() => {
     // Сервер: снимок пользователя сессии вместо сохранённого во вкладке
-    if (remote) void remote.snapshot().catch(() => undefined);
-    else hydrate();
+    if (remote) {
+      setServerStatus({ state: "loading" });
+      void remote.snapshot().then(
+        () => setServerStatus({ state: "ready" }),
+        (error: unknown) =>
+          setServerStatus({
+            state: "error",
+            message:
+              error instanceof Error && error.message
+                ? error.message
+                : "Сервер учёта времени не ответил.",
+          }),
+      );
+    } else hydrate();
   }, [kind]);
+}
+
+/**
+ * Связь с сервером учёта времени (ADR-069). Пока снимок пользователя не пришёл, экраны
+ * не показывают исходный набор: на рабочем контуре это были бы чужие демо-цифры.
+ * Отказ (нет входа, нет роли, база не подключена) показывается причиной, а не пустым экраном.
+ * В демо-сборке состояние всегда «готово».
+ */
+export type GasServerStatus =
+  { state: "ready" } | { state: "loading" } | { state: "error"; message: string };
+
+let serverStatus: GasServerStatus = remote ? { state: "loading" } : { state: "ready" };
+const statusListeners = new Set<() => void>();
+
+function setServerStatus(next: GasServerStatus) {
+  serverStatus = next;
+  for (const listener of statusListeners) listener();
+}
+
+const READY: GasServerStatus = { state: "ready" };
+const LOADING: GasServerStatus = { state: "loading" };
+
+export function useGasServerStatus(): GasServerStatus {
+  return useSyncExternalStore(
+    (listener) => {
+      statusListeners.add(listener);
+      return () => statusListeners.delete(listener);
+    },
+    () => serverStatus,
+    // Разметка сервера: на рабочем контуре загрузка, в демо сразу экран
+    () => (remote ? LOADING : READY),
+  );
 }
 
 /** Тот же снимок в виде данных для доменных сборок */

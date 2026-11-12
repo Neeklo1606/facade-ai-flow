@@ -11,7 +11,7 @@
  * с ключом: без сети запись «Сохранено на телефоне», после ответа «Принято сервером»;
  * повтор с тем же ключом дубля не создаёт.
  */
-import { SENT_LABEL, isAutoAccepted } from "@/api/gas-ops";
+import { SENT_LABEL, isAutoAccepted, useGasViewBrigade } from "@/api/gas-ops";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -71,9 +71,6 @@ import {
 import { splitTimeEnabled } from "@/lib/gas-ops/gas-only";
 import { useOffline } from "@/lib/ui/offline";
 import { cn } from "@/lib/utils";
-
-/** Бригада, за которую смотрят менеджер и администратор */
-const VIEW_BRIGADE = "brg-1";
 
 const START_CHIPS = ["07:00", "08:00", "09:00"];
 const END_CHIPS = ["16:00", "17:00", "18:00"];
@@ -160,7 +157,9 @@ type Step = "today" | "form" | "check" | "sent";
 
 export function BrigadeToday() {
   const actor = useGasActor();
-  const field = useGasField(actor.role === "foreman" ? null : VIEW_BRIGADE);
+  // Менеджер и администратор смотрят ввод глазами бригады из справочника (ADR-069)
+  const viewBrigade = useGasViewBrigade();
+  const field = useGasField(actor.role === "foreman" ? null : viewBrigade);
   const actions = useGasActions();
   const network = useOffline();
   const [step, setStep] = useState<Step>("today");

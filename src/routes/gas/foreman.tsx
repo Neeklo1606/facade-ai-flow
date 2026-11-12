@@ -15,6 +15,7 @@ import {
   useGasDirectory,
   useGasEntries,
   useGasEmployees,
+  useGasViewBrigade,
   useGasWeek,
   type WorkObject,
 } from "@/api/gas-ops";
@@ -41,8 +42,6 @@ export const Route = createFileRoute("/gas/foreman")({
   component: ForemanPage,
 });
 
-/** Бригада, за которую смотрят бот менеджер и администратор */
-const VIEW_BRIGADE = "brg-1";
 const LAST_KEY = "neeklo-gas-bot-last";
 
 function readLast(): string | null {
@@ -63,7 +62,9 @@ function ForemanPage() {
   const isForeman = actor.role === "foreman";
   const brand = useGasBrand();
   const back = useBack("/gas/more");
-  const brigadeId = actor.brigadeId ?? VIEW_BRIGADE;
+  // Менеджер и администратор смотрят бот глазами бригады из справочника (ADR-069)
+  const viewBrigade = useGasViewBrigade();
+  const brigadeId = actor.brigadeId ?? viewBrigade ?? "";
   const brigade = directory.brigades.find((b) => b.id === brigadeId);
   const speakerName = isForeman ? actor.name : (brigade?.leadName ?? "Бригадир");
   const employeeId = isForeman

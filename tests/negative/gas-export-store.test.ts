@@ -66,4 +66,41 @@ describe("выгрузка недели из хранилища", () => {
     const denied = await gasExportResponse(request(), { store, userId: async () => "u-foreman-1" });
     expect(denied.status).toBe(403);
   });
+
+  test("с базой данные из тела не принимаются: без входа 401, бригадир 403, файл из хранилища", async () => {
+    // Экран присылает неделю целиком; подставленная сумма не должна попасть в файл
+    const snapshot = getServerSnapshot();
+    const forged = snapshot.entries.map((e) => ({ ...e, amountRub: 999_999_999 }));
+    const request = () =>
+      new Request("http://x/api/gas/export", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "approved",
+          week: snapshot.week,
+          data: { ...snapshot, entries: forged },
+        }),
+      });
+    expect((await gasExportResponse(request(), { store, userId: async () => null })).status).toBe(
+      401,
+    );
+    expect(
+      (await gasExportResponse(request(), { store, userId: async () => "u-foreman-1" })).status,
+    ).toBe(403);
+    const on = await gasExportResponse(request(), { store, userId: async () => "u-director" });
+    expect(on.status).toBe(200);
+    expect(on.headers.get("x-checksum-sha256")).toMatch(/^[0-9a-f]{64}$/);
+    const XLSX = await import("xlsx");
+    const book = XLSX.read(new Uint8Array(await on.arrayBuffer()));
+    const text = book.SheetNames.map((n) => XLSX.utils.sheet_to_csv(book.Sheets[n]!)).join("\n");
+    expect(text).not.toMatch(/999\s?999\s?999/);
+    // Без базы демо по-прежнему присылает данные телом
+    const demo = await gasExportResponse(request(), { store: null, userId: async () => null });
+    expect(demo.status).toBe(200);
+    // Проверка чувствительна: без базы подставленная сумма в файле есть
+    const demoBook = XLSX.read(new Uint8Array(await demo.arrayBuffer()));
+    const demoText = demoBook.SheetNames.map((n) =>
+      XLSX.utils.sheet_to_csv(demoBook.Sheets[n]!),
+    ).join("\n");
+    expect(demoText).toMatch(/999\s?999\s?999/);
+  });
 });
