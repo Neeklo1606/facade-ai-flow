@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/kit/field";
-import { Sheet } from "@/components/ui/kit/sheet";
+import { AdaptiveSheet } from "@/components/gas-ops/AdaptiveSheet";
 import { notify } from "@/components/ui/kit/toast";
 import { useGasDirectoryImport } from "@/api/gas-estimates";
 import { toast } from "@/lib/toast";
@@ -52,7 +52,7 @@ export function AddObject() {
         <Plus aria-hidden />
         Добавить объект
       </Button>
-      <Sheet
+      <AdaptiveSheet
         open={open}
         onOpenChange={close}
         id="object-add"
@@ -103,7 +103,7 @@ export function AddObject() {
             файла графика. Действие пишется в журнал.
           </p>
         </div>
-      </Sheet>
+      </AdaptiveSheet>
     </>
   );
 }

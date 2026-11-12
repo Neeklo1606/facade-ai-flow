@@ -88,6 +88,7 @@ import { Route as OgNameRouteImport } from './routes/og.$name'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
+import { Route as ApiGasAssistantRouteImport } from './routes/api/gas/assistant'
 import { Route as ApiGasExecDocsRouteImport } from './routes/api/gas/exec-docs'
 import { Route as ApiGasExportRouteImport } from './routes/api/gas/export'
 import { Route as ApiGasRfqRouteImport } from './routes/api/gas/rfq'
@@ -503,6 +504,11 @@ const ApiExportShiftRoute = ApiExportShiftRouteImport.update({
   path: '/api/export/shift',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGasAssistantRoute = ApiGasAssistantRouteImport.update({
+  id: '/api/gas/assistant',
+  path: '/api/gas/assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGasExecDocsRoute = ApiGasExecDocsRouteImport.update({
   id: '/api/gas/exec-docs',
   path: '/api/gas/exec-docs',
@@ -678,6 +684,7 @@ export interface FileRoutesByFullPath {
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
@@ -775,6 +782,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
@@ -875,6 +883,7 @@ export interface FileRoutesById {
   '/projects/': typeof ProjectsIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
@@ -976,6 +985,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/assistant'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
@@ -1073,6 +1083,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/assistant'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
@@ -1172,6 +1183,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/assistant'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
@@ -1241,6 +1253,7 @@ export interface RootRouteChildren {
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
+  ApiGasAssistantRoute: typeof ApiGasAssistantRoute
   ApiGasExecDocsRoute: typeof ApiGasExecDocsRoute
   ApiGasExportRoute: typeof ApiGasExportRoute
   ApiGasRfqRoute: typeof ApiGasRfqRoute
@@ -1812,6 +1825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExportShiftRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gas/assistant': {
+      id: '/api/gas/assistant'
+      path: '/api/gas/assistant'
+      fullPath: '/api/gas/assistant'
+      preLoaderRoute: typeof ApiGasAssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gas/exec-docs': {
       id: '/api/gas/exec-docs'
       path: '/api/gas/exec-docs'
@@ -2077,6 +2097,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,
+  ApiGasAssistantRoute: ApiGasAssistantRoute,
   ApiGasExecDocsRoute: ApiGasExecDocsRoute,
   ApiGasExportRoute: ApiGasExportRoute,
   ApiGasRfqRoute: ApiGasRfqRoute,

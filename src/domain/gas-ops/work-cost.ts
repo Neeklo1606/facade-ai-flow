@@ -304,6 +304,113 @@ export interface EstimateVersion {
   issuesReviewedBy: string | null;
   confirmedBy: string | null;
   confirmedAt: string | null;
+  /**
+   * Правки значений до подтверждения (ADR-066): то, о чём договорились с заказчиком.
+   * У каждой правки основание словами, было и стало; нет — версия без правок
+   */
+  corrections?: EstimateCorrection[];
+}
+
+/** Что правят в разборе: итог по ключу, раздел или строку ниже «ВСЕГО» по строке файла */
+export type CorrectionTarget =
+  | { kind: "total"; key: TotalKey }
+  | { kind: "section"; row: number }
+  | { kind: "extra"; row: number };
+
+export interface EstimateCorrection {
+  target: CorrectionTarget;
+  /** Подпись строки на момент правки: «Итого без НДС», «Раздел 1. Котельная» */
+  label: string;
+  fromKopecks: number;
+  toKopecks: number;
+  /** Основание: «согласовано с заказчиком по телефону 03.10» */
+  note: string;
+  by: string;
+  at: string;
+}
+
+/** Совпадает ли цель правки с цель-ключом строки разбора */
+export function sameTarget(a: CorrectionTarget, b: CorrectionTarget): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "total" && b.kind === "total") return a.key === b.key;
+  return "row" in a && "row" in b && a.row === b.row;
+}
+
+/** Последняя правка строки: по ней экран показывает «было» и основание */
+export function correctionOf(
+  v: EstimateVersion,
+  target: CorrectionTarget,
+): EstimateCorrection | null {
+  const list = (v.corrections ?? []).filter((c) => sameTarget(c.target, target));
+  return list.at(-1) ?? null;
+}
+
+/**
+ * Поправить значение разобранной сметы (ADR-066). Чистая функция: новая версия с правкой
+ * или причина отказа. Подтверждённую смету не правят: стоимость уже ушла в записи, нужна
+ * новая версия. Сумма в копейках, не отрицательная; основание обязательно (правило 2:
+ * у значения есть источник). Первое «было» сохраняется: правка правки не теряет исходник
+ */
+export function correctVersion(
+  v: EstimateVersion,
+  input: { target: CorrectionTarget; kopecks: number; note: string },
+  actor: string,
+  at: string,
+):
+  | { ok: true; version: EstimateVersion; correction: EstimateCorrection }
+  | { ok: false; reason: string } {
+  if (v.confirmedAt !== null)
+    return { ok: false, reason: "Смета уже подтверждена: загрузите новую версию." };
+  const note = input.note.trim();
+  if (!note) return { ok: false, reason: "Напишите основание: с кем и о чём договорились." };
+  if (!Number.isInteger(input.kopecks) || input.kopecks < 0)
+    return { ok: false, reason: "Сумма числом, не меньше нуля." };
+
+  const t = input.target;
+  let label: string;
+  let current: number;
+  let next: EstimateVersion;
+  if (t.kind === "total") {
+    const cell = v.totals[t.key];
+    if (!cell) return { ok: false, reason: "Такого итога в смете нет." };
+    label = TOTAL_LABEL[t.key];
+    current = cell.kopecks;
+    next = { ...v, totals: { ...v.totals, [t.key]: { ...cell, kopecks: input.kopecks } } };
+  } else if (t.kind === "section") {
+    const section = v.sections.find((x) => x.row === t.row);
+    if (!section) return { ok: false, reason: "Такого раздела в смете нет." };
+    label = section.title;
+    current = section.kopecks;
+    next = {
+      ...v,
+      sections: v.sections.map((x) => (x.row === t.row ? { ...x, kopecks: input.kopecks } : x)),
+    };
+  } else {
+    const extra = (v.extras ?? []).find((x) => x.row === t.row);
+    if (!extra) return { ok: false, reason: "Такой строки ниже «ВСЕГО» в смете нет." };
+    label = extra.label;
+    current = extra.kopecks;
+    next = {
+      ...v,
+      extras: (v.extras ?? []).map((x) => (x.row === t.row ? { ...x, kopecks: input.kopecks } : x)),
+    };
+  }
+  if (current === input.kopecks) return { ok: false, reason: "Сумма не изменилась." };
+  const first = correctionOf(v, t);
+  const correction: EstimateCorrection = {
+    target: t,
+    label,
+    fromKopecks: first ? first.fromKopecks : current,
+    toKopecks: input.kopecks,
+    note,
+    by: actor,
+    at,
+  };
+  return {
+    ok: true,
+    version: { ...next, corrections: [...(v.corrections ?? []), correction] },
+    correction,
+  };
 }
 
 /** Можно ли подтвердить версию: привязана к объекту и без непроверенных замечаний */

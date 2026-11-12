@@ -288,7 +288,9 @@ for (const run of WIDTHS) {
 
       test("фильтр по типу замечания и поиск не сбрасываются после решения", async ({ page }) => {
         await open(page, "/gas/moderation");
-        await page.getByLabel("Тип замечания").selectOption("suspicion");
+        // Фильтр-чип (ADR-066): список вариантов вместо стандартного списка браузера
+        await page.getByRole("button", { name: /^Тип замечания:/ }).click();
+        await page.getByRole("option", { name: "Подозрение" }).click();
         await expect(card(page, "ГЗ-00096")).toHaveCount(0);
         const rows = page.locator("[data-queue-card]");
         await expect(rows).toHaveCount(5);
@@ -296,7 +298,7 @@ for (const run of WIDTHS) {
         await confirmButton(page).click();
         await expect(toast(page, "Принято")).toBeVisible();
         await expect(rows).toHaveCount(4);
-        await expect(page.getByLabel("Тип замечания")).toHaveValue("suspicion");
+        await expect(page.getByRole("button", { name: "Тип замечания: Подозрение" })).toBeVisible();
       });
     }
   });

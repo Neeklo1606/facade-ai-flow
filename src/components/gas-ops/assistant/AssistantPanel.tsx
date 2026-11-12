@@ -8,7 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { History, MessageSquarePlus, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { assistantModel, useGasAssistant, type AssistantAnswer } from "@/api/gas-assistant";
+import { useAssistantModel, useGasAssistant, type AssistantAnswer } from "@/api/gas-assistant";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 
@@ -21,6 +21,11 @@ interface Message {
   answer: AssistantAnswer;
   /** Черновик выполнен человеком: кнопка больше не нажимается */
   draftDone?: boolean;
+  /**
+   * Ответ модели на свободный вопрос (ADR-066): пока ждём — «pending», при ошибке — текст
+   * ошибки и правило-ответ остаётся под ним
+   */
+  model?: { status: "pending" | "done" | "error"; text?: string; name?: string };
 }
 
 interface Chat {
@@ -68,6 +73,7 @@ export function AssistantButton() {
 
 function AssistantPanel({ onClose }: { onClose: () => void }) {
   const assistant = useGasAssistant();
+  const model = useAssistantModel();
   const [chats, setChats] = useState<Chat[]>(() => readChats());
   const [chatId, setChatId] = useState<string | null>(() => readChats()[0]?.id ?? null);
   const [history, setHistory] = useState(false);
@@ -94,18 +100,66 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
     writeChats(next);
   };
 
+  // Последний список чатов для асинхронного ответа модели: замыкание видит старый
+  const latest = useRef(chats);
+  latest.current = chats;
+
+  const patch = (targetChat: string, id: string, change: Partial<Message>) => {
+    const next = latest.current.map((c) =>
+      c.id === targetChat
+        ? { ...c, messages: c.messages.map((m) => (m.id === id ? { ...m, ...change } : m)) }
+        : c,
+    );
+    save(next);
+  };
+
   const ask = (question: string) => {
     const q = question.trim();
     if (!q) return;
-    const message: Message = { id: newId(), question: q, answer: assistant.ask(q) };
+    const rule = assistant.ask(q);
+    // Свободный вопрос и подключённая модель: отвечает модель по данным недели роли
+    const free = rule.intent === null && model.available;
+    const message: Message = {
+      id: newId(),
+      question: q,
+      answer: rule,
+      ...(free ? { model: { status: "pending" as const } } : {}),
+    };
+    const history = (chat?.messages ?? [])
+      .filter((m) => m.model?.status === "done" || m.answer.intent !== null)
+      .map((m) => ({
+        question: m.question,
+        answer:
+          m.model?.text ?? [...m.answer.text, ...m.answer.items.map((i) => i.text)].join("\n"),
+      }));
+    let target = chat?.id ?? null;
     if (chat) {
       save(chats.map((c) => (c.id === chat.id ? { ...c, messages: [...c.messages, message] } : c)));
     } else {
       const created: Chat = { id: newId(), title: q.slice(0, 60), messages: [message] };
+      target = created.id;
       save([created, ...chats]);
       setChatId(created.id);
     }
     setText("");
+    if (free && target) {
+      const chatOf = target;
+      assistant
+        .askModel(q, history)
+        .then((reply) =>
+          patch(chatOf, message.id, {
+            model: { status: "done", text: reply.text, name: reply.model },
+          }),
+        )
+        .catch((error: unknown) =>
+          patch(chatOf, message.id, {
+            model: {
+              status: "error",
+              text: error instanceof Error ? error.message : "Агент не ответил, повторите",
+            },
+          }),
+        );
+    }
   };
 
   const runDraft = async (message: Message) => {
@@ -141,15 +195,24 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="false"
       aria-label="Помощник"
-      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-card bg-surface shadow-floating ring-1 ring-line lg:inset-x-auto lg:top-20 lg:right-6 lg:bottom-6 lg:max-h-none lg:w-[420px] lg:rounded-card"
+      className="agent-panel fixed inset-0 z-50 flex flex-col bg-surface lg:inset-x-auto lg:top-20 lg:right-6 lg:bottom-6 lg:w-[420px] lg:rounded-card lg:shadow-floating lg:ring-1 lg:ring-line"
     >
       <header className="flex items-center gap-1 border-b border-line px-4 py-2">
         <div className="min-w-0 flex-1">
-          <h2 className="text-heading">Помощник</h2>
-          <p className="text-meta text-text-3">
-            {assistantModel.available
-              ? "Отвечает по данным недели"
-              : "По данным недели. Модель не подключена"}
+          <h2 className="flex items-center gap-2 text-heading">
+            <span className="grid size-7 place-items-center rounded-pill bg-flame text-on-flame">
+              <Sparkles aria-hidden className="size-4" />
+            </span>
+            Агент
+          </h2>
+          <p className="flex items-center gap-1.5 text-meta text-text-3" data-testid="agent-status">
+            <span
+              aria-hidden
+              className={`size-2 rounded-full ${model.available ? "bg-up" : "bg-text-3"}`}
+            />
+            {model.available
+              ? `Claude · знает табель, сметы, бригады и объекты недели`
+              : "Демо: модель не подключена, отвечаю по правилам"}
           </p>
         </div>
         <Button
@@ -211,10 +274,12 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
               className="flex flex-col gap-2"
               data-testid="assistant-answer"
             >
-              <p className="self-end rounded-card bg-surface-2 px-3 py-2 text-body">
+              <p className="agent-bubble-user self-end rounded-card bg-inverse px-3 py-2 text-body text-on-inverse">
                 {message.question}
               </p>
+              {message.model ? <ModelAnswer state={message.model} /> : null}
               <Answer
+                folded={message.model?.status === "done"}
                 answer={message.answer}
                 done={!!message.draftDone}
                 onAsk={ask}
@@ -265,13 +330,47 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Ответ модели: текст с переносами, источник «Claude по данным недели» */
+function ModelAnswer({ state }: { state: NonNullable<Message["model"]> }) {
+  if (state.status === "pending") {
+    return (
+      <div className="flex items-center gap-2 rounded-card bg-panel-2 p-3 text-body text-text-2">
+        <span aria-hidden className="agent-dots">
+          <span />
+          <span />
+          <span />
+        </span>
+        Смотрю данные недели
+      </div>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <p role="alert" className="rounded-card bg-warn-bg p-3 text-meta text-warn">
+        {state.text} Ниже ответ по правилам.
+      </p>
+    );
+  }
+  return (
+    <div className="agent-bubble flex flex-col gap-2 rounded-card bg-panel-2 p-3">
+      <p className="text-body whitespace-pre-line">{state.text}</p>
+      <p className="text-meta text-text-3">
+        Claude по данным недели{state.name ? ` · ${state.name}` : ""}. Проверьте цифры на экране
+      </p>
+    </div>
+  );
+}
+
 function Answer({
+  folded = false,
   answer,
   done,
   onAsk,
   onDraft,
   onNavigate,
 }: {
+  /** Модель уже ответила: правило-ответ на свободный вопрос не нужен */
+  folded?: boolean;
   answer: AssistantAnswer;
   done: boolean;
   onAsk: (question: string) => void;
@@ -279,6 +378,7 @@ function Answer({
   onNavigate: () => void;
 }) {
   const navigate = useNavigate();
+  if (folded) return null;
   return (
     <div className="flex flex-col gap-2 rounded-card bg-panel-2 p-3">
       {answer.text.map((line) => (

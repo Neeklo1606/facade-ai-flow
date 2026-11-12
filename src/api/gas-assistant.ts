@@ -3,9 +3,11 @@
  * что «Неделя» (`useGasWeekView`), отправку делает порт OutboundMessenger. Экраны не знают
  * ни реализации канала, ни модели.
  */
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { OutboundButton } from "@/ports/messenger";
-import { assistantModelStub } from "@/adapters/gas-ops/assistant-model-stub";
+import { assistantModelServer } from "@/adapters/gas-ops/assistant-model-server";
+import { assistantContext } from "@/domain/gas-ops/assistant-context";
+import type { AssistantTurn } from "@/ports/gas-assistant";
 import {
   clearInbox,
   messengerDemo,
@@ -27,14 +29,37 @@ import { useGasActions, useGasWeekView } from "./gas-ops";
 export type { AssistantAnswer, AssistantDraft, InboxMessage };
 export { clearInbox, summaryTimeOf };
 
-/** Модель помощника: без ключа заглушка, свободный вопрос получает список вопросов */
-export const assistantModel = assistantModelStub;
+/**
+ * Модель агента (ADR-066): сервер решает, подключена ли она (ключ в окружении сервера).
+ * Без ключа свободный вопрос получает список вопросов, на которые отвечают правила
+ */
+export const assistantModel = assistantModelServer;
+
+/** Подключена ли модель: «Claude · claude-opus-5-5» или null, пока сервер не ответил */
+export function useAssistantModel(): { available: boolean; model: string | null } {
+  const [state, setState] = useState<{ available: boolean; model: string | null }>({
+    available: false,
+    model: null,
+  });
+  useEffect(() => {
+    let alive = true;
+    void assistantModel.status().then((s) => alive && setState(s));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return state;
+}
 
 export function useGasAssistant(): {
   suggestions: string[];
   ask: (question: string) => AssistantAnswer;
   /** Выполнить черновик: только по нажатию человека, тем же действием проверки */
   runDraft: (draft: AssistantDraft) => Promise<{ done: number; failed: string[] }>;
+  askModel: (
+    question: string,
+    history: AssistantTurn[],
+  ) => Promise<{ text: string; model: string }>;
 } {
   const data = useGasData();
   const actor = useGasActor();
@@ -58,7 +83,17 @@ export function useGasAssistant(): {
     },
     [actions],
   );
-  return { suggestions: list, ask, runDraft };
+  /** Свободный вопрос модели: данные недели в объёме роли, история чата для уточнений */
+  const askModel = useCallback(
+    (question: string, history: AssistantTurn[]) =>
+      assistantModel.ask({
+        question,
+        history,
+        context: assistantContext({ role: actor.role, data, reasons: week.reasons }),
+      }),
+    [actor.role, data, week.reasons],
+  );
+  return { suggestions: list, ask, runDraft, askModel };
 }
 
 /* ---------------------------------------------------------------- Входящие и напоминания */
