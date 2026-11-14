@@ -53,6 +53,39 @@ async function freeSlot() {
   return { day, brigadeId: brigade.id, objectId: object.id };
 }
 
+/**
+ * Чистая запись для автопилота (ADR-070): сегодня, объект бригады по назначению на день, смета
+ * из файла подтверждена. Иначе запись честно уходит в очередь: «внесено позже», «нет графика»,
+ * «ручная сумма»
+ */
+async function cleanSlot() {
+  const s = await port.snapshot();
+  const day = s.today;
+  const used = new Set(
+    s.entries.filter((e) => e.day === day).map((e) => `${e.brigadeId}|${e.objectId}`),
+  );
+  const assignment = s.assignments.find(
+    (a) => a.day === day && a.objectIds.some((id) => !used.has(`${a.brigadeId}|${id}`)),
+  )!;
+  const objectId = assignment.objectIds.find((id) => !used.has(`${assignment.brigadeId}|${id}`))!;
+  const parsed = { ...parseEstimateGrid(resourceGrid()), sheet: "Смета" };
+  const v = await port.addEstimateVersion({ parsed, fileName: "смета.xls", objectId });
+  await port.confirmEstimateVersion(v.id);
+  // Время после последней записи бригады за день: ни с чем не пересечётся
+  const from = Math.max(
+    0,
+    ...s.entries
+      .filter((e) => e.day === day && e.brigadeId === assignment.brigadeId)
+      .map((e) => e.endMinutes ?? 0),
+  );
+  const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+  return {
+    slot: { day, brigadeId: assignment.brigadeId, objectId },
+    // Полная смена: 50 001 ₽ за час дали бы «аномальную доходность»
+    time: { start: clock(from), end: clock(Math.min(from + 6 * 60, 23 * 60 + 59)) },
+  };
+}
+
 describe("версия сметы", () => {
   test("загрузка, привязка, подтверждение: стоимость по правилу и запись в журнал", async () => {
     const parsed = { ...parseEstimateGrid(resourceGrid()), sheet: "Смета" };
@@ -94,17 +127,16 @@ describe("версия сметы", () => {
 
 describe("режимы проверки и итоговая проверка", () => {
   test("«только с замечаниями»: запись без признаков подтверждается сама долей стоимости", async () => {
-    const slot = await freeSlot();
-    await port.setEstimate({ objectId: slot.objectId, amountRub: 9_000, note: "договор" });
+    const { slot, time } = await cleanSlot();
     await port.setReviewSettings({ mode: "flagged", thresholdPercent: 95 });
     const entry = await port.createEntry({
       ...slot,
       employeeId: null,
-      start: "5:00",
-      end: "6:00",
+      ...time,
       breakMinutes: 0,
       submit: true,
     });
+    expect(entry.autoDecision?.reasons).toEqual([]);
     expect(entry.status).toBe("confirmed");
     expect(entry.reviewedBy).toBe("auto");
     expect(entry.amountRub).not.toBeNull();
@@ -117,6 +149,9 @@ describe("режимы проверки и итоговая проверка", (
     expect(report.stale).toBe(false);
     expect(report.objectIds).toContain(slot.objectId);
 
+    // Решение автопилота записано: правило, версия, без причин (ADR-070)
+    expect(entry.autoDecision).toMatchObject({ route: "auto", rule: "clean-entry", reasons: [] });
+
     // Новая стоимость объекта: сданный отчёт молча не меняется, а помечается
     await port.setEstimate({ objectId: slot.objectId, amountRub: 9_500, note: "допсоглашение" });
     const after = await port.snapshot();
@@ -127,17 +162,16 @@ describe("режимы проверки и итоговая проверка", (
   });
 
   test("автоприём можно вернуть в очередь до закрытия недели, бригадир этого не может", async () => {
-    const slot = await freeSlot();
-    await port.setEstimate({ objectId: slot.objectId, amountRub: 9_000, note: "договор" });
+    const { slot, time } = await cleanSlot();
     await port.setReviewSettings({ mode: "flagged", thresholdPercent: 95 });
     const entry = await port.createEntry({
       ...slot,
       employeeId: null,
-      start: "5:00",
-      end: "6:00",
+      ...time,
       breakMinutes: 0,
       submit: true,
     });
+    expect(entry.autoDecision?.reasons).toEqual([]);
     expect(entry.reviewedBy).toBe("auto");
     const back = await port.undoAutoAccept(entry.id);
     expect(back.status).toBe("pending");

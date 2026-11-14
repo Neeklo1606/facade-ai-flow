@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { weekReadyNotice } from "@/domain/gas-ops/week";
 
-/** «Неделя готова к закрытию» с пятницы 18:00 (финальный промт, 1.5; ADR-063) */
+/** «Неделя готова к закрытию» с пятницы 16:00 (финальный промт, 1.5; ADR-063; время – ADR-070) */
 describe("неделя готова к закрытию", () => {
   const base = { weekFrom: "2026-09-28", closed: false, entries: 93, remarks: 9 };
 
-  test("до пятницы 18:00 плашки нет, с 18:00 есть", () => {
-    expect(weekReadyNotice({ ...base, now: "2026-10-02T17:59" })).toBeNull();
-    expect(weekReadyNotice({ ...base, now: "2026-10-02T18:00" })).toEqual({
+  test("до пятницы 16:00 плашки нет, с 16:00 есть", () => {
+    expect(weekReadyNotice({ ...base, now: "2026-10-02T15:59" })).toBeNull();
+    expect(weekReadyNotice({ ...base, now: "2026-10-02T16:00" })).toEqual({
       entries: 93,
       remarks: 9,
     });

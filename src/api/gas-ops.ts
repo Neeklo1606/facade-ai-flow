@@ -300,6 +300,7 @@ export type {
 export { checkEntry, checkFlags, entryFrame } from "@/domain/gas-ops/entry-check";
 import { viewBrigadeId } from "@/domain/gas-ops/pilot";
 export { isAutoAccepted } from "@/domain/gas-ops/review-policy";
+export { decisionLine } from "@/domain/gas-ops/autopilot";
 export { lastEntryBefore, sameAsYesterday } from "@/domain/gas-ops/field";
 /**
  * Подпись отправленной записи бригадира: в демонстрации запись лежит во вкладке, и «Принято
@@ -839,3 +840,8 @@ export function useGasStaff(): StaffRow[] {
 }
 export { inviteOf } from "@/domain/gas-ops/staff";
 export type { StaffRow } from "@/domain/gas-ops/staff";
+
+/** Понедельник текущей недели отчёта: для демо-времени и сводки руководителю (ADR-070) */
+export function useGasWeekFrom(): string {
+  return useGasSnapshot().week.from;
+}

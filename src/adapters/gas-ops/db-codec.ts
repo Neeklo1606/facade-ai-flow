@@ -45,6 +45,7 @@ const ENTRY_OPTIONAL = [
   "clientKey",
   "channel",
   "note",
+  "autoDecision",
 ] as const;
 
 /** Поля записи, которые база хранит для запросов сервера, а снимок считает сам */

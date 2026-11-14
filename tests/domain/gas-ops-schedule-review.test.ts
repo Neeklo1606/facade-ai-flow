@@ -175,7 +175,9 @@ describe("режимы проверки", () => {
     expect(routeEntry("all", [])).toBe("queue");
     expect(routeEntry("flagged", [])).toBe("auto");
     expect(routeEntry("flagged", ["overlap"])).toBe("queue");
-    expect(routeEntry("none", ["overlap"])).toBe("auto");
+    // ADR-070: автопилот не принимает запись с замечанием, она ждёт менеджера
+    expect(routeEntry("none", ["overlap"])).toBe("queue");
+    expect(routeEntry("none", [])).toBe("auto");
     // «Объект на несколько дней» — сведение, не замечание: автоприём не держит
     expect(routeEntry("flagged", ["multi-day-object"])).toBe("auto");
     expect(routeEntry("flagged", ["multi-day-object", "no-estimate"])).toBe("queue");

@@ -21,7 +21,7 @@ import {
   type AssistantAnswer,
   type AssistantDraft,
 } from "@/domain/gas-ops/assistant";
-import { remindersAt, summaryTimeOf, unsent } from "@/domain/gas-ops/reminders";
+import { remindersAt, summaryTimeOf, unsent, weekDigestAt } from "@/domain/gas-ops/reminders";
 import { expectations } from "@/domain/gas-ops/week";
 import { useGasActor, useGasData } from "@/lib/gas-ops/use-gas-ops";
 import { useGasActions, useGasWeekView } from "./gas-ops";
@@ -134,12 +134,14 @@ const clockNow = () => {
  * в «Подключениях»: по расписанию её будет делать сервер (T7), а прогон проверок не зависит
  * от времени суток. Возвращает число отправленных
  */
-export function useSendReminders(): (clock?: string) => Promise<number> {
+export function useSendReminders(): (clock?: string, day?: string) => Promise<number> {
   const data = useGasData();
+  const week = useGasWeekView();
   return useCallback(
-    async (clock?: string) => {
+    async (clock?: string, day?: string) => {
+      const at = `${day ?? data.today}T${clock ?? clockNow()}`;
       const list = remindersAt({
-        at: `${data.today}T${clock ?? clockNow()}`,
+        at,
         time: reminderTime(),
         expected: expectations({
           days: data.week.days,
@@ -153,6 +155,19 @@ export function useSendReminders(): (clock?: string) => Promise<number> {
         brigades: data.brigades,
         objects: data.objects,
       });
+      // Пятница 16:00: руководителю «неделя готова» или «что мешает» (ADR-070)
+      list.push(
+        ...weekDigestAt({
+          at,
+          weekFrom: data.week.from,
+          closed: week.period.closed !== null,
+          blocking: week.reasons,
+          confirmed: data.entries.filter(
+            (e) => data.week.days.includes(e.day) && e.status === "confirmed",
+          ).length,
+          users: data.users,
+        }),
+      );
       const sent = new Set(readInbox().map((m) => m.key));
       let count = 0;
       for (const r of unsent(list, sent)) {
@@ -166,7 +181,7 @@ export function useSendReminders(): (clock?: string) => Promise<number> {
       }
       return count;
     },
-    [data],
+    [data, week],
   );
 }
 

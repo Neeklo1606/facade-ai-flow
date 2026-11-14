@@ -6,7 +6,7 @@
  * Принятие в одно касание. Возврат, исправление и отклонение требуют причину:
  * частые причины кнопками, свой текст полем. Esc закрывает форму причины.
  */
-import { isAutoAccepted } from "@/api/gas-ops";
+import { decisionLine, isAutoAccepted } from "@/api/gas-ops";
 import { Check, MessageCircleQuestion, MoreHorizontal, Pencil, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -141,6 +141,11 @@ export function ReviewPanel({
           </p>
         ) : null}
         <RemarkChips remarks={remarks} className="mt-2" />
+        {entry.autoDecision ? (
+          <p className="mt-2 text-meta text-text-2" data-testid="auto-decision">
+            {decisionLine(entry.autoDecision)}
+          </p>
+        ) : null}
       </header>
 
       {/*
