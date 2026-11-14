@@ -134,7 +134,13 @@ const clockNow = () => {
  * в «Подключениях»: по расписанию её будет делать сервер (T7), а прогон проверок не зависит
  * от времени суток. Возвращает число отправленных
  */
-export function useSendReminders(): (clock?: string, day?: string) => Promise<number> {
+/** Отправленное сообщение: кому и что, для тоста демо-времени */
+export interface SentReminder {
+  kind: "missing" | "clarify" | "summary" | "week";
+  text: string;
+}
+
+export function useSendReminders(): (clock?: string, day?: string) => Promise<SentReminder[]> {
   const data = useGasData();
   const week = useGasWeekView();
   return useCallback(
@@ -169,7 +175,7 @@ export function useSendReminders(): (clock?: string, day?: string) => Promise<nu
         }),
       );
       const sent = new Set(readInbox().map((m) => m.key));
-      let count = 0;
+      const done: SentReminder[] = [];
       for (const r of unsent(list, sent)) {
         const result = await messengerDemo.send({
           key: r.key,
@@ -177,9 +183,9 @@ export function useSendReminders(): (clock?: string, day?: string) => Promise<nu
           text: r.text,
           buttons: r.links,
         });
-        if (result.ok) count += 1;
+        if (result.ok) done.push({ kind: r.kind, text: r.text });
       }
-      return count;
+      return done;
     },
     [data, week],
   );

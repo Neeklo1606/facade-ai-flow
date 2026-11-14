@@ -234,6 +234,7 @@ function Start() {
             </span>
             <p className="site-body text-text-2">
               <span className="font-medium text-text">{step.title}.</span> {step.text}
+              <span className="mt-2 block text-text-3">{step.who}</span>
             </p>
           </li>
         ))}

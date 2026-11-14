@@ -30,7 +30,12 @@ import {
   AUTOPILOT_TARGET_PERCENT,
   fmtPercent,
 } from "@/api/gas-estimates";
-import { REMINDER_TIME_KEY, summaryTimeOf, useSendReminders } from "@/api/gas-assistant";
+import {
+  REMINDER_TIME_KEY,
+  summaryTimeOf,
+  useSendReminders,
+  type SentReminder,
+} from "@/api/gas-assistant";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -274,7 +279,7 @@ function AdminPage() {
                 variant="secondary"
                 onClick={async () => {
                   // Демо: момент проверки — время сводки сегодняшнего дня, уходит всё, что положено
-                  const count = await sendReminders(summaryTimeOf(reminder) ?? reminder);
+                  const count = (await sendReminders(summaryTimeOf(reminder) ?? reminder)).length;
                   if (count)
                     toast.success(`Отправлено напоминаний: ${count}`, {
                       description: "Демо: в колокольчике и в ленте бота, в MAX не отправлено",
@@ -319,6 +324,13 @@ function AdminPage() {
   );
 }
 
+const SENT_TO: Record<SentReminder["kind"], string> = {
+  missing: "Бригадиру",
+  clarify: "Бригадиру",
+  summary: "Менеджеру",
+  week: "Руководителю",
+};
+
 /** Пятница недели: день сводки руководителю (ADR-070) */
 function fridayOf(weekFrom: string): string {
   const day = new Date(`${weekFrom}T00:00:00Z`);
@@ -336,7 +348,7 @@ function DemoClockRow({
   friday,
 }: {
   reminder: string;
-  send: (clock?: string, day?: string) => Promise<number>;
+  send: (clock?: string, day?: string) => Promise<SentReminder[]>;
   friday: string;
 }) {
   const moments = [
@@ -365,10 +377,10 @@ function DemoClockRow({
             variant="secondary"
             aria-label={`Сдвинуть время на ${m.label}: ${m.who}`}
             onClick={async () => {
-              const count = await send(m.clock, m.day);
-              if (count)
-                toast.success(`${m.label}: отправлено ${count}`, {
-                  description: `Демо, ${m.who}. Смотрите колокольчик и ленту бота`,
+              const sent = await send(m.clock, m.day);
+              if (sent.length)
+                toast.success(`${m.label}: отправлено ${sent.length}`, {
+                  description: `${sent.map((x) => `${SENT_TO[x.kind]}: ${x.text}`).join(" ")} Демо: колокольчик и лента бота.`,
                 });
               else toast(`${m.label}: отправлять некому или уже отправлено`);
             }}
