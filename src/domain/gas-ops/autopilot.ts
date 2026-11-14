@@ -150,6 +150,8 @@ export interface Agreement {
   risky: number;
   /** Автопилот отправил бы в очередь, а менеджер принял без правки: осторожное расхождение */
   cautious: number;
+  /** Из них решений, пересчитанных по текущим правилам (запись решена до автопилота) */
+  recomputed: number;
   /** Проценты с одним знаком; null — решений меньше минимума */
   percent: number | null;
   from: string;
@@ -163,7 +165,8 @@ export interface Agreement {
  * чисто, или автопилот «в очередь» и менеджер не чисто
  */
 export function autopilotAgreement(input: {
-  entries: readonly Pick<TimeEntry, "id" | "autoDecision">[];
+  /** `retro` – решение пересчитано по текущим правилам, а не сохранено при отправке */
+  entries: readonly (Pick<TimeEntry, "id" | "autoDecision"> & { retro?: boolean })[];
   reviews: readonly Review[];
   /** Момент расчёта «ГГГГ-ММ-ДДTЧЧ:ММ» */
   now: string;
@@ -186,6 +189,7 @@ export function autopilotAgreement(input: {
   let matched = 0;
   let risky = 0;
   let cautious = 0;
+  let recomputed = 0;
   for (const entry of input.entries) {
     const decision = entry.autoDecision;
     const list = human.get(entry.id);
@@ -195,6 +199,7 @@ export function autopilotAgreement(input: {
     if (!decisions.length) continue;
     const clean = decisions.every((r) => r.action === "confirm");
     total += 1;
+    if (entry.retro) recomputed += 1;
     const auto = decision.reasons.length === 0;
     if (auto === clean) matched += 1;
     else if (auto) risky += 1;
@@ -205,6 +210,7 @@ export function autopilotAgreement(input: {
     matched,
     risky,
     cautious,
+    recomputed,
     percent: total < AGREEMENT_MIN_SAMPLE ? null : Math.floor((matched / total) * 1000) / 10,
     from: fromDate,
     to: input.now.slice(0, 10),

@@ -82,7 +82,7 @@ export type BotStage =
   /** Ждём ответа порта; `answer` — номер записи, если отправлен ответ менеджеру */
   | { kind: "sending"; answer?: string }
   | { kind: "failed"; message: string }
-  | { kind: "done"; number: string; edited: boolean }
+  | { kind: "done"; number: string; edited: boolean; auto?: boolean }
   | { kind: "mine" }
   | { kind: "answer"; entryId: string; number: string }
   | { kind: "answered"; number: string }
@@ -104,7 +104,8 @@ export type BotEvent =
   | { type: "text"; text: string }
   | { type: "voice"; text: string; demo: boolean }
   | { type: "parsed" }
-  | { type: "sent"; number: string }
+  /** auto – запись принял автопилот (ADR-070): бот так и говорит, а не «ждёт проверки» */
+  | { type: "sent"; number: string; auto?: boolean }
   | { type: "failed"; message: string };
 
 export type BotEffect =
@@ -459,7 +460,12 @@ export function botStep(state: BotState, event: BotEvent, ctx: BotContext): BotS
         ...state,
         stage: stage.answer
           ? { kind: "answered", number: stage.answer }
-          : { kind: "done", number: event.number, edited: !!draft.editId },
+          : {
+              kind: "done",
+              number: event.number,
+              edited: !!draft.editId,
+              ...(event.auto ? { auto: true } : {}),
+            },
         error: null,
       },
       mine: null,
@@ -922,9 +928,9 @@ export function botReply(state: BotState, ctx: BotContext): BotReply {
       };
     case "done":
       return reply({
-        text: stage.edited
-          ? `Исправлено и отправлено. Запись ${stage.number} ждёт проверки.`
-          : `Отправлено. Запись ${stage.number} ждёт проверки.`,
+        text: `${stage.edited ? "Исправлено и отправлено" : "Отправлено"}. Запись ${stage.number} ${
+          stage.auto ? "принята автоматически: замечаний нет" : "ждёт проверки"
+        }.`,
         groups: [
           {
             keys: [

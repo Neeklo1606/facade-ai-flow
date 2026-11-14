@@ -218,7 +218,14 @@ describe("счётчик совпадения авто-решений с реш�
       ],
       now: "2026-10-02T19:00",
     });
-    expect(a).toMatchObject({ total: 4, matched: 2, risky: 1, cautious: 1, percent: null });
+    expect(a).toMatchObject({
+      total: 4,
+      matched: 2,
+      risky: 1,
+      cautious: 1,
+      recomputed: 0,
+      percent: null,
+    });
   });
 
   test("окно 14 дней и автоматические решения не считаются; процент с выборки", () => {
@@ -244,6 +251,7 @@ describe("счётчик совпадения авто-решений с реш�
       matched: 39,
       risky: 1,
       cautious: 0,
+      recomputed: 0,
       percent: 97.5,
       from: "2026-09-19",
       to: "2026-10-02",
@@ -287,5 +295,34 @@ describe("пятница 16:00: неделя руководителю", () => {
     });
     expect(msg?.text).toContain("Что мешает: Не проверено записей: 2");
     expect(weekDigestAt({ ...base, closed: true, at: "2026-10-03T09:00" })).toEqual([]);
+  });
+});
+
+describe("решение над данными направления", () => {
+  test("демо-история даёт счётчику пересчитанные решения, отправленная запись – сохранённое", async () => {
+    const { resetState } = await import("@/adapters/gas-ops/state");
+    const { createGasOpsDemo } = await import("@/adapters/gas-ops/demo");
+    const { retroDecision } = await import("@/domain/gas-ops/autopilot-data");
+    resetState();
+    const port = createGasOpsDemo();
+    await port.signIn("u-manager");
+    const s = await port.snapshot();
+    const reviewed = new Set(s.reviews.filter((r) => r.actor !== AUTO_ACTOR).map((r) => r.entryId));
+    const history = s.entries.filter((e) => reviewed.has(e.id));
+    expect(history.length).toBeGreaterThan(0);
+    for (const e of history) {
+      const d = retroDecision(s, e);
+      if (d) expect(d.mode).toBe("all");
+    }
+    const a = autopilotAgreement({
+      entries: s.entries.map((e) => ({
+        id: e.id,
+        autoDecision: retroDecision(s, e),
+        retro: !e.autoDecision,
+      })),
+      reviews: s.reviews,
+      now: `${s.today}T23:59`,
+    });
+    expect(a.recomputed).toBe(a.total);
   });
 });

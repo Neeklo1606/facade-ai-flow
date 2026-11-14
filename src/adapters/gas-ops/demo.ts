@@ -41,11 +41,10 @@ import {
   DEFAULT_AUTOPILOT,
   autopilotAgreement,
   autopilotAvailability,
-  decideEntry,
   decisionLine,
   fmtPercent,
 } from "@/domain/gas-ops/autopilot";
-import { entryInfo } from "@/domain/gas-ops/entry-info";
+import { decisionInData, retroDecision, shareOf } from "@/domain/gas-ops/autopilot-data";
 import { reportEntries } from "@/domain/gas-ops/report";
 import {
   ENTRY_STATUS_LABEL,
@@ -67,7 +66,7 @@ import {
   planDirectoryImport,
   type DirectoryState,
 } from "@/domain/gas-ops/directory-import";
-import { allowedObjectIdsFor, entryView } from "@/domain/gas-ops/view";
+import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
   crewOn,
   defaultHeadcount,
@@ -208,29 +207,6 @@ function validate(
 }
 
 /**
- * Доля стоимости объекта для записи (ADR-053, 3): подтверждённая стоимость распределяется
- * по минутам всех неотклонённых записей объекта. Нет подтверждённой стоимости — null.
- */
-function shareOf(snapshot: GasOpsSnapshot, draft: TimeEntry): number | null {
-  const estimate = snapshot.estimates.find(
-    (e) => e.objectId === draft.objectId && e.status === "confirmed",
-  );
-  if (!estimate) return null;
-  const own = [
-    ...snapshot.entries.filter(
-      (e) => e.objectId === draft.objectId && e.status !== "rejected" && e.id !== draft.id,
-    ),
-    draft,
-  ];
-  return (
-    allocateByMinutes(
-      estimate.amountRub,
-      own.map((e) => ({ id: e.id, minutes: e.minutes })),
-    ).get(draft.id) ?? null
-  );
-}
-
-/**
  * Отправленная запись в режиме проверки (ADR-053, 5; ADR-070): решение автопилота считается
  * в любом режиме и пишется в запись. «auto» подтверждает её сразу от имени системы; в режиме
  * «Проверять всё» решение только тень для счётчика совпадения. Сумму автопилот не придумывает:
@@ -238,32 +214,11 @@ function shareOf(snapshot: GasOpsSnapshot, draft: TimeEntry): number | null {
  */
 function routed(snapshot: GasOpsSnapshot, draft: TimeEntry): TimeEntry {
   if (draft.status !== "pending") return draft;
-  // Замечания считаются с долей стоимости объекта: без неё любая новая запись была бы «без суммы»
-  const candidate = { ...draft, amountRub: draft.amountRub ?? shareOf(snapshot, draft) };
-  const data = {
-    ...snapshot,
-    entries: [...snapshot.entries.filter((e) => e.id !== draft.id), candidate],
-  };
-  const info = entryInfo(entryView(data, candidate));
-  const expected = expectations({
-    days: snapshot.week.days.includes(draft.day) ? snapshot.week.days : [draft.day],
-    brigades: snapshot.brigades,
-    objects: snapshot.objects,
-    schedule: snapshot.schedule,
-    assignments: snapshot.assignments,
-  }).filter((x) => x.brigadeId === draft.brigadeId && x.day === draft.day);
-  const decision = decideEntry({
+  const { decision, candidate } = decisionInData({
+    data: snapshot,
+    entry: draft,
     mode: snapshot.reviewSettings.mode,
-    entry: candidate,
-    info,
-    hasConfirmedEstimate: snapshot.estimates.some(
-      (e) => e.objectId === draft.objectId && e.status === "confirmed",
-    ),
-    expectedObjectIds: expected.length ? expected.map((x) => x.objectId) : null,
-    config: {
-      ...DEFAULT_AUTOPILOT,
-      samplePercent: snapshot.reviewSettings.samplePercent ?? DEFAULT_AUTOPILOT.samplePercent,
-    },
+    samplePercent: snapshot.reviewSettings.samplePercent,
     at: nowOf(snapshot),
   });
   if (decision.route === "queue") return { ...draft, autoDecision: decision };
@@ -1408,7 +1363,11 @@ export function createGasOpsDemo(
       // Автопилот (ADR-070): решение по числу совпадения. Ниже порога включить можно только
       // явным согласием менеджера, которое видно в журнале вместе с числом
       const agreement = autopilotAgreement({
-        entries: snapshot.entries,
+        entries: snapshot.entries.map((e) => ({
+          id: e.id,
+          autoDecision: retroDecision(snapshot, e),
+          retro: !e.autoDecision,
+        })),
         reviews: snapshot.reviews,
         now: nowOf(snapshot),
       });
@@ -1445,7 +1404,7 @@ export function createGasOpsDemo(
               actor: s.actorId,
               action: "review.mode",
               entityId: "review-settings",
-              detail: `Режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}» → «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%${input.mode === "none" ? `, выборочная проверка ${samplePercent}%, совпадение ${agreement.percent === null ? `не набрано (${agreement.total} решений)` : fmtPercent(agreement.percent)} при пороге ${fmtPercent(AUTOPILOT_TARGET_PERCENT)}${switching && !pilot.ok ? ", включено ниже порога по решению менеджера" : ""}` : ""}${(input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover) ? ", правило подтверждает второй человек" : ""}`,
+              detail: `Режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}» → «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%${input.mode === "none" ? `, выборочная проверка ${samplePercent}%, совпадение ${agreement.percent === null ? `не набрано, решений ${agreement.total}` : fmtPercent(agreement.percent)} при пороге ${fmtPercent(AUTOPILOT_TARGET_PERCENT)}${switching && !pilot.ok ? ", включено ниже порога по решению менеджера" : ""}` : ""}${(input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover) ? ", правило подтверждает второй человек" : ""}`,
             }),
             ...s.audit,
           ],

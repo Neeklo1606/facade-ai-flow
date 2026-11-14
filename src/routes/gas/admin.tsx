@@ -487,9 +487,12 @@ function ReviewModeGroup() {
           {"–"}
           {agreement.to.slice(8, 10)}.{agreement.to.slice(5, 7)}): совпало {agreement.matched} из{" "}
           {agreement.total}. Автопилот принял бы, а менеджер исправил: {agreement.risky}. Автопилот
-          отправил бы в очередь, а менеджер принял без правки: {agreement.cautious}. Порог для
-          включения {fmtPercent(AUTOPILOT_TARGET_PERCENT)}, нужно не меньше {AGREEMENT_MIN_SAMPLE}{" "}
-          решений.
+          отправил бы в очередь, а менеджер принял без правки: {agreement.cautious}.
+          {agreement.recomputed
+            ? ` Из них ${agreement.recomputed} решены до автопилота и пересчитаны по текущим правилам.`
+            : ""}{" "}
+          Порог для включения {fmtPercent(AUTOPILOT_TARGET_PERCENT)}, нужно не меньше{" "}
+          {AGREEMENT_MIN_SAMPLE} решений.
         </span>
         {settings.mode !== "all" ? (
           <span className="block text-meta text-text-3 tnum">

@@ -8,6 +8,7 @@ import {
   type Agreement,
   type AutopilotAvailability,
 } from "@/domain/gas-ops/autopilot";
+import { retroDecision } from "@/domain/gas-ops/autopilot-data";
 
 export {
   AGREEMENT_MIN_SAMPLE,
@@ -176,7 +177,11 @@ export function useGasReviewPolicy(): ReviewPolicyData {
     const accuracy = accuracyOf(s.reviews);
     const threshold = s.reviewSettings.thresholdPercent;
     const agreement = autopilotAgreement({
-      entries: s.entries,
+      entries: s.entries.map((e) => ({
+        id: e.id,
+        autoDecision: retroDecision(s, e),
+        retro: !e.autoDecision,
+      })),
       reviews: s.reviews,
       now: `${s.today}T23:59`,
     });
