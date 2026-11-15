@@ -14,9 +14,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns3,
+  List,
   Maximize2,
   Minimize2,
   Rows3,
+  SlidersHorizontal,
   Table2,
   TriangleAlert,
   Users,
@@ -41,6 +43,7 @@ import {
   type GridRow,
 } from "@/components/gas-ops/tabel/Grid";
 import { CellDialog } from "@/components/gas-ops/tabel/CellDialog";
+import { AdaptiveSheet } from "@/components/gas-ops/AdaptiveSheet";
 import { ReconcileBlock } from "@/components/gas-ops/report/ReconcileBlock";
 import { NormVsFactBlock } from "@/components/gas-ops/report/FinalCheckBlock";
 import {
@@ -79,6 +82,8 @@ import { cn } from "@/lib/utils";
  * только панель инструментов. Цвет ячеек вместо переключателя «Подтверждённые /
  * Предварительный», выделение и копирование как в Google Таблицах, исходные записи и правка
  * через окно ячейки. Телефон: список «бригада → объект → день» и «Открыть как таблицу».
+ * Таблица на телефоне как мобильные Google Таблицы: панель одной строкой, узкий закреплённый
+ * столбец объектов, сетка до нижнего меню, итог выделенного под ней, настройки в шторке.
  */
 interface TabelSearch {
   /** Запись из сценария: её ячейка выделяется */
@@ -112,6 +117,13 @@ const dayLabel = (iso: string) =>
 
 const ALL_METRICS: Metric[] = ["amount", "hours", "rate", "man"];
 const METRIC_WIDTH: Record<Metric, number> = { amount: 116, hours: 64, rate: 88, man: 64 };
+/** Первый столбец: на компьютере полное название, на телефоне треть экрана, как в Таблицах */
+const LABEL_WIDTH = 320;
+const LABEL_WIDTH_PHONE = 150;
+/** Строка на телефоне: область касания от 44 px (CLAUDE.md, правило 5) */
+const ROW_PHONE = 44;
+/** Ключ выбора «списком / таблицей» на телефоне */
+const TABLE_PREF = "gaika-tabel-phone-table";
 
 function metricText(cell: TabelCell, metric: Metric): string {
   const value = metricValue(cell, metric);
@@ -150,11 +162,32 @@ function TabelPage() {
   const [brigadeId, setBrigadeId] = useState("all");
   const [onlyDraft, setOnlyDraft] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [labelWidth, setLabelWidth] = useState(320);
+  const [labelWidthDesk, setLabelWidthDesk] = useState(LABEL_WIDTH);
+  const [labelWidthPhone, setLabelWidthPhone] = useState(LABEL_WIDTH_PHONE);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [widths, setWidths] = useState<Record<string, number>>({});
   const [open, setOpen] = useState<{ title: string; entryIds: string[] } | null>(null);
-  const [asTable, setAsTable] = useState(false);
+  const [asTable, setAsTableState] = useState(false);
+  // Выбор «таблицей» на телефоне запоминается: кто работает с сеткой, сразу видит сетку
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(TABLE_PREF) === "1") setAsTableState(true);
+    } catch {
+      // Приватный режим: остаётся список
+    }
+  }, []);
+  const setAsTable = (value: boolean) => {
+    setAsTableState(value);
+    try {
+      localStorage.setItem(TABLE_PREF, value ? "1" : "0");
+    } catch {
+      // Приватный режим: выбор живёт до перезагрузки
+    }
+  };
   const [busy, setBusy] = useState(false);
+  const labelWidth = phone ? labelWidthPhone : labelWidthDesk;
+  const setLabelWidth = phone ? setLabelWidthPhone : setLabelWidthDesk;
+  const rowHeight = phone ? ROW_PHONE : density === "compact" ? 32 : 40;
 
   // Бригадир денег не видит (ТЗ, п. 5.6): показатели с суммой из колонок убираются
   const shown = metricOrder(
@@ -353,8 +386,13 @@ function TabelPage() {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [fullscreen, phone, asTable]);
-  // Под сеткой строка итогов выделенного и легенда
-  const gridHeight = `max(320px, calc(100dvh - ${Math.round(fullscreen ? 96 : top)}px - 72px))`;
+  // Под сеткой строка итогов выделенного и легенда. Телефон: сетка до нижнего меню, под ней
+  // только строка итогов (две строки подсказки до первого касания)
+  const gridHeight = phone
+    ? fullscreen
+      ? "calc(100dvh - 76px - 52px - env(safe-area-inset-bottom))"
+      : `max(300px, calc(100dvh - ${Math.round(top)}px - var(--bottom-nav-h) - 52px - env(safe-area-inset-bottom)))`
+    : `max(320px, calc(100dvh - ${Math.round(fullscreen ? 96 : top)}px - 72px))`;
 
   // «Во весь экран»: Esc возвращает, если не открыто окно ячейки
   useEffect(() => {
@@ -411,9 +449,10 @@ function TabelPage() {
     setOnlyDraft(false);
   };
   const shownRows = visible.filter((r) => r.kind === "address").length;
-  const exportMenu = (wide: boolean) => (
+  const exportMenu = (wide: boolean, icon = false) => (
     <ExportMenu
       wide={wide}
+      icon={icon}
       confirmed={weekView.metrics.confirmed}
       unchecked={weekView.metrics.pending + weekView.metrics.clarify}
       finalLeft={policy.finalList.length}
@@ -516,6 +555,66 @@ function TabelPage() {
       });
     };
 
+  const columnsSettings = (
+    <>
+      <p className="text-meta-strong text-text-2">Показатели в днях</p>
+      <ul className="mt-1" aria-label="Показатели">
+        {ALL_METRICS.filter((m) => actor.canSeeMoney || (m !== "amount" && m !== "rate")).map(
+          (m) => (
+            <li key={m}>
+              <label className="flex min-h-control-sm cursor-pointer items-center gap-2 text-body">
+                <input
+                  type="checkbox"
+                  checked={metrics.includes(m)}
+                  disabled={metrics.length === 1 && metrics.includes(m)}
+                  onChange={(e) =>
+                    setMetrics((prev) =>
+                      e.target.checked ? [...prev, m] : prev.filter((x) => x !== m),
+                    )
+                  }
+                  className="size-4 accent-[var(--orange-strong)]"
+                />
+                {METRIC_LABEL[m]}
+              </label>
+            </li>
+          ),
+        )}
+      </ul>
+      <p className="mt-3 text-meta-strong text-text-2">Порядок</p>
+      <div role="radiogroup" aria-label="Порядок показателей" className="mt-1 flex gap-2">
+        {(
+          [
+            ["money", "Сначала деньги"],
+            ["time", "Сначала время"],
+          ] as const
+        ).map(([value, text]) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={order === value}
+            onClick={() => setMetricOrder(value)}
+            className={`inline-flex min-h-control-sm items-center rounded-full px-3 text-body focus-ring ${
+              order === value ? "bg-pill text-pill-text" : "bg-surface-2 text-text"
+            }`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+      <Button
+        variant="quiet"
+        className="mt-3 px-0"
+        onClick={() => {
+          setWidths({});
+          setLabelWidth(320);
+        }}
+      >
+        Сбросить ширину колонок
+      </Button>
+    </>
+  );
+
   /* ---------------- Панель инструментов: одна строка (4.5) ---------------- */
   const toolbar = (
     <div
@@ -576,61 +675,7 @@ function TabelPage() {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72 rounded-inset p-3 shadow-floating">
-          <p className="text-meta-strong text-text-2">Показатели в днях</p>
-          <ul className="mt-1" aria-label="Показатели">
-            {ALL_METRICS.filter((m) => actor.canSeeMoney || (m !== "amount" && m !== "rate")).map(
-              (m) => (
-                <li key={m}>
-                  <label className="flex min-h-control-sm cursor-pointer items-center gap-2 text-body">
-                    <input
-                      type="checkbox"
-                      checked={metrics.includes(m)}
-                      disabled={metrics.length === 1 && metrics.includes(m)}
-                      onChange={(e) =>
-                        setMetrics((prev) =>
-                          e.target.checked ? [...prev, m] : prev.filter((x) => x !== m),
-                        )
-                      }
-                      className="size-4 accent-[var(--orange-strong)]"
-                    />
-                    {METRIC_LABEL[m]}
-                  </label>
-                </li>
-              ),
-            )}
-          </ul>
-          <p className="mt-3 text-meta-strong text-text-2">Порядок</p>
-          <div role="radiogroup" aria-label="Порядок показателей" className="mt-1 flex gap-2">
-            {(
-              [
-                ["money", "Сначала деньги"],
-                ["time", "Сначала время"],
-              ] as const
-            ).map(([value, text]) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={order === value}
-                onClick={() => setMetricOrder(value)}
-                className={`inline-flex min-h-control-sm items-center rounded-full px-3 text-body focus-ring ${
-                  order === value ? "bg-pill text-pill-text" : "bg-surface-2 text-text"
-                }`}
-              >
-                {text}
-              </button>
-            ))}
-          </div>
-          <Button
-            variant="quiet"
-            className="mt-3 px-0"
-            onClick={() => {
-              setWidths({});
-              setLabelWidth(320);
-            }}
-          >
-            Сбросить ширину колонок
-          </Button>
+          {columnsSettings}
         </PopoverContent>
       </Popover>
       {/* Плотность и «Во весь экран» значками: панель остаётся одной строкой на 1440 */}
@@ -655,6 +700,107 @@ function TabelPage() {
       </Button>
       <span className="ms-auto">{exportMenu(false)}</span>
     </div>
+  );
+
+  /*
+   * Телефон, таблица (как мобильные Google Таблицы): одна строка над сеткой. Вид, поиск,
+   * фильтры и колонки в шторке «Вид и фильтры», чтобы сетка получила экран
+   */
+  const filtersActive = activeCount + Number(!!search.trim()) + Number(view === "people");
+  const phoneToolbar = (
+    <div
+      role="toolbar"
+      aria-label="Панель табеля"
+      data-tour="tabel-toolbar"
+      className="flex items-center gap-1.5"
+    >
+      <Button
+        variant="outline"
+        size="icon"
+        className="size-11 shrink-0"
+        aria-label="Списком"
+        title="Списком"
+        onClick={() => {
+          setFullscreen(false);
+          setAsTable(false);
+        }}
+      >
+        <List aria-hidden />
+      </Button>
+      <p className="min-w-0 flex-1 truncate text-body-strong tnum">
+        {view === "people" ? `По людям ${period}` : period}
+      </p>
+      <Button
+        variant="outline"
+        size="icon"
+        className="relative size-11 shrink-0"
+        aria-label={filtersActive ? `Вид и фильтры, выбрано ${filtersActive}` : "Вид и фильтры"}
+        title="Вид и фильтры"
+        onClick={() => setSettingsOpen(true)}
+      >
+        <SlidersHorizontal aria-hidden />
+        {filtersActive ? (
+          <span className="absolute -end-1 -top-1 grid h-5 min-w-5 place-items-center rounded-pill bg-flame px-1 type-small text-on-flame tnum">
+            {filtersActive}
+          </span>
+        ) : null}
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        className="size-11 shrink-0"
+        aria-label={fullscreen ? "Выйти из полноэкранного вида" : "Во весь экран"}
+        title={fullscreen ? "Выйти из полноэкранного вида" : "Во весь экран"}
+        onClick={() => setFullscreen(!fullscreen)}
+      >
+        {fullscreen ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}
+      </Button>
+      {exportMenu(false, true)}
+    </div>
+  );
+  const phoneSettings = (
+    <AdaptiveSheet
+      open={settingsOpen}
+      onOpenChange={setSettingsOpen}
+      id="tabel-settings"
+      title="Вид и фильтры"
+      description={`Показано ${shownRows} ${plural(shownRows, "строка", "строки", "строк")}`}
+    >
+      <div className="flex flex-col gap-4 pb-2">
+        <div role="tablist" aria-label="Вид табеля" className="seg self-start">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "customer"}
+            onClick={() => setView("customer")}
+            className="seg-item focus-ring"
+          >
+            Формат заказчика
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "people"}
+            aria-disabled={!people_enabled}
+            onClick={() => people_enabled && setView("people")}
+            className={cn("seg-item focus-ring", !people_enabled && "opacity-50")}
+          >
+            По людям
+          </button>
+        </div>
+        <SearchBar
+          label="Поиск по адресу и ФИО"
+          placeholder="Адрес, ФИО"
+          value={search}
+          onChange={setSearch}
+        />
+        {filterChips}
+        <div>{columnsSettings}</div>
+        <Button className="h-12 w-full" onClick={() => setSettingsOpen(false)}>
+          Показать
+        </Button>
+      </div>
+    </AdaptiveSheet>
   );
 
   const legend = (
@@ -731,9 +877,10 @@ function TabelPage() {
           cell={peopleCell}
           labelTitle="Сотрудник"
           labelWidth={labelWidth}
+          touch={phone}
           onLabelWidth={setLabelWidth}
           onColumnWidth={(key, w) => setWidths((prev) => ({ ...prev, [key]: w }))}
-          rowHeight={density === "compact" ? 32 : 40}
+          rowHeight={rowHeight}
           onToggle={() => undefined}
           onOpen={openCell(peopleRows, peopleCell, peopleColumns)}
           height={gridHeight}
@@ -751,11 +898,12 @@ function TabelPage() {
         rows={gridRows}
         columns={customerColumns}
         cell={customerCell}
-        labelTitle="Подразделение, бригада, бригадир, объект"
+        labelTitle={phone ? "Объект" : "Подразделение, бригада, бригадир, объект"}
         labelWidth={labelWidth}
+        touch={phone}
         onLabelWidth={setLabelWidth}
         onColumnWidth={(key, w) => setWidths((prev) => ({ ...prev, [key]: w }))}
-        rowHeight={density === "compact" ? 32 : 40}
+        rowHeight={rowHeight}
         onToggle={toggle}
         onOpen={openCell(gridRows, customerCell, customerColumns)}
         focus={focus}
@@ -768,9 +916,11 @@ function TabelPage() {
       className={cn(
         "flex min-w-0 flex-col gap-3",
         fullscreen && "fixed inset-0 z-[60] bg-void p-4",
+        fullscreen && phone && "gap-2 px-3 pt-[max(12px,env(safe-area-inset-top))] pb-0",
       )}
     >
-      {toolbar}
+      {phone ? phoneToolbar : toolbar}
+      {phone ? phoneSettings : null}
       <div ref={gridBox} className="min-w-0">
         {body}
       </div>

@@ -305,6 +305,30 @@ export function selectionStats(values: readonly (number | null)[]): Stats {
   };
 }
 
+/** Строки без вложенных: объект в формате заказчика и человек в виде «По людям» */
+export const LEAF_ROW_KINDS: readonly string[] = ["address", "person"];
+
+/**
+ * Числа выделенного для итога. Строки подразделения, бригады, бригадира и «Итого» уже
+ * содержат сумму своих объектов: если в выделение попали объекты, итоги групп не
+ * складываются, иначе часы столбца считаются дважды и трижды. Выделены только группы:
+ * складываются они (например, две бригады).
+ */
+export function statsValues(cells: readonly { value: number | null; kind: string }[]): {
+  values: (number | null)[];
+  skipped: number;
+} {
+  const leaf = cells.some((c) => LEAF_ROW_KINDS.includes(c.kind));
+  if (!leaf) return { values: cells.map((c) => c.value), skipped: 0 };
+  const values: (number | null)[] = [];
+  let skipped = 0;
+  for (const c of cells) {
+    if (LEAF_ROW_KINDS.includes(c.kind)) values.push(c.value);
+    else if (c.value !== null) skipped += 1;
+  }
+  return { values, skipped };
+}
+
 /** Число для буфера: без разделителя тысяч, запятая в дробной части (так читают Excel и Google в ru) */
 export function tsvNumber(value: number | null): string {
   if (value === null) return "";

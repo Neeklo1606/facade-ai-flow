@@ -200,4 +200,51 @@ test.describe("табель 390", () => {
     );
     expect(overflow).toBeLessThanOrEqual(0);
   });
+
+  test("таблица как мобильные Google Таблицы: одна строка панели, узкий столбец, касания", async ({
+    page,
+  }) => {
+    await open(page, "/gas/tabel");
+    await page.getByRole("button", { name: "Открыть как таблицу" }).click();
+    await expect(grid(page)).toBeVisible();
+
+    // Панель над сеткой одной строкой: вид, поиск и колонки в шторке
+    const toolbar = page.getByRole("toolbar", { name: "Панель табеля" });
+    expect((await toolbar.boundingBox())!.height).toBeLessThanOrEqual(48);
+    // Первый столбец не больше трети экрана: видны и названия, и числа дня
+    const label = grid(page).getByRole("rowheader").first();
+    expect((await label.boundingBox())!.width).toBeLessThanOrEqual(160);
+    // Строки от 44 px для пальца
+    expect((await label.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // Сетка до нижнего меню, а не на полэкрана
+    const box = (await grid(page).boundingBox())!;
+    expect(box.y + box.height).toBeGreaterThan(844 - 64 - 120);
+
+    // Касание выделяет ячейку и показывает итог, второе касание открывает записи
+    const cell = grid(page).locator('td[role="gridcell"]').filter({ hasText: "₽" }).first();
+    await cell.tap();
+    await expect(page.getByTestId("selection-stats")).toContainText("Сумма:");
+    await cell.tap();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // Шторка «Вид и фильтры»: колонки там же, лишний показатель убирается
+    const columns = () => grid(page).locator('th[role="columnheader"][data-col]').count();
+    const all = await columns();
+    await page.getByRole("button", { name: /^Вид и фильтры/ }).click();
+    await page.getByRole("checkbox", { name: "Доходность часа" }).uncheck();
+    await page.getByRole("button", { name: "Показать" }).click();
+    expect(await columns()).toBeLessThan(all);
+
+    // Во весь экран: первый столбец закреплён при прокрутке вбок
+    await page.getByRole("button", { name: "Во весь экран" }).click();
+    const head = grid(page).getByRole("rowheader").first();
+    const before = (await head.boundingBox())!.x;
+    await grid(page).evaluate((el) => (el.scrollLeft = 400));
+    expect(Math.round((await head.boundingBox())!.x)).toBe(Math.round(before));
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
 });
