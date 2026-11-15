@@ -6,6 +6,7 @@
  * `callGasMethod`, что серверная функция экрана: роль, бригада и выборка ответа те же.
  * Повтор доставки отсекается по внешнему id, повтор «Отправить» — ключом отправки записи.
  */
+import { isAutoAccepted } from "@/domain/gas-ops/review-policy";
 import { createMaxInbound } from "@/adapters/gas-ops/max/channel";
 import type { GasStore } from "@/adapters/gas-ops/store";
 import {
@@ -124,7 +125,11 @@ export async function handleInbound(deps: MaxDeps, event: InboundEvent): Promise
       const after = botStep(
         state,
         answer.ok
-          ? { type: "sent", number: answer.entry?.number ?? "" }
+          ? {
+              type: "sent",
+              number: answer.entry?.number ?? "",
+              auto: answer.entry ? isAutoAccepted(answer.entry) : false,
+            }
           : { type: "failed", message: answer.message },
         ctx!,
       );

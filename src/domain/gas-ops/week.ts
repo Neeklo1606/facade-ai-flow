@@ -213,7 +213,10 @@ export function closeReasons(input: CloseInput): CloseReason[] {
     reasons.push({
       key: "final-check",
       kind: "final-check",
-      text: `Подтверждено системой без итоговой проверки: ${unchecked.length}`,
+      // При автопилоте (ADR-070) в списке только выборка: так её и называем
+      text: unchecked.every((e) => e.autoDecision?.mode === "none")
+        ? `Выборочная проверка автопилота: ${unchecked.length}`
+        : `Подтверждено системой без итоговой проверки: ${unchecked.length}`,
       entryIds: unchecked.map((e) => e.id),
       acceptable: false,
     });
@@ -347,13 +350,14 @@ export function freezeWeek(
 }
 
 /**
- * «Неделя готова к закрытию» (финальный промт, 1.5): с пятницы 18:00 по времени заказчика
+ * «Неделя готова к закрытию» (финальный промт, 1.5; с ADR-070 – с пятницы 16:00, как сводка
+ * руководителю в брифе автопилота): с этого часа по времени заказчика
  * руководитель видит одну строку с числом записей и замечаний и готовый черновик файла.
  * Черновик не хранится отдельно: файл недели собирается из записей в момент выгрузки.
  * Закрытая неделя — плашки нет.
  */
 export const WEEK_READY_DAY = 4;
-export const WEEK_READY_TIME = "18:00";
+export const WEEK_READY_TIME = "16:00";
 
 export interface WeekReady {
   entries: number;

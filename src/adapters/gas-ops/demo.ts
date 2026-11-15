@@ -6,7 +6,7 @@
  * отдавать сервер. Пересечение и повторный выезд — признаки записи, не ошибки (ADR-061, 9).
  */
 import { checkEntry, entryFrame } from "@/domain/gas-ops/entry-check";
-import { effectiveMinutes, flagsOf, MINUTES_ERROR_TEXT } from "@/domain/gas-ops/calc";
+import { effectiveMinutes, MINUTES_ERROR_TEXT } from "@/domain/gas-ops/calc";
 import {
   allocateByMinutes,
   canConfirmVersion,
@@ -34,9 +34,17 @@ import {
   accuracyOf,
   finalCheckList,
   modeAvailability,
-  routeEntry,
   type FinalCheck,
 } from "@/domain/gas-ops/review-policy";
+import {
+  AUTOPILOT_TARGET_PERCENT,
+  DEFAULT_AUTOPILOT,
+  autopilotAgreement,
+  autopilotAvailability,
+  decisionLine,
+  fmtPercent,
+} from "@/domain/gas-ops/autopilot";
+import { decisionInData, retroDecision, shareOf } from "@/domain/gas-ops/autopilot-data";
 import { reportEntries } from "@/domain/gas-ops/report";
 import {
   ENTRY_STATUS_LABEL,
@@ -199,56 +207,28 @@ function validate(
 }
 
 /**
- * Доля стоимости объекта для записи (ADR-053, 3): подтверждённая стоимость распределяется
- * по минутам всех неотклонённых записей объекта. Нет подтверждённой стоимости — null.
- */
-function shareOf(snapshot: GasOpsSnapshot, draft: TimeEntry): number | null {
-  const estimate = snapshot.estimates.find(
-    (e) => e.objectId === draft.objectId && e.status === "confirmed",
-  );
-  if (!estimate) return null;
-  const own = [
-    ...snapshot.entries.filter(
-      (e) => e.objectId === draft.objectId && e.status !== "rejected" && e.id !== draft.id,
-    ),
-    draft,
-  ];
-  return (
-    allocateByMinutes(
-      estimate.amountRub,
-      own.map((e) => ({ id: e.id, minutes: e.minutes })),
-    ).get(draft.id) ?? null
-  );
-}
-
-/**
- * Отправленная запись в режиме проверки (ADR-053, 5): «auto» подтверждает её сразу от имени
- * системы, и тогда её найдёт итоговая проверка перед отчётом.
+ * Отправленная запись в режиме проверки (ADR-053, 5; ADR-070): решение автопилота считается
+ * в любом режиме и пишется в запись. «auto» подтверждает её сразу от имени системы; в режиме
+ * «Проверять всё» решение только тень для счётчика совпадения. Сумму автопилот не придумывает:
+ * она берётся из подтверждённой человеком сметы, без неё запись идёт в очередь.
  */
 function routed(snapshot: GasOpsSnapshot, draft: TimeEntry): TimeEntry {
   if (draft.status !== "pending") return draft;
-  const objectDays = new Set(
-    snapshot.entries.filter((e) => e.objectId === draft.objectId).map((e) => e.day),
-  ).size;
-  // Признаки считаются с долей стоимости объекта: без неё любая новая запись была бы «без суммы»
-  const candidate = { ...draft, amountRub: draft.amountRub ?? shareOf(snapshot, draft) };
-  const flags = flagsOf({
-    entry: candidate,
-    all: [...snapshot.entries.filter((e) => e.id !== draft.id), candidate],
-    hasEstimate: snapshot.estimates.some(
-      (e) => e.objectId === draft.objectId && e.status === "confirmed",
-    ),
-    objectDays,
-    // Состав больше бригады — тоже замечание: без размера состава признак не ставился вовсе
-    crewSize: crewOn(snapshot.crew, draft.brigadeId, draft.day).length || null,
+  const { decision, candidate } = decisionInData({
+    data: snapshot,
+    entry: draft,
+    mode: snapshot.reviewSettings.mode,
+    samplePercent: snapshot.reviewSettings.samplePercent,
+    at: nowOf(snapshot),
   });
-  if (routeEntry(snapshot.reviewSettings.mode, flags) === "queue") return draft;
+  if (decision.route === "queue") return { ...draft, autoDecision: decision };
   return {
     ...draft,
     status: "confirmed",
     amountRub: candidate.amountRub,
     reviewedBy: AUTO_ACTOR,
     reviewedAt: nowOf(snapshot),
+    autoDecision: decision,
   };
 }
 
@@ -504,7 +484,7 @@ export function createGasOpsDemo(
               entityId: draft.id,
               detail: `${draft.number}: ${draft.minutes} мин, ${
                 s.objects.find((o) => o.id === draft.objectId)?.label ?? draft.objectId
-              }`,
+              }${placed.autoDecision ? `. ${decisionLine(placed.autoDecision)}` : ""}`,
             }),
             ...s.audit,
           ],
@@ -643,8 +623,8 @@ export function createGasOpsDemo(
               action: auto ? "entry.auto-confirm" : "entry.submit",
               entityId: id,
               detail: auto
-                ? `${entry.number} подтверждена автоматически: режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}»`
-                : `${entry.number} отправлена на проверку`,
+                ? `${entry.number}: ${placed.autoDecision ? decisionLine(placed.autoDecision) : "принята автоматически"}, режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}»`
+                : `${entry.number} отправлена на проверку${placed.autoDecision ? `. ${decisionLine(placed.autoDecision)}` : ""}`,
             }),
             ...s.audit,
           ],
@@ -1380,8 +1360,33 @@ export function createGasOpsDemo(
       const snapshot = await store.read();
       mustManager(snapshot, "Режим проверки меняет менеджер или администратор.");
       const threshold = Math.min(100, Math.max(50, Math.round(input.thresholdPercent)));
-      const available = modeAvailability(input.mode, accuracyOf(snapshot.reviews), threshold);
-      if (!available.ok) throw new GasOpsError("mode-unavailable", available.reason);
+      // Автопилот (ADR-070): решение по числу совпадения. Ниже порога включить можно только
+      // явным согласием менеджера, которое видно в журнале вместе с числом
+      const agreement = autopilotAgreement({
+        entries: snapshot.entries.map((e) => ({
+          id: e.id,
+          autoDecision: retroDecision(snapshot, e),
+          retro: !e.autoDecision,
+        })),
+        reviews: snapshot.reviews,
+        now: nowOf(snapshot),
+      });
+      const legacy = modeAvailability(input.mode, accuracyOf(snapshot.reviews), threshold);
+      const pilot = autopilotAvailability(agreement);
+      const switching = input.mode === "none" && snapshot.reviewSettings.mode !== "none";
+      if (input.mode === "none" && !legacy.ok && !pilot.ok && !input.acceptBelowTarget)
+        throw new GasOpsError("mode-unavailable", pilot.reason);
+      const samplePercent = Math.min(
+        100,
+        Math.max(
+          1,
+          Math.round(
+            input.samplePercent ??
+              snapshot.reviewSettings.samplePercent ??
+              DEFAULT_AUTOPILOT.samplePercent,
+          ),
+        ),
+      );
       const next = await store.update(
         (s) => ({
           ...s,
@@ -1392,13 +1397,14 @@ export function createGasOpsDemo(
             changedAt: nowOf(s),
             secondRuleApprover:
               input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover ?? false,
+            samplePercent,
           },
           audit: [
             audit(s, {
               actor: s.actorId,
               action: "review.mode",
               entityId: "review-settings",
-              detail: `Режим «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%${(input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover) ? ", правило подтверждает второй человек" : ""}`,
+              detail: `Режим «${REVIEW_MODE_LABEL[s.reviewSettings.mode]}» → «${REVIEW_MODE_LABEL[input.mode]}», порог ${threshold}%${input.mode === "none" ? `, выборочная проверка ${samplePercent}%, совпадение ${agreement.percent === null ? `не набрано, решений ${agreement.total}` : fmtPercent(agreement.percent)} при пороге ${fmtPercent(AUTOPILOT_TARGET_PERCENT)}${switching && !pilot.ok ? ", включено ниже порога по решению менеджера" : ""}` : ""}${(input.secondRuleApprover ?? s.reviewSettings.secondRuleApprover) ? ", правило подтверждает второй человек" : ""}`,
             }),
             ...s.audit,
           ],

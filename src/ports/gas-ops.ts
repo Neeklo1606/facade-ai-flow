@@ -296,6 +296,10 @@ export interface GasOpsPort {
     thresholdPercent: number;
     /** Нет — прежнее значение */
     secondRuleApprover?: boolean | undefined;
+    /** Доля выборочной проверки при автопилоте, проценты; нет — прежнее (ADR-070) */
+    samplePercent?: number | undefined;
+    /** Менеджер видел, что совпадение ниже порога, и включает автопилот сам */
+    acceptBelowTarget?: boolean | undefined;
   }): Promise<ReviewSettings>;
   /** Итоговая проверка: подтверждение записей без ручного решения одним действием */
   finalCheck(): Promise<FinalCheck>;

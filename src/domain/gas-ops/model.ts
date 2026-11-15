@@ -6,6 +6,7 @@
  * тоже в рублях. Чтобы это не путалось с `fmtMoney(kopecks)`, у направления свой
  * форматтер `fmtRub` и своё имя поля — `amountRub`.
  */
+import type { AutoDecision } from "./autopilot";
 
 /** Этапы проверки записи по ТЗ v1.0, п. 5.8 */
 export type EntryStatus = "draft" | "pending" | "confirmed" | "rejected" | "clarify";
@@ -120,6 +121,11 @@ export interface TimeEntry {
   channel?: EntryChannel;
   /** Комментарий бригадира к записи; не путать с `comment` проверяющего */
   note?: string | null;
+  /**
+   * Решение автопилота при отправке (ADR-070): правило, версия, причины, выборка. В режиме
+   * «Проверять всё» – тень для счётчика совпадения. Нет – запись не отправлялась при автопилоте
+   */
+  autoDecision?: AutoDecision | null;
 }
 
 /** Время одного человека при «у сотрудников разное время» */

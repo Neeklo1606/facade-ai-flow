@@ -2,6 +2,20 @@
  * Слой данных смет, стоимости работ, графика и режимов проверки (ADR-053). Экраны берут
  * отсюда готовые строки и действия; правила — в домене, состояние — за портом.
  */
+import {
+  autopilotAgreement,
+  autopilotAvailability,
+  type Agreement,
+  type AutopilotAvailability,
+} from "@/domain/gas-ops/autopilot";
+import { retroDecision } from "@/domain/gas-ops/autopilot-data";
+
+export {
+  AGREEMENT_MIN_SAMPLE,
+  AGREEMENT_WINDOW_DAYS,
+  AUTOPILOT_TARGET_PERCENT,
+  fmtPercent,
+} from "@/domain/gas-ops/autopilot";
 import { useCallback, useMemo } from "react";
 import type { WorkObject } from "@/domain/gas-ops/model";
 import {
@@ -29,6 +43,7 @@ import { brigadeStatus, type BrigadeWeekStatus, type ScheduleRow } from "@/domai
 import {
   accuracyOf,
   flaggedModeSuggestion,
+  isAutoAccepted,
   type ModeSuggestion,
   finalCheckList,
   modeAvailability,
@@ -148,6 +163,12 @@ export interface ReviewPolicyData {
   lastCheck: { at: string; by: string; count: number } | null;
   /** Предложение перейти на «только с замечаниями»; null — предлагать рано или нечего */
   suggestion: ModeSuggestion | null;
+  /** Совпадение авто-решений с решениями менеджера за 14 дней (ADR-070) */
+  agreement: Agreement;
+  /** Можно ли включить автопилот без оговорки; ниже порога – только с согласием менеджера */
+  autopilot: AutopilotAvailability;
+  /** Авто-принятые записи недели и сколько из них в выборке */
+  autoWeek: { accepted: number; sampled: number };
 }
 
 export function useGasReviewPolicy(): ReviewPolicyData {
@@ -155,6 +176,17 @@ export function useGasReviewPolicy(): ReviewPolicyData {
   return useMemo(() => {
     const accuracy = accuracyOf(s.reviews);
     const threshold = s.reviewSettings.thresholdPercent;
+    const agreement = autopilotAgreement({
+      entries: s.entries.map((e) => ({
+        id: e.id,
+        autoDecision: retroDecision(s, e),
+        retro: !e.autoDecision,
+      })),
+      reviews: s.reviews,
+      now: `${s.today}T23:59`,
+    });
+    const days = new Set(s.week.days);
+    const weekAuto = s.entries.filter((e) => days.has(e.day) && isAutoAccepted(e));
     const last = s.finalChecks[0];
     return {
       settings: s.reviewSettings,
@@ -163,6 +195,14 @@ export function useGasReviewPolicy(): ReviewPolicyData {
         all: modeAvailability("all", accuracy, threshold),
         flagged: modeAvailability("flagged", accuracy, threshold),
         none: modeAvailability("none", accuracy, threshold),
+      },
+      agreement,
+      autopilot: modeAvailability("none", accuracy, threshold).ok
+        ? { ok: true }
+        : autopilotAvailability(agreement),
+      autoWeek: {
+        accepted: weekAuto.length,
+        sampled: weekAuto.filter((e) => e.autoDecision?.sampled !== false).length,
       },
       finalList: finalCheckList(s.entries, s.finalChecks, s.week.days),
       reports: s.reportIssues,
@@ -272,8 +312,13 @@ export function useGasEstimateActions() {
       [run],
     ),
     setReviewSettings: useCallback(
-      (input: { mode: ReviewMode; thresholdPercent: number; secondRuleApprover?: boolean }) =>
-        run((port) => port.setReviewSettings(input)),
+      (input: {
+        mode: ReviewMode;
+        thresholdPercent: number;
+        secondRuleApprover?: boolean;
+        samplePercent?: number;
+        acceptBelowTarget?: boolean;
+      }) => run((port) => port.setReviewSettings(input)),
       [run],
     ),
     finalCheck: useCallback(() => run((port) => port.finalCheck()), [run]),

@@ -143,6 +143,19 @@ const docHistoryItem = z
   .strict();
 
 /** Признаки записи для проверяющего: те же имена, что `EntryFlag` в domain */
+/** Решение автопилота в записи (ADR-070); причины – ключи правил, проверяются доменом */
+const autoDecision = z
+  .object({
+    route: z.enum(["auto", "queue"]),
+    mode: z.enum(["all", "flagged", "none"]),
+    rule: z.string(),
+    version: z.string(),
+    reasons: z.array(z.object({ key: z.string(), label: z.string() }).strict()),
+    sampled: z.boolean(),
+    at: z.string(),
+  })
+  .strict();
+
 export const gasEntryFlag = z.enum([
   "no-amount",
   "overlap",
@@ -291,6 +304,10 @@ export const gasTimeEntries = table(
     clientKey: col.text({ nullable: true }),
     channel: col.enum(gasEntryChannel, { nullable: true }),
     note: col.text({ nullable: true }),
+    autoDecision: col.jsonb(autoDecision, {
+      nullable: true,
+      comment: "решение автопилота при отправке: правило, версия, причины, выборка (ADR-070)",
+    }),
     flags: col.jsonb(z.array(gasEntryFlag), {
       nullable: true,
       comment: "признаки записи на момент сохранения: считает сервер, в снимок не читаются",
@@ -1006,6 +1023,11 @@ export const GAS_T7_COLUMNS: Record<string, readonly string[]> = {
 /** Колонки волны F (ADR-062): своя миграция поверх T7 */
 export const GAS_WAVE_F_COLUMNS: Record<string, readonly string[]> = {
   gas_brigades: ["phone"],
+};
+
+/** Колонки автопилота (ADR-070): своя миграция поверх волны F */
+export const GAS_AUTOPILOT_COLUMNS: Record<string, readonly string[]> = {
+  gas_time_entries: ["autoDecision"],
 };
 
 export type GasRow<T extends z.ZodTypeAny> = z.infer<T>;

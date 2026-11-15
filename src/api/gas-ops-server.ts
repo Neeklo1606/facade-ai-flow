@@ -119,11 +119,32 @@ export function actingAs(store: GasStore, userId: string): GasStore {
 /** Поля денег в ответах учёта времени: у ролей без денег они пустые */
 const MONEY_KEYS = new Set(["amountRub", "revenueInFile", "accruedRub", "totalRub"]);
 
+/**
+ * Причины автопилота о деньгах (ADR-070): доходность, сумма, смета. Роль без денег видит,
+ * что запись ждёт менеджера, но не видит, что дело в сумме
+ */
+const MONEY_REASONS = new Set([
+  "high-rate",
+  "no-cost",
+  "no-amount",
+  "manual-amount",
+  "needs-agreement",
+  "no-confirmed-cost",
+]);
+
 function scrub<T>(value: T): T {
   if (Array.isArray(value)) return value.map(scrub) as T;
   if (!value || typeof value !== "object") return value;
   const out: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
+    if (key === "autoDecision" && item && typeof item === "object") {
+      const decision = item as { reasons?: { key: string }[] };
+      out[key] = {
+        ...decision,
+        reasons: (decision.reasons ?? []).filter((r) => !MONEY_REASONS.has(r.key)),
+      };
+      continue;
+    }
     out[key] = MONEY_KEYS.has(key) && item !== undefined ? null : scrub(item);
   }
   return out as T;

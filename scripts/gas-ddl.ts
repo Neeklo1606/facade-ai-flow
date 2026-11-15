@@ -8,6 +8,7 @@ import { enums, sqlName, type ColumnMeta, type TableDef } from "../src/contracts
 import {
   GAS_T7_COLUMNS,
   GAS_WAVE_F_COLUMNS,
+  GAS_AUTOPILOT_COLUMNS,
   gasTabelTables,
   gasTables,
 } from "../src/contracts/gas";
@@ -48,7 +49,8 @@ const v1Columns = (def: TableDef) =>
   Object.entries(def.columns).filter(
     ([key]) =>
       !GAS_T7_COLUMNS[def.meta.name]?.includes(key) &&
-      !GAS_WAVE_F_COLUMNS[def.meta.name]?.includes(key),
+      !GAS_WAVE_F_COLUMNS[def.meta.name]?.includes(key) &&
+      !GAS_AUTOPILOT_COLUMNS[def.meta.name]?.includes(key),
   );
 
 function commentSql(table: string, key: string, column: ColumnMeta): string[] {
@@ -195,13 +197,28 @@ export function gasT7Migration(): string {
 
 /** Миграция волны F (ADR-062): телефон бригады для импорта справочников (F3) */
 export function gasWaveFMigration(): string {
+  return addColumnsMigration(
+    "-- Волна F (ADR-062): телефон бригады из импорта справочников.",
+    GAS_WAVE_F_COLUMNS,
+  );
+}
+
+/** Автопилот (ADR-070): решение автопилота в записи. Только добавление колонки, данные не трогаются */
+export function gasAutopilotMigration(): string {
+  return addColumnsMigration(
+    "-- Автопилот проверки (ADR-070): решение автопилота в записи времени.",
+    GAS_AUTOPILOT_COLUMNS,
+  );
+}
+
+function addColumnsMigration(title: string, columns: Record<string, readonly string[]>): string {
   const out: string[] = [
     "-- migrate:up",
-    "-- Волна F (ADR-062): телефон бригады из импорта справочников.",
+    title,
     "-- Сгенерировано scripts/gas-schema.ts из src/contracts/gas.ts. Не редактировать вручную.",
     "",
   ];
-  for (const [table, keys] of Object.entries(GAS_WAVE_F_COLUMNS)) {
+  for (const [table, keys] of Object.entries(columns)) {
     const def = [...gasTables, ...gasTabelTables].find((t) => t.meta.name === table)!;
     for (const key of keys) {
       const column = def.columns[key]!;
@@ -212,7 +229,7 @@ export function gasWaveFMigration(): string {
   out.push(
     "",
     "-- migrate:down",
-    ...Object.entries(GAS_WAVE_F_COLUMNS).flatMap(([table, keys]) =>
+    ...Object.entries(columns).flatMap(([table, keys]) =>
       keys.map((key) => `alter table ${table} drop column if exists ${q(sqlName(key))};`),
     ),
     "",

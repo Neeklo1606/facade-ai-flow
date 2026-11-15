@@ -866,6 +866,52 @@ components:
           anyOf:
             - type: "string"
             - type: "null"
+        autoDecision:
+          anyOf:
+            - type: "object"
+              properties:
+                route:
+                  type: "string"
+                  enum:
+                    - "auto"
+                    - "queue"
+                mode:
+                  type: "string"
+                  enum:
+                    - "all"
+                    - "flagged"
+                    - "none"
+                rule:
+                  type: "string"
+                version:
+                  type: "string"
+                reasons:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      key:
+                        type: "string"
+                      label:
+                        type: "string"
+                    required:
+                      - "key"
+                      - "label"
+                    additionalProperties: false
+                sampled:
+                  type: "boolean"
+                at:
+                  type: "string"
+              required:
+                - "route"
+                - "mode"
+                - "rule"
+                - "version"
+                - "reasons"
+                - "sampled"
+                - "at"
+              additionalProperties: false
+            - type: "null"
         flags:
           type: "array"
           items:
@@ -912,6 +958,7 @@ components:
         - "clientKey"
         - "channel"
         - "note"
+        - "autoDecision"
         - "flags"
         - "repeatVisit"
         - "version"
@@ -1251,6 +1298,52 @@ components:
               anyOf:
                 - type: "string"
                 - type: "null"
+            autoDecision:
+              anyOf:
+                - type: "object"
+                  properties:
+                    route:
+                      type: "string"
+                      enum:
+                        - "auto"
+                        - "queue"
+                    mode:
+                      type: "string"
+                      enum:
+                        - "all"
+                        - "flagged"
+                        - "none"
+                    rule:
+                      type: "string"
+                    version:
+                      type: "string"
+                    reasons:
+                      type: "array"
+                      items:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "string"
+                          label:
+                            type: "string"
+                        required:
+                          - "key"
+                          - "label"
+                        additionalProperties: false
+                    sampled:
+                      type: "boolean"
+                    at:
+                      type: "string"
+                  required:
+                    - "route"
+                    - "mode"
+                    - "rule"
+                    - "version"
+                    - "reasons"
+                    - "sampled"
+                    - "at"
+                  additionalProperties: false
+                - type: "null"
             flags:
               type: "array"
               items:
@@ -1297,6 +1390,7 @@ components:
             - "clientKey"
             - "channel"
             - "note"
+            - "autoDecision"
             - "flags"
             - "repeatVisit"
             - "version"

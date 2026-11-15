@@ -7,7 +7,12 @@ import { rowsToSnapshot, snapshotToRows } from "@/adapters/gas-ops/db-codec";
 import { getServerSnapshot, getSnapshot, resetState } from "@/adapters/gas-ops/state";
 import { gasTables } from "@/contracts/gas";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
-import { gasMigration, gasT7Migration, gasWaveFMigration } from "../../scripts/gas-ddl";
+import {
+  gasAutopilotMigration,
+  gasMigration,
+  gasT7Migration,
+  gasWaveFMigration,
+} from "../../scripts/gas-ddl";
 
 /**
  * Контракты модулей сервиса v1 (ADR-060): строки снимка проходят схемы таблиц, снимок
@@ -133,6 +138,12 @@ describe("контракты модулей сервиса v1", () => {
     // Волна F (ADR-062): своя миграция, T7 не переписывается
     expect(readFileSync("db/migrations/20261104100000_gas_wave_f.sql", "utf8")).toBe(
       gasWaveFMigration(),
+    );
+    // Автопилот (ADR-070): только новая колонка, прежние файлы не переписываются
+    const autopilot = readFileSync("db/migrations/20261115100000_gas_autopilot.sql", "utf8");
+    expect(autopilot).toBe(gasAutopilotMigration());
+    expect(autopilot).not.toMatch(
+      /drop table|drop column(?! if exists "auto_decision")|delete from|truncate/i,
     );
   });
 

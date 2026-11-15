@@ -7,7 +7,7 @@
 import { coverage, type Expectation } from "./week";
 import type { Brigade, TimeEntry, User, WorkObject } from "./model";
 
-export type ReminderKind = "missing" | "clarify" | "summary";
+export type ReminderKind = "missing" | "clarify" | "summary" | "week";
 
 export interface ReminderLink {
   label: string;
@@ -150,4 +150,47 @@ export function summaryTimeOf(time: string): string | null {
 /** Ещё не отправленные: повторная проверка в тот же день не шлёт то же сообщение */
 export function unsent(list: readonly Reminder[], sentKeys: ReadonlySet<string>): Reminder[] {
   return list.filter((r) => !sentKeys.has(r.key));
+}
+
+/* ---------------------------------------------------------------- Пятница: неделя руководителю */
+
+/** Сводка недели руководителю (ADR-070): пятница, 16:00 по времени заказчика */
+export const WEEK_DIGEST_DAY = 4;
+export const WEEK_DIGEST_TIME = "16:00";
+
+export interface WeekDigestInput {
+  /** Момент проверки, местное время: «2026-10-02T16:05» */
+  at: string;
+  weekFrom: string;
+  closed: boolean;
+  /** Что ещё мешает закрыть: `blockingReasons(closeReasons(...), accepted)` */
+  blocking: readonly { text: string }[];
+  /** Подтверждённых записей недели */
+  confirmed: number;
+  users: readonly Pick<User, "id" | "role">[];
+}
+
+/**
+ * «Неделя готова к закрытию» или «Что мешает» руководителю. Закрывает неделю всегда человек:
+ * сообщение только ведёт на экран «Неделя». Закрытая неделя – сообщения нет
+ */
+export function weekDigestAt(input: WeekDigestInput): Reminder[] {
+  if (input.closed) return [];
+  const friday = new Date(`${input.weekFrom}T00:00:00Z`);
+  friday.setUTCDate(friday.getUTCDate() + WEEK_DIGEST_DAY);
+  const day = friday.toISOString().slice(0, 10);
+  if (input.at.slice(0, 16) < `${day}T${WEEK_DIGEST_TIME}`) return [];
+  const text = input.blocking.length
+    ? `Неделя с ${shortDay(input.weekFrom)}: закрыть пока нельзя. Что мешает: ${names(input.blocking.map((b) => b.text))}.`
+    : `Неделя с ${shortDay(input.weekFrom)} готова к закрытию: подтверждено записей ${input.confirmed}. Закрывает руководитель.`;
+  return input.users
+    .filter((u) => u.role === "director")
+    .map((u) => ({
+      key: `${input.weekFrom}|week|${u.id}`,
+      day,
+      kind: "week" as const,
+      userId: u.id,
+      text,
+      links: [{ label: input.blocking.length ? "Что мешает" : "Закрыть неделю", to: "/gas/week" }],
+    }));
 }

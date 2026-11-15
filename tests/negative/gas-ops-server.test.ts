@@ -195,6 +195,32 @@ describe("серверные функции учёта времени: фина�
     const manager = store.now().users.find((u) => u.id === "u-manager") as User;
     expect(redactFor(manager, "updateEntry", priced).amountRub).toBe(priced.amountRub);
   });
+
+  test("решение автопилота у бригадира без денежных причин, у менеджера целиком (ADR-070)", () => {
+    const store = memory();
+    const foreman = store.now().users.find((u) => u.id === FOREMAN) as User;
+    const manager = store.now().users.find((u) => u.id === "u-manager") as User;
+    const entry = {
+      ...store.now().entries[0]!,
+      autoDecision: {
+        route: "queue" as const,
+        mode: "none" as const,
+        rule: "clean-entry",
+        version: "1",
+        reasons: [
+          { key: "high-rate", label: "Аномальная доходность" },
+          { key: "manual-amount", label: "Ручная сумма" },
+          { key: "overlap", label: "Пересечение времени" },
+        ],
+        sampled: false,
+        at: "2026-10-03T10:00",
+      },
+    } as TimeEntry;
+    const seen = redactFor(foreman, "updateEntry", entry);
+    expect(seen.autoDecision?.reasons.map((r) => r.key)).toEqual(["overlap"]);
+    expect(JSON.stringify(seen)).not.toMatch(/доходност|сумм/i);
+    expect(redactFor(manager, "updateEntry", entry).autoDecision?.reasons).toHaveLength(3);
+  });
 });
 
 describe("серверные функции учёта времени: ответ по сети и клиент порта", () => {

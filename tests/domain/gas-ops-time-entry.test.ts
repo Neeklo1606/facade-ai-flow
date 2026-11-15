@@ -255,6 +255,12 @@ describe("машина диалога бота", () => {
     ]);
     const done = botStep(sent.state, { type: "sent", number: "ГЗ-00104" }, ctx);
     expect(done.state.stage).toEqual({ kind: "done", number: "ГЗ-00104", edited: false });
+    expect(botReply(done.state, ctx).text).toContain("ждёт проверки");
+    // Автопилот принял запись (ADR-070): бот не говорит «ждёт проверки»
+    const auto = botStep(sent.state, { type: "sent", number: "ГЗ-00104", auto: true }, ctx);
+    expect(botReply(auto.state, ctx).text).toBe(
+      "Отправлено. Запись ГЗ-00104 принята автоматически: замечаний нет.",
+    );
   });
 
   test("быстрая кнопка 08:00–17:00 заменяет начало и окончание", () => {

@@ -18,6 +18,7 @@ import {
   recentEntries,
   shortDay,
   summaryOf,
+  isAutoAccepted,
   useGasActions,
   useGasDayObjects,
   useGasEntries,
@@ -196,7 +197,7 @@ export function BotChat({
     const entry = result.value;
     recordShow({ gasEntryId: entry.id, gasEntryNumber: entry.number });
     onSubmitted(entry);
-    dispatch({ type: "sent", number: entry.number });
+    dispatch({ type: "sent", number: entry.number, auto: isAutoAccepted(entry) });
   };
 
   /*

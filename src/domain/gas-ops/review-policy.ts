@@ -7,17 +7,21 @@ import type { EntryFlag, Review, TimeEntry } from "./model";
 
 export type ReviewMode = "all" | "flagged" | "none";
 
+/**
+ * «none» – исторический идентификатор режима: в базе он уже хранится. С ADR-070 это
+ * «Автопилот»: запись принимается сама только по правилу без замечаний, а не любая
+ */
 export const REVIEW_MODE_LABEL: Record<ReviewMode, string> = {
-  all: "Проверять все",
-  flagged: "Проверять только с замечаниями",
-  none: "Без проверки, итоговая проверка перед отчётом",
+  all: "Проверять всё",
+  flagged: "Только с замечаниями",
+  none: "Автопилот",
 };
 
 export const REVIEW_MODE_HINT: Record<ReviewMode, string> = {
   all: "Каждая запись бригадира ждёт решения менеджера.",
   flagged:
-    "Записи без признаков подтверждаются сами и попадают в итоговую проверку. С признаками ждут менеджера.",
-  none: "Записи подтверждаются сами. Перед выгрузкой и сдачей отчёта человек проверяет их одним списком.",
+    "Записи без замечаний и с подтверждённой сметой принимаются сами, перед закрытием недели менеджер проверяет их все. С замечаниями ждут менеджера.",
+  none: "Записи без замечаний и с подтверждённой сметой принимаются сами. Перед закрытием недели менеджер смотрит выборку. Спорные ждут менеджера с причиной.",
 };
 
 export interface ReviewSettings {
@@ -31,6 +35,8 @@ export interface ReviewSettings {
    * По умолчанию выключено: менеджер подтверждает своё правило, история это называет
    */
   secondRuleApprover?: boolean;
+  /** Доля авто-принятых записей в выборочной проверке при автопилоте, проценты (ADR-070) */
+  samplePercent?: number;
 }
 
 export const DEFAULT_REVIEW_SETTINGS: ReviewSettings = {
@@ -153,11 +159,14 @@ export function remarkFlags(flags: readonly EntryFlag[]): EntryFlag[] {
   return flags.filter((f) => !NOTE_FLAGS.has(f));
 }
 
-/** Куда идёт отправленная запись в этом режиме */
+/**
+ * Куда идёт отправленная запись в этом режиме, только по признакам. Полное решение с графиком,
+ * сметой и длительностью – `decideEntry` (ADR-070); с ADR-070 автопилот («none») не принимает
+ * запись с замечаниями, как и «только с замечаниями»
+ */
 export function routeEntry(mode: ReviewMode, flags: EntryFlag[]): "queue" | "auto" {
   if (mode === "all") return "queue";
-  if (mode === "flagged") return remarkFlags(flags).length === 0 ? "auto" : "queue";
-  return "auto";
+  return remarkFlags(flags).length === 0 ? "auto" : "queue";
 }
 
 export interface FinalCheck {
@@ -168,7 +177,11 @@ export interface FinalCheck {
   entryIds: string[];
 }
 
-/** Записи недели без ручного подтверждения, которые ещё не прошли итоговую проверку */
+/**
+ * Записи недели без ручного подтверждения, которые ещё не прошли итоговую проверку.
+ * При автопилоте (ADR-070) – только выборка: решение автопилота помечает запись `sampled`.
+ * Запись без решения автопилота (принята до ADR-070) проверяется вся, как раньше
+ */
 export function finalCheckList(
   entries: TimeEntry[],
   checks: FinalCheck[],
@@ -181,6 +194,7 @@ export function finalCheckList(
       week.has(e.day) &&
       e.status === "confirmed" &&
       e.reviewedBy === AUTO_ACTOR &&
+      e.autoDecision?.sampled !== false &&
       !checked.has(e.id),
   );
 }

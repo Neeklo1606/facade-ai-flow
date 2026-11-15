@@ -20,7 +20,7 @@ async function flaggedMode(page: Page) {
   await open(page, "/gas/admin");
   await gasRole(page, "Менеджер");
   await open(page, "/gas/admin");
-  const flagged = page.getByRole("radio", { name: /^Проверять только с замечаниями/ });
+  const flagged = page.getByRole("radio", { name: /^Только с замечаниями/ });
   await flagged.click();
   await expect(flagged).toBeChecked();
 }

@@ -23,8 +23,19 @@ import {
   useGasReviewPolicy,
   type ReviewMode,
 } from "@/api/gas-estimates";
-import { useGasActor } from "@/api/gas-ops";
-import { REMINDER_TIME_KEY, summaryTimeOf, useSendReminders } from "@/api/gas-assistant";
+import { useGasActor, useGasWeekFrom } from "@/api/gas-ops";
+import {
+  AGREEMENT_MIN_SAMPLE,
+  AGREEMENT_WINDOW_DAYS,
+  AUTOPILOT_TARGET_PERCENT,
+  fmtPercent,
+} from "@/api/gas-estimates";
+import {
+  REMINDER_TIME_KEY,
+  summaryTimeOf,
+  useSendReminders,
+  type SentReminder,
+} from "@/api/gas-assistant";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -143,6 +154,7 @@ function AdminPage() {
     }
   }, [reminder]);
   const sendReminders = useSendReminders();
+  const weekFrom = useGasWeekFrom();
 
   return (
     <div className="flex flex-col gap-section">
@@ -267,7 +279,7 @@ function AdminPage() {
                 variant="secondary"
                 onClick={async () => {
                   // Демо: момент проверки — время сводки сегодняшнего дня, уходит всё, что положено
-                  const count = await sendReminders(summaryTimeOf(reminder) ?? reminder);
+                  const count = (await sendReminders(summaryTimeOf(reminder) ?? reminder)).length;
                   if (count)
                     toast.success(`Отправлено напоминаний: ${count}`, {
                       description: "Демо: в колокольчике и в ленте бота, в MAX не отправлено",
@@ -279,6 +291,7 @@ function AdminPage() {
               </Button>
             </span>
           </li>
+          <DemoClockRow reminder={reminder} send={sendReminders} friday={fridayOf(weekFrom)} />
         </ul>
       </Group>
 
@@ -311,39 +324,115 @@ function AdminPage() {
   );
 }
 
-const THRESHOLDS = [90, 95, 98] as const;
+const SENT_TO: Record<SentReminder["kind"], string> = {
+  missing: "Бригадиру",
+  clarify: "Бригадиру",
+  summary: "Менеджеру",
+  week: "Руководителю",
+};
+
+/** Пятница недели: день сводки руководителю (ADR-070) */
+function fridayOf(weekFrom: string): string {
+  const day = new Date(`${weekFrom}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + 4);
+  return day.toISOString().slice(0, 10);
+}
 
 /**
- * Режимы проверки (ADR-053, 5): три режима настройкой, а не одна кнопка. Режим без проверки
- * недоступен, пока точность ниже порога: причина и числа видны рядом.
+ * Демо-время (ADR-070): сдвинуть часы на момент расписания и отправить, что положено. В рабочем
+ * контуре то же делает сервер по часам заказчика; в демо сообщения видны в колокольчике и ленте бота
+ */
+function DemoClockRow({
+  reminder,
+  send,
+  friday,
+}: {
+  reminder: string;
+  send: (clock?: string, day?: string) => Promise<SentReminder[]>;
+  friday: string;
+}) {
+  const moments = [
+    { label: reminder, clock: reminder, day: undefined, who: "бригадирам без записи по графику" },
+    {
+      label: summaryTimeOf(reminder) ?? "19:00",
+      clock: summaryTimeOf(reminder) ?? "19:00",
+      day: undefined,
+      who: "менеджеру: сводка дня",
+    },
+    { label: "Пт 16:00", clock: "16:00", day: friday, who: "руководителю: неделя" },
+  ];
+  return (
+    <li className="flex flex-col gap-2 px-row py-row" data-testid="demo-clock">
+      <span className="min-w-0">
+        <span className="block text-body">Демо-время</span>
+        <span className="block text-meta text-text-3">
+          Сдвиньте часы демо на момент расписания: уйдёт то, что положено на это время. Имитация, в
+          MAX ничего не отправляется
+        </span>
+      </span>
+      <span className="flex flex-wrap gap-2">
+        {moments.map((m) => (
+          <Button
+            key={m.label}
+            variant="secondary"
+            aria-label={`Сдвинуть время на ${m.label}: ${m.who}`}
+            onClick={async () => {
+              const sent = await send(m.clock, m.day);
+              if (sent.length)
+                toast.success(`${m.label}: отправлено ${sent.length}`, {
+                  description: `${sent.map((x) => `${SENT_TO[x.kind]}: ${x.text}`).join(" ")} Демо: колокольчик и лента бота.`,
+                });
+              else toast(`${m.label}: отправлять некому или уже отправлено`);
+            }}
+          >
+            {m.label}
+          </Button>
+        ))}
+      </span>
+    </li>
+  );
+}
+
+/** Доли выборочной проверки при автопилоте (ADR-070) */
+const SAMPLES = [5, 10, 20] as const;
+
+/**
+ * Режимы проверки (ADR-053, 5; ADR-070): «Проверять всё» по умолчанию, «Только с замечаниями»,
+ * «Автопилот». Решение об автопилоте принимается по числу: совпадение авто-решений с решениями
+ * менеджера за 14 дней. Ниже порога включить можно только вторым нажатием, и журнал пишет число.
  */
 function ReviewModeGroup() {
   const policy = useGasReviewPolicy();
   const actions = useGasEstimateActions();
   const actor = useGasActor();
   const canChange = actor.role === "manager" || actor.role === "admin";
-  const { settings, accuracy } = policy;
+  const { settings, agreement, autopilot, autoWeek } = policy;
+  const [confirmPilot, setConfirmPilot] = useState(false);
+  const sample = settings.samplePercent ?? 10;
 
-  const choose = async (mode: ReviewMode, thresholdPercent = settings.thresholdPercent) => {
-    const result = await actions.setReviewSettings({ mode, thresholdPercent });
+  const choose = async (mode: ReviewMode, acceptBelowTarget = false) => {
+    const result = await actions.setReviewSettings({
+      mode,
+      thresholdPercent: settings.thresholdPercent,
+      acceptBelowTarget,
+    });
     if (!result.ok) toast.error(result.message);
+    else setConfirmPilot(false);
   };
+
+  const availabilityOf = (key: ReviewMode) => (key === "none" ? autopilot : { ok: true as const });
 
   return (
     <Group
       id="review-mode"
       title="Режим проверки"
-      note={
-        accuracy.percent === null
-          ? `Точность считается по последним решениям менеджера: пока ${accuracy.decided}, нужно не меньше 20.`
-          : `Точность ${accuracy.percent}%: ${accuracy.clean} из ${accuracy.decided} записей приняты без правки. Перед сдачей отчёта итоговая проверка человеком обязательна в любом режиме.`
-      }
+      note="Закрыть неделю, подтвердить смету, изменить сумму и переоткрыть неделю может только человек с правом. Автопилот принимает только чистые записи с подтверждённой сметой."
     >
       <ul className={LIST} role="radiogroup" aria-label="Режим проверки">
         {(Object.keys(REVIEW_MODE_LABEL) as ReviewMode[]).map((key) => {
           const on = settings.mode === key;
-          const available = policy.availability[key];
-          const disabled = !canChange || !available.ok;
+          const available = availabilityOf(key);
+          const disabled = !canChange;
           return (
             <li key={key}>
               <button
@@ -351,7 +440,11 @@ function ReviewModeGroup() {
                 role="radio"
                 aria-checked={on}
                 aria-disabled={disabled || undefined}
-                onClick={() => (disabled ? undefined : void choose(key))}
+                onClick={() => {
+                  if (disabled || on) return;
+                  if (!available.ok) setConfirmPilot(true);
+                  else void choose(key);
+                }}
                 className={cn(
                   "flex min-h-row w-full items-start gap-3 px-row py-row text-left focus-ring",
                   on && "bg-surface-2",
@@ -363,7 +456,8 @@ function ReviewModeGroup() {
                     {REVIEW_MODE_LABEL[key]}
                   </span>
                   <span className="block text-meta text-text-3">
-                    {available.ok ? REVIEW_MODE_HINT[key] : available.reason}
+                    {REVIEW_MODE_HINT[key]}
+                    {!available.ok && !on ? ` ${available.reason}` : ""}
                   </span>
                 </span>
                 {on ? <Check className="mt-0.5 size-5 shrink-0 text-orange" aria-hidden /> : null}
@@ -372,12 +466,73 @@ function ReviewModeGroup() {
           );
         })}
       </ul>
-      <div className="mt-2">
+      {confirmPilot && !autopilot.ok ? (
+        <div
+          role="alertdialog"
+          aria-label="Включить автопилот ниже порога"
+          className="mt-2 flex flex-col gap-2 rounded-control border border-line-2 px-row py-row"
+        >
+          <p className="text-body">{autopilot.reason}</p>
+          <p className="text-meta text-text-3">
+            Порог обсуждали с заказчиком. Если включить сейчас, журнал запишет число совпадения и
+            что включено ниже порога.
+          </p>
+          <span className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setConfirmPilot(false)}>
+              Оставить как есть
+            </Button>
+            <Button onClick={() => void choose("none", true)}>Включить автопилот</Button>
+          </span>
+        </div>
+      ) : null}
+
+      <div className="mt-2 flex flex-col gap-1" data-testid="agreement">
+        <span className="block text-body">
+          Совпадение авто-решений с решениями менеджера:{" "}
+          <span className="tnum">
+            {agreement.percent === null ? "мало решений" : fmtPercent(agreement.percent)}
+          </span>
+        </span>
+        <span className="block text-meta text-text-3 tnum">
+          За {AGREEMENT_WINDOW_DAYS} дней ({agreement.from.slice(8, 10)}.
+          {agreement.from.slice(5, 7)}
+          {"–"}
+          {agreement.to.slice(8, 10)}.{agreement.to.slice(5, 7)}): совпало {agreement.matched} из{" "}
+          {agreement.total}. Автопилот принял бы, а менеджер исправил: {agreement.risky}. Автопилот
+          отправил бы в очередь, а менеджер принял без правки: {agreement.cautious}.
+          {agreement.recomputed
+            ? ` Из них ${agreement.recomputed} решены до автопилота и пересчитаны по текущим правилам.`
+            : ""}{" "}
+          Порог для включения {fmtPercent(AUTOPILOT_TARGET_PERCENT)}, нужно не меньше{" "}
+          {AGREEMENT_MIN_SAMPLE} решений.
+        </span>
+        {settings.mode !== "all" ? (
+          <span className="block text-meta text-text-3 tnum">
+            На этой неделе принято автоматически: {autoWeek.accepted}, в проверке перед закрытием:{" "}
+            {autoWeek.sampled}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-2 flex flex-col gap-1">
+        <span className="block text-meta text-text-3">
+          Выборочная проверка при автопилоте: какая доля авто-принятых записей попадает менеджеру
+          перед закрытием недели
+        </span>
         <Segmented
-          label="Порог точности для режима без проверки"
-          value={String(settings.thresholdPercent)}
-          onChange={(value) => (canChange ? void choose(settings.mode, Number(value)) : undefined)}
-          options={THRESHOLDS.map((t) => ({ value: String(t), label: `${t}%` }))}
+          label="Выборочная проверка"
+          value={String(sample)}
+          onChange={(value) =>
+            canChange
+              ? void actions
+                  .setReviewSettings({
+                    mode: settings.mode,
+                    thresholdPercent: settings.thresholdPercent,
+                    samplePercent: Number(value),
+                  })
+                  .then((result) => (result.ok ? undefined : toast.error(result.message)))
+              : undefined
+          }
+          options={SAMPLES.map((t) => ({ value: String(t), label: `${t}%` }))}
         />
       </div>
       {/* Решение владельца 1 (ADR-062): по умолчанию правило подтверждает и тот, кто сохранил */}
