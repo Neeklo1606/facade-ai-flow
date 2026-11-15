@@ -74,6 +74,7 @@ import { Route as GasModerationRouteImport } from './routes/gas/moderation'
 import { Route as GasMoreRouteImport } from './routes/gas/more'
 import { Route as GasObjectsRouteImport } from './routes/gas/objects'
 import { Route as GasOverviewRouteImport } from './routes/gas/overview'
+import { Route as GasPrintRouteImport } from './routes/gas/print'
 import { Route as GasQuestionsRouteImport } from './routes/gas/questions'
 import { Route as GasReportsRouteImport } from './routes/gas/reports'
 import { Route as GasSiteRouteImport } from './routes/gas/site'
@@ -93,11 +94,14 @@ import { Route as StatiSlugRouteImport } from './routes/stati.$slug'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
 import { Route as ApiGasAssistantRouteImport } from './routes/api/gas/assistant'
+import { Route as ApiGasConnectionsRouteImport } from './routes/api/gas/connections'
+import { Route as ApiGasEstimateFolderRouteImport } from './routes/api/gas/estimate-folder'
 import { Route as ApiGasExecDocsRouteImport } from './routes/api/gas/exec-docs'
 import { Route as ApiGasExportRouteImport } from './routes/api/gas/export'
 import { Route as ApiGasRfqRouteImport } from './routes/api/gas/rfq'
 import { Route as ApiMaxWebhookRouteImport } from './routes/api/max/webhook'
 import { Route as ApiOfficeConnectionsRouteImport } from './routes/api/office/connections'
+import { Route as ApiTelegramWebhookRouteImport } from './routes/api/telegram/webhook'
 import { Route as GasDocsIndexRouteImport } from './routes/gas/docs/index'
 import { Route as GasDocsDocIdRouteImport } from './routes/gas/docs/$docId'
 import { Route as GasSupplyIndexRouteImport } from './routes/gas/supply/index'
@@ -438,6 +442,11 @@ const GasOverviewRoute = GasOverviewRouteImport.update({
   path: '/overview',
   getParentRoute: () => GasRoute,
 } as any)
+const GasPrintRoute = GasPrintRouteImport.update({
+  id: '/print',
+  path: '/print',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasQuestionsRoute = GasQuestionsRouteImport.update({
   id: '/questions',
   path: '/questions',
@@ -533,6 +542,16 @@ const ApiGasAssistantRoute = ApiGasAssistantRouteImport.update({
   path: '/api/gas/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGasConnectionsRoute = ApiGasConnectionsRouteImport.update({
+  id: '/api/gas/connections',
+  path: '/api/gas/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGasEstimateFolderRoute = ApiGasEstimateFolderRouteImport.update({
+  id: '/api/gas/estimate-folder',
+  path: '/api/gas/estimate-folder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGasExecDocsRoute = ApiGasExecDocsRouteImport.update({
   id: '/api/gas/exec-docs',
   path: '/api/gas/exec-docs',
@@ -556,6 +575,11 @@ const ApiMaxWebhookRoute = ApiMaxWebhookRouteImport.update({
 const ApiOfficeConnectionsRoute = ApiOfficeConnectionsRouteImport.update({
   id: '/api/office/connections',
   path: '/api/office/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelegramWebhookRoute = ApiTelegramWebhookRouteImport.update({
+  id: '/api/telegram/webhook',
+  path: '/api/telegram/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GasDocsIndexRoute = GasDocsIndexRouteImport.update({
@@ -693,6 +717,7 @@ export interface FileRoutesByFullPath {
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/overview': typeof GasOverviewRoute
+  '/gas/print': typeof GasPrintRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/site': typeof GasSiteRoute
@@ -713,11 +738,14 @@ export interface FileRoutesByFullPath {
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
+  '/api/gas/connections': typeof ApiGasConnectionsRoute
+  '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
+  '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
@@ -795,6 +823,7 @@ export interface FileRoutesByTo {
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/overview': typeof GasOverviewRoute
+  '/gas/print': typeof GasPrintRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/site': typeof GasSiteRoute
@@ -815,11 +844,14 @@ export interface FileRoutesByTo {
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
+  '/api/gas/connections': typeof ApiGasConnectionsRoute
+  '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
+  '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
@@ -900,6 +932,7 @@ export interface FileRoutesById {
   '/gas/more': typeof GasMoreRoute
   '/gas/objects': typeof GasObjectsRoute
   '/gas/overview': typeof GasOverviewRoute
+  '/gas/print': typeof GasPrintRoute
   '/gas/questions': typeof GasQuestionsRoute
   '/gas/reports': typeof GasReportsRoute
   '/gas/site': typeof GasSiteRoute
@@ -920,11 +953,14 @@ export interface FileRoutesById {
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
+  '/api/gas/connections': typeof ApiGasConnectionsRoute
+  '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
+  '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
@@ -1006,6 +1042,7 @@ export interface FileRouteTypes {
     | '/gas/more'
     | '/gas/objects'
     | '/gas/overview'
+    | '/gas/print'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/site'
@@ -1026,11 +1063,14 @@ export interface FileRouteTypes {
     | '/api/export/projects'
     | '/api/export/shift'
     | '/api/gas/assistant'
+    | '/api/gas/connections'
+    | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
     | '/api/max/webhook'
     | '/api/office/connections'
+    | '/api/telegram/webhook'
     | '/gas/docs/$docId'
     | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
@@ -1108,6 +1148,7 @@ export interface FileRouteTypes {
     | '/gas/more'
     | '/gas/objects'
     | '/gas/overview'
+    | '/gas/print'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/site'
@@ -1128,11 +1169,14 @@ export interface FileRouteTypes {
     | '/api/export/projects'
     | '/api/export/shift'
     | '/api/gas/assistant'
+    | '/api/gas/connections'
+    | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
     | '/api/max/webhook'
     | '/api/office/connections'
+    | '/api/telegram/webhook'
     | '/gas/docs/$docId'
     | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
@@ -1212,6 +1256,7 @@ export interface FileRouteTypes {
     | '/gas/more'
     | '/gas/objects'
     | '/gas/overview'
+    | '/gas/print'
     | '/gas/questions'
     | '/gas/reports'
     | '/gas/site'
@@ -1232,11 +1277,14 @@ export interface FileRouteTypes {
     | '/api/export/projects'
     | '/api/export/shift'
     | '/api/gas/assistant'
+    | '/api/gas/connections'
+    | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
     | '/api/gas/rfq'
     | '/api/max/webhook'
     | '/api/office/connections'
+    | '/api/telegram/webhook'
     | '/gas/docs/$docId'
     | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
@@ -1306,11 +1354,14 @@ export interface RootRouteChildren {
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
   ApiGasAssistantRoute: typeof ApiGasAssistantRoute
+  ApiGasConnectionsRoute: typeof ApiGasConnectionsRoute
+  ApiGasEstimateFolderRoute: typeof ApiGasEstimateFolderRoute
   ApiGasExecDocsRoute: typeof ApiGasExecDocsRoute
   ApiGasExportRoute: typeof ApiGasExportRoute
   ApiGasRfqRoute: typeof ApiGasRfqRoute
   ApiMaxWebhookRoute: typeof ApiMaxWebhookRoute
   ApiOfficeConnectionsRoute: typeof ApiOfficeConnectionsRoute
+  ApiTelegramWebhookRoute: typeof ApiTelegramWebhookRoute
   ProjectsIdDeliveriesRoute: typeof ProjectsIdDeliveriesRoute
   ProjectsIdFieldReportsRoute: typeof ProjectsIdFieldReportsRoute
   ProjectsIdMaterialsRoute: typeof ProjectsIdMaterialsRoute
@@ -1779,6 +1830,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasOverviewRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/print': {
+      id: '/gas/print'
+      path: '/print'
+      fullPath: '/gas/print'
+      preLoaderRoute: typeof GasPrintRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/questions': {
       id: '/gas/questions'
       path: '/questions'
@@ -1912,6 +1970,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGasAssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gas/connections': {
+      id: '/api/gas/connections'
+      path: '/api/gas/connections'
+      fullPath: '/api/gas/connections'
+      preLoaderRoute: typeof ApiGasConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gas/estimate-folder': {
+      id: '/api/gas/estimate-folder'
+      path: '/api/gas/estimate-folder'
+      fullPath: '/api/gas/estimate-folder'
+      preLoaderRoute: typeof ApiGasEstimateFolderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gas/exec-docs': {
       id: '/api/gas/exec-docs'
       path: '/api/gas/exec-docs'
@@ -1945,6 +2017,13 @@ declare module '@tanstack/react-router' {
       path: '/api/office/connections'
       fullPath: '/api/office/connections'
       preLoaderRoute: typeof ApiOfficeConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telegram/webhook': {
+      id: '/api/telegram/webhook'
+      path: '/api/telegram/webhook'
+      fullPath: '/api/telegram/webhook'
+      preLoaderRoute: typeof ApiTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gas/docs/': {
@@ -2060,6 +2139,7 @@ interface GasRouteChildren {
   GasMoreRoute: typeof GasMoreRoute
   GasObjectsRoute: typeof GasObjectsRoute
   GasOverviewRoute: typeof GasOverviewRoute
+  GasPrintRoute: typeof GasPrintRoute
   GasQuestionsRoute: typeof GasQuestionsRoute
   GasReportsRoute: typeof GasReportsRoute
   GasSiteRoute: typeof GasSiteRoute
@@ -2095,6 +2175,7 @@ const GasRouteChildren: GasRouteChildren = {
   GasMoreRoute: GasMoreRoute,
   GasObjectsRoute: GasObjectsRoute,
   GasOverviewRoute: GasOverviewRoute,
+  GasPrintRoute: GasPrintRoute,
   GasQuestionsRoute: GasQuestionsRoute,
   GasReportsRoute: GasReportsRoute,
   GasSiteRoute: GasSiteRoute,
@@ -2182,11 +2263,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,
   ApiGasAssistantRoute: ApiGasAssistantRoute,
+  ApiGasConnectionsRoute: ApiGasConnectionsRoute,
+  ApiGasEstimateFolderRoute: ApiGasEstimateFolderRoute,
   ApiGasExecDocsRoute: ApiGasExecDocsRoute,
   ApiGasExportRoute: ApiGasExportRoute,
   ApiGasRfqRoute: ApiGasRfqRoute,
   ApiMaxWebhookRoute: ApiMaxWebhookRoute,
   ApiOfficeConnectionsRoute: ApiOfficeConnectionsRoute,
+  ApiTelegramWebhookRoute: ApiTelegramWebhookRoute,
   ProjectsIdDeliveriesRoute: ProjectsIdDeliveriesRoute,
   ProjectsIdFieldReportsRoute: ProjectsIdFieldReportsRoute,
   ProjectsIdMaterialsRoute: ProjectsIdMaterialsRoute,

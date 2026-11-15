@@ -72,6 +72,14 @@ export function inviteUrl(botName: string, code: string): string {
   return `https://max.ru/${encodeURIComponent(botName)}?start=${encodeURIComponent(code)}`;
 }
 
+/**
+ * Ссылка на бота Telegram с кодом (ADR-072): `t.me/<бот>?start=КОД`, бот получает
+ * «/start КОД». Код из букв и цифр, в пределах 64 символов параметра start
+ */
+export function telegramInviteUrl(botName: string, code: string): string {
+  return `https://t.me/${encodeURIComponent(botName.replace(/^@/, ""))}?start=${encodeURIComponent(code)}`;
+}
+
 export type RedeemResult =
   | { ok: true; link: MaxLink; links: MaxLink[] }
   | { ok: false; reason: "unknown" | "used" | "expired" | "taken" };
@@ -80,7 +88,7 @@ export const REDEEM_TEXT: Record<Exclude<RedeemResult, { ok: true }>["reason"], 
   unknown: "Код не найден. Обратитесь к менеджеру за новым приглашением.",
   used: "Этот код уже использован. Обратитесь к менеджеру за новым приглашением.",
   expired: "Срок приглашения истёк. Обратитесь к менеджеру за новым.",
-  taken: "Этот аккаунт MAX уже привязан к другому сотруднику. Обратитесь к менеджеру.",
+  taken: "Этот аккаунт уже привязан к другому сотруднику. Обратитесь к менеджеру.",
 };
 
 /** Привязать аккаунт MAX по коду: код одноразовый, аккаунт — у одного пользователя */
