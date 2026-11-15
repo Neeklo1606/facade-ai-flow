@@ -321,6 +321,7 @@ export {
   peopleTotals,
   rectOf,
   selectionStats,
+  statsValues,
   tabelRows,
   toTsv,
   tsvNumber,

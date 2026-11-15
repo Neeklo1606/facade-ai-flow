@@ -7,6 +7,8 @@
  * - закреплены первый столбец и две строки шапки, подсветка строки и столбца под мышью;
  * - ширина колонок мышью за край заголовка, плотность строк;
  * - строки виртуализируются от 200: рисуется только видимое окно.
+ * Телефон (`touch`), как в мобильных Google Таблицах: узкий закреплённый столбец, строки
+ * от 44 px, касание выделяет ячейку и показывает итог внизу, второе касание открывает записи.
  * Цвет ячейки — статус данных вместо переключателя «Подтверждённые / Предварительный».
  */
 import { ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
@@ -26,6 +28,7 @@ import {
   moveSelection,
   rectOf,
   selectionStats,
+  statsValues,
   toTsv,
   tsvNumber,
   wholeColumn,
@@ -96,6 +99,7 @@ export function Grid({
   onOpen,
   focus,
   height,
+  touch = false,
 }: {
   label: string;
   rows: GridRow[];
@@ -112,6 +116,8 @@ export function Grid({
   focus?: { row: number; col: number } | null;
   /** Высота области прокрутки: сетка занимает окно до низа */
   height: string;
+  /** Телефон: отступы уровней меньше, подсказка про касания, итоги одной строкой */
+  touch?: boolean;
 }) {
   const id = useId().replace(/:/g, "");
   const scroller = useRef<HTMLDivElement>(null);
@@ -163,11 +169,13 @@ export function Grid({
   /* ---------------- Выделенное: итоги и TSV ---------------- */
   const stats = useMemo(() => {
     if (!rect) return null;
-    const values: (number | null)[] = [];
+    const cells: { value: number | null; kind: string }[] = [];
     for (let r = rect.top; r <= rect.bottom; r += 1)
-      for (let c = rect.left; c <= rect.right; c += 1) values.push(cell(r, c).value);
-    return { ...selectionStats(values), cells: values.length };
-  }, [rect?.top, rect?.bottom, rect?.left, rect?.right, cell]); // eslint-disable-line react-hooks/exhaustive-deps
+      for (let c = rect.left; c <= rect.right; c += 1)
+        cells.push({ value: cell(r, c).value, kind: rows[r]?.kind ?? "address" });
+    const { values, skipped } = statsValues(cells);
+    return { ...selectionStats(values), cells: cells.length, skipped };
+  }, [rect?.top, rect?.bottom, rect?.left, rect?.right, cell, rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tsv = useCallback(() => {
     if (!rect) return "";
@@ -245,7 +253,20 @@ export function Grid({
 
   const startCell = (event: PointerEvent, row: number, col: number) => {
     if (event.button !== 0) return;
-    dragging.current = true;
+    // Касание по уже выделенной ячейке открывает её записи: двойного клика на телефоне нет
+    if (
+      event.pointerType !== "mouse" &&
+      rect &&
+      rect.top === row &&
+      rect.bottom === row &&
+      rect.left === col &&
+      rect.right === col
+    ) {
+      onOpen(row, col);
+      return;
+    }
+    // Палец ведёт прокрутку, а не диапазон: протяжка выделяет только мышью
+    dragging.current = event.pointerType === "mouse";
     setSelection((current) =>
       event.shiftKey && current
         ? { anchor: current.anchor, focus: { row, col } }
@@ -289,6 +310,7 @@ export function Grid({
   });
   const tableWidth = labelWidth + columns.reduce((a, c) => a + c.width, 0);
   const headRow = 32;
+  const indent = touch ? 10 : 16;
 
   return (
     <div className="flex min-h-0 flex-col">
@@ -421,12 +443,20 @@ export function Grid({
                       scroller.current?.focus({ preventScroll: true });
                     }}
                     className={cn(
-                      "sticky left-0 z-[1] cursor-pointer truncate border-e border-b border-line bg-surface px-2 text-left font-normal group-hover/row:bg-surface-2",
-                      strong ? "text-body-strong" : "text-body",
+                      "sticky left-0 z-[1] cursor-pointer border-e border-b border-line bg-surface px-2 text-left font-normal group-hover/row:bg-surface-2",
+                      // Телефон: название в две строки мельче, иначе в узком столбце видно «Брига…»
+                      touch ? "pe-1" : "truncate",
+                      touch
+                        ? strong
+                          ? "text-meta-strong"
+                          : "text-meta"
+                        : strong
+                          ? "text-body-strong"
+                          : "text-body",
                       row.kind === "total" && "bg-surface-2",
                       rowSelected && "bg-orange-dim",
                     )}
-                    style={{ paddingInlineStart: 8 + row.level * 16 }}
+                    style={{ paddingInlineStart: (touch ? 4 : 8) + row.level * indent }}
                     title={row.label}
                   >
                     <span className="flex min-w-0 items-center gap-1">
@@ -436,7 +466,10 @@ export function Grid({
                           aria-expanded={!row.collapsed}
                           aria-label={`${row.collapsed ? "Развернуть" : "Свернуть"}: ${row.label}`}
                           onClick={() => onToggle(row.id)}
-                          className="grid h-control-sm w-[32px] shrink-0 place-items-center rounded-control text-text-3 focus-ring is-hover:bg-surface-3"
+                          className={cn(
+                            "grid w-[32px] shrink-0 place-items-center rounded-control text-text-3 focus-ring is-hover:bg-surface-3",
+                            touch ? "h-11" : "h-control-sm",
+                          )}
                         >
                           {row.collapsed ? (
                             <ChevronRight className="size-4" aria-hidden />
@@ -445,9 +478,13 @@ export function Grid({
                           )}
                         </button>
                       ) : (
-                        <span className="w-[32px] shrink-0" aria-hidden />
+                        <span className={cn("shrink-0", touch ? "w-1" : "w-[32px]")} aria-hidden />
                       )}
-                      <span className="truncate">{row.label}</span>
+                      <span
+                        className={touch ? "line-clamp-2 leading-tight break-words" : "truncate"}
+                      >
+                        {row.label}
+                      </span>
                     </span>
                   </th>
                   {columns.map((column, c) => {
@@ -513,20 +550,39 @@ export function Grid({
 
       {/* Итоги выделенного, как внизу справа в Google Таблицах */}
       <p
-        className="flex min-h-control-sm flex-wrap items-center justify-end gap-x-4 px-1 text-meta text-text-2 tnum"
+        className={cn(
+          "flex min-h-control-sm items-center gap-x-4 px-1 text-meta text-text-2 tnum",
+          touch ? "justify-start overflow-x-auto whitespace-nowrap" : "flex-wrap justify-end",
+        )}
         data-testid="selection-stats"
         aria-live="polite"
       >
         {stats && stats.cells > 0 ? (
-          <>
-            <span>Выделено ячеек: {stats.cells}</span>
-            <span>Сумма: {stats.sum.toLocaleString("ru-RU")}</span>
-            <span>Среднее: {stats.avg === null ? "–" : stats.avg.toLocaleString("ru-RU")}</span>
-            <span>Количество: {stats.count}</span>
-          </>
+          touch ? (
+            <>
+              <span className="text-body-strong text-text">
+                Сумма: {stats.sum.toLocaleString("ru-RU")}
+              </span>
+              <span>Среднее: {stats.avg === null ? "–" : stats.avg.toLocaleString("ru-RU")}</span>
+              <span>Ячеек: {stats.cells}</span>
+              {stats.skipped ? <span className="text-text-3">без итогов групп</span> : null}
+            </>
+          ) : (
+            <>
+              <span>Выделено ячеек: {stats.cells}</span>
+              <span>Сумма: {stats.sum.toLocaleString("ru-RU")}</span>
+              <span>Среднее: {stats.avg === null ? "–" : stats.avg.toLocaleString("ru-RU")}</span>
+              <span>Количество: {stats.count}</span>
+              {stats.skipped ? (
+                <span className="text-text-3">итоги групп не складываются</span>
+              ) : null}
+            </>
+          )
         ) : (
-          <span className="text-text-3">
-            Выделите ячейки: мышью, Shift+стрелки, заголовок строки или столбца. Ctrl+C копирует.
+          <span className={touch ? "py-1 whitespace-normal text-text-3" : "text-text-3"}>
+            {touch
+              ? "Коснитесь ячейки: итог тут, ещё раз: записи"
+              : "Выделите ячейки: мышью, Shift+стрелки, заголовок строки или столбца. Ctrl+C копирует."}
           </span>
         )}
       </p>

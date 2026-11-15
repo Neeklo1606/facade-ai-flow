@@ -27,6 +27,7 @@ export function ExportMenu({
   sheetConnected,
   onSync,
   wide,
+  icon = false,
   tour = true,
 }: {
   /** Принятые записи недели: они идут в утверждённый файл */
@@ -45,6 +46,8 @@ export function ExportMenu({
    * Меню на телефоне — лишнее касание перед самым частым действием
    */
   wide?: boolean;
+  /** Телефон, режим таблицы: меню за кнопкой-значком, панель остаётся одной строкой */
+  icon?: boolean;
   /** Цель тура `data-tour="export"`: одна на экран */
   tour?: boolean;
 }) {
@@ -87,10 +90,24 @@ export function ExportMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button data-tour={tour ? "export" : undefined} disabled={busy}>
-          <Download aria-hidden />
-          Выгрузить
-        </Button>
+        {icon ? (
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-11 shrink-0"
+            aria-label="Выгрузить"
+            title="Выгрузить"
+            data-tour={tour ? "export" : undefined}
+            disabled={busy}
+          >
+            <Download aria-hidden />
+          </Button>
+        ) : (
+          <Button data-tour={tour ? "export" : undefined} disabled={busy}>
+            <Download aria-hidden />
+            Выгрузить
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={6} className="filter-pop w-80 border-0 p-1.5">
         <DropdownMenuItem

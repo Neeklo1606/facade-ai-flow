@@ -12,6 +12,7 @@ import {
   peopleTotals,
   rectOf,
   selectionStats,
+  statsValues,
   tabelRows,
   toTsv,
   tsvNumber,
@@ -165,6 +166,34 @@ describe("выделение и буфер", () => {
   test("итоги выделенного: пустые не считаются нулём", () => {
     expect(selectionStats([19950, null, 14700, 0])).toEqual({ sum: 34650, avg: 11550, count: 3 });
     expect(selectionStats([null, null])).toEqual({ sum: 0, avg: null, count: 0 });
+  });
+
+  test("итоги выделенного: строки групп не складываются с их объектами", () => {
+    // Столбец целиком: подразделение 10, бригада 10, два объекта 4 и 6. Итог 10, а не 30
+    const column = [
+      { value: 10, kind: "group" },
+      { value: 10, kind: "brigade" },
+      { value: 4, kind: "address" },
+      { value: 6, kind: "address" },
+    ];
+    const picked = statsValues(column);
+    expect(picked).toEqual({ values: [4, 6], skipped: 2 });
+    expect(selectionStats(picked.values)).toEqual({ sum: 10, avg: 5, count: 2 });
+    // Выделены только бригады: складываются они
+    expect(
+      statsValues([
+        { value: 10, kind: "brigade" },
+        { value: 7, kind: "brigade" },
+      ]),
+    ).toEqual({ values: [10, 7], skipped: 0 });
+    // По людям: строка «Итого» не прибавляется к людям
+    expect(
+      statsValues([
+        { value: 8, kind: "person" },
+        { value: null, kind: "person" },
+        { value: 8, kind: "total" },
+      ]),
+    ).toEqual({ values: [8, null], skipped: 1 });
   });
 
   test("TSV: табуляция и переводы строк, числа с запятой без пробелов", () => {
