@@ -9,8 +9,10 @@ import { hoursOfMinutes } from "./calc";
 import type { Role } from "./model";
 import { brigadeCards, objectCards, type GasData } from "./view";
 import type { CloseReason } from "./week";
+import { TOTAL_LABEL, TOTAL_ORDER } from "./estimate-labels";
+import type { EstimateVersion } from "./work-cost";
 
-const LIMIT = { brigades: 40, objects: 60, entries: 40, reasons: 30 };
+const LIMIT = { brigades: 40, objects: 60, entries: 40, reasons: 30, versions: 20 };
 
 const rub = (n: number) => `${Math.round(n).toLocaleString("ru-RU")} ₽`;
 const hours = (minutes: number) =>
@@ -35,6 +37,8 @@ export function assistantContext(input: {
   role: Role;
   data: GasData;
   reasons: readonly CloseReason[];
+  /** Версии смет с разбором: что именно вытянуто из файла и из какой строки (ADR-072) */
+  versions?: readonly EstimateVersion[];
 }): string {
   const { role, data, reasons } = input;
   const money = MONEY_ROLES.includes(role);
@@ -68,6 +72,7 @@ export function assistantContext(input: {
   );
 
   out.push("", "## Объекты и сметы");
+  const objectOf0 = new Map(data.objects.map((o) => [o.id, o]));
   const objects = objectCards(data).sort((a, b) => b.totals.amountRub - a.totals.amountRub);
   out.push(
     ...capped(objects, LIMIT.objects, (o) => {
@@ -88,6 +93,32 @@ export function assistantContext(input: {
       return `- ${parts.filter(Boolean).join("; ")}`;
     }),
   );
+
+  if (money && input.versions?.length) {
+    out.push("", "## Разбор смет: значения из файлов");
+    const latest = [...input.versions].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+    out.push(
+      ...capped(latest, LIMIT.versions, (v) => {
+        const o = v.objectId ? objectOf0.get(v.objectId) : null;
+        const totals = TOTAL_ORDER.filter((k) => v.totals[k])
+          .map(
+            (k) =>
+              `${TOTAL_LABEL[k]} ${rub(v.totals[k]!.kopecks / 100)} (строка ${v.totals[k]!.row})`,
+          )
+          .join(", ");
+        const parts = [
+          `смета ${o?.code ?? "без объекта"}, версия ${v.version}, файл «${v.fileName}»`,
+          v.confirmedAt ? `подтверждена ${day(v.confirmedAt.slice(0, 10))}` : "ждёт подтверждения",
+          totals || "итоги не найдены",
+          v.sections.length ? `разделов ${v.sections.length}` : null,
+          v.laborHours
+            ? `затраты труда ${v.laborHours.value.toLocaleString("ru-RU")} чел.-ч (строка ${v.laborHours.row})`
+            : null,
+        ];
+        return `- ${parts.filter(Boolean).join("; ")}`;
+      }),
+    );
+  }
 
   out.push("", "## Ждут решения менеджера");
   const waiting = data.entries.filter((e) => e.status === "pending" || e.status === "clarify");

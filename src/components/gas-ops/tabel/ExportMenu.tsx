@@ -5,7 +5,7 @@
  * говорит это рядом с пунктом, а не после нажатия.
  */
 import { Link } from "@tanstack/react-router";
-import { CloudOff, Download, FileCheck2, FilePen, RefreshCw } from "lucide-react";
+import { CloudOff, Download, FileCheck2, FilePen, FileText, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { plural } from "@/lib/format";
+
+/** PDF печатью браузера (ADR-072): лист A4, только принятые записи */
+const PDF_HINT = "Показатели и табель на листе A4, только принятые";
 
 export function ExportMenu({
   confirmed,
@@ -83,6 +86,13 @@ export function ExportMenu({
           Черновик Excel
         </Button>
         <p className="type-small text-ink-3">Черновик: {draftHint}</p>
+        <Button variant="outline" asChild className="w-full">
+          <Link to="/gas/print" search={{ auto: true }}>
+            <FileText aria-hidden />
+            PDF для руководителя
+          </Link>
+        </Button>
+        <p className="type-small text-ink-3">{PDF_HINT}</p>
       </div>
     );
   }
@@ -131,6 +141,15 @@ export function ExportMenu({
             <span className="text-body-strong">Excel черновик</span>
             <span className="type-small text-ink-3">{draftHint}</span>
           </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="export-item">
+          <Link to="/gas/print" search={{ auto: true }}>
+            <FileText aria-hidden className="mt-0.5 size-5 shrink-0 text-ink-3" />
+            <span className="flex min-w-0 flex-col">
+              <span className="text-body-strong">PDF для руководителя</span>
+              <span className="type-small text-ink-3">{PDF_HINT}</span>
+            </span>
+          </Link>
         </DropdownMenuItem>
         {finalLeft > 0 ? (
           <DropdownMenuItem asChild className="export-item">

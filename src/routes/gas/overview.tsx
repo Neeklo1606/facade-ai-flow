@@ -1,6 +1,13 @@
 import { completePageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarDays, ClipboardCheck, Coins, UsersRound } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardCheck,
+  Coins,
+  FileSpreadsheet,
+  FileText,
+  UsersRound,
+} from "lucide-react";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { useGasBrand } from "@/lib/gas-ops/contour";
 import { BarList, ColumnChart, KpiStrip, Panel, ProgressStack } from "@/components/ui/kit/charts";
@@ -27,6 +34,23 @@ function OverviewPage() {
   const o = useGasOverview();
   return (
     <div className="flex flex-col gap-section">
+      <div className="flex flex-wrap items-center gap-2" data-testid="overview-exports">
+        <Link
+          to="/gas/print"
+          search={{ auto: true }}
+          className="inline-flex min-h-11 items-center gap-2 rounded-control bg-surface-2 px-4 text-body-strong focus-ring"
+        >
+          <FileText className="size-4" aria-hidden />
+          Отчёт PDF
+        </Link>
+        <Link
+          to="/gas/tabel"
+          className="inline-flex min-h-11 items-center gap-2 rounded-control bg-surface-2 px-4 text-body-strong focus-ring"
+        >
+          <FileSpreadsheet className="size-4" aria-hidden />
+          Табель и Excel
+        </Link>
+      </div>
       <KpiStrip
         label="Показатели недели"
         items={[

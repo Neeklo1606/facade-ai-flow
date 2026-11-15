@@ -2542,6 +2542,21 @@
   li {
     break-inside: avoid;
   }
+  /* Отчёт руководителю (ADR-072): A4 альбомом, таблица во всю ширину листа */
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  .print-sheet {
+    overflow: visible !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+  .print-table {
+    min-width: 0 !important;
+    font-size: 8.5pt;
+  }
 }
 
 /* Readable metadata across legacy working screens. */

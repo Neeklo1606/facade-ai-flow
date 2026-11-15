@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { useServerConnections } from "@/api/gas-connections";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
@@ -100,18 +101,6 @@ const OPEN_QUESTIONS = [
   "10. Бригады 3 и 5: четыре одинаковые строки и одинаковая рамка смены.",
 ];
 
-const CONNECTIONS = [
-  {
-    name: "Бот MAX",
-    detail:
-      "Приём времени от бригадиров. Токен хранит администратор сервера; проверка вебхука и тестовое сообщение появятся с подключением",
-    state: "не подключён",
-  },
-  { name: "PostgreSQL", detail: "Источник истины по ТЗ", state: "не подключён" },
-  { name: "Google или Яндекс Таблицы", detail: "Представление отчёта", state: "не выбрано" },
-  { name: "VPS Ubuntu 24.04 и Docker", detail: "Размещение", state: "не развёрнут" },
-];
-
 function Group({
   id,
   title,
@@ -135,6 +124,7 @@ function Group({
 const LIST = "surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line";
 
 function AdminPage() {
+  const connections = useServerConnections();
   const users = useGasUsers();
   const audit = useGasAudit();
   const order = useMetricOrder();
@@ -248,11 +238,17 @@ function AdminPage() {
       <Group
         id="connections"
         title="Подключения"
-        note="Ни одно не подключено: прототип работает на моках. В MAX сообщения не отправляются."
+        note={
+          connections === null
+            ? "Спрашиваю сервер, что подключено"
+            : connections.length === 0
+              ? "Сервер не ответил: состояние подключений неизвестно"
+              : `Подключено ${connections.filter((c) => c.on).length} из ${connections.length}. Ключи задаёт администратор сервера, в интерфейсе их нет`
+        }
       >
-        <ul className={LIST}>
-          {CONNECTIONS.map((item) => (
-            <li key={item.name}>
+        <ul className={LIST} data-testid="admin-connections">
+          {(connections ?? []).map((item) => (
+            <li key={item.key}>
               <ListRow title={item.name} meta={item.detail} valueMeta={item.state} compact />
             </li>
           ))}

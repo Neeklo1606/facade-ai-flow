@@ -2,17 +2,24 @@
  * Обработчик событий бота бригадира (ADR-061, 14; раздел 6 документа табеля).
  *
  * Событие канала → повтор? → привязка → машина диалога T2 → действие порта → ответ.
- * Канал не важен: MAX и демо дают одно и то же `InboundEvent`. Запись создаётся тем же
+ * Канал не важен: MAX, Telegram и демо дают одно и то же `InboundEvent`. Запись создаётся тем же
  * `callGasMethod`, что серверная функция экрана: роль, бригада и выборка ответа те же.
  * Повтор доставки отсекается по внешнему id, повтор «Отправить» — ключом отправки записи.
  */
 import { isAutoAccepted } from "@/domain/gas-ops/review-policy";
-import { createMaxInbound } from "@/adapters/gas-ops/max/channel";
+import { createMaxInbound, createMaxMessenger } from "@/adapters/gas-ops/max/channel";
+import {
+  TELEGRAM_ID_PREFIX,
+  createTelegramInbound,
+  createTelegramMessenger,
+  resolveTelegramCallback,
+} from "@/adapters/gas-ops/telegram/channel";
 import type { GasStore } from "@/adapters/gas-ops/store";
 import {
   botReply,
   botStep,
   initialBotState,
+  type BotContext,
   type BotEffect,
   type BotEvent,
   type BotState,
@@ -30,12 +37,14 @@ import type {
   GasInboundChannel,
   GasMessengerStore,
   InboundEvent,
+  MessengerChannel,
   OutboundMessenger,
 } from "@/ports/messenger";
 import { GasAccessError, callGasMethod } from "./gas-ops-server";
+import { appTimeZone, gasServerDriver, gasServerStore } from "./gas-server-store";
 
 export const NOT_LINKED_TEXT =
-  "Аккаунт MAX не привязан к сотруднику. Обратитесь к менеджеру: он отправит приглашение.";
+  "Аккаунт не привязан к сотруднику. Обратитесь к менеджеру: он отправит приглашение.";
 export const NOT_FOREMAN_TEXT =
   "Бот принимает время от бригадира. Остальные действия на сайте учёта времени.";
 
@@ -63,6 +72,10 @@ const toBotEvent = (event: InboundEvent): BotEvent | null =>
 
 export async function handleInbound(deps: MaxDeps, event: InboundEvent): Promise<MaxOutcome> {
   if (!(await deps.state.claim(event))) return { status: "duplicate" };
+  // Нажатие принято: канал убирает часики. Сбой подтверждения не мешает обработке
+  if (event.callbackId && deps.messenger.answerCallback) {
+    await deps.messenger.answerCallback(event.callbackId).catch(() => undefined);
+  }
   // Ответ всегда уходит тому аккаунту, что написал: до привязки пользователя системы нет
   const say = (toUserId: string, text: string, buttons: { label: string; callback: string }[]) =>
     deps.messenger.send({
@@ -113,7 +126,7 @@ export async function handleInbound(deps: MaxDeps, event: InboundEvent): Promise
       : ((await deps.state.session(event.channelUserId)) ?? initialBotState(ctx));
   const notes: string[] = [];
   let entryId: string | null = null;
-  const botEvent = toBotEvent(event);
+  const botEvent = toBotEvent(resolveCallback(event, state, ctx));
   if (botEvent) {
     const step = botStep(state, botEvent, ctx);
     notes.push(...step.notes);
@@ -147,6 +160,17 @@ export async function handleInbound(deps: MaxDeps, event: InboundEvent): Promise
   const reply = channelReply(botReply(state, ctx!), state, ctx!);
   await say(userId, [...notes, reply.text].join("\n"), reply.buttons);
   return { status: "handled", entryId };
+}
+
+/**
+ * Telegram ограничивает значение кнопки 64 байтами: длинное уходит отпечатком (см.
+ * telegramCallbackData) и находится среди кнопок текущего шага. Не нашлось — кнопка
+ * устарела, событие проходит пустым нажатием, и бот повторяет текущий шаг
+ */
+function resolveCallback(event: InboundEvent, state: BotState, ctx: BotContext): InboundEvent {
+  if (event.kind !== "callback" || event.channel !== "telegram") return event;
+  const keys = channelReply(botReply(state, ctx), state, ctx).buttons.map((b) => b.callback);
+  return { ...event, payload: resolveTelegramCallback(event.payload, keys) ?? "" };
 }
 
 type Performed = { ok: true; entry: TimeEntry | null } | { ok: false; message: string };
@@ -206,9 +230,16 @@ const json = (status: number, body: unknown) =>
     headers: { "content-type": "application/json; charset=utf-8" },
   });
 
+const CHANNEL_NAME: Record<MessengerChannel, string> = {
+  demo: "демо",
+  max: "MAX",
+  telegram: "Telegram",
+};
+
 /**
- * Ответ `/api/max/webhook`. Пока канал или хранилище диалогов не настроены — 501:
- * MAX не получает «успех» за событие, которое никто не обработал
+ * Ответ вебхука канала (`/api/max/webhook`, `/api/telegram/webhook`). Пока канал или
+ * хранилище диалогов не настроены — 501: канал не получает «успех» за событие, которое
+ * никто не обработал
  */
 export async function maxWebhookResponse(
   request: Request,
@@ -216,7 +247,10 @@ export async function maxWebhookResponse(
   deps: MaxDeps | null,
 ): Promise<Response> {
   if (!inbound.configured || !deps) {
-    return json(501, { code: "not-configured", message: "Канал MAX не настроен." });
+    return json(501, {
+      code: "not-configured",
+      message: `Канал ${CHANNEL_NAME[inbound.channel]} не настроен.`,
+    });
   }
   if (!inbound.verify(request)) {
     return json(401, { code: "bad-signature", message: "Источник запроса не подтверждён." });
@@ -232,10 +266,60 @@ export async function maxWebhookResponse(
   return json(200, { ok: true, ...(await handleInbound(deps, event)) });
 }
 
+/** Местное время без пояса в поясе сервера: «2026-10-03T18:05:00» */
+export function localNow(timeZone: string, at: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(at);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
+}
+
+/** Аккаунт канала из привязок: Telegram — с префиксом `tg:`, MAX — без него */
+const ofChannel = (channel: "max" | "telegram", accountId: string) =>
+  accountId.startsWith(TELEGRAM_ID_PREFIX) === (channel === "telegram");
+
 /**
- * Вебхук рабочего контура: канал из окружения сервера. Хранилища диалогов над базой
- * ещё нет (B6), поэтому обработчик не подключён и ответ — 501
+ * Рабочие зависимости обработчика: хранилище учёта времени и состояние канала над базой
+ * (B6), отправка в тот же канал. null — нет базы: вебхук отвечает 501
  */
-export function maxWebhook(request: Request): Promise<Response> {
-  return maxWebhookResponse(request, createMaxInbound(process.env), null);
+async function serverDeps(channel: "max" | "telegram"): Promise<MaxDeps | null> {
+  const [store, db] = await Promise.all([gasServerStore(), gasServerDriver()]);
+  if (!store || !db) return null;
+  const { createMessengerDb } = await import("@/adapters/gas-ops/messenger-db");
+  const timeZone = appTimeZone();
+  const state = createMessengerDb(db, { timeZone });
+  const channelUserOf = async (userId: string) =>
+    (await state.links()).find(
+      (l) => l.userId === userId && l.maxUserId !== null && ofChannel(channel, l.maxUserId),
+    )?.maxUserId ?? null;
+  const env = process.env;
+  const messenger =
+    channel === "telegram"
+      ? createTelegramMessenger({ env, channelUserOf })
+      : createMaxMessenger({ env, channelUserOf });
+  return { store, state, messenger, now: () => localNow(timeZone) };
+}
+
+/** Вебхук MAX рабочего контура: канал из окружения сервера, состояние диалогов в базе */
+export async function maxWebhook(request: Request): Promise<Response> {
+  const inbound = createMaxInbound(process.env);
+  return maxWebhookResponse(request, inbound, inbound.configured ? await serverDeps("max") : null);
+}
+
+/** Вебхук Telegram рабочего контура: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, база */
+export async function telegramWebhook(request: Request): Promise<Response> {
+  const inbound = createTelegramInbound(process.env);
+  return maxWebhookResponse(
+    request,
+    inbound,
+    inbound.configured ? await serverDeps("telegram") : null,
+  );
 }

@@ -5,11 +5,17 @@
  * 2. Паритет: путь записи времени (T7), снабжения и документов (S5 → S6) выполняется портами над вкладкой
  *    и над базой; ответы и итоговые снимки совпадают с точностью до новых ключей и минут.
  * 3. Одновременная запись: две заявки из двух хранилищ одной базы — обе на месте, номера разные.
+ * 4. Состояние канала бота (B6): приём события атомарен и не повторяется, диалог и привязки
+ *    читаются обратно, истёкший диалог не продолжается.
  */
 import { createGasDocsDemo } from "../src/adapters/gas-ops/docs-demo";
 import { createGasOpsDemo } from "../src/adapters/gas-ops/demo";
 import { createGasSupplyDemo } from "../src/adapters/gas-ops/supply-demo";
 import { createGasDbStore } from "../src/adapters/gas-ops/db-store";
+import { createMessengerDb } from "../src/adapters/gas-ops/messenger-db";
+import { createInvite, redeemInvite } from "../src/domain/gas-ops/max-link";
+import type { BotState } from "../src/domain/gas-ops/bot-dialog";
+import type { InboundEvent } from "../src/ports/messenger";
 import { getServerSnapshot, resetState } from "../src/adapters/gas-ops/state";
 import { demoStore, retrying, type GasStore } from "../src/adapters/gas-ops/store";
 import type { Driver } from "../src/adapters/db/driver";
@@ -248,5 +254,94 @@ export async function checkGas(db: Driver): Promise<boolean> {
       `✓ модули v1: одновременная запись из двух хранилищ, обе заявки на месте (${first.number}, ${second.number})`,
     );
   }
+  failed = (await checkMessenger(db)) || failed;
   return failed;
+}
+
+/** Состояние канала бота над базой (B6): привязки, диалог, приём событий */
+async function checkMessenger(db: Driver): Promise<boolean> {
+  const problems: string[] = [];
+  const state = createMessengerDb(db);
+  const event = (id: string): InboundEvent => ({
+    channel: "telegram",
+    externalId: id,
+    channelUserId: "tg:424242",
+    chatId: "424242",
+    kind: "callback",
+    payload: "send",
+    callbackId: "cbq-1",
+  });
+
+  // Повтор и одновременная доставка: строку события получает только один
+  const claims = await Promise.all([
+    state.claim(event("tg:update:1")),
+    state.claim(event("tg:update:1")),
+    state.claim(event("tg:update:1")),
+  ]);
+  if (claims.filter(Boolean).length !== 1) problems.push(`приём события: ${claims.join(", ")}`);
+  if (await state.claim(event("tg:update:1"))) problems.push("повтор события принят второй раз");
+  if (await state.claim(event(" "))) problems.push("пустой внешний id принят");
+  await state.record("tg:update:1", "te-check");
+  const [recorded] = await db.query<{ entry_id: string; channel: string }>(
+    `select entry_id, channel from gas_inbound_events where external_id = 'tg:update:1'`,
+  );
+  if (recorded?.entry_id !== "te-check" || recorded.channel !== "telegram") {
+    problems.push(`журнал события: ${JSON.stringify(recorded)}`);
+  }
+
+  // Диалог: обратно тот же; истёкший — как нет
+  const dialog = { stage: { kind: "menu" }, draft: { objectId: "obj-m1" }, error: null };
+  await state.saveSession({
+    channelUserId: "tg:424242",
+    userId: "u-foreman-1",
+    chatId: "424242",
+    state: dialog as unknown as BotState,
+  });
+  if (
+    JSON.stringify(normalize(await state.session("tg:424242"))) !==
+    JSON.stringify(normalize(dialog))
+  ) {
+    problems.push("диалог после записи и чтения отличается");
+  }
+  if ((await state.session("tg:nobody")) !== null) problems.push("чужой диалог не пуст");
+  await db.query(
+    `update gas_messenger_sessions set expires_at = now() - interval '1 minute' where max_user_id = 'tg:424242'`,
+  );
+  if ((await state.session("tg:424242")) !== null) problems.push("истёкший диалог продолжается");
+
+  // Привязки: приглашение, привязка тем же аккаунтом по новому коду (аккаунт переезжает)
+  const now = "2026-10-03T18:05:00";
+  const first = createInvite({
+    id: "ml-check-1",
+    userId: "u-foreman-1",
+    createdBy: "u-manager",
+    now,
+    code: "CHKA2345",
+  });
+  const second = createInvite({ ...first, id: "ml-check-2", now, code: "CHKB2345" });
+  await state.saveLinks([first, second]);
+  const one = redeemInvite(await state.links(), { code: "CHKA2345", maxUserId: "tg:1", now });
+  if (!one.ok) problems.push("приглашение из базы не принято");
+  else await state.saveLinks(one.links);
+  const two = redeemInvite(await state.links(), { code: "CHKB2345", maxUserId: "tg:1", now });
+  if (!two.ok) problems.push("второе приглашение того же сотрудника не принято");
+  else await state.saveLinks(two.links);
+  const back = await state.links();
+  const linked = back.filter((l) => l.maxUserId === "tg:1").map((l) => l.id);
+  const firstBack = back.find((l) => l.id === "ml-check-1");
+  if (JSON.stringify(linked) !== JSON.stringify(["ml-check-2"])) {
+    problems.push(`привязка после переезда: ${JSON.stringify(linked)}`);
+  }
+  if (firstBack?.createdAt !== now || firstBack.expiresAt !== first.expiresAt) {
+    problems.push(`время приглашения: ${JSON.stringify(firstBack)}`);
+  }
+
+  if (problems.length) {
+    for (const p of problems) console.error(`✗ канал бота: ${p}`);
+    return true;
+  }
+  console.log(
+    "✓ канал бота (B6): событие принимается один раз, диалог и привязки читаются обратно, истёкший диалог не продолжается",
+  );
+  return false;
 }

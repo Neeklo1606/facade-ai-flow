@@ -23,7 +23,7 @@ import {
 } from "@/domain/gas-ops/assistant";
 import { remindersAt, summaryTimeOf, unsent, weekDigestAt } from "@/domain/gas-ops/reminders";
 import { expectations } from "@/domain/gas-ops/week";
-import { useGasActor, useGasData } from "@/lib/gas-ops/use-gas-ops";
+import { useGasActor, useGasData, useGasSnapshot } from "@/lib/gas-ops/use-gas-ops";
 import { useGasActions, useGasWeekView } from "./gas-ops";
 
 export type { AssistantAnswer, AssistantDraft, InboxMessage };
@@ -62,6 +62,7 @@ export function useGasAssistant(): {
   ) => Promise<{ text: string; model: string }>;
 } {
   const data = useGasData();
+  const versions = useGasSnapshot().estimateVersions;
   const actor = useGasActor();
   const week = useGasWeekView();
   const actions = useGasActions();
@@ -89,9 +90,9 @@ export function useGasAssistant(): {
       assistantModel.ask({
         question,
         history,
-        context: assistantContext({ role: actor.role, data, reasons: week.reasons }),
+        context: assistantContext({ role: actor.role, data, reasons: week.reasons, versions }),
       }),
-    [actor.role, data, week.reasons],
+    [actor.role, data, week.reasons, versions],
   );
   return { suggestions: list, ask, runDraft, askModel };
 }

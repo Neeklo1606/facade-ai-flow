@@ -34,6 +34,9 @@ import {
 import { toast } from "@/lib/toast";
 import { ImportWizard, type WizardState } from "@/components/gas-ops/import/ImportWizard";
 import { RuleBuilder } from "@/components/gas-ops/estimates/RuleBuilder";
+import { FolderCard } from "@/components/gas-ops/estimates/FolderCard";
+import { useEstimateFolder } from "@/api/gas-folder";
+import { plural } from "@/lib/format";
 import { EditableAmount } from "@/components/gas-ops/estimates/EditableAmount";
 import { FilterChip, FilterRow } from "@/components/gas-ops/filters/FilterChip";
 import { SearchBar } from "@/components/ui/kit/controls";
@@ -61,6 +64,7 @@ function EstimatesPage() {
   const actions = useGasActions();
   const estimateActions = useGasEstimateActions();
   const directory = useGasDirectory();
+  const folder = useEstimateFolder();
   const [upload, setUpload] = useState(false);
   const [vat, setVat] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -163,6 +167,34 @@ function EstimatesPage() {
           </Button>
         </div>
       ) : null}
+
+      <FolderCard
+        status={folder.status}
+        rows={folder.rows}
+        summary={folder.summary}
+        error={folder.error}
+        loading={folder.loading}
+        busy={folder.busy}
+        pending={folder.pending}
+        canFetch={actor.canManageEstimates}
+        onRefresh={() => void folder.refresh()}
+        onFetch={async () => {
+          const done = await folder.fetchNew();
+          const loaded = done.filter((d) => d.ok);
+          const failed = done.filter((d) => !d.ok);
+          setSuggestions((s) => ({
+            ...s,
+            ...Object.fromEntries(loaded.map((d) => [d.versionId!, d.suggestion])),
+          }));
+          if (loaded.length) {
+            notify(
+              `Забрано из папки: ${loaded.length} ${plural(loaded.length, "смета", "сметы", "смет")}. Ждут подтверждения`,
+            );
+          }
+          for (const f of failed) toast.error(`${f.name}: ${f.message}`);
+          return done;
+        }}
+      />
 
       {pending.length > 0 ? (
         <section aria-labelledby="estimates-pending">
