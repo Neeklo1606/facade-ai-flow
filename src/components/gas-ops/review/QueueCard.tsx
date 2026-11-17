@@ -7,11 +7,18 @@
 import { isAutoAccepted } from "@/api/gas-ops";
 import { ChevronDown } from "lucide-react";
 import { forwardRef } from "react";
-import { costBreakdown, fmtRub, useGasActor, type EntryView, type Remark } from "@/api/gas-ops";
+import {
+  costBreakdown,
+  fmtRub,
+  fmtHours,
+  useGasActor,
+  type EntryView,
+  type Remark,
+} from "@/api/gas-ops";
 import { Chip } from "@/components/ui/kit/status";
 import { EntryStatusBadge } from "../marks";
 import { RemarkChips } from "./remarks";
-import { rowLine } from "./rules";
+import { entryFrame, fmtShortDay, rowLine } from "./rules";
 import { cn } from "@/lib/utils";
 import { sourceLabel, useGasContour } from "@/lib/gas-ops/contour";
 
@@ -64,6 +71,68 @@ export const QueueCard = forwardRef<
         <RemarkChips remarks={remarks} className="min-w-0 flex-1" />
       </span>
     ) : null;
+  if (roomy) {
+    const values = [
+      { label: "Дата", value: fmtShortDay(entry.day) },
+      { label: "Время", value: entryFrame(view) ?? "Не указано" },
+      { label: "Часы", value: fmtHours(view.hours) },
+      ...(money
+        ? [
+            {
+              label: entry.status === "confirmed" ? "Начислено" : "К проверке",
+              value:
+                cost.amountRub === null
+                  ? "Нет суммы"
+                  : `${cost.expected ? "≈ " : ""}${fmtRub(cost.amountRub)}`,
+            },
+          ]
+        : []),
+    ];
+    return (
+      <button
+        ref={ref}
+        type="button"
+        data-queue-card={entry.id}
+        aria-expanded={expanded}
+        aria-controls={controls}
+        onClick={onOpen}
+        className={cn(
+          "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] content-center gap-2 px-row py-3 text-left transition-fast focus-ring",
+          showStatus ? "h-56 sm:h-44" : "h-48 sm:h-36",
+          active ? "bg-surface-2" : "is-hover:bg-surface-2",
+          highlight && "ring-2 ring-orange ring-inset",
+        )}
+      >
+        <span className="min-w-0 truncate text-body-strong">
+          {view.brigade?.name ?? "Бригада не указана"} · {view.object?.label ?? "Объект не указан"}
+        </span>
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "size-5 text-text-3 transition-transform motion-reduce:transition-none",
+            expanded && "rotate-180",
+          )}
+        />
+        <span className="col-span-2 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+          {values.map((item) => (
+            <span key={item.label} className="min-w-0">
+              <span className="block text-meta text-text-3">{item.label}</span>
+              <span className="block whitespace-nowrap text-body-strong tnum">{item.value}</span>
+            </span>
+          ))}
+        </span>
+        <span className="col-span-2 min-w-0">
+          {marks ?? <span className="text-meta text-ok">Без замечаний</span>}
+        </span>
+        {showStatus ? (
+          <EntryStatusBadge status={entry.status} auto={isAutoAccepted(entry)} />
+        ) : null}
+        <span className="sr-only">
+          {entry.number}, {source}, {rowLine(view)}
+        </span>
+      </button>
+    );
+  }
   return (
     <button
       ref={ref}
@@ -74,8 +143,8 @@ export const QueueCard = forwardRef<
       aria-controls={controls}
       onClick={onOpen}
       className={cn(
-        "flex min-h-row-compact w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-row py-1.5 text-left transition-fast focus-ring sm:flex-nowrap",
-        roomy && "h-24 sm:h-28",
+        "min-h-row-compact w-full min-w-0 items-center gap-x-3 gap-y-1 px-row text-left transition-fast focus-ring",
+        "flex flex-wrap py-1.5 sm:flex-nowrap",
         active ? "bg-surface-2" : "is-hover:bg-surface-2 active:bg-surface-2",
         highlight && "ring-2 ring-orange ring-inset",
       )}

@@ -4755,3 +4755,38 @@ main {
   text-align: left;
   padding-block: 10px;
 }
+
+/* ADR-076: семантические цвета личных пометок. Текст остаётся контрастным в обеих темах. */
+:root {
+  --grid-mark-amber: color-mix(in oklab, var(--warn) 18%, var(--surface));
+  --grid-mark-green: color-mix(in oklab, var(--ok) 18%, var(--surface));
+  --grid-mark-violet: color-mix(in oklab, #9276df 22%, var(--surface));
+}
+:root[data-skin="gas"] .gas-grid {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.3;
+}
+:root[data-skin="gas"] .gas-grid tr[data-kind="brigade"] > * {
+  background-color: color-mix(in oklab, var(--ok) 8%, var(--surface));
+}
+.grid-mark-swatch[data-mark="amber"],
+:root[data-skin="gas"] .gas-grid td[data-mark="amber"] {
+  background-color: var(--grid-mark-amber);
+}
+.grid-mark-swatch[data-mark="green"],
+:root[data-skin="gas"] .gas-grid td[data-mark="green"] {
+  background-color: var(--grid-mark-green);
+}
+.grid-mark-swatch[data-mark="violet"],
+:root[data-skin="gas"] .gas-grid td[data-mark="violet"] {
+  background-color: var(--grid-mark-violet);
+}
+:root[data-skin="gas"] .gas-grid td[data-selected] {
+  box-shadow: inset 0 0 0 999px color-mix(in oklab, var(--flame) 12%, transparent);
+}
+:root[data-skin="gas"] .gas-grid td[data-selected][data-status="missing"] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--danger),
+    inset 0 0 0 999px color-mix(in oklab, var(--flame) 12%, transparent);
+}

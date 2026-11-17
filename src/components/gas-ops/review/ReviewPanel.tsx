@@ -104,6 +104,80 @@ export function ReviewPanel({
   const decided = entry.status === "confirmed";
   const auto = isAutoAccepted(entry);
 
+  const actionBar =
+    mode || !canDecide ? null : (
+      <ActionBar sheet={sheet} floatingBottom={floatingBottom}>
+        {decided && auto && onUndoAuto ? (
+          <>
+            <p className="flex min-h-12 min-w-0 flex-1 items-center px-3 text-body text-text-2">
+              Принята автоматически и учтена в отчёте.
+            </p>
+            <button
+              type="button"
+              onClick={onUndoAuto}
+              className="inline-flex h-12 shrink-0 items-center justify-center rounded-control border border-line-2 px-4 text-body focus-ring press-98"
+            >
+              Вернуть в проверку
+            </button>
+          </>
+        ) : decided ? (
+          <p className="flex min-h-12 flex-1 items-center px-3 text-body text-text-2">
+            Принято и учтено в недельном отчёте.
+          </p>
+        ) : (
+          <>
+            <button
+              type="button"
+              data-tour="review-confirm"
+              onClick={onConfirm}
+              disabled={!!blocker}
+              title={blocker ? blocker.todo : undefined}
+              className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-control bg-orange-strong px-4 text-body-strong text-on-orange transition-fast focus-ring press-98 is-hover:bg-orange-strong-hover disabled:opacity-45"
+            >
+              <Check className="size-5 shrink-0" aria-hidden />
+              Принять
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("correct")}
+              aria-label="Исправить"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-3 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2 lg:px-4"
+            >
+              <Pencil className="size-5 shrink-0" aria-hidden />
+              <span className="hidden lg:inline">Исправить</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("clarify")}
+              aria-label="Вернуть на уточнение"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-3 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2 lg:px-4"
+            >
+              <MessageCircleQuestion className="hidden size-5 shrink-0 sm:block" aria-hidden />
+              <span className="2xl:hidden">На уточнение</span>
+              <span className="hidden 2xl:inline">Вернуть на уточнение</span>
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="Ещё действия"
+                className="grid size-12 shrink-0 place-items-center rounded-control border border-line-2 bg-surface text-text transition-fast focus-ring press-98 is-hover:bg-surface-2"
+              >
+                <MoreHorizontal className="size-5" aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="min-w-[200px]">
+                <DropdownMenuItem
+                  onSelect={() => setMode("reject")}
+                  className="min-h-12 gap-2 text-body text-danger"
+                >
+                  <X className="size-4" aria-hidden />
+                  Отклонить
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
+      </ActionBar>
+    );
+
   return (
     <div className={cn("flex min-h-0 flex-col", !sheet && !inline && "h-full")}>
       <header className={cn("shrink-0", sheet ? "px-gutter pt-1" : "px-6 pt-5")}>
@@ -148,6 +222,7 @@ export function ReviewPanel({
           </p>
         ) : null}
       </header>
+      {inline ? actionBar : null}
 
       {/*
        * Деталь на компьютере прокручивается сама: с клавиатуры до неё доходят табуляцией,
@@ -196,78 +271,7 @@ export function ReviewPanel({
           {blocker.todo}
         </p>
       ) : null}
-      {mode || !canDecide ? null : (
-        <ActionBar sheet={sheet} floatingBottom={floatingBottom}>
-          {decided && auto && onUndoAuto ? (
-            <>
-              <p className="flex min-h-12 min-w-0 flex-1 items-center px-3 text-body text-text-2">
-                Принята автоматически и учтена в отчёте.
-              </p>
-              <button
-                type="button"
-                onClick={onUndoAuto}
-                className="inline-flex h-12 shrink-0 items-center justify-center rounded-control border border-line-2 px-4 text-body focus-ring press-98"
-              >
-                Вернуть в проверку
-              </button>
-            </>
-          ) : decided ? (
-            <p className="flex min-h-12 flex-1 items-center px-3 text-body text-text-2">
-              Принято и учтено в недельном отчёте.
-            </p>
-          ) : (
-            <>
-              <button
-                type="button"
-                data-tour="review-confirm"
-                onClick={onConfirm}
-                disabled={!!blocker}
-                title={blocker ? blocker.todo : undefined}
-                className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-control bg-orange-strong px-4 text-body-strong text-on-orange transition-fast focus-ring press-98 is-hover:bg-orange-strong-hover disabled:opacity-45"
-              >
-                <Check className="size-5 shrink-0" aria-hidden />
-                Принять
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("correct")}
-                aria-label="Исправить"
-                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-3 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2 lg:px-4"
-              >
-                <Pencil className="size-5 shrink-0" aria-hidden />
-                <span className="hidden lg:inline">Исправить</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("clarify")}
-                aria-label="Вернуть на уточнение"
-                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-control border border-line-2 bg-surface px-3 text-body-strong text-text transition-fast focus-ring press-98 is-hover:bg-surface-2 lg:px-4"
-              >
-                <MessageCircleQuestion className="hidden size-5 shrink-0 sm:block" aria-hidden />
-                <span className="2xl:hidden">На уточнение</span>
-                <span className="hidden 2xl:inline">Вернуть на уточнение</span>
-              </button>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  aria-label="Ещё действия"
-                  className="grid size-12 shrink-0 place-items-center rounded-control border border-line-2 bg-surface text-text transition-fast focus-ring press-98 is-hover:bg-surface-2"
-                >
-                  <MoreHorizontal className="size-5" aria-hidden />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" side="top" className="min-w-[200px]">
-                  <DropdownMenuItem
-                    onSelect={() => setMode("reject")}
-                    className="min-h-12 gap-2 text-body text-danger"
-                  >
-                    <X className="size-4" aria-hidden />
-                    Отклонить
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-        </ActionBar>
-      )}
+      {inline ? null : actionBar}
     </div>
   );
 }

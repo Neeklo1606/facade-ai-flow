@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Field } from "@/components/ui/kit/field";
 import { ListRow } from "@/components/ui/kit/list";
-import { Sheet } from "@/components/ui/kit/sheet";
 import { AdaptiveSheet } from "@/components/gas-ops/AdaptiveSheet";
 import { Segmented } from "@/components/ui/kit/controls";
 import { FieldGroup, FieldRow, MetricCard } from "@/components/ui/kit/data";
@@ -107,7 +106,18 @@ function BrigadesPage() {
       .map((line) => line.trim())
       .filter(Boolean);
     for (const name of names) {
-      await addCrewMember({ brigadeId: result.value.id, name, from: week.weekFrom });
+      const added = await addCrewMember({ brigadeId: result.value.id, name, from: week.weekFrom });
+      if (!added.ok) {
+        setSaving(false);
+        setAdding(false);
+        setOpen(result.value.id);
+        setDraft(empty());
+        setTried(false);
+        toast.error(
+          `Бригада создана. Состав добавлен частично: ${added.message}. Продолжите в справочнике состава.`,
+        );
+        return;
+      }
     }
     setSaving(false);
     notify(
@@ -149,7 +159,7 @@ function BrigadesPage() {
         <Button
           variant="primary"
           size="lg"
-          className="hidden md:inline-flex"
+          className={cn("hidden md:inline-flex", !office && "md:hidden")}
           onClick={() => setAdding(true)}
         >
           <Plus aria-hidden />
@@ -194,6 +204,7 @@ function BrigadesPage() {
                           {vacation ? "в отпуске" : "работает"}
                         </span>
                         <Switch
+                          disabled={!office}
                           checked={!vacation}
                           onCheckedChange={(on) => void setOnVacation(card.brigade.id, !on)}
                           aria-label={`${card.brigade.name}: работает на этой неделе`}
@@ -229,24 +240,38 @@ function BrigadesPage() {
       </p>
 
       {/* Главная кнопка на телефоне в конце списка: внизу один слой, нижняя панель (4.4) */}
-      <Button variant="primary" size="lg" className="md:hidden" onClick={() => setAdding(true)}>
+      <Button
+        variant="primary"
+        size="lg"
+        className={cn("md:hidden", !office && "hidden")}
+        onClick={() => setAdding(true)}
+      >
         <Plus aria-hidden />
         Добавить бригаду
       </Button>
 
-      <Sheet
+      <AdaptiveSheet
         open={!!current}
         onOpenChange={(next) => {
           if (!next) setOpen(null);
         }}
         id="brigade"
-        size="full"
-        eyebrow={current?.group?.name ?? "Бригада"}
+        description={current?.group?.name ?? "Бригада"}
         title={current?.brigade.name ?? ""}
       >
         {current ? (
-          <div className="flex flex-col gap-section">
-            <div className="grid grid-cols-2 gap-block">
+          <div className="flex flex-col gap-4">
+            {office ? (
+              <div className="flex flex-wrap gap-2">
+                <AssignBrigade brigadeId={current.brigade.id} />
+                <Button variant="secondary" asChild>
+                  <Link to="/gas/directory" search={{ brigade: current.brigade.id }}>
+                    Изменить состав
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
+            <div className="grid grid-cols-2 gap-2 [&>div]:p-3">
               <MetricCard label="Начислено" value={fmtRub(current.totals.amountRub)} />
               <MetricCard label="Часы" value={fmtHours(current.totals.minutes / 60)} />
               <MetricCard label="Доходность" value={fmtRate(current.totals.revenuePerHour)} />
@@ -263,7 +288,10 @@ function BrigadesPage() {
                   />
                 ))
               ) : (
-                <p className="py-2 text-body text-text-3">Состав не указан</p>
+                <div>
+                  <dt className="sr-only">Состав</dt>
+                  <dd className="py-2 text-body text-text-3">Состав не указан</dd>
+                </div>
               )}
             </FieldGroup>
             <section className="py-2">
@@ -300,7 +328,7 @@ function BrigadesPage() {
             </section>
           </div>
         ) : null}
-      </Sheet>
+      </AdaptiveSheet>
 
       <AdaptiveSheet
         open={adding}

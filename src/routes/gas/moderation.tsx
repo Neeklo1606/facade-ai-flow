@@ -32,6 +32,7 @@ import {
   useGasQueue,
   useGasQueueCounts,
   useGasUsers,
+  useGasWeek,
   type EntryStatus,
   type EntryView,
   type InfoKind,
@@ -107,6 +108,7 @@ interface Item {
 
 function ModerationPage() {
   const actor = useGasActor();
+  const week = useGasWeek();
   const actions = useGasActions();
   const confirmSelection = useGasReviewSelection();
   const [from, setFrom] = useState("");
@@ -115,6 +117,7 @@ function ModerationPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const bulkLock = useRef(false);
   const desktop = useIsDesktop();
+  const [periodOpen, setPeriodOpen] = useState(false);
   const floatingBottom = useFloatingBottom();
   const directory = useGasDirectory();
   const { open: openParam } = Route.useSearch();
@@ -564,39 +567,83 @@ function ModerationPage() {
       )}
       {desktop ? null : <div className="mb-3">{filters(false)}</div>}
 
-      <div
-        className="mb-3 flex flex-wrap items-end gap-3"
-        role="group"
-        aria-label="Период проверки"
-      >
-        <label className="flex min-w-[140px] flex-1 flex-col gap-1 text-meta text-text-2">
-          Дата с
-          <input
-            type="date"
-            aria-label="Дата с"
-            value={from}
-            max={to || undefined}
-            onChange={(event) => setFrom(event.target.value)}
-            className="h-12 w-full min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
-          />
-        </label>
-        <label className="flex min-w-[140px] flex-1 flex-col gap-1 text-meta text-text-2">
-          Дата по
-          <input
-            type="date"
-            aria-label="Дата по"
-            value={to}
-            min={from || undefined}
-            onChange={(event) => setTo(event.target.value)}
-            className="h-12 w-full min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
-          />
-        </label>
-        {from && to && from > to ? (
-          <p role="alert" className="text-meta text-warn">
-            Начало периода позже окончания
-          </p>
-        ) : null}
-      </div>
+      {!desktop ? (
+        <Button
+          variant="secondary"
+          className="mb-3"
+          aria-label="Настроить период проверки"
+          aria-expanded={periodOpen}
+          aria-controls="review-period"
+          onClick={() => setPeriodOpen((value) => !value)}
+        >
+          Период:{" "}
+          {from || to
+            ? `${from ? from.slice(8, 10) + "." + from.slice(5, 7) : "начало"}–${to ? to.slice(8, 10) + "." + to.slice(5, 7) : "конец"}`
+            : "все даты"}{" "}
+          {periodOpen ? "▴" : "▾"}
+        </Button>
+      ) : null}
+      {desktop || periodOpen ? (
+        <div
+          id="review-period"
+          className="mb-3 flex flex-wrap items-end gap-3"
+          role="group"
+          aria-label="Период проверки"
+        >
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-meta text-text-2 sm:max-w-48">
+            Дата с
+            <input
+              type="date"
+              aria-label="Дата с"
+              value={from}
+              max={to || undefined}
+              onChange={(event) => setFrom(event.target.value)}
+              className="h-12 w-full min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
+            />
+          </label>
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-meta text-text-2 sm:max-w-48">
+            Дата по
+            <input
+              type="date"
+              aria-label="Дата по"
+              value={to}
+              min={from || undefined}
+              onChange={(event) => setTo(event.target.value)}
+              className="h-12 w-full min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
+            />
+          </label>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setFrom(week.from);
+                setTo(week.to);
+              }}
+            >
+              Неделя отчёта
+            </Button>
+            <Button
+              variant="quiet"
+              onClick={() => {
+                setFrom("");
+                setTo("");
+              }}
+            >
+              Все даты
+            </Button>
+            <span className="text-meta text-text-3">
+              {!from && !to ? "Все даты · " : "Период задан · "}неделя {week.from.slice(8, 10)}.
+              {week.from.slice(5, 7)}–{week.to.slice(8, 10)}.{week.to.slice(5, 7)}.
+              {week.to.slice(0, 4)}
+            </span>
+          </div>
+          {from && to && from > to ? (
+            <p role="alert" className="text-meta text-warn">
+              Начало периода позже окончания
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {clean.length ? (
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <label className="flex min-h-12 cursor-pointer items-center gap-2 text-body">
@@ -731,14 +778,14 @@ function ModerationPage() {
                         aria-label={`Подробности ${item.view.entry.number}`}
                         className="border-t border-line"
                       >
-                        <dl className="grid gap-3 px-gutter pt-4 text-meta sm:grid-cols-3">
+                        <dl className="grid grid-cols-2 gap-3 px-gutter pt-4 text-meta sm:grid-cols-3">
                           <div>
                             <dt className="text-text-3">Автор</dt>
                             <dd>{item.view.author ?? "Автор не указан"}</dd>
                           </div>
                           <div>
                             <dt className="text-text-3">Внесено</dt>
-                            <dd>{item.view.entry.createdAt.replace("T", " ").slice(0, 16)}</dd>
+                            <dd>{`${item.view.entry.createdAt.slice(8, 10)}.${item.view.entry.createdAt.slice(5, 7)}.${item.view.entry.createdAt.slice(0, 4)} · ${item.view.entry.createdAt.slice(11, 16)}`}</dd>
                           </div>
                           <div>
                             <dt className="text-text-3">Источник</dt>

@@ -37,6 +37,8 @@ import {
   type Selection,
 } from "@/api/gas-ops";
 import { cn } from "@/lib/utils";
+import { useGasContour } from "@/lib/gas-ops/contour";
+import { toast } from "@/lib/toast";
 
 export interface GridRow {
   id: string;
@@ -121,6 +123,40 @@ export function Grid({
 }) {
   const id = useId().replace(/:/g, "");
   const scroller = useRef<HTMLDivElement>(null);
+  const markBar = useRef<HTMLDivElement>(null);
+  const [markBarHeight, setMarkBarHeight] = useState(56);
+  useLayoutEffect(() => {
+    const el = markBar.current;
+    if (!el) return;
+    const measure = () => setMarkBarHeight(el.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const contour = useGasContour().kind;
+  const marksKey = `gaika-grid-marks-v1:${contour}`;
+  const [marks, setMarks] = useState<Record<string, string>>({});
+  const [marksReady, setMarksReady] = useState(false);
+  useEffect(() => {
+    setMarksReady(false);
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(marksKey) ?? "{}");
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+        setMarks(
+          Object.fromEntries(
+            Object.entries(saved).filter(
+              ([, v]) => typeof v === "string" && ["amber", "green", "violet"].includes(v),
+            ),
+          ),
+        );
+      } else setMarks({});
+    } catch {
+      setMarks({});
+      toast.error("Не удалось прочитать пометки таблицы");
+    }
+    setMarksReady(true);
+  }, [marksKey]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -128,6 +164,27 @@ export function Grid({
   const dragging = useRef(false);
   const size = { rows: rows.length, cols: columns.length };
   const rect = selection ? rectOf(selection) : null;
+
+  const markSelection = (color: string | null) => {
+    if (!rect || !marksReady) return;
+    const next = { ...marks };
+    for (let r = rect.top; r <= rect.bottom; r += 1) {
+      for (let c = rect.left; c <= rect.right; c += 1) {
+        const row = rows[r];
+        const column = columns[c];
+        if (!row || !column) continue;
+        const key = JSON.stringify([row.id, column.key]);
+        if (color) next[key] = color;
+        else delete next[key];
+      }
+    }
+    try {
+      localStorage.setItem(marksKey, JSON.stringify(next));
+      setMarks(next);
+    } catch {
+      toast.error("Пометки не сохранены: хранилище браузера недоступно");
+    }
+  };
 
   // Переход к ячейке: выделить и прокрутить
   useEffect(() => {
@@ -332,7 +389,7 @@ export function Grid({
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
         onPointerLeave={() => setHoverCol(null)}
         className="surface-1 relative overflow-auto overscroll-contain focus-ring select-none"
-        style={{ height }}
+        style={{ height: `calc(${height} - ${markBarHeight}px)` }}
       >
         {/*
          * Сетка — у прокручиваемого блока: таблица внутри только раскладка (role="presentation"),
@@ -496,6 +553,9 @@ export function Grid({
                       status ? STATUS_HINT[status] : null,
                       value.manual ? "✎ ручная сумма" : null,
                       value.noEstimate ? "нет сметы" : null,
+                      marks[JSON.stringify([row.id, column.key])]
+                        ? "Личная цветовая пометка"
+                        : null,
                     ]
                       .filter(Boolean)
                       .join(" · ");
@@ -506,6 +566,7 @@ export function Grid({
                         aria-selected={selected}
                         data-cell={`${r}:${c}`}
                         data-col={c}
+                        data-mark={marks[JSON.stringify([row.id, column.key])]}
                         data-status={status ?? undefined}
                         data-selected={selected || undefined}
                         title={hint || undefined}
@@ -546,6 +607,49 @@ export function Grid({
             ) : null}
           </tbody>
         </table>
+      </div>
+
+      <div
+        role="group"
+        aria-label="Цвет выделенных ячеек"
+        ref={markBar}
+        className="flex flex-wrap items-center gap-1 border-b border-line py-1 text-meta"
+      >
+        <span className="mr-1 text-text-2">Цвет:</span>
+        {(
+          [
+            ["amber", "Жёлтая"],
+            ["green", "Зелёная"],
+            ["violet", "Сиреневая"],
+          ] as const
+        ).map(([color, title]) => (
+          <button
+            key={color}
+            type="button"
+            disabled={!rect || !marksReady}
+            onClick={() => markSelection(color)}
+            aria-label={`${title} пометка`}
+            className="grid min-h-12 min-w-12 place-items-center rounded-control focus-ring disabled:opacity-40"
+          >
+            <span
+              aria-hidden
+              className="grid-mark-swatch size-5 rounded-sm border border-line-2"
+              data-mark={color}
+            />
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={!rect || !marksReady}
+          onClick={() => markSelection(null)}
+          aria-label="Очистить пометку"
+          className="min-h-12 rounded-control px-2 focus-ring disabled:opacity-40"
+        >
+          Очистить
+        </button>
+        <span className="sr-only text-text-3 sm:not-sr-only">
+          Личные · в этом браузере · без изменения сумм
+        </span>
       </div>
 
       {/* Итоги выделенного, как внизу справа в Google Таблицах */}

@@ -188,6 +188,9 @@ export function SidePanel({
       <Dialog.Portal>
         <Dialog.Content
           data-kit-panel
+          {...(typeof title === "string"
+            ? { "aria-label": title, "aria-labelledby": undefined }
+            : {})}
           onInteractOutside={(event) => event.preventDefault()}
           onKeyDown={(event) => {
             if (event.key === "ArrowDown" && onNext) {

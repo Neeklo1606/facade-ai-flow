@@ -121,7 +121,7 @@ const METRIC_WIDTH: Record<Metric, number> = { amount: 116, hours: 64, rate: 88,
 const LABEL_WIDTH = 320;
 const LABEL_WIDTH_PHONE = 150;
 /** Строка на телефоне: область касания от 44 px (CLAUDE.md, правило 5) */
-const ROW_PHONE = 44;
+const ROW_PHONE = 48;
 /** Ключ выбора «списком / таблицей» на телефоне */
 const TABLE_PREF = "gaika-tabel-phone-table";
 

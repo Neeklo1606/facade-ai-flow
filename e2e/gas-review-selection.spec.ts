@@ -13,6 +13,8 @@ test("выбор видимых часов, даты, подтверждение
   const name = await first.getAttribute("aria-label");
   await first.check();
   await expect(page.getByRole("status").filter({ hasText: "Выбрано:" })).toHaveText("Выбрано: 1");
+  const period = page.getByRole("button", { name: "Настроить период проверки" });
+  if (await period.isVisible()) await period.click();
   await page.getByLabel("Дата с", { exact: true }).fill("2040-01-01");
   await expect(page.getByText("По фильтрам ничего нет")).toBeVisible();
   await page.getByLabel("Дата с", { exact: true }).fill("");

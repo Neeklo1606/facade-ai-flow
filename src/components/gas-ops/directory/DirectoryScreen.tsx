@@ -4,7 +4,8 @@
  * сюда ведут ссылки: один справочник — одно место правки.
  */
 import { showDemoMarks } from "@/lib/cabinet";
-import { Link } from "@tanstack/react-router";
+import { AdaptiveSheet } from "@/components/gas-ops/AdaptiveSheet";
+import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowUpRight, Upload, UserMinus, UserPlus } from "lucide-react";
 import { useState } from "react";
 import {
@@ -45,6 +46,7 @@ function ru(iso: string | null): string {
 }
 
 export function DirectoryScreen() {
+  const { brigade } = useSearch({ from: "/gas/directory" });
   const [section, setSection] = useState<Section>("crew");
   const actor = useGasActor();
   // Ставки — финансы: бригадиру экран не открывается и по прямой ссылке (1.2)
@@ -61,7 +63,7 @@ export function DirectoryScreen() {
       <DirectoryTabs />
       <SegmentedPills label="Справочник" options={SECTIONS} value={section} onChange={setSection} />
       {section === "crew" ? (
-        <CrewSection />
+        <CrewSection key={brigade ?? "default"} initialBrigade={brigade} />
       ) : section === "rates" ? (
         <RatesSection />
       ) : (
@@ -126,14 +128,19 @@ function ImportCard() {
   );
 }
 
-function CrewSection() {
+function CrewSection({ initialBrigade }: { initialBrigade: string | undefined }) {
+  const [adding, setAdding] = useState(false);
   const directory = useGasDirectory();
   const { crew } = useGasCrew();
   const week = useGasWeek();
   const actor = useGasActor();
   const actions = useGasActions();
   const canEdit = actor.role === "manager" || actor.isAdmin;
-  const [brigadeId, setBrigadeId] = useState<string | null>(directory.brigades[0]?.id ?? null);
+  const [brigadeId, setBrigadeId] = useState<string | null>(
+    directory.brigades.find((b) => b.id === initialBrigade)?.id ??
+      directory.brigades[0]?.id ??
+      null,
+  );
   const [name, setName] = useState("");
   const [from, setFrom] = useState(week.today);
   const [error, setError] = useState<string | null>(null);
@@ -193,45 +200,64 @@ function CrewSection() {
           </ul>
         )}
         {canEdit && brigadeId ? (
-          <div className="flex flex-col gap-3 mono-inset">
-            <p className="type-label">Добавить в состав</p>
-            <FormField label="Имя или роль">
-              {(props) => (
-                <input
-                  {...props}
-                  className="mono-input focus-ring"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Например, Монтажник 4"
-                />
-              )}
-            </FormField>
-            <FormField label="В составе с" hint="Дата, с которой человек считается в бригаде">
-              {(props) => (
-                <input
-                  {...props}
-                  type="date"
-                  className="mono-input focus-ring"
-                  value={from}
-                  onChange={(event) => setFrom(event.target.value)}
-                />
-              )}
-            </FormField>
-            <Button
-              onClick={async () => {
-                const result = await actions.addCrewMember({ brigadeId, name, from });
-                if (!result.ok) return setError(result.message);
-                setError(null);
-                setName("");
-                toast.success(`${result.value.name} добавлен в состав с ${ru(from)}`);
-              }}
-            >
+          <>
+            <Button variant="secondary" onClick={() => setAdding(true)}>
               <UserPlus aria-hidden />
-              Добавить
+              Добавить в состав
             </Button>
-          </div>
+            <AdaptiveSheet
+              open={adding}
+              onOpenChange={setAdding}
+              id="crew-add"
+              title="Добавить в состав"
+              description={directory.brigades.find((b) => b.id === brigadeId)?.name ?? "Бригада"}
+            >
+              <div className="flex flex-col gap-3">
+                <FormField label="Имя или роль">
+                  {(props) => (
+                    <input
+                      {...props}
+                      className="mono-input focus-ring"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Например, Монтажник 4"
+                    />
+                  )}
+                </FormField>
+                <FormField label="В составе с" hint="Дата, с которой человек считается в бригаде">
+                  {(props) => (
+                    <input
+                      {...props}
+                      type="date"
+                      className="mono-input focus-ring"
+                      value={from}
+                      onChange={(event) => setFrom(event.target.value)}
+                    />
+                  )}
+                </FormField>
+                <Button
+                  onClick={async () => {
+                    const result = await actions.addCrewMember({ brigadeId, name, from });
+                    if (!result.ok) return setError(result.message);
+                    setError(null);
+                    setName("");
+                    toast.success(`${result.value.name} добавлен в состав с ${ru(from)}`);
+                    setAdding(false);
+                  }}
+                >
+                  <UserPlus aria-hidden />
+                  Добавить
+                </Button>
+                {error ? (
+                  <p role="alert" className="text-meta text-down">
+                    {error}
+                  </p>
+                ) : null}
+              </div>
+            </AdaptiveSheet>
+          </>
         ) : null}
-        {error ? (
+        {error && !adding ? (
           <p role="alert" className="type-label text-down">
             {error}
           </p>
