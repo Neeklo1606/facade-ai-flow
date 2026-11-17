@@ -202,6 +202,12 @@ describe("сервер: права на папку", () => {
     expect(ok.status).toBe(200);
     expect(await ok.json()).toMatchObject({ ok: true, files: [], status: { connected: true } });
   });
+  test("руководитель получает список; роли других модулей получают отказ", async () => {
+    expect((await get({ disk, store: storeWith("director"), userId: "u1" })).status).toBe(200);
+    for (const role of ["foreman", "supply", "pto", "prorab"]) {
+      expect((await get({ disk, store: storeWith(role), userId: "u1" })).status).toBe(403);
+    }
+  });
   test("файл не из папки — 400", async () => {
     const res = await get(
       { disk, store: storeWith("admin"), userId: "u1" },

@@ -1,7 +1,7 @@
 import { completePageHead } from "@/lib/page-head";
 import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { DirectoryImport } from "@/components/gas-ops/directory/DirectoryImport";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -122,6 +122,13 @@ function BrigadesPage() {
   return (
     <div className="flex flex-col gap-block">
       <DirectoryTabs />
+      {actor.canManageEstimates ? (
+        <div>
+          <Button variant="secondary" asChild className="min-h-12">
+            <Link to="/gas/estimates">Сметы</Link>
+          </Button>
+        </div>
+      ) : null}
       {office ? (
         <div className="flex flex-wrap gap-2">
           <DirectoryImport kind="brigades" />

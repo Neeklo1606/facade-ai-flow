@@ -56,7 +56,7 @@ export const QueueCard = forwardRef<
       aria-pressed={active}
       onClick={onOpen}
       className={cn(
-        "flex min-h-row-compact w-full flex-wrap items-center gap-x-3 gap-y-1 px-row py-1.5 text-left transition-fast focus-ring sm:flex-nowrap",
+        "flex min-h-row-compact w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-row py-1.5 text-left transition-fast focus-ring sm:flex-nowrap",
         active ? "bg-surface-2" : "is-hover:bg-surface-2 active:bg-surface-2",
         highlight && "ring-2 ring-orange ring-inset",
       )}

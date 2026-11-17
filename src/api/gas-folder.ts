@@ -66,17 +66,31 @@ export function useEstimateFolder(): {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  const refreshId = useRef(0);
   const refresh = useCallback(async () => {
+    const requestId = ++refreshId.current;
     setLoading(true);
-    const listed = await port.list();
-    setStatus(listed.status);
-    setFiles(listed.ok ? listed.files : []);
-    setError(listed.ok ? null : listed.reason);
-    setLoading(false);
+    try {
+      const listed = await port.list();
+      if (requestId !== refreshId.current) return;
+      setStatus(listed.status);
+      setFiles(listed.ok ? listed.files : []);
+      setError(listed.ok ? null : listed.reason);
+    } catch {
+      if (requestId !== refreshId.current) return;
+      setStatus(null);
+      setFiles([]);
+      setError("Не удалось загрузить список смет. Проверьте связь и повторите.");
+    } finally {
+      if (requestId === refreshId.current) setLoading(false);
+    }
   }, [port]);
 
   useEffect(() => {
     void refresh();
+    return () => {
+      refreshId.current += 1;
+    };
   }, [refresh]);
 
   const rows = useMemo(() => folderRows(files, versions), [files, versions]);

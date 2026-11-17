@@ -54,11 +54,14 @@ export function FolderCard({
 }) {
   const connected = status?.connected === true;
   const demo = status !== null && !status.connected && status.demo;
-  const where = connected
-    ? `Яндекс Диск · ${status.folder.replace(/^disk:/, "")}`
-    : demo
-      ? "Демо: Яндекс Диск не подключён, папка-образец"
-      : "Яндекс Диск не подключён";
+  const where =
+    error && !status
+      ? "Список смет недоступен"
+      : connected
+        ? `Яндекс Диск · ${status.folder.replace(/^disk:/, "")}`
+        : demo
+          ? "Демо: Яндекс Диск не подключён, папка-образец"
+          : "Яндекс Диск не подключён";
   const usable = connected || demo;
   const smeta = (n: number) => `${n} ${plural(n, "смету", "сметы", "смет")}`;
 
@@ -76,40 +79,44 @@ export function FolderCard({
               Папка смет
             </h2>
             <p className="text-meta text-text-3 break-words">{where}</p>
-            <p className="mt-1 text-meta text-text-2" data-testid="estimate-folder-summary">
+            <p
+              className="mt-1 text-meta text-text-2"
+              data-testid="estimate-folder-summary"
+              role={error ? "alert" : "status"}
+            >
               {loading
                 ? "Смотрю папку…"
                 : usable
                   ? (error ?? summary)
-                  : `${error ?? "Нет токена на сервере"}. Администратор сервера задаёт YANDEX_DISK_TOKEN и папку YANDEX_DISK_FOLDER; дальше сметы, положенные в папку, забираются отсюда одним нажатием`}
+                  : (error ??
+                    "Папка не подключена. Обратитесь к администратору или загрузите смету файлом")}
             </p>
           </div>
         </div>
-        {usable ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {canFetch ? (
-              <Button
-                variant="primary"
-                disabled={busy || loading || pending === 0}
-                onClick={() => void onFetch()}
-                iconEnd={<CloudDownload />}
-              >
-                {busy ? "Забираю…" : pending ? `Забрать ${smeta(pending)}` : "Новых смет нет"}
-              </Button>
-            ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {canFetch && usable ? (
             <Button
-              variant="quiet"
-              disabled={loading || busy}
-              onClick={onRefresh}
-              aria-label="Обновить список папки"
+              variant="primary"
+              disabled={busy || loading || !!error || pending === 0}
+              onClick={() => void onFetch()}
+              iconEnd={<CloudDownload />}
             >
-              <RefreshCw aria-hidden />
-              Обновить
+              {busy ? "Забираю…" : pending ? `Забрать ${smeta(pending)}` : "Новых смет нет"}
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+          <Button
+            variant="quiet"
+            disabled={loading || busy}
+            className="min-h-12"
+            onClick={onRefresh}
+            aria-label="Обновить список папки"
+          >
+            <RefreshCw aria-hidden />
+            Обновить
+          </Button>
+        </div>
       </div>
-      {usable && rows.length ? (
+      {usable && !error && rows.length ? (
         <ul className="border-t border-line [&>li+li]:border-t [&>li+li]:border-line">
           {rows.map((row) => (
             <li

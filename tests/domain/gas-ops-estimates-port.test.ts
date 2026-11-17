@@ -116,8 +116,23 @@ describe("версия сметы", () => {
     expect((await port.confirmEstimateVersion(v.id)).estimate.amountRub).toBe(50_001);
   });
 
-  test("бригадир и руководитель смету не загружают", async () => {
+  test("руководитель загружает, привязывает и подтверждает смету", async () => {
     await port.signIn("u-director");
+    const parsed = { ...parseEstimateGrid(resourceGrid()), sheet: "Смета" };
+    const v = await port.addEstimateVersion({ parsed, fileName: "смета.xls", objectId: null });
+    expect(await errorCode(() => port.confirmEstimateVersion(v.id))).toBe("estimate-not-ready");
+    const { objectId } = await freeSlot();
+    await port.linkEstimateVersion({ id: v.id, objectId });
+    const result = await port.confirmEstimateVersion(v.id);
+    expect(result.estimate.amountRub).toBe(50_001);
+    expect((await port.snapshot()).audit[0]).toMatchObject({
+      action: "estimate.confirm",
+      actor: "u-director",
+    });
+  });
+
+  test("бригадир смету не загружает", async () => {
+    await port.signIn("u-foreman-1");
     const parsed = { ...parseEstimateGrid(resourceGrid()), sheet: "Смета" };
     expect(
       await errorCode(() => port.addEstimateVersion({ parsed, fileName: "x", objectId: null })),

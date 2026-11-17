@@ -25,6 +25,7 @@ export type GasMethod = keyof GasOpsPort;
 
 const TIME: readonly Role[] = ["foreman", "manager", "admin"];
 const OFFICE: readonly Role[] = ["manager", "admin"];
+const ESTIMATES: readonly Role[] = ["manager", "admin", "director"];
 const WEEK: readonly Role[] = ["director", "admin"];
 const ALL: readonly Role[] = ["admin", "manager", "foreman", "director", "prorab", "supply", "pto"];
 
@@ -43,13 +44,13 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   undoReview: OFFICE,
   undoAutoAccept: OFFICE,
   setEstimate: OFFICE,
-  addEstimateVersion: OFFICE,
-  discardEstimateVersion: OFFICE,
+  addEstimateVersion: ESTIMATES,
+  discardEstimateVersion: ESTIMATES,
   setUserRole: ["admin"],
-  linkEstimateVersion: OFFICE,
-  reviewEstimateIssues: OFFICE,
-  correctEstimateValue: OFFICE,
-  confirmEstimateVersion: OFFICE,
+  linkEstimateVersion: ESTIMATES,
+  reviewEstimateIssues: ESTIMATES,
+  correctEstimateValue: ESTIMATES,
+  confirmEstimateVersion: ESTIMATES,
   confirmCostRule: OFFICE,
   saveCostRule: OFFICE,
   undoCostRule: OFFICE,

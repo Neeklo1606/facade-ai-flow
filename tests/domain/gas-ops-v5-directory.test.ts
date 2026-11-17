@@ -139,9 +139,9 @@ describe("правка значений сметы", () => {
     expect(bad.ok).toBe(false);
   });
 
-  test("руководитель смету не правит", async () => {
+  test("бригадир смету не правит", async () => {
     const v = await uploaded();
-    await port.signIn("u-director");
+    await port.signIn("u-foreman-1");
     expect(
       await errorCode(() =>
         port.correctEstimateValue({

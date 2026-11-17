@@ -170,7 +170,7 @@ export function useGasActor(): GasActor {
     canReview: role === "manager" || role === "admin",
     canCreate: role === "foreman" || role === "manager" || role === "admin",
     canSeeMoney: role !== "foreman",
-    canManageEstimates: role === "manager" || role === "admin",
+    canManageEstimates: role === "manager" || role === "admin" || role === "director",
     isAdmin: role === "admin",
   };
 }

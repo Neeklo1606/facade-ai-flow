@@ -19,9 +19,7 @@ import { SearchBar } from "@/components/ui/kit/controls";
 import { FilterChip, FilterRow } from "@/components/gas-ops/filters/FilterChip";
 import { EmptyBlock } from "@/components/ui/kit/states";
 import {
-  costBreakdown,
   entryInfo,
-  fmtRub,
   infoCounts,
   INFO_KIND_LABEL,
   isClean,
@@ -39,6 +37,11 @@ import {
   type InfoKind,
   type Remark,
 } from "@/api/gas-ops";
+import {
+  canSelectReview,
+  filterReviewPeriod,
+  useGasReviewSelection,
+} from "@/api/gas-review-selection";
 import { plural } from "@/lib/format";
 import { toast, toastUndo } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -107,6 +110,12 @@ interface Item {
 function ModerationPage() {
   const actor = useGasActor();
   const actions = useGasActions();
+  const confirmSelection = useGasReviewSelection();
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [checked, setChecked] = useState<Set<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const bulkLock = useRef(false);
   const desktop = useIsDesktop();
   // С 768 список и деталь рядом (ADR-045, V7), клавиши J, K, Enter только на компьютере
   const wide = useIsWide();
@@ -138,8 +147,7 @@ function ModerationPage() {
    */
   const ordered = useMemo(() => {
     const text = search.trim().toLowerCase();
-    const items: Item[] = rows
-      .filter((view) => objectId === "all" || view.entry.objectId === objectId)
+    const items: Item[] = filterReviewPeriod(rows, { objectId, from, to })
       .filter((view) => brigadeId === "all" || view.entry.brigadeId === brigadeId)
       .filter((view) =>
         text
@@ -167,12 +175,23 @@ function ModerationPage() {
     return items.sort(
       (a, b) => Number(a.clean) - Number(b.clean) || Number(b.fresh) - Number(a.fresh),
     );
-  }, [rows, objectId, brigadeId, kind, search, userIds]);
+  }, [rows, objectId, from, to, brigadeId, kind, search, userIds]);
 
-  const clean = useMemo(
-    () => ordered.filter((item) => item.clean && item.view.entry.status === "pending"),
-    [ordered],
-  );
+  const clean = useMemo(() => ordered.filter((item) => canSelectReview(item.view)), [ordered]);
+
+  // Фильтры не оставляют скрытые записи в пакете.
+  useEffect(() => {
+    setChecked(new Set());
+  }, [tab, objectId, from, to, brigadeId, kind, search]);
+  const chosen = clean.filter((item) => checked.has(item.view.entry.id));
+  const toggleChecked = (id: string) => {
+    setChecked((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const currentId = wide
     ? (ordered.find((item) => item.view.entry.id === selected)?.view.entry.id ??
@@ -272,33 +291,42 @@ function ModerationPage() {
    * «Принять N без замечаний» выполняется сразу, без диалога (ADR-045, принцип 8): действие
    * обратимое, отмена в тосте 6 секунд. Только записи без ошибок данных и подозрений.
    */
-  const confirmClean = async () => {
-    const list = clean;
-    const sum = list.reduce((acc, item) => acc + (costBreakdown(item.view).amountRub ?? 0), 0);
-    const done: string[] = [];
-    for (const item of list) {
-      const result = await actions.review({ id: item.view.entry.id, action: "confirm" });
-      if (result.ok) done.push(item.view.entry.id);
+  const confirmList = async (list: Item[]) => {
+    if (bulkLock.current || list.length === 0) return;
+    bulkLock.current = true;
+    setBulkBusy(true);
+    try {
+      const { done, failed } = await confirmSelection(list.map((item) => item.view.entry.id));
+      setChecked((previous) => new Set([...previous].filter((id) => !done.includes(id))));
+      if (done.length) {
+        toastUndo(
+          `Принято ${done.length} ${plural(done.length, "запись", "записи", "записей")}`,
+          () => {
+            void (async () => {
+              let undone = 0;
+              for (const id of done) {
+                const result = await actions.undoReview(id);
+                if (result.ok) undone += 1;
+                else toast.error(result.message);
+              }
+              if (undone) toast.success(`Отменено: ${undone}`);
+            })();
+          },
+          "Часы учтены в табеле на исходные даты и объекты",
+        );
+        if (currentId && done.includes(currentId)) setSelected(null);
+      }
+      if (failed.length)
+        toast.error(`Не принято: ${failed.length}`, { description: failed[0]?.message });
+    } finally {
+      bulkLock.current = false;
+      setBulkBusy(false);
     }
-    if (done.length === 0) {
-      toast.error("Не получилось принять записи. Повторите.");
-      return;
-    }
-    toastUndo(
-      `Принято ${done.length} ${plural(done.length, "запись", "записи", "записей")} на ${fmtRub(sum)}`,
-      () => {
-        void (async () => {
-          for (const id of done) await actions.undoReview(id);
-        })();
-      },
-      "Записи без замечаний ушли в недельный отчёт",
-    );
-    if (currentId && done.includes(currentId)) setSelected(null);
   };
 
   /* ---------- Клавиши на компьютере: J и K по списку, Enter принимает ---------- */
   useEffect(() => {
-    if (!actor.canReview) return;
+    if (!actor.canReview || bulkBusy) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
@@ -332,7 +360,7 @@ function ModerationPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [desktop, actor.canReview, ordered, currentId, current, decide]);
+  }, [desktop, actor.canReview, bulkBusy, ordered, currentId, current, decide]);
 
   if (!actor.canReview) {
     return (
@@ -357,7 +385,7 @@ function ModerationPage() {
       view={current}
       layout={wide ? "panel" : "sheet"}
       floatingBottom={floatingBottom}
-      canDecide={actor.canReview}
+      canDecide={actor.canReview && !bulkBusy}
       onConfirm={() => void decide(current, "confirm")}
       onDecide={(action, comment) => decide(current, action, comment)}
       onUndoAuto={() =>
@@ -375,8 +403,14 @@ function ModerationPage() {
   ) : null;
 
   const activeFilters =
-    Number(objectId !== "all") + Number(brigadeId !== "all") + Number(kind !== "all");
+    Number(objectId !== "all") +
+    Number(brigadeId !== "all") +
+    Number(kind !== "all") +
+    Number(!!from) +
+    Number(!!to);
   const resetFilters = () => {
+    setFrom("");
+    setTo("");
     setObjectId("all");
     setBrigadeId("all");
     setKind("all");
@@ -399,12 +433,16 @@ function ModerationPage() {
   const bulk = (
     <Button
       data-tour="review-accept-clean"
-      onClick={() => void confirmClean()}
-      disabled={tab !== "pending" || clean.length === 0}
+      onClick={() => void confirmList(chosen.length ? chosen : clean)}
+      disabled={bulkBusy || clean.length === 0}
       className={cn("max-lg:h-12 max-lg:w-full")}
     >
       <CheckCheck aria-hidden />
-      Принять {clean.length} без замечаний
+      {bulkBusy
+        ? "Подтверждаю…"
+        : chosen.length
+          ? `Подтвердить выбранные (${chosen.length})`
+          : `Принять ${clean.length} без замечаний`}
     </Button>
   );
 
@@ -535,6 +573,73 @@ function ModerationPage() {
       )}
       {desktop ? null : <div className="mb-3">{filters(false)}</div>}
 
+      <div className="mb-3 flex flex-wrap items-end gap-3" aria-label="Период проверки">
+        <label className="flex min-w-0 flex-col gap-1 text-meta text-text-2">
+          Дата с
+          <input
+            type="date"
+            aria-label="Дата с"
+            value={from}
+            max={to || undefined}
+            onChange={(event) => setFrom(event.target.value)}
+            className="h-12 min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
+          />
+        </label>
+        <label className="flex min-w-0 flex-col gap-1 text-meta text-text-2">
+          Дата по
+          <input
+            type="date"
+            aria-label="Дата по"
+            value={to}
+            min={from || undefined}
+            onChange={(event) => setTo(event.target.value)}
+            className="h-12 min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
+          />
+        </label>
+        {from && to && from > to ? (
+          <p role="alert" className="text-meta text-warn">
+            Начало периода позже окончания
+          </p>
+        ) : null}
+      </div>
+      {clean.length ? (
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <label className="flex min-h-12 cursor-pointer items-center gap-2 text-body">
+            <input
+              type="checkbox"
+              aria-label="Выбрать все доступные записи"
+              ref={(node) => {
+                if (node) node.indeterminate = chosen.length > 0 && chosen.length < clean.length;
+              }}
+              disabled={bulkBusy}
+              checked={chosen.length === clean.length}
+              onChange={(event) =>
+                setChecked(
+                  event.target.checked
+                    ? new Set(clean.map((item) => item.view.entry.id))
+                    : new Set(),
+                )
+              }
+              className="size-5 accent-orange"
+            />
+            Выбрать доступные
+          </label>
+          <span role="status" className="text-meta text-text-2">
+            Выбрано: {chosen.length}
+          </span>
+          {chosen.length ? (
+            <Button variant="quiet" disabled={bulkBusy} onClick={() => setChecked(new Set())}>
+              Снять выбор
+            </Button>
+          ) : null}
+          <span className="text-meta text-text-3">Записи с замечаниями проверяются отдельно</span>
+        </div>
+      ) : null}
+
+      <p id="review-selection-help" className="mb-3 text-meta text-text-3">
+        Записи с замечаниями проверяются отдельно
+      </p>
+
       <div className="grid min-w-0 gap-section md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6">
         <div className="min-w-0">
           {ordered.length === 0 ? (
@@ -583,7 +688,29 @@ function ModerationPage() {
               {ordered.map((item) => {
                 const id = item.view.entry.id;
                 return (
-                  <li key={id}>
+                  <li key={id} className="flex items-start">
+                    {item.view.entry.status === "pending" ? (
+                      <label
+                        className="flex min-h-12 min-w-12 shrink-0 items-center justify-center"
+                        title={
+                          canSelectReview(item.view)
+                            ? "Выбрать для подтверждения"
+                            : "Требуется индивидуальная проверка"
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          aria-label={`Выбрать ${item.view.entry.number}`}
+                          aria-describedby={
+                            !canSelectReview(item.view) ? "review-selection-help" : undefined
+                          }
+                          checked={canSelectReview(item.view) && checked.has(id)}
+                          disabled={bulkBusy || !canSelectReview(item.view)}
+                          onChange={() => toggleChecked(id)}
+                          className="size-5 accent-orange"
+                        />
+                      </label>
+                    ) : null}
                     <QueueCard
                       ref={(node) => {
                         if (node) cards.current.set(id, node);

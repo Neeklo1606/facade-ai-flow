@@ -352,6 +352,17 @@ function mustManager(snapshot: GasOpsSnapshot, message: string): void {
   }
 }
 
+/** Операции версий смет доступны руководителю; остальные права менеджера не меняются. */
+function mustEstimateEditor(snapshot: GasOpsSnapshot): void {
+  const role = snapshot.users.find((u) => u.id === snapshot.actorId)?.role;
+  if (role !== "manager" && role !== "admin" && role !== "director") {
+    throw new GasOpsError(
+      "not-allowed",
+      "Сметы загружает и подтверждает менеджер или руководитель.",
+    );
+  }
+}
+
 /** Закрытая неделя не меняется (инвариант 1.4, 3): правка, решение и новая запись отклоняются */
 function mustBeOpen(snapshot: GasOpsSnapshot, ...days: string[]): void {
   if (days.some((day) => isDayLocked(snapshot.periods, day))) {
@@ -861,7 +872,7 @@ export function createGasOpsDemo(
 
     addEstimateVersion: async (input) => {
       const snapshot = await store.read();
-      mustManager(snapshot, "Сметы загружает менеджер или сметчик.");
+      mustEstimateEditor(snapshot);
       const { parsed } = input;
       const version: EstimateVersion = {
         id: newId("esv"),
@@ -905,7 +916,7 @@ export function createGasOpsDemo(
 
     discardEstimateVersion: async (id) => {
       const snapshot = await store.read();
-      mustManager(snapshot, "Сметы загружает менеджер или сметчик.");
+      mustEstimateEditor(snapshot);
       const version = snapshot.estimateVersions.find((v) => v.id === id);
       if (!version) throw new GasOpsError("not-found", "Версия сметы не найдена.");
       if (version.confirmedAt !== null) {
@@ -966,7 +977,7 @@ export function createGasOpsDemo(
 
     linkEstimateVersion: async (input) => {
       const snapshot = await store.read();
-      mustManager(snapshot, "Привязку подтверждает менеджер или сметчик.");
+      mustEstimateEditor(snapshot);
       const v = mustVersion(snapshot, input.id);
       if (v.confirmedAt) throw new GasOpsError("already-reviewed", "Версия уже подтверждена.");
       const object = snapshot.objects.find((o) => o.id === input.objectId);
@@ -1000,7 +1011,7 @@ export function createGasOpsDemo(
 
     reviewEstimateIssues: async (id) => {
       const snapshot = await store.read();
-      mustManager(snapshot, "Замечания проверяет сметчик или менеджер.");
+      mustEstimateEditor(snapshot);
       const v = mustVersion(snapshot, id);
       const next = await store.update(
         (s) => ({
@@ -1025,7 +1036,7 @@ export function createGasOpsDemo(
 
     correctEstimateValue: async (input) => {
       const snapshot = await store.read();
-      mustManager(snapshot, "Смету правит сметчик или менеджер.");
+      mustEstimateEditor(snapshot);
       const v = mustVersion(snapshot, input.id);
       const result = correctVersion(
         v,
@@ -1058,7 +1069,7 @@ export function createGasOpsDemo(
 
     confirmEstimateVersion: async (id) => {
       const snapshot = await store.read();
-      mustManager(snapshot, "Смету подтверждает менеджер или сметчик.");
+      mustEstimateEditor(snapshot);
       const v = mustVersion(snapshot, id);
       const ready = canConfirmVersion(v);
       if (!ready.ok) throw new GasOpsError("estimate-not-ready", ready.reason);

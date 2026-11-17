@@ -61,6 +61,7 @@ export const Route = createFileRoute("/gas/estimates")({
 function EstimatesPage() {
   const { rows, unlinked, companyRule, versions, latestUploaded } = useGasWorkCost();
   const actor = useGasActor();
+  const canManageRules = actor.role === "manager" || actor.isAdmin;
   const actions = useGasActions();
   const estimateActions = useGasEstimateActions();
   const directory = useGasDirectory();
@@ -135,7 +136,7 @@ function EstimatesPage() {
         formula={formulaOf(companyRule)}
         status={companyRule.status}
         revision={companyRule.revision ?? 1}
-        canConfirm={actor.canManageEstimates}
+        canConfirm={canManageRules}
         onSetup={() => setBuilder({ objectId: null, versionId: null })}
         onConfirm={async () => {
           const result = await estimateActions.confirmRule({
@@ -152,9 +153,11 @@ function EstimatesPage() {
           <Button variant="primary" onClick={() => setUpload(true)} iconEnd={<Upload />}>
             Загрузить смету
           </Button>
-          <Button variant="secondary" onClick={() => setManual(true)}>
-            Ввести вручную
-          </Button>
+          {canManageRules ? (
+            <Button variant="secondary" onClick={() => setManual(true)}>
+              Ввести вручную
+            </Button>
+          ) : null}
           <Button
             variant="quiet"
             onClick={async () => {
@@ -411,6 +414,7 @@ function EstimatesPage() {
           suggestion={suggestions[opened.id] ?? null}
           rule={ruleOf(opened.objectId)}
           canManage={actor.canManageEstimates}
+          canManageRules={canManageRules}
           onClose={() => setOpenId(null)}
           onManual={() => {
             setOpenId(null);
@@ -612,6 +616,7 @@ function VersionSheet({
   suggestion,
   rule,
   canManage,
+  canManageRules,
   onClose,
   onManual,
   onRule,
@@ -620,6 +625,7 @@ function VersionSheet({
   suggestion: string | null;
   rule: CostRule;
   canManage: boolean;
+  canManageRules: boolean;
   onClose: () => void;
   onManual: () => void;
   /** Конструктор своего правила объекта (F2) */
@@ -717,7 +723,7 @@ function VersionSheet({
                 >
                   Замечания проверены
                 </Button>
-                <Button variant="quiet" size="sm" onClick={onManual}>
+                <Button variant="quiet" size="sm" disabled={!canManageRules} onClick={onManual}>
                   Ввести сумму вручную
                 </Button>
               </div>
@@ -871,7 +877,7 @@ function VersionSheet({
           {!ready.ok && !confirmed ? (
             <p className="mt-2 text-meta text-warn">{ready.reason}</p>
           ) : null}
-          {canManage && version.objectId ? (
+          {canManageRules && version.objectId ? (
             <div className="mt-2 flex flex-wrap gap-2">
               <Button variant="secondary" size="sm" onClick={() => onRule(version.objectId!)}>
                 Своё правило для объекта

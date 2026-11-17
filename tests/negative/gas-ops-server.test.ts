@@ -60,6 +60,77 @@ describe("серверные функции учёта времени: дост�
     expect(GAS_METHOD_ROLES.closeWeek).toEqual(["director", "admin"]);
   });
 
+  test("руководитель получает только операции версий сметы", async () => {
+    for (const method of [
+      "addEstimateVersion",
+      "discardEstimateVersion",
+      "linkEstimateVersion",
+      "reviewEstimateIssues",
+      "correctEstimateValue",
+      "confirmEstimateVersion",
+    ] as const) {
+      expect(GAS_METHOD_ROLES[method]).toEqual(["manager", "admin", "director"]);
+    }
+    for (const method of [
+      "review",
+      "setEstimate",
+      "saveCostRule",
+      "confirmCostRule",
+      "applySchedule",
+    ] as const) {
+      expect(GAS_METHOD_ROLES[method]).not.toContain("director");
+    }
+    const store = memory();
+    const input = {
+      parsed: {
+        format: "resource",
+        status: "parsed",
+        sheet: "Смета",
+        totals: {
+          withoutVat: { kopecks: 8000000, row: 10 },
+          materials: { kopecks: 3000000, row: 11 },
+        },
+        vatRate: null,
+        laborHours: null,
+        sections: [],
+        extras: [],
+        issues: [],
+      },
+      objectId: null,
+      fileName: "пример.xlsx",
+    };
+    const version = (await callGasMethod({
+      store,
+      userId: "u-director",
+      method: "addEstimateVersion",
+      args: [input],
+    })) as { id: string };
+    expect(version.id).toBeTruthy();
+    const objectId = store.now().objects[0]!.id;
+    await callGasMethod({
+      store,
+      userId: "u-director",
+      method: "linkEstimateVersion",
+      args: [{ id: version.id, objectId }],
+    });
+    await callGasMethod({
+      store,
+      userId: "u-director",
+      method: "confirmEstimateVersion",
+      args: [version.id],
+    });
+    expect(store.now().estimateVersions.find((v) => v.id === version.id)?.confirmedBy).toBe(
+      "u-director",
+    );
+    for (const userId of ["u-foreman-1", "u-supply", "u-pto", "u-prorab"]) {
+      expect(
+        await refusal(() =>
+          callGasMethod({ store, userId, method: "addEstimateVersion", args: [input] }),
+        ),
+      ).toBe(403);
+    }
+  });
+
   test("без сессии 401, чужой пользователь и неизвестное действие 403", async () => {
     const store = memory();
     const call = (userId: string | null, method = "snapshot") =>
