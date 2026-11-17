@@ -39,7 +39,7 @@ test("после отказа сервера повторный запрос в�
           status: { connected: true, demo: false, folder: "disk:/Сметы" },
           files: [],
         });
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   try {
     const failed = await estimateFolderServer.list();
     expect(failed.ok).toBe(false);
