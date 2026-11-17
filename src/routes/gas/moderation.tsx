@@ -573,7 +573,11 @@ function ModerationPage() {
       )}
       {desktop ? null : <div className="mb-3">{filters(false)}</div>}
 
-      <div className="mb-3 flex flex-wrap items-end gap-3" aria-label="Период проверки">
+      <div
+        className="mb-3 flex flex-wrap items-end gap-3"
+        role="group"
+        aria-label="Период проверки"
+      >
         <label className="flex min-w-0 flex-col gap-1 text-meta text-text-2">
           Дата с
           <input
