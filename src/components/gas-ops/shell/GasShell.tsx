@@ -822,7 +822,11 @@ function GasPhoneHeader({ screen }: { screen: GasScreen }) {
           <ChevronLeft className="size-6" strokeWidth={1.75} aria-hidden />
         </button>
       ) : (
-        <Link to="/gas" aria-label="На старт" className="shrink-0 rounded-control focus-ring">
+        <Link
+          to="/gas"
+          aria-label="На старт"
+          className="touch-target shrink-0 rounded-control focus-ring"
+        >
           <BrandTile />
         </Link>
       )}

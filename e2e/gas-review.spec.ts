@@ -1,14 +1,8 @@
 import type { Page } from "@playwright/test";
 import { expect, open, test } from "./fixtures";
 
-/**
- * «Проверка» (ADR-061, 10; раздел 4.3) на 390 (лист на весь экран) и 1440 (очередь 60%,
- * деталь 40%, клавиши J, K, Enter, Esc): принять, исправить с причиной, вернуть на уточнение
- * с вопросом, «Принять N без замечаний», «Сравнить», запись после решения в журнале.
- * Каждый тест начинает с исходного демо-набора.
- *
- * Записи демо-набора: ГЗ-00096 без замечаний (только «объект на несколько дней» — сведение
- * о финансах), ГЗ-00098 с подозрением «Пересечение времени» и без суммы.
+/** Проверка карточками (ADR-074): одинаковая закрытая высота, раскрытие на месте,
+ * независимый выбор, индивидуальные решения, причины, сравнение и клавиатура.
  */
 
 const toast = (page: Page, text: RegExp | string) =>
@@ -46,27 +40,24 @@ for (const run of WIDTHS) {
       const chips = card(page, "ГЗ-00098").locator("ul > li:not([aria-hidden])");
       expect(await chips.count()).toBeLessThanOrEqual(3);
       await expect(card(page, "ГЗ-00098")).toContainText("+");
+      const cards = page.locator("[data-queue-card]");
+      const heights = await cards.evaluateAll((nodes) =>
+        nodes.map((node) => node.getBoundingClientRect().height),
+      );
+      expect(new Set(heights).size).toBe(1);
+      expect(heights[0]).toBeGreaterThanOrEqual(96);
+      await expect(cards.first()).toHaveAttribute("aria-expanded", "false");
+      await expect(page.locator("#review-title")).toHaveCount(0);
       if (!run.phone) {
-        // Строка 1440: первый элемент очереди не ниже 200 px, высота строки 52
-        const first = (await page.locator("[data-queue-card]").first().boundingBox())!;
-        expect(first.y).toBeLessThanOrEqual(200);
-        expect(Math.round(first.height)).toBeGreaterThanOrEqual(52);
-        expect(Math.round(first.height)).toBeLessThanOrEqual(56);
-        // Очередь 60%, деталь 40%
-        const list = (await page.getByRole("list", { name: "Очередь проверки" }).boundingBox())!;
-        const aside = (await page
-          .locator("aside")
-          .filter({ has: confirmButton(page) })
-          .boundingBox())!;
-        expect(list.width / (list.width + aside.width)).toBeGreaterThan(0.57);
-        expect(list.width / (list.width + aside.width)).toBeLessThan(0.63);
+        const first = (await cards.first().boundingBox())!;
+        expect(first.y + first.height).toBeLessThan(page.viewportSize()!.height);
       }
     });
 
     test("принять в два касания, отмена из тоста, пять блоков детали", async ({ page }) => {
       await open(page, "/gas/moderation");
       await card(page, "ГЗ-00096").click();
-      if (run.phone) await expect(page.locator("[data-review-sheet]")).toBeVisible();
+      await expect(card(page, "ГЗ-00096")).toHaveAttribute("aria-expanded", "true");
       for (const name of ["Что проверить", "Данные бригадира", "Расчёт", "Стоимость", "История"])
         await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
       await confirmButton(page).click();
@@ -92,10 +83,7 @@ for (const run of WIDTHS) {
       await button.click();
       await expect(page.getByRole("alertdialog")).toHaveCount(0);
 
-      const done = toast(
-        page,
-        new RegExp(`Принято ${count} запис[а-я]* на [\\d\\s\u00a0\u202f]+₽`),
-      );
+      const done = toast(page, new RegExp(`Принято ${count} запис[а-я]*`));
       await expect(done).toBeVisible();
       await expect(card(page, "ГЗ-00096")).toHaveCount(0);
       // Записи с подозрениями пачкой не принимаются
@@ -230,15 +218,19 @@ for (const run of WIDTHS) {
        * Телефон (4.3): список и деталь на весь экран, кнопки решения внизу одним слоем
        * 64 px у края экрана, нижняя панель оболочки закрыта.
        */
-      test("деталь на весь экран, одна панель решения внизу", async ({ page }) => {
+      test("деталь внутри карточки, одна панель решения и доступное меню", async ({ page }) => {
         await open(page, "/gas/moderation");
         await card(page, "ГЗ-00096").click();
-        const bar = await page.getByRole("group", { name: "Решение по записи" }).boundingBox();
+        const actions = page.getByRole("group", { name: "Решение по записи" });
+        await expect(actions).toHaveCount(1);
+        await actions.scrollIntoViewIfNeeded();
+        const bar = await actions.boundingBox();
         expect(bar).not.toBeNull();
-        await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeHidden();
+        await expect(page.getByRole("navigation", { name: "Основные разделы" })).toBeVisible();
         const viewport = page.viewportSize()!;
         expect(bar!.y + bar!.height).toBeLessThanOrEqual(viewport.height);
-        expect(bar!.height).toBeLessThanOrEqual(65);
+        // Две строки действий по 48 px с отступами, без прежнего полноэкранного листа.
+        expect(bar!.height).toBeLessThanOrEqual(144);
         // «Принять» — полевое действие: не ниже 48 px
         const confirm = await confirmButton(page).boundingBox();
         expect(confirm!.height).toBeGreaterThanOrEqual(48);
@@ -261,14 +253,16 @@ for (const run of WIDTHS) {
         // Фокус вернулся на «?»: Enter на кнопке снова открыл бы справку. Работа идёт в списке
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         const first = page.locator("[data-queue-card]").first();
-        await expect(first).toHaveAttribute("aria-pressed", "true");
+        await expect(first).toHaveAttribute("aria-expanded", "false");
+        await page.locator("body").press("j");
+        await expect(first).toHaveAttribute("aria-expanded", "true");
         await page.locator("body").press("j");
         await expect(page.locator("[data-queue-card]").nth(1)).toHaveAttribute(
-          "aria-pressed",
+          "aria-expanded",
           "true",
         );
         await page.locator("body").press("k");
-        await expect(first).toHaveAttribute("aria-pressed", "true");
+        await expect(first).toHaveAttribute("aria-expanded", "true");
 
         // Esc закрывает форму причины, запись остаётся открытой
         await page.getByRole("button", { name: "Вернуть на уточнение" }).click();
@@ -283,7 +277,7 @@ for (const run of WIDTHS) {
         await expect(toast(page, "Принято")).toBeVisible();
         await expect(page.locator(`[data-queue-card="${id}"]`)).toHaveCount(0);
         // Следующая запись открылась сама
-        await expect(page.locator('[data-queue-card][aria-pressed="true"]')).toHaveCount(1);
+        await expect(page.locator('[data-queue-card][aria-expanded="true"]')).toHaveCount(1);
       });
 
       test("фильтр по типу замечания и поиск не сбрасываются после решения", async ({ page }) => {

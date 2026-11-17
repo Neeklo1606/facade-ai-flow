@@ -105,7 +105,7 @@ function DemoWorkspace() {
         ) : null}
       </section>
       <section className="surface-1 min-w-0 p-card">
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-meta">
             Объект для демонстрации
             <select

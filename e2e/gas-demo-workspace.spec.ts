@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { mobileCheck } from "./mobile-checks";
 import { expect, expectA11y, open, test } from "./fixtures";
 
 const file = () => {
@@ -103,6 +104,12 @@ test("разделы загруженного Excel: проект долей, о
   await page.reload();
   await page.getByRole("button", { name: "Открыть проект начислений", exact: true }).click();
   await expect(page.getByText(/Распределено 40 %/)).toBeVisible();
+  if (page.viewportSize()!.width <= 430) {
+    expect((await mobileCheck(page)).small).toEqual([]);
+    const remove = page.getByRole("button", { name: /^Удалить долю/ }).first();
+    const hit = await remove.boundingBox();
+    expect(hit!.height).toBeGreaterThanOrEqual(48);
+  }
   await page.screenshot({
     path: `/tmp/gaika-demo-allocation-${page.viewportSize()!.width}.png`,
     fullPage: true,
@@ -128,6 +135,11 @@ test("разделы загруженного Excel: проект долей, о
     { header: 1, raw: true },
   );
   expect(records.some((row) => row[2] === "СМР" && row[5] === 40 && Number(row[6]) > 0)).toBe(true);
+  await page
+    .getByRole("button", { name: /^Удалить долю/ })
+    .first()
+    .click();
+  await expect(page.getByText(/Распределено 40 %/)).toHaveCount(0);
   await expectA11y(page, "Проект начислений");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });

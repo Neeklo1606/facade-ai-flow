@@ -206,7 +206,7 @@ export function AllocationPreview({ version }: { version: EstimateVersion }) {
                             </span>
                             <Button
                               variant="quiet"
-                              size="sm"
+                              className="min-h-12 min-w-12"
                               aria-label={`Удалить долю ${r.percent} % за ${r.day}`}
                               onClick={() =>
                                 save({ ...plan, rows: plan.rows.filter((x) => x.id !== r.id) })
