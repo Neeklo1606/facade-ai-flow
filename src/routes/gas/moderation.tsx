@@ -10,15 +10,15 @@ import {
   type CorrectInput,
   type DecideResult,
 } from "@/components/gas-ops/review/ReviewPanel";
-import { PhoneSheet } from "@/components/gas-ops/review/PhoneSheet";
 import { StatusPills } from "@/components/gas-ops/review/remarks";
-import { useFloatingBottom, useIsDesktop, useIsWide } from "@/components/gas-ops/review/use-layout";
+import { useFloatingBottom, useIsDesktop } from "@/components/gas-ops/review/use-layout";
 import { ScreenActions, ScreenCounters } from "@/components/gas-ops/shell/screen-header";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/kit/controls";
 import { FilterChip, FilterRow } from "@/components/gas-ops/filters/FilterChip";
 import { EmptyBlock } from "@/components/ui/kit/states";
 import {
+  CHANNEL_LABEL,
   entryInfo,
   infoCounts,
   INFO_KIND_LABEL,
@@ -48,11 +48,9 @@ import { cn } from "@/lib/utils";
 import { useBottomLayer } from "@/lib/ui/bottom-layers";
 
 /**
- * «Проверка» (ADR-061, 10; раздел 4.3): очередь слева 60%, решение справа 40%. Шапка — главная
- * кнопка «Принять N без замечаний» и фильтры в месте действий оболочки, строка счётчиков —
- * таблетки статусов и счётчики типов сведений. Карточек показателей нет: экран начинается
- * со списка. После решения открывается следующая запись, фильтры и позиция остаются.
- * Клавиши на компьютере: J и K по списку, Enter принимает, Esc закрывает форму и лист.
+ * Проверка карточками (ADR-074): одна центральная колонка, деталь раскрывается на месте.
+ * Чекбокс независим от раскрытия; фильтры и пакетное решение сохраняют правила ADR-073.
+ * J/K открывают соседнюю запись, Enter принимает, Esc сворачивает деталь.
  */
 type Tab = Extract<EntryStatus, "pending" | "clarify" | "confirmed"> | "all";
 type KindFilter = InfoKind | "clean" | "all";
@@ -117,8 +115,6 @@ function ModerationPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const bulkLock = useRef(false);
   const desktop = useIsDesktop();
-  // С 768 список и деталь рядом (ADR-045, V7), клавиши J, K, Enter только на компьютере
-  const wide = useIsWide();
   const floatingBottom = useFloatingBottom();
   const directory = useGasDirectory();
   const { open: openParam } = Route.useSearch();
@@ -193,13 +189,8 @@ function ModerationPage() {
     });
   };
 
-  const currentId = wide
-    ? (ordered.find((item) => item.view.entry.id === selected)?.view.entry.id ??
-      ordered[0]?.view.entry.id ??
-      null)
-    : sheetOpen
-      ? selected
-      : null;
+  const currentId =
+    sheetOpen && ordered.some((item) => item.view.entry.id === selected) ? selected : null;
   const current = useMemo(
     () => ordered.find((item) => item.view.entry.id === currentId)?.view ?? null,
     [currentId, ordered],
@@ -331,10 +322,14 @@ function ModerationPage() {
       if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
-      // Esc закрывает форму причины (ReviewPanel) и лист на телефоне (PhoneSheet)
       if (!desktop) return;
       if (document.querySelector("[role='dialog'], [role='alertdialog'], [role='menu']")) return;
       if (document.getElementById("reason-title")) return;
+      if (event.key === "Escape") {
+        setSheetOpen(false);
+        cards.current.get(currentId ?? "")?.focus();
+        return;
+      }
       const index = ordered.findIndex((item) => item.view.entry.id === currentId);
       if (event.code === "KeyJ" || event.code === "KeyK") {
         event.preventDefault();
@@ -342,17 +337,13 @@ function ModerationPage() {
         const next = ordered[Math.min(ordered.length - 1, Math.max(0, index + step))];
         if (!next) return;
         setSelected(next.view.entry.id);
+        setSheetOpen(true);
         cards.current.get(next.view.entry.id)?.scrollIntoView({ block: "nearest" });
         return;
       }
       if (event.key === "Enter" && current) {
-        // Enter на чужой кнопке делает своё; на строке открытой записи — принимает
-        const card = target?.closest("[data-queue-card]");
-        if (
-          target?.closest("button, a") &&
-          card?.getAttribute("data-queue-card") !== current.entry.id
-        )
-          return;
+        // Клавиша на кнопке раскрытия выполняет её действие и не принимает часы.
+        if (target?.closest("button, a")) return;
         if (current.entry.status === "confirmed") return;
         event.preventDefault();
         void decide(current, "confirm");
@@ -375,15 +366,15 @@ function ModerationPage() {
   }
 
   const openEntry = (id: string) => {
+    setSheetOpen(currentId !== id);
     setSelected(id);
-    setSheetOpen(true);
   };
 
   const panel = current ? (
     <ReviewPanel
       key={current.entry.id}
       view={current}
-      layout={wide ? "panel" : "sheet"}
+      layout="inline"
       floatingBottom={floatingBottom}
       canDecide={actor.canReview && !bulkBusy}
       onConfirm={() => void decide(current, "confirm")}
@@ -398,7 +389,7 @@ function ModerationPage() {
           )
       }
       onCorrect={(input) => correct(current, input)}
-      {...(wide ? {} : { onClose: () => setSheetOpen(false) })}
+      onClose={() => setSheetOpen(false)}
     />
   ) : null;
 
@@ -493,7 +484,7 @@ function ModerationPage() {
   );
 
   return (
-    <div className="min-w-0">
+    <div className="mx-auto w-full max-w-5xl min-w-0">
       <ScreenActions>
         {desktop ? (
           <>
@@ -578,7 +569,7 @@ function ModerationPage() {
         role="group"
         aria-label="Период проверки"
       >
-        <label className="flex min-w-0 flex-col gap-1 text-meta text-text-2">
+        <label className="flex min-w-[140px] flex-1 flex-col gap-1 text-meta text-text-2">
           Дата с
           <input
             type="date"
@@ -586,10 +577,10 @@ function ModerationPage() {
             value={from}
             max={to || undefined}
             onChange={(event) => setFrom(event.target.value)}
-            className="h-12 min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
+            className="h-12 w-full min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
           />
         </label>
-        <label className="flex min-w-0 flex-col gap-1 text-meta text-text-2">
+        <label className="flex min-w-[140px] flex-1 flex-col gap-1 text-meta text-text-2">
           Дата по
           <input
             type="date"
@@ -597,7 +588,7 @@ function ModerationPage() {
             value={to}
             min={from || undefined}
             onChange={(event) => setTo(event.target.value)}
-            className="h-12 min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
+            className="h-12 w-full min-w-0 rounded-control border border-line bg-surface-1 px-3 text-body text-text focus-ring"
           />
         </label>
         {from && to && from > to ? (
@@ -636,7 +627,6 @@ function ModerationPage() {
               Снять выбор
             </Button>
           ) : null}
-          <span className="text-meta text-text-3">Записи с замечаниями проверяются отдельно</span>
         </div>
       ) : null}
 
@@ -644,7 +634,7 @@ function ModerationPage() {
         Записи с замечаниями проверяются отдельно
       </p>
 
-      <div className="grid min-w-0 gap-section md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6">
+      <div className="min-w-0">
         <div className="min-w-0">
           {ordered.length === 0 ? (
             <EmptyBlock
@@ -687,80 +677,88 @@ function ModerationPage() {
             <ul
               aria-label="Очередь проверки"
               data-tour="review-queue"
-              className="surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line"
+              className="flex flex-col gap-3"
             >
               {ordered.map((item) => {
                 const id = item.view.entry.id;
                 return (
-                  <li key={id} className="flex items-start">
-                    {item.view.entry.status === "pending" ? (
-                      <label
-                        className="flex min-h-12 min-w-12 shrink-0 items-center justify-center"
-                        title={
-                          canSelectReview(item.view)
-                            ? "Выбрать для подтверждения"
-                            : "Требуется индивидуальная проверка"
-                        }
-                      >
-                        <input
-                          type="checkbox"
-                          aria-label={`Выбрать ${item.view.entry.number}`}
-                          aria-describedby={
-                            !canSelectReview(item.view) ? "review-selection-help" : undefined
+                  <li key={id} className="surface-1 min-w-0 overflow-hidden">
+                    <div className="flex items-center">
+                      {item.view.entry.status === "pending" ? (
+                        <label
+                          className="flex shrink-0 items-center justify-center"
+                          style={{ minWidth: 48, minHeight: 48 }}
+                          title={
+                            canSelectReview(item.view)
+                              ? "Выбрать для подтверждения"
+                              : "Требуется индивидуальная проверка"
                           }
-                          checked={canSelectReview(item.view) && checked.has(id)}
-                          disabled={bulkBusy || !canSelectReview(item.view)}
-                          onChange={() => toggleChecked(id)}
-                          className="size-5 accent-orange"
-                        />
-                      </label>
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={`Выбрать ${item.view.entry.number}`}
+                            aria-describedby={
+                              !canSelectReview(item.view) ? "review-selection-help" : undefined
+                            }
+                            checked={canSelectReview(item.view) && checked.has(id)}
+                            disabled={bulkBusy || !canSelectReview(item.view)}
+                            onChange={() => toggleChecked(id)}
+                            className="size-5 accent-orange"
+                          />
+                        </label>
+                      ) : null}
+                      <QueueCard
+                        ref={(node) => {
+                          if (node) cards.current.set(id, node);
+                          else cards.current.delete(id);
+                        }}
+                        view={item.view}
+                        remarks={item.remarks}
+                        fresh={item.fresh}
+                        active={currentId === id}
+                        expanded={currentId === id}
+                        controls={`review-detail-${id}`}
+                        roomy
+                        highlight={highlight === id}
+                        showStatus={tab === "all"}
+                        onOpen={() => openEntry(id)}
+                      />
+                    </div>
+                    {currentId === id ? (
+                      <div
+                        id={`review-detail-${id}`}
+                        role="region"
+                        aria-label={`Подробности ${item.view.entry.number}`}
+                        className="border-t border-line"
+                      >
+                        <dl className="grid gap-3 px-gutter pt-4 text-meta sm:grid-cols-3">
+                          <div>
+                            <dt className="text-text-3">Автор</dt>
+                            <dd>{item.view.author ?? "Автор не указан"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-text-3">Внесено</dt>
+                            <dd>{item.view.entry.createdAt.replace("T", " ").slice(0, 16)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-text-3">Источник</dt>
+                            <dd>
+                              {item.view.entry.channel
+                                ? CHANNEL_LABEL[item.view.entry.channel]
+                                : "Канал не сохранён"}
+                            </dd>
+                          </div>
+                        </dl>
+                        {panel}
+                      </div>
                     ) : null}
-                    <QueueCard
-                      ref={(node) => {
-                        if (node) cards.current.set(id, node);
-                        else cards.current.delete(id);
-                      }}
-                      view={item.view}
-                      remarks={item.remarks}
-                      fresh={item.fresh}
-                      active={wide && currentId === id}
-                      highlight={highlight === id}
-                      showStatus={tab === "all"}
-                      onOpen={() => openEntry(id)}
-                    />
                   </li>
                 );
               })}
             </ul>
           )}
         </div>
-
-        {wide ? (
-          <aside
-            aria-labelledby={current ? "review-title" : undefined}
-            aria-label={current ? undefined : "Детали записи"}
-            className="surface-1 sticky top-20 flex flex-col overflow-hidden"
-            // Высота ровно до низа экрана: детали прокручиваются внутри, кнопки решения видны
-            style={{ height: `calc(100dvh - 104px - ${Math.max(0, floatingBottom - 8)}px)` }}
-          >
-            {panel ?? (
-              <p className="px-6 py-10 text-center text-body text-text-2">
-                Выберите запись слева, чтобы увидеть, что ввёл бригадир и что посчитала система.
-              </p>
-            )}
-          </aside>
-        ) : null}
       </div>
-
-      {wide ? null : (
-        <PhoneSheet
-          open={sheetOpen && !!current}
-          onClose={() => setSheetOpen(false)}
-          labelledBy="review-title"
-        >
-          {panel}
-        </PhoneSheet>
-      )}
     </div>
   );
 }

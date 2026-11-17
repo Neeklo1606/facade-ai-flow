@@ -5,6 +5,7 @@
  * На телефоне метки уходят третьей строкой. Номер записи и источник читаются экранной читалкой.
  */
 import { isAutoAccepted } from "@/api/gas-ops";
+import { ChevronDown } from "lucide-react";
 import { forwardRef } from "react";
 import { costBreakdown, fmtRub, useGasActor, type EntryView, type Remark } from "@/api/gas-ops";
 import { Chip } from "@/components/ui/kit/status";
@@ -25,10 +26,25 @@ export const QueueCard = forwardRef<
     showStatus: boolean;
     /** Журнал: под суммой номер записи и источник */
     showNumber?: boolean;
+    expanded?: boolean;
+    controls?: string;
+    roomy?: boolean;
     onOpen: () => void;
   }
 >(function QueueCard(
-  { view, remarks, active, fresh, highlight, showStatus, showNumber = false, onOpen },
+  {
+    view,
+    remarks,
+    active,
+    fresh,
+    highlight,
+    showStatus,
+    showNumber = false,
+    expanded,
+    controls,
+    roomy = false,
+    onOpen,
+  },
   ref,
 ) {
   const { entry } = view;
@@ -53,10 +69,13 @@ export const QueueCard = forwardRef<
       ref={ref}
       type="button"
       data-queue-card={entry.id}
-      aria-pressed={active}
+      aria-pressed={expanded === undefined ? active : undefined}
+      aria-expanded={expanded}
+      aria-controls={controls}
       onClick={onOpen}
       className={cn(
         "flex min-h-row-compact w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-row py-1.5 text-left transition-fast focus-ring sm:flex-nowrap",
+        roomy && "h-24 sm:h-28",
         active ? "bg-surface-2" : "is-hover:bg-surface-2 active:bg-surface-2",
         highlight && "ring-2 ring-orange ring-inset",
       )}
@@ -104,6 +123,15 @@ export const QueueCard = forwardRef<
         <span className="shrink-0 text-meta text-text-3 tnum" aria-hidden>
           {entry.number}
         </span>
+      ) : null}
+      {expanded !== undefined ? (
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "size-5 shrink-0 text-text-3 transition-transform motion-reduce:transition-none",
+            expanded && "rotate-180",
+          )}
+        />
       ) : null}
     </button>
   );

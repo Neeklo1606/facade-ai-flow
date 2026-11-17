@@ -58,7 +58,7 @@ export function ReviewPanel({
   onClose,
 }: {
   view: EntryView;
-  layout: "panel" | "sheet";
+  layout: "panel" | "sheet" | "inline";
   /** Сколько снизу занято плавающими слоями оболочки (телефон) */
   floatingBottom: number;
   canDecide: boolean;
@@ -77,6 +77,7 @@ export function ReviewPanel({
   const blocker = acceptBlocker(info);
   const cost = costBreakdown(view);
   const sheet = layout === "sheet";
+  const inline = layout === "inline";
   // Суммы бригадир не видит (ТЗ, п. 5.6)
   const money = useGasActor().canSeeMoney;
 
@@ -104,7 +105,7 @@ export function ReviewPanel({
   const auto = isAutoAccepted(entry);
 
   return (
-    <div className={cn("flex min-h-0 flex-col", !sheet && "h-full")}>
+    <div className={cn("flex min-h-0 flex-col", !sheet && !inline && "h-full")}>
       <header className={cn("shrink-0", sheet ? "px-gutter pt-1" : "px-6 pt-5")}>
         <div className="flex items-center gap-3">
           <p className="min-w-0 flex-1 truncate text-meta text-text-3">
@@ -155,7 +156,11 @@ export function ReviewPanel({
       <div
         className={cn(
           "min-h-0 flex-1",
-          sheet ? "px-gutter pt-4" : "overflow-y-auto px-6 pt-4 pb-4 focus-ring",
+          sheet
+            ? "px-gutter pt-4"
+            : inline
+              ? "px-gutter pt-4 pb-4"
+              : "overflow-y-auto px-6 pt-4 pb-4 focus-ring",
         )}
         style={sheet ? { paddingBottom: floatingBottom + 88 } : undefined}
         {...(sheet ? {} : { tabIndex: 0, role: "region", "aria-label": "Подробности записи" })}
@@ -298,7 +303,7 @@ function ActionBar({
     <div
       role="group"
       aria-label="Решение по записи"
-      className="flex shrink-0 items-center gap-2 bg-surface px-4 pt-3 pb-4"
+      className="flex shrink-0 flex-wrap items-center gap-2 bg-surface px-4 pt-3 pb-4 [&_button]:min-h-12 [&_[data-tour=review-confirm]]:min-w-[132px]"
     >
       {children}
     </div>
@@ -507,7 +512,7 @@ function ReasonForm({
 
       {sheet ? (
         <Floating bottom={floatingBottom}>
-          <div className="box-content line-top flex h-action items-center gap-2 bg-surface px-gutter pb-[env(safe-area-inset-bottom)] [&_button]:h-12 [&_button]:min-h-12">
+          <div className="box-content line-top flex h-action items-center gap-2 bg-surface px-gutter pb-[env(safe-area-inset-bottom)] [&_button]:h-12 [&_button]:min-h-12 [&_[data-tour=review-confirm]]:min-w-[132px]">
             {buttons}
           </div>
         </Floating>

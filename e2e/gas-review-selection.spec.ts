@@ -38,3 +38,33 @@ test("руководитель переходит из бригад к загр�
   await page.getByRole("button", { name: "Загрузить смету", exact: true }).click();
   await expect(page.getByTestId("estimate-file")).toBeAttached();
 });
+
+test("карточки раскрываются на месте, выбор независим от детали @mobile", async ({ page }) => {
+  await open(page, "/gas/moderation");
+  const queue = page.getByRole("list", { name: "Очередь проверки" });
+  const cards = queue.locator("button[data-queue-card]");
+  await expect(cards.first()).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#review-title")).toHaveCount(0);
+  const heights = await cards.evaluateAll((buttons) =>
+    buttons.map((b) => b.getBoundingClientRect().height),
+  );
+  expect(new Set(heights).size).toBe(1);
+  expect(heights[0]).toBeGreaterThanOrEqual(96);
+  await cards.first().focus();
+  await cards.first().press("Enter");
+  await expect(cards.first()).toHaveAttribute("aria-expanded", "true");
+  const detail = queue.getByRole("region", { name: /^Подробности ГЗ-/ });
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText("Автор", { exact: true }).first()).toBeVisible();
+  await expect(detail.getByRole("term").filter({ hasText: /^Внесено$/ })).toBeVisible();
+  await expect(detail.getByText("Источник", { exact: true }).first()).toBeVisible();
+  const selectable = queue.getByRole("checkbox").and(page.locator(":enabled")).first();
+  await selectable.check();
+  await expect(cards.first()).toHaveAttribute("aria-expanded", "true");
+  await cards.nth(1).click();
+  await expect(cards.first()).toHaveAttribute("aria-expanded", "false");
+  await expect(cards.nth(1)).toHaveAttribute("aria-expanded", "true");
+  await expect(selectable).toBeChecked();
+  await cards.nth(1).click();
+  await expect(queue.getByRole("region", { name: /^Подробности ГЗ-/ })).toHaveCount(0);
+});
