@@ -55,6 +55,8 @@ export interface Employee {
 
 /** Объект работ. Имя `Object` занято языком, поэтому `WorkObject` (ТЗ, п. 6) */
 export interface WorkObject {
+  /** Статус фронтенд-макета; не отправляется отдельным серверным действием. */
+  demoStatus?: "active" | "paused" | "completed";
   id: string;
   /** Анонимная подпись: населённый пункт, демо-улица, вид работ */
   label: string;

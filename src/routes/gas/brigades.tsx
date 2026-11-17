@@ -24,6 +24,7 @@ import {
 } from "@/api/gas-ops";
 import { entryLine, fmtShortDay } from "@/components/gas-ops/review/rules";
 import { useGasDirectoryImport, useGasEstimateActions, useGasSchedule } from "@/api/gas-estimates";
+import { AssignBrigade } from "@/components/gas-ops/workspace/AssignBrigade";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -132,6 +133,7 @@ function BrigadesPage() {
       {office ? (
         <div className="flex flex-wrap gap-2">
           <DirectoryImport kind="brigades" />
+          <AssignBrigade />
         </div>
       ) : null}
       <div className="flex items-center justify-between gap-2">

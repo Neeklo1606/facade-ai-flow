@@ -49,10 +49,10 @@ export function connectionRows(c: ServerConnections): ConnectionRow[] {
     name,
     detail: on
       ? c.database
-        ? "Бригадир выбирает объект и дату, пишет время: запись сама попадает в табель"
+        ? "Настройки бота и базы заданы. Доставку сообщения до очереди нужно проверить отдельно"
         : "Токен задан, но нет базы: диалогу негде храниться"
       : `Приём времени от бригадиров. Администратор сервера задаёт ${env}`,
-    state: on && c.database ? "подключён" : on ? "ждёт базу" : "не подключён",
+    state: on && c.database ? "настроен" : on ? "ждёт базу" : "не подключён",
     on: on && c.database,
   });
   return [
@@ -62,7 +62,7 @@ export function connectionRows(c: ServerConnections): ConnectionRow[] {
       detail: c.database
         ? "Записи, табель и сметы хранятся на сервере"
         : "Без базы данные живут во вкладке (демо)",
-      state: c.database ? "подключена" : "не подключена",
+      state: c.database ? "настроена" : "не подключена",
       on: c.database,
     },
     bot(c.telegram, "Бот Telegram", "TELEGRAM_BOT_TOKEN и TELEGRAM_WEBHOOK_SECRET"),
@@ -73,7 +73,7 @@ export function connectionRows(c: ServerConnections): ConnectionRow[] {
       detail: c.yandexDisk.configured
         ? `Папка ${c.yandexDisk.folder}: новые сметы забираются на экране «Стоимость работ»`
         : "Сметы из папки одним нажатием. Администратор сервера задаёт YANDEX_DISK_TOKEN и YANDEX_DISK_FOLDER",
-      state: c.yandexDisk.configured ? "подключена" : "не подключена",
+      state: c.yandexDisk.configured ? "настроена" : "не подключена",
       on: c.yandexDisk.configured,
     },
     {
@@ -82,7 +82,7 @@ export function connectionRows(c: ServerConnections): ConnectionRow[] {
       detail: c.model.configured
         ? `Отвечает по данным недели, смет и записей. Модель ${c.model.name ?? "по умолчанию"}`
         : "Без ключа помощник отвечает на заготовленные вопросы. Ключ: ANTHROPIC_API_KEY",
-      state: c.model.configured ? "подключена" : "заготовленные ответы",
+      state: c.model.configured ? "настроена" : "заготовленные ответы",
       on: c.model.configured,
     },
     {
@@ -91,7 +91,7 @@ export function connectionRows(c: ServerConnections): ConnectionRow[] {
       detail: c.sheets
         ? "Лист недели обновляется сам после изменений"
         : "Копия отчёта в облачной таблице. Задаются GAS_SHEETS_SA_JSON и GAS_SHEET_ID",
-      state: c.sheets ? "подключена" : "не подключена",
+      state: c.sheets ? "настроена" : "не подключена",
       on: c.sheets,
     },
   ];

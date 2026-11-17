@@ -171,6 +171,12 @@ function Lead({
         Бригадир отмечает время в мессенджере, менеджер проверяет, система считает выработку по
         смете и собирает недельный отчёт в вашем формате Excel.
       </p>
+      <Link
+        to="/gas/demo"
+        className="inline-flex min-h-12 items-center gap-2 self-start rounded-control border border-line px-4 text-body-strong focus-ring"
+      >
+        Сценарий на ваших данных <ArrowRight className="size-4" aria-hidden />
+      </Link>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         {/* Кабинет заказчика (ADR-062, F6): показа нет */}
         {showDemoMarks ? (

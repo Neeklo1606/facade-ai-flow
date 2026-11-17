@@ -1,7 +1,7 @@
 import { completePageHead } from "@/lib/page-head";
 import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/kit/field";
@@ -49,6 +49,8 @@ import { cn } from "@/lib/utils";
  * сметы (котлы) — ручной ввод с комментарием.
  */
 export const Route = createFileRoute("/gas/estimates")({
+  validateSearch: (search: Record<string, unknown>): { open?: string } =>
+    typeof search["open"] === "string" ? { open: search["open"] } : {},
   head: () =>
     completePageHead(
       { meta: [{ title: "Стоимость работ · Учёт выработки бригад" }] },
@@ -68,7 +70,9 @@ function EstimatesPage() {
   const folder = useEstimateFolder();
   const [upload, setUpload] = useState(false);
   const [vat, setVat] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const { open: openParam } = Route.useSearch();
+  const [openId, setOpenId] = useState<string | null>(openParam ?? null);
+  useEffect(() => setOpenId(openParam ?? null), [openParam]);
   const [suggestions, setSuggestions] = useState<Record<string, string | null>>({});
   const [manual, setManual] = useState(false);
   const [picker, setPicker] = useState(false);
@@ -283,7 +287,16 @@ function EstimatesPage() {
         <ul className="surface-1 overflow-hidden empty:hidden [&>li+li]:border-t [&>li+li]:border-line">
           {listed.map((row) => (
             <li key={row.object.id}>
-              <ObjectRow row={row} />
+              <ObjectRow
+                row={row}
+                onOpen={
+                  row.versions.length
+                    ? () => setOpenId(row.versions[0]!.id)
+                    : actor.canManageEstimates
+                      ? () => setUpload(true)
+                      : undefined
+                }
+              />
             </li>
           ))}
         </ul>
@@ -574,7 +587,7 @@ function hasCost(row: WorkCostRow): boolean {
   return !!row.estimate && row.estimate.status !== "missing";
 }
 
-function ObjectRow({ row }: { row: WorkCostRow }) {
+function ObjectRow({ row, onOpen }: { row: WorkCostRow; onOpen?: (() => void) | undefined }) {
   const { object, estimate, confirmed, norm } = row;
   const ownRule = row.rule.objectId === object.id;
   const status = ESTIMATE_STATUS[estimate?.status ?? "missing"]!;
@@ -586,6 +599,7 @@ function ObjectRow({ row }: { row: WorkCostRow }) {
         : null;
   return (
     <ListRow
+      {...(onOpen ? { onClick: onOpen } : {})}
       title={object.label}
       meta={
         <span className="inline-flex min-w-0 items-center gap-1.5">

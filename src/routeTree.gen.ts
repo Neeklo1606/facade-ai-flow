@@ -60,6 +60,7 @@ import { Route as GasAdminRouteImport } from './routes/gas/admin'
 import { Route as GasBrigadeRouteImport } from './routes/gas/brigade'
 import { Route as GasBrigadesRouteImport } from './routes/gas/brigades'
 import { Route as GasDeliveriesRouteImport } from './routes/gas/deliveries'
+import { Route as GasDemoRouteImport } from './routes/gas/demo'
 import { Route as GasDirectoryRouteImport } from './routes/gas/directory'
 import { Route as GasDocsOverviewRouteImport } from './routes/gas/docs-overview'
 import { Route as GasDocsRegistryRouteImport } from './routes/gas/docs-registry'
@@ -370,6 +371,11 @@ const GasBrigadesRoute = GasBrigadesRouteImport.update({
 const GasDeliveriesRoute = GasDeliveriesRouteImport.update({
   id: '/deliveries',
   path: '/deliveries',
+  getParentRoute: () => GasRoute,
+} as any)
+const GasDemoRoute = GasDemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => GasRoute,
 } as any)
 const GasDirectoryRoute = GasDirectoryRouteImport.update({
@@ -703,6 +709,7 @@ export interface FileRoutesByFullPath {
   '/gas/brigade': typeof GasBrigadeRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/deliveries': typeof GasDeliveriesRoute
+  '/gas/demo': typeof GasDemoRoute
   '/gas/directory': typeof GasDirectoryRoute
   '/gas/docs-overview': typeof GasDocsOverviewRoute
   '/gas/docs-registry': typeof GasDocsRegistryRoute
@@ -809,6 +816,7 @@ export interface FileRoutesByTo {
   '/gas/brigade': typeof GasBrigadeRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/deliveries': typeof GasDeliveriesRoute
+  '/gas/demo': typeof GasDemoRoute
   '/gas/directory': typeof GasDirectoryRoute
   '/gas/docs-overview': typeof GasDocsOverviewRoute
   '/gas/docs-registry': typeof GasDocsRegistryRoute
@@ -918,6 +926,7 @@ export interface FileRoutesById {
   '/gas/brigade': typeof GasBrigadeRoute
   '/gas/brigades': typeof GasBrigadesRoute
   '/gas/deliveries': typeof GasDeliveriesRoute
+  '/gas/demo': typeof GasDemoRoute
   '/gas/directory': typeof GasDirectoryRoute
   '/gas/docs-overview': typeof GasDocsOverviewRoute
   '/gas/docs-registry': typeof GasDocsRegistryRoute
@@ -1028,6 +1037,7 @@ export interface FileRouteTypes {
     | '/gas/brigade'
     | '/gas/brigades'
     | '/gas/deliveries'
+    | '/gas/demo'
     | '/gas/directory'
     | '/gas/docs-overview'
     | '/gas/docs-registry'
@@ -1134,6 +1144,7 @@ export interface FileRouteTypes {
     | '/gas/brigade'
     | '/gas/brigades'
     | '/gas/deliveries'
+    | '/gas/demo'
     | '/gas/directory'
     | '/gas/docs-overview'
     | '/gas/docs-registry'
@@ -1242,6 +1253,7 @@ export interface FileRouteTypes {
     | '/gas/brigade'
     | '/gas/brigades'
     | '/gas/deliveries'
+    | '/gas/demo'
     | '/gas/directory'
     | '/gas/docs-overview'
     | '/gas/docs-registry'
@@ -1732,6 +1744,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasDeliveriesRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/demo': {
+      id: '/gas/demo'
+      path: '/demo'
+      fullPath: '/gas/demo'
+      preLoaderRoute: typeof GasDemoRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/directory': {
       id: '/gas/directory'
       path: '/directory'
@@ -2125,6 +2144,7 @@ interface GasRouteChildren {
   GasBrigadeRoute: typeof GasBrigadeRoute
   GasBrigadesRoute: typeof GasBrigadesRoute
   GasDeliveriesRoute: typeof GasDeliveriesRoute
+  GasDemoRoute: typeof GasDemoRoute
   GasDirectoryRoute: typeof GasDirectoryRoute
   GasDocsOverviewRoute: typeof GasDocsOverviewRoute
   GasDocsRegistryRoute: typeof GasDocsRegistryRoute
@@ -2161,6 +2181,7 @@ const GasRouteChildren: GasRouteChildren = {
   GasBrigadeRoute: GasBrigadeRoute,
   GasBrigadesRoute: GasBrigadesRoute,
   GasDeliveriesRoute: GasDeliveriesRoute,
+  GasDemoRoute: GasDemoRoute,
   GasDirectoryRoute: GasDirectoryRoute,
   GasDocsOverviewRoute: GasDocsOverviewRoute,
   GasDocsRegistryRoute: GasDocsRegistryRoute,

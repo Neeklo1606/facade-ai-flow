@@ -205,7 +205,12 @@ export function brigadeCards(
     const all = data.entries.filter((e) => e.brigadeId === brigade.id);
     const counted = mode === "confirmed" ? all.filter((e) => e.status === "confirmed") : all;
     const members = data.employees.filter((e) => e.brigadeId === brigade.id);
-    const objectIds = [...new Set(counted.map((e) => e.objectId))];
+    const objectIds = [
+      ...new Set([
+        ...counted.map((e) => e.objectId),
+        ...data.week.days.flatMap((day) => dayObjects(data, brigade.id, day).map((o) => o.id)),
+      ]),
+    ];
     return {
       brigade,
       group: data.groups.find((g) => g.id === brigade.groupId) ?? null,
@@ -232,11 +237,23 @@ export interface ObjectCard {
 }
 
 export function objectCards(data: GasData): ObjectCard[] {
+  const assigned = new Map<string, Set<string>>();
+  for (const brigade of data.brigades) {
+    for (const day of data.week.days) {
+      for (const object of dayObjects(data, brigade.id, day)) {
+        const ids = assigned.get(object.id) ?? new Set<string>();
+        ids.add(brigade.id);
+        assigned.set(object.id, ids);
+      }
+    }
+  }
   return data.objects.map((object) => {
     const entries = data.entries.filter((e) => e.objectId === object.id);
     const confirmed = entries.filter((e) => e.status === "confirmed");
     const estimate = data.estimates.find((e) => e.objectId === object.id) ?? null;
-    const brigadeIds = [...new Set(entries.map((e) => e.brigadeId))];
+    const brigadeIds = [
+      ...new Set([...entries.map((e) => e.brigadeId), ...(assigned.get(object.id) ?? [])]),
+    ];
     const days = [...new Set(entries.map((e) => e.day))].sort();
     const flags = [...new Set(entries.flatMap((entry) => entryView(data, entry).flags))];
     return {

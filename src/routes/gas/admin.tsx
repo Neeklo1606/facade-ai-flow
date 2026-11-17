@@ -64,10 +64,10 @@ export const Route = createFileRoute("/gas/admin")({
 const ACCESS_ROLES: Role[] = ["foreman", "manager", "director", "admin"];
 const ACCESS: { right: string; roles: Role[] }[] = [
   { right: "Вносить время по разрешённым объектам", roles: ["foreman", "manager", "admin"] },
-  { right: "Проверять, принимать и возвращать записи", roles: ["manager", "director", "admin"] },
+  { right: "Проверять, принимать и возвращать записи", roles: ["manager", "admin"] },
   { right: "Исправлять записи с причиной", roles: ["manager", "admin"] },
   { right: "Видеть суммы и доходность", roles: ["manager", "director", "admin"] },
-  { right: "Загружать сметы и подтверждать стоимость", roles: ["manager", "admin"] },
+  { right: "Загружать сметы и подтверждать стоимость", roles: ["manager", "director", "admin"] },
   { right: "Закрывать и переоткрывать неделю", roles: ["director", "admin"] },
   { right: "Менять роли пользователей", roles: ["admin"] },
 ];
@@ -240,10 +240,10 @@ function AdminPage() {
         title="Подключения"
         note={
           connections === null
-            ? "Спрашиваю сервер, что подключено"
+            ? "Спрашиваю сервер о настройках подключений"
             : connections.length === 0
               ? "Сервер не ответил: состояние подключений неизвестно"
-              : `Подключено ${connections.filter((c) => c.on).length} из ${connections.length}. Ключи задаёт администратор сервера, в интерфейсе их нет`
+              : `Настроено ${connections.filter((c) => c.on).length} из ${connections.length}. Наличие настроек не подтверждает доставку сообщений; её проверяют отдельно`
         }
       >
         <ul className={LIST} data-testid="admin-connections">

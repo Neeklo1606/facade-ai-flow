@@ -71,6 +71,7 @@ export const GAS_SCREENS: readonly GasScreen[] = [
   {
     key: "start",
     to: "/gas",
+    alsoActive: ["/gas/demo"],
     title: "Учёт выработки бригад",
     short: "Начало",
     group: null,

@@ -42,6 +42,7 @@ import {
   lastEntryBefore,
   sameAsYesterday,
   useGasField,
+  useGasDirectory,
   type FieldEntry,
   type PersonInput,
 } from "@/api/gas-ops";
@@ -159,7 +160,9 @@ export function BrigadeToday() {
   const actor = useGasActor();
   // Менеджер и администратор смотрят ввод глазами бригады из справочника (ADR-069)
   const viewBrigade = useGasViewBrigade();
-  const field = useGasField(actor.role === "foreman" ? null : viewBrigade);
+  const directory = useGasDirectory();
+  const [selectedBrigade, setSelectedBrigade] = useState<string | null>(null);
+  const field = useGasField(actor.role === "foreman" ? null : (selectedBrigade ?? viewBrigade));
   const actions = useGasActions();
   const network = useOffline();
   const [step, setStep] = useState<Step>("today");
@@ -455,6 +458,27 @@ export function BrigadeToday() {
 
   return (
     <div className="flex flex-col gap-5">
+      {actor.role !== "foreman" ? (
+        <label className="flex min-w-0 flex-col gap-1 type-small">
+          Ввод за бригаду
+          <select
+            className="h-12 w-full rounded-control border border-line bg-surface px-3 type-text"
+            value={field.brigade.id}
+            onChange={(event) => {
+              setSelectedBrigade(event.target.value);
+              setFocus(null);
+              setDraft(null);
+              setError(null);
+            }}
+          >
+            {directory.brigades.map((brigade) => (
+              <option key={brigade.id} value={brigade.id}>
+                {brigade.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <section aria-label="Итог дня" data-tour="today-done" className="flex flex-col gap-3">
         <p className="type-label text-ink-2">
           {field.brigade.name} · {fmtDay(field.today)}

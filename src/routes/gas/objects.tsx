@@ -1,6 +1,6 @@
 import { completePageHead } from "@/lib/page-head";
 import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import { SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,9 @@ import {
   useGasNorm,
   useGasSchedule,
 } from "@/api/gas-estimates";
+import { DEMO_OBJECT_STATUS } from "@/api/gas-demo-workflow";
+import { AssignBrigade } from "@/components/gas-ops/workspace/AssignBrigade";
+import { EditDemoObject } from "@/components/gas-ops/workspace/EditDemoObject";
 import { toast } from "@/lib/toast";
 
 /**
@@ -63,6 +66,7 @@ function estimateKind(card: ObjectCard): "есть" | "ручная" | "нет" 
 
 /** Статус объекта за неделю по записям */
 function statusOf(card: ObjectCard): string {
+  if (card.object.demoStatus) return DEMO_OBJECT_STATUS[card.object.demoStatus];
   if (card.entries.length === 0) return "нет записей";
   if (card.entries.some((e) => e.status === "pending" || e.status === "clarify"))
     return "на проверке";
@@ -221,7 +225,7 @@ function ObjectsPage() {
     <div className="flex flex-col gap-block">
       <DirectoryTabs />
       <p className="text-meta text-text-3">
-        Объекты из графика на неделю {brand.periodLabel}
+        Объекты и назначения на неделю {brand.periodLabel}
         {/* Граница договора заказчика называется только в его личном контуре (L3) */}
         {schedule
           ? ` · график из файла, строк ${schedule.rows.length}`
@@ -265,7 +269,7 @@ function ObjectsPage() {
         <EmptyBlock
           icon={SearchX}
           title="Объектов пока нет"
-          text="Объекты приходят из недельного графика заказчика. Загрузите его из Excel или возьмите шаблон"
+          text="Добавьте объект вручную или загрузите недельный график из Excel"
           action={
             <span className="flex flex-wrap justify-center gap-2">
               <ScheduleImport label="Загрузить график из Excel" variant="primary" />
@@ -382,6 +386,15 @@ function Detail({
   const norm = normText(useGasNorm(card.object.id));
   const body: ReactNode = (
     <div className="flex flex-col gap-section">
+      <div className="flex flex-wrap gap-2">
+        <AssignBrigade key={card.object.id} objectId={card.object.id} />
+        <EditDemoObject objectId={card.object.id} />
+        <Button variant="secondary" asChild>
+          <Link to="/gas/demo" search={{ object: card.object.id }}>
+            Смета и разделы объекта
+          </Link>
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-block">
         <MetricCard label="Подтверждено" value={fmtRub(card.totals.amountRub)} />
         <MetricCard label="Часы" value={fmtHours(card.totals.hours)} />

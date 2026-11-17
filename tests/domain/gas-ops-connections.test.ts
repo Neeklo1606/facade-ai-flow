@@ -12,7 +12,7 @@ describe("подключения сервера", () => {
     expect(rows.find((r) => r.key === "yandexDisk")!.detail).toContain("YANDEX_DISK_TOKEN");
   });
 
-  test("бот без базы — «ждёт базу», с базой — подключён", () => {
+  test("бот без базы — «ждёт базу», с базой — настроен, доставка не проверена", () => {
     const env = { TELEGRAM_BOT_TOKEN: "1:a", TELEGRAM_WEBHOOK_SECRET: "s" };
     const without = connectionRows(connectionsOf(env, none, "disk:/С"));
     expect(without.find((r) => r.key === "telegram")!.state).toBe("ждёт базу");
@@ -20,9 +20,10 @@ describe("подключения сервера", () => {
       connectionsOf({ ...env, DATABASE_URL: "postgres://x" }, none, "disk:/С"),
     );
     expect(withDb.find((r) => r.key === "telegram")).toMatchObject({
-      state: "подключён",
+      state: "настроен",
       on: true,
     });
+    expect(withDb.find((r) => r.key === "telegram")!.detail).toContain("проверить отдельно");
   });
 
   test("ответ сервера не содержит значений ключей", () => {
