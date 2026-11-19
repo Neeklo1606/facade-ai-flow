@@ -28,6 +28,16 @@ import {
 } from "@/domain/gas-ops/work-cost";
 import { setBrigadeStatus } from "@/domain/gas-ops/schedule";
 import {
+  ACCRUAL_MODE_LABEL,
+  fmtShare,
+  overlapsAssignment,
+  planAccrual,
+  sectionForEntry,
+  sectionLabel,
+  type EntryAccrual,
+  type SectionProgress,
+} from "@/domain/gas-ops/section-accrual";
+import {
   AUTO_ACTOR,
   isAutoAccepted,
   REVIEW_MODE_LABEL,
@@ -121,6 +131,8 @@ const done = <T>(value: T) => Promise.resolve(value);
 const STATUS_FIELD = "Статус";
 const AMOUNT_FIELD = "Сумма начисления";
 const COMMENT_FIELD = "Комментарий";
+/** Доля выполнения раздела в истории решения (ADR-078) */
+const SHARE_FIELD = "Доля раздела";
 
 function statusOfLabel(label: string): EntryStatus | null {
   const found = (Object.keys(ENTRY_STATUS_LABEL) as EntryStatus[]).find(
@@ -180,6 +192,94 @@ function mustFind(snapshot: GasOpsSnapshot, id: string): TimeEntry {
   return entry;
 }
 
+/** Начисление по доле раздела включено (ADR-078): по умолчанию да */
+function shareMode(snapshot: GasOpsSnapshot): boolean {
+  return (snapshot.reviewSettings.accrualMode ?? "share") === "share";
+}
+
+/**
+ * Раздел записи (ADR-078). У бригадира — по назначениям: один подставляется сам, из нескольких
+ * выбирают, чужой раздел — отказ. Менеджер может указать любой раздел объекта из сметы.
+ * Записывает ключ в черновик
+ */
+function mustSection(snapshot: GasOpsSnapshot, draft: TimeEntry, foreman: boolean): void {
+  const assignments = snapshot.sectionAssignments ?? [];
+  const requested = draft.sectionKey ?? null;
+  if (!foreman && requested) {
+    const known = (snapshot.objectSections ?? []).some(
+      (s) => s.objectId === draft.objectId && s.key === requested && !s.removed,
+    );
+    if (!known) throw new GasOpsError("no-section", "Такого раздела нет в смете объекта.");
+    return;
+  }
+  const picked = sectionForEntry(assignments, {
+    brigadeId: draft.brigadeId,
+    day: draft.day,
+    objectId: draft.objectId,
+    sectionKey: requested,
+  });
+  if (!picked.ok) throw new GasOpsError("section-required", picked.reason);
+  draft.sectionKey = picked.sectionKey;
+}
+
+/**
+ * Начисление записи по доле раздела при подтверждении (ADR-078). null — запись без раздела
+ * или режим «по времени»: сумма по старому правилу. Отказ правила — ошибка порта
+ */
+function accrualOf(
+  snapshot: GasOpsSnapshot,
+  entry: TimeEntry,
+  decision: ReviewInput["accrual"],
+): { accrual: EntryAccrual; amountRub: number; progress: SectionProgress | null } | null {
+  if (!shareMode(snapshot) || !entry.sectionKey) return null;
+  const section = (snapshot.objectSections ?? []).find(
+    (s) => s.objectId === entry.objectId && s.key === entry.sectionKey,
+  );
+  if (!section)
+    throw new GasOpsError(
+      "no-section",
+      "Раздела записи нет в смете объекта: прикрепите смету или выберите раздел.",
+    );
+  const plan = planAccrual({
+    section,
+    entries: snapshot.entries,
+    progress: snapshot.sectionProgress ?? [],
+    objectId: entry.objectId,
+    sectionKey: entry.sectionKey,
+    batch: [entry],
+    decision: decision ?? { kind: "share" },
+  });
+  if (!plan.ok) throw new GasOpsError("accrual", plan.reason);
+  const part = plan.perEntry.get(entry.id) ?? { smrRub: 0, pressureRub: 0 };
+  const accrual: EntryAccrual = {
+    sectionKey: entry.sectionKey,
+    mode: plan.kind === "manual" ? "manual" : "share",
+    fromBp: plan.fromBp,
+    toBp: plan.toBp,
+    suggestedBp: plan.suggestedBp,
+    smrRub: part.smrRub,
+    pressureRub: part.pressureRub,
+    reason: plan.reason,
+  };
+  const progress: SectionProgress | null =
+    plan.toBp === plan.fromBp && plan.totalRub === 0 && plan.kind !== "manual"
+      ? null
+      : {
+          id: newId("prg"),
+          objectId: entry.objectId,
+          sectionKey: entry.sectionKey,
+          fromBp: plan.fromBp,
+          toBp: plan.toBp,
+          kind: plan.kind,
+          entryIds: [entry.id],
+          accruedRub: plan.totalRub,
+          reason: plan.reason,
+          by: snapshot.actorId,
+          at: nowOf(snapshot),
+        };
+  return { accrual, amountRub: part.smrRub + part.pressureRub, progress };
+}
+
 /** Правила, общие для создания и правки: объект, права бригады, полный дубль */
 function validate(
   snapshot: GasOpsSnapshot,
@@ -192,6 +292,7 @@ function validate(
   }
 
   const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+  mustSection(snapshot, draft, actor?.role === "foreman");
   const allowed = actor ? allowedObjectIdsFor(snapshot, actor) : "all";
   if (allowed !== "all" && !allowed.has(draft.objectId)) {
     throw new GasOpsError(
@@ -235,6 +336,10 @@ function routed(snapshot: GasOpsSnapshot, draft: TimeEntry): TimeEntry {
     at: nowOf(snapshot),
   });
   if (decision.route === "queue") return { ...draft, autoDecision: decision };
+  // Доля выполнения раздела и начисление решает человек (ADR-078): автопилот такую запись
+  // не подтверждает, она ждёт Оксану с предложенной долей
+  if (shareMode(snapshot) && draft.sectionKey)
+    return { ...draft, autoDecision: { ...decision, route: "queue" } };
   return {
     ...draft,
     status: "confirmed",
@@ -547,6 +652,7 @@ export function createGasOpsDemo(
         clientKey: key,
         channel: input.channel ?? (actorRole === "foreman" ? "web" : "manager"),
         note: input.note?.trim() || null,
+        sectionKey: input.sectionKey ?? null,
       };
       validate(snapshot, draft);
       const placed = routed(snapshot, draft);
@@ -626,6 +732,12 @@ export function createGasOpsDemo(
         breakMinutes: minutes.breakMinutes,
         minutes: minutes.minutes,
         headcount: input.headcount === undefined ? (entry.headcount ?? null) : input.headcount,
+        sectionKey:
+          input.sectionKey === undefined
+            ? input.objectId !== undefined && input.objectId !== entry.objectId
+              ? null
+              : (entry.sectionKey ?? null)
+            : input.sectionKey,
         // Правка рамки или состава отменяет строки людей: дальше запись считается целиком
         people:
           input.start !== undefined || input.end !== undefined || input.headcount !== undefined
@@ -649,6 +761,12 @@ export function createGasOpsDemo(
       if (draft.day !== entry.day) changes.push({ field: "Дата", from: entry.day, to: draft.day });
 
       validate(snapshot, draft);
+      if ((draft.sectionKey ?? null) !== (entry.sectionKey ?? null))
+        changes.push({
+          field: "Раздел",
+          from: entry.sectionKey ?? "не указан",
+          to: draft.sectionKey ?? "не указан",
+        });
 
       const review: Review | null =
         actor?.role === "foreman"
@@ -747,14 +865,20 @@ export function createGasOpsDemo(
           : input.action === "reject"
             ? "rejected"
             : "clarify";
-      // Сумма — доля подтверждённой стоимости объекта по минутам (ADR-053, 3), а не вся смета
-      const amountRub =
-        status === "confirmed" ? (entry.amountRub ?? shareOf(snapshot, entry)) : entry.amountRub;
+      // По доле раздела (ADR-078): Оксана принимает предложенную долю или меняет её
+      const share = status === "confirmed" ? accrualOf(snapshot, entry, input.accrual) : null;
+      // Иначе сумма — доля подтверждённой стоимости объекта по минутам (ADR-053, 3)
+      const amountRub = share
+        ? share.amountRub
+        : status === "confirmed"
+          ? (entry.amountRub ?? shareOf(snapshot, entry))
+          : entry.amountRub;
 
       const draft: TimeEntry = {
         ...entry,
         status,
         amountRub,
+        ...(share ? { accrual: share.accrual } : {}),
         reviewedBy: snapshot.actorId,
         reviewedAt: nowOf(snapshot),
         comment: input.comment?.trim() ?? null,
@@ -774,6 +898,12 @@ export function createGasOpsDemo(
         });
       if (entry.comment && entry.comment !== draft.comment)
         changes.push({ field: COMMENT_FIELD, from: entry.comment, to: draft.comment ?? "" });
+      if (share)
+        changes.push({
+          field: SHARE_FIELD,
+          from: fmtShare(share.accrual.fromBp),
+          to: fmtShare(share.accrual.toBp),
+        });
       const review: Review = {
         id: newId("rev"),
         entryId: entry.id,
@@ -789,12 +919,19 @@ export function createGasOpsDemo(
           ...s,
           entries: s.entries.map((e) => (e.id === draft.id ? draft : e)),
           reviews: [review, ...s.reviews],
+          sectionProgress: share?.progress
+            ? [...(s.sectionProgress ?? []), share.progress]
+            : (s.sectionProgress ?? []),
           audit: [
             audit(s, {
               actor: s.actorId,
               action: `entry.${input.action}`,
               entityId: draft.id,
-              detail: `${entry.number}: ${input.comment?.trim() ?? "без комментария"}`,
+              detail: `${entry.number}: ${input.comment?.trim() ?? "без комментария"}${
+                share
+                  ? `. Раздел ${share.accrual.sectionKey}: доля ${fmtShare(share.accrual.fromBp)} → ${fmtShare(share.accrual.toBp)}, начислено ${share.amountRub} ₽`
+                  : ""
+              }`,
             }),
             ...s.audit,
           ],
@@ -822,6 +959,19 @@ export function createGasOpsDemo(
         throw new GasOpsError("nothing-to-undo", "Отменять нечего: запись уже изменилась.");
       }
 
+      // Начисление по доле (ADR-078) отменяется, только пока доля раздела не менялась после
+      const shareChange = last.changes.find((c) => c.field === SHARE_FIELD);
+      const progressOfSection = (snapshot.sectionProgress ?? []).filter(
+        (p) => p.objectId === entry.objectId && p.sectionKey === entry.sectionKey,
+      );
+      const lastStep = progressOfSection.at(-1);
+      const ownStep = lastStep?.entryIds.includes(id) ? lastStep : null;
+      if (shareChange && !ownStep && progressOfSection.some((p) => p.entryIds.includes(id))) {
+        throw new GasOpsError(
+          "nothing-to-undo",
+          "Доля раздела уже изменилась следующими записями: отменить нельзя.",
+        );
+      }
       const amountChange = last.changes.find((c) => c.field === AMOUNT_FIELD);
       const commentChange = last.changes.find((c) => c.field === COMMENT_FIELD);
       const earlier = snapshot.reviews.find((r) => r.entryId === id && r.id !== last.id);
@@ -836,6 +986,7 @@ export function createGasOpsDemo(
         reviewedBy: earlier?.actor ?? null,
         reviewedAt: earlier?.at ?? null,
         comment: commentChange ? commentChange.from : null,
+        ...(shareChange ? { accrual: null } : {}),
       };
 
       const next = await store.update(
@@ -843,6 +994,9 @@ export function createGasOpsDemo(
           ...s,
           entries: s.entries.map((e) => (e.id === id ? restored : e)),
           reviews: s.reviews.filter((r) => r.id !== last.id),
+          sectionProgress: ownStep
+            ? (s.sectionProgress ?? []).filter((p) => p.id !== ownStep.id)
+            : (s.sectionProgress ?? []),
           audit: [
             audit(s, {
               actor: s.actorId,
@@ -2181,6 +2335,126 @@ export function createGasOpsDemo(
         match: input.parsed ? matchObject(input.parsed.header, snapshot.objects) : { kind: "new" },
         changed: null,
       });
+    },
+
+    assignSection: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Разделы бригадам назначает менеджер.");
+      const section = (snapshot.objectSections ?? []).find(
+        (s) => s.objectId === input.objectId && s.key === input.sectionKey && !s.removed,
+      );
+      if (!section) throw new GasOpsError("no-section", "Такого раздела нет в смете объекта.");
+      if (!snapshot.brigades.some((b) => b.id === input.brigadeId))
+        throw new GasOpsError("not-found", "Бригада не найдена.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.from) || (input.to !== null && input.to < input.from))
+        throw new GasOpsError("bad-period", "Период назначения: начало не позже окончания.");
+      const twin = overlapsAssignment(snapshot.sectionAssignments ?? [], input);
+      if (twin)
+        throw new GasOpsError(
+          "duplicate",
+          `Раздел уже назначен этой бригаде с ${twin.from}${twin.to ? ` по ${twin.to}` : ""}.`,
+        );
+      const assignment = {
+        id: newId("sas"),
+        ...input,
+        title: sectionLabel(section),
+        by: snapshot.actorId,
+        at: nowOf(snapshot),
+      };
+      const brigade = snapshot.brigades.find((b) => b.id === input.brigadeId)!;
+      await store.update(
+        (s) => ({
+          ...s,
+          sectionAssignments: [...(s.sectionAssignments ?? []), assignment],
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "section.assign",
+              entityId: assignment.id,
+              detail: `${assignment.title} → ${brigade.name}, с ${input.from}${input.to ? ` по ${input.to}` : ""}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return assignment;
+    },
+
+    unassignSection: async (id) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Назначения снимает менеджер.");
+      const found = (snapshot.sectionAssignments ?? []).find((a) => a.id === id);
+      if (!found) throw new GasOpsError("not-found", "Назначение не найдено. Обновите экран.");
+      await store.update(
+        (s) => ({
+          ...s,
+          sectionAssignments: (s.sectionAssignments ?? []).filter((a) => a.id !== id),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "section.unassign",
+              entityId: id,
+              detail: `${found.title}: назначение снято`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return { id };
+    },
+
+    setSectionDone: async ({ entryId, done: answer }) => {
+      const snapshot = await store.read();
+      mustTimeRole(snapshot);
+      const entry = mustFind(snapshot, entryId);
+      const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
+      if (actor?.role === "foreman" && actor.brigadeId !== entry.brigadeId)
+        throw new GasOpsError("not-allowed", "Запись другой бригады.");
+      if (!entry.sectionKey)
+        throw new GasOpsError("no-section", "У записи нет раздела: вопрос не нужен.");
+      if (entry.status === "confirmed" || entry.status === "rejected")
+        throw new GasOpsError("already-reviewed", "Запись уже проверена.");
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          entries: s.entries.map((e) => (e.id === entryId ? { ...e, sectionDone: answer } : e)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "entry.section-done",
+              entityId: entryId,
+              detail: `${entry.number}: работы по разделу ${answer === null ? "вопрос пропущен" : answer ? "закончены" : "не закончены"}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(next.entries.find((e) => e.id === entryId)!);
+    },
+
+    setAccrualMode: async (mode) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Режим начисления меняет менеджер или администратор.");
+      const next = await store.update(
+        (s) => ({
+          ...s,
+          reviewSettings: { ...s.reviewSettings, accrualMode: mode },
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "settings.accrual-mode",
+              entityId: "review-settings",
+              detail: `Начисление: ${ACCRUAL_MODE_LABEL[mode]}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return next.reviewSettings;
     },
 
     createObjectFromEstimate: async (input) => {

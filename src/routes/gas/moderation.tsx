@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import type { AccrualDecision } from "@/api/gas-section-accrual";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CheckCheck, ClipboardCheck, Inbox } from "lucide-react";
@@ -246,10 +247,11 @@ function ModerationPage() {
       view: EntryView,
       action: "confirm" | "reject" | "clarify",
       comment?: string,
+      accrual?: AccrualDecision,
     ): Promise<DecideResult> => {
       const id = view.entry.id;
       const next = nextAfter(id);
-      const result = await actions.review({ id, action, comment });
+      const result = await actions.review({ id, action, comment, accrual });
       if (!result.ok) {
         toast.error(result.message);
         return { ok: false, message: result.message };
@@ -380,7 +382,7 @@ function ModerationPage() {
       layout="inline"
       floatingBottom={floatingBottom}
       canDecide={actor.canReview && !bulkBusy}
-      onConfirm={() => void decide(current, "confirm")}
+      onConfirm={(accrual) => void decide(current, "confirm", undefined, accrual)}
       onDecide={(action, comment) => decide(current, action, comment)}
       onUndoAuto={() =>
         void actions

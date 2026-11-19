@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { completePageHead } from "@/lib/page-head";
 import { useGasActor, useGasDirectory, useGasEntries, fmtHours, fmtRub } from "@/api/gas-ops";
 import { useGasWorkCost, useGasReviewPolicy, useGasEstimateActions } from "@/api/gas-estimates";
@@ -7,11 +7,7 @@ import { demoWorkspaceEnabled, DEMO_OBJECT_STATUS } from "@/api/gas-demo-workflo
 import { AddObject } from "@/components/gas-ops/directory/AddObject";
 import { AssignBrigade } from "@/components/gas-ops/workspace/AssignBrigade";
 import { EditDemoObject } from "@/components/gas-ops/workspace/EditDemoObject";
-const AllocationPreview = lazy(() =>
-  import("@/components/gas-ops/workspace/AllocationPreview").then((module) => ({
-    default: module.AllocationPreview,
-  })),
-);
+import { ObjectSections } from "@/components/gas-ops/workspace/ObjectSections";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 
@@ -31,7 +27,6 @@ function DemoWorkspace() {
   const policy = useGasReviewPolicy();
   const estimateActions = useGasEstimateActions();
   const [reviewBusy, setReviewBusy] = useState(false);
-  const [showAllocation, setShowAllocation] = useState(false);
   const directory = useGasDirectory();
   const { rows } = useGasWorkCost();
   const search = Route.useSearch();
@@ -196,28 +191,10 @@ function DemoWorkspace() {
         </section>
       ) : null}
       {version ? (
-        showAllocation ? (
-          <Suspense
-            fallback={
-              <p role="status" className="surface-1 p-card text-body">
-                Открываю проект начислений…
-              </p>
-            }
-          >
-            <AllocationPreview key={`${id}:${version.id}`} version={version} />
-          </Suspense>
-        ) : (
-          <section className="surface-1 p-card">
-            <h2 className="text-heading">Проект начислений по разделам</h2>
-            <p className="mt-2 text-body text-text-2">
-              Дополнительный демонстрационный сценарий СМР, опрессовки и частичного выполнения. Не
-              меняет утверждённый отчёт.
-            </p>
-            <Button variant="secondary" className="mt-3" onClick={() => setShowAllocation(true)}>
-              Открыть проект начислений
-            </Button>
-          </section>
-        )
+        <section className="surface-1 p-card">
+          {/* Разделы, бригады, доля и остаток — та же модель, что в рабочем контуре (ADR-078) */}
+          <ObjectSections objectId={id} />
+        </section>
       ) : (
         <section className="surface-1 p-card">
           <h2 className="text-heading">Начните со сметы</h2>

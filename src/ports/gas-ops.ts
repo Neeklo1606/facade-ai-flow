@@ -44,6 +44,12 @@ import type {
   ScheduleRow,
 } from "@/domain/gas-ops/schedule";
 import type { FinalCheck, ReviewMode, ReviewSettings } from "@/domain/gas-ops/review-policy";
+import type {
+  AccrualDecision,
+  AccrualMode,
+  SectionAssignment,
+  SectionProgress,
+} from "@/domain/gas-ops/section-accrual";
 import type { CrewMember, PersonInput, Rate } from "@/domain/gas-ops/crew";
 import type { FieldSnapshot } from "@/domain/gas-ops/field";
 import type { Acceptance, PeriodVersion } from "@/domain/gas-ops/week";
@@ -117,6 +123,10 @@ export interface GasOpsSnapshot {
   estimateFiles?: EstimateFile[];
   /** Разделы объектов из прикреплённых смет (ADR-077) */
   objectSections?: ObjectSection[];
+  /** Назначения разделов бригадам на период (ADR-078) */
+  sectionAssignments?: SectionAssignment[];
+  /** История доли выполнения разделов (ADR-078) */
+  sectionProgress?: SectionProgress[];
   /** Правило состава стоимости работ: компании и переопределения объектов */
   costRules: CostRule[];
   /** Недельный график из файла заказчика; null — ещё не загружали */
@@ -159,6 +169,8 @@ export interface CreateEntryInput {
   clientKey?: string | null | undefined;
   channel?: EntryChannel | undefined;
   note?: string | null | undefined;
+  /** Раздел сметы (ADR-078): один назначенный подставляется сам, из нескольких выбирают */
+  sectionKey?: string | null | undefined;
 }
 
 export interface UpdateEntryInput {
@@ -169,6 +181,7 @@ export interface UpdateEntryInput {
   objectId?: string | undefined;
   day?: string | undefined;
   headcount?: number | null | undefined;
+  sectionKey?: string | null | undefined;
   /** Обязателен, когда правит проверяющий: правка без причины в журнал не идёт */
   comment?: string | undefined;
 }
@@ -188,12 +201,29 @@ export interface ReviewInput {
   id: string;
   action: "confirm" | "reject" | "clarify";
   comment?: string | undefined;
+  /**
+   * Доля и начисление раздела при подтверждении (ADR-078): нет — предложенная доля.
+   * Ручное начисление — с причиной
+   */
+  accrual?: AccrualDecision | undefined;
+}
+
+export interface AssignSectionInput {
+  objectId: string;
+  sectionKey: string;
+  brigadeId: string;
+  from: string;
+  to: string | null;
 }
 
 /** Ошибка правил направления: код нужен интерфейсу, чтобы подсветить нужное поле */
 export class GasOpsError extends Error {
   constructor(
     readonly code:
+      | "no-section"
+      | "section-required"
+      | "accrual"
+      | "bad-period"
       | "bad-time"
       | "duplicate"
       | "overlap"
@@ -387,6 +417,14 @@ export interface GasOpsPort {
    * Создать объект из сметы: поля проверил человек. Объект с тем же адресом или номером уже
    * есть — отказ с подсказкой прикрепить. Версия прикрепляется, разделы пишутся в объект
    */
+  /** Назначить раздел сметы объекта бригаде на период (ADR-078) */
+  assignSection(input: AssignSectionInput): Promise<SectionAssignment>;
+  /** Снять назначение: записи, уже отправленные по разделу, остаются */
+  unassignSection(id: string): Promise<{ id: string }>;
+  /** Ответ бригадира «Работы по разделу закончены?»: null — пропустить */
+  setSectionDone(input: { entryId: string; done: boolean | null }): Promise<TimeEntry>;
+  /** Режим начисления: по доле раздела или по времени всей сметы */
+  setAccrualMode(mode: AccrualMode): Promise<ReviewSettings>;
   createObjectFromEstimate(input: {
     versionId: string;
     label: string;
@@ -445,6 +483,10 @@ export const GAS_OPS_METHODS = [
   "intakeEstimateFile",
   "reparseEstimateFile",
   "createObjectFromEstimate",
+  "assignSection",
+  "unassignSection",
+  "setSectionDone",
+  "setAccrualMode",
   "reset",
 ] as const satisfies readonly (keyof GasOpsPort)[];
 

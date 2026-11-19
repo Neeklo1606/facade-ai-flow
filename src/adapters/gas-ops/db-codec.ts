@@ -45,6 +45,9 @@ const ENTRY_OPTIONAL = [
   "channel",
   "note",
   "autoDecision",
+  "sectionKey",
+  "sectionDone",
+  "accrual",
 ] as const;
 
 /** Необязательные поля объекта и версии сметы (ADR-077): в базе `null`, в снимке ключа нет */
@@ -91,6 +94,8 @@ export function snapshotToRows(s: GasOpsSnapshot): GasRows {
     gas_estimate_versions: s.estimateVersions.map((v) => withNulls({ ...v }, VERSION_OPTIONAL)),
     gas_estimate_files: (s.estimateFiles ?? []).map((f) => ({ ...f })),
     gas_object_sections: (s.objectSections ?? []).map((x) => ({ ...x })),
+    gas_section_assignments: (s.sectionAssignments ?? []).map((x) => ({ ...x })),
+    gas_section_progress: (s.sectionProgress ?? []).map((x) => ({ ...x })),
     gas_time_entries: entryRows(s),
     gas_reviews: s.reviews.map((r) => ({ ...r })),
     gas_crew_members: s.crew.map((c) => ({ ...c })),
@@ -147,6 +152,8 @@ export function rowsToSnapshot(rows: GasRows): GasOpsSnapshot {
     ),
     estimateFiles: list("gas_estimate_files"),
     objectSections: list("gas_object_sections"),
+    sectionAssignments: list("gas_section_assignments"),
+    sectionProgress: list("gas_section_progress"),
     users: list<Row>("gas_users").map(
       (u) => ({ ...u, allowedObjectIds: u["allowedObjectIds"] ?? "all" }) as User,
     ),

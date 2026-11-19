@@ -4,6 +4,7 @@
  */
 import { writeFileSync } from "node:fs";
 import {
+  gasAccrualMigration,
   gasAutopilotMigration,
   gasIntakeMigration,
   gasMigration,
@@ -22,7 +23,11 @@ export const GAS_AUTOPILOT_MIGRATION = "db/migrations/20261115100000_gas_autopil
 /** Папка смет (ADR-077): таблицы смет, версий, файлов, разделов и перенос из gas_state */
 export const GAS_INTAKE_MIGRATION = "db/migrations/20261119100000_gas_estimate_intake.sql";
 
+/** Доля выполнения раздела (ADR-078): назначения, история доли, начисление записи */
+export const GAS_ACCRUAL_MIGRATION = "db/migrations/20261120100000_gas_section_accrual.sql";
+
 writeFileSync(GAS_MIGRATION, gasMigration());
+writeFileSync(GAS_ACCRUAL_MIGRATION, gasAccrualMigration());
 writeFileSync(GAS_INTAKE_MIGRATION, gasIntakeMigration());
 writeFileSync(GAS_T7_MIGRATION, gasT7Migration());
 writeFileSync(GAS_WAVE_F_MIGRATION, gasWaveFMigration());
@@ -32,3 +37,4 @@ console.log(GAS_T7_MIGRATION);
 console.log(GAS_WAVE_F_MIGRATION);
 console.log(GAS_AUTOPILOT_MIGRATION);
 console.log(GAS_INTAKE_MIGRATION);
+console.log(GAS_ACCRUAL_MIGRATION);

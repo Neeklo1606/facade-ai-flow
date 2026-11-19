@@ -67,7 +67,9 @@ function childRowNumbers(rows: ReportRow[], index: number, excelRows: number[]):
   if (!parent) return [];
   const result: number[] = [];
   for (const [i, row] of rows.entries()) {
-    if (row.parentId === parent.id && row.kind !== "frame") result.push(excelRows[i]!);
+    // Рамка смены и «в т. ч. опрессовка» не складываются: сумма опрессовки уже внутри адреса
+    if (row.parentId === parent.id && row.kind !== "frame" && row.kind !== "pressure")
+      result.push(excelRows[i]!);
   }
   return result;
 }
@@ -215,6 +217,10 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
     { header: "Часы", key: "hours", width: 10 },
     { header: "Сумма начислений", key: "amount", width: 18 },
     { header: "Доходность часа", key: "rate", width: 16 },
+    { header: "Раздел сметы", key: "section", width: 14 },
+    { header: "СМР", key: "smr", width: 14 },
+    { header: "Опрессовка", key: "pressure", width: 14 },
+    { header: "Доля раздела, %", key: "share", width: 16 },
     { header: "Статус", key: "status", width: 18 },
     { header: "Источник данных", key: "source", width: 18 },
     { header: "Проверено человеком", key: "checked", width: 20 },
@@ -223,6 +229,9 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
   flat.getColumn("hours").numFmt = "0.00";
   flat.getColumn("amount").numFmt = "# ##0";
   flat.getColumn("rate").numFmt = "# ##0";
+  flat.getColumn("smr").numFmt = "# ##0";
+  flat.getColumn("pressure").numFmt = "# ##0";
+  flat.getColumn("share").numFmt = "0.00";
   for (const row of payload.analytic) {
     flat.addRow({
       number: row.number,
@@ -236,6 +245,10 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
       hours: row.minutes / 60,
       amount: row.amountRub ?? "",
       rate: row.revenue ?? "",
+      section: row.sectionKey ?? "",
+      smr: row.smrRub ?? "",
+      pressure: row.pressureRub ?? "",
+      share: row.shareBp === null ? "" : row.shareBp / 100,
       status: row.status,
       source: row.source === "fact-report" ? "факт из отчёта" : "демо",
       checked: row.status === "confirmed" ? "да" : "нет",
@@ -270,6 +283,9 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
     "5. Итоги групп, бригад и сотрудников — формулы SUM по дочерним строкам.",
     "   Агрегат не складывается с детьми: строка группы это сумма её бригад.",
     "6. Строка рамки смены показывает границу дня и не несёт денег и часов работы.",
+    "   Строка «в т. ч. опрессовка» под адресом справочная: её сумма уже в адресе, в итоги",
+    "   она не складывается. Начисление по доле раздела: (новая доля - прежняя) x стоимость",
+    "   работ раздела; опрессовка внутри раздела - по её доле в стоимости работ раздела.",
     "7. Строка без суммы остаётся без суммы: доходность по ней не считается.",
     "8. Набор строк тот же, что на экране при выгрузке: режим отчёта и «скрыть пустые».",
     "",

@@ -59,6 +59,11 @@ export interface GasData {
   brigadeAvailability?: BrigadeAvailability[];
   /** Состав бригад с периодами (ADR-056): нужен признаку «Состав больше бригады» */
   crew?: CrewMember[];
+  /** Назначения разделов бригадам (ADR-078) */
+  sectionAssignments?: import("./section-accrual").SectionAssignment[];
+  /** Разделы объектов и режим начисления (ADR-078): сумма записи с разделом — по доле */
+  objectSections?: import("./estimate-intake").ObjectSection[];
+  reviewSettings?: { accrualMode?: import("./section-accrual").AccrualMode };
 }
 
 export interface EntryView {
@@ -88,6 +93,11 @@ export interface EntryView {
   /** Минуты всех неотклонённых записей объекта: доля стоимости считается от них */
   objectMinutes: number;
   history: Review[];
+  /**
+   * Сумма записи считается по доле раздела (ADR-078): у раздела в смете есть стоимость работ.
+   * Тогда «нет сметы объекта» не замечание — начисление решает Оксана в блоке доли
+   */
+  byShare: boolean;
 }
 
 export function actorOf(data: GasData): User | null {
@@ -108,6 +118,13 @@ export function entryView(data: GasData, entry: TimeEntry): EntryView {
     data.estimates.find((e) => e.objectId === entry.objectId && e.status === "confirmed") ??
     data.estimates.find((e) => e.objectId === entry.objectId) ??
     null;
+
+  const byShare =
+    !!entry.sectionKey &&
+    (data.reviewSettings?.accrualMode ?? "share") === "share" &&
+    (data.objectSections ?? []).some(
+      (s) => s.objectId === entry.objectId && s.key === entry.sectionKey && s.workKopecks !== null,
+    );
 
   const amountOrigin: EntryView["amountOrigin"] =
     entry.amountRub === null
@@ -133,7 +150,7 @@ export function entryView(data: GasData, entry: TimeEntry): EntryView {
     flags: flagsOf({
       entry,
       all: data.entries,
-      hasEstimate: estimate?.status === "confirmed" || entry.source === "fact-report",
+      hasEstimate: estimate?.status === "confirmed" || entry.source === "fact-report" || byShare,
       objectDays: objectDays(data, entry.objectId),
       crewSize: data.crew ? crewOn(data.crew, entry.brigadeId, entry.day).length : null,
     }),
@@ -153,6 +170,7 @@ export function entryView(data: GasData, entry: TimeEntry): EntryView {
     objectMinutes: data.entries
       .filter((e) => e.objectId === entry.objectId && e.status !== "rejected")
       .reduce((a, e) => a + e.minutes, 0),
+    byShare,
     history: data.reviews.filter((r) => r.entryId === entry.id),
   };
 }
@@ -313,7 +331,7 @@ export function dashboardMetrics(data: GasData): DashboardMetrics {
  */
 export function allowedObjectIdsFor(
   data: Pick<GasData, "entries" | "assignments"> &
-    Partial<Pick<GasData, "schedule" | "brigades" | "objects">>,
+    Partial<Pick<GasData, "schedule" | "brigades" | "objects" | "sectionAssignments">>,
   user: User,
 ): Set<string> | "all" {
   if (user.role !== "foreman" || !user.brigadeId) return "all";
@@ -330,6 +348,9 @@ export function allowedObjectIdsFor(
       );
   }
   if (user.allowedObjectIds !== "all") user.allowedObjectIds.forEach((id) => ids.add(id));
+  // Назначенные бригаде разделы (ADR-078): объект раздела доступен бригадиру
+  for (const a of data.sectionAssignments ?? [])
+    if (a.brigadeId === user.brigadeId) ids.add(a.objectId);
   return ids;
 }
 

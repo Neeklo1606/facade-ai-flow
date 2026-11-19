@@ -30,6 +30,7 @@ import {
 import { DEMO_OBJECT_STATUS } from "@/api/gas-demo-workflow";
 import { AssignBrigade } from "@/components/gas-ops/workspace/AssignBrigade";
 import { EditDemoObject } from "@/components/gas-ops/workspace/EditDemoObject";
+import { ObjectSections } from "@/components/gas-ops/workspace/ObjectSections";
 import { toast } from "@/lib/toast";
 
 /**
@@ -389,12 +390,8 @@ function Detail({
       <div className="flex flex-wrap gap-2">
         <AssignBrigade key={card.object.id} objectId={card.object.id} />
         <EditDemoObject objectId={card.object.id} />
-        <Button variant="secondary" asChild>
-          <Link to="/gas/demo" search={{ object: card.object.id }}>
-            Смета и разделы объекта
-          </Link>
-        </Button>
       </div>
+      <ObjectSections objectId={card.object.id} />
       <div className="grid grid-cols-2 gap-block">
         <MetricCard label="Подтверждено" value={fmtRub(card.totals.amountRub)} />
         <MetricCard label="Часы" value={fmtHours(card.totals.hours)} />

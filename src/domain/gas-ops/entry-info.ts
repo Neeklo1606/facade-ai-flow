@@ -239,7 +239,7 @@ export function entryInfo(view: EntryView): EntryInfo {
   const amountOnAccept =
     entry.amountRub === null &&
     entry.status !== "confirmed" &&
-    view.estimate?.status === "confirmed";
+    (view.estimate?.status === "confirmed" || view.byShare);
   if (flags.has("no-estimate"))
     list.push(
       remark("no-cost", {
@@ -426,6 +426,22 @@ export function costBreakdown(view: EntryView, confirmedBy: string | null = null
 
   let source: string;
   let formula: string;
+  if (view.byShare) {
+    // Начисление по доле раздела (ADR-078): сумму и долю показывает блок «Доля и начисление»
+    const a = entry.accrual;
+    source = a
+      ? `доля раздела ${a.sectionKey}: ${a.fromBp / 100} → ${a.toBp / 100} %${a.mode === "manual" ? ", вручную" : ""}`
+      : `доля раздела ${entry.sectionKey}, начислится при принятии`;
+    formula = "Начисление = (новая доля − прежняя) × стоимость работ раздела.";
+    return {
+      amountRub: entry.amountRub,
+      expected: false,
+      source,
+      formula,
+      durationMinutes: entry.minutes,
+      perHour: perHour,
+    };
+  }
   if (view.amountOrigin === "entry" && entry.source === "fact-report") {
     source = `недельный отчёт заказчика${entry.excelRow ? `, строка ${entry.excelRow}` : ""}`;
     formula = "Сумма взята из отчёта заказчика как есть.";

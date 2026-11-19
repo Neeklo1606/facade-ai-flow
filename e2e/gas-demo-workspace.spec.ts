@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import * as XLSX from "xlsx";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -67,7 +65,12 @@ test("объект: создание, ручное назначение, ред�
   ).toBeVisible();
 });
 
-test("разделы загруженного Excel: проект долей, остаток, сохранение, отдельная выгрузка @mobile", async ({
+/*
+ * Разделы загруженного Excel на модели доли (ADR-078): демо-макет «Проект начислений» удалён,
+ * вместо него на странице показа — те же разделы объекта, что в рабочем контуре. Менеджер
+ * назначает раздел бригаде, назначение переживает перезагрузку, бригадир видит раздел в форме
+ */
+test("разделы загруженного Excel: назначение бригаде, остаток, сохранение, форма бригадира @mobile", async ({
   page,
 }) => {
   await open(page, "/gas/estimates");
@@ -88,58 +91,44 @@ test("разделы загруженного Excel: проект долей, о
     .first()
     .getAttribute("value");
   await selector.selectOption(id!);
-  const preview = page.getByRole("heading", { name: "Проект начислений по разделам" });
-  await expect(preview).toBeVisible();
-  await page.getByRole("button", { name: "Открыть проект начислений", exact: true }).click();
-  await page
-    .getByRole("combobox", { name: "Вид раздела", exact: true })
-    .selectOption({ label: "СМР" });
-  await page.getByLabel("Материалы раздела, ₽", { exact: true }).fill("0");
-  await page
-    .getByRole("combobox", { name: "Исполнитель раздела", exact: true })
-    .selectOption("brg-1");
-  await page.getByLabel("Выполнено за день, %", { exact: true }).fill("40");
-  await page.getByRole("button", { name: "Добавить долю в проект", exact: true }).click();
-  await expect(page.getByText(/Распределено 40 %/)).toBeVisible();
+  const sections = page.getByTestId("object-sections");
+  await expect(sections.getByRole("heading", { name: "Разделы сметы" })).toBeVisible();
+  const first = sections.getByTestId("section-row").first();
+  await expect(first.getByText("Бригада не назначена")).toBeVisible();
+  // В синтетической смете e2e нет блока итогов раздела: стоимость «нет в смете», остатка нет
+  await expect(first.getByText(/начислено/)).toBeVisible();
+  await first.getByRole("button", { name: "Назначить бригаду", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("combobox", { name: "Бригада", exact: true }).selectOption("brg-1");
+  await dialog.getByRole("button", { name: "Назначить", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(first.getByText(/Бригада 1 · с/)).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "Открыть проект начислений", exact: true }).click();
-  await expect(page.getByText(/Распределено 40 %/)).toBeVisible();
+  await expect(
+    page
+      .getByTestId("object-sections")
+      .getByTestId("section-row")
+      .first()
+      .getByText(/Бригада 1 · с/),
+  ).toBeVisible();
   if (page.viewportSize()!.width <= 430) {
     expect((await mobileCheck(page)).small).toEqual([]);
-    const remove = page.getByRole("button", { name: /^Удалить долю/ }).first();
-    const hit = await remove.boundingBox();
-    expect(hit!.height).toBeGreaterThanOrEqual(48);
   }
   await page.screenshot({
-    path: `/tmp/gaika-demo-allocation-${page.viewportSize()!.width}.png`,
+    path: `/tmp/gaika-demo-sections-${page.viewportSize()!.width}.png`,
     fullPage: true,
   });
+  await expectA11y(page, "Разделы сметы");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
+  // Бригадир 1 на этом объекте видит назначенный раздел: он подставлен в форму сам
+  await open(page, "/gas/brigade");
+  await page.getByRole("combobox", { name: "Ввод за бригаду", exact: true }).selectOption("brg-1");
   await page
-    .getByRole("combobox", { name: "Исполнитель раздела", exact: true })
-    .selectOption("brg-1");
-  await page.getByLabel("Выполнено за день, %", { exact: true }).fill("70");
-  await page.getByRole("button", { name: "Добавить долю в проект", exact: true }).click();
-  await expect(
-    page.getByText("Доли раздела должны быть больше нуля и в сумме не больше 100 %", {
-      exact: true,
-    }),
-  ).toBeVisible();
-  const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Скачать проект начислений XLSX", exact: true }).click();
-  const downloaded = await download;
-  expect(downloaded.suggestedFilename()).toMatch(/^Проект_начислений_версия_\d+\.xlsx$/);
-  const workbook = XLSX.read(readFileSync((await downloaded.path())!));
-  expect(workbook.SheetNames).toEqual(["Проект начислений", "Разделы и остатки"]);
-  const records = XLSX.utils.sheet_to_json<(string | number)[]>(
-    workbook.Sheets["Проект начислений"]!,
-    { header: 1, raw: true },
-  );
-  expect(records.some((row) => row[2] === "СМР" && row[5] === 40 && Number(row[6]) > 0)).toBe(true);
-  await page
-    .getByRole("button", { name: /^Удалить долю/ })
+    .getByRole("button", { name: /Добавить время/ })
     .first()
     .click();
-  await expect(page.getByText(/Распределено 40 %/)).toHaveCount(0);
-  await expectA11y(page, "Проект начислений");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.getByLabel("Объект", { exact: true }).click();
+  await page.getByRole("dialog").getByRole("button").filter({ hasText: "ОБ-001" }).first().click();
+  await expect(page.getByTestId("section-auto")).toBeVisible();
 });
