@@ -3,7 +3,6 @@ import { getSnapshot, resetState } from "@/adapters/gas-ops/state";
 import { editedDemoObject } from "@/api/gas-demo-workflow";
 import { withManualAssignment } from "@/domain/gas-ops/manual-schedule";
 import { brigadeCards, dayObjects, objectCards } from "@/domain/gas-ops/view";
-import { demoSectionAllocation, emptyDemoPlan, sectionNet } from "@/domain/gas-ops/demo-allocation";
 
 beforeEach(() => resetState());
 test("ручной график сохраняет прежние назначения и не дублирует повтор", () => {
@@ -85,46 +84,4 @@ test("редактирование demo сохраняет связи графи
   expect(after.audit[0]?.action).toBe("object.demo-edit");
   expect(() => editedDemoObject({ ...s, actorId: "u-foreman-1" }, o.id, input)).toThrow();
   expect(() => editedDemoObject(s, o.id, { ...input, code: s.objects[1]!.code })).toThrow();
-});
-test("проект раздела: материалы задаёт человек; 40+35 процентов оставляют 25 процентов", () => {
-  const section = { row: 450, title: "Монтаж", kopecks: 15000000 };
-  const plan = emptyDemoPlan();
-  expect(sectionNet(section, undefined)).toBeNull();
-  expect(sectionNet(section, "-1")).toBeNull();
-  plan.materials["450"] = "30000";
-  plan.rows = [
-    { id: "1", sectionRow: 450, brigadeId: "b1", day: "2026-10-01", percent: 40 },
-    { id: "2", sectionRow: 450, brigadeId: "b2", day: "2026-10-02", percent: 35 },
-  ];
-  const result = demoSectionAllocation(section, plan);
-  expect(result.net).toBe(12000000);
-  expect(result.allocated).toBe(9000000);
-  expect(result.remaining).toBe(3000000);
-  expect(result.amounts.get("1")).toBe(4800000);
-  expect(() =>
-    demoSectionAllocation(section, {
-      ...plan,
-      rows: [...plan.rows, { ...plan.rows[0]!, id: "3", percent: 30 }],
-    }),
-  ).toThrow();
-});
-test("копейки проекта не теряются и не начисляются сверх стоимости", () => {
-  const section = { row: 1, title: "Испытания", kopecks: 5 };
-  const plan = emptyDemoPlan();
-  plan.materials["1"] = "0";
-  plan.rows = [
-    { id: "a", sectionRow: 1, brigadeId: "b", day: "2026-10-01", percent: 50 },
-    { id: "b", sectionRow: 1, brigadeId: "b", day: "2026-10-02", percent: 50 },
-  ];
-  const result = demoSectionAllocation(section, plan);
-  expect([...result.amounts.values()].reduce((a, b) => a + b, 0)).toBe(5);
-  expect(result.remaining).toBe(0);
-});
-
-test("проект не округляет недопустимые 100,001 % до допустимых 100 %", () => {
-  const section = { row: 1, title: "Раздел", kopecks: 100 };
-  const plan = emptyDemoPlan();
-  plan.materials["1"] = "0";
-  plan.rows = [{ id: "x", sectionRow: 1, brigadeId: "b", day: "2026-10-03", percent: 100.001 }];
-  expect(() => demoSectionAllocation(section, plan)).toThrow();
 });

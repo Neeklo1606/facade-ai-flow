@@ -9,6 +9,8 @@ import {
   GAS_T7_COLUMNS,
   GAS_WAVE_F_COLUMNS,
   GAS_AUTOPILOT_COLUMNS,
+  GAS_ACCRUAL_COLUMNS,
+  GAS_ACCRUAL_TABLES,
   GAS_INTAKE_COLUMNS,
   GAS_INTAKE_TABLES,
   gasTabelTables,
@@ -43,9 +45,13 @@ const enumNamesOf = (defs: TableDef[]) =>
   );
 
 const intake = new Set<string>(GAS_INTAKE_TABLES);
-/** Таблицы v1: без тех, что добавляет миграция ADR-077 */
-const v1Tables = gasTables.filter((def) => !intake.has(def.meta.name));
+const accrual = new Set<string>(GAS_ACCRUAL_TABLES);
+/** Таблицы v1: без тех, что добавляют миграции ADR-077 и ADR-078 */
+const v1Tables = gasTables.filter(
+  (def) => !intake.has(def.meta.name) && !accrual.has(def.meta.name),
+);
 const intakeTables = gasTables.filter((def) => intake.has(def.meta.name));
+const accrualTables = gasTables.filter((def) => accrual.has(def.meta.name));
 
 const gasEnumNames = enumNamesOf(gasTables);
 
@@ -58,7 +64,8 @@ const v1Columns = (def: TableDef) =>
       !GAS_T7_COLUMNS[def.meta.name]?.includes(key) &&
       !GAS_WAVE_F_COLUMNS[def.meta.name]?.includes(key) &&
       !GAS_AUTOPILOT_COLUMNS[def.meta.name]?.includes(key) &&
-      !GAS_INTAKE_COLUMNS[def.meta.name]?.includes(key),
+      !GAS_INTAKE_COLUMNS[def.meta.name]?.includes(key) &&
+      !GAS_ACCRUAL_COLUMNS[def.meta.name]?.includes(key),
   );
 
 function commentSql(table: string, key: string, column: ColumnMeta): string[] {
@@ -299,6 +306,39 @@ export function gasIntakeMigration(): string {
     "where key = 'main';",
     ...[...intakeTables].reverse().map((def) => `drop table if exists ${def.meta.name} cascade;`),
     ...Object.entries(GAS_INTAKE_COLUMNS).flatMap(([table, keys]) =>
+      keys.map((key) => `alter table ${table} drop column if exists ${q(sqlName(key))};`),
+    ),
+    "",
+  );
+  return out.join("\n");
+}
+
+/**
+ * Миграция ADR-078: назначения разделов бригадам, история доли выполнения, раздел, ответ
+ * бригадира и начисление в записи времени. Новые таблицы пустые, колонки допускают null:
+ * существующие записи остаются как были, их сумма по старому правилу не меняется
+ */
+export function gasAccrualMigration(): string {
+  const out: string[] = [
+    "-- migrate:up",
+    "-- Доля выполнения раздела и начисление (ADR-078): назначения, история доли, начисление записи.",
+    "-- Сгенерировано scripts/gas-schema.ts из src/contracts/gas.ts. Не редактировать вручную.",
+    "",
+  ];
+  for (const [table, keys] of Object.entries(GAS_ACCRUAL_COLUMNS)) {
+    const def = gasTables.find((t) => t.meta.name === table)!;
+    for (const key of keys) {
+      out.push(`alter table ${table} add column ${columnSql(key, def.columns[key]!)};`);
+      out.push(...commentSql(table, key, def.columns[key]!));
+    }
+  }
+  out.push("");
+  for (const def of accrualTables) out.push(...tableSql(def), "");
+  out.push("-- Внешние ключи", ...foreignKeys(accrualTables, gasTables), "");
+  out.push(
+    "-- migrate:down",
+    ...[...accrualTables].reverse().map((def) => `drop table if exists ${def.meta.name} cascade;`),
+    ...Object.entries(GAS_ACCRUAL_COLUMNS).flatMap(([table, keys]) =>
       keys.map((key) => `alter table ${table} drop column if exists ${q(sqlName(key))};`),
     ),
     "",

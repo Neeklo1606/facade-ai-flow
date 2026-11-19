@@ -144,6 +144,17 @@ const docHistoryItem = z
 
 /** Признаки записи для проверяющего: те же имена, что `EntryFlag` в domain */
 /** Решение автопилота в записи (ADR-070); причины – ключи правил, проверяются доменом */
+const entryAccrual = z.object({
+  sectionKey: z.string(),
+  mode: z.enum(["share", "manual"]),
+  fromBp: z.number().int(),
+  toBp: z.number().int(),
+  suggestedBp: z.number().int().nullable(),
+  smrRub: z.number().int(),
+  pressureRub: z.number().int(),
+  reason: z.string().nullable(),
+});
+
 const autoDecision = z
   .object({
     route: z.enum(["auto", "queue"]),
@@ -351,6 +362,51 @@ export const gasObjectSections = table(
   },
 );
 
+export const gasSectionAssignments = table(
+  {
+    name: "gas_section_assignments",
+    comment: "Назначение раздела сметы объекта бригаде на период (ADR-078)",
+    primaryKey: ["id"],
+    indexes: [
+      { columns: ["brigadeId", "from"], purpose: "разделы бригады на день" },
+      { columns: ["objectId", "sectionKey"], purpose: "бригады раздела" },
+    ],
+  },
+  {
+    id: col.key(),
+    objectId: col.keyRef("gas_objects", "cascade"),
+    sectionKey: col.name({ comment: "ключ раздела в gas_object_sections" }),
+    title: col.name({ comment: "подпись раздела для бригадира, без сумм" }),
+    brigadeId: col.keyRef("gas_brigades", "cascade"),
+    from: col.date(),
+    to: col.date({ nullable: true, comment: "null — до отмены" }),
+    by: col.name(),
+    at: col.timestamp(),
+  },
+);
+
+export const gasSectionProgress = table(
+  {
+    name: "gas_section_progress",
+    comment: "История доли выполнения раздела: кто, когда, было, стало, причина (ADR-078)",
+    primaryKey: ["id"],
+    indexes: [{ columns: ["objectId", "sectionKey"], purpose: "история раздела" }],
+  },
+  {
+    id: col.key(),
+    objectId: col.keyRef("gas_objects", "cascade"),
+    sectionKey: col.name(),
+    fromBp: col.int({ comment: "доля до, базисные пункты: 10000 = 100 %" }),
+    toBp: col.int({ comment: "доля после" }),
+    kind: col.name({ comment: "suggested | edited | completed | manual" }),
+    entryIds: col.jsonb(z.array(z.string())),
+    accruedRub: col.int({ comment: "начислено этим шагом, рубли" }),
+    reason: col.text({ nullable: true }),
+    by: col.name(),
+    at: col.timestamp(),
+  },
+);
+
 export const gasUsers = table(
   {
     name: "gas_users",
@@ -426,6 +482,15 @@ export const gasTimeEntries = table(
     repeatVisit: col.bool({
       nullable: true,
       comment: "повторный выезд бригады на объект в тот же день; то же, что признак repeat-visit",
+    }),
+    sectionKey: col.text({ nullable: true, comment: "раздел сметы объекта (ADR-078)" }),
+    sectionDone: col.bool({
+      nullable: true,
+      comment: "ответ бригадира «работы по разделу закончены?»; null — пропущен",
+    }),
+    accrual: col.jsonb(entryAccrual, {
+      nullable: true,
+      comment: "начисление по доле раздела: доля до и после, СМР и опрессовка (ADR-078)",
     }),
   },
 );
@@ -1090,6 +1155,8 @@ const GAS_SCHEMAS = [
   gasEstimateVersions,
   gasEstimateFiles,
   gasObjectSections,
+  gasSectionAssignments,
+  gasSectionProgress,
   gasTimeEntries,
   gasReviews,
   gasCrewMembers,
@@ -1155,6 +1222,13 @@ export const GAS_INTAKE_TABLES = [
 
 export const GAS_INTAKE_COLUMNS: Record<string, readonly string[]> = {
   gas_objects: ["address", "estimateNumber", "sourceFileId"],
+};
+
+/** ADR-078: назначения разделов, история доли, раздел и начисление в записи */
+export const GAS_ACCRUAL_TABLES = ["gas_section_assignments", "gas_section_progress"] as const;
+
+export const GAS_ACCRUAL_COLUMNS: Record<string, readonly string[]> = {
+  gas_time_entries: ["sectionKey", "sectionDone", "accrual"],
 };
 
 export type GasRow<T extends z.ZodTypeAny> = z.infer<T>;

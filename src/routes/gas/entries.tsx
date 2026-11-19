@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import type { AccrualDecision } from "@/api/gas-section-accrual";
 import { showDemoMarks } from "@/lib/cabinet";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -270,8 +271,9 @@ function EntriesPage() {
       view: EntryView,
       action: "confirm" | "reject" | "clarify",
       comment?: string,
+      accrual?: AccrualDecision,
     ): Promise<DecideResult> => {
-      const result = await actions.review({ id: view.entry.id, action, comment });
+      const result = await actions.review({ id: view.entry.id, action, comment, accrual });
       if (!result.ok) {
         toast.error(result.message);
         return { ok: false, message: result.message };
@@ -333,7 +335,7 @@ function EntriesPage() {
       layout={wide ? "panel" : "sheet"}
       floatingBottom={floatingBottom}
       canDecide={actor.canReview}
-      onConfirm={() => void decide(current, "confirm")}
+      onConfirm={(accrual) => void decide(current, "confirm", undefined, accrual)}
       onDecide={(action, comment) => decide(current, action, comment)}
       onUndoAuto={() =>
         void actions

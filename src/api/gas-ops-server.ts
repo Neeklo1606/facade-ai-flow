@@ -77,6 +77,11 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   intakeEstimateFile: [],
   reparseEstimateFile: [],
   createObjectFromEstimate: ESTIMATES,
+  // Назначения и режим начисления (ADR-078): менеджер и администратор; ответ «закончены» — бригадир
+  assignSection: OFFICE,
+  unassignSection: OFFICE,
+  setSectionDone: TIME,
+  setAccrualMode: OFFICE,
   reset: [],
 };
 
@@ -122,7 +127,8 @@ export function actingAs(store: GasStore, userId: string): GasStore {
 /* ---------------------------------------------------------------- Выборка по роли */
 
 /** Поля денег в ответах учёта времени: у ролей без денег они пустые */
-const MONEY_KEYS = new Set(["amountRub", "revenueInFile", "accruedRub", "totalRub"]);
+/** accrual — начисление по доле раздела (ADR-078): доля и суммы роли без денег не нужны */
+const MONEY_KEYS = new Set(["amountRub", "revenueInFile", "accruedRub", "totalRub", "accrual"]);
 
 /**
  * Причины автопилота о деньгах (ADR-070): доходность, сумма, смета. Роль без денег видит,
@@ -170,12 +176,20 @@ function snapshotFor(user: User, s: GasOpsSnapshot): GasOpsSnapshot {
     entries,
     reviews: s.reviews
       .filter((r) => ids.has(r.entryId))
-      .map((r) => ({ ...r, changes: r.changes.filter((c) => c.field !== "Сумма начисления") })),
+      .map((r) => ({
+        ...r,
+        changes: r.changes.filter(
+          (c) => c.field !== "Сумма начисления" && c.field !== "Доля раздела",
+        ),
+      })),
     estimates: [],
     estimateVersions: [],
     // Папка смет и разделы с суммами (ADR-077): ролям без денег не отдаются
     estimateFiles: [],
     objectSections: [],
+    sectionProgress: [],
+    // Бригадир видит только разделы своей бригады: название без сумм лежит в назначении
+    sectionAssignments: (s.sectionAssignments ?? []).filter((a) => own(a.brigadeId)),
     costRules: [],
     rates: [],
     reportIssues: [],

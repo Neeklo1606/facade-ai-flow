@@ -8,6 +8,7 @@
  */
 import type { EstimateAddress } from "./estimate-labels";
 import type { AutoDecision } from "./autopilot";
+import type { EntryAccrual } from "./section-accrual";
 
 /** Этапы проверки записи по ТЗ v1.0, п. 5.8 */
 export type EntryStatus = "draft" | "pending" | "confirmed" | "rejected" | "clarify";
@@ -135,6 +136,12 @@ export interface TimeEntry {
    * «Проверять всё» – тень для счётчика совпадения. Нет – запись не отправлялась при автопилоте
    */
   autoDecision?: AutoDecision | null;
+  /** Раздел сметы объекта, по которому работала бригада (ADR-078); нет — запись по объекту */
+  sectionKey?: string | null;
+  /** Ответ бригадира «Работы по разделу закончены?»: null — вопрос пропущен */
+  sectionDone?: boolean | null;
+  /** Начисление по доле раздела при подтверждении; нет — сумма по старому правилу */
+  accrual?: EntryAccrual | null;
 }
 
 /** Время одного человека при «у сотрудников разное время» */

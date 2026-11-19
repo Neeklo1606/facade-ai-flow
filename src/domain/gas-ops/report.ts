@@ -21,7 +21,9 @@ import type { Brigade, DataSource, Employee, Group, TimeEntry, WorkObject } from
 
 export type ReportMode = "confirmed" | "preliminary";
 
-export type ReportRowKind = "group" | "brigade" | "employee" | "frame" | "address" | "total";
+/** pressure — «в т. ч. опрессовка» под адресом (ADR-078): справочно, в итоги не складывается */
+export type ReportRowKind =
+  "group" | "brigade" | "employee" | "frame" | "address" | "pressure" | "total";
 
 export interface ReportCell {
   amountRub: number | null;
@@ -116,7 +118,7 @@ export function customerFormatRows(input: ReportInput): ReportRow[] {
       const lb = objects.find((o) => o.id === b)?.label ?? b;
       return la.localeCompare(lb, "ru");
     });
-    return objectIds.map((objectId) => {
+    return objectIds.map((objectId): ReportRow => {
       const own = owner.filter((e) => e.objectId === objectId);
       const object = objects.find((o) => o.id === objectId);
       const cells = byDay(own);
@@ -131,6 +133,38 @@ export function customerFormatRows(input: ReportInput): ReportRow[] {
         source: sourceOf(own),
         parentId,
       };
+    });
+  }
+
+  /**
+   * Опрессовка отдельной строкой под адресом (ADR-078): сумма начислений опрессовки из доли
+   * раздела. Часов у неё нет: бригада работает одной сменой, время не делится. В итоги
+   * сотрудника, бригады и группы строка не входит — её сумма уже внутри адреса
+   */
+  function withPressure(addresses: ReportRow[]): ReportRow[] {
+    return addresses.flatMap((row) => {
+      const own = entries.filter((e) => row.entryIds.includes(e.id));
+      const cells = days.map((day) => {
+        const list = own.filter((e) => e.day === day && (e.accrual?.pressureRub ?? 0) > 0);
+        const rub = list.reduce((a, e) => a + e.accrual!.pressureRub, 0);
+        return { ...empty(), amountRub: list.length ? rub : null };
+      });
+      if (cells.every((c) => c.amountRub === null)) return [row];
+      const total = cells.reduce((a, c) => a + (c.amountRub ?? 0), 0);
+      return [
+        row,
+        {
+          id: `${row.id}/pressure`,
+          kind: "pressure" as const,
+          level: row.level + 1,
+          label: "в т. ч. опрессовка",
+          days: cells,
+          total: { ...empty(), amountRub: total },
+          entryIds: [],
+          source: row.source,
+          parentId: row.id,
+        },
+      ];
     });
   }
 
@@ -218,7 +252,7 @@ export function customerFormatRows(input: ReportInput): ReportRow[] {
         }
 
         const addresses = addressRows(own, employeeRow.id, 3);
-        rows.push(...addresses);
+        rows.push(...withPressure(addresses));
         const employeeCells = days.map((_, i) => sumCells(addresses.map((a) => a.days[i]!)));
         employeeRow.days = employeeCells;
         employeeRow.total = sumCells(employeeCells);
@@ -229,7 +263,7 @@ export function customerFormatRows(input: ReportInput): ReportRow[] {
       const orphans = brigadeEntries.filter((e) => !used.has(e.id));
       if (orphans.length > 0) {
         const addresses = addressRows(orphans, brigadeRow.id, 2);
-        rows.push(...addresses);
+        rows.push(...withPressure(addresses));
         brigadeChildrenCells.push(days.map((_, i) => sumCells(addresses.map((a) => a.days[i]!))));
       }
 
@@ -296,6 +330,11 @@ export interface AnalyticRow {
   revenue: number | null;
   status: TimeEntry["status"];
   source: DataSource;
+  /** Раздел сметы и начисление по доле (ADR-078); null — запись без раздела */
+  sectionKey: string | null;
+  smrRub: number | null;
+  pressureRub: number | null;
+  shareBp: number | null;
 }
 
 export function analyticRows(input: Omit<ReportInput, "frames">): AnalyticRow[] {
@@ -321,6 +360,10 @@ export function analyticRows(input: Omit<ReportInput, "frames">): AnalyticRow[] 
       revenue: revenuePerHour(e.amountRub, e.minutes),
       status: e.status,
       source: e.source,
+      sectionKey: e.sectionKey ?? null,
+      smrRub: e.accrual ? e.accrual.smrRub : null,
+      pressureRub: e.accrual ? e.accrual.pressureRub : null,
+      shareBp: e.accrual ? e.accrual.toBp : null,
     };
   });
 }

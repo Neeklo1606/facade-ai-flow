@@ -33,6 +33,8 @@ import { RecordTrail } from "./RecordTrail";
 import { entryLine, fmtEntryDay, fmtShortDay } from "./rules";
 import { REASONS, REASON_SUBMIT, REASON_TITLE, reasonText, type ReasonMode } from "./reasons";
 import { cn } from "@/lib/utils";
+import { useAccrualPreview, type AccrualDecision } from "@/api/gas-section-accrual";
+import { AccrualBlock, decisionOf, emptyAccrualDraft } from "./AccrualBlock";
 
 export interface CorrectInput {
   start: string;
@@ -62,7 +64,8 @@ export function ReviewPanel({
   /** Сколько снизу занято плавающими слоями оболочки (телефон) */
   floatingBottom: number;
   canDecide: boolean;
-  onConfirm: () => void;
+  /** Принять; у записи с разделом — с долей и начислением (ADR-078) */
+  onConfirm: (accrual?: AccrualDecision) => void;
   onDecide: (action: "reject" | "clarify", comment: string) => Promise<DecideResult>;
   onCorrect: (input: CorrectInput) => Promise<DecideResult>;
   /** Вернуть автоматически принятую запись в очередь (до закрытия недели) */
@@ -80,6 +83,8 @@ export function ReviewPanel({
   const inline = layout === "inline";
   // Суммы бригадир не видит (ТЗ, п. 5.6)
   const money = useGasActor().canSeeMoney;
+  const preview = useAccrualPreview(money ? entry : null);
+  const [accrual, setAccrual] = useState(emptyAccrualDraft);
 
   // Форма причины открылась: показываем её, а не держим под сгибом
   useEffect(() => {
@@ -129,7 +134,7 @@ export function ReviewPanel({
             <button
               type="button"
               data-tour="review-confirm"
-              onClick={onConfirm}
+              onClick={() => onConfirm(preview ? decisionOf(accrual) : undefined)}
               disabled={!!blocker}
               title={blocker ? blocker.todo : undefined}
               className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-control bg-orange-strong px-4 text-body-strong text-on-orange transition-fast focus-ring press-98 is-hover:bg-orange-strong-hover disabled:opacity-45"
@@ -259,6 +264,24 @@ export function ReviewPanel({
               }}
             />
           </div>
+        ) : null}
+        {preview ? (
+          <AccrualBlock
+            preview={preview}
+            draft={accrual}
+            onChange={setAccrual}
+            decided={decided}
+            decidedAccrual={
+              entry.accrual
+                ? {
+                    fromBp: entry.accrual.fromBp,
+                    toBp: entry.accrual.toBp,
+                    rub: entry.accrual.smrRub + entry.accrual.pressureRub,
+                    reason: entry.accrual.reason,
+                  }
+                : null
+            }
+          />
         ) : null}
         <EntryDetails view={view} />
       </div>

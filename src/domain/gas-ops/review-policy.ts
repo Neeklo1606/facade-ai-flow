@@ -26,6 +26,8 @@ export const REVIEW_MODE_HINT: Record<ReviewMode, string> = {
 
 export interface ReviewSettings {
   mode: ReviewMode;
+  /** Начисление (ADR-078): нет — по доле раздела, «time» — по минутам всей сметы, как до B */
+  accrualMode?: import("./section-accrual").AccrualMode;
   /** Порог точности для режима без проверки, проценты */
   thresholdPercent: number;
   changedBy: string | null;

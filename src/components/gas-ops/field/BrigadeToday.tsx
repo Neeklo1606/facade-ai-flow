@@ -72,6 +72,7 @@ import {
 import { splitTimeEnabled } from "@/lib/gas-ops/gas-only";
 import { useOffline } from "@/lib/ui/offline";
 import { cn } from "@/lib/utils";
+import { useBrigadeSections, useSectionActions } from "@/api/gas-section-accrual";
 
 const START_CHIPS = ["07:00", "08:00", "09:00"];
 const END_CHIPS = ["16:00", "17:00", "18:00"];
@@ -152,6 +153,8 @@ interface Draft {
   people: PersonInput[];
   note: string;
   clientKey: string;
+  /** Раздел сметы (ADR-078): null — один назначенный подставится сам или разделов нет */
+  sectionKey: string | null;
 }
 
 type Step = "today" | "form" | "check" | "sent";
@@ -178,6 +181,16 @@ export function BrigadeToday() {
   } | null>(null);
 
   useEffect(() => setQueue(readQueue(storage())), []);
+  const sectionActions = useSectionActions();
+  // Разделы, назначенные бригаде на объекте и день: из нескольких бригадир выбирает (ADR-078)
+  const sections = useBrigadeSections(
+    field.brigade?.id ?? null,
+    draft?.day ?? field.today,
+    draft?.objectId ?? null,
+  );
+  /** Последняя принятая сервером запись: для вопроса «Работы по разделу закончены?» */
+  const lastSent = useRef<{ key: string; id: string; sectionKey: string | null } | null>(null);
+  const [doneAnswer, setDoneAnswer] = useState<boolean | null>(null);
 
   const crewSize = field.crew.length;
   // Сдано — отправленное: черновик ещё у бригадира, отклонённое не в счёт
@@ -220,6 +233,7 @@ export function BrigadeToday() {
       })),
       note: "",
       clientKey: newClientKey(),
+      sectionKey: null,
     });
     setError(null);
     setStep("form");
@@ -246,6 +260,7 @@ export function BrigadeToday() {
       people: [],
       note: "",
       clientKey: newClientKey(),
+      sectionKey: yesterdayEntry.sectionKey ?? null,
     });
     setError(null);
     setStep("check");
@@ -255,6 +270,13 @@ export function BrigadeToday() {
   const send = useCallback(
     async (item: QueuedEntry): Promise<SendResult> => {
       const result = await actions.createEntry(item.input);
+      if (result.ok) {
+        lastSent.current = {
+          key: item.clientKey,
+          id: result.value.id,
+          sectionKey: result.value.sectionKey ?? null,
+        };
+      }
       if (result.ok)
         return {
           ok: true,
@@ -297,10 +319,15 @@ export function BrigadeToday() {
         draft={draft}
         onChange={setDraft}
         field={field}
+        sections={sections}
         error={error}
         onBack={() => setStep("today")}
         onCheck={() => {
-          const problem = checkDraft(draft);
+          const problem =
+            checkDraft(draft) ??
+            (sections.length > 1 && !sections.some((x) => x.key === draft.sectionKey)
+              ? "Выберите раздел: на объекте их несколько."
+              : null);
           setError(problem);
           if (!problem) setStep("check");
         }}
@@ -328,6 +355,12 @@ export function BrigadeToday() {
           <dl className="flex flex-col divide-y divide-line">
             <Fact term="Объект" value={object?.label ?? "не выбран"} />
             <Fact term="Бригада" value={field.brigade.name} />
+            {sections.length ? (
+              <Fact
+                term="Раздел"
+                value={(sections.find((x) => x.key === draft.sectionKey) ?? sections[0])!.title}
+              />
+            ) : null}
             <Fact
               term="Дата"
               value={
@@ -421,6 +454,7 @@ export function BrigadeToday() {
                   number: result.number,
                   auto: result.auto ?? false,
                 });
+                setDoneAnswer(null);
                 setStep("sent");
               }}
             >
@@ -449,6 +483,29 @@ export function BrigadeToday() {
               : "Ждёт проверки. Если у менеджера появится вопрос, он придёт в «Уточнения»."
             : "Сохранено на телефоне, отправим при связи. Повторно вносить не нужно."}
         </p>
+        {sent.state === "server" &&
+        lastSent.current?.key === sent.key &&
+        lastSent.current.sectionKey ? (
+          <div className="mono-inset flex w-full flex-col gap-3" data-testid="section-done">
+            <p className="type-label">Работы по разделу на объекте закончены?</p>
+            <SegmentedPills
+              label="Работы по разделу закончены"
+              options={[
+                { value: "yes", label: "Да" },
+                { value: "no", label: "Нет" },
+              ]}
+              value={doneAnswer === true ? "yes" : "no"}
+              onChange={(value) => {
+                const answer = value === "yes";
+                setDoneAnswer(answer);
+                void sectionActions.setDone(lastSent.current!.id, answer);
+              }}
+            />
+            <p className="type-small text-ink-2">
+              Можно пропустить. Долю выполнения проверит и подтвердит менеджер.
+            </p>
+          </div>
+        ) : null}
         <Button field className="w-full" onClick={() => setStep("today")}>
           Готово
         </Button>
@@ -708,6 +765,7 @@ function EntryForm({
   draft,
   onChange,
   field,
+  sections,
   error,
   onBack,
   onCheck,
@@ -715,6 +773,7 @@ function EntryForm({
   draft: Draft;
   onChange: (draft: Draft) => void;
   field: ReturnType<typeof useGasField>;
+  sections: { key: string; title: string }[];
   error: string | null;
   onBack: () => void;
   onCheck: () => void;
@@ -795,10 +854,25 @@ function EntryForm({
       <SelectSheet
         label="Объект"
         value={draft.objectId}
-        onChange={(value) => set("objectId", value)}
+        onChange={(value) => onChange({ ...draft, objectId: value, sectionKey: null })}
         options={options}
         placeholder="Выберите объект"
       />
+      {sections.length > 1 ? (
+        <SelectSheet
+          label="Раздел"
+          value={draft.sectionKey}
+          onChange={(value) => set("sectionKey", value)}
+          options={sections.map((x) => ({ value: x.key, label: x.title }))}
+          placeholder="Выберите раздел"
+        />
+      ) : sections.length === 1 ? (
+        <p className="type-small text-ink-2" data-testid="section-auto">
+          {/^раздел/i.test(sections[0]!.title)
+            ? sections[0]!.title
+            : `Раздел: ${sections[0]!.title}`}
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <span className="type-label text-ink-2">Дата</span>
@@ -1162,5 +1236,6 @@ function inputOf(draft: Draft, field: ReturnType<typeof useGasField>) {
     clientKey: draft.clientKey,
     channel: "web" as const,
     note: draft.note.trim() || null,
+    sectionKey: draft.sectionKey,
   };
 }

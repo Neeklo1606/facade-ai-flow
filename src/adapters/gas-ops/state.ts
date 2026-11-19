@@ -62,6 +62,8 @@ function initial(contour: GasContour): GasOpsSnapshot {
     // Папка смет и разделы объектов (ADR-077): пусто до первой загрузки
     estimateFiles: [],
     objectSections: [],
+    sectionAssignments: [],
+    sectionProgress: [],
     costRules: [DEFAULT_COMPANY_RULE],
     schedule: null,
     brigadeAvailability: [],

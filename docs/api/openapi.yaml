@@ -945,6 +945,52 @@ components:
           anyOf:
             - type: "boolean"
             - type: "null"
+        sectionKey:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        sectionDone:
+          anyOf:
+            - type: "boolean"
+            - type: "null"
+        accrual:
+          anyOf:
+            - type: "object"
+              properties:
+                sectionKey:
+                  type: "string"
+                mode:
+                  type: "string"
+                  enum:
+                    - "share"
+                    - "manual"
+                fromBp:
+                  type: "integer"
+                toBp:
+                  type: "integer"
+                suggestedBp:
+                  anyOf:
+                    - type: "integer"
+                    - type: "null"
+                smrRub:
+                  type: "integer"
+                pressureRub:
+                  type: "integer"
+                reason:
+                  anyOf:
+                    - type: "string"
+                    - type: "null"
+              required:
+                - "sectionKey"
+                - "mode"
+                - "fromBp"
+                - "toBp"
+                - "suggestedBp"
+                - "smrRub"
+                - "pressureRub"
+                - "reason"
+              additionalProperties: false
+            - type: "null"
         version:
           type: "integer"
           description: "номер версии строки для If-Match"
@@ -977,6 +1023,9 @@ components:
         - "autoDecision"
         - "flags"
         - "repeatVisit"
+        - "sectionKey"
+        - "sectionDone"
+        - "accrual"
         - "version"
       additionalProperties: false
     CreateTimeEntry:
@@ -1377,6 +1426,52 @@ components:
               anyOf:
                 - type: "boolean"
                 - type: "null"
+            sectionKey:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            sectionDone:
+              anyOf:
+                - type: "boolean"
+                - type: "null"
+            accrual:
+              anyOf:
+                - type: "object"
+                  properties:
+                    sectionKey:
+                      type: "string"
+                    mode:
+                      type: "string"
+                      enum:
+                        - "share"
+                        - "manual"
+                    fromBp:
+                      type: "integer"
+                    toBp:
+                      type: "integer"
+                    suggestedBp:
+                      anyOf:
+                        - type: "integer"
+                        - type: "null"
+                    smrRub:
+                      type: "integer"
+                    pressureRub:
+                      type: "integer"
+                    reason:
+                      anyOf:
+                        - type: "string"
+                        - type: "null"
+                  required:
+                    - "sectionKey"
+                    - "mode"
+                    - "fromBp"
+                    - "toBp"
+                    - "suggestedBp"
+                    - "smrRub"
+                    - "pressureRub"
+                    - "reason"
+                  additionalProperties: false
+                - type: "null"
             version:
               type: "integer"
               description: "номер версии строки для If-Match"
@@ -1409,6 +1504,9 @@ components:
             - "autoDecision"
             - "flags"
             - "repeatVisit"
+            - "sectionKey"
+            - "sectionDone"
+            - "accrual"
             - "version"
           additionalProperties: false
         flags:

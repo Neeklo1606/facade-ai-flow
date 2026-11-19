@@ -31,6 +31,8 @@ export interface FieldEntry {
   clientKey: string | null;
   /** Неделя закрыта: запись не меняется */
   locked: boolean;
+  /** Раздел сметы (ADR-078); без сумм раздела */
+  sectionKey?: string | null;
 }
 
 export interface FieldSnapshot {
@@ -109,6 +111,7 @@ export function fieldSnapshot(
             createdAt: e.createdAt,
             clientKey: e.clientKey ?? null,
             locked: isDayLocked(input.periods, e.day),
+            sectionKey: e.sectionKey ?? null,
           }))
       : [],
   };
