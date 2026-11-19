@@ -1,0 +1,60 @@
+{
+  "status": "needs-review",
+  "sheet": "Ресурсная смета 14 граф",
+  "format": "resource",
+  "totals": {
+    "direct": 10547334,
+    "overhead": 3617027,
+    "profit": 2377382,
+    "withoutVat": 16541743,
+    "materials": 5431447,
+    "payroll": 4024690,
+    "vat": 827087,
+    "total": 17368830
+  },
+  "header": {
+    "object": "Устройство арки на распределительном газопроводе н.д. по ул. Полевая, 5 в с. Учебное",
+    "number": "90-д-ТУ-26-СМР",
+    "date": "2026-08-06",
+    "address": {
+      "settlement": "с. Учебное",
+      "street": "ул. Полевая",
+      "house": "5",
+      "apartment": null
+    },
+    "rows": {
+      "object": 12,
+      "number": 6
+    }
+  },
+  "sections": [
+    {
+      "number": "1",
+      "total": 12335406,
+      "materials": 5431447,
+      "work": 6903959,
+      "laborHours": 58.32,
+      "pressure": null
+    },
+    {
+      "number": "2",
+      "total": 3279458,
+      "materials": 0,
+      "work": 3279458,
+      "laborHours": 19.25,
+      "pressure": {
+        "kind": "section",
+        "work": 3279458,
+        "rows": [106]
+      }
+    },
+    {
+      "number": "3",
+      "total": 926880,
+      "materials": 0,
+      "work": 926880,
+      "laborHours": 5.63,
+      "pressure": null
+    }
+  ]
+}

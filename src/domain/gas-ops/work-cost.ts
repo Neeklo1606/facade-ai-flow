@@ -18,6 +18,7 @@ import {
   TOTAL_ORDER,
   type EstimateExtra,
   type EstimateFormat,
+  type EstimateHeader,
   type EstimateIssue,
   type EstimateSection,
   type ParseStatus,
@@ -309,6 +310,10 @@ export interface EstimateVersion {
    * У каждой правки основание словами, было и стало; нет — версия без правок
    */
   corrections?: EstimateCorrection[];
+  /** Шапка сметы (ADR-077); нет — версия до шапки */
+  header?: EstimateHeader;
+  /** Исходный файл в папке смет; нет — загрузка до ADR-077 */
+  fileId?: string | null;
 }
 
 /** Что правят в разборе: итог по ключу, раздел или строку ниже «ВСЕГО» по строке файла */

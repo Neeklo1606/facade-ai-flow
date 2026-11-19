@@ -73,6 +73,10 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   undoDirectoryImport: ["manager", "admin", "director"],
   addObject: OFFICE,
   addBrigade: OFFICE,
+  // Папка смет (ADR-077): файлы загружает сервер маршрутом /api/gas/estimate-files, не клиент
+  intakeEstimateFile: [],
+  reparseEstimateFile: [],
+  createObjectFromEstimate: ESTIMATES,
   reset: [],
 };
 
@@ -169,6 +173,9 @@ function snapshotFor(user: User, s: GasOpsSnapshot): GasOpsSnapshot {
       .map((r) => ({ ...r, changes: r.changes.filter((c) => c.field !== "Сумма начисления") })),
     estimates: [],
     estimateVersions: [],
+    // Папка смет и разделы с суммами (ADR-077): ролям без денег не отдаются
+    estimateFiles: [],
+    objectSections: [],
     costRules: [],
     rates: [],
     reportIssues: [],

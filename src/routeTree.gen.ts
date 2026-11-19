@@ -96,6 +96,7 @@ import { Route as ApiExportProjectsRouteImport } from './routes/api/export/proje
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
 import { Route as ApiGasAssistantRouteImport } from './routes/api/gas/assistant'
 import { Route as ApiGasConnectionsRouteImport } from './routes/api/gas/connections'
+import { Route as ApiGasEstimateFilesRouteImport } from './routes/api/gas/estimate-files'
 import { Route as ApiGasEstimateFolderRouteImport } from './routes/api/gas/estimate-folder'
 import { Route as ApiGasExecDocsRouteImport } from './routes/api/gas/exec-docs'
 import { Route as ApiGasExportRouteImport } from './routes/api/gas/export'
@@ -553,6 +554,11 @@ const ApiGasConnectionsRoute = ApiGasConnectionsRouteImport.update({
   path: '/api/gas/connections',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGasEstimateFilesRoute = ApiGasEstimateFilesRouteImport.update({
+  id: '/api/gas/estimate-files',
+  path: '/api/gas/estimate-files',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGasEstimateFolderRoute = ApiGasEstimateFolderRouteImport.update({
   id: '/api/gas/estimate-folder',
   path: '/api/gas/estimate-folder',
@@ -746,6 +752,7 @@ export interface FileRoutesByFullPath {
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
+  '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
   '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
@@ -853,6 +860,7 @@ export interface FileRoutesByTo {
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
+  '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
   '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
@@ -963,6 +971,7 @@ export interface FileRoutesById {
   '/api/export/shift': typeof ApiExportShiftRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
+  '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
   '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
@@ -1074,6 +1083,7 @@ export interface FileRouteTypes {
     | '/api/export/shift'
     | '/api/gas/assistant'
     | '/api/gas/connections'
+    | '/api/gas/estimate-files'
     | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
@@ -1181,6 +1191,7 @@ export interface FileRouteTypes {
     | '/api/export/shift'
     | '/api/gas/assistant'
     | '/api/gas/connections'
+    | '/api/gas/estimate-files'
     | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
@@ -1290,6 +1301,7 @@ export interface FileRouteTypes {
     | '/api/export/shift'
     | '/api/gas/assistant'
     | '/api/gas/connections'
+    | '/api/gas/estimate-files'
     | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
@@ -1367,6 +1379,7 @@ export interface RootRouteChildren {
   ApiExportShiftRoute: typeof ApiExportShiftRoute
   ApiGasAssistantRoute: typeof ApiGasAssistantRoute
   ApiGasConnectionsRoute: typeof ApiGasConnectionsRoute
+  ApiGasEstimateFilesRoute: typeof ApiGasEstimateFilesRoute
   ApiGasEstimateFolderRoute: typeof ApiGasEstimateFolderRoute
   ApiGasExecDocsRoute: typeof ApiGasExecDocsRoute
   ApiGasExportRoute: typeof ApiGasExportRoute
@@ -1996,6 +2009,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGasConnectionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gas/estimate-files': {
+      id: '/api/gas/estimate-files'
+      path: '/api/gas/estimate-files'
+      fullPath: '/api/gas/estimate-files'
+      preLoaderRoute: typeof ApiGasEstimateFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gas/estimate-folder': {
       id: '/api/gas/estimate-folder'
       path: '/api/gas/estimate-folder'
@@ -2285,6 +2305,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiExportShiftRoute: ApiExportShiftRoute,
   ApiGasAssistantRoute: ApiGasAssistantRoute,
   ApiGasConnectionsRoute: ApiGasConnectionsRoute,
+  ApiGasEstimateFilesRoute: ApiGasEstimateFilesRoute,
   ApiGasEstimateFolderRoute: ApiGasEstimateFolderRoute,
   ApiGasExecDocsRoute: ApiGasExecDocsRoute,
   ApiGasExportRoute: ApiGasExportRoute,

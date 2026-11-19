@@ -1,0 +1,52 @@
+{
+  "status": "parsed",
+  "sheet": "Смета 1",
+  "format": "grand",
+  "totals": {
+    "direct": 12858752,
+    "materials": 3247312,
+    "withoutVat": 25914679,
+    "payroll": 7492381,
+    "overhead": 8174691,
+    "profit": 4881236,
+    "vat": 5701229,
+    "total": 31615908
+  },
+  "header": {
+    "object": "Строительство газопровода-ввода низкого давления до границы земельного участка по ул. Садовая, 24 В в г.Тестовске-на-Кубани, Условного края.",
+    "number": "900-ТП-2026-26-СМР",
+    "date": null,
+    "address": {
+      "settlement": "г. Тестовске-на-Кубани",
+      "street": "ул. Садовая",
+      "house": "24 В",
+      "apartment": null
+    },
+    "rows": {
+      "object": 22,
+      "number": 19
+    }
+  },
+  "sections": [
+    {
+      "number": "1",
+      "total": 20529735,
+      "materials": 3218257,
+      "work": 17311478,
+      "laborHours": 79.81,
+      "pressure": null
+    },
+    {
+      "number": "2",
+      "total": 5384944,
+      "materials": 29055,
+      "work": 5355889,
+      "laborHours": 26.46,
+      "pressure": {
+        "kind": "section",
+        "work": 5355889,
+        "rows": [483]
+      }
+    }
+  ]
+}

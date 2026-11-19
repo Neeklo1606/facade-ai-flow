@@ -20,6 +20,13 @@ import type {
 } from "@/domain/gas-ops/model";
 import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
 import type {
+  EstimateFile,
+  IntakeOutcome,
+  ObjectSection,
+  PressureMode,
+} from "@/domain/gas-ops/estimate-intake";
+import type { EstimateAddress } from "@/domain/gas-ops/estimate-labels";
+import type {
   CorrectionTarget,
   CostRule,
   CostRuleTerm,
@@ -106,6 +113,10 @@ export interface GasOpsSnapshot {
   actorId: string;
   /** Загруженные сметы по версиям (ADR-053) */
   estimateVersions: EstimateVersion[];
+  /** Файлы папки смет (ADR-077); нет ключа — снимок до папки */
+  estimateFiles?: EstimateFile[];
+  /** Разделы объектов из прикреплённых смет (ADR-077) */
+  objectSections?: ObjectSection[];
   /** Правило состава стоимости работ: компании и переопределения объектов */
   costRules: CostRule[];
   /** Недельный график из файла заказчика; null — ещё не загружали */
@@ -160,6 +171,17 @@ export interface UpdateEntryInput {
   headcount?: number | null | undefined;
   /** Обязателен, когда правит проверяющий: правка без причины в журнал не идёт */
   comment?: string | undefined;
+}
+
+/** Файл папки смет на входе порта: опись и разбор; байты остаются в хранилище сервера */
+export interface IntakeFileInput {
+  sha256: string;
+  name: string;
+  size: number;
+  storagePath: string | null;
+  /** null — файл не прочитан как Excel, причина в `error` */
+  parsed: ParsedWorkbook | null;
+  error?: string | null | undefined;
 }
 
 export interface ReviewInput {
@@ -234,8 +256,12 @@ export interface GasOpsPort {
   discardEstimateVersion(id: string): Promise<void>;
   /** Сменить роль пользователя (ADR-061, 12): делает администратор, себе роль не меняет */
   setUserRole(input: { userId: string; role: Role }): Promise<User>;
-  /** Привязать версию к объекту: подсказку подтверждает человек */
-  linkEstimateVersion(input: { id: string; objectId: string }): Promise<EstimateVersion>;
+  /** Привязать версию к объекту: подсказку подтверждает человек. Разделы пишутся в объект */
+  linkEstimateVersion(input: {
+    id: string;
+    objectId: string;
+    pressureMode?: PressureMode | undefined;
+  }): Promise<EstimateVersion>;
   /** Сметчик проверил замечания разбора */
   reviewEstimateIssues(id: string): Promise<EstimateVersion>;
   /**
@@ -345,6 +371,31 @@ export interface GasOpsPort {
   addObject(input: { label: string; code: string; workType: string | null }): Promise<WorkObject>;
   /** Добавить бригаду вручную (ADR-066): название уникально, подразделение из справочника */
   addBrigade(input: { name: string; groupId: string; phone: string | null }): Promise<Brigade>;
+  /**
+   * Папка смет (ADR-077): принять разобранный файл. Тот же хеш — «Уже загружена», версии нет.
+   * Иначе файл и версия сметы; другой файл известного объекта (тот же номер сметы) — новая
+   * версия этого объекта. Стоимость по-прежнему подтверждает человек
+   */
+  intakeEstimateFile(input: IntakeFileInput): Promise<IntakeOutcome>;
+  /** Повторный разбор файла: неподтверждённая версия получает новый разбор */
+  reparseEstimateFile(input: {
+    fileId: string;
+    parsed: ParsedWorkbook | null;
+    error?: string | null | undefined;
+  }): Promise<IntakeOutcome>;
+  /**
+   * Создать объект из сметы: поля проверил человек. Объект с тем же адресом или номером уже
+   * есть — отказ с подсказкой прикрепить. Версия прикрепляется, разделы пишутся в объект
+   */
+  createObjectFromEstimate(input: {
+    versionId: string;
+    label: string;
+    code: string;
+    workType: string | null;
+    address: EstimateAddress | null;
+    estimateNumber: string | null;
+    pressureMode?: PressureMode | undefined;
+  }): Promise<WorkObject>;
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }
@@ -391,6 +442,9 @@ export const GAS_OPS_METHODS = [
   "undoDirectoryImport",
   "addObject",
   "addBrigade",
+  "intakeEstimateFile",
+  "reparseEstimateFile",
+  "createObjectFromEstimate",
   "reset",
 ] as const satisfies readonly (keyof GasOpsPort)[];
 

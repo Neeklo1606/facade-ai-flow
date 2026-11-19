@@ -12,6 +12,15 @@ export const dataSource: DataSource =
 /** Сотрудник, от имени которого выполняются действия до появления сессии (P4-2) */
 export const DEFAULT_USER_ID = "e-sokolov";
 
+/**
+ * Папка смет на Яндекс Диске (ADR-072) за флагом (ADR-077): `VITE_GAS_YANDEX_FOLDER=1` — показать,
+ * `0` — скрыть. Без флага видна в демо и скрыта в рабочем контуре: у СЛАВЯНСКГАЗСТРОЯ сметы
+ * кладутся в папку на самом сервисе
+ */
+export const showYandexFolder =
+  import.meta.env["VITE_GAS_YANDEX_FOLDER"] === "1" ||
+  (import.meta.env["VITE_GAS_YANDEX_FOLDER"] !== "0" && dataSource === "demo");
+
 /** Показ демонстрации существует только в демо-контуре: финал и шаги показа (ADR-038) */
 export const demoShow = dataSource === "demo";
 

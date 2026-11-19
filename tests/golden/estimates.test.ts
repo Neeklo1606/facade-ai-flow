@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { sheetsOfXls, sheetsOfXlsx } from "@/adapters/gas-ops/estimate-file";
 import { parseEstimateWorkbook, type TotalKey } from "@/domain/gas-ops/estimate-parse";
 import { DEFAULT_RULE_TERMS, applyRule } from "@/domain/gas-ops/work-cost";
+import { sectionView } from "@/domain/gas-ops/estimate-intake";
 
 /**
  * Golden-тесты на настоящих сметах заказчика (ADR-062, решение владельца 5). Файлы живут вне
@@ -17,6 +18,16 @@ interface Expected {
   totals: Partial<Record<TotalKey, number>>;
   laborHours?: number | null;
   candidateKopecks?: number | null;
+  /** ADR-077: разделы — номер, итог, материалы, работы, опрессовка, копейки */
+  sections?: {
+    number: string | null;
+    total: number;
+    materials: number | null;
+    work: number | null;
+    pressure: number | null;
+  }[];
+  /** ADR-077: номер сметы и строка наименования объекта */
+  header?: { number: string | null; objectRow: number | null };
 }
 
 const dir = process.env["GAS_GOLDEN_DIR"] ?? join(import.meta.dir, "..", "..", ".local", "golden");
@@ -54,6 +65,24 @@ describe("golden: настоящие сметы заказчика", () => {
       if (want.candidateKopecks !== undefined) {
         const cost = applyRule(parsed.totals, DEFAULT_RULE_TERMS);
         expect(cost.ok ? cost.kopecks : null).toBe(want.candidateKopecks);
+      }
+      if (want.sections) {
+        expect(
+          parsed.sections.map((section) => {
+            const v = sectionView(section);
+            return {
+              number: v.number,
+              total: v.totalKopecks,
+              materials: v.materialsKopecks,
+              work: v.workKopecks,
+              pressure: v.pressure?.workKopecks ?? null,
+            };
+          }),
+        ).toEqual(want.sections);
+      }
+      if (want.header) {
+        expect(parsed.header?.number.value ?? null).toBe(want.header.number);
+        expect(parsed.header?.object.row ?? null).toBe(want.header.objectRow);
       }
     });
   });

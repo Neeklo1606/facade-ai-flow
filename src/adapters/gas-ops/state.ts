@@ -59,6 +59,9 @@ function initial(contour: GasContour): GasOpsSnapshot {
     actorId: "u-manager",
     // Сметы, график и режимы проверки (ADR-053): в исходном наборе пусто, правило ждёт согласования
     estimateVersions: [],
+    // Папка смет и разделы объектов (ADR-077): пусто до первой загрузки
+    estimateFiles: [],
+    objectSections: [],
     costRules: [DEFAULT_COMPANY_RULE],
     schedule: null,
     brigadeAvailability: [],
