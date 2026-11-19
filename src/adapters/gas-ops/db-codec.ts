@@ -7,7 +7,8 @@
  * - необязательное поле без значения хранится как `null` и читается обратно без ключа;
  * - состояние учёта времени до S4 лежит одной строкой `gas_state`;
  * - признаки записи (`flags`, `repeat_visit`, T7) считаются при записи из того же снимка,
- *   что видит проверяющий, и при чтении отбрасываются: в снимке их считает domain.
+ *   что видит проверяющий, и при чтении отбрасываются: в снимке их считает domain;
+ * - сметы, версии смет, файлы смет и разделы объектов — своими таблицами (ADR-077).
  * Порядок строк в массиве снимка хранит `row_order`.
  */
 import type { User } from "@/domain/gas-ops/model";
@@ -22,11 +23,9 @@ export type GasRows = Record<string, Row[]>;
 const STATE_KEYS = [
   "today",
   "week",
-  "estimates",
   "frames",
   "assignments",
   "actorId",
-  "estimateVersions",
   "costRules",
   "schedule",
   "brigadeAvailability",
@@ -48,6 +47,10 @@ const ENTRY_OPTIONAL = [
   "autoDecision",
 ] as const;
 
+/** Необязательные поля объекта и версии сметы (ADR-077): в базе `null`, в снимке ключа нет */
+const OBJECT_OPTIONAL = ["address", "estimateNumber", "sourceFileId"] as const;
+const VERSION_OPTIONAL = ["extras", "corrections", "header", "fileId"] as const;
+
 /** Поля записи, которые база хранит для запросов сервера, а снимок считает сам */
 const ENTRY_DERIVED = ["flags", "repeatVisit"] as const;
 
@@ -59,7 +62,7 @@ function entryRows(s: GasOpsSnapshot): Row[] {
 }
 
 /** Журнал растёт с головы: `row_order` от конца массива, иначе каждая запись сдвигала бы все строки */
-export const PREPENDED = new Set(["gas_audit"]);
+export const PREPENDED = new Set(["gas_audit", "gas_estimate_versions"]);
 
 const withNulls = (row: Row, keys: readonly string[]): Row => {
   const out = { ...row };
@@ -79,11 +82,15 @@ export function snapshotToRows(s: GasOpsSnapshot): GasRows {
     gas_groups: s.groups.map((g) => ({ ...g })),
     gas_brigades: s.brigades.map((b) => ({ ...b })),
     gas_employees: s.employees.map((e) => ({ ...e })),
-    gas_objects: s.objects.map((o) => ({ ...o })),
+    gas_objects: s.objects.map((o) => withNulls({ ...o }, OBJECT_OPTIONAL)),
     gas_users: s.users.map((u) => ({
       ...u,
       allowedObjectIds: u.allowedObjectIds === "all" ? null : u.allowedObjectIds,
     })),
+    gas_estimates: s.estimates.map((e) => ({ ...e })),
+    gas_estimate_versions: s.estimateVersions.map((v) => withNulls({ ...v }, VERSION_OPTIONAL)),
+    gas_estimate_files: (s.estimateFiles ?? []).map((f) => ({ ...f })),
+    gas_object_sections: (s.objectSections ?? []).map((x) => ({ ...x })),
     gas_time_entries: entryRows(s),
     gas_reviews: s.reviews.map((r) => ({ ...r })),
     gas_crew_members: s.crew.map((c) => ({ ...c })),
@@ -130,7 +137,16 @@ export function rowsToSnapshot(rows: GasRows): GasOpsSnapshot {
     groups: list("gas_groups"),
     brigades: list("gas_brigades"),
     employees: list("gas_employees"),
-    objects: list("gas_objects"),
+    objects: list<Row>("gas_objects").map(
+      (o) => withoutNulls(o, OBJECT_OPTIONAL) as unknown as GasOpsSnapshot["objects"][number],
+    ),
+    estimates: list("gas_estimates"),
+    estimateVersions: list<Row>("gas_estimate_versions").map(
+      (v) =>
+        withoutNulls(v, VERSION_OPTIONAL) as unknown as GasOpsSnapshot["estimateVersions"][number],
+    ),
+    estimateFiles: list("gas_estimate_files"),
+    objectSections: list("gas_object_sections"),
     users: list<Row>("gas_users").map(
       (u) => ({ ...u, allowedObjectIds: u["allowedObjectIds"] ?? "all" }) as User,
     ),

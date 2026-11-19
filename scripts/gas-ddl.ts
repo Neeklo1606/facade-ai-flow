@@ -9,6 +9,8 @@ import {
   GAS_T7_COLUMNS,
   GAS_WAVE_F_COLUMNS,
   GAS_AUTOPILOT_COLUMNS,
+  GAS_INTAKE_COLUMNS,
+  GAS_INTAKE_TABLES,
   gasTabelTables,
   gasTables,
 } from "../src/contracts/gas";
@@ -40,6 +42,11 @@ const enumNamesOf = (defs: TableDef[]) =>
     ),
   );
 
+const intake = new Set<string>(GAS_INTAKE_TABLES);
+/** Таблицы v1: без тех, что добавляет миграция ADR-077 */
+const v1Tables = gasTables.filter((def) => !intake.has(def.meta.name));
+const intakeTables = gasTables.filter((def) => intake.has(def.meta.name));
+
 const gasEnumNames = enumNamesOf(gasTables);
 
 export const gasEnums = enums.filter((item) => gasEnumNames.has(item.name));
@@ -50,7 +57,8 @@ const v1Columns = (def: TableDef) =>
     ([key]) =>
       !GAS_T7_COLUMNS[def.meta.name]?.includes(key) &&
       !GAS_WAVE_F_COLUMNS[def.meta.name]?.includes(key) &&
-      !GAS_AUTOPILOT_COLUMNS[def.meta.name]?.includes(key),
+      !GAS_AUTOPILOT_COLUMNS[def.meta.name]?.includes(key) &&
+      !GAS_INTAKE_COLUMNS[def.meta.name]?.includes(key),
   );
 
 function commentSql(table: string, key: string, column: ColumnMeta): string[] {
@@ -91,7 +99,7 @@ export function gasMigration(): string {
     out.push(`create type ${item.name} as enum (${item.values.map((v) => `'${v}'`).join(", ")});`);
   }
   out.push("");
-  for (const def of gasTables) out.push(...tableSql(def, v1Columns(def)), "");
+  for (const def of v1Tables) out.push(...tableSql(def, v1Columns(def)), "");
   out.push(
     "-- Версия состояния модулей: каждая запись хранилища увеличивает её при совпадении прежней",
     "-- (src/adapters/gas-ops/db-store.ts). Инфраструктура, а не данные домена: вне контрактов",
@@ -103,16 +111,16 @@ export function gasMigration(): string {
     "",
   );
   out.push("-- Внешние ключи");
-  for (const def of gasTables) {
+  for (const def of v1Tables) {
     for (const [key, column] of Object.entries(def.columns)) {
       if (!column.references) continue;
-      const target = gasTables.find((t) => t.meta.name === column.references!.table)!;
+      const target = v1Tables.find((t) => t.meta.name === column.references!.table)!;
       out.push(
         `alter table ${def.meta.name} add foreign key (${q(sqlName(key))}) references ${target.meta.name} (${q(sqlName(target.meta.primaryKey[0]!))}) on delete ${column.references.onDelete};`,
       );
     }
   }
-  const journals = gasTables.filter((def) => def.meta.appendOnly).map((def) => def.meta.name);
+  const journals = v1Tables.filter((def) => def.meta.appendOnly).map((def) => def.meta.name);
   out.push(
     "",
     "-- Журналы: роль приложения может только добавлять строки (если роль заведена)",
@@ -124,7 +132,7 @@ export function gasMigration(): string {
     "",
     "-- migrate:down",
     "drop table if exists gas_versions;",
-    ...[...gasTables].reverse().map((def) => `drop table if exists ${def.meta.name} cascade;`),
+    ...[...v1Tables].reverse().map((def) => `drop table if exists ${def.meta.name} cascade;`),
     ...[...gasEnums].reverse().map((item) => `drop type if exists ${item.name};`),
     "",
   );
@@ -230,6 +238,67 @@ function addColumnsMigration(title: string, columns: Record<string, readonly str
     "",
     "-- migrate:down",
     ...Object.entries(columns).flatMap(([table, keys]) =>
+      keys.map((key) => `alter table ${table} drop column if exists ${q(sqlName(key))};`),
+    ),
+    "",
+  );
+  return out.join("\n");
+}
+
+/**
+ * Миграция ADR-077: сметы, версии смет, файлы смет и разделы объектов — своими таблицами.
+ * Сметы и версии переносятся из строки gas_state (jsonb) и убираются из неё в той же миграции:
+ * данные не теряются, откат собирает их обратно. Время в jsonb — местное без пояса, переводится
+ * в поясе Europe/Moscow, как у хранилища по умолчанию (APP_TIME_ZONE)
+ */
+/** Необязательные ключи версии: при откате `null` не пишется ключом, как было в gas_state */
+const VERSION_OPTIONAL_SQL = ["extras", "corrections", "header", "fileId"]
+  .map((k) => ` - (case when v."${k}" is null then '${k}' else '' end)`)
+  .join("");
+
+export function gasIntakeMigration(): string {
+  const out: string[] = [
+    "-- migrate:up",
+    "-- Папка смет на сервисе (ADR-077): сметы, версии, файлы и разделы объектов в таблицах.",
+    "-- Сгенерировано scripts/gas-schema.ts из src/contracts/gas.ts. Не редактировать вручную.",
+    "",
+  ];
+  for (const [table, keys] of Object.entries(GAS_INTAKE_COLUMNS)) {
+    const def = gasTables.find((t) => t.meta.name === table)!;
+    for (const key of keys) {
+      out.push(`alter table ${table} add column ${columnSql(key, def.columns[key]!)};`);
+      out.push(...commentSql(table, key, def.columns[key]!));
+    }
+  }
+  out.push("");
+  for (const def of intakeTables) out.push(...tableSql(def), "");
+  out.push("-- Внешние ключи", ...foreignKeys(intakeTables, gasTables), "");
+  const zone = "'Europe/Moscow'";
+  const ts = (expr: string) => `((${expr})::timestamp at time zone ${zone})`;
+  out.push(
+    "-- Перенос из gas_state: порядок массива сохраняется в row_order",
+    "insert into gas_estimates (id, object_id, version, amount_rub, status, origin, confirmed_by, confirmed_at, note, source, row_order)",
+    `select e->>'id', e->>'objectId', (e->>'version')::int, (e->>'amountRub')::int, e->>'status', e->>'origin', e->>'confirmedBy', ${ts("e->>'confirmedAt'")}, e->>'note', (e->>'source')::gas_source, t.ord - 1`,
+    "from gas_state, jsonb_array_elements(coalesce(state->'estimates', '[]'::jsonb)) with ordinality as t(e, ord)",
+    "where key = 'main';",
+    "",
+    "insert into gas_estimate_versions (id, object_id, version, file_name, sheet, uploaded_at, uploaded_by, format, parse_status, totals, vat_rate, labor_hours, sections, extras, issues, header, issues_reviewed_by, confirmed_by, confirmed_at, corrections, file_id, row_order)",
+    `select v->>'id', v->>'objectId', (v->>'version')::int, v->>'fileName', v->>'sheet', ${ts("v->>'uploadedAt'")}, coalesce(v->>'uploadedBy', ''), v->>'format', v->>'parseStatus', coalesce(v->'totals', '{}'::jsonb), (v->>'vatRate')::float8, nullif(v->'laborHours', 'null'::jsonb), coalesce(v->'sections', '[]'::jsonb), nullif(v->'extras', 'null'::jsonb), coalesce(v->'issues', '[]'::jsonb), nullif(v->'header', 'null'::jsonb), v->>'issuesReviewedBy', v->>'confirmedBy', ${ts("v->>'confirmedAt'")}, nullif(v->'corrections', 'null'::jsonb), v->>'fileId', t.ord - 1 - jsonb_array_length(coalesce(state->'estimateVersions', '[]'::jsonb))`,
+    "from gas_state, jsonb_array_elements(coalesce(state->'estimateVersions', '[]'::jsonb)) with ordinality as t(v, ord)",
+    "where key = 'main';",
+    "",
+    "update gas_state set state = state - 'estimates' - 'estimateVersions' where key = 'main';",
+    "",
+    "-- migrate:down",
+    "-- Сметы и версии обратно в gas_state, затем таблицы удаляются",
+    "update gas_state set state = state",
+    "  || jsonb_build_object('estimates', coalesce((select jsonb_agg(to_jsonb(e) - 'row_order' order by e.row_order) from (",
+    `    select id, object_id as "objectId", version, amount_rub as "amountRub", status, origin, confirmed_by as "confirmedBy", to_char(confirmed_at at time zone ${zone}, 'YYYY-MM-DD"T"HH24:MI:SS') as "confirmedAt", note, source::text as source, row_order from gas_estimates) e), '[]'::jsonb))`,
+    `  || jsonb_build_object('estimateVersions', coalesce((select jsonb_agg(to_jsonb(v) - 'row_order'${VERSION_OPTIONAL_SQL} order by v.row_order) from (`,
+    `    select id, object_id as "objectId", version, file_name as "fileName", sheet, to_char(uploaded_at at time zone ${zone}, 'YYYY-MM-DD"T"HH24:MI:SS') as "uploadedAt", uploaded_by as "uploadedBy", format, parse_status as "parseStatus", totals, vat_rate as "vatRate", labor_hours as "laborHours", sections, extras, issues, header, issues_reviewed_by as "issuesReviewedBy", confirmed_by as "confirmedBy", to_char(confirmed_at at time zone ${zone}, 'YYYY-MM-DD"T"HH24:MI:SS') as "confirmedAt", corrections, file_id as "fileId", row_order from gas_estimate_versions) v), '[]'::jsonb))`,
+    "where key = 'main';",
+    ...[...intakeTables].reverse().map((def) => `drop table if exists ${def.meta.name} cascade;`),
+    ...Object.entries(GAS_INTAKE_COLUMNS).flatMap(([table, keys]) =>
       keys.map((key) => `alter table ${table} drop column if exists ${q(sqlName(key))};`),
     ),
     "",

@@ -1,0 +1,60 @@
+{
+  "status": "parsed",
+  "sheet": "Ресурсная смета 14 граф",
+  "format": "resource",
+  "totals": {
+    "direct": 783599,
+    "overhead": 591002,
+    "profit": 354697,
+    "withoutVat": 1729298,
+    "materials": 223442,
+    "payroll": 551618,
+    "vat": 86465,
+    "total": 1815762
+  },
+  "header": {
+    "object": "Перемонтаж дворового газопровода по ул. Лесная, 22, кв. 2 в г. Тестовске-на-Кубани",
+    "number": "900001-Т-26-СМР",
+    "date": "2026-07-10",
+    "address": {
+      "settlement": "г. Тестовске-на-Кубани",
+      "street": "ул. Лесная",
+      "house": "22",
+      "apartment": "2"
+    },
+    "rows": {
+      "object": 12,
+      "number": 6
+    }
+  },
+  "sections": [
+    {
+      "number": "3",
+      "total": 1199654,
+      "materials": 223442,
+      "work": 976212,
+      "laborHours": 7.47,
+      "pressure": {
+        "kind": "lines",
+        "work": 65470,
+        "rows": [40]
+      }
+    },
+    {
+      "number": "7",
+      "total": 523099,
+      "materials": 0,
+      "work": 523099,
+      "laborHours": 3.93,
+      "pressure": null
+    },
+    {
+      "number": "9",
+      "total": 6546,
+      "materials": 0,
+      "work": 6546,
+      "laborHours": null,
+      "pressure": null
+    }
+  ]
+}

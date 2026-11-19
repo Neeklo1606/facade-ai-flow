@@ -1,0 +1,60 @@
+{
+  "status": "parsed",
+  "sheet": "Ресурсная смета 14 граф",
+  "format": "resource",
+  "totals": {
+    "direct": 13357166,
+    "overhead": 3857975,
+    "profit": 2262822,
+    "withoutVat": 19477963,
+    "materials": 9412756,
+    "payroll": 3820512,
+    "vat": 973899,
+    "total": 20451861
+  },
+  "header": {
+    "object": "Новая газификация домовладения по ул. Садовая, 231 в г. Тестовске-на-Кубани",
+    "number": "Д-900-2026-26-СМР",
+    "date": "2026-08-31",
+    "address": {
+      "settlement": "г. Тестовске-на-Кубани",
+      "street": "ул. Садовая",
+      "house": "231",
+      "apartment": null
+    },
+    "rows": {
+      "object": 12,
+      "number": 6
+    }
+  },
+  "sections": [
+    {
+      "number": "3",
+      "total": 18876315,
+      "materials": 9412756,
+      "work": 9463559,
+      "laborHours": 75.04,
+      "pressure": {
+        "kind": "lines",
+        "work": 891142,
+        "rows": [70]
+      }
+    },
+    {
+      "number": "7",
+      "total": 523099,
+      "materials": 0,
+      "work": 523099,
+      "laborHours": 3.93,
+      "pressure": null
+    },
+    {
+      "number": "9",
+      "total": 78549,
+      "materials": 0,
+      "work": 78549,
+      "laborHours": null,
+      "pressure": null
+    }
+  ]
+}

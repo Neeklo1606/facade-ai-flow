@@ -237,6 +237,117 @@ export const gasObjects = table(
     workType: col.text({ nullable: true }),
     code: col.name(),
     source: col.enum(gasSource),
+    address: col.jsonb(z.record(z.unknown()), {
+      nullable: true,
+      comment: "адрес из шапки сметы: населённый пункт, улица, дом, квартира (ADR-077)",
+    }),
+    estimateNumber: col.text({
+      nullable: true,
+      comment: "номер сметы или КП, из которой создан объект",
+    }),
+    sourceFileId: col.text({ nullable: true, comment: "исходный файл сметы gas_estimate_files" }),
+  },
+);
+
+/* ---------- ADR-077: сметы, файлы смет и разделы объектов в своих таблицах ---------- */
+
+export const gasEstimates = table(
+  {
+    name: "gas_estimates",
+    comment: "Подтверждённая стоимость работ объекта без материалов: смета или ручная сумма",
+    primaryKey: ["id"],
+    indexes: [{ columns: ["objectId"], purpose: "стоимость объекта" }],
+  },
+  {
+    id: col.key(),
+    objectId: col.keyRef("gas_objects", "restrict"),
+    version: col.int(),
+    amountRub: col.int({ comment: "целые рубли" }),
+    status: col.name({ comment: "confirmed | manual-pending | missing" }),
+    origin: col.name({ comment: "estimate | manual | none" }),
+    confirmedBy: col.text({ nullable: true }),
+    confirmedAt: col.timestamp({ nullable: true }),
+    note: col.text({ nullable: true }),
+    source: col.enum(gasSource),
+  },
+);
+
+export const gasEstimateVersions = table(
+  {
+    name: "gas_estimate_versions",
+    comment: "Версия сметы: одна загрузка файла, разбор с номерами строк",
+    primaryKey: ["id"],
+    indexes: [{ columns: ["objectId", "version"], purpose: "версии объекта по порядку" }],
+  },
+  {
+    id: col.key(),
+    objectId: col.keyRef("gas_objects", "restrict", { nullable: true }),
+    version: col.int(),
+    fileName: col.name(),
+    sheet: col.text({ nullable: true }),
+    uploadedAt: col.timestamp(),
+    uploadedBy: col.text(),
+    format: col.text({ nullable: true, comment: "grand | resource" }),
+    parseStatus: col.name(),
+    totals: col.jsonb(z.record(z.unknown())),
+    vatRate: col.float({ nullable: true }),
+    laborHours: col.jsonb(z.record(z.unknown()), { nullable: true }),
+    sections: col.jsonb(z.array(z.record(z.unknown()))),
+    extras: col.jsonb(z.array(z.record(z.unknown())), { nullable: true }),
+    issues: col.jsonb(z.array(z.record(z.unknown()))),
+    header: col.jsonb(z.record(z.unknown()), { nullable: true, comment: "шапка сметы (ADR-077)" }),
+    issuesReviewedBy: col.text({ nullable: true }),
+    confirmedBy: col.text({ nullable: true }),
+    confirmedAt: col.timestamp({ nullable: true }),
+    corrections: col.jsonb(z.array(z.record(z.unknown())), { nullable: true }),
+    fileId: col.text({ nullable: true, comment: "исходный файл gas_estimate_files" }),
+  },
+);
+
+export const gasEstimateFiles = table(
+  {
+    name: "gas_estimate_files",
+    comment: "Исходный файл сметы: опись, байты в хранилище тома сервера",
+    primaryKey: ["id"],
+    indexes: [
+      { columns: ["sha256"], unique: true, purpose: "одинаковый файл не создаёт новую версию" },
+    ],
+  },
+  {
+    id: col.key(),
+    sha256: col.name({ comment: "SHA-256 содержимого, hex" }),
+    name: col.name(),
+    size: col.int({ comment: "байты" }),
+    uploadedBy: col.text(),
+    uploadedAt: col.timestamp(),
+    storagePath: col.text({ nullable: true, comment: "путь в хранилище; null — демо" }),
+    status: col.name({ comment: "parsed | needs-review | unreadable" }),
+    reason: col.text({ nullable: true }),
+    versionId: col.text({ nullable: true }),
+    repeats: col.int(),
+  },
+);
+
+export const gasObjectSections = table(
+  {
+    name: "gas_object_sections",
+    comment: "Раздел объекта из прикреплённой сметы: ключ стабилен между версиями",
+    primaryKey: ["id"],
+    indexes: [{ columns: ["objectId"], purpose: "разделы объекта" }],
+  },
+  {
+    id: col.key(),
+    objectId: col.keyRef("gas_objects", "cascade"),
+    versionId: col.text(),
+    key: col.name(),
+    number: col.text({ nullable: true }),
+    title: col.name(),
+    totalKopecks: col.money(),
+    materialsKopecks: col.money({ nullable: true }),
+    workKopecks: col.money({ nullable: true }),
+    laborHours: col.float({ nullable: true }),
+    pressureKopecks: col.money({ nullable: true }),
+    removed: col.bool(),
   },
 );
 
@@ -975,6 +1086,10 @@ const GAS_SCHEMAS = [
   gasEmployees,
   gasObjects,
   gasUsers,
+  gasEstimates,
+  gasEstimateVersions,
+  gasEstimateFiles,
+  gasObjectSections,
   gasTimeEntries,
   gasReviews,
   gasCrewMembers,
@@ -1028,6 +1143,18 @@ export const GAS_WAVE_F_COLUMNS: Record<string, readonly string[]> = {
 /** Колонки автопилота (ADR-070): своя миграция поверх волны F */
 export const GAS_AUTOPILOT_COLUMNS: Record<string, readonly string[]> = {
   gas_time_entries: ["autoDecision"],
+};
+
+/** ADR-077: таблицы и колонки своей миграции поверх автопилота, данные из gas_state переносятся */
+export const GAS_INTAKE_TABLES = [
+  "gas_estimates",
+  "gas_estimate_versions",
+  "gas_estimate_files",
+  "gas_object_sections",
+] as const;
+
+export const GAS_INTAKE_COLUMNS: Record<string, readonly string[]> = {
+  gas_objects: ["address", "estimateNumber", "sourceFileId"],
 };
 
 export type GasRow<T extends z.ZodTypeAny> = z.infer<T>;

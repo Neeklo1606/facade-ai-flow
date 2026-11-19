@@ -696,6 +696,19 @@ components:
           enum:
             - "fact-report"
             - "mock"
+        address:
+          anyOf:
+            - type: "object"
+              additionalProperties: {}
+            - type: "null"
+        estimateNumber:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        sourceFileId:
+          anyOf:
+            - type: "string"
+            - type: "null"
       required:
         - "id"
         - "label"
@@ -703,6 +716,9 @@ components:
         - "workType"
         - "code"
         - "source"
+        - "address"
+        - "estimateNumber"
+        - "sourceFileId"
       additionalProperties: false
     Brigade:
       type: "object"

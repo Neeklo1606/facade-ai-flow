@@ -1,0 +1,76 @@
+{
+  "status": "parsed",
+  "sheet": "Смета 1",
+  "format": "grand",
+  "totals": {
+    "direct": 9396733,
+    "materials": 3546294,
+    "withoutVat": 16891937,
+    "payroll": 4226205,
+    "overhead": 4687856,
+    "profit": 2807348,
+    "vat": 3716226,
+    "total": 20608163
+  },
+  "header": {
+    "object": "Строительство газопровода-ввода низкого давления до границы земельного участка по ул. Ореховая, д. 6 в х. Примернском Тестовского района, Условного края.",
+    "number": "Д-900-2026-26-СМР",
+    "date": null,
+    "address": {
+      "settlement": "х. Примернском",
+      "street": "ул. Ореховая",
+      "house": "6",
+      "apartment": null
+    },
+    "rows": {
+      "object": 22,
+      "number": 19
+    }
+  },
+  "sections": [
+    {
+      "number": "1",
+      "total": 103010,
+      "materials": 4,
+      "work": 103006,
+      "laborHours": 0,
+      "pressure": null
+    },
+    {
+      "number": "2",
+      "total": 7020875,
+      "materials": 3241245,
+      "work": 3779630,
+      "laborHours": 25.67,
+      "pressure": null
+    },
+    {
+      "number": "3",
+      "total": 2453766,
+      "materials": 269561,
+      "work": 2184205,
+      "laborHours": 10.36,
+      "pressure": null
+    },
+    {
+      "number": "4",
+      "total": 6874176,
+      "materials": 249,
+      "work": 6873927,
+      "laborHours": 19.45,
+      "pressure": {
+        "kind": "section",
+        "work": 6873927,
+        "rows": [614]
+      }
+    },
+    {
+      "number": "5",
+      "total": 440110,
+      "materials": 35235,
+      "work": 404875,
+      "laborHours": 1.01,
+      "pressure": null
+    }
+  ]
+}

@@ -96,6 +96,19 @@ import {
   type ReviewInput,
   type UpdateEntryInput,
 } from "@/ports/gas-ops";
+import {
+  changedSections,
+  duplicateOf,
+  fileStatusOf,
+  matchObject,
+  objectSectionsOf,
+  objectTaken,
+  type EstimateFile,
+  type IntakeOutcome,
+  type PressureMode,
+} from "@/domain/gas-ops/estimate-intake";
+import { addressKey } from "@/domain/gas-ops/estimate-header";
+import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
 import { resetState } from "./state";
 import { demoStore, retrying, type GasStore } from "./store";
 
@@ -323,6 +336,65 @@ function applyRuleChange(
     change.staleReports += applied.stale;
   }
   return { snapshot: next, change };
+}
+
+/** Версия сметы из разбора файла (ADR-053, ADR-077) */
+function versionOf(
+  snapshot: GasOpsSnapshot,
+  parsed: ParsedWorkbook,
+  fileName: string,
+  objectId: string | null,
+  fileId: string | null,
+): EstimateVersion {
+  return {
+    id: newId("esv"),
+    objectId,
+    version: nextVersion(objectId, snapshot.estimateVersions),
+    fileName,
+    sheet: parsed.sheet,
+    uploadedAt: nowOf(snapshot),
+    uploadedBy: snapshot.actorId,
+    format: parsed.format,
+    parseStatus: parsed.status,
+    totals: parsed.totals,
+    vatRate: parsed.vatRate,
+    laborHours: parsed.laborHours,
+    sections: parsed.sections,
+    extras: parsed.extras ?? [],
+    issues: parsed.issues,
+    issuesReviewedBy: null,
+    confirmedBy: null,
+    confirmedAt: null,
+    ...(parsed.header ? { header: parsed.header } : {}),
+    ...(fileId ? { fileId } : {}),
+  };
+}
+
+/** Разделы объекта из версии: прежние строки объекта сохраняют ключ, убранные помечаются */
+function withSections(
+  s: GasOpsSnapshot,
+  objectId: string,
+  version: EstimateVersion,
+  mode: PressureMode = "payroll",
+): GasOpsSnapshot {
+  const previous = s.objectSections ?? [];
+  const next = objectSectionsOf(objectId, version.id, version.sections, previous, mode);
+  return {
+    ...s,
+    objectSections: [...previous.filter((x) => x.objectId !== objectId), ...next],
+  };
+}
+
+/**
+ * Последняя версия объекта, к которому смета относится по номеру: новый файл того же КП —
+ * новая версия, а не новый объект (ADR-077)
+ */
+function knownObjectOf(snapshot: GasOpsSnapshot, parsed: ParsedWorkbook): string | null {
+  const match = matchObject(parsed.header, snapshot.objects);
+  if (match.kind !== "attach" || match.by !== "number") return null;
+  return snapshot.estimateVersions.some((v) => v.objectId === match.objectId)
+    ? match.objectId
+    : null;
 }
 
 function mustVersion(snapshot: GasOpsSnapshot, id: string): EstimateVersion {
@@ -992,7 +1064,12 @@ export function createGasOpsDemo(
       };
       const next = await store.update(
         (s) => ({
-          ...s,
+          ...withSections(s, object.id, linked, input.pressureMode),
+          objects: s.objects.map((o) =>
+            o.id === object.id && !o.sourceFileId && linked.fileId
+              ? { ...o, sourceFileId: linked.fileId }
+              : o,
+          ),
           estimateVersions: s.estimateVersions.map((x) => (x.id === v.id ? linked : x)),
           audit: [
             audit(s, {
@@ -1103,7 +1180,7 @@ export function createGasOpsDemo(
       let kept = 0;
       const next = await store.update((s) => {
         const withVersion: GasOpsSnapshot = {
-          ...s,
+          ...withSections(s, objectId, v),
           estimateVersions: s.estimateVersions.map((x) =>
             x.id === id ? { ...x, confirmedBy: s.actorId, confirmedAt: at } : x,
           ),
@@ -1953,6 +2030,207 @@ export function createGasOpsDemo(
               action: "object.add",
               entityId: object.id,
               detail: `Объект ${code} добавлен вручную`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(object);
+    },
+
+    intakeEstimateFile: async (input) => {
+      const snapshot = await store.read();
+      mustEstimateEditor(snapshot);
+      const files = snapshot.estimateFiles ?? [];
+      const twin = duplicateOf(files, input.sha256);
+      if (twin) {
+        const v = twin.versionId
+          ? snapshot.estimateVersions.find((x) => x.id === twin.versionId)
+          : undefined;
+        await store.update(
+          (s) => ({
+            ...s,
+            estimateFiles: (s.estimateFiles ?? []).map((f) =>
+              f.id === twin.id ? { ...f, repeats: f.repeats + 1 } : f,
+            ),
+          }),
+          snapshot,
+        );
+        return done<IntakeOutcome>({
+          kind: "duplicate",
+          fileId: twin.id,
+          versionId: v?.id ?? null,
+          version: v?.version ?? null,
+        });
+      }
+      const fileId = newId("esf");
+      const status = input.parsed
+        ? fileStatusOf(input.parsed)
+        : { status: "unreadable" as const, reason: input.error ?? "Файл не читается как Excel" };
+      const objectId = input.parsed ? knownObjectOf(snapshot, input.parsed) : null;
+      const version = input.parsed
+        ? versionOf(snapshot, input.parsed, input.name, objectId, fileId)
+        : null;
+      const previous = objectId
+        ? snapshot.estimateVersions.find((x) => x.objectId === objectId)
+        : undefined;
+      const file: EstimateFile = {
+        id: fileId,
+        sha256: input.sha256,
+        name: input.name,
+        size: input.size,
+        uploadedBy: snapshot.actorId,
+        uploadedAt: nowOf(snapshot),
+        storagePath: input.storagePath,
+        status: status.status,
+        reason: status.reason,
+        versionId: version?.id ?? null,
+        repeats: 0,
+      };
+      await store.update(
+        (s) => ({
+          ...s,
+          estimateFiles: [file, ...(s.estimateFiles ?? [])],
+          estimateVersions: version ? [version, ...s.estimateVersions] : s.estimateVersions,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.upload",
+              entityId: version?.id ?? fileId,
+              // Имя файла в журнал не пишется: в именах смет адреса объектов
+              detail: version
+                ? `Смета из папки, версия ${version.version}${objectId ? " известного объекта" : ""}, замечаний ${version.issues.length}`
+                : "Файл в папке смет не распознан",
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done<IntakeOutcome>({
+        kind: "added",
+        fileId,
+        versionId: version?.id ?? null,
+        version: version?.version ?? null,
+        status: status.status,
+        reason: status.reason,
+        match: input.parsed ? matchObject(input.parsed.header, snapshot.objects) : { kind: "new" },
+        changed: previous && version ? changedSections(previous.sections, version.sections) : null,
+      });
+    },
+
+    reparseEstimateFile: async (input) => {
+      const snapshot = await store.read();
+      mustEstimateEditor(snapshot);
+      const file = (snapshot.estimateFiles ?? []).find((f) => f.id === input.fileId);
+      if (!file) throw new GasOpsError("not-found", "Файл сметы не найден. Обновите экран.");
+      const old = file.versionId
+        ? snapshot.estimateVersions.find((v) => v.id === file.versionId)
+        : undefined;
+      if (old?.confirmedAt) {
+        throw new GasOpsError(
+          "not-allowed",
+          "Смета уже подтверждена: по ней посчитана стоимость. Загрузите новую версию файлом.",
+        );
+      }
+      const status = input.parsed
+        ? fileStatusOf(input.parsed)
+        : { status: "unreadable" as const, reason: input.error ?? "Файл не читается как Excel" };
+      const fresh = input.parsed
+        ? versionOf(snapshot, input.parsed, file.name, old?.objectId ?? null, file.id)
+        : null;
+      const version = fresh && old ? { ...fresh, id: old.id, version: old.version } : fresh;
+      await store.update(
+        (s) => ({
+          ...s,
+          estimateFiles: (s.estimateFiles ?? []).map((f) =>
+            f.id === file.id
+              ? {
+                  ...f,
+                  status: status.status,
+                  reason: status.reason,
+                  versionId: version?.id ?? null,
+                }
+              : f,
+          ),
+          estimateVersions: version
+            ? old
+              ? s.estimateVersions.map((v) => (v.id === old.id ? version : v))
+              : [version, ...s.estimateVersions]
+            : s.estimateVersions.filter((v) => v.id !== old?.id),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.reparse",
+              entityId: file.id,
+              detail: `Смета разобрана заново: ${status.status}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done<IntakeOutcome>({
+        kind: "added",
+        fileId: file.id,
+        versionId: version?.id ?? null,
+        version: version?.version ?? null,
+        status: status.status,
+        reason: status.reason,
+        match: input.parsed ? matchObject(input.parsed.header, snapshot.objects) : { kind: "new" },
+        changed: null,
+      });
+    },
+
+    createObjectFromEstimate: async (input) => {
+      const snapshot = await store.read();
+      mustEstimateEditor(snapshot);
+      const v = mustVersion(snapshot, input.versionId);
+      if (v.objectId) {
+        throw new GasOpsError("duplicate", "Смета уже прикреплена к объекту.");
+      }
+      const label = input.label.trim();
+      const code = input.code.trim();
+      if (!label) throw new GasOpsError("comment-required", "Укажите адрес или название объекта.");
+      if (!code) throw new GasOpsError("comment-required", "Укажите номер объекта.");
+      const taken = objectTaken(
+        { address: input.address, estimateNumber: input.estimateNumber, code },
+        snapshot.objects,
+      );
+      if (taken) {
+        throw new GasOpsError(
+          "duplicate",
+          `Объект уже есть: «${taken.label}». Прикрепите смету к нему.`,
+        );
+      }
+      const object: WorkObject = {
+        id: newId("obj"),
+        label,
+        settlement: input.address?.settlement ?? null,
+        workType: input.workType?.trim() || null,
+        code,
+        source: "mock",
+        address: input.address,
+        estimateNumber: input.estimateNumber?.trim() || null,
+        sourceFileId: v.fileId ?? null,
+      };
+      const linked: EstimateVersion = { ...v, objectId: object.id, version: 1 };
+      await store.update(
+        (s) => ({
+          ...withSections(
+            { ...s, objects: [...s.objects, object] },
+            object.id,
+            linked,
+            input.pressureMode,
+          ),
+          estimateVersions: s.estimateVersions.map((x) => (x.id === v.id ? linked : x)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "object.from-estimate",
+              entityId: object.id,
+              detail: `Объект ${code} создан из сметы: разделов ${v.sections.length}${addressKey(input.address) ? ", адрес из шапки" : ""}`,
             }),
             ...s.audit,
           ],

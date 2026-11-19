@@ -6,6 +6,7 @@
  * тоже в рублях. Чтобы это не путалось с `fmtMoney(kopecks)`, у направления свой
  * форматтер `fmtRub` и своё имя поля — `amountRub`.
  */
+import type { EstimateAddress } from "./estimate-labels";
 import type { AutoDecision } from "./autopilot";
 
 /** Этапы проверки записи по ТЗ v1.0, п. 5.8 */
@@ -65,6 +66,12 @@ export interface WorkObject {
   /** Адрес не единственный ключ: у объекта есть свой номер (ТЗ, п. 6) */
   code: string;
   source: DataSource;
+  /** Адрес из шапки сметы (ADR-077); нет — объект заведён вручную или из выгрузки */
+  address?: EstimateAddress | null;
+  /** Номер сметы или КП, из которой создан объект: по нему ищутся дубли */
+  estimateNumber?: string | null;
+  /** Исходный файл сметы */
+  sourceFileId?: string | null;
 }
 
 /** Подтверждённая стоимость работ объекта без материалов (ТЗ, п. 6) */

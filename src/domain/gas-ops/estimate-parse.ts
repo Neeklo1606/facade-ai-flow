@@ -21,6 +21,8 @@ import type {
   TotalKey,
 } from "./estimate-labels";
 import { TOLERANCE_KOPECKS } from "./estimate-labels";
+import { parseEstimateHeader } from "./estimate-header";
+import { withBreakdown } from "./estimate-sections";
 
 export * from "./estimate-labels";
 
@@ -252,6 +254,8 @@ export function parseEstimateGrid(grid: Grid, options: EstimateParseOptions = {}
     if (key === "total") afterTotal = true;
   });
 
+  result.sections = withBreakdown(grid, format, result.sections, amountCol);
+  result.header = parseEstimateHeader(grid, format);
   check(result);
   return result;
 }
