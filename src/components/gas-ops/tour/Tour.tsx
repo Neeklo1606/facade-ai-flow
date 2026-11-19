@@ -26,6 +26,8 @@ import { useRoleSwitch } from "../shell/use-role-switch";
 const FIND_MS = 2000;
 const PAD = 6;
 const CARD_W = 360;
+/** Высота подсказки на компьютере с запасом: решает, поместится ли она под или над элементом */
+const CARD_H = 220;
 
 /** Первый видимый элемент шага: экспорт есть и в шапке компьютера, и в списке телефона */
 function findTarget(target: string): HTMLElement | null {
@@ -113,15 +115,26 @@ function cardStyle(rect: DOMRect | null, phone: boolean): CSSProperties {
     // Телефон: подсказка во всю ширину с той стороны, где у элемента больше места
     const above = rect ? rect.top : 0;
     const below = rect ? window.innerHeight - rect.bottom : 1;
+    // Снизу над нижними слоями (лента разделов, липкая кнопка): они пишут --bottom-inset
     return above > below
       ? { left: 16, right: 16, top: "calc(16px + env(safe-area-inset-top))" }
-      : { left: 16, right: 16, bottom: "calc(16px + env(safe-area-inset-bottom))" };
+      : {
+          left: 16,
+          right: 16,
+          bottom: "calc(var(--bottom-inset, 0px) + 16px + env(safe-area-inset-bottom))",
+        };
   }
   if (!rect) return { left: "50%", top: "50%", width: CARD_W, transform: "translate(-50%, -50%)" };
   const left = Math.min(Math.max(16, rect.left), window.innerWidth - CARD_W - 16);
   const below = rect.bottom + PAD + 12;
-  if (below + 220 < window.innerHeight) return { left, top: below, width: CARD_W };
-  return { left, bottom: window.innerHeight - rect.top + PAD + 12, width: CARD_W };
+  if (below + CARD_H < window.innerHeight) return { left, top: below, width: CARD_W };
+  const above = rect.top - PAD - 12;
+  if (above - CARD_H > 0) return { left, bottom: window.innerHeight - above, width: CARD_W };
+  /*
+   * Элемент выше экрана (очередь карточками, ADR-074): ни под ним, ни над ним места нет.
+   * Подсказка у нижнего края поверх элемента, иначе она уходит за экран и её не закрыть
+   */
+  return { left, bottom: 24, width: CARD_W };
 }
 
 export function Tour() {
@@ -220,7 +233,7 @@ export function Tour() {
           aria-modal="false"
           aria-label={tour.title}
           data-testid="tour-card"
-          className="pointer-events-auto absolute inset-x-2 bottom-[calc(8px+env(safe-area-inset-bottom))] flex flex-col gap-1 rounded-card bg-surface px-3 py-2 shadow-floating ring-1 ring-line"
+          className="pointer-events-auto absolute inset-x-2 bottom-[calc(var(--bottom-inset,0px)+8px+env(safe-area-inset-bottom))] flex flex-col gap-1 rounded-card bg-surface px-3 py-2 shadow-floating ring-1 ring-line"
         >
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">
