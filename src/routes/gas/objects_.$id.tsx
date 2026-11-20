@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, SearchX } from "lucide-react";
 import { completePageHead } from "@/lib/page-head";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { fmtDuration, fmtRub, useGasActor, useGasObjects } from "@/api/gas-ops";
@@ -41,7 +41,11 @@ function ObjectPage() {
     return (
       <div className="flex flex-col gap-4">
         <BackLink />
-        <EmptyBlock>Объект не найден. Возможно, его удалили или ссылка устарела.</EmptyBlock>
+        <EmptyBlock
+          icon={SearchX}
+          title="Объект не найден"
+          text="Возможно, его удалили или ссылка устарела. Откройте список объектов."
+        />
       </div>
     );
 
