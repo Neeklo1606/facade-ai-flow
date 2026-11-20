@@ -4,7 +4,7 @@
  */
 import {
   FLAG_LABEL,
-  fmtHours,
+  fmtDuration,
   fmtRub,
   fmtManHours,
   formatClock,
@@ -39,10 +39,10 @@ export function fmtShortDay(day: string): string {
   return `${weekday} ${day.slice(8, 10)}.${day.slice(5, 7)}`;
 }
 
-/** «Бригада 1 · 12:00 – 14:30 · 2,50 ч» */
+/** «Бригада 1 · 12:00 – 14:30 · 2 ч 30 мин» */
 export function entryLine(view: EntryView): string {
   const frame = entryFrame(view);
-  return [view.brigade?.name ?? "Бригада не указана", frame, fmtHours(view.hours)]
+  return [view.brigade?.name ?? "Бригада не указана", frame, fmtDuration(view.entry.minutes)]
     .filter((part): part is string => !!part)
     .join(" · ");
 }
@@ -57,7 +57,7 @@ export function rowLine(view: EntryView): string {
   return [
     fmtShortDay(view.entry.day),
     entryFrame(view),
-    fmtHours(view.hours),
+    fmtDuration(view.entry.minutes),
     people === null ? "состав –" : `${people} чел.`,
     man === null ? null : fmtManHours(man, "чел.-ч"),
   ]

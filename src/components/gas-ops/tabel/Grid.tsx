@@ -158,7 +158,6 @@ export function Grid({
     setMarksReady(true);
   }, [marksKey]);
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [hoverCol, setHoverCol] = useState<number | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewport, setViewport] = useState(800);
   const dragging = useRef(false);
@@ -332,7 +331,6 @@ export function Grid({
     scroller.current?.focus({ preventScroll: true });
   };
   const extendCell = (row: number, col: number) => {
-    setHoverCol(col);
     if (!dragging.current) return;
     setSelection((current) =>
       current ? { anchor: current.anchor, focus: { row, col } } : current,
@@ -371,10 +369,10 @@ export function Grid({
 
   return (
     <div className="flex min-h-0 flex-col">
-      {/* Подсветка столбца под мышью: правило на весь столбец, без перерисовки ячеек */}
-      {hoverCol !== null ? (
-        <style>{`#${id} td[data-col="${hoverCol}"]:not([data-selected]):not([data-status="draft"]){background-color:var(--color-surface-2)}`}</style>
-      ) : null}
+      {/*
+       * Подсветка столбца под мышью убрана (обратная связь 20.11.2026): при движении курсора
+       * по таблице мигали целые столбцы. Остаётся подсветка строки и выделение ячеек
+       */}
       <div
         id={id}
         ref={scroller}
@@ -387,7 +385,6 @@ export function Grid({
         onKeyDown={onKeyDown}
         onCopy={onCopy}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
-        onPointerLeave={() => setHoverCol(null)}
         className="surface-1 relative overflow-auto overscroll-contain focus-ring select-none"
         style={{ height: `calc(${height} - ${markBarHeight}px)` }}
       >

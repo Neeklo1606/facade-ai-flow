@@ -11,6 +11,7 @@ import {
   INFO_KIND_LABEL,
   costBreakdown,
   entryInfo,
+  fmtDuration,
   fmtHours,
   fmtManHours,
   fmtRub,
@@ -35,10 +36,6 @@ function fmtAt(at: string): string {
 }
 
 /** «2 ч 30 мин» */
-function fmtDuration(minutes: number): string {
-  return `${Math.floor(minutes / 60)} ч ${String(minutes % 60).padStart(2, "0")} мин`;
-}
-
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-3 py-1.5">
@@ -147,7 +144,10 @@ export function EntryDetails({ view }: { view: EntryView }) {
             {entry.breakMinutes > 0 ? `${entry.breakMinutes} мин` : "без перерыва"}
           </Row>
           <Row label="Минуты">{entry.minutes} мин</Row>
-          <Row label="Часы">{fmtHours(view.hours)}</Row>
+          <Row label="Время работы">
+            {fmtDuration(entry.minutes)}
+            <span className="text-text-3"> · в табеле {fmtHours(view.hours)}</span>
+          </Row>
           <Row label="Состав">
             {people === null ? (
               <span className="text-text-3">

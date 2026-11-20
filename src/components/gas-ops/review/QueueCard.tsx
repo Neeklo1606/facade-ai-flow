@@ -10,7 +10,7 @@ import { forwardRef } from "react";
 import {
   costBreakdown,
   fmtRub,
-  fmtHours,
+  fmtDuration,
   useGasActor,
   type EntryView,
   type Remark,
@@ -75,7 +75,7 @@ export const QueueCard = forwardRef<
     const values = [
       { label: "Дата", value: fmtShortDay(entry.day) },
       { label: "Время", value: entryFrame(view) ?? "Не указано" },
-      { label: "Часы", value: fmtHours(view.hours) },
+      { label: "Работа", value: fmtDuration(entry.minutes) },
       ...(money
         ? [
             {

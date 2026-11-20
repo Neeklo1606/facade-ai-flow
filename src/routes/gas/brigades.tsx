@@ -261,6 +261,24 @@ function BrigadesPage() {
       >
         {current ? (
           <div className="flex flex-col gap-4">
+            {/* Отпуск на неделю прямо в карточке (обратная связь 20.11.2026): раньше переключатель
+                был только во вкладке «Состав на неделю» */}
+            <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-card border border-line px-3 py-2">
+              <span className="min-w-0 flex-1">
+                <span className="block text-body text-text">Работает на этой неделе</span>
+                <span className="block text-meta text-text-3">
+                  {away.has(current.brigade.id)
+                    ? "В отпуске: бригада не получает объектов и напоминаний"
+                    : "Выключите, если бригада в отпуске"}
+                </span>
+              </span>
+              <Switch
+                disabled={!office}
+                checked={!away.has(current.brigade.id)}
+                onCheckedChange={(on) => void setOnVacation(current.brigade.id, !on)}
+                aria-label={`${current.brigade.name}: работает на этой неделе`}
+              />
+            </label>
             {office ? (
               <div className="flex flex-wrap gap-2">
                 <AssignBrigade brigadeId={current.brigade.id} />
@@ -413,8 +431,8 @@ function BrigadesPage() {
 function WeekDot({ vacation }: { vacation: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span aria-hidden className={cn("size-2 rounded-full", vacation ? "bg-text-3" : "bg-ok")} />
-      {vacation ? "В отпуске" : "Работает"} ·
+      <span aria-hidden className={cn("size-2 rounded-full", vacation ? "bg-warn" : "bg-ok")} />
+      {vacation ? <span className="text-warn">В отпуске</span> : "Работает"} ·
     </span>
   );
 }
