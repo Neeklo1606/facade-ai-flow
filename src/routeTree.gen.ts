@@ -106,6 +106,7 @@ import { Route as ApiOfficeConnectionsRouteImport } from './routes/api/office/co
 import { Route as ApiTelegramWebhookRouteImport } from './routes/api/telegram/webhook'
 import { Route as GasDocsIndexRouteImport } from './routes/gas/docs/index'
 import { Route as GasDocsDocIdRouteImport } from './routes/gas/docs/$docId'
+import { Route as GasObjectsIdRouteImport } from './routes/gas/objects_.$id'
 import { Route as GasSupplyIndexRouteImport } from './routes/gas/supply/index'
 import { Route as GasSupplyRequestIdRouteImport } from './routes/gas/supply/$requestId'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects/$id/index'
@@ -604,6 +605,11 @@ const GasDocsDocIdRoute = GasDocsDocIdRouteImport.update({
   path: '/docs/$docId',
   getParentRoute: () => GasRoute,
 } as any)
+const GasObjectsIdRoute = GasObjectsIdRouteImport.update({
+  id: '/objects_/$id',
+  path: '/objects/$id',
+  getParentRoute: () => GasRoute,
+} as any)
 const GasSupplyIndexRoute = GasSupplyIndexRouteImport.update({
   id: '/supply/',
   path: '/supply/',
@@ -761,6 +767,7 @@ export interface FileRoutesByFullPath {
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
+  '/gas/objects/$id': typeof GasObjectsIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -869,6 +876,7 @@ export interface FileRoutesByTo {
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
+  '/gas/objects/$id': typeof GasObjectsIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -980,6 +988,7 @@ export interface FileRoutesById {
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
   '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/gas/docs/$docId': typeof GasDocsDocIdRoute
+  '/gas/objects_/$id': typeof GasObjectsIdRoute
   '/gas/supply/$requestId': typeof GasSupplyRequestIdRoute
   '/projects/$id/deliveries': typeof ProjectsIdDeliveriesRoute
   '/projects/$id/field-reports': typeof ProjectsIdFieldReportsRoute
@@ -1092,6 +1101,7 @@ export interface FileRouteTypes {
     | '/api/office/connections'
     | '/api/telegram/webhook'
     | '/gas/docs/$docId'
+    | '/gas/objects/$id'
     | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
@@ -1200,6 +1210,7 @@ export interface FileRouteTypes {
     | '/api/office/connections'
     | '/api/telegram/webhook'
     | '/gas/docs/$docId'
+    | '/gas/objects/$id'
     | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
@@ -1310,6 +1321,7 @@ export interface FileRouteTypes {
     | '/api/office/connections'
     | '/api/telegram/webhook'
     | '/gas/docs/$docId'
+    | '/gas/objects_/$id'
     | '/gas/supply/$requestId'
     | '/projects/$id/deliveries'
     | '/projects/$id/field-reports'
@@ -2079,6 +2091,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GasDocsDocIdRouteImport
       parentRoute: typeof GasRoute
     }
+    '/gas/objects_/$id': {
+      id: '/gas/objects_/$id'
+      path: '/objects/$id'
+      fullPath: '/gas/objects/$id'
+      preLoaderRoute: typeof GasObjectsIdRouteImport
+      parentRoute: typeof GasRoute
+    }
     '/gas/supply/': {
       id: '/gas/supply/'
       path: '/supply'
@@ -2191,6 +2210,7 @@ interface GasRouteChildren {
   GasWorkJournalRoute: typeof GasWorkJournalRoute
   GasIndexRoute: typeof GasIndexRoute
   GasDocsDocIdRoute: typeof GasDocsDocIdRoute
+  GasObjectsIdRoute: typeof GasObjectsIdRoute
   GasSupplyRequestIdRoute: typeof GasSupplyRequestIdRoute
   GasDocsIndexRoute: typeof GasDocsIndexRoute
   GasSupplyIndexRoute: typeof GasSupplyIndexRoute
@@ -2228,6 +2248,7 @@ const GasRouteChildren: GasRouteChildren = {
   GasWorkJournalRoute: GasWorkJournalRoute,
   GasIndexRoute: GasIndexRoute,
   GasDocsDocIdRoute: GasDocsDocIdRoute,
+  GasObjectsIdRoute: GasObjectsIdRoute,
   GasSupplyRequestIdRoute: GasSupplyRequestIdRoute,
   GasDocsIndexRoute: GasDocsIndexRoute,
   GasSupplyIndexRoute: GasSupplyIndexRoute,

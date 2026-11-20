@@ -29,7 +29,8 @@ import type { EstimateVersion } from "@/domain/gas-ops/work-cost";
 import type { WorkObject } from "@/domain/gas-ops/model";
 import { GasOpsError } from "@/ports/gas-ops";
 
-export type { EstimateHeader, HeaderField } from "@/domain/gas-ops/estimate-labels";
+import type { Cell } from "@/domain/gas-ops/estimate-labels";
+export type { Cell, EstimateHeader, HeaderField } from "@/domain/gas-ops/estimate-labels";
 export type {
   PressureMode,
   SectionView,
@@ -322,4 +323,34 @@ export function useEstimateIntake() {
     fileUrl,
     objects: snapshot.objects,
   };
+}
+
+/**
+ * Лист исходного файла для «Сверить с файлом» (план 20.11, этап 2): в демо — байты, загруженные
+ * в этой вкладке, на сервере — файл из хранилища по ссылке. null с причиной, когда файла нет
+ */
+export async function loadFileSheet(
+  file: EstimateFile,
+  sheet: string | null,
+): Promise<{ ok: true; grid: Cell[][]; sheet: string } | { ok: false; message: string }> {
+  try {
+    let source: File | null = demoBytes.get(file.id) ?? null;
+    if (!source && dataSource === "server" && file.storagePath) {
+      const res = await fetch(`/api/gas/estimate-files?file=${encodeURIComponent(file.id)}`);
+      if (!res.ok) return { ok: false, message: "Сервер не отдал файл сметы." };
+      source = new File([await res.blob()], file.name);
+    }
+    if (!source)
+      return {
+        ok: false,
+        message: "Файл этой сметы в демо хранится только до перезагрузки. Загрузите его ещё раз.",
+      };
+    const { readEstimateFile } = await import("@/adapters/gas-ops/estimate-file");
+    const sheets = await readEstimateFile(source);
+    const picked = sheets.find((s) => s.name === sheet) ?? sheets[0];
+    if (!picked) return { ok: false, message: "В файле нет листов." };
+    return { ok: true, grid: picked.grid, sheet: picked.name };
+  } catch (error) {
+    return failed(error);
+  }
 }

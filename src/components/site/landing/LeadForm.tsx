@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, Send } from "lucide-react";
 import { contactTgUrl } from "@/lib/site/config";
@@ -13,6 +13,7 @@ import {
   type LeadSource,
   type LeadTask,
 } from "@/lib/site/lead-fields";
+import { onLeadDraft } from "./lead-draft";
 
 /** «+7 (918) 123-45-67» из любых цифр: маска не мешает вставить номер целиком */
 export function maskPhone(raw: string): string {
@@ -103,6 +104,22 @@ export function LeadForm({
       : {};
   const [sending, setSending] = useState(false);
   const [outcome, setOutcome] = useState<LeadOutcome | null>(null);
+  /** Имя и телефон пришли с первого экрана: остаётся выбрать бригады и дать согласие */
+  const [handed, setHanded] = useState(false);
+  useEffect(
+    () =>
+      onLeadDraft((draft) => {
+        setName(draft.name);
+        setPhone(maskPhone(draft.phone));
+        setInvalid(null);
+        setOutcome(null);
+        setHanded(true);
+        requestAnimationFrame(() =>
+          document.getElementById(`${id}-crews`)?.focus({ preventScroll: true }),
+        );
+      }),
+    [id],
+  );
 
   const telegramUrl = contactTgUrl(
     leadText({ name: name.trim(), company: company.trim(), phone, crews, source, task }),
@@ -147,7 +164,7 @@ export function LeadForm({
   };
 
   const field =
-    "min-h-12 w-full rounded-control border border-line-2 bg-surface px-4 text-body text-text outline-none placeholder:text-text-3 focus-ring";
+    "site-field min-h-12 w-full border border-line-2 bg-surface-2 px-4 text-body text-text outline-none placeholder:text-text-3 focus-ring";
 
   if (outcome === "sent") {
     return (
@@ -199,6 +216,11 @@ export function LeadForm({
 
   return (
     <form onSubmit={submit} noValidate aria-busy={sending} className="flex flex-col gap-4">
+      {handed ? (
+        <p className="site-caption rounded-control bg-surface-2 px-4 py-3 text-text">
+          {lead.handed}
+        </p>
+      ) : null}
       <label className="flex flex-col gap-1.5">
         <span className="site-caption text-text-2">{lead.name}</span>
         <input

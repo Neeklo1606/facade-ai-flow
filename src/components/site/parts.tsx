@@ -9,11 +9,9 @@ import { cn } from "@/lib/utils";
  * кнопкой их делает только вид.
  */
 export const siteButton = {
-  /** Главное действие экрана: одно на экран, чёрная таблетка «Монохрома» (ADR-055, ADR-059) */
+  /** Главное действие экрана: одно на экран, чёрная капсула «Тепла» */
   primary: "site-btn mono-btn-primary focus-ring",
-  /** Второе действие: тихая капсула с обводкой */
-  /** Главное действие первого экрана с градиентом (ADR-068): одно на страницу */
-  grad: "site-btn site-btn-grad focus-ring",
+  /** Второе действие: белая капсула с рамкой */
   secondary:
     "site-btn bg-surface text-text ring-1 ring-line-2 ring-inset focus-ring is-hover:bg-surface-2",
 };
@@ -67,7 +65,8 @@ export function SiteSection({
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className={cn("site-block", tone === "card" ? "bg-surface" : "bg-void", className)}
+      data-tone={tone}
+      className={cn("site-block bg-void", className)}
     >
       <div className="site-wrap">
         <div data-reveal-group className={cn("max-w-[760px]", headingClassName)}>

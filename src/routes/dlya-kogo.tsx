@@ -116,7 +116,7 @@ function AudiencePage() {
       <SiteSection id="industries" title={AUDIENCE.industriesTitle} tone="card">
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5" data-reveal-group>
           {AUDIENCE.industries.map((item) => (
-            <li key={item.title} className="rounded-card bg-void p-5" data-reveal>
+            <li key={item.title} className="rounded-card bg-surface p-5" data-reveal>
               <p className="site-h3 text-text">{item.title}</p>
               <p className="site-body mt-2 text-text-2">{item.text}</p>
             </li>

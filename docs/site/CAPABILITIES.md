@@ -33,6 +33,7 @@
 | Табель по бригадам, объектам и дням | `src/routes/gas/tabel.tsx`, `tabel/Grid.tsx` | `e2e/tabel.spec.ts`, `e2e/tabel-acceptance.spec.ts` | пилот | «Табель по бригадам, объектам и дням» |
 | Стоимость из загруженной сметы, состав итогов выбирает заказчик (F2) | `/gas/estimates`, `src/components/gas-ops/estimates/RuleBuilder.tsx`, `src/domain/gas-ops/work-cost.ts`, ADR-062 | `e2e/gas-cost-rule.spec.ts`, `tests/domain/gas-ops-cost-rule.test.ts` | демо | «Какие итоги сметы входят в стоимость, выбираете вы» |
 | У суммы видно источник | `src/domain/gas-ops/entry-info.ts`: смета, версия, кто подтвердил; строки сметы нет | `tests/domain/gas-ops-entry-info.test.ts` | демо | «У суммы записи видно источник: смета, её версия и кто подтвердил» (строку не обещаем) |
+| Доля раздела не больше его стоимости, при 100 % ровно стоимость | ADR-078, `src/domain/gas-ops/section-accrual.ts` | `tests/domain/gas-ops-section-accrual.test.ts` | демо | «Доля раздела не больше его стоимости, при 100 % ровно стоимость» (таблица «Чем отличаемся от Excel и чата») |
 | График загружается файлом | `src/components/gas-ops/schedule/ScheduleImport.tsx`, `schedule-import.ts` | `e2e/gas-import.spec.ts` | демо | «график загружается файлом» |
 | Зарплату не считает | расчёта зарплаты в `src/domain/gas-ops` нет | нет | нет | «Не считает зарплату» (граница) |
 | Бот в MAX | имитация `bot/BotChat.tsx`, вебхук `src/api/gas-max.ts` отвечает 501, поля API не сверены | `tests/domain/gas-ops-max.test.ts` | нет (живого канала нет) | «Бот в мессенджере MAX подключаем отдельным этапом» |

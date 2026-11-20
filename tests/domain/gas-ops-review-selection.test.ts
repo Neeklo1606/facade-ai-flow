@@ -2,7 +2,11 @@ import { beforeEach, expect, test } from "bun:test";
 import { createGasOpsDemo } from "@/adapters/gas-ops/demo";
 import { getSnapshot, resetState } from "@/adapters/gas-ops/state";
 import { confirmReviewSelection } from "@/api/gas-review-selection";
-import { canSelectReview, filterReviewPeriod } from "@/domain/gas-ops/review-selection";
+import {
+  canPickReview,
+  canSelectReview,
+  filterReviewPeriod,
+} from "@/domain/gas-ops/review-selection";
 import { queue } from "@/domain/gas-ops/view";
 import { tabelRows } from "@/domain/gas-ops/tabel";
 import { customerFormatRows } from "@/domain/gas-ops/report";
@@ -89,4 +93,16 @@ test("частичный отказ возвращает только успех
   expect((await port.snapshot()).entries.find((e) => e.id === clean.entry.id)?.status).toBe(
     "pending",
   );
+});
+
+test("запись с замечаниями отмечается флажком и принимается пакетом только с подтверждением", async () => {
+  const rows = queue(await port.snapshot());
+  const withRemarks = rows.find((v) => canPickReview(v) && !canSelectReview(v))!;
+  expect(withRemarks).toBeDefined();
+  const id = withRemarks.entry.id;
+  // Без подтверждения пакет её не берёт
+  expect((await confirmReviewSelection(port, [id])).done).toEqual([]);
+  // С подтверждением человека — принимается
+  expect((await confirmReviewSelection(port, [id], { withRemarks: true })).done).toEqual([id]);
+  await port.undoReview(id);
 });

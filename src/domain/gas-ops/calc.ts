@@ -251,6 +251,19 @@ export function fmtHours(hours: number): string {
   return `${hours.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ч`;
 }
 
+/**
+ * Время работы для человека: «7 ч 50 мин», «8 ч», «45 мин». Десятичные часы «7,83 ч» читались
+ * как «7 часов 83 минуты» (обратная связь 20.11.2026): на карточках и в проверке — так,
+ * в табеле и Excel остаются десятичные часы, как в отчёте заказчика
+ */
+export function fmtDuration(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / MINUTES_IN_HOUR);
+  const m = total % MINUTES_IN_HOUR;
+  if (h === 0) return `${m} мин`;
+  return m === 0 ? `${h} ч` : `${h} ч ${m} мин`;
+}
+
 /** Доходность: «6 812 ₽/ч»; без суммы или без минут — прочерк, а не ноль */
 export function fmtRate(value: number | null): string {
   return value === null ? "—" : `${value.toLocaleString("ru-RU")} ₽/ч`;

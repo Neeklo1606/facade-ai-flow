@@ -4,13 +4,14 @@
  * метки замечаний (не больше двух и «+N») и сумма для ролей с доступом к деньгам.
  * На телефоне метки уходят третьей строкой. Номер записи и источник читаются экранной читалкой.
  */
+import { Avatar } from "@/components/ui/kit/warm";
 import { isAutoAccepted } from "@/api/gas-ops";
 import { ChevronDown } from "lucide-react";
 import { forwardRef } from "react";
 import {
   costBreakdown,
   fmtRub,
-  fmtHours,
+  fmtDuration,
   useGasActor,
   type EntryView,
   type Remark,
@@ -75,7 +76,7 @@ export const QueueCard = forwardRef<
     const values = [
       { label: "Дата", value: fmtShortDay(entry.day) },
       { label: "Время", value: entryFrame(view) ?? "Не указано" },
-      { label: "Часы", value: fmtHours(view.hours) },
+      { label: "Работа", value: fmtDuration(entry.minutes) },
       ...(money
         ? [
             {
@@ -103,8 +104,16 @@ export const QueueCard = forwardRef<
           highlight && "ring-2 ring-orange ring-inset",
         )}
       >
-        <span className="min-w-0 truncate text-body-strong">
-          {view.brigade?.name ?? "Бригада не указана"} · {view.object?.label ?? "Объект не указан"}
+        <span className="flex min-w-0 items-center gap-3">
+          <Avatar
+            name={view.brigade?.name ?? "Бригада"}
+            id={view.brigade?.id ?? entry.brigadeId}
+            size={36}
+          />
+          <span className="min-w-0 truncate text-body-strong">
+            {view.brigade?.name ?? "Бригада не указана"} ·{" "}
+            {view.object?.label ?? "Объект не указан"}
+          </span>
         </span>
         <ChevronDown
           aria-hidden
@@ -149,6 +158,12 @@ export const QueueCard = forwardRef<
         highlight && "ring-2 ring-orange ring-inset",
       )}
     >
+      <Avatar
+        name={view.brigade?.name ?? "Бригада"}
+        id={view.brigade?.id ?? entry.brigadeId}
+        size={40}
+        className="max-sm:hidden"
+      />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-body-strong text-text">
           {view.brigade?.name ?? "Бригада не указана"} · {view.object?.label ?? "Объект не указан"}

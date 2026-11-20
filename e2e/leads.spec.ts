@@ -13,11 +13,14 @@ import { expect, test } from "./fixtures";
  */
 
 async function fillLead(page: Page) {
-  await page.getByLabel("Имя").fill("Иван");
-  await page.getByLabel("Компания").fill("ООО Пример");
-  await page.getByLabel("Телефон").fill("9181234567");
-  await page.getByRole("button", { name: "4-10" }).click();
-  await page.getByRole("checkbox").check();
+  // На главной поля «Имя» и «Телефон» есть и в первом экране (дизайн «Тепло»): форма заявки
+  // внизу страницы — блок #lead; на других страницах форма одна
+  const form = (await page.locator("#lead").count()) ? page.locator("#lead") : page;
+  await form.getByLabel("Имя").fill("Иван");
+  await form.getByLabel("Компания").fill("ООО Пример");
+  await form.getByLabel("Телефон").fill("9181234567");
+  await form.getByRole("button", { name: "4-10" }).click();
+  await form.getByRole("checkbox").check();
 }
 
 const SENT = /Заявка отправлена/;

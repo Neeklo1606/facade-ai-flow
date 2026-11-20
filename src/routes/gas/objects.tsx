@@ -388,6 +388,11 @@ function Detail({
   const body: ReactNode = (
     <div className="flex flex-col gap-section">
       <div className="flex flex-wrap gap-2">
+        <Button asChild>
+          <Link to="/gas/objects/$id" params={{ id: card.object.id }}>
+            Страница объекта
+          </Link>
+        </Button>
         <AssignBrigade key={card.object.id} objectId={card.object.id} />
         <EditDemoObject objectId={card.object.id} />
       </div>

@@ -16,6 +16,7 @@ import { dataSource } from "@/api/config";
 import { useCallback, useMemo } from "react";
 import {
   effectiveMinutes,
+  fmtDuration,
   fmtHours,
   fmtRate,
   fmtRub,
@@ -120,6 +121,7 @@ export {
   ENTRY_STATUS_LABEL,
   FLAG_LABEL,
   ROLE_LABEL,
+  fmtDuration,
   fmtHours,
   fmtRate,
   fmtRub,

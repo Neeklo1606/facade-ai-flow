@@ -22,7 +22,8 @@ test("период проверки: неделя, пустой диапазон
   await expect(cards).toHaveCount(count);
   await expect(cards.first()).toContainText("Дата");
   await expect(cards.first()).toContainText("Время");
-  await expect(cards.first()).toContainText("Часы");
+  // Подпись «Работа» с временем «2 ч 30 мин» вместо «Часы 2,50 ч» (обратная связь 20.11.2026)
+  await expect(cards.first()).toContainText("Работа");
   if (await period.isVisible()) await period.click();
   await page.screenshot({
     path: `/tmp/gaika-compact-${page.url().split("/").pop()!.split("?")[0]}-${page.viewportSize()!.width}.png`,

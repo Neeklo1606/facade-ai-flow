@@ -73,6 +73,7 @@ import { splitTimeEnabled } from "@/lib/gas-ops/gas-only";
 import { useOffline } from "@/lib/ui/offline";
 import { cn } from "@/lib/utils";
 import { useBrigadeSections, useSectionActions } from "@/api/gas-section-accrual";
+import { ActionTile, Avatar, ScreenHello, greetingAt } from "@/components/ui/kit/warm";
 
 const START_CHIPS = ["07:00", "08:00", "09:00"];
 const END_CHIPS = ["16:00", "17:00", "18:00"];
@@ -537,9 +538,15 @@ export function BrigadeToday() {
         </label>
       ) : null}
       <section aria-label="Итог дня" data-tour="today-done" className="flex flex-col gap-3">
-        <p className="type-label text-ink-2">
-          {field.brigade.name} · {fmtDay(field.today)}
-        </p>
+        {/* «Тепло» (docs/design/design-system-warm.md): приветствие и итог дня крупно */}
+        <ScreenHello
+          greeting={`${greetingAt()}, ${field.brigade.name} · ${fmtDay(field.today)}`}
+          title={
+            today.length === 0
+              ? "Сегодня записей пока нет"
+              : `Сегодня сдано ${minutesText(today.reduce((sum, e) => sum + e.minutes, 0))}`
+          }
+        />
         {clarify.length > 0 ? (
           <a
             href="#clarify"
@@ -552,52 +559,47 @@ export function BrigadeToday() {
             <ChevronRight className="size-5 shrink-0" aria-hidden />
           </a>
         ) : null}
-        {/* Тема «Газ v4» (ADR-065): итог дня тёмной карточкой, часы крупной цифрой */}
-        <div className="hero-gas flex flex-col gap-3 p-6" data-testid="today-hero">
-          <span aria-hidden className="orb-gas -top-16 -right-10 size-56" />
-          <h2 className="type-label text-on-hero-2">Сдано сегодня</h2>
-          <p className="type-hero-gas">
-            {today.length === 0 ? "0 ч" : minutesText(today.reduce((sum, e) => sum + e.minutes, 0))}
-          </p>
-          {today.length === 0 ? (
-            <p className="type-text text-on-hero-2">Записей пока нет.</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <ActionTile
+            inverse
+            icon={<Plus />}
+            label="Добавить время"
+            dataTour="today-add"
+            onClick={startDraft}
+          />
+          {yesterdayEntry ? (
+            <ActionTile
+              icon={<Repeat />}
+              label="Как вчера"
+              hint={`${yesterdayEntry.objectLabel}, ${formatClock(yesterdayEntry.startMinutes!)}–${formatClock(yesterdayEntry.endMinutes!)}`}
+              testId="like-yesterday"
+              onClick={likeYesterday}
+            />
           ) : (
-            <ul className="flex flex-col gap-1" aria-label="Сдано сегодня">
-              {today.map((e) => (
-                <li key={e.id} className="type-text">
-                  <span className="font-medium">{e.objectLabel}</span>
-                  <span className="text-on-hero-2">
-                    {" "}
-                    · {e.startMinutes !== null ? entryFrame(e) : minutesText(e.minutes)}
-                    {e.headcount ? ` · ${e.headcount} чел.` : ""} · {STATUS_SHORT[e.status]}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ActionTile
+              icon={<Mic />}
+              label="Голосом"
+              hint="«с 8 до 17, обед час»"
+              to="/gas/foreman"
+              testId="today-voice"
+            />
           )}
         </div>
-        <Link
-          to="/gas/foreman"
-          data-testid="today-voice"
-          className="card-v3 focus-ring flex items-center gap-4 p-3"
-        >
-          <span className="relative grid size-16 shrink-0 place-items-center rounded-pill bg-flame text-on-flame">
-            <span aria-hidden className="pulse-ring-gas" />
-            <Mic className="size-7" aria-hidden />
-          </span>
-          <span className="min-w-0">
-            <span className="block type-card">Скажите, что сделали</span>
-            <span className="block type-label text-ink-2">
-              «Заводская, с 8 до 17, вчетвером, обед час». В боте MAX, демо
-            </span>
-          </span>
-        </Link>
         {expected.length > 0 ? (
-          <p className="type-label text-ink-2">
-            По графику ещё {expected.length}{" "}
-            {plural(expected.length, "объект", "объекта", "объектов")}:{" "}
-            {expected.map((o) => o.code).join(", ")}
-          </p>
+          <div className="mono-card flex items-center gap-3 p-4">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-flame-soft text-flame-text">
+              <Clock3 className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0">
+              <span className="block type-text font-medium">
+                По графику ещё {expected.length}{" "}
+                {plural(expected.length, "объект", "объекта", "объектов")}
+              </span>
+              <span className="block truncate type-label text-ink-2">
+                {expected.map((o) => o.label).join(" · ")}
+              </span>
+            </span>
+          </div>
         ) : null}
         {queue.length > 0 ? (
           <p className="flex flex-wrap items-center gap-2">
@@ -605,23 +607,6 @@ export function BrigadeToday() {
             <span className="type-label text-ink-2">Ждут отправки: {queue.length}</span>
           </p>
         ) : null}
-        {yesterdayEntry ? (
-          <Button
-            field
-            variant="secondary"
-            className="w-full"
-            data-testid="like-yesterday"
-            onClick={likeYesterday}
-          >
-            <Repeat aria-hidden />
-            Как вчера: {yesterdayEntry.objectLabel}, {formatClock(yesterdayEntry.startMinutes!)}–
-            {formatClock(yesterdayEntry.endMinutes!)}
-          </Button>
-        ) : null}
-        <Button field className="w-full" data-tour="today-add" onClick={startDraft}>
-          <Plus aria-hidden />
-          Добавить время
-        </Button>
       </section>
 
       {clarify.length > 0 ? (
@@ -719,8 +704,9 @@ function MyEntry({
       data-focused={focused ? "true" : undefined}
       className={cn("flex flex-col gap-2 px-4 py-3 lg:px-5", focused && "bg-surface-2")}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-center justify-between gap-3">
+        <Avatar name={entry.objectLabel} id={entry.objectId} />
+        <div className="min-w-0 flex-1">
           <p className="truncate type-text font-medium">{entry.objectLabel}</p>
           <p className="type-small text-ink-3">
             {entry.number} · {fmtDay(entry.day)} · {frame} · {crewSummary(entry)}

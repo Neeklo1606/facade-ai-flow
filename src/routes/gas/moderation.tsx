@@ -15,6 +15,16 @@ import { StatusPills } from "@/components/gas-ops/review/remarks";
 import { useFloatingBottom, useIsDesktop } from "@/components/gas-ops/review/use-layout";
 import { ScreenActions, ScreenCounters } from "@/components/gas-ops/shell/screen-header";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { SearchBar } from "@/components/ui/kit/controls";
 import { FilterChip, FilterRow } from "@/components/gas-ops/filters/FilterChip";
 import { EmptyBlock } from "@/components/ui/kit/states";
@@ -40,6 +50,7 @@ import {
   type Remark,
 } from "@/api/gas-ops";
 import {
+  canPickReview,
   canSelectReview,
   filterReviewPeriod,
   useGasReviewSelection,
@@ -178,12 +189,16 @@ function ModerationPage() {
   }, [rows, objectId, from, to, brigadeId, kind, search, userIds]);
 
   const clean = useMemo(() => ordered.filter((item) => canSelectReview(item.view)), [ordered]);
+  /** Можно отметить флажком: принимаемые, в том числе с замечаниями */
+  const pickable = useMemo(() => ordered.filter((item) => canPickReview(item.view)), [ordered]);
+  const [askRemarks, setAskRemarks] = useState<Item[] | null>(null);
 
   // Фильтры не оставляют скрытые записи в пакете.
   useEffect(() => {
     setChecked(new Set());
   }, [tab, objectId, from, to, brigadeId, kind, search]);
-  const chosen = clean.filter((item) => checked.has(item.view.entry.id));
+  const chosen = pickable.filter((item) => checked.has(item.view.entry.id));
+  const chosenWithRemarks = chosen.filter((item) => !canSelectReview(item.view));
   const toggleChecked = (id: string) => {
     setChecked((previous) => {
       const next = new Set(previous);
@@ -287,12 +302,15 @@ function ModerationPage() {
    * «Принять N без замечаний» выполняется сразу, без диалога (ADR-045, принцип 8): действие
    * обратимое, отмена в тосте 6 секунд. Только записи без ошибок данных и подозрений.
    */
-  const confirmList = async (list: Item[]) => {
+  const confirmList = async (list: Item[], withRemarks = false) => {
     if (bulkLock.current || list.length === 0) return;
     bulkLock.current = true;
     setBulkBusy(true);
     try {
-      const { done, failed } = await confirmSelection(list.map((item) => item.view.entry.id));
+      const { done, failed } = await confirmSelection(
+        list.map((item) => item.view.entry.id),
+        { withRemarks },
+      );
       setChecked((previous) => new Set([...previous].filter((id) => !done.includes(id))));
       if (done.length) {
         toastUndo(
@@ -429,8 +447,12 @@ function ModerationPage() {
   const bulk = (
     <Button
       data-tour="review-accept-clean"
-      onClick={() => void confirmList(chosen.length ? chosen : clean)}
-      disabled={bulkBusy || clean.length === 0}
+      onClick={() => {
+        // Среди выбранных есть записи с замечаниями: принимаем только после явного «да»
+        if (chosenWithRemarks.length) setAskRemarks(chosen);
+        else void confirmList(chosen.length ? chosen : clean);
+      }}
+      disabled={bulkBusy || (clean.length === 0 && chosen.length === 0)}
       className={cn("max-lg:h-12 max-lg:w-full")}
     >
       <CheckCheck aria-hidden />
@@ -442,7 +464,7 @@ function ModerationPage() {
     </Button>
   );
 
-  const stickyBulk = !desktop && tab === "pending" && clean.length > 0;
+  const stickyBulk = !desktop && tab === "pending" && (clean.length > 0 || chosen.length > 0);
 
   const count = (key: (v: (typeof rows)[number]) => string) => {
     const map = new Map<string, number>();
@@ -646,17 +668,19 @@ function ModerationPage() {
           ) : null}
         </div>
       ) : null}
-      {clean.length ? (
+      {pickable.length ? (
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <label className="flex min-h-12 cursor-pointer items-center gap-2 text-body">
             <input
               type="checkbox"
               aria-label="Выбрать все доступные записи"
               ref={(node) => {
-                if (node) node.indeterminate = chosen.length > 0 && chosen.length < clean.length;
+                if (node)
+                  node.indeterminate =
+                    chosen.length > 0 && !clean.every((item) => checked.has(item.view.entry.id));
               }}
-              disabled={bulkBusy}
-              checked={chosen.length === clean.length}
+              disabled={bulkBusy || clean.length === 0}
+              checked={clean.length > 0 && clean.every((item) => checked.has(item.view.entry.id))}
               onChange={(event) =>
                 setChecked(
                   event.target.checked
@@ -680,8 +704,46 @@ function ModerationPage() {
       ) : null}
 
       <p id="review-selection-help" className="mb-3 text-meta text-text-3">
-        Записи с замечаниями проверяются отдельно
+        Записи с замечаниями можно отметить: перед принятием покажем их замечания
       </p>
+      <AlertDialog
+        open={askRemarks !== null}
+        onOpenChange={(open) => (open ? undefined : setAskRemarks(null))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Принять выбранные вместе с замечаниями: {chosenWithRemarks.length}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="flex flex-col gap-1 text-body text-text-2">
+                {chosenWithRemarks.slice(0, 6).map((item) => (
+                  <span key={item.view.entry.id}>
+                    {item.view.entry.number}:{" "}
+                    {item.remarks.map((r) => r.label).join(", ") || "есть замечания"}
+                  </span>
+                ))}
+                {chosenWithRemarks.length > 6 ? (
+                  <span>и ещё {chosenWithRemarks.length - 6}</span>
+                ) : null}
+                <span>Отменить можно в тосте 6 секунд.</span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Проверю по одной</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const list = askRemarks ?? [];
+                setAskRemarks(null);
+                void confirmList(list, true);
+              }}
+            >
+              Принять {askRemarks?.length ?? 0}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="min-w-0">
         <div className="min-w-0">
@@ -740,17 +802,19 @@ function ModerationPage() {
                           title={
                             canSelectReview(item.view)
                               ? "Выбрать для подтверждения"
-                              : "Требуется индивидуальная проверка"
+                              : canPickReview(item.view)
+                                ? "Есть замечания: перед принятием спросим подтверждение"
+                                : "Сначала исправьте запись"
                           }
                         >
                           <input
                             type="checkbox"
                             aria-label={`Выбрать ${item.view.entry.number}`}
                             aria-describedby={
-                              !canSelectReview(item.view) ? "review-selection-help" : undefined
+                              !canPickReview(item.view) ? "review-selection-help" : undefined
                             }
-                            checked={canSelectReview(item.view) && checked.has(id)}
-                            disabled={bulkBusy || !canSelectReview(item.view)}
+                            checked={canPickReview(item.view) && checked.has(id)}
+                            disabled={bulkBusy || !canPickReview(item.view)}
                             onChange={() => toggleChecked(id)}
                             className="size-5 accent-orange"
                           />
