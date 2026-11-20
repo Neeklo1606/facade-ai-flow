@@ -22,6 +22,16 @@ test("выбор видимых часов, даты, подтверждение
   await page.getByRole("checkbox", { name: name! }).check();
   await expectA11y(page, "выбор записей проверки");
   await page.getByRole("button", { name: "Подтвердить выбранные (1)", exact: true }).click();
+  // Запись с замечаниями (обратная связь 20.11): перед принятием — окно со списком замечаний
+  const ask = page.getByRole("alertdialog");
+  const asked = await ask
+    .waitFor({ timeout: 3000 })
+    .then(() => true)
+    .catch(() => false);
+  if (asked) {
+    await expect(ask).toContainText(name!.replace("Выбрать ", ""));
+    await ask.getByRole("button", { name: "Принять 1", exact: true }).click();
+  }
   await expect(page.getByText("Часы учтены в табеле на исходные даты и объекты")).toBeVisible();
   await expect(rows.getByRole("checkbox", { name: name! })).toHaveCount(0);
   await page.getByRole("button", { name: "Отменить", exact: true }).click();
