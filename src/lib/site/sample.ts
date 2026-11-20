@@ -70,9 +70,30 @@ export const SUPPLY_SAMPLE = {
 };
 
 /**
- * Запись ОБ-200 на первом экране (ADR-067, раздел 8): итог недели до её подтверждения
- * и формат рублей для досчёта. Формулы и формат считает domain, компонент только рисует
+ * Первый экран «Тепло» (docs/design/design-system-warm.md, раздел 4): экран «Неделя» в телефоне.
+ * Запись ГЗ-00096 бригады 2 на ул. Демо, 102 ждёт проверки; после загрузки она один раз
+ * принимается, и итог недели досчитывается на её сумму. Числа сверяет
+ * tests/site/landing-sample.test.ts с тем же публичным набором.
  */
-export const HERO_ENTRY_RUB = 14_700;
-export const HERO_BEFORE_RUB = WEEK_TOTAL_RUB - HERO_ENTRY_RUB;
+export const HERO_WEEK = {
+  /** Записи недели, которые ждут проверки, до приёма ГЗ-00096 */
+  pendingEntries: 6,
+  entry: {
+    number: "ГЗ-00096",
+    brigade: "Бригада 2",
+    object: "ул. Демо, 102",
+    amountRub: 19_950,
+  },
+  /** Подтверждённое начисление двух бригад за неделю */
+  brigades: [
+    { id: "brg-7", name: "Бригада 7", short: "Б7", amountRub: 236_221 },
+    { id: "brg-5", name: "Бригада 5", short: "Б5", amountRub: 245_562 },
+  ],
+} as const;
+
+/** Часы бригад за неделю целыми: точечная цифра первого экрана */
+export const HERO_HOURS = Math.floor(WEEK_SAMPLE.confirmedMinutes / 60);
 export const formatRub = (value: number) => fmtRub(value);
+/** «1,70М»: короткая запись миллионов для точечной цифры, полная сумма уходит в aria-label */
+export const formatMillions = (value: number) =>
+  `${(Math.floor(value / 10_000) / 100).toFixed(2).replace(".", ",")}М`;

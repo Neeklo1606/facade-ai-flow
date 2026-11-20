@@ -6,17 +6,12 @@ import { LANDING, TASKS } from "@/lib/site/copy";
 import { track } from "@/lib/site/analytics";
 import { cn } from "@/lib/utils";
 import { siteButton, SiteSection } from "../parts";
-import { FaqList, HeroActions, LeadSection, StepsSwitcher, StickyCta, TaskCard } from "../blocks";
+import { FaqList, LeadSection, StepsSwitcher, StickyCta, TaskCard } from "../blocks";
 import { HeroLive } from "../landing/hero-live";
+import { HeroForm } from "../landing/hero-form";
 import { Shot, type ShotId } from "../visuals";
 import { AUDIENCE, ARTICLES_PAGE } from "@/lib/site/pages";
-import {
-  ArticleGrid,
-  CapabilityMarquee,
-  HeroBackdrop,
-  LATEST_ARTICLES,
-  RoleCards,
-} from "../growth";
+import { ArticleGrid, CapabilityMarquee, LATEST_ARTICLES, RoleCards } from "../growth";
 
 /**
  * Главная сайта v2 (ADR-067, раздел 5): первый экран, три задачи, путь из четырёх шагов,
@@ -40,6 +35,7 @@ export function Home() {
       <Tasks />
       <Roles />
       <How />
+      <Compare />
       <Office />
       <Control />
       <Case />
@@ -63,21 +59,18 @@ export function Home() {
 function Hero() {
   const { hero } = LANDING;
   return (
-    <section data-hero aria-labelledby="hero-title" className="site-hero bg-void">
-      <HeroBackdrop />
+    <section data-hero aria-labelledby="hero-title" className="site-hero site-hero-warm">
+      <CharField />
       <div className="site-wrap site-hero-inner">
         <div className="site-hero-copy">
-          <p className="site-chip-grad font-medium">{hero.eyebrow}</p>
-          <h1 id="hero-title" className="site-h1 site-hero-title mt-4 text-text">
-            <GradTitle text={hero.title} accent={hero.accent} />
+          <p className="site-hero-eyebrow">{hero.eyebrow}</p>
+          <h1 id="hero-title" className="site-h1 site-hero-title">
+            {hero.title}
           </h1>
-          <p className="site-lead mt-4 text-text-2 lg:mt-6">{hero.lead}</p>
-          <HeroActions place="hero" />
-          <p className="site-caption mt-4 text-text-3" data-hero-note>
-            {hero.note}
-          </p>
-          <p className="site-caption mt-6 text-text-3 lg:mt-10">{hero.industries}</p>
+          <p className="site-lead site-hero-lead site-only-desk">{hero.lead}</p>
+          <p className="site-lead site-hero-lead site-only-phone">{hero.leadShort}</p>
         </div>
+        <HeroForm />
         <div className="site-hero-visual">
           <HeroLive />
         </div>
@@ -86,16 +79,50 @@ function Hero() {
   );
 }
 
-/** Заголовок, где одно слово залито градиентом; текст для чтения и поиска тот же */
-function GradTitle({ text, accent }: { text: string; accent: string }) {
-  const at = text.indexOf(accent);
-  if (at < 0) return <>{text}</>;
+/**
+ * Сетка символов первого экрана (CharField): декор текстом в псевдоэлементе CSS, без скриптов
+ * и картинок. Строки сдвигаются на символ, к краю сетка проявляется маской
+ */
+const CHAR_SET = ["=", "+", "0", "a", "k", "b", "d", "h", "W", "#", "M", "&", "$"];
+const CHAR_FIELD = Array.from({ length: 28 }, (_, row) =>
+  Array.from({ length: 34 }, (_, col) => {
+    const at = Math.floor((col + row) / 2);
+    return CHAR_SET[Math.min(at, CHAR_SET.length - 1)];
+  }).join(" "),
+).join("\n");
+
+function CharField() {
+  return <div aria-hidden className="site-chars" data-chars={CHAR_FIELD} />;
+}
+
+/** Сравнение с Excel и чатом: таблица на компьютере, карточки строк на телефоне */
+function Compare() {
+  const { compare } = LANDING;
   return (
-    <>
-      {text.slice(0, at)}
-      <span className="site-grad-text">{accent}</span>
-      {text.slice(at + accent.length)}
-    </>
+    <SiteSection id="compare" title={compare.title} lead={compare.lead}>
+      <div className="site-compare" data-reveal>
+        <table className="site-compare-table">
+          <thead>
+            <tr>
+              <th scope="col">{compare.head.what}</th>
+              <th scope="col">{compare.head.old}</th>
+              <th scope="col">{compare.head.gaika}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {compare.rows.map((row) => (
+              <tr key={row.what}>
+                <th scope="row">{row.what}</th>
+                <td data-label={compare.head.old}>{row.old}</td>
+                <td data-label={compare.head.gaika} className="is-gaika">
+                  {row.gaika}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </SiteSection>
   );
 }
 
@@ -105,7 +132,7 @@ function Roles() {
       id="roles"
       title={AUDIENCE.homeTitle}
       lead={AUDIENCE.homeLead}
-      className="site-dark site-band"
+      className="site-band"
     >
       <RoleCards />
     </SiteSection>
@@ -159,7 +186,7 @@ function Office() {
     <SiteSection id="office" title={LANDING.office.title} tone="card">
       <ul className="grid gap-4 md:grid-cols-3" data-reveal-group>
         {LANDING.office.items.map((item) => (
-          <li key={item} className="site-body rounded-card bg-void p-6 text-text" data-reveal>
+          <li key={item} className="site-body rounded-card bg-surface p-6 text-text" data-reveal>
             {item}
           </li>
         ))}

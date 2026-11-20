@@ -16,7 +16,8 @@ const clientShort = (() => {
   return source.match(/clientShort: "([^"]+)"/)![1]!;
 })();
 
-const H1 = "Табель, снабжение и документы ПТО из данных с объекта";
+// Первый экран «Тепло» (макеты Landing-Desktop и Landing-Phone, 20.11.2026)
+const H1 = "Смета, время бригад и табель без пересылок";
 const TASKS = [
   {
     path: "/uchet-vremeni-brigad",
@@ -67,7 +68,7 @@ async function scrollThrough(page: Page) {
 test.describe("сайт и вход в демо 390", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("корень это сайт: заголовок, две кнопки, первый экран в 390 x 664", async ({ page }) => {
+  test("корень это сайт: заголовок, форма заявки, первый экран в 390 x 664", async ({ page }) => {
     const response = await page.goto("/", { waitUntil: "domcontentloaded" });
     expect(response?.status()).toBe(200);
     // ADR-067: запасной заголовок раздела 5.2, основной на 390 занимал 4 строки
@@ -78,15 +79,18 @@ test.describe("сайт и вход в демо 390", () => {
     );
     expect(lines).toBeLessThanOrEqual(3);
     const main = page.getByRole("main");
-    const primary = main.getByRole("link", { name: "Показать на моём процессе" }).first();
-    await expect(primary).toHaveAttribute("href", "/razbor");
+    // «Тепло»: имя, телефон и «Показать на моём процессе» прямо в первом экране
+    const form = main.getByRole("form", { name: "Заявка: показать на моём процессе" });
+    const primary = form.getByRole("button", { name: "Показать на моём процессе" });
+    await expect(form.getByLabel("Имя")).toBeVisible();
+    await expect(form.getByLabel("Телефон")).toBeVisible();
     const demo = main.getByRole("link", { name: "Посмотреть демо" }).first();
     await expect(demo).toHaveAttribute("href", "/demo");
     // Сайт, а не приложение: ни нижней панели, ни выбора роли
     await expect(page.getByRole("navigation", { name: /Разделы$|Нижняя/ })).toHaveCount(0);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     // Первый экран целиком в 390 x 664: кнопки и строка под ними видны без прокрутки
-    for (const target of [primary, demo, page.getByText("Демо без регистрации, с телефона.")]) {
+    for (const target of [primary, demo, page.getByText("Ответим в течение рабочего дня.")]) {
       const box = await target.boundingBox();
       expect(box && box.y + box.height).toBeLessThanOrEqual(664);
     }
@@ -247,7 +251,7 @@ test.describe("главная 390 (ADR-067)", () => {
     // Живой фрагмент первого экрана: текст, а не картинка; подпись про вымышленные данные
     const hero = page.getByLabel("Пример из демо: неделя бригад");
     await expect(hero).toContainText("Начислено");
-    await expect(hero).toContainText("Подтверждено");
+    await expect(hero).toContainText("Принято, пример из демо");
     await expect(hero).toContainText("Пример из демо, данные вымышленные");
     const text = await main.innerText();
     // Цифр эффекта, отзывов, скидок, таймеров и выдуманных обещаний нет вовсе
@@ -292,7 +296,7 @@ test.describe("анимация (ADR-067, раздел 8)", () => {
     // С сервера приходит состояние до подтверждения
     const html = await (await page.request.get("/")).text();
     expect(html).toContain("На проверке");
-    await expect(hero).toContainText("Подтверждено", { timeout: 5000 });
+    await expect(hero).toContainText("Принято, пример из демо", { timeout: 5000 });
     await expect(hero).not.toContainText("На проверке");
   });
 
@@ -302,7 +306,7 @@ test.describe("анимация (ADR-067, раздел 8)", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/", { waitUntil: "load" });
     await page.waitForSelector("html[data-booted]");
-    await expect(page.getByLabel("Пример из демо: неделя бригад")).toContainText("Подтверждено", {
+    await expect(page.getByLabel("Пример из демо: неделя бригад")).toContainText("Принято", {
       timeout: 1000,
     });
     // Блоки ниже экрана ждут прокрутки, но без сдвига: только прозрачность
@@ -396,12 +400,14 @@ test.describe("заявки со страниц 390 (ADR-051, ADR-067)", () => {
   }) => {
     await page.goto("/", { waitUntil: "load" });
     await page.waitForSelector("html[data-booted]");
-    const submit = page.getByRole("button", { name: "Отправить заявку" });
+    // Поля «Имя» и «Телефон» есть и в форме первого экрана: ищем в форме заявки
+    const lead = page.locator("#lead");
+    const submit = lead.getByRole("button", { name: "Отправить заявку" });
     await submit.click();
     await expect(page.getByRole("alert")).toHaveText("Напишите имя");
-    await page.getByLabel("Имя").fill("Иван");
-    await page.getByLabel("Телефон").fill("89181234567");
-    await expect(page.getByLabel("Телефон")).toHaveValue("+7 (918) 123-45-67");
+    await lead.getByLabel("Имя").fill("Иван");
+    await lead.getByLabel("Телефон").fill("89181234567");
+    await expect(lead.getByLabel("Телефон")).toHaveValue("+7 (918) 123-45-67");
     await page.getByRole("button", { name: "4-10" }).click();
     await page.getByRole("checkbox").check();
     await submit.click();
@@ -411,6 +417,33 @@ test.describe("заявки со страниц 390 (ADR-051, ADR-067)", () => {
     await expect(link).toHaveAttribute("href", /^https:\/\/t\.me\/[^?]+\?text=/);
     expect(decodeURIComponent((await link.getAttribute("href"))!)).toContain("Источник: landing");
     await expect(page.locator("body")).not.toContainText(/Заявка отправлена|Спасибо, мы свяжемся/);
+  });
+
+  test("форма первого экрана передаёт имя и телефон в заявку, отправка одна", async ({ page }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    const hero = page.getByRole("form", { name: "Заявка: показать на моём процессе" });
+    await hero.getByRole("button", { name: "Показать на моём процессе" }).click();
+    await expect(page.getByRole("alert")).toHaveText("Напишите имя");
+    await hero.getByLabel("Имя").fill("Иван");
+    await hero.getByLabel("Телефон").fill("9181234567");
+    await hero.getByRole("button", { name: "Показать на моём процессе" }).click();
+    const lead = page.locator("#lead");
+    await expect(lead.getByLabel("Имя")).toHaveValue("Иван");
+    await expect(lead.getByLabel("Телефон")).toHaveValue("+7 (918) 123-45-67");
+    await expect(lead.getByRole("button", { name: "1-3" })).toBeFocused();
+    await lead.getByRole("button", { name: "1-3" }).click();
+    await lead.getByRole("checkbox").check();
+    const response = page.waitForResponse("**/api/leads");
+    await lead.getByRole("button", { name: "Отправить заявку" }).click();
+    const answer = await response;
+    expect(answer.status()).toBe(501);
+    expect(JSON.parse(answer.request().postData()!)).toMatchObject({
+      name: "Иван",
+      phone: "+7 (918) 123-45-67",
+      source: "landing",
+      crews: "1-3",
+    });
   });
 
   test("заявка со страницы задачи уходит с выбранной задачей и источником", async ({ page }) => {

@@ -28,7 +28,7 @@ export function HeroActions({ place, from }: { place: string; from?: LeadSource 
       <Link
         to="/razbor"
         search={from ? { from } : {}}
-        className={siteButton.grad}
+        className={siteButton.primary}
         data-cta="razbor"
         onClick={() => track("cta_razbor", { place })}
       >
@@ -271,11 +271,7 @@ export function LeadSection({
   text?: string;
 }) {
   return (
-    <section
-      id="lead"
-      aria-labelledby="lead-title"
-      className="site-block site-lead-block bg-surface"
-    >
+    <section id="lead" aria-labelledby="lead-title" className="site-block site-lead-block bg-void">
       <div className="site-wrap grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
         <div>
           <h2 id="lead-title" className="site-h2 text-text">
@@ -293,7 +289,9 @@ export function LeadSection({
             <ArrowUpRight className="size-4" aria-hidden />
           </a>
         </div>
-        <LeadForm source={source} {...(task ? { task } : {})} />
+        <div className="rounded-surface bg-surface p-5 sm:p-7">
+          <LeadForm source={source} {...(task ? { task } : {})} />
+        </div>
       </div>
     </section>
   );
