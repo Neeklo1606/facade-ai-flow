@@ -1,0 +1,262 @@
+/*
+ * Дизайн-система «Тепло» для сервиса (docs/design/design-system-warm.md, решение владельца
+ * 20.11.2026). Перекрывает токены оболочки газа [data-skin="gas"]: тёплый фон, белые карточки
+ * радиусом 28, капсулы, один оранжевый акцент. Селектор :root:root поднимает специфичность:
+ * файл подключается в начале styles.css, а прежний скин объявлен ниже.
+ *
+ * Акцент двумя значениями: --warm-accent #F3714B — точка внимания (прогресс, точка уведомления,
+ * положительная сумма крупно), --flame — заливка кнопки с белым текстом, контраст от 4,5:1.
+ */
+
+/* ---------------------------------------------------------------- Тёмная тема */
+:root:root[data-skin="gas"] {
+  --rail: #120b0a;
+  --canvas: #120b0a;
+  --card: #1e1514;
+  --panel-2: #2a1e1c;
+  --panel-3: #352724;
+  --line: #ffffff14;
+  --line-2: #ffffff26;
+  --ink: #f6f1ec;
+  --ink-2: #b9aea6;
+  --ink-3: #a99e96;
+  --inverse: #f6f1ec;
+  --on-inverse: #16161a;
+  --accent-hover: #ffffff;
+  --capsule: #2a1e1c;
+  --flame: #f58060;
+  --on-flame: #1a0e08;
+  --flame-soft: #3a211a;
+  --flame-text: #f8a185;
+  --hero-gas: #1e1514;
+  --field-line: #8a7d76;
+  --warm-accent: #f58060;
+  --warm-accent-soft: #3a211a;
+  --warm-tile: #f6f1ec;
+  --on-warm-tile: #16161a;
+  --warm-kpi:
+    radial-gradient(120% 70% at 30% 110%, rgba(245, 128, 96, 0.5), rgba(245, 128, 96, 0) 60%),
+    linear-gradient(180deg, #5d6d7c 0%, #4a4541 55%, #241b17 100%);
+  --r-control: 16px;
+  --r-card: 28px;
+  --r-bubble: 28px;
+  --r-sheet: 28px;
+  --r-surface: 28px;
+  --r-inset: 20px;
+  --gas-shadow: none;
+}
+
+/* ---------------------------------------------------------------- Светлая тема (основная) */
+:root:root[data-theme="light"][data-skin="gas"] {
+  --rail: #f2f0ed;
+  --canvas: #f2f0ed;
+  --card: #ffffff;
+  --panel-2: #f5f3f0;
+  --panel-3: #ece8e3;
+  --line: #16161a12;
+  --line-2: #16161a24;
+  --ink: #16161a;
+  --ink-2: #625e5a;
+  --ink-3: #66625d;
+  --inverse: #19191e;
+  --on-inverse: #ffffff;
+  --accent-hover: #2c2c33;
+  --capsule: #19191e;
+  --flame: #c63f17;
+  --on-flame: #ffffff;
+  --flame-soft: #fbe4d0;
+  --flame-text: #b23812;
+  --hero-gas: #19191e;
+  --field-line: #8a847e;
+  --warm-accent: #f3714b;
+  --warm-accent-soft: #fbe4d0;
+  --warm-tile: #19191e;
+  --on-warm-tile: #ffffff;
+  --warm-kpi:
+    radial-gradient(120% 70% at 30% 110%, rgba(243, 113, 75, 0.55), rgba(243, 113, 75, 0) 60%),
+    linear-gradient(180deg, #a1b2c1 0%, #8e8a86 55%, #4e4740 100%);
+  --gas-shadow: none;
+}
+
+/* ---------------------------------------------------------------- Поверхности и форма */
+/* Карточки отделяются от фона цветом, а не тенью и не рамкой */
+:root[data-skin="gas"] :is(.surface-1, .card-v3, .mono-card, .hero-field) {
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: var(--r-card);
+}
+
+/* Меню компьютера: пункты капсулами, активный — белая капсула */
+:root[data-skin="gas"] .gas-nav-item {
+  border-radius: 999px;
+  height: 44px;
+}
+:root[data-skin="gas"] .gas-nav-item[aria-current="page"] {
+  background: var(--card);
+  box-shadow: none;
+  font-weight: 500;
+}
+
+/* Нижняя панель телефона: белая, активная вкладка чёрная */
+:root[data-skin="gas"] .mono-tabbar {
+  background: color-mix(in oklab, var(--card) 96%, transparent);
+}
+:root[data-skin="gas"] .mono-tab[aria-current="page"] .mono-tab-icon {
+  background: transparent;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- Компоненты «Тепло» */
+/* Точечная цифра главного показателя (DotNumber): SVG-сетка 5×7, без внешнего шрифта */
+.warm-dot {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.18em;
+}
+.warm-dot svg {
+  height: 1em;
+  width: auto;
+  fill: currentColor;
+}
+.warm-dot-text {
+  font-weight: 600;
+  font-size: 0.42em;
+  line-height: 1;
+  margin-left: 0.1em;
+}
+
+/* Карточка главной цифры: размытый градиент, белый текст */
+.warm-kpi {
+  background: var(--warm-kpi);
+  color: #ffffff;
+  border-radius: var(--r-card);
+}
+.warm-kpi {
+  min-height: 180px;
+}
+.warm-kpi-number {
+  font-size: 48px;
+  line-height: 1;
+}
+@media (min-width: 640px) {
+  .warm-kpi {
+    min-height: 220px;
+  }
+  .warm-kpi-number {
+    font-size: 56px;
+  }
+}
+@media (min-width: 1024px) {
+  .warm-kpi-number {
+    font-size: 72px;
+  }
+}
+.warm-kpi .warm-kpi-meta {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Полоса из сегментов (SplitProgress) */
+.warm-split {
+  display: flex;
+  gap: 6px;
+}
+.warm-split > span {
+  height: 6px;
+  border-radius: 3px;
+  min-width: 4px;
+}
+.warm-split > [data-tone="light"] {
+  background: #ffffff;
+}
+.warm-split > [data-tone="accent"] {
+  background: var(--warm-accent);
+}
+.warm-split > [data-tone="dim"] {
+  background: rgba(255, 255, 255, 0.35);
+}
+.warm-split > [data-tone="ink"] {
+  background: var(--ink);
+}
+.warm-split > [data-tone="track"] {
+  background: var(--panel-3);
+}
+
+/* Плитка быстрого действия; inverse — чёрная главная */
+.warm-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 112px;
+  padding: 16px;
+  border-radius: 24px;
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+  text-align: left;
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.warm-tile:active {
+  transform: scale(0.98);
+}
+.warm-tile[data-variant="inverse"] {
+  background: var(--warm-tile);
+  color: var(--on-warm-tile);
+}
+.warm-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--panel-2);
+}
+.warm-tile[data-variant="inverse"] .warm-tile-icon {
+  background: color-mix(in oklab, var(--on-warm-tile) 14%, var(--warm-tile));
+}
+
+/* Аватар с инициалами: пастель по хешу */
+.warm-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-weight: 600;
+  color: #16161a;
+}
+.warm-avatar[data-tone="0"] {
+  background: #fad6c4;
+}
+.warm-avatar[data-tone="1"] {
+  background: #e6e2da;
+}
+.warm-avatar[data-tone="2"] {
+  background: #d9d0f5;
+}
+.warm-avatar[data-tone="3"] {
+  background: #d5e6da;
+}
+.warm-avatar[data-tone="4"] {
+  background: #d3e2f0;
+}
+
+/* Приветствие и итог экрана (ScreenHello) */
+.warm-hello-title {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.text-warm-accent {
+  color: var(--warm-accent);
+}
+
+/* Положительная сумма крупно — акцентом */
+.warm-plus {
+  color: var(--flame-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .warm-tile {
+    transition: none;
+  }
+}

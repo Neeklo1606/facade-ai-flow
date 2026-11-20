@@ -3,6 +3,8 @@
  * сметы со строками источника, объект «Прикрепить» или «Создать», разделы с работами без
  * материалов и опрессовкой отдельно. Деньги объекта подтверждаются в разборе версии, как раньше.
  */
+import { FileCompare, type CompareItem } from "./FileCompare";
+import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState, type DragEvent } from "react";
 import { AlertTriangle, ArrowRight, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -305,6 +307,8 @@ function CardBody({
   onMode: (mode: PressureMode) => void;
 }) {
   const intake = useEstimateIntake();
+  const navigate = useNavigate();
+  const [compare, setCompare] = useState(false);
   const [draft, setDraft] = useState<ObjectDraft | null>(null);
   const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -330,6 +334,8 @@ function CardBody({
     if (result.ok) {
       notify(`Объект ${result.value.code} создан с разделами сметы: ${card.sections.length}`);
       setDraft(null);
+      // Дальше — страница объекта: там назначают разделы бригадам (план 20.11, этап 1)
+      void navigate({ to: "/gas/objects/$id", params: { id: result.value.id } });
     } else toast.error(result.message);
   };
 
@@ -345,7 +351,21 @@ function CardBody({
         ) : card.file ? (
           <span className="text-meta text-text-3">{card.file.name}</span>
         ) : null}
+        {card.file ? (
+          <Button size="sm" variant="secondary" onClick={() => setCompare(true)}>
+            Сверить с файлом
+          </Button>
+        ) : null}
       </div>
+      {card.file && compare ? (
+        <FileCompare
+          file={card.file}
+          sheet={card.version.sheet}
+          open={compare}
+          onOpenChange={setCompare}
+          items={compareItems(card)}
+        />
+      ) : null}
 
       {card.changed && card.previousVersion ? (
         <p className="text-meta text-text-2" data-testid="estimate-changed">
@@ -596,4 +616,26 @@ function CardBody({
       />
     </div>
   );
+}
+
+/** Что сверять с файлом: шапка и разделы со строками файла */
+function compareItems(card: EstimateCard): CompareItem[] {
+  const h = card.version.header;
+  const head: CompareItem[] = h
+    ? [
+        { label: "Наименование", value: "", row: h.works.row },
+        { label: "Номер сметы", value: h.number.value ?? "", row: h.number.row },
+        { label: "Дата", value: h.date.value ?? "", row: h.date.row },
+      ]
+    : [];
+  const sections = card.sections.flatMap((s): CompareItem[] => [
+    { label: `${s.title}: итог`, value: rub(s.totalKopecks), row: s.totalRow },
+    { label: `${s.title}: материалы`, value: rub(s.materialsKopecks), row: s.materialsRow },
+    {
+      label: `${s.title}: нормативные чел.-ч`,
+      value: s.laborHours === null ? "–" : String(s.laborHours),
+      row: s.laborRow,
+    },
+  ]);
+  return [...head, ...sections];
 }
