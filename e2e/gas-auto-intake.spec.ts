@@ -44,6 +44,7 @@ test.describe("папка смет, PDF, подключения", () => {
     const list = page.getByTestId("admin-connections");
     await expect(list).toContainText("Бот Telegram");
     await expect(list).toContainText("Яндекс Диск: папка смет");
-    await expect(page.getByText(/Подключено \d из 6/)).toBeVisible();
+    // Наличие настроек не подтверждает доставку (ADR-075): «Настроено», а не «Подключено»
+    await expect(page.getByText(/Настроено \d из 6/)).toBeVisible();
   });
 });

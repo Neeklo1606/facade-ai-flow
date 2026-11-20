@@ -200,6 +200,12 @@ test.describe("тосты", () => {
   test("область уведомлений объявляется вежливо (role=status по смыслу)", async ({ page }) => {
     await open(page, "/gas/moderation");
     await page.locator("[data-queue-card]").first().waitFor();
+    // Запись не раскрыта заранее (ADR-074): J раскрывает первую, Enter принимает её
+    await page.locator("body").press("j");
+    await expect(page.locator("[data-queue-card]").first()).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     await page.locator("body").press("Enter");
     const region = page.locator("section[aria-live='polite']").filter({
       has: page.locator("[data-sonner-toast]"),

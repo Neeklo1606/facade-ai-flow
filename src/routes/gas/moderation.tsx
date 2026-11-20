@@ -2,7 +2,7 @@ import { completePageHead } from "@/lib/page-head";
 import type { AccrualDecision } from "@/api/gas-section-accrual";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CheckCheck, ClipboardCheck, Inbox } from "lucide-react";
+import { CalendarDays, CheckCheck, ChevronDown, ClipboardCheck, Inbox, X } from "lucide-react";
 import { ModeSuggestion } from "@/components/gas-ops/review/ModeSuggestion";
 import { QueueCard } from "@/components/gas-ops/review/QueueCard";
 import { ReviewSummary } from "@/components/gas-ops/review/ReviewSummary";
@@ -473,6 +473,31 @@ function ModerationPage() {
   };
   const byObject = count((v) => v.entry.objectId);
   const byBrigade = count((v) => v.entry.brigadeId);
+  const periodText =
+    from || to
+      ? `${from ? from.slice(8, 10) + "." + from.slice(5, 7) : "начало"}–${to ? to.slice(8, 10) + "." + to.slice(5, 7) : "конец"}`
+      : "все даты";
+  /*
+   * Период на компьютере — чип в строке счётчиков, поля раскрываются над очередью по нажатию.
+   * Постоянная строка полей сдвигала первую карточку на 1440 ниже 200 px (ADR-061, приёмка T8)
+   */
+  const periodChip = (
+    <button
+      type="button"
+      aria-label="Настроить период проверки"
+      aria-expanded={periodOpen}
+      aria-controls="review-period"
+      data-active={from || to ? true : undefined}
+      onClick={() => setPeriodOpen((value) => !value)}
+      className="filter-chip filter-chip-sm focus-ring"
+    >
+      <CalendarDays aria-hidden className="size-4 shrink-0" />
+      <span className="min-w-0 truncate">
+        {periodText.charAt(0).toUpperCase() + periodText.slice(1)}
+      </span>
+      <ChevronDown aria-hidden className="filter-chip-caret size-4 shrink-0" />
+    </button>
+  );
   const filters = (compact: boolean) => (
     <FilterRow active={activeFilters} onReset={resetFilters}>
       <FilterChip
@@ -508,6 +533,53 @@ function ModerationPage() {
         }))}
       />
     </FilterRow>
+  );
+
+  /*
+   * Выбор доступных записей. На компьютере в строке счётчиков шапки, а не отдельной строкой
+   * над очередью: первая карточка остаётся не ниже 200 px на 1440 (ADR-061, приёмка T8)
+   */
+  const selectAll = (
+    <>
+      <label
+        className={`flex cursor-pointer items-center gap-2 ${desktop ? "min-h-control-sm text-meta text-text-2" : "min-h-12 text-body"}`}
+      >
+        <input
+          type="checkbox"
+          aria-label="Выбрать все доступные записи"
+          ref={(node) => {
+            if (node)
+              node.indeterminate =
+                chosen.length > 0 && !clean.every((item) => checked.has(item.view.entry.id));
+          }}
+          disabled={bulkBusy || clean.length === 0}
+          checked={clean.length > 0 && clean.every((item) => checked.has(item.view.entry.id))}
+          onChange={(event) =>
+            setChecked(
+              event.target.checked ? new Set(clean.map((item) => item.view.entry.id)) : new Set(),
+            )
+          }
+          className="size-5 accent-orange"
+        />
+        Выбрать доступные
+      </label>
+      <span role="status" className="text-meta text-text-2">
+        Выбрано: {chosen.length}
+      </span>
+      {chosen.length ? (
+        <Button
+          variant="quiet"
+          size={desktop ? "icon" : "default"}
+          aria-label={desktop ? "Снять выбор" : undefined}
+          title={desktop ? "Снять выбор" : undefined}
+          disabled={bulkBusy}
+          onClick={() => setChecked(new Set())}
+          className={desktop ? "size-control-sm" : undefined}
+        >
+          {desktop ? <X aria-hidden /> : "Снять выбор"}
+        </Button>
+      ) : null}
+    </>
   );
 
   return (
@@ -548,7 +620,7 @@ function ModerationPage() {
 
       <ScreenCounters>
         <div
-          className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2"
+          className={`flex min-w-0 items-center gap-x-4 gap-y-2 ${desktop ? "flex-nowrap" : "flex-wrap"}`}
           data-tour="review-tabs"
         >
           <StatusPills
@@ -572,9 +644,19 @@ function ModerationPage() {
                   : counts[value],
             }))}
           />
-          <p className="min-w-0 text-meta text-text-2" data-testid="queue-summary">
+          <p
+            className={`min-w-0 text-meta text-text-2 ${desktop ? "flex-1 truncate" : ""}`}
+            title={desktop ? counters.join(" · ") : undefined}
+            data-testid="queue-summary"
+          >
             {counters.join(" · ")}
           </p>
+          {desktop ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {pickable.length ? selectAll : null}
+              {periodChip}
+            </div>
+          ) : null}
         </div>
       </ScreenCounters>
 
@@ -600,14 +682,10 @@ function ModerationPage() {
           aria-controls="review-period"
           onClick={() => setPeriodOpen((value) => !value)}
         >
-          Период:{" "}
-          {from || to
-            ? `${from ? from.slice(8, 10) + "." + from.slice(5, 7) : "начало"}–${to ? to.slice(8, 10) + "." + to.slice(5, 7) : "конец"}`
-            : "все даты"}{" "}
-          {periodOpen ? "▴" : "▾"}
+          Период: {periodText} {periodOpen ? "▴" : "▾"}
         </Button>
       ) : null}
-      {desktop || periodOpen ? (
+      {periodOpen ? (
         <div
           id="review-period"
           className="mb-3 flex flex-wrap items-end gap-3"
@@ -668,42 +746,12 @@ function ModerationPage() {
           ) : null}
         </div>
       ) : null}
-      {pickable.length ? (
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <label className="flex min-h-12 cursor-pointer items-center gap-2 text-body">
-            <input
-              type="checkbox"
-              aria-label="Выбрать все доступные записи"
-              ref={(node) => {
-                if (node)
-                  node.indeterminate =
-                    chosen.length > 0 && !clean.every((item) => checked.has(item.view.entry.id));
-              }}
-              disabled={bulkBusy || clean.length === 0}
-              checked={clean.length > 0 && clean.every((item) => checked.has(item.view.entry.id))}
-              onChange={(event) =>
-                setChecked(
-                  event.target.checked
-                    ? new Set(clean.map((item) => item.view.entry.id))
-                    : new Set(),
-                )
-              }
-              className="size-5 accent-orange"
-            />
-            Выбрать доступные
-          </label>
-          <span role="status" className="text-meta text-text-2">
-            Выбрано: {chosen.length}
-          </span>
-          {chosen.length ? (
-            <Button variant="quiet" disabled={bulkBusy} onClick={() => setChecked(new Set())}>
-              Снять выбор
-            </Button>
-          ) : null}
-        </div>
+      {pickable.length && !desktop ? (
+        <div className="mb-3 flex flex-wrap items-center gap-3">{selectAll}</div>
       ) : null}
 
-      <p id="review-selection-help" className="mb-3 text-meta text-text-3">
+      {/* На компьютере подсказке нет места в строке счётчиков: её читают у чекбоксов карточек */}
+      <p id="review-selection-help" className={desktop ? "sr-only" : "mb-3 text-meta text-text-3"}>
         Записи с замечаниями можно отметить: перед принятием покажем их замечания
       </p>
       <AlertDialog
