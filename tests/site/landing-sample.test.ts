@@ -3,7 +3,15 @@ import { getServerSnapshot } from "@/adapters/gas-ops/state";
 import { completenessOf } from "@/domain/gas-ops/exec-docs";
 import { buildDocsSeed } from "@/data/mock/gas-docs-seed";
 import { limitCheck, limitText, parseRequestText } from "@/domain/gas-ops/supply";
-import { DOCS_SAMPLE, SUPPLY_SAMPLE, WEEK_SAMPLE } from "@/lib/site/sample";
+import {
+  DOCS_SAMPLE,
+  formatMillions,
+  HERO_HOURS,
+  HERO_WEEK,
+  SUPPLY_SAMPLE,
+  WEEK_SAMPLE,
+  WEEK_TOTAL_RUB,
+} from "@/lib/site/sample";
 
 /**
  * Числа лендинга (ADR-059) записаны в sample.ts, чтобы не грузить сид в сайт. Тест держит их
@@ -58,5 +66,26 @@ describe("пример недели на первом экране", () => {
       requests,
     });
     expect(limitText(check, item.unit)).toBe(SUPPLY_SAMPLE.limit);
+  });
+
+  test("первый экран «Тепло»: запись бригады 2, ждущие записи и суммы бригад из набора", () => {
+    const week = snapshot.entries.filter((e) => snapshot.week.days.includes(e.day));
+    expect(week.filter((e) => e.status === "pending")).toHaveLength(HERO_WEEK.pendingEntries);
+    const entry = week.find((e) => e.number === HERO_WEEK.entry.number)!;
+    expect(entry.status).toBe("pending");
+    expect(entry.amountRub).toBe(HERO_WEEK.entry.amountRub);
+    const brigade = snapshot.brigades.find((b) => b.id === entry.brigadeId)!;
+    expect(brigade.name).toBe(HERO_WEEK.entry.brigade);
+    const object = snapshot.objects.find((o) => o.id === entry.objectId)!;
+    expect(object.label).toContain(HERO_WEEK.entry.object);
+    for (const row of HERO_WEEK.brigades) {
+      const sum = week
+        .filter((e) => e.brigadeId === row.id && e.status === "confirmed")
+        .reduce((total, e) => total + (e.amountRub ?? 0), 0);
+      expect(sum).toBe(row.amountRub);
+      expect(snapshot.brigades.find((b) => b.id === row.id)!.name).toBe(row.name);
+    }
+    expect(HERO_HOURS).toBe(402);
+    expect(formatMillions(WEEK_TOTAL_RUB)).toBe("1,70М");
   });
 });

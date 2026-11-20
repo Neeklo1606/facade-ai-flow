@@ -119,7 +119,7 @@ function ArticlePage() {
           </div>
         </div>
       </article>
-      <section aria-labelledby="related-title" className="site-block bg-surface">
+      <section aria-labelledby="related-title" className="site-block bg-void">
         <div className="site-wrap">
           <h2 id="related-title" className="site-h2 text-text">
             {ARTICLES_PAGE.related}

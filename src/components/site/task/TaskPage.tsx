@@ -58,7 +58,7 @@ export function TaskPage({
               return (
                 <li
                   key={role.role}
-                  className="flex flex-col gap-2 rounded-card bg-void p-6"
+                  className="flex flex-col gap-2 rounded-card bg-surface p-6"
                   data-reveal
                 >
                   <h3 className="site-h3 text-text">{role.role}</h3>
@@ -86,7 +86,7 @@ export function TaskPage({
         <SiteSection id="get" title={TASK_PAGE.get} tone="card">
           <ul className="grid gap-4 sm:grid-cols-2" data-reveal-group>
             {task.get.map((item) => (
-              <li key={item} className="site-result rounded-card bg-void p-6" data-reveal>
+              <li key={item} className="site-result rounded-card bg-surface p-6" data-reveal>
                 <span className="site-h3 text-text">{item}</span>
               </li>
             ))}

@@ -56,6 +56,7 @@ function SiteHeader() {
 
   return (
     <header
+      data-over={pathname === "/" && !solid ? "" : undefined}
       className={cn(
         "site-header sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)] transition-[background-color,border-color] duration-150",
         solid ? "border-line bg-void" : "border-transparent bg-void",
@@ -83,22 +84,19 @@ function SiteHeader() {
           <Link to="/stati" className={navLink}>
             {NAV.articles}
           </Link>
-          <Link to="/demo" className={navLink}>
-            {NAV.demoShort}
-          </Link>
           <Link
-            to="/razbor"
-            onClick={() => track("cta_razbor", { place: "header" })}
+            to="/demo"
+            onClick={() => track("cta_demo", { place: "header" })}
             className={cn(siteButton.primary, "site-btn-sm ms-2")}
           >
-            {NAV.talk}
+            {NAV.demoFree}
           </Link>
         </nav>
         <div className="site-nav-mobile items-center gap-1">
           <Link
             to="/demo"
             onClick={() => track("cta_demo", { place: "header" })}
-            className={cn(siteButton.secondary, "site-btn-sm")}
+            className={cn(siteButton.primary, "site-btn-sm")}
           >
             {NAV.demoShort}
           </Link>
@@ -242,7 +240,7 @@ function MobileMenu() {
       <Dialog.Portal>
         <Dialog.Content
           aria-describedby={undefined}
-          className="site-menu-sheet fixed inset-0 z-50 flex flex-col bg-void pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-text"
+          className="site-warm site-menu-sheet fixed inset-0 z-50 flex flex-col bg-void pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-text"
         >
           <div className="site-wrap flex h-14 shrink-0 items-center justify-between">
             <Dialog.Title className="text-title leading-none tracking-tight">

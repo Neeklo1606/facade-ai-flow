@@ -74,7 +74,7 @@ function HowPage() {
         title={page.pilotTitle}
         lead={page.pilotNote}
         tone="card"
-        className="site-dark site-band"
+        className="site-band"
       >
         <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-reveal-group>
           {page.pilot.map((step) => (
