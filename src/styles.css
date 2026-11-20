@@ -2923,6 +2923,10 @@ html[data-boot-compact] [data-boot-hero] {
 @utility min-h-control-sm {
   min-height: var(--h-control-sm);
 }
+@utility size-control-sm {
+  width: var(--h-control-sm);
+  height: var(--h-control-sm);
+}
 @utility h-row-table {
   height: var(--h-row-table);
 }
@@ -4192,6 +4196,10 @@ main {
 @media (min-width: 1024px) and (pointer: fine) {
   .filter-chip {
     min-height: 36px;
+  }
+  /* Чип в строке счётчиков (период «Проверки») — высотой с таблетки статусов */
+  .filter-chip.filter-chip-sm {
+    min-height: var(--h-control-sm);
   }
   .filter-chip-clear {
     width: 36px;
