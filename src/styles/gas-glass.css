@@ -30,6 +30,10 @@
   --capsule: #261e1b;
   --field-line: #8a7a6e;
   --glass-pick: #fff9f3;
+  /* Сплошные поверхности сеток: закреплённые ячейки не просвечивают */
+  --solid-1: #fbf5ee;
+  --solid-2: #f3e9de;
+  --solid-3: #eadccd;
   --glass-pick-ink: #241b17;
   --glass-shadow-rgb: 35 21 14;
   --mint: #09644f;
@@ -58,6 +62,9 @@
   --ink-2: #e5d5c7;
   --ink-3: #cdbcae;
   --inverse: #f3ddca;
+  --solid-1: #3b302c;
+  --solid-2: #463935;
+  --solid-3: #52443f;
   --on-inverse: #231a16;
   --accent-hover: #ffeedd;
   --capsule: #f3ddca;
@@ -621,4 +628,21 @@
 }
 :root[data-glass] .gas-shell .kpi-strip > .surface-1:first-child svg :is(path, polyline) {
   stroke: #ffd9c8;
+}
+
+/* ================================================================ Сетки и таблицы */
+/*
+ * Табель, журнал и другие таблицы прокручивают строки под закреплённой шапкой и первым
+ * столбцом. На стекле их фон полупрозрачный, и цифры просвечивали сквозь название строки
+ * (снимок владельца с телефона, 21.11.2026). Внутри сеток поверхности сплошные, тех же оттенков.
+ */
+:root[data-glass] .gas-shell [role="grid"],
+:root[data-glass] .gas-shell table {
+  --card: var(--solid-1);
+  --panel: var(--solid-1);
+  --surface: var(--solid-1);
+  --panel-2: var(--solid-2);
+  --surface-2: var(--solid-2);
+  --panel-3: var(--solid-3);
+  --surface-3: var(--solid-3);
 }
