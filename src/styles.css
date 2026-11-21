@@ -4,6 +4,7 @@
 /* Дизайн-система «Тепло» сервиса: docs/design/design-system-warm.md */
 @import "./styles/gas-warm.css";
 @import "./styles/gas-glass.css";
+@import "./styles/gas-compact.css";
 
 /*
  * Дизайн-система ГАЙКИ, версия 2 (docs/gaika/GAIKA_DESIGN_SYSTEM.md, решение ADR-033).

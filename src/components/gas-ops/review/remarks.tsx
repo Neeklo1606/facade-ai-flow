@@ -62,16 +62,21 @@ export function StatusPills<T extends string>({
             role="tab"
             aria-selected={on}
             onClick={() => onChange(option.value)}
-            // Размер и цвет строкой, не через cn: tailwind-merge считает text-body и text-text-2 одной группой
-            className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-body whitespace-nowrap transition-fast focus-ring lg:h-control-sm ${
-              on
-                ? "border-transparent bg-pill text-pill-text"
-                : "border-line-2 bg-surface text-text-2 is-hover:bg-surface-2"
-            }`}
+            // Телефон (ADR-082): кнопка 44 для пальца, видимая пилюля внутри 32 и мельче текст.
+            // Компьютер: пилюля во всю кнопку 32. Размер и цвет строкой, не через cn
+            className="group/pill inline-flex h-11 shrink-0 items-center rounded-full focus-ring lg:h-control-sm"
           >
-            {option.label}
-            <span className={`text-meta tnum ${on ? "opacity-75" : "text-text-3"}`}>
-              {option.count}
+            <span
+              className={`inline-flex h-control-sm items-center gap-1.5 rounded-full border px-3 text-meta-strong whitespace-nowrap transition-fast lg:h-full lg:text-body ${
+                on
+                  ? "border-transparent bg-pill text-pill-text"
+                  : "border-line-2 bg-surface text-text-2 group-hover/pill:bg-surface-2"
+              }`}
+            >
+              {option.label}
+              <span className={`text-meta tnum ${on ? "opacity-75" : "text-text-3"}`}>
+                {option.count}
+              </span>
             </span>
           </button>
         );

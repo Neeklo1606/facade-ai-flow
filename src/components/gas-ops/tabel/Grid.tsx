@@ -11,7 +11,8 @@
  * значение, статус), буквы столбцов и номера строк, Home/End/PageUp/PageDown/Tab, F2 открывает.
  * Пометки цветом и итоги выделенного одной строкой под сеткой.
  * Телефон (`touch`), как в мобильных Google Таблицах: узкий закреплённый столбец, строки
- * от 44 px, касание выделяет ячейку и показывает итог внизу, второе касание открывает записи.
+ * 30 px (ADR-082, решение владельца), касание выделяет ячейку и показывает итог внизу, второе
+ * касание открывает записи.
  * Цвет ячейки — статус данных вместо переключателя «Подтверждённые / Предварительный».
  */
 import { ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
@@ -381,7 +382,7 @@ export function Grid({
     else groups.push({ title: column.group, span: 1, start: index });
   });
   const tableWidth = labelWidth + columns.reduce((a, c) => a + c.width, 0);
-  const headRow = touch ? 32 : 28;
+  const headRow = touch ? 26 : 28;
   // Буквы столбцов: строка 20 px над шапкой, только на компьютере
   const letterRow = touch ? 0 : 20;
   // Строка ячейки сверху внутри рамки: шапка закрепляется под ней
@@ -498,10 +499,7 @@ export function Grid({
          */}
         <table
           role="presentation"
-          className={cn(
-            "gas-grid border-separate border-spacing-0 tnum",
-            touch ? "text-body" : "text-meta",
-          )}
+          className={cn("gas-grid border-separate border-spacing-0 tnum", "text-meta")}
           style={{ width: tableWidth, tableLayout: "fixed" }}
         >
           <colgroup>
@@ -638,8 +636,8 @@ export function Grid({
                     }}
                     className={cn(
                       "sticky left-0 z-[1] cursor-pointer border-e border-b border-line bg-surface px-2 text-left font-normal group-hover/row:bg-surface-2",
-                      // Телефон: название в две строки мельче, иначе в узком столбце видно «Брига…»
-                      touch ? "pe-1" : "truncate",
+                      // Телефон (ADR-082): строка 30 px, название одной строкой 13 px, полное — в title и строке итога
+                      "truncate",
                       touch
                         ? strong
                           ? "text-meta-strong"
@@ -674,7 +672,7 @@ export function Grid({
                           onClick={() => onToggle(row.id)}
                           className={cn(
                             "grid w-[32px] shrink-0 place-items-center rounded-control text-text-3 focus-ring is-hover:bg-surface-3",
-                            touch ? "h-11" : "h-control-sm",
+                            touch ? "h-full" : "h-control-sm",
                           )}
                         >
                           {row.collapsed ? (
@@ -686,11 +684,7 @@ export function Grid({
                       ) : (
                         <span className={cn("shrink-0", touch ? "w-1" : "w-[32px]")} aria-hidden />
                       )}
-                      <span
-                        className={touch ? "line-clamp-2 leading-tight break-words" : "truncate"}
-                      >
-                        {row.label}
-                      </span>
+                      <span className="truncate">{row.label}</span>
                     </span>
                   </th>
                   {columns.map((column, c) => {
@@ -725,7 +719,7 @@ export function Grid({
                         className={cn(
                           "cursor-cell truncate border-e border-b border-line px-2 text-right group-hover/row:bg-surface-2",
                           status ? STATUS_CLASS[status] : "",
-                          strong && "text-body-strong",
+                          strong && "text-meta-strong",
                           row.kind === "total" && "bg-surface-2",
                           selected && "bg-orange-dim",
                           focused && "outline-2 -outline-offset-2 outline-orange",

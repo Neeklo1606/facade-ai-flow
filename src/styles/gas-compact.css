@@ -1,0 +1,73 @@
+/*
+ * Компактный вид сервиса на телефоне (ADR-082). Запрос владельца 21.11.2026: «слишком крупные
+ * элементы, тяжело ориентироваться», ориентир — мобильные приложения банков и маркетплейсов.
+ *
+ * Только админка (`data-skin="gas"`) и только до 1024 px. Компьютер не меняется.
+ * - Текст 15 px вместо 16, заголовок экрана 20, подзаголовок 16. Базовый размер html остаётся
+ *   16: высоты в rem (кнопки 44, поля 48) не мельчают, правило 5 «от 44» держится по рамке
+ *   элемента, а не по невидимому запасу.
+ * - Строки списков 56, отступы карточек 14. Поля и полевые кнопки бригадира остаются 48
+ *   (правило 5: полевые действия прораба от 48).
+ * - Чипы фильтров: кнопка 44, видимая пилюля внутри 34 (фон на ::before), шрифт 14.
+ */
+@media (max-width: 1023px) {
+  :root[data-skin="gas"] {
+    --type-body: 0.9375rem;
+    --type-body-leading: 1.375rem;
+    --h-row: 56px;
+    --h-row-compact: 48px;
+    --h-sheet-head: 48px;
+    --space-card: 14px;
+    --space-row-y: 10px;
+    --space-row-x: 14px;
+  }
+
+  :root[data-skin="gas"] .text-title,
+  :root[data-skin="gas"] .text-page-title {
+    font-size: 1.25rem;
+    line-height: 1.625rem;
+  }
+  :root[data-skin="gas"] .text-heading {
+    font-size: 1rem;
+    line-height: 1.375rem;
+  }
+
+  /* Чип: рамка 44 для пальца, пилюля 34 внутри */
+  :root[data-skin="gas"] .filter-chip {
+    position: relative;
+    isolation: isolate;
+    padding-inline: 12px 10px;
+    font-size: 0.875rem;
+    background: transparent;
+    box-shadow: none;
+  }
+  :root[data-skin="gas"] .filter-chip::before {
+    content: "";
+    position: absolute;
+    inset: 5px 0;
+    z-index: -1;
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  :root[data-skin="gas"] .filter-chip:hover {
+    box-shadow: none;
+  }
+  :root[data-skin="gas"] .filter-chip:hover::before {
+    box-shadow: inset 0 0 0 1px var(--line-2);
+  }
+  :root[data-skin="gas"] .filter-chip[data-active] {
+    background: transparent;
+    box-shadow: none;
+  }
+  :root[data-skin="gas"] .filter-chip[data-active]::before {
+    background: var(--flame-soft);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--flame) 40%, transparent);
+  }
+
+  /* Подписи нижней панели не мельче 11 px */
+  :root[data-skin="gas"] .text-tab {
+    font-size: 11px;
+    line-height: 13px;
+  }
+}

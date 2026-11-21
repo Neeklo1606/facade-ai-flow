@@ -5,7 +5,7 @@ import { expect, expectA11y, open, test } from "./fixtures";
 import { mobileCheck } from "./mobile-checks";
 
 /**
- * Путь «смета → карточки → объект → табель» (ADR-080). Синтетическая ГРАНД-смета собирается bun
+ * Путь «смета → карточки → объект → бригады → табель» (ADR-080, мастер по шагам ADR-082). Синтетическая ГРАНД-смета собирается bun
  * (gas-estimate-file.cli.ts): файлов заказчика в репозитории нет. Мастер открывается с «Обзора»,
  * показывает итоги разбора по шагам и карточки, «Создать объект» ведёт на страницу объекта
  * с полосой пути, «Табель объекта» открывает табель с поиском по объекту.
@@ -32,23 +32,40 @@ test.describe("смета → табель", () => {
     await expect(checks).toContainText("Объект");
     await expectA11y(page, "мастер сметы: итоги разбора");
 
-    // Карточки разделов из файла
-    await expect(flow.getByTestId("estimate-section")).toHaveCount(2);
-    await expect(flow.getByTestId("estimate-section").first()).toContainText("Монтаж");
+    // Разделы компактной таблицей: касание раскрывает итог и материалы со строками файла
+    const sections = flow.getByTestId("estimate-section");
+    await expect(sections).toHaveCount(2);
+    await expect(sections.first()).toContainText("Монтаж");
+    await sections.first().click();
+    await expect(sections.first()).toHaveAttribute("aria-expanded", "true");
+    await expect(flow.getByTestId("flow-sections-table")).toContainText("стр. 450");
 
-    // Объект: новый, создаём из шапки
+    // Шаг «Объект»: новый, создаём из шапки
+    await flow.getByTestId("estimate-flow-next").click();
+    await expect(flow).toHaveAttribute("data-step", "object");
     await flow.getByTestId("estimate-create-object").click();
     // Поля предзаполнены из шапки; синтетическая смета без шапки, задаём свои
     await flow.getByRole("textbox", { name: "Адрес или название" }).fill("Е2Е, ул. Сметная, 1");
     await flow.getByRole("textbox", { name: "Номер объекта" }).fill("E2E-080");
     await flow.getByTestId("estimate-create-confirm").click();
 
-    // Страница объекта с полосой пути: смета пройдена, текущий шаг — стоимость
+    // Шаг «Бригады»: одной бригаде оба раздела сразу
+    await expect(flow).toHaveAttribute("data-step", "brigades");
+    await expect(flow.getByTestId("flow-section")).toHaveCount(2);
+    await flow
+      .getByRole("combobox", { name: "Всем разделам одну бригаду" })
+      .selectOption({ label: "Бригада 1" });
+    await expect(flow.getByTestId("flow-brigades-summary")).toContainText("Назначено 2 из 2");
+    await expectA11y(page, "мастер сметы: бригады");
+    await flow.getByTestId("flow-open-object").click();
+
+    // Страница объекта с полосой пути: смета и бригады пройдены, текущий шаг — стоимость
     await expect(page).toHaveURL(/\/gas\/objects\//, { timeout: 15_000 });
     const path = page.getByTestId("object-path");
     await expect(path).toBeVisible();
     await expect(path.locator("li").first()).toHaveAttribute("data-state", "done");
     await expect(path.locator("li").nth(1)).toHaveAttribute("data-state", "current");
+    await expect(path.locator("li").nth(2)).toHaveAttribute("data-state", "done");
     await expect(page.getByTestId("object-sections")).toContainText("Монтаж");
     await expectA11y(page, "страница объекта: полоса пути");
 
@@ -69,21 +86,19 @@ test.describe("смета → табель", () => {
     await page.getByTestId("estimate-flow-input").setInputFiles(grandXlsx());
     const flow = page.getByTestId("estimate-flow");
     await expect(page.getByTestId("estimate-flow-checks")).toBeVisible({ timeout: 20_000 });
+    await flow.getByTestId("estimate-flow-next").click();
     await flow.getByTestId("estimate-create-object").click();
     await flow.getByRole("textbox", { name: "Адрес или название" }).fill("Липецк, ул. Путевая, 80");
     await flow.getByRole("textbox", { name: "Номер объекта" }).fill("ПТ-080");
     await flow.getByTestId("estimate-create-confirm").click();
-    await expect(page).toHaveURL(/\/gas\/objects\//, { timeout: 15_000 });
 
-    // Оба раздела — бригаде 1: шаг «Бригады» закрыт
-    const sections = page.getByTestId("object-sections");
-    for (let i = 0; i < 2; i += 1) {
-      await sections.getByRole("button", { name: "Назначить бригаду" }).nth(i).click();
-      const dialog = page.getByRole("dialog");
-      await dialog.getByRole("combobox", { name: "Бригада" }).selectOption({ label: "Бригада 1" });
-      await dialog.getByRole("button", { name: "Назначить", exact: true }).click();
-      await expect(dialog).toHaveCount(0);
-    }
+    // Шаг «Бригады»: каждому разделу по списку, бригада 1
+    await expect(flow).toHaveAttribute("data-step", "brigades");
+    for (const row of await flow.getByTestId("flow-section").all())
+      await row.getByRole("combobox").selectOption({ label: "Бригада 1" });
+    await expect(flow.getByTestId("flow-brigades-summary")).toContainText("Назначено 2 из 2");
+    await flow.getByTestId("flow-open-object").click();
+    await expect(page).toHaveURL(/\/gas\/objects\//, { timeout: 15_000 });
     await expect(page.getByTestId("object-path").locator("li").nth(2)).toHaveAttribute(
       "data-state",
       "done",
@@ -140,5 +155,16 @@ test.describe("смета → табель", () => {
     const check = await mobileCheck(page);
     expect(check.overflow.offenders, "переполнение по ширине").toEqual([]);
     await expectA11y(page, "мастер сметы на телефоне");
+
+    // До шага «Бригады» без переполнения: компактные строки разделов и выбор бригады
+    const flow = page.getByTestId("estimate-flow");
+    await flow.getByTestId("estimate-flow-next").click();
+    await flow.getByTestId("estimate-create-object").click();
+    await flow.getByRole("textbox", { name: "Адрес или название" }).fill("Тел., ул. Узкая, 3");
+    await flow.getByRole("textbox", { name: "Номер объекта" }).fill("ТЛ-082");
+    await flow.getByTestId("estimate-create-confirm").click();
+    await expect(flow).toHaveAttribute("data-step", "brigades");
+    const after = await mobileCheck(page);
+    expect(after.overflow.offenders, "переполнение на шаге бригад").toEqual([]);
   });
 });

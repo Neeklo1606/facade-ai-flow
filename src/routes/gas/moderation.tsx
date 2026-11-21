@@ -542,7 +542,7 @@ function ModerationPage() {
   const selectAll = (
     <>
       <label
-        className={`flex cursor-pointer items-center gap-2 ${desktop ? "min-h-control-sm text-meta text-text-2" : "min-h-12 text-body"}`}
+        className={`flex cursor-pointer items-center gap-2 ${desktop ? "min-h-control-sm text-meta text-text-2" : "min-h-11 text-meta-strong text-text-2"}`}
       >
         <input
           type="checkbox"
@@ -645,8 +645,8 @@ function ModerationPage() {
             }))}
           />
           <p
-            className={`min-w-0 text-meta text-text-2 ${desktop ? "flex-1 truncate" : ""}`}
-            title={desktop ? counters.join(" · ") : undefined}
+            className={`min-w-0 text-meta text-text-2 ${desktop ? "flex-1 truncate" : "w-full truncate"}`}
+            title={counters.join(" · ")}
             data-testid="queue-summary"
           >
             {counters.join(" · ")}
@@ -671,20 +671,19 @@ function ModerationPage() {
           />
         </div>
       )}
-      {desktop ? null : <div className="mb-3">{filters(false)}</div>}
-
-      {!desktop ? (
-        <Button
-          variant="secondary"
-          className="mb-3"
-          aria-label="Настроить период проверки"
-          aria-expanded={periodOpen}
-          aria-controls="review-period"
-          onClick={() => setPeriodOpen((value) => !value)}
+      {/*
+       * Телефон (ADR-082): период и фильтры одной строкой компактных чипов с прокруткой вбок,
+       * как на компьютере. Раньше это были три строки по 48 px и очередь начиналась с середины
+       */}
+      {desktop ? null : (
+        <div
+          className="-mx-gutter mb-2 flex items-center gap-2 overflow-x-auto px-gutter [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          data-testid="review-phone-filters"
         >
-          Период: {periodText} {periodOpen ? "▴" : "▾"}
-        </Button>
-      ) : null}
+          {periodChip}
+          {filters(true)}
+        </div>
+      )}
       {periodOpen ? (
         <div
           id="review-period"
@@ -747,11 +746,14 @@ function ModerationPage() {
         </div>
       ) : null}
       {pickable.length && !desktop ? (
-        <div className="mb-3 flex flex-wrap items-center gap-3">{selectAll}</div>
+        <div className="mb-2 flex flex-wrap items-center gap-3">{selectAll}</div>
       ) : null}
 
-      {/* На компьютере подсказке нет места в строке счётчиков: её читают у чекбоксов карточек */}
-      <p id="review-selection-help" className={desktop ? "sr-only" : "mb-3 text-meta text-text-3"}>
+      {/*
+       * Подсказку читают у чекбоксов карточек (aria-describedby): отдельной строкой над очередью
+       * её нет ни на компьютере, ни на телефоне (ADR-082)
+       */}
+      <p id="review-selection-help" className="sr-only">
         Записи с замечаниями можно отметить: перед принятием покажем их замечания
       </p>
       <AlertDialog
