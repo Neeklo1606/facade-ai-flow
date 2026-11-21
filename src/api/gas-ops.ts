@@ -316,7 +316,10 @@ export { busyLine, intervalLabel } from "@/domain/gas-ops/time-slots";
 export {
   METRIC_LABEL,
   METRIC_SHORT,
+  cellRef,
+  colLetter,
   inRect,
+  keySelection,
   metricOrder,
   metricValue,
   moveSelection,

@@ -7,6 +7,9 @@
  * - закреплены первый столбец и две строки шапки, подсветка строки и столбца под мышью;
  * - ширина колонок мышью за край заголовка, плотность строк;
  * - строки виртуализируются от 200: рисуется только видимое окно.
+ * Компьютер (ADR-081), как в таблицах: строка ячейки над сеткой (адрес «D7», что за ячейка,
+ * значение, статус), буквы столбцов и номера строк, Home/End/PageUp/PageDown/Tab, F2 открывает.
+ * Пометки цветом и итоги выделенного одной строкой под сеткой.
  * Телефон (`touch`), как в мобильных Google Таблицах: узкий закреплённый столбец, строки
  * от 44 px, касание выделяет ячейку и показывает итог внизу, второе касание открывает записи.
  * Цвет ячейки — статус данных вместо переключателя «Подтверждённые / Предварительный».
@@ -24,7 +27,10 @@ import {
   type PointerEvent,
 } from "react";
 import {
+  cellRef,
+  colLetter,
   inRect,
+  keySelection,
   moveSelection,
   rectOf,
   selectionStats,
@@ -289,7 +295,18 @@ export function Grid({
       ensureVisible(next.focus.row, next.focus.col);
       return;
     }
-    if (event.key === "Enter") {
+    const page = Math.max(1, Math.floor(viewport / rowHeight) - 3);
+    const jump = keySelection(event.key, mod, event.shiftKey, selection, size, page);
+    if (jump) {
+      // Tab с края отпускает фокус дальше по странице: в сетке клавиатура не застревает
+      const same = jump.focus.row === selection.focus.row && jump.focus.col === selection.focus.col;
+      if (event.key === "Tab" && same) return;
+      event.preventDefault();
+      setSelection(jump);
+      ensureVisible(jump.focus.row, jump.focus.col);
+      return;
+    }
+    if (event.key === "Enter" || event.key === "F2") {
       event.preventDefault();
       onOpen(selection.focus.row, selection.focus.col);
       return;
@@ -364,11 +381,90 @@ export function Grid({
     else groups.push({ title: column.group, span: 1, start: index });
   });
   const tableWidth = labelWidth + columns.reduce((a, c) => a + c.width, 0);
-  const headRow = 32;
+  const headRow = touch ? 32 : 28;
+  // Буквы столбцов: строка 20 px над шапкой, только на компьютере
+  const letterRow = touch ? 0 : 20;
+  const focusCell = selection ? cell(selection.focus.row, selection.focus.col) : null;
+  const focusRow = selection ? rows[selection.focus.row] : undefined;
+  const focusColumn = selection ? columns[selection.focus.col] : undefined;
   const indent = touch ? 10 : 16;
+
+  /* Итоги выделенного, как внизу справа в Google Таблицах */
+  const statsLine = (
+    <p
+      className={cn(
+        "flex min-h-control-sm items-center gap-x-4 px-1 text-meta text-text-2 tnum",
+        touch ? "justify-start overflow-x-auto whitespace-nowrap" : "flex-wrap justify-end",
+      )}
+      data-testid="selection-stats"
+      aria-live="polite"
+    >
+      {stats && stats.cells > 0 ? (
+        touch ? (
+          <>
+            <span className="text-body-strong text-text">
+              Сумма: {stats.sum.toLocaleString("ru-RU")}
+            </span>
+            <span>Среднее: {stats.avg === null ? "–" : stats.avg.toLocaleString("ru-RU")}</span>
+            <span>Ячеек: {stats.cells}</span>
+            {stats.skipped ? <span className="text-text-3">без итогов групп</span> : null}
+          </>
+        ) : (
+          <>
+            <span>Выделено ячеек: {stats.cells}</span>
+            <span>Сумма: {stats.sum.toLocaleString("ru-RU")}</span>
+            <span>Среднее: {stats.avg === null ? "–" : stats.avg.toLocaleString("ru-RU")}</span>
+            <span>Количество: {stats.count}</span>
+            {stats.skipped ? (
+              <span className="text-text-3">итоги групп не складываются</span>
+            ) : null}
+          </>
+        )
+      ) : (
+        <span className={touch ? "py-1 whitespace-normal text-text-3" : "text-text-3"}>
+          {touch
+            ? "Коснитесь ячейки: итог тут, ещё раз: записи"
+            : "Выделите ячейки: мышью, Shift+стрелки, заголовок строки или столбца. Ctrl+C копирует."}
+        </span>
+      )}
+    </p>
+  );
 
   return (
     <div className="flex min-h-0 flex-col">
+      {touch ? null : (
+        <div
+          className="flex h-control-sm min-w-0 items-center gap-2 border-b border-line text-meta tnum"
+          data-testid="cell-bar"
+          aria-live="polite"
+        >
+          <span
+            className="w-24 shrink-0 rounded-control bg-surface-2 px-2 py-0.5 text-center text-meta-strong"
+            data-testid="cell-ref"
+          >
+            {selection ? cellRef(selection) : "–"}
+          </span>
+          {selection && focusRow && focusColumn ? (
+            <>
+              <span className="min-w-0 truncate text-text-2">
+                {focusRow.label} · {focusColumn.group} · {focusColumn.title}
+              </span>
+              <span className="shrink-0 text-meta-strong text-text">
+                {focusCell?.text || "пусто"}
+              </span>
+              {focusCell?.status ? (
+                <span className="hidden shrink-0 text-text-3 xl:inline">
+                  {STATUS_HINT[focusCell.status]}
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span className="truncate text-text-3">
+              Выберите ячейку: тут адрес, что это за ячейка и значение
+            </span>
+          )}
+        </div>
+      )}
       {/*
        * Подсветка столбца под мышью убрана (обратная связь 20.11.2026): при движении курсора
        * по таблице мигали целые столбцы. Остаётся подсветка строки и выделение ячеек
@@ -378,7 +474,7 @@ export function Grid({
         ref={scroller}
         role="grid"
         aria-label={label}
-        aria-rowcount={rows.length + 2}
+        aria-rowcount={rows.length + (touch ? 2 : 3)}
         aria-colcount={columns.length + 1}
         aria-multiselectable
         tabIndex={0}
@@ -386,7 +482,7 @@ export function Grid({
         onCopy={onCopy}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
         className="surface-1 relative overflow-auto overscroll-contain focus-ring select-none"
-        style={{ height: `calc(${height} - ${markBarHeight}px)` }}
+        style={{ height: `calc(${height} - ${markBarHeight + (touch ? 0 : 32)}px)` }}
       >
         {/*
          * Сетка — у прокручиваемого блока: таблица внутри только раскладка (role="presentation"),
@@ -394,7 +490,10 @@ export function Grid({
          */}
         <table
           role="presentation"
-          className="gas-grid border-separate border-spacing-0 text-body tnum"
+          className={cn(
+            "gas-grid border-separate border-spacing-0 tnum",
+            touch ? "text-body" : "text-meta",
+          )}
           style={{ width: tableWidth, tableLayout: "fixed" }}
         >
           <colgroup>
@@ -404,12 +503,41 @@ export function Grid({
             ))}
           </colgroup>
           <thead role="rowgroup">
+            {touch ? null : (
+              <tr role="row" style={{ height: letterRow }} data-testid="column-letters">
+                <th
+                  scope="col"
+                  role="columnheader"
+                  aria-label="Столбец A: подписи строк"
+                  className="sticky top-0 left-0 z-[3] border-e border-b border-line bg-surface-2 text-center text-meta font-normal text-text-3"
+                >
+                  A
+                </th>
+                {columns.map((column, index) => (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    role="columnheader"
+                    aria-label={`Столбец ${colLetter(index + 1)}: ${column.group}, ${column.title}`}
+                    onPointerDown={(event) => {
+                      if (event.button !== 0) return;
+                      setSelection(wholeColumn(index, rows.length));
+                      scroller.current?.focus({ preventScroll: true });
+                    }}
+                    className="sticky top-0 z-[2] cursor-pointer border-e border-b border-line bg-surface-2 text-center text-meta font-normal text-text-3"
+                  >
+                    {colLetter(index + 1)}
+                  </th>
+                ))}
+              </tr>
+            )}
             <tr role="row" style={{ height: headRow }}>
               <th
                 rowSpan={2}
                 scope="col"
                 role="columnheader"
-                className="sticky top-0 left-0 z-[3] border-e border-b border-line bg-surface px-3 text-left text-meta font-normal text-text-3"
+                className="sticky left-0 z-[3] border-e border-b border-line bg-surface px-3 text-left text-meta font-normal text-text-3"
+                style={{ top: letterRow }}
               >
                 <span className="relative block">
                   {labelTitle}
@@ -427,7 +555,8 @@ export function Grid({
                   colSpan={group.span}
                   scope="colgroup"
                   role="columnheader"
-                  className="sticky top-0 z-[2] border-e border-b border-line bg-surface px-2 text-center text-meta-strong text-text-2"
+                  className="sticky z-[2] border-e border-b border-line bg-surface px-2 text-center text-meta-strong text-text-2"
+                  style={{ top: letterRow }}
                 >
                   {group.title}
                 </th>
@@ -446,7 +575,7 @@ export function Grid({
                     scroller.current?.focus({ preventScroll: true });
                   }}
                   className="sticky z-[2] cursor-pointer border-e border-b border-line bg-surface px-2 text-right text-meta font-normal text-text-3"
-                  style={{ top: headRow }}
+                  style={{ top: letterRow + headRow }}
                 >
                   <span className="relative block truncate">
                     {column.title}
@@ -514,9 +643,18 @@ export function Grid({
                       rowSelected && "bg-orange-dim",
                     )}
                     data-row-kind={row.kind}
-                    style={{ paddingInlineStart: (touch ? 4 : 8) + row.level * indent }}
+                    style={{ paddingInlineStart: (touch ? 4 : 36) + row.level * indent }}
                     title={row.label}
                   >
+                    {touch ? null : (
+                      // Номер строки, как в таблицах: адрес в строке ячейки «D7»
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-0 start-0 grid w-7 place-items-center border-e border-line bg-surface-2 text-meta text-text-3 tnum"
+                      >
+                        {r + 1}
+                      </span>
+                    )}
                     <span className="flex min-w-0 items-center gap-1">
                       {row.collapsible ? (
                         <button
@@ -630,7 +768,10 @@ export function Grid({
             disabled={!rect || !marksReady}
             onClick={() => markSelection(color)}
             aria-label={`${title} пометка`}
-            className="grid min-h-12 min-w-12 place-items-center rounded-control focus-ring disabled:opacity-40"
+            className={cn(
+              "grid place-items-center rounded-control focus-ring disabled:opacity-40",
+              touch ? "min-h-12 min-w-12" : "size-control-sm",
+            )}
           >
             <span
               aria-hidden
@@ -644,53 +785,21 @@ export function Grid({
           disabled={!rect || !marksReady}
           onClick={() => markSelection(null)}
           aria-label="Очистить пометку"
-          className="min-h-12 rounded-control px-2 focus-ring disabled:opacity-40"
+          className={cn(
+            "rounded-control px-2 focus-ring disabled:opacity-40",
+            touch ? "min-h-12" : "min-h-control-sm",
+          )}
         >
           Очистить
         </button>
         <span className="sr-only text-text-3 sm:not-sr-only">
           Личные · в этом браузере · без изменения сумм
         </span>
+        {/* Компьютер: пометки и итоги одной строкой, как нижняя полоса таблиц (ADR-081) */}
+        {touch ? null : <div className="ms-auto">{statsLine}</div>}
       </div>
 
-      {/* Итоги выделенного, как внизу справа в Google Таблицах */}
-      <p
-        className={cn(
-          "flex min-h-control-sm items-center gap-x-4 px-1 text-meta text-text-2 tnum",
-          touch ? "justify-start overflow-x-auto whitespace-nowrap" : "flex-wrap justify-end",
-        )}
-        data-testid="selection-stats"
-        aria-live="polite"
-      >
-        {stats && stats.cells > 0 ? (
-          touch ? (
-            <>
-              <span className="text-body-strong text-text">
-                Сумма: {stats.sum.toLocaleString("ru-RU")}
-              </span>
-              <span>Среднее: {stats.avg === null ? "–" : stats.avg.toLocaleString("ru-RU")}</span>
-              <span>Ячеек: {stats.cells}</span>
-              {stats.skipped ? <span className="text-text-3">без итогов групп</span> : null}
-            </>
-          ) : (
-            <>
-              <span>Выделено ячеек: {stats.cells}</span>
-              <span>Сумма: {stats.sum.toLocaleString("ru-RU")}</span>
-              <span>Среднее: {stats.avg === null ? "–" : stats.avg.toLocaleString("ru-RU")}</span>
-              <span>Количество: {stats.count}</span>
-              {stats.skipped ? (
-                <span className="text-text-3">итоги групп не складываются</span>
-              ) : null}
-            </>
-          )
-        ) : (
-          <span className={touch ? "py-1 whitespace-normal text-text-3" : "text-text-3"}>
-            {touch
-              ? "Коснитесь ячейки: итог тут, ещё раз: записи"
-              : "Выделите ячейки: мышью, Shift+стрелки, заголовок строки или столбца. Ctrl+C копирует."}
-          </span>
-        )}
-      </p>
+      {touch ? statsLine : null}
     </div>
   );
 }
