@@ -95,6 +95,7 @@ import { cabinetOnly, showDemoMarks, showTestMode } from "@/lib/cabinet";
 import { useApp } from "@/lib/app-context";
 import { gasOnlyEnabled } from "@/lib/gas-ops/gas-only";
 import { resolveTheme, themeChoices, themeLabels } from "@/lib/theme";
+import { applyGasLook, gasLookLabels, gasLooks, setGasLook, useGasLook } from "@/lib/gas-ops/glass";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useBottomLayer } from "@/lib/ui/bottom-layers";
@@ -149,6 +150,7 @@ export function GasShell({ children }: { children: ReactNode }) {
 
 /** Тема «Газ v4» (ADR-065): атрибут на <html>, чтобы шторки и окна в порталах тоже её брали */
 function useGasSkin() {
+  const look = useGasLook();
   useEffect(() => {
     const root = document.documentElement;
     root.dataset["skin"] = "gas";
@@ -156,6 +158,11 @@ function useGasSkin() {
       delete root.dataset["skin"];
     };
   }, []);
+  // Вид «Стекло» (ADR-079): атрибут живёт, пока открыт контур, вне /gas его нет
+  useEffect(() => {
+    applyGasLook(look);
+    return () => applyGasLook(null);
+  }, [look]);
 }
 
 function GasShellFrame({ children }: { children: ReactNode }) {
@@ -991,6 +998,7 @@ function ProfileBody({ onDone, withNav = false }: { onDone: () => void; withNav?
           ))}
         </div>
       </div>
+      <LookChoice />
       <div className="flex flex-col border-t border-line pt-1">
         <button
           type="button"
@@ -1018,6 +1026,37 @@ function ProfileBody({ onDone, withNav = false }: { onDone: () => void; withNav?
           <LogOut className="size-4 text-ink-3" aria-hidden />
           Выйти на старт
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** Вид оболочки (ADR-079): «Стекло» по умолчанию или прежнее «Тепло» */
+function LookChoice() {
+  const look = useGasLook();
+  return (
+    <div className="border-t border-line px-3 pt-3 pb-1">
+      <p className="mb-2 type-small text-ink-3">Вид</p>
+      <div
+        role="radiogroup"
+        aria-label="Вид оформления"
+        className="flex gap-1 rounded-pill bg-panel-2 p-1"
+      >
+        {gasLooks.map((choice) => (
+          <button
+            key={choice}
+            type="button"
+            role="radio"
+            aria-checked={look === choice}
+            onClick={() => setGasLook(choice)}
+            className={cn(
+              "min-h-11 flex-1 rounded-pill px-2 type-label focus-ring",
+              look === choice ? "bg-card shadow-surface" : "text-ink-2",
+            )}
+          >
+            {gasLookLabels[choice]}
+          </button>
+        ))}
       </div>
     </div>
   );
