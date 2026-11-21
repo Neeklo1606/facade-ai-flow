@@ -1,0 +1,624 @@
+/*
+ * Вид «Стекло» оболочки сервиса (ADR-079). Поверх «Тепла»: тёплая сцена на фоне, шапка
+ * и меню плавающими стеклянными капсулами, контент на матовой «сцене», карточки с бликом
+ * по краю. Включается атрибутом data-glass на <html> (GasShell, src/lib/gas-ops/glass.ts).
+ *
+ * Два уровня токенов:
+ * - на <html>: сплошные кремовые цвета для окон, шторок и подсказок в порталах;
+ * - внутри .gas-shell: полупрозрачные поверхности. Псевдонимы (--surface, --text…) задаются
+ *   заново: var() в :root вычисляется на корне и сам за новыми значениями не идёт.
+ *
+ * Серые подписи на стекле держат 4,5:1: подложка карточки плотная (от 58 %), --ink-3 темнее,
+ * чем в «Тепле». Акцент прежний: оранжевый --flame у главной кнопки, --warm-accent у точки.
+ */
+
+/* ================================================================ Корень: сплошные цвета */
+:root:root[data-theme="light"][data-skin="gas"][data-glass] {
+  --rail: #efe4d8;
+  --canvas: #efe4d8;
+  --card: #fbf5ee;
+  --panel-2: #f3e9de;
+  --panel-3: #eadccd;
+  --line: #4a312126;
+  --line-2: #4a31213d;
+  --ink: #25201e;
+  --ink-2: #423731;
+  --ink-3: #4b3f38;
+  --inverse: #261e1b;
+  --on-inverse: #fffaf5;
+  --accent-hover: #3a2f2a;
+  --capsule: #261e1b;
+  --field-line: #8a7a6e;
+  --glass-pick: #fff9f3;
+  --glass-pick-ink: #241b17;
+  --glass-shadow-rgb: 35 21 14;
+  --mint: #09644f;
+  --sky: #40332d;
+  --lavender: #a43c27;
+  --teal: #8a5a00;
+  --pink: #8e3a5e;
+  --periwinkle: #5c4f86;
+  --mint-soft: #09644f1f;
+  --sky-soft: #40332d1f;
+  --lavender-soft: #a43c271f;
+  --teal-soft: #8a5a001f;
+  --pink-soft: #8e3a5e1f;
+  --periwinkle-soft: #5c4f861f;
+}
+
+:root:root[data-skin="gas"][data-glass]:not([data-theme="light"]) {
+  --rail: #2f2420;
+  --canvas: #2f2420;
+  --card: #3b302c;
+  --panel-2: #463935;
+  --panel-3: #52443f;
+  --line: #f3ddc630;
+  --line-2: #f3ddc64a;
+  --ink: #fff6e9;
+  --ink-2: #e5d5c7;
+  --ink-3: #cdbcae;
+  --inverse: #f3ddca;
+  --on-inverse: #231a16;
+  --accent-hover: #ffeedd;
+  --capsule: #f3ddca;
+  --glass-pick: #f9eee0;
+  --glass-pick-ink: #241b17;
+  --glass-shadow-rgb: 10 4 3;
+  --mint: #75dac0;
+  --sky: #e7d9cd;
+  --lavender: #ff9177;
+  --teal: #f1be58;
+  --pink: #f0a3c4;
+  --periwinkle: #b9adf0;
+  --mint-soft: #75dac029;
+  --sky-soft: #e7d9cd29;
+  --lavender-soft: #ff917729;
+  --teal-soft: #f1be5829;
+  --pink-soft: #f0a3c429;
+  --periwinkle-soft: #b9adf029;
+}
+
+/* ================================================================ Оболочка: стекло */
+:root[data-glass][data-theme="light"] .gas-shell {
+  --glass-scene: #ab8e76;
+  --glass-rim: rgb(255 253 246 / 52%);
+  --glass-edge-light: rgb(255 254 247 / 84%);
+  --glass-edge-shade: rgb(57 40 28 / 19%);
+  --glass-gloss: rgb(255 251 242 / 45%);
+  --glass-frame: rgb(247 234 219 / 44%);
+  --glass-rail: rgb(243 228 214 / 70%);
+  --glass-card: rgb(250 242 232 / 62%);
+  --glass-card-light: rgb(255 251 245 / 34%);
+  --glass-inner: rgb(255 250 245 / 42%);
+  --glass-raised: rgb(255 249 243 / 82%);
+
+  --card: var(--glass-card);
+  --panel: var(--glass-card);
+  --surface: var(--glass-card);
+  --panel-2: var(--glass-inner);
+  --surface-2: var(--glass-inner);
+  --panel-3: var(--glass-raised);
+  --surface-3: var(--glass-raised);
+  --canvas: transparent;
+  /* Оранжевый текст ссылок на стекле темнее: под сценой бывают тёмные участки */
+  --flame-text: #922a0a;
+}
+
+:root[data-glass]:not([data-theme="light"]) .gas-shell {
+  --glass-scene: #40322b;
+  --glass-rim: rgb(255 236 212 / 26%);
+  --glass-edge-light: rgb(255 242 225 / 42%);
+  --glass-edge-shade: rgb(11 6 5 / 30%);
+  --glass-gloss: rgb(255 237 213 / 12%);
+  --glass-frame: rgb(42 31 29 / 55%);
+  --glass-rail: rgb(45 32 30 / 74%);
+  --glass-card: rgb(47 36 34 / 76%);
+  --glass-card-light: rgb(106 88 81 / 26%);
+  --glass-inner: rgb(78 61 56 / 52%);
+  --glass-raised: rgb(88 72 66 / 86%);
+
+  --card: var(--glass-card);
+  --panel: var(--glass-card);
+  --surface: var(--glass-card);
+  --panel-2: var(--glass-inner);
+  --surface-2: var(--glass-inner);
+  --panel-3: var(--glass-raised);
+  --surface-3: var(--glass-raised);
+  --canvas: transparent;
+  --flame-text: #ffbca6;
+}
+
+/* Общие псевдонимы внутри оболочки: пересчитать от новых значений */
+:root[data-glass] .gas-shell {
+  --text: var(--ink);
+  --text-2: var(--ink-2);
+  --text-3: var(--ink-3);
+  --accent: var(--inverse);
+  --on-accent: var(--on-inverse);
+  --r-card: 22px;
+  --r-surface: 22px;
+  --r-inset: 16px;
+  --glass-blur: 14px;
+
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-scene);
+}
+
+/* ---------------------------------------------------------------- Сцена на фоне */
+/*
+ * Без фотографии: размытые пятна света из окна, глиняные стены и тень снизу дают стеклу,
+ * что преломлять. Фото можно подложить переменной --glass-photo на .gas-shell.
+ */
+:root[data-glass] .gas-shell::before,
+:root[data-glass] .gas-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+/*
+ * Сцена-интерьер: светлое окно с переплётом справа, тёмный проём слева, рама на стене, пол
+ * и тёплое пятно света. Чёткие формы нужны стеклу: размытие показывает их мягкими пятнами
+ */
+:root[data-glass][data-theme="light"] .gas-shell::before {
+  background-image: var(
+    --glass-photo,
+    radial-gradient(18% 26% at 66% 52%, rgb(232 150 108 / 55%), rgb(232 150 108 / 0%) 70%),
+    radial-gradient(22% 18% at 88% 96%, rgb(91 61 48 / 70%) 0%, rgb(91 61 48 / 0%) 72%),
+    radial-gradient(16% 14% at 36% 98%, rgb(109 76 60 / 60%) 0%, rgb(109 76 60 / 0%) 72%),
+    radial-gradient(
+      circle at 103% 36%,
+      rgb(0 0 0 / 0%) 0 11%,
+      rgb(96 72 58 / 55%) 11.2% 11.8%,
+      rgb(0 0 0 / 0%) 12%
+    ),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0%) 0 32.5%, rgb(126 96 76 / 70%) 32.5% 33.8%),
+    linear-gradient(180deg, #fff6e8 0%, #f3dcc2 100%),
+    linear-gradient(180deg, #5e4335 0%, #3f2c23 100%),
+    linear-gradient(180deg, #dcc6b0, #cfb69e),
+    linear-gradient(180deg, rgb(0 0 0 / 0%) 74%, rgb(66 44 33 / 38%) 74.4%, rgb(0 0 0 / 0%) 77%),
+    linear-gradient(180deg, #cdb5a0 0%, #bea086 58%, #9e7d67 100%)
+  );
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    24% 50%,
+    24% 50%,
+    9% 74%,
+    10% 26%,
+    100% 100%,
+    100% 100%;
+  background-position:
+    0 0,
+    0 0,
+    0 0,
+    0 0,
+    74% 6%,
+    74% 6%,
+    1.5% 12%,
+    17% 22%,
+    0 0,
+    0 0;
+  background-repeat: no-repeat;
+  filter: blur(2px) saturate(0.9) brightness(0.96);
+}
+:root[data-glass]:not([data-theme="light"]) .gas-shell::before {
+  background-image: var(
+    --glass-photo,
+    radial-gradient(18% 26% at 66% 52%, rgb(196 104 64 / 45%), rgb(196 104 64 / 0%) 70%),
+    radial-gradient(22% 18% at 88% 96%, #1b110d 0%, rgb(27 17 13 / 0%) 72%),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0%) 0 32.5%, rgb(30 20 16 / 80%) 32.5% 33.8%),
+    linear-gradient(180deg, #a07b5e 0%, #6f5442 100%),
+    linear-gradient(180deg, #24160f 0%, #160d09 100%),
+    linear-gradient(180deg, #5a463b, #4e3d33),
+    linear-gradient(180deg, rgb(0 0 0 / 0%) 74%, rgb(10 6 4 / 45%) 74.4%, rgb(0 0 0 / 0%) 77%),
+    linear-gradient(180deg, #4d3c33 0%, #3d2f28 58%, #251a15 100%)
+  );
+  background-size:
+    100% 100%,
+    100% 100%,
+    24% 50%,
+    24% 50%,
+    9% 74%,
+    10% 26%,
+    100% 100%,
+    100% 100%;
+  background-position:
+    0 0,
+    0 0,
+    74% 6%,
+    74% 6%,
+    1.5% 12%,
+    17% 22%,
+    0 0,
+    0 0;
+  background-repeat: no-repeat;
+  filter: blur(2px) saturate(0.85);
+}
+/* Тёплая дымка поверх сцены, как свет через окно, и тень снизу */
+:root[data-glass] .gas-shell::after {
+  background:
+    linear-gradient(
+      116deg,
+      rgb(73 48 37 / 22%),
+      rgb(73 48 37 / 0%) 43%,
+      rgb(162 101 63 / 18%) 76%,
+      rgb(162 101 63 / 0%) 100%
+    ),
+    linear-gradient(0deg, rgb(53 33 25 / 24%), rgb(53 33 25 / 0%) 58%);
+}
+
+/* ---------------------------------------------------------------- Стекло: общий рецепт */
+/*
+ * Рамки шапки, меню и нижней панели остаются прежними (ADR-061: строка 56 во всю ширину, меню 240
+ * от левого края, панель во всю ширину). Плавающая капсула рисуется псевдоэлементом внутри рамки
+ */
+:root[data-glass] .gas-shell :is(.gas-topbar, .gas-phone-header, .gas-sidenav, .mono-tabbar) {
+  isolation: isolate;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-glass]
+  .gas-shell
+  :is(.gas-topbar, .gas-phone-header, .gas-sidenav, .mono-tabbar)::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid var(--glass-rim);
+  background:
+    linear-gradient(165deg, var(--glass-gloss), rgb(255 255 255 / 0%) 32% 73%, var(--glass-gloss)),
+    var(--glass-rail);
+  box-shadow:
+    inset 1px 1px 1px var(--glass-edge-light),
+    inset -1px -1px 1px var(--glass-edge-shade),
+    inset 0 -2px 5px var(--glass-gloss),
+    0 7px 20px rgb(var(--glass-shadow-rgb) / 17%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  backdrop-filter: blur(16px) saturate(1.35);
+}
+
+/* Верхняя строка компьютера: капсула над сценой */
+:root[data-glass] .gas-shell .gas-topbar {
+  padding-inline: 22px 24px;
+}
+:root[data-glass] .gas-shell .gas-topbar::before {
+  inset: 4px 14px 2px;
+  border-radius: 999px;
+}
+
+/* Шапка телефона: скруглённая плитка с отступом от краёв */
+:root[data-glass] .gas-shell .gas-phone-header {
+  padding-inline: 18px 14px;
+}
+:root[data-glass] .gas-shell .gas-phone-header::before {
+  inset: calc(env(safe-area-inset-top) + 4px) 8px 0;
+  border-radius: 22px;
+}
+
+/* Левое меню: плавающая стеклянная колонна */
+:root[data-glass] .gas-shell .gas-sidenav {
+  padding: 22px 10px 22px 24px;
+  scrollbar-width: none;
+}
+:root[data-glass] .gas-shell .gas-sidenav::before {
+  inset: 10px 0 12px 14px;
+  border-radius: 30px;
+}
+:root[data-glass] .gas-shell .gas-sidenav[data-collapsed] {
+  padding-inline: 22px 8px;
+}
+
+:root[data-glass] .gas-shell .gas-nav-item {
+  position: relative;
+  height: 44px;
+  border-radius: 999px;
+  color: var(--ink-2);
+  transition:
+    background-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
+}
+@media (hover: hover) {
+  :root[data-glass] .gas-shell .gas-nav-item:hover {
+    background: var(--glass-inner);
+    color: var(--ink);
+  }
+}
+:root[data-glass] .gas-shell .gas-nav-item[aria-current="page"] {
+  background: var(--glass-pick);
+  color: var(--glass-pick-ink);
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 90%),
+    0 2px 7px rgb(var(--glass-shadow-rgb) / 16%);
+}
+:root[data-glass] .gas-shell .gas-nav-label {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+/*
+ * Сцена экрана: большой матовый лист со скруглением 34. Стекло на псевдоэлементе: backdrop-filter
+ * на самом <main> сделал бы его опорой для position: fixed внутри (липкие панели, шторки)
+ */
+:root[data-glass] .gas-shell #gas-main {
+  position: relative;
+  isolation: isolate;
+  width: auto;
+  margin: 10px 16px 24px;
+  border-radius: 34px;
+}
+:root[data-glass] .gas-shell #gas-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid var(--glass-rim);
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      148deg,
+      var(--glass-gloss),
+      rgb(255 255 255 / 0%) 19% 77%,
+      color-mix(in srgb, var(--glass-gloss) 48%, transparent)
+    ),
+    var(--glass-frame);
+  box-shadow:
+    inset 1px 1px 1px var(--glass-edge-light),
+    inset -1px -1px 1px var(--glass-edge-shade),
+    inset 0 0 7px var(--glass-gloss),
+    0 1px 3px rgb(var(--glass-shadow-rgb) / 17%),
+    0 22px 72px rgb(var(--glass-shadow-rgb) / 22%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.24);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.24);
+}
+@media (min-width: 1024px) {
+  :root[data-glass] .gas-shell #gas-main {
+    max-width: none;
+    margin: 6px 16px 24px 12px;
+    padding-inline: clamp(24px, 3vw, 48px);
+  }
+}
+@media (max-width: 1023px) {
+  :root[data-glass] .gas-shell #gas-main {
+    margin: 8px 8px 0;
+    border-radius: 24px;
+    padding-inline: max(8px, calc(var(--space-gutter) - 8px));
+  }
+}
+
+/* Заголовок экрана крупнее и плотнее, как в референсе */
+:root[data-glass] .gas-shell .gas-title {
+  font-weight: 650;
+  letter-spacing: -0.045em;
+}
+@media (min-width: 1024px) {
+  :root[data-glass] .gas-shell .gas-title {
+    font-size: clamp(30px, 2.6vw, 40px);
+    line-height: 1.08;
+  }
+}
+
+/* ---------------------------------------------------------------- Карточки */
+:root[data-glass] .gas-shell :is(.surface-1, .card-v3, .mono-card, .hero-field, .warm-tile) {
+  border: 1px solid var(--glass-rim);
+  border-radius: var(--r-card);
+  background:
+    linear-gradient(144deg, var(--glass-card-light), rgb(255 255 255 / 0%) 66%), var(--glass-card);
+  box-shadow:
+    inset 0 1px 1px var(--glass-edge-light),
+    inset 0 -1px 1px var(--glass-edge-shade),
+    0 6px 18px rgb(var(--glass-shadow-rgb) / 9%);
+}
+:root[data-glass] .gas-shell .warm-tile[data-variant="inverse"] {
+  border-color: transparent;
+  background: var(--inverse);
+  color: var(--on-inverse);
+}
+
+/*
+ * Главная цифра: тёмно-терракотовое стекло вместо зелёного референса, белый текст.
+ * Свечение снизу — наш оранжевый
+ */
+:root[data-glass] .gas-shell .warm-kpi {
+  border: 1px solid rgb(255 214 196 / 45%);
+  background:
+    radial-gradient(ellipse at 8% -20%, #c4643f, rgb(196 100 63 / 0%) 68%),
+    radial-gradient(120% 70% at 30% 115%, rgb(243 113 75 / 45%), rgb(243 113 75 / 0%) 60%),
+    linear-gradient(145deg, #7a3622, #3a1a12);
+  box-shadow:
+    inset 0 1px 2px rgb(255 222 206 / 45%),
+    0 10px 24px rgb(78 30 16 / 22%);
+}
+
+/* Переключатели-капсулы: дорожка из стекла, выбранный вариант тёмной капсулой */
+:root[data-glass] .gas-shell [role="radiogroup"]:has(> [role="radio"]) {
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-inner);
+  box-shadow: inset 0 1px 0 var(--glass-gloss);
+}
+:root[data-glass] .gas-shell [role="radiogroup"] > [role="radio"][aria-checked="true"] {
+  background: var(--inverse);
+  color: var(--on-inverse);
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
+}
+
+/* Таблицы: шапка капсулой с внутренним стеклом */
+:root[data-glass] .gas-shell table thead th {
+  background-color: var(--glass-inner);
+}
+:root[data-glass] .gas-shell table thead th:first-child {
+  border-start-start-radius: 10px;
+  border-end-start-radius: 10px;
+}
+:root[data-glass] .gas-shell table thead th:last-child {
+  border-start-end-radius: 10px;
+  border-end-end-radius: 10px;
+}
+
+/* Поля ввода на стекле */
+:root[data-glass]
+  .gas-shell
+  :is(input, select, textarea):not([type="checkbox"], [type="radio"], [type="range"]) {
+  background-color: var(--glass-inner);
+  border-color: var(--line-2);
+}
+
+/* ---------------------------------------------------------------- Телефон: док снизу */
+:root[data-glass] .gas-shell .mono-tabbar {
+  padding-inline: 10px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+:root[data-glass] .gas-shell .mono-tabbar::before {
+  inset: 0 10px calc(8px + env(safe-area-inset-bottom));
+  border-radius: 28px;
+}
+:root[data-glass] .gas-shell .mono-tab[data-raised] .mono-tab-icon {
+  box-shadow:
+    0 0 0 5px var(--glass-raised),
+    0 14px 30px -8px var(--flame);
+}
+
+/* ---------------------------------------------------------------- Появление экрана */
+/* Появление без сдвига: только прозрачность и размытие, геометрия экрана не меняется */
+@keyframes glass-rise {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+@keyframes glass-prompt {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+:root[data-glass] .gas-shell #gas-main :is(.surface-1, .card-v3, .warm-kpi, .warm-tile) {
+  animation: glass-rise 480ms cubic-bezier(0.22, 0.8, 0.26, 1) both;
+}
+:root[data-glass]
+  .gas-shell
+  #gas-main
+  :is(.surface-1, .card-v3, .warm-kpi, .warm-tile):nth-child(2) {
+  animation-delay: 45ms;
+}
+:root[data-glass]
+  .gas-shell
+  #gas-main
+  :is(.surface-1, .card-v3, .warm-kpi, .warm-tile):nth-child(3) {
+  animation-delay: 90ms;
+}
+:root[data-glass]
+  .gas-shell
+  #gas-main
+  :is(.surface-1, .card-v3, .warm-kpi, .warm-tile):nth-child(4) {
+  animation-delay: 135ms;
+}
+:root[data-glass]
+  .gas-shell
+  #gas-main
+  :is(.surface-1, .card-v3, .warm-kpi, .warm-tile):nth-child(n + 5) {
+  animation-delay: 180ms;
+}
+/* Столбцы графиков вырастают снизу */
+:root[data-glass] .gas-shell #gas-main figure .rounded-control[style*="height"] {
+  transform-origin: center bottom;
+  animation: glass-bar 520ms cubic-bezier(0.22, 0.8, 0.26, 1) 120ms both;
+}
+@keyframes glass-bar {
+  from {
+    transform: scaleY(0);
+  }
+}
+:root[data-glass] .gas-shell [data-screen-title] {
+  animation: glass-prompt 600ms steps(24, end) both;
+}
+
+/* ---------------------------------------------------------------- Доступность */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-glass] .gas-shell *,
+  :root[data-glass] .gas-shell *::before {
+    animation: none !important;
+  }
+}
+/*
+ * «Уменьшить прозрачность» в системе: вид остаётся, но панели плотнее и без размытия фона.
+ * Повышенный контраст и принудительные цвета: сплошные поверхности без сцены
+ */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-glass][data-theme="light"] .gas-shell {
+    --glass-frame: rgb(242 230 217 / 80%);
+    --glass-rail: rgb(244 232 220 / 90%);
+    --glass-card: rgb(251 245 238 / 86%);
+    --glass-inner: rgb(255 250 245 / 70%);
+  }
+  :root[data-glass]:not([data-theme="light"]) .gas-shell {
+    --glass-frame: rgb(42 31 29 / 86%);
+    --glass-rail: rgb(45 32 30 / 92%);
+    --glass-card: rgb(52 40 37 / 92%);
+    --glass-inner: rgb(78 61 56 / 80%);
+  }
+  :root[data-glass]
+    .gas-shell
+    :is(.gas-topbar, .gas-phone-header, .gas-sidenav, .mono-tabbar, #gas-main)::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more), (forced-colors: active) {
+  :root[data-glass] .gas-shell::before,
+  :root[data-glass] .gas-shell::after {
+    display: none;
+  }
+  :root[data-glass]
+    .gas-shell
+    :is(.gas-topbar, .gas-phone-header, .gas-sidenav, .mono-tabbar, #gas-main)::before {
+    background: var(--rail);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  :root[data-glass] .gas-shell :is(.surface-1, .card-v3, .mono-card, .hero-field, .warm-tile) {
+    background: var(--panel-3);
+  }
+}
+
+@media print {
+  :root[data-glass] .gas-shell::before,
+  :root[data-glass] .gas-shell::after {
+    display: none;
+  }
+  :root[data-glass] .gas-shell #gas-main {
+    margin: 0;
+  }
+  :root[data-glass] .gas-shell #gas-main::before {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- Главная плитка показателей */
+/* Первая плитка полосы показателей: как зелёная «главная» в референсе, но в нашей терракоте */
+:root[data-glass] .gas-shell .kpi-strip > .surface-1:first-child {
+  border-color: rgb(255 214 196 / 45%);
+  background:
+    radial-gradient(ellipse at 6% -24%, #b2573a, rgb(178 87 58 / 0%) 68%),
+    linear-gradient(145deg, #8a3d26, #4a1f14);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 2px rgb(255 222 206 / 45%),
+    0 8px 18px rgb(78 30 16 / 20%);
+  --text: #ffffff;
+  --text-2: #fff6f1;
+  --text-3: #fff1e9;
+}
+:root[data-glass] .gas-shell .kpi-strip > .surface-1:first-child svg :is(path, polyline) {
+  stroke: #ffd9c8;
+}

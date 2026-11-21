@@ -80,7 +80,8 @@ export interface Kpi {
 /** Полоса показателей: телефон 2 × 2, планшет и компьютер в ряд */
 export function KpiStrip({ items, label }: { items: Kpi[]; label: string }) {
   return (
-    <section aria-label={label} className="grid grid-cols-2 gap-block lg:grid-cols-4">
+    // kpi-strip: в виде «Стекло» первая плитка главная, терракотовая (ADR-079)
+    <section aria-label={label} className="kpi-strip grid grid-cols-2 gap-block lg:grid-cols-4">
       {items.map((item) => (
         <div
           key={item.label}
