@@ -384,6 +384,8 @@ export function Grid({
   const headRow = touch ? 32 : 28;
   // Буквы столбцов: строка 20 px над шапкой, только на компьютере
   const letterRow = touch ? 0 : 20;
+  // Строка ячейки сверху внутри рамки: шапка закрепляется под ней
+  const barH = touch ? 0 : 32;
   const focusCell = selection ? cell(selection.focus.row, selection.focus.col) : null;
   const focusRow = selection ? rows[selection.focus.row] : undefined;
   const focusColumn = selection ? columns[selection.focus.col] : undefined;
@@ -432,43 +434,6 @@ export function Grid({
 
   return (
     <div className="flex min-h-0 flex-col">
-      {touch ? null : (
-        <div
-          className="flex h-control-sm min-w-0 items-center gap-2 border-b border-line text-meta tnum"
-          data-testid="cell-bar"
-          aria-live="polite"
-        >
-          <span
-            className="w-24 shrink-0 rounded-control bg-surface-2 px-2 py-0.5 text-center text-meta-strong"
-            data-testid="cell-ref"
-          >
-            {selection ? cellRef(selection) : "–"}
-          </span>
-          {selection && focusRow && focusColumn ? (
-            <>
-              <span className="min-w-0 truncate text-text-2">
-                {focusRow.label} · {focusColumn.group} · {focusColumn.title}
-              </span>
-              <span className="shrink-0 text-meta-strong text-text">
-                {focusCell?.text || "пусто"}
-              </span>
-              {focusCell?.status ? (
-                <span className="hidden shrink-0 text-text-3 xl:inline">
-                  {STATUS_HINT[focusCell.status]}
-                </span>
-              ) : null}
-            </>
-          ) : (
-            <span className="truncate text-text-3">
-              Выберите ячейку: тут адрес, что это за ячейка и значение
-            </span>
-          )}
-        </div>
-      )}
-      {/*
-       * Подсветка столбца под мышью убрана (обратная связь 20.11.2026): при движении курсора
-       * по таблице мигали целые столбцы. Остаётся подсветка строки и выделение ячеек
-       */}
       <div
         id={id}
         ref={scroller}
@@ -482,8 +447,47 @@ export function Grid({
         onCopy={onCopy}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
         className="surface-1 relative overflow-auto overscroll-contain focus-ring select-none"
-        style={{ height: `calc(${height} - ${markBarHeight + (touch ? 0 : 32)}px)` }}
+        style={{ height: `calc(${height} - ${markBarHeight}px)` }}
       >
+        {/* Строка ячейки — закреплённая верхняя полоса рамки сетки, как строка формул (ADR-081) */}
+        {touch ? null : (
+          <div
+            className="sticky top-0 left-0 z-[4] flex h-control-sm min-w-0 items-center gap-2 border-b border-line bg-surface px-1 text-meta tnum"
+            style={{ width: "100%" }}
+            data-testid="cell-bar"
+            aria-live="polite"
+          >
+            <span
+              className="w-24 shrink-0 rounded-control bg-surface-2 px-2 py-0.5 text-center text-meta-strong"
+              data-testid="cell-ref"
+            >
+              {selection ? cellRef(selection) : "–"}
+            </span>
+            {selection && focusRow && focusColumn ? (
+              <>
+                <span className="min-w-0 truncate text-text-2">
+                  {focusRow.label} · {focusColumn.group} · {focusColumn.title}
+                </span>
+                <span className="shrink-0 text-meta-strong text-text">
+                  {focusCell?.text || "пусто"}
+                </span>
+                {focusCell?.status ? (
+                  <span className="hidden shrink-0 text-text-3 xl:inline">
+                    {STATUS_HINT[focusCell.status]}
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <span className="truncate text-text-3">
+                Выберите ячейку: тут адрес, что это за ячейка и значение
+              </span>
+            )}
+          </div>
+        )}
+        {/*
+         * Подсветка столбца под мышью убрана (обратная связь 20.11.2026): при движении курсора
+         * по таблице мигали целые столбцы. Остаётся подсветка строки и выделение ячеек
+         */}
         {/*
          * Сетка — у прокручиваемого блока: таблица внутри только раскладка (role="presentation"),
          * а строки, группы строк и заголовки названы ролями сетки явно (axe, aria-required-children)
@@ -509,7 +513,8 @@ export function Grid({
                   scope="col"
                   role="columnheader"
                   aria-label="Столбец A: подписи строк"
-                  className="sticky top-0 left-0 z-[3] border-e border-b border-line bg-surface-2 text-center text-meta font-normal text-text-3"
+                  className="sticky left-0 z-[3] border-e border-b border-line bg-surface-2 text-center text-meta font-normal text-text-3"
+                  style={{ top: barH }}
                 >
                   A
                 </th>
@@ -524,7 +529,8 @@ export function Grid({
                       setSelection(wholeColumn(index, rows.length));
                       scroller.current?.focus({ preventScroll: true });
                     }}
-                    className="sticky top-0 z-[2] cursor-pointer border-e border-b border-line bg-surface-2 text-center text-meta font-normal text-text-3"
+                    className="sticky z-[2] cursor-pointer border-e border-b border-line bg-surface-2 text-center text-meta font-normal text-text-3"
+                    style={{ top: barH }}
                   >
                     {colLetter(index + 1)}
                   </th>
@@ -537,7 +543,7 @@ export function Grid({
                 scope="col"
                 role="columnheader"
                 className="sticky left-0 z-[3] border-e border-b border-line bg-surface px-3 text-left text-meta font-normal text-text-3"
-                style={{ top: letterRow }}
+                style={{ top: barH + letterRow }}
               >
                 <span className="relative block">
                   {labelTitle}
@@ -556,7 +562,7 @@ export function Grid({
                   scope="colgroup"
                   role="columnheader"
                   className="sticky z-[2] border-e border-b border-line bg-surface px-2 text-center text-meta-strong text-text-2"
-                  style={{ top: letterRow }}
+                  style={{ top: barH + letterRow }}
                 >
                   {group.title}
                 </th>
@@ -575,7 +581,7 @@ export function Grid({
                     scroller.current?.focus({ preventScroll: true });
                   }}
                   className="sticky z-[2] cursor-pointer border-e border-b border-line bg-surface px-2 text-right text-meta font-normal text-text-3"
-                  style={{ top: letterRow + headRow }}
+                  style={{ top: barH + letterRow + headRow }}
                 >
                   <span className="relative block truncate">
                     {column.title}
