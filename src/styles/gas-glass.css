@@ -460,9 +460,12 @@
   --tw-ring-shadow: 0 0 #0000;
 }
 
-/* Таблицы: шапка капсулой с внутренним стеклом */
+/*
+ * Таблицы: шапка капсулой. Фон сплошной: строки прокручиваются под закреплённой шапкой
+ * и не должны просвечивать (снимок владельца, 21.11.2026)
+ */
 :root[data-glass] .gas-shell table thead th {
-  background-color: var(--glass-inner);
+  background-color: var(--solid-2);
 }
 :root[data-glass] .gas-shell table thead th:first-child {
   border-start-start-radius: 10px;
