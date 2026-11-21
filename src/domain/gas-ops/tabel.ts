@@ -121,6 +121,8 @@ export function tabelRows(input: TabelInput): TabelRow[] {
 
   // Ожидание для строки: адрес — бригада, день и объект; агрегат — любая его бригада в этот день
   function isExpected(row: ReportRow, day: string): boolean {
+    // Раздел справочный: пустой день раздела не пропуск, пропуск видно на адресе
+    if (row.kind === "section") return false;
     const week = row.entryIds.map((id) => byId.get(id)).filter((e): e is TimeEntry => !!e);
     if (row.kind === "address") {
       const sample = week[0];

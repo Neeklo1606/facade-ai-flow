@@ -21,9 +21,12 @@ import type { Brigade, DataSource, Employee, Group, TimeEntry, WorkObject } from
 
 export type ReportMode = "confirmed" | "preliminary";
 
-/** pressure — «в т. ч. опрессовка» под адресом (ADR-078): справочно, в итоги не складывается */
+/**
+ * pressure — «в т. ч. опрессовка» под адресом (ADR-078), section — раздел сметы под адресом
+ * (ADR-080): обе справочные, их суммы уже внутри адреса и в итоги не складываются
+ */
 export type ReportRowKind =
-  "group" | "brigade" | "employee" | "frame" | "address" | "pressure" | "total";
+  "group" | "brigade" | "employee" | "frame" | "address" | "section" | "pressure" | "total";
 
 export interface ReportCell {
   amountRub: number | null;
@@ -57,6 +60,11 @@ export interface ReportInput {
   frames: { brigadeId: string; employeeId: string | null; day: string; frame: string }[];
   days: string[];
   mode: ReportMode;
+  /**
+   * Разделы смет объектов (ADR-080): если переданы, под адресом идут строки разделов по
+   * `sectionKey` записей. Выгрузка заказчику их не передаёт: формат его файла прежний
+   */
+  sections?: readonly { objectId: string; key: string; label: string }[];
 }
 
 const empty = (): ReportCell => ({ amountRub: null, minutes: null, revenue: null });
@@ -137,12 +145,53 @@ export function customerFormatRows(input: ReportInput): ReportRow[] {
   }
 
   /**
+   * Разделы сметы под адресом (ADR-080): по строке на раздел, записи без раздела — строкой
+   * «Без раздела», если рядом есть записи с разделом. Без списка разделов строк нет
+   */
+  function withSections(addresses: ReportRow[]): ReportRow[] {
+    const catalog = input.sections;
+    if (!catalog) return addresses;
+    return addresses.flatMap((row) => {
+      const own = entries.filter((e) => row.entryIds.includes(e.id));
+      const keys = [...new Set(own.map((e) => e.sectionKey ?? null))];
+      if (!keys.some((k) => k !== null)) return [row];
+      const objectId = own[0]?.objectId;
+      const order = catalog.filter((c) => c.objectId === objectId).map((c) => c.key);
+      keys.sort((a, b) => {
+        if (a === null) return 1;
+        if (b === null) return -1;
+        const ia = order.indexOf(a);
+        const ib = order.indexOf(b);
+        return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib) || a.localeCompare(b, "ru");
+      });
+      const children = keys.map((key): ReportRow => {
+        const list = own.filter((e) => (e.sectionKey ?? null) === key);
+        const cells = byDay(list);
+        const known = catalog.find((c) => c.objectId === objectId && c.key === key);
+        return {
+          id: `${row.id}/sec-${key ?? "none"}`,
+          kind: "section" as const,
+          level: row.level + 1,
+          label: key === null ? "Без раздела" : (known?.label ?? `Раздел ${key}`),
+          days: cells,
+          total: sumCells(cells),
+          entryIds: list.map((e) => e.id),
+          source: sourceOf(list),
+          parentId: row.id,
+        };
+      });
+      return [row, ...children];
+    });
+  }
+
+  /**
    * Опрессовка отдельной строкой под адресом (ADR-078): сумма начислений опрессовки из доли
    * раздела. Часов у неё нет: бригада работает одной сменой, время не делится. В итоги
    * сотрудника, бригады и группы строка не входит — её сумма уже внутри адреса
    */
   function withPressure(addresses: ReportRow[]): ReportRow[] {
     return addresses.flatMap((row) => {
+      if (row.kind !== "address") return [row];
       const own = entries.filter((e) => row.entryIds.includes(e.id));
       const cells = days.map((day) => {
         const list = own.filter((e) => e.day === day && (e.accrual?.pressureRub ?? 0) > 0);
@@ -252,7 +301,7 @@ export function customerFormatRows(input: ReportInput): ReportRow[] {
         }
 
         const addresses = addressRows(own, employeeRow.id, 3);
-        rows.push(...withPressure(addresses));
+        rows.push(...withSections(withPressure(addresses)));
         const employeeCells = days.map((_, i) => sumCells(addresses.map((a) => a.days[i]!)));
         employeeRow.days = employeeCells;
         employeeRow.total = sumCells(employeeCells);
@@ -263,7 +312,7 @@ export function customerFormatRows(input: ReportInput): ReportRow[] {
       const orphans = brigadeEntries.filter((e) => !used.has(e.id));
       if (orphans.length > 0) {
         const addresses = addressRows(orphans, brigadeRow.id, 2);
-        rows.push(...withPressure(addresses));
+        rows.push(...withSections(withPressure(addresses)));
         brigadeChildrenCells.push(days.map((_, i) => sumCells(addresses.map((a) => a.days[i]!))));
       }
 

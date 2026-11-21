@@ -6,6 +6,7 @@
  * разбираются и записываются портом от имени сессии. Демо: файл разбирается во вкладке, хеш
  * считает браузер, байты живут в памяти страницы до перезагрузки (помечено на экране).
  */
+import { intakeChecks, type IntakeCheck } from "@/domain/gas-ops/estimate-flow";
 import { useCallback, useMemo, useState } from "react";
 import { dataSource } from "@/api/config";
 import { useGasOps, useGasSnapshot } from "@/lib/gas-ops/use-gas-ops";
@@ -353,4 +354,20 @@ export async function loadFileSheet(
   } catch (error) {
     return failed(error);
   }
+}
+
+/** Итоги разбора по шагам для мастера «Загрузить смету» (ADR-080) */
+export type { IntakeCheck };
+
+export function estimateChecks(card: EstimateCard): IntakeCheck[] {
+  const h = card.version.header;
+  const fields = h ? [h.works, h.object, h.address, h.number, h.date, h.workKind] : [];
+  return intakeChecks({
+    headerFound: fields.filter((f) => f.value !== null).length,
+    headerTotal: 6,
+    sections: card.sections,
+    convergence: card.convergence,
+    match: card.match,
+    matchedLabel: card.matched ? `${card.matched.code} · ${card.matched.label}` : null,
+  });
 }

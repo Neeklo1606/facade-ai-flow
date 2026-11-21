@@ -5,6 +5,7 @@ import { gasTitle } from "@/lib/gas-ops/brand";
 import { fmtDuration, fmtRub, useGasActor, useGasObjects } from "@/api/gas-ops";
 import { useObjectSections } from "@/api/gas-section-accrual";
 import { ObjectSections } from "@/components/gas-ops/workspace/ObjectSections";
+import { ObjectPath } from "@/components/gas-ops/workspace/ObjectPath";
 import { fmtShortDay } from "@/components/gas-ops/review/rules";
 import {
   Avatar,
@@ -66,6 +67,8 @@ function ObjectPage() {
         greeting={`Объект · ${object.code}${object.workType ? ` · ${object.workType}` : ""}`}
         title={object.label}
       />
+
+      <ObjectPath objectId={object.id} label={object.label} />
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Fact term="Адрес" value={address ?? object.label} />

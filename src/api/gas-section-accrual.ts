@@ -24,6 +24,7 @@ import {
   type SectionLedger,
 } from "@/domain/gas-ops/section-accrual";
 import type { TimeEntry } from "@/domain/gas-ops/model";
+import { objectPath, type PathStep } from "@/domain/gas-ops/estimate-flow";
 import type { AssignSectionInput } from "@/ports/gas-ops";
 
 export {
@@ -210,4 +211,27 @@ export function useAssignOptions(): {
 export function useBrigadeName(): (id: string) => string {
   const s = useGasSnapshot();
   return useCallback((id) => s?.brigades.find((b) => b.id === id)?.name ?? id, [s]);
+}
+
+export type { PathStep };
+
+/** Полоса пути объекта (ADR-080): смета → стоимость → бригады → часы → начисление */
+export function useObjectPath(objectId: string | null): PathStep[] {
+  const s = useGasSnapshot();
+  const ledger = useObjectSections(objectId);
+  return useMemo(() => {
+    if (!s || !objectId) return [];
+    const entries = s.entries.filter((e) => e.objectId === objectId);
+    const assigned = new Set(
+      (s.sectionAssignments ?? []).filter((a) => a.objectId === objectId).map((a) => a.sectionKey),
+    );
+    return objectPath({
+      sections: ledger.length,
+      costConfirmed: s.estimates.some((e) => e.objectId === objectId && e.status === "confirmed"),
+      assigned: ledger.filter((l) => assigned.has(l.key)).length,
+      entries: entries.length,
+      confirmedEntries: entries.filter((e) => e.status === "confirmed").length,
+      accruedRub: ledger.reduce((a, l) => a + l.accruedRub, 0),
+    });
+  }, [s, objectId, ledger]);
 }

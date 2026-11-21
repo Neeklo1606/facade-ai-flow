@@ -89,6 +89,8 @@ interface TabelSearch {
   /** Запись из сценария: её ячейка выделяется */
   highlight?: string | undefined;
   tour?: string | undefined;
+  /** Поиск при открытии: «Табель объекта» со страницы объекта (ADR-080) */
+  q?: string | undefined;
 }
 
 export const Route = createFileRoute("/gas/tabel")({
@@ -98,6 +100,7 @@ export const Route = createFileRoute("/gas/tabel")({
         ? search["highlight"]
         : undefined,
     tour: typeof search["tour"] === "string" ? search["tour"] : undefined,
+    q: typeof search["q"] === "string" && search["q"] ? search["q"] : undefined,
   }),
   head: () =>
     completePageHead(
@@ -139,7 +142,7 @@ function metricText(cell: TabelCell, metric: Metric): string {
 }
 
 function TabelPage() {
-  const { highlight = null } = Route.useSearch();
+  const { highlight = null, q } = Route.useSearch();
   const actor = useGasActor();
   const tabel = useGasTabel();
   const directory = useGasDirectory();
@@ -157,7 +160,7 @@ function TabelPage() {
   );
   const [density, setDensity] = useState<Density>("compact");
   const [fullscreen, setFullscreen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(q ?? "");
   const [groupId, setGroupId] = useState("all");
   const [brigadeId, setBrigadeId] = useState("all");
   const [onlyDraft, setOnlyDraft] = useState(false);
@@ -225,6 +228,20 @@ function TabelPage() {
         continue;
       if (text && row.kind !== "address") continue;
       for (const r of chain) keep.add(r.id);
+    }
+    // Разделы (ADR-080) идут за своим адресом; поиск находит и название раздела
+    for (const row of tabel.rows) {
+      if (row.kind !== "section" || !row.parentId) continue;
+      const parent = byId.get(row.parentId);
+      const hit =
+        !!text &&
+        !onlyDraft &&
+        row.label.toLowerCase().includes(text) &&
+        !!parent &&
+        (groupId === "all" || ancestors(row).some((r) => r.id === `g-${groupId}`)) &&
+        (brigadeId === "all" || ancestors(row).some((r) => r.id === `b-${brigadeId}`));
+      if (hit) for (const r of [row, ...ancestors(row)]) keep.add(r.id);
+      else if (keep.has(row.parentId)) keep.add(row.id);
     }
     // Агрегаты показываются, если под ними что-то осталось; без фильтров — все строки
     const active = text || groupId !== "all" || brigadeId !== "all" || onlyDraft;

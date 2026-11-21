@@ -4,6 +4,7 @@
  * Экраны и компоненты берут отсюда и готовые цифры, и действия, и подписи. Порт, домен
  * и адаптер ниже этого слоя: когда демо-адаптер сменится на сервер, экраны не изменятся.
  */
+import { sectionLabel } from "@/domain/gas-ops/section-accrual";
 import { sheetSyncDemo } from "@/adapters/gas-ops/sheet-sync-demo";
 import {
   factReportSheet,
@@ -804,6 +805,20 @@ export function useGasTabel(): {
         entries: data.entries,
         estimates: data.estimates,
         expected,
+        // Строки разделов под адресом (ADR-080): у бригадира разделы из назначений
+        sections: [
+          ...(data.objectSections ?? []).map((x) => ({
+            objectId: x.objectId,
+            key: x.key,
+            label: sectionLabel(x),
+          })),
+          ...(data.sectionAssignments ?? [])
+            .filter(
+              (a) =>
+                !(data.objectSections ?? []).some((x) => x.id === `${a.objectId}:${a.sectionKey}`),
+            )
+            .map((a) => ({ objectId: a.objectId, key: a.sectionKey, label: a.title })),
+        ],
       }),
       people: peopleRows(data.entries, data.employees, data.week.days),
       days: data.week.days,
