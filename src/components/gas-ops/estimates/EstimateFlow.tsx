@@ -248,7 +248,8 @@ function StepBar({ step }: { step: Step }) {
               i === at ? "text-meta-strong text-text" : "text-text-3",
             )}
           >
-            {i + 1}. {label}
+            <span className="sr-only">Шаг {i + 1}: </span>
+            {label}
           </span>
         </li>
       ))}
