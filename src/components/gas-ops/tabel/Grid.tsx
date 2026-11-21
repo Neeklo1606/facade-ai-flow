@@ -449,13 +449,17 @@ export function Grid({
         className="surface-1 relative overflow-auto overscroll-contain focus-ring select-none"
         style={{ height: `calc(${height} - ${markBarHeight}px)` }}
       >
-        {/* Строка ячейки — закреплённая верхняя полоса рамки сетки, как строка формул (ADR-081) */}
+        {/*
+         * Строка ячейки — закреплённая верхняя полоса рамки сетки, как строка формул (ADR-081).
+         * Для чтеца скрыта: внутри grid допустимы только строки, а адрес и значение он получает
+         * из выбранной ячейки
+         */}
         {touch ? null : (
           <div
             className="sticky top-0 left-0 z-[4] flex h-control-sm min-w-0 items-center gap-2 border-b border-line bg-surface px-1 text-meta tnum"
             style={{ width: "100%" }}
             data-testid="cell-bar"
-            aria-live="polite"
+            aria-hidden
           >
             <span
               className="w-24 shrink-0 rounded-control bg-surface-2 px-2 py-0.5 text-center text-meta-strong"
