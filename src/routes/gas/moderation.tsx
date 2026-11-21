@@ -542,7 +542,7 @@ function ModerationPage() {
   const selectAll = (
     <>
       <label
-        className={`flex cursor-pointer items-center gap-2 ${desktop ? "min-h-control-sm text-meta text-text-2" : "touch-target min-h-control-sm text-meta-strong text-text-2"}`}
+        className={`flex cursor-pointer items-center gap-2 ${desktop ? "min-h-control-sm text-meta text-text-2" : "min-h-11 text-meta-strong text-text-2"}`}
       >
         <input
           type="checkbox"
