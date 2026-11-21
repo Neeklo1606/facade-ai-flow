@@ -63,7 +63,7 @@ export function StatusPills<T extends string>({
             aria-selected={on}
             onClick={() => onChange(option.value)}
             // Размер и цвет строкой, не через cn: tailwind-merge считает text-body и text-text-2 одной группой
-            className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-body whitespace-nowrap transition-fast focus-ring lg:h-control-sm ${
+            className={`touch-target inline-flex h-control-sm shrink-0 items-center gap-1.5 rounded-full border px-3 text-meta-strong whitespace-nowrap transition-fast focus-ring lg:text-body ${
               on
                 ? "border-transparent bg-pill text-pill-text"
                 : "border-line-2 bg-surface text-text-2 is-hover:bg-surface-2"

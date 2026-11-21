@@ -214,8 +214,10 @@ test.describe("табель 390", () => {
     // Первый столбец не больше трети экрана: видны и названия, и числа дня
     const label = grid(page).getByRole("rowheader").first();
     expect((await label.boundingBox())!.width).toBeLessThanOrEqual(160);
-    // Строки от 44 px для пальца
-    expect((await label.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // Строки 30 px, как в мобильных таблицах: решение владельца 21.11.2026 вместо 44 (ADR-082)
+    const rowHeight = (await label.boundingBox())!.height;
+    expect(rowHeight).toBeGreaterThanOrEqual(29);
+    expect(rowHeight).toBeLessThanOrEqual(32);
     // Сетка до нижнего меню, а не на полэкрана
     const box = (await grid(page).boundingBox())!;
     expect(box.y + box.height).toBeGreaterThan(844 - 64 - 120);

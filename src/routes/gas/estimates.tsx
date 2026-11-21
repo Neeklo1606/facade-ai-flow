@@ -551,9 +551,13 @@ function RuleCard({
   onConfirm: () => void;
 }) {
   return (
-    <section aria-labelledby="cost-rule" className="surface-1 flex flex-col gap-2 p-card">
+    // Телефон (ADR-082): правило — справка, а не первый экран; уходит под загрузку и список смет
+    <section
+      aria-labelledby="cost-rule"
+      className="surface-1 flex flex-col gap-2 p-card max-lg:order-1"
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <h2 id="cost-rule" className="text-heading">
+        <h2 id="cost-rule" className="text-body-strong lg:text-heading">
           Стоимость работ для выработки
         </h2>
         <Chip tone={status === "confirmed" ? "ok" : "decide"}>{RULE_STATUS_LABEL[status]}</Chip>
@@ -562,7 +566,7 @@ function RuleCard({
       <p className="text-body" data-testid="cost-rule-formula">
         {formula}
       </p>
-      <p className="text-meta text-text-3">
+      <p className="text-meta text-text-3 max-lg:hidden">
         Правило подтверждает сметчик или менеджер один раз на компанию, для отдельного объекта его
         можно переопределить в шторке сметы. Какие строки входят, решает заказчик в «Настроить».
       </p>

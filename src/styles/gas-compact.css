@@ -1,0 +1,47 @@
+/*
+ * Компактный вид сервиса на телефоне (ADR-082). Запрос владельца 21.11.2026: «слишком крупные
+ * элементы, тяжело ориентироваться», ориентир — мобильные приложения банков и маркетплейсов.
+ *
+ * Только админка (`data-skin="gas"`) и только телефон и планшет (до 1024 px):
+ * - базовый размер 15 px вместо 16: текст 15, подписи 12–13, заголовок экрана 22;
+ * - поля 44 вместо 48, сегменты 32, строки списков 56, отступы карточек 14;
+ * - чипы фильтров 34 px на вид, область нажатия остаётся 44 (правило 5) за счёт ::after.
+ * Компьютер не меняется: там свой масштаб html 87,5 %.
+ */
+@media (max-width: 1023px) {
+  :root[data-skin="gas"] {
+    font-size: 93.75%;
+    --h-field: 44px;
+    --h-segment: 32px;
+    --h-row: 56px;
+    --h-row-compact: 48px;
+    --h-sheet-head: 48px;
+    --space-card: 14px;
+    --space-row-y: 10px;
+    --space-row-x: 14px;
+  }
+
+  :root[data-skin="gas"] .filter-chip {
+    position: relative;
+    min-height: 34px;
+    padding-inline: 12px 10px;
+    font-size: 0.875rem;
+  }
+  :root[data-skin="gas"] .filter-chip::after {
+    content: "";
+    position: absolute;
+    inset: -5px 0;
+  }
+  :root[data-skin="gas"] .filter-chip-clear {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Подписи нижней панели не мельче 11 px при базе 15 */
+@media (max-width: 1023px) {
+  :root[data-skin="gas"] .text-tab {
+    font-size: 11px;
+    line-height: 13px;
+  }
+}

@@ -99,16 +99,19 @@ export const QueueCard = forwardRef<
         onClick={onOpen}
         className={cn(
           "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] content-center gap-2 px-row py-3 text-left transition-fast focus-ring",
-          showStatus ? "h-56 sm:h-44" : "h-48 sm:h-36",
+          // Телефон (ADR-082): три строки как операция в банке, а не сетка из четырёх значений
+          showStatus ? "h-30 sm:h-44" : "h-26 sm:h-36",
+          "max-sm:gap-1 max-sm:py-2.5",
           active ? "bg-surface-2" : "is-hover:bg-surface-2",
           highlight && "ring-2 ring-orange ring-inset",
         )}
       >
-        <span className="flex min-w-0 items-center gap-3">
+        <span className="flex min-w-0 items-center gap-3 max-sm:gap-2">
           <Avatar
             name={view.brigade?.name ?? "Бригада"}
             id={view.brigade?.id ?? entry.brigadeId}
             size={36}
+            className="max-sm:hidden"
           />
           <span className="min-w-0 truncate text-body-strong">
             {view.brigade?.name ?? "Бригада не указана"} ·{" "}
@@ -122,7 +125,25 @@ export const QueueCard = forwardRef<
             expanded && "rotate-180",
           )}
         />
-        <span className="col-span-2 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+        <span className="col-span-2 flex min-w-0 items-baseline justify-between gap-3 sm:hidden">
+          <span className="min-w-0 truncate text-meta text-text-2 tnum">
+            {fmtShortDay(entry.day)} · {entryFrame(view) ?? "время не указано"} ·{" "}
+            {fmtDuration(entry.minutes)}
+          </span>
+          {money ? (
+            <span
+              className={cn(
+                "shrink-0 text-body-strong tnum",
+                cost.amountRub === null && "font-normal text-text-3",
+              )}
+            >
+              {cost.amountRub === null
+                ? "нет суммы"
+                : `${cost.expected ? "≈ " : ""}${fmtRub(cost.amountRub)}`}
+            </span>
+          ) : null}
+        </span>
+        <span className="col-span-2 grid grid-cols-4 gap-x-3 gap-y-2 max-sm:hidden">
           {values.map((item) => (
             <span key={item.label} className="min-w-0">
               <span className="block text-meta text-text-3">{item.label}</span>
