@@ -719,7 +719,7 @@ export function Grid({
                         className={cn(
                           "cursor-cell truncate border-e border-b border-line px-2 text-right group-hover/row:bg-surface-2",
                           status ? STATUS_CLASS[status] : "",
-                          strong && "text-body-strong",
+                          strong && "text-meta-strong",
                           row.kind === "total" && "bg-surface-2",
                           selected && "bg-orange-dim",
                           focused && "outline-2 -outline-offset-2 outline-orange",
