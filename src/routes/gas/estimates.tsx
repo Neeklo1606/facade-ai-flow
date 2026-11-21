@@ -162,7 +162,7 @@ function EstimatesPage() {
             Загрузить смету
           </Button>
           {canManageRules ? (
-            <Button variant="secondary" onClick={() => setManual(true)}>
+            <Button variant="quiet" onClick={() => setManual(true)}>
               Ввести вручную
             </Button>
           ) : null}
