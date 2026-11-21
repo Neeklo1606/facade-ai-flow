@@ -282,6 +282,57 @@ export function moveSelection(
   return extend ? { anchor: selection.anchor, focus } : { anchor: focus, focus };
 }
 
+/* ---------------------------------------------------------------- Как в таблицах (ADR-081) */
+
+/** Буква столбца: 0 → A, 25 → Z, 26 → AA. Столбец A — подписи строк, данные с B */
+export function colLetter(index: number): string {
+  let n = index;
+  let out = "";
+  do {
+    out = String.fromCharCode(65 + (n % 26)) + out;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return out;
+}
+
+/** Адрес выделенного для строки ячейки: «C7» или «C7:E9». Данные с B, строки с 1 */
+export function cellRef(selection: Selection): string {
+  const r = rectOf(selection);
+  const at = (row: number, col: number) => `${colLetter(col + 1)}${row + 1}`;
+  return r.top === r.bottom && r.left === r.right
+    ? at(r.top, r.left)
+    : `${at(r.top, r.left)}:${at(r.bottom, r.right)}`;
+}
+
+/**
+ * Клавиши таблицы сверх стрелок: Home и End — начало и конец строки, с Ctrl/Cmd — первая
+ * и последняя ячейка, PageUp и PageDown — на экран, Tab и Shift+Tab — вправо и влево.
+ * Shift расширяет выделение (кроме Tab). null — клавиша не наша
+ */
+export function keySelection(
+  key: string,
+  mod: boolean,
+  shift: boolean,
+  selection: Selection,
+  size: { rows: number; cols: number },
+  page: number,
+): Selection | null {
+  const f = selection.focus;
+  const clamp = (value: number, max: number) => Math.min(max - 1, Math.max(0, value));
+  let focus: Point | null = null;
+  if (key === "Home") focus = mod ? { row: 0, col: 0 } : { row: f.row, col: 0 };
+  else if (key === "End")
+    focus = mod ? { row: size.rows - 1, col: size.cols - 1 } : { row: f.row, col: size.cols - 1 };
+  else if (key === "PageDown") focus = { row: clamp(f.row + page, size.rows), col: f.col };
+  else if (key === "PageUp") focus = { row: clamp(f.row - page, size.rows), col: f.col };
+  else if (key === "Tab") {
+    const col = clamp(f.col + (shift ? -1 : 1), size.cols);
+    return { anchor: { row: f.row, col }, focus: { row: f.row, col } };
+  }
+  if (!focus) return null;
+  return shift ? { anchor: selection.anchor, focus } : { anchor: focus, focus };
+}
+
 /** Выделить строку или столбец целиком */
 export function wholeRow(row: number, cols: number): Selection {
   return { anchor: { row, col: 0 }, focus: { row, col: cols - 1 } };

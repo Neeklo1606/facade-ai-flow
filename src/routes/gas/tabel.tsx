@@ -686,9 +686,9 @@ function TabelPage() {
       {filterPanel}
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline">
+          {/* Значком (ADR-081): панель остаётся одной строкой на 1440 вместе с «Выгрузить» */}
+          <Button variant="outline" size="icon" aria-label="Колонки" title="Колонки">
             <Columns3 aria-hidden />
-            Колонки
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72 rounded-inset p-3 shadow-floating">
