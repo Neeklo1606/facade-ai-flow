@@ -1,4 +1,5 @@
 import { completePageHead } from "@/lib/page-head";
+import { EstimateFlowButton } from "@/components/gas-ops/estimates/EstimateFlow";
 import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
@@ -236,6 +237,7 @@ function ObjectsPage() {
       </p>
       {actor.role === "manager" || actor.role === "admin" ? (
         <div className="flex flex-wrap gap-2">
+          <EstimateFlowButton />
           <ScheduleImport />
           <AddObject />
         </div>

@@ -12,6 +12,7 @@ import { gasTitle } from "@/lib/gas-ops/brand";
 import { useGasBrand } from "@/lib/gas-ops/contour";
 import { BarList, ColumnChart, KpiStrip, Panel, ProgressStack } from "@/components/ui/kit/charts";
 import { useGasOverview } from "@/api/gas-overview";
+import { EstimateFlowButton } from "@/components/gas-ops/estimates/EstimateFlow";
 
 /**
  * Обзор (ADR-052): стартовый экран руководителя и итог недели для менеджера. Полоса
@@ -35,6 +36,7 @@ function OverviewPage() {
   return (
     <div className="flex flex-col gap-section">
       <div className="flex flex-wrap items-center gap-2" data-testid="overview-exports">
+        <EstimateFlowButton />
         <Link
           to="/gas/print"
           search={{ auto: true }}

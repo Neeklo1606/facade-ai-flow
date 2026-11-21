@@ -31,7 +31,7 @@ export function ObjectSections({ objectId }: { objectId: string }) {
   const [assignTo, setAssignTo] = useState<SectionLedger | null>(null);
   if (sections.length === 0)
     return (
-      <section data-testid="object-sections">
+      <section id="object-sections" data-testid="object-sections">
         <h3 className="text-meta-strong text-text-2">Разделы сметы</h3>
         <p className="mt-1 text-body text-text-2">
           Разделов нет: прикрепите смету к объекту на экране «Сметы».
@@ -47,7 +47,7 @@ export function ObjectSections({ objectId }: { objectId: string }) {
     { work: 0, accrued: 0, left: 0 },
   );
   return (
-    <section data-testid="object-sections">
+    <section id="object-sections" data-testid="object-sections">
       <h3 className="text-meta-strong text-text-2">Разделы сметы</h3>
       <p className="mt-1 text-meta text-text-2 tnum">
         Работы {fmtRub(total.work)} · начислено {fmtRub(total.accrued)} · остаток{" "}

@@ -469,7 +469,8 @@ export function Grid({
             ) : null}
             {rows.slice(first, last).map((row, offset) => {
               const r = first + offset;
-              const strong = row.kind !== "address" && row.kind !== "person";
+              const strong =
+                row.kind !== "address" && row.kind !== "person" && row.kind !== "section";
               const rowSelected =
                 rect &&
                 rect.left === 0 &&
@@ -508,8 +509,11 @@ export function Grid({
                           ? "text-body-strong"
                           : "text-body",
                       row.kind === "total" && "bg-surface-2",
+                      // Раздел сметы под адресом (ADR-080): справочная строка, тише адреса
+                      row.kind === "section" && "text-text-2",
                       rowSelected && "bg-orange-dim",
                     )}
+                    data-row-kind={row.kind}
                     style={{ paddingInlineStart: (touch ? 4 : 8) + row.level * indent }}
                     title={row.label}
                   >

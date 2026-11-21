@@ -295,16 +295,19 @@ function CardPanel({
   );
 }
 
-function CardBody({
+export function CardBody({
   card,
   canEdit,
   mode,
   onMode,
+  onLinked,
 }: {
   card: EstimateCard;
   canEdit: boolean;
   mode: PressureMode;
   onMode: (mode: PressureMode) => void;
+  /** Мастер «Загрузить смету» (ADR-080): после «Прикрепить» ведёт на страницу объекта */
+  onLinked?: (objectId: string) => void;
 }) {
   const intake = useEstimateIntake();
   const navigate = useNavigate();
@@ -321,9 +324,10 @@ function CardBody({
     setBusy(true);
     const result = await intake.attach(card.version.id, objectId, mode);
     setBusy(false);
-    if (result.ok)
+    if (result.ok) {
       notify(`Смета прикреплена, версия ${result.value.version}. Разделы записаны в объект`);
-    else toast.error(result.message);
+      onLinked?.(objectId);
+    } else toast.error(result.message);
   };
 
   const create = async () => {
