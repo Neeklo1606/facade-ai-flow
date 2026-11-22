@@ -30,6 +30,14 @@ export const PRICES = {
       ? "30\u00a0000\u00a0₽"
       : env(import.meta.env["VITE_PRICE_PILOT"]),
   impl: env(import.meta.env["VITE_PRICE_IMPL"]),
+  /**
+   * Подписка (ADR-083): владелец 23.11.2026 «от 2500 в месяц». Пустое значение в окружении
+   * убирает цену: «назовём после разбора»
+   */
+  subscription:
+    import.meta.env["VITE_PRICE_SUBSCRIPTION"] === undefined
+      ? "2\u00a0500\u00a0₽"
+      : env(import.meta.env["VITE_PRICE_SUBSCRIPTION"]),
   support: env(import.meta.env["VITE_PRICE_SUPPORT"]),
 };
 

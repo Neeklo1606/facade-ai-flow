@@ -138,7 +138,7 @@ test.describe("кабинет на компьютере 1280", () => {
 
 test.describe("сайт на компьютере и планшете", () => {
   for (const width of [768, 1024, 1280, 1440, 1920]) {
-    test(`главная ${width}: сетка, текст до 640, контент до 1200, фрагмент и задачи по ширине`, async ({
+    test(`главная ${width}: сетка, текст до 640, контент до 1200, фрагмент, айфон и тарифы по ширине`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -163,31 +163,30 @@ test.describe("сайт на компьютере и планшете", () => {
       // С 1024 живой фрагмент справа от заголовка, уже под ним
       if (width >= 1024) expect(fragment.x).toBeGreaterThanOrEqual(title.x + title.width - 1);
       else expect(fragment.y).toBeGreaterThan(title.y + title.height);
-      // Раскладка, а не кадр анимации: появление сдвигает карточки transform-ом
-      const cards = await page.locator(".site-task-card").evaluateAll((els) =>
+      // Тарифы (ADR-083): с 1024 три в строку, на планшете столбиком
+      const plans = await page.locator(".site-plan").evaluateAll((els) =>
         els.map((el) => {
           const box = el as HTMLElement;
           return { x: box.offsetLeft, y: box.offsetTop, width: box.offsetWidth };
         }),
       );
-      expect(cards).toHaveLength(3);
-      for (const [i, card] of cards.entries()) {
-        const previous = cards[i - 1];
+      expect(plans).toHaveLength(3);
+      for (const [i, plan] of plans.entries()) {
+        const previous = plans[i - 1];
         if (!previous) continue;
         if (width >= 1024) {
-          // Три задачи с 1024 стоят в строку
-          expect(Math.abs(card.y - previous.y)).toBeLessThan(2);
-          expect(card.x).toBeGreaterThan(previous.x + previous.width - 1);
+          expect(Math.abs(plan.y - previous.y)).toBeLessThan(2);
+          expect(plan.x).toBeGreaterThan(previous.x + previous.width - 1);
         } else {
-          // Планшет: одна колонка, снимок справа внутри карточки
-          expect(card.y).toBeGreaterThan(previous.y);
+          expect(plan.y).toBeGreaterThan(previous.y);
         }
       }
-      if (width < 1024) {
-        const card = page.locator(".site-task-card").first();
-        const text = (await card.locator("h3").boundingBox())!;
-        const visual = (await card.locator(".site-task-visual").boundingBox())!;
-        expect(visual.x).toBeGreaterThanOrEqual(text.x + text.width - 1);
+      // Айфон экрана «внутри» с 1024 справа от сценариев и целиком в окне 900
+      const phone = (await page.locator(".site-iphone").boundingBox())!;
+      const steps = (await page.locator(".site-inside-steps").boundingBox())!;
+      if (width >= 1024) {
+        expect(phone.x).toBeGreaterThanOrEqual(steps.x + steps.width - 1);
+        expect(phone.height).toBeLessThanOrEqual(900 - 56);
       }
     });
   }
