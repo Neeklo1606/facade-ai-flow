@@ -125,7 +125,9 @@ export function FolderCard({
               data-testid="estimate-folder-file"
             >
               <span className="min-w-0">
-                <span className="block truncate text-body">{row.file.name}</span>
+                <span className="block truncate text-body" title={row.file.name}>
+                  {row.file.name}
+                </span>
                 <span className="block text-meta text-text-3">
                   {sizeText(row.file.size)} · {stateText(row)}
                 </span>

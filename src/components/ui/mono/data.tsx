@@ -3,6 +3,7 @@
  * с клавишами J, K, Enter, Esc, X и выбором пачкой, на телефоне строки от 64 (2.5).
  * Деталь строки: панель справа 440 на компьютере и шторка 92 % на телефоне, тоже одним API.
  */
+import { hintOf } from "@/lib/node-text";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ChevronLeft, ChevronRight, ChevronRight as Chevron, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -137,9 +138,19 @@ export function DataView<T>({
                   className="mono-row min-w-0 flex-1 text-left focus-ring"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate type-text font-medium">{title(row)}</span>
+                    <span
+                      className="block truncate type-text font-medium"
+                      title={hintOf(title(row))}
+                    >
+                      {title(row)}
+                    </span>
                     {meta ? (
-                      <span className="block truncate type-small text-ink-3">{meta(row)}</span>
+                      <span
+                        className="block truncate type-small text-ink-3"
+                        title={hintOf(meta(row))}
+                      >
+                        {meta(row)}
+                      </span>
                     ) : null}
                   </span>
                   {aside ? (

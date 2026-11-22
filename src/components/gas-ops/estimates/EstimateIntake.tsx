@@ -176,7 +176,10 @@ export function EstimateIntake({
                 disabled={!row.version}
                 onClick={() => row.version && setOpenId(row.version.id)}
               >
-                <span className="block truncate text-body">
+                <span
+                  className="block truncate text-body"
+                  title={row.object ? `${row.object.code} · ${row.object.label}` : row.file.name}
+                >
                   {row.object ? `${row.object.code} · ${row.object.label}` : row.file.name}
                 </span>
                 <span className="block text-meta text-text-3">{row.status}</span>

@@ -63,7 +63,10 @@ function Overview() {
                   >
                     <span className="min-w-0">
                       <span className="block type-text font-medium">{r.number}</span>
-                      <span className="block truncate type-small text-ink-3">
+                      <span
+                        className="block truncate type-small text-ink-3"
+                        title={`${base.objectLabel(r.objectId)} · нужно к ${short(r.needBy)}`}
+                      >
                         {base.objectLabel(r.objectId)} · нужно к {short(r.needBy)}
                       </span>
                     </span>
@@ -92,7 +95,10 @@ function Overview() {
                       <span className="block type-text font-medium">
                         {o.number} · {base.itemName(o.itemId)}
                       </span>
-                      <span className="block truncate type-small text-ink-3">
+                      <span
+                        className="block truncate type-small text-ink-3"
+                        title={base.objectLabel(o.objectId)}
+                      >
                         {base.objectLabel(o.objectId)}
                       </span>
                     </span>

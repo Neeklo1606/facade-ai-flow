@@ -77,7 +77,9 @@ export function FinalCheckBlock() {
           {policy.finalList.slice(0, 6).map((entry) => (
             <li key={entry.id} className="flex items-center justify-between gap-3 py-2">
               <span className="min-w-0">
-                <span className="block truncate text-body">{label(entry.objectId)}</span>
+                <span className="block truncate text-body" title={label(entry.objectId)}>
+                  {label(entry.objectId)}
+                </span>
                 <span className="block text-meta text-text-3 tnum">
                   {entry.number} · {entry.day.slice(8, 10)}.{entry.day.slice(5, 7)} · подтверждена
                   автоматически
