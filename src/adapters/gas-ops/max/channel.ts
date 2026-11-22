@@ -7,7 +7,7 @@
  *
  * Адрес API, заголовок токена, поля событий `bot_started`, `message_callback`,
  * `message_created`, параметры `user_id` и `message_id`, вид клавиатуры и заголовок секрета
- * вебхука сверены с dev.max.ru 23.11.2026 (ADR-085). Живым ботом не проверено: токена нет.
+ * вебхука сверены с dev.max.ru 23.11.2026 (ADR-087). Живым ботом не проверено: токена нет.
  */
 import type {
   GasInboundChannel,
@@ -19,7 +19,7 @@ import type {
 
 /**
  * Адрес API. Документация dev.max.ru просит слать запросы на platform-api2, а не на
- * старый platform-api (ADR-085)
+ * старый platform-api (ADR-087)
  */
 export const MAX_API = "https://platform-api2.max.ru";
 /** Заголовок, в котором MAX присылает секрет подписки (`X-Max-Bot-Api-Secret`) */

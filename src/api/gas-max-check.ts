@@ -1,5 +1,5 @@
 /**
- * Проверка канала MAX из «Подключений» (ADR-085): POST `/api/gas/max-check`
+ * Проверка канала MAX из «Подключений» (ADR-087): POST `/api/gas/max-check`
  * с `{ action: "check" }` или `{ action: "test" }`.
  *
  * Только администратор (права проверяет сервер, ADR-012). Без `MAX_BOT_TOKEN` в MAX не ходит

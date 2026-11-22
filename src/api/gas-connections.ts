@@ -35,7 +35,7 @@ export interface MaxCheckView {
 }
 
 /**
- * Проверка канала MAX (ADR-085): «check» — токен и вебхук, «test» — сообщение себе.
+ * Проверка канала MAX (ADR-087): «check» — токен и вебхук, «test» — сообщение себе.
  * Ответ сразу строками для экрана; ошибка сервера тоже строка, а не тишина
  */
 export async function runMaxCheck(action: MaxCheckAction): Promise<MaxCheckView[]> {

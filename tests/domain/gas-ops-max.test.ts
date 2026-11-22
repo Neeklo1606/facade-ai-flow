@@ -311,7 +311,7 @@ describe("канал MAX: каркас без ключей", () => {
       now: () => NOW,
     });
     expect(await on.send(message)).toEqual({ ok: true, sentAt: NOW, messageId: "mid-1" });
-    // ADR-085: адрес по dev.max.ru, platform-api2
+    // ADR-087: адрес по dev.max.ru, platform-api2
     expect(calls[0]!.url).toBe("https://platform-api2.max.ru/messages?user_id=77");
     expect((calls[0]!.init.headers as Record<string, string>)["Authorization"]).toBe("token-1");
     expect(JSON.parse(String(calls[0]!.init.body))).toEqual({

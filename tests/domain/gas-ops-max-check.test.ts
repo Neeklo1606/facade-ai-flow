@@ -7,7 +7,7 @@ import { connectionRows, connectionsOf } from "@/domain/gas-ops/connections";
 import { createInvite, type MaxLink } from "@/domain/gas-ops/max-link";
 
 /**
- * Проверка канала MAX из «Подключений» (ADR-085): без токена в MAX не ходит ничего
+ * Проверка канала MAX из «Подключений» (ADR-087): без токена в MAX не ходит ничего
  * и бригадир работает веб-формой; с токеном — вебхук и тестовое сообщение через порт
  * с заглушкой сети. Токен в ответ не попадает.
  */
