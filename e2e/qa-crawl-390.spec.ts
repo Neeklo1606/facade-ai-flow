@@ -206,7 +206,8 @@ test.describe("обход кнопок, 390 @mobile", () => {
     expect(targets.length).toBeGreaterThan(2);
     for (const target of targets) {
       const box = (await target.boundingBox())!;
-      expect(box.height).toBeGreaterThanOrEqual(44);
+      // Высота 44 в разметке; шторка ставит её на дробный пиксель (43,9999), как в journal.spec
+      expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
     }
   });
 });
