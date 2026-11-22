@@ -48,6 +48,7 @@ for (const [name, viewport] of [
       await expect(page.getByText("Черновиков создано: 2")).toBeVisible();
       await page.getByRole("button", { name: ACT }).first().click();
       await expect(page.getByRole("heading", { name: ACT })).toBeVisible();
+      if (name === "1440") await expect(page.getByRole("dialog", { name: ACT })).toBeVisible();
       const missing = page.getByRole("list", { name: "Чего не хватает" });
       await expect(missing.getByText("Нет сертификата: Труба стальная ВГП 20 мм")).toBeVisible();
       await expect(missing.getByText("Ответственный: Снабжение")).toBeVisible();
@@ -115,7 +116,9 @@ for (const [name, viewport] of [
       // 4. ПТО: комплект полный, источник сертификата — поставка; docx и подпись
       await gasRole(page, "ПТО");
       await page.getByRole("button", { name: ACT }).first().click();
-      await expect(page.getByText("Полный", { exact: true })).toBeVisible();
+      // ADR-084: на компьютере акт открывается окном поверх списка, на телефоне страницей
+      const act = name === "1440" ? page.getByRole("dialog", { name: ACT }) : page.locator("main");
+      await expect(act.getByText("Полный", { exact: true })).toBeVisible();
       await expect(
         page.getByText(new RegExp(`Источник: Поставка ${number}, .*сертификат_ВГП20\\.pdf`)),
       ).toBeVisible();

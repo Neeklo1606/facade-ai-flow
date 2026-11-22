@@ -9,6 +9,7 @@
  * Бригадир видит свою панель: «Сегодня», бот, «Мои записи», «Профиль».
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { WindowsProvider } from "../windows/windows";
 import {
   ChevronDown,
   ChevronLeft,
@@ -196,41 +197,44 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="gas-shell min-h-dvh bg-canvas text-ink">
-      <div ref={topRef} className="sticky top-0 z-30">
-        <div className="max-lg:hidden">
-          <GasTopBar />
-        </div>
-        {/* Экран бота на телефоне: шапка чата и есть шапка экрана, одна вместо двух (ADR-048) */}
-        <div className={cn("lg:hidden", botOnly && "hidden")}>
-          <GasPhoneHeader screen={screen} />
-        </div>
-        {network.offline ? <OfflineBar demo={network.simulated} /> : null}
-        {showTestMode({ dataSource, contour: contourKind, cabinet: cabinetOnly }) ? (
-          <TestModeBar />
-        ) : null}
-      </div>
-      <div className="lg:flex">
-        {/* Левое меню только у ролей с меню: бригадир живёт в телефоне (таблица 3.3) */}
-        {field ? null : <GasSideNav pathname={pathname} />}
-        <main
-          id="gas-main"
-          className={cn("gas-content min-w-0 flex-1", botOnly ? "pb-safe" : "pb-inset lg:pb-12")}
-        >
-          {/* Бот на телефоне: шапка чата вместо шапки экрана */}
-          <div className={screen.key === "foreman" ? "max-lg:hidden" : undefined}>
-            <GasScreenHeader screen={screen} />
+    // Окна документов (ADR-084): смена роли закрывает все, у другой роли другие права
+    <WindowsProvider key={actor.role}>
+      <div className="gas-shell min-h-dvh bg-canvas text-ink">
+        <div ref={topRef} className="sticky top-0 z-30">
+          <div className="max-lg:hidden">
+            <GasTopBar />
           </div>
-          <div className="max-lg:pt-2">
-            <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
+          {/* Экран бота на телефоне: шапка чата и есть шапка экрана, одна вместо двух (ADR-048) */}
+          <div className={cn("lg:hidden", botOnly && "hidden")}>
+            <GasPhoneHeader screen={screen} />
           </div>
-        </main>
+          {network.offline ? <OfflineBar demo={network.simulated} /> : null}
+          {showTestMode({ dataSource, contour: contourKind, cabinet: cabinetOnly }) ? (
+            <TestModeBar />
+          ) : null}
+        </div>
+        <div className="lg:flex">
+          {/* Левое меню только у ролей с меню: бригадир живёт в телефоне (таблица 3.3) */}
+          {field ? null : <GasSideNav pathname={pathname} />}
+          <main
+            id="gas-main"
+            className={cn("gas-content min-w-0 flex-1", botOnly ? "pb-safe" : "pb-inset lg:pb-12")}
+          >
+            {/* Бот на телефоне: шапка чата вместо шапки экрана */}
+            <div className={screen.key === "foreman" ? "max-lg:hidden" : undefined}>
+              <GasScreenHeader screen={screen} />
+            </div>
+            <div className="max-lg:pt-2">
+              <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
+            </div>
+          </main>
+        </div>
+        {botOnly ? null : <GasBottomNav pathname={pathname} />}
+        {/* Помощник (4.8): у ролей с данными недели; бригадир и старт без него */}
+        {field || screen.key === "start" ? null : <AssistantButton />}
+        <Tour />
       </div>
-      {botOnly ? null : <GasBottomNav pathname={pathname} />}
-      {/* Помощник (4.8): у ролей с данными недели; бригадир и старт без него */}
-      {field || screen.key === "start" ? null : <AssistantButton />}
-      <Tour />
-    </div>
+    </WindowsProvider>
   );
 }
 

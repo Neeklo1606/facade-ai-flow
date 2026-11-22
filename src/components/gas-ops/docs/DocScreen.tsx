@@ -115,7 +115,7 @@ function Editor({ docId }: { docId: string }) {
   );
 }
 
-function Completeness({ detail }: { detail: DocDetail }) {
+export function Completeness({ detail }: { detail: DocDetail }) {
   const { completeness, doc } = detail.view;
   if (!detail.draftMark) return null;
   return (
@@ -146,7 +146,7 @@ function Completeness({ detail }: { detail: DocDetail }) {
   );
 }
 
-function Actions({ detail }: { detail: DocDetail }) {
+export function Actions({ detail }: { detail: DocDetail }) {
   const actions = useDocsActions();
   const who = useDocsActor();
   const downloads = useExecDownloads();
@@ -359,7 +359,7 @@ function FieldRow({
 }
 
 /** Предпросмотр: то же содержимое, что в файле, без источников. Его и печатает браузер */
-function Preview({ detail }: { detail: DocDetail }) {
+export function Preview({ detail }: { detail: DocDetail }) {
   const { view, sections, participants } = detail;
   return (
     <section
