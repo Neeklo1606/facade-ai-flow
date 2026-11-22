@@ -8,6 +8,7 @@ import {
   type ConnectionRow,
   type ServerConnections,
 } from "@/domain/gas-ops/connections";
+import type { MaxCheckAction, MaxCheckAnswer } from "./gas-max-check";
 
 export type { ConnectionRow } from "@/domain/gas-ops/connections";
 
@@ -24,4 +25,37 @@ export function useServerConnections(): ConnectionRow[] | null {
     };
   }, []);
   return rows;
+}
+
+/** Строка результата проверки MAX для экрана */
+export interface MaxCheckView {
+  name: string;
+  ok: boolean;
+  text: string;
+}
+
+/**
+ * Проверка канала MAX (ADR-087): «check» — токен и вебхук, «test» — сообщение себе.
+ * Ответ сразу строками для экрана; ошибка сервера тоже строка, а не тишина
+ */
+export async function runMaxCheck(action: MaxCheckAction): Promise<MaxCheckView[]> {
+  try {
+    const response = await fetch("/api/gas/max-check", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action }),
+      cache: "no-store",
+    });
+    const body = (await response.json().catch(() => null)) as
+      MaxCheckAnswer | { reason?: string } | null;
+    if (!response.ok || !body || !("configured" in body)) {
+      const reason = body && "reason" in body && body.reason ? body.reason : null;
+      return [{ name: "Проверка", ok: false, text: reason ?? `Сервер ответил ${response.status}` }];
+    }
+    if (!body.configured) return [{ name: "MAX", ok: false, text: body.text }];
+    if (body.action === "check") return body.lines;
+    return [{ name: "Тестовое сообщение", ok: body.ok, text: body.text }];
+  } catch {
+    return [{ name: "Проверка", ok: false, text: "Сервер не ответил" }];
+  }
 }
