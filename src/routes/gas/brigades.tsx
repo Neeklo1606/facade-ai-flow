@@ -332,7 +332,9 @@ function BrigadesPage() {
                 {history.map((view) => (
                   <li key={view.entry.id} className="flex items-start justify-between gap-3 py-2">
                     <span className="min-w-0">
-                      <span className="block truncate text-body">{view.object?.label}</span>
+                      <span className="block truncate text-body" title={view.object?.label}>
+                        {view.object?.label}
+                      </span>
                       <span className="block text-meta text-text-3 tnum">
                         {fmtShortDay(view.entry.day)} · {entryLine(view)}
                       </span>

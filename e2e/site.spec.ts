@@ -10,6 +10,30 @@ import { expect, test } from "./fixtures";
  * SEO с SEO_INDEX=on проверяет e2e/site-seo.spec.ts на втором сервере той же сборки.
  */
 
+/** Пять сценариев экрана «внутри» (ADR-083), тексты из src/lib/site/copy.ts HOME.inside */
+const INSIDE = [
+  {
+    id: "estimate",
+    title: "Смета становится объектом",
+    path: "/uchet-vremeni-brigad",
+    demo: false,
+  },
+  {
+    id: "voice",
+    title: "Бригадир говорит, запись готова",
+    path: "/uchet-vremeni-brigad",
+    demo: false,
+  },
+  {
+    id: "tabel",
+    title: "Табель и неделя считаются сами",
+    path: "/uchet-vremeni-brigad",
+    demo: false,
+  },
+  { id: "supply", title: "Заявка на материал за минуту", path: "/snabzhenie", demo: true },
+  { id: "docs", title: "Акты ПТО готовит ИИ", path: "/ispolnitelnaya-dokumentatsiya", demo: true },
+] as const;
+
 const CLIENT_KEY = "e2e-client-key";
 const clientShort = (() => {
   const source = readFileSync("src/server/customer-data.ts", "utf8");
@@ -109,17 +133,37 @@ test.describe("сайт и вход в демо 390", () => {
     }
   });
 
-  test("главная: три задачи ведут на свои страницы, у каждой статус", async ({ page }) => {
+  test("главная: пять сценариев внутри, у каждого ролик и страница задачи (ADR-083)", async ({
+    page,
+  }) => {
     await page.goto("/", { waitUntil: "load" });
-    const cards = page.locator(".site-task-card");
-    await expect(cards).toHaveCount(3);
-    for (const [index, task] of TASKS.entries()) {
-      const card = cards.nth(index);
-      await expect(card.getByRole("link", { name: task.title })).toHaveAttribute("href", task.path);
-      await expect(card.locator("[data-readiness]")).toBeVisible();
+    await page.waitForSelector("html[data-booted]");
+    const steps = page.locator(".site-inside-step");
+    await expect(steps).toHaveCount(5);
+    for (const [index, step] of INSIDE.entries()) {
+      const item = steps.nth(index);
+      await expect(item.getByRole("button", { name: new RegExp(step.title) })).toBeVisible();
+      await expect(item.getByRole("link", { name: new RegExp(step.title) })).toHaveAttribute(
+        "href",
+        step.path,
+      );
+      // Снабжение и ПТО помечены «В демо» рядом с текстом (правило 3)
+      await expect(item.getByText("В демо", { exact: true })).toHaveCount(step.demo ? 1 : 0);
+      await expect(page.locator(`video[data-reel="${step.id}"]`)).toHaveCount(1);
     }
-    // Вся карточка нажимается: касание в середину карточки ведёт на страницу задачи
-    await cards.nth(1).click();
+    // Ролики не качаются до экрана: на первом экране у видео нет src
+    await expect(page.locator("video[data-reel][src]")).toHaveCount(0);
+    await page.locator("#inside").scrollIntoViewIfNeeded();
+    await expect(page.locator("video[data-reel][src]")).toHaveCount(5);
+    const active = page.locator("video[data-reel][data-active]");
+    await expect(active).toHaveCount(1);
+    // Ролик настоящий: файл отдаётся сервером
+    const src = (await active.getAttribute("src"))!;
+    const response = await page.request.get(src);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("video/mp4");
+    // Касание сценария ведёт на страницу задачи
+    await steps.nth(3).getByRole("link").click();
     await expect(page).toHaveURL(/\/snabzhenie$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(TASKS[1].h1);
   });
@@ -222,13 +266,11 @@ test.describe("главная 390 (ADR-067)", () => {
   }) => {
     await page.goto("/", { waitUntil: "load" });
     await scrollThrough(page);
+    // Главная v3 (ADR-083): пять экранов
     for (const title of [
-      "Три задачи, которые ГАЙКА снимает с офиса",
-      "Один путь для всех трёх задач",
-      "Меньше переписывания, больше проверки",
-      "ГАЙКА готовит. Решает человек.",
-      "Первый заказчик: газовый подрядчик, Краснодарский край",
-      "Начните с одного процесса",
+      "Как ГАЙКА работает внутри",
+      "Кому ГАЙКА снимает работу",
+      "Подписка без долгого внедрения",
       "Вопросы",
       "Покажите процесс, который хотите упростить",
     ]) {
@@ -238,23 +280,34 @@ test.describe("главная 390 (ADR-067)", () => {
     }
     // Один H1, у каждой секции H2 (раздел 9.6)
     await expect(page.locator("h1")).toHaveCount(1);
-    // Убранные блоки v1
-    for (const gone of ["Для кого", "Честно о границах", "Цена", "Как внедряем"])
+    // Убранные блоки v1 и v2 (ADR-083)
+    for (const gone of [
+      "Для кого",
+      "Честно о границах",
+      "Цена",
+      "Как внедряем",
+      "Три задачи, которые ГАЙКА снимает с офиса",
+      "Один путь для всех трёх задач",
+      "Начните с одного процесса",
+    ])
       await expect(page.getByRole("heading", { name: gone, exact: true })).toHaveCount(0);
     const main = page.locator("main");
-    await expect(main.getByText("Пилот у первого заказчика").first()).toBeVisible();
-    await expect(main.getByText("В демо, пилот на вашем процессе")).toBeVisible();
-    await expect(main.getByText("В демо, пилот на ваших шаблонах")).toBeVisible();
-    await expect(main.getByText(/^Пилот от 30\s000\s₽$/)).toBeVisible();
-    // Путь из четырёх шагов столбиком
-    await expect(page.locator(".site-steps-mobile > li")).toHaveCount(4);
+    // Тарифы: цены из config (владелец 23.11.2026), «Компания» после разбора
+    const plans = page.locator(".site-plan");
+    await expect(plans).toHaveCount(3);
+    await expect(plans.nth(0).locator("[data-price]")).toHaveText(/^от 2\s500\s₽ в месяц$/);
+    await expect(plans.nth(1).locator("[data-price]")).toHaveText(/^от 30\s000\s₽ разово$/);
+    await expect(plans.nth(2).locator("[data-price]")).toHaveText("Цена после разбора");
+    // Снабжение и ПТО в тарифе помечены «в демо» рядом с пунктом
+    await expect(plans.nth(2).getByText("в демо", { exact: true })).toHaveCount(2);
     // Живой фрагмент первого экрана: текст, а не картинка; подпись про вымышленные данные
     const hero = page.getByLabel("Пример из демо: неделя бригад");
     await expect(hero).toContainText("Начислено");
     await expect(hero).toContainText("Принято, пример из демо");
     await expect(hero).toContainText("Пример из демо, данные вымышленные");
     const text = await main.innerText();
-    // Цифр эффекта, отзывов, скидок, таймеров и выдуманных обещаний нет вовсе
+    // Цифр эффекта, отзывов, скидок, таймеров и выдуманных обещаний нет вовсе.
+    // Цена подписки «в месяц» есть с ADR-083, сокращения «₽/мес» нет
     expect(text).not.toMatch(
       /₽\s*\/\s*мес|окупаем|экономи[ия]\s+\d|отзыв|скидк|осталось\s+\d|1С|ЭЦП|юридически значим|реестр отечественного|хранение в РФ|точность распознавания/i,
     );
@@ -268,9 +321,7 @@ test.describe("главная 390 (ADR-067)", () => {
     await page.waitForSelector("html[data-booted]");
     const sticky = page.locator(".site-sticky");
     await expect(sticky).toHaveAttribute("data-hidden", "");
-    await page
-      .getByRole("heading", { name: "Один путь для всех трёх задач" })
-      .scrollIntoViewIfNeeded();
+    await page.getByRole("heading", { name: "Кому ГАЙКА снимает работу" }).scrollIntoViewIfNeeded();
     await expect(sticky).not.toHaveAttribute("data-hidden", "");
     await expect(sticky.getByRole("link")).toHaveAttribute("href", "/razbor");
     await page.getByRole("button", { name: "Отправить заявку" }).scrollIntoViewIfNeeded();
@@ -320,25 +371,88 @@ test.describe("анимация (ADR-067, раздел 8)", () => {
   });
 });
 
-test.describe("путь из четырёх шагов на компьютере", () => {
+test.describe("сценарии внутри на компьютере (ADR-083)", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("кнопки и стрелки переключают шаг и снимок, автопрокрутки нет", async ({ page }) => {
+  test("прокрутка до сценария включает его ролик, айфон закреплён, касание выбирает", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto("/", { waitUntil: "load" });
     await page.waitForSelector("html[data-booted]");
-    const tabs = page.locator("#how").getByRole("tab");
-    await expect(tabs).toHaveCount(4);
-    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-    await page.waitForTimeout(1500);
-    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-    await tabs.nth(2).click();
-    await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
-    const visuals = page.locator("#how .site-step-visual");
-    await expect(visuals.nth(2)).toHaveAttribute("data-active", "");
-    await page.keyboard.press("ArrowDown");
-    await expect(tabs.nth(3)).toBeFocused();
-    await expect(visuals.nth(3)).toHaveAttribute("data-active", "");
-    await expect(visuals.nth(0)).not.toHaveAttribute("data-active", "");
+    const steps = page.locator(".site-inside-step");
+    const phone = page.locator(".site-iphone");
+    await steps.nth(0).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await expect(steps.nth(0)).toHaveAttribute("data-active", "");
+    await expect(page.locator('video[data-reel="estimate"]')).toHaveAttribute("data-active", "");
+    await steps.nth(1).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await expect(steps.nth(1)).toHaveAttribute("data-active", "");
+    const top = (await phone.boundingBox())!.y;
+    await steps.nth(2).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await expect(steps.nth(2)).toHaveAttribute("data-active", "");
+    await expect(page.locator('video[data-reel="tabel"]')).toHaveAttribute("data-active", "");
+    // Ролик идёт: время больше нуля, остальные стоят
+    await expect
+      .poll(() =>
+        page.locator('video[data-reel="tabel"]').evaluate((v: HTMLVideoElement) => v.currentTime),
+      )
+      .toBeGreaterThan(0);
+    expect(
+      await page.locator('video[data-reel="voice"]').evaluate((v: HTMLVideoElement) => v.paused),
+    ).toBe(true);
+    // Айфон закреплён: при прокрутке остаётся на месте
+    expect(Math.abs((await phone.boundingBox())!.y - top)).toBeLessThan(2);
+    await expect(page.locator(".site-inside-now")).toContainText("3 из 5");
+    // Касание заголовка сценария выбирает его
+    await steps.nth(4).getByRole("button").click();
+    await expect(page.locator('video[data-reel="docs"]')).toHaveAttribute("data-active", "");
+  });
+
+  test("reduced-motion: ролик сам не идёт, «Смотреть» запускает", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    await page
+      .locator(".site-inside-step")
+      .nth(0)
+      .evaluate((el) => el.scrollIntoView({ block: "center" }));
+    const video = page.locator('video[data-reel="estimate"]');
+    await expect(video).toHaveAttribute("data-active", "");
+    expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
+    await page.getByRole("button", { name: "Смотреть" }).click();
+    await expect
+      .poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime))
+      .toBeGreaterThan(0);
+  });
+});
+
+test.describe("сценарии внутри на телефоне (ADR-083)", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("айфон закреплён под шапкой, сценарии прокручиваются под ним и меняют ролик", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page.waitForSelector("html[data-booted]");
+    const steps = page.locator(".site-inside-step");
+    const phone = page.locator(".site-iphone");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+    for (const [index, id] of [
+      [1, "voice"],
+      [3, "supply"],
+      [4, "docs"],
+    ] as const) {
+      await steps.nth(index).evaluate((el) => el.scrollIntoView({ block: "end" }));
+      await expect(steps.nth(index)).toHaveAttribute("data-active", "");
+      await expect(page.locator(`video[data-reel="${id}"]`)).toHaveAttribute("data-active", "");
+      // Айфон целиком в окне, под шапкой, карточка сценария видна под ним
+      const box = (await phone.boundingBox())!;
+      const card = (await steps.nth(index).boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(56);
+      expect(box.y + box.height).toBeLessThanOrEqual(card.y + card.height);
+      expect(card.y + card.height).toBeLessThanOrEqual(844);
+    }
+    expect((await phone.boundingBox())!.width).toBeLessThanOrEqual(260);
   });
 });
 

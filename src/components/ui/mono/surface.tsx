@@ -2,6 +2,7 @@
  * Поверхности «Монохрома» (ADR-055, S3, раздел 2.2): карточка обычная и инверсная,
  * карточка показателя со счётом и спарклайном, ряд показателей и блок «доли».
  */
+import { hintOf } from "@/lib/node-text";
 import { Children, type ReactNode } from "react";
 import { useCountUp, useFirstReveal } from "@/hooks/use-first-reveal";
 import { sharePercents, type Delta } from "@/lib/ui/mono-logic";
@@ -226,9 +227,13 @@ export function ShareBar({ items, label }: { items: readonly ShareItem[]; label:
           <li key={item.key} className="flex items-center gap-3 py-3">
             <span aria-hidden className={cn("size-3 shrink-0", tone(i))} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate type-text">{item.label}</span>
+              <span className="block truncate type-text" title={hintOf(item.label)}>
+                {item.label}
+              </span>
               {item.note ? (
-                <span className="block truncate type-small text-ink-3">{item.note}</span>
+                <span className="block truncate type-small text-ink-3" title={hintOf(item.note)}>
+                  {item.note}
+                </span>
               ) : null}
             </span>
             <span className="shrink-0 type-text tnum">{item.amount}</span>

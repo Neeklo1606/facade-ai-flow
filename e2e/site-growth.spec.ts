@@ -60,7 +60,8 @@ test.describe("новые страницы сайта", () => {
     await expect(cards).toHaveCount(all);
   });
 
-  test("главная: роли ведут на «Для кого», статьи на раздел статей", async ({ page }) => {
+  // ADR-083: блок статей ушёл с главной, статьи в меню и подвале
+  test("главная: роли ведут на «Для кого», статьи в меню", async ({ page }) => {
     await page.goto("/", { waitUntil: "load" });
     await expect(
       page.getByRole("heading", { level: 2, name: "Кому ГАЙКА снимает работу" }),
@@ -69,9 +70,6 @@ test.describe("новые страницы сайта", () => {
       "href",
       "/dlya-kogo#brigadir",
     );
-    await expect(
-      page.getByRole("heading", { level: 2, name: "Статьи для подрядчика" }),
-    ).toHaveCount(1);
     // Меню телефона ведёт на новые страницы
     await page.getByRole("button", { name: "Меню" }).click();
     const menu = page.getByRole("navigation", { name: "Меню сайта" });

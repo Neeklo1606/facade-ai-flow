@@ -590,14 +590,21 @@ export function BrigadeToday() {
             <span className="grid size-11 shrink-0 place-items-center rounded-full bg-flame-soft text-flame-text">
               <Clock3 className="size-5" aria-hidden />
             </span>
-            <span className="min-w-0">
+            <span className="min-w-0 flex-1">
               <span className="block type-text font-medium">
                 По графику ещё {expected.length}{" "}
                 {plural(expected.length, "объект", "объекта", "объектов")}
               </span>
-              <span className="block truncate type-label text-ink-2">
-                {expected.map((o) => o.label).join(" · ")}
-              </span>
+              {/* Каждый адрес своей строкой: через «·» в одну строку второй адрес
+                  на телефоне не был виден совсем (обход QA 23.11) */}
+              {expected.slice(0, 3).map((o) => (
+                <span key={o.id} className="block truncate type-label text-ink-2" title={o.label}>
+                  {o.label}
+                </span>
+              ))}
+              {expected.length > 3 ? (
+                <span className="block type-label text-ink-3">и ещё {expected.length - 3}</span>
+              ) : null}
             </span>
           </div>
         ) : null}
@@ -704,15 +711,25 @@ function MyEntry({
       data-focused={focused ? "true" : undefined}
       className={cn("flex flex-col gap-2 px-4 py-3 lg:px-5", focused && "bg-surface-2")}
     >
-      <div className="flex items-center justify-between gap-3">
-        <Avatar name={entry.objectLabel} id={entry.objectId} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate type-text font-medium">{entry.objectLabel}</p>
+      {/* Телефон: статус под адресом, а не справа. Справа он сжимал адрес до 100 px
+          и строку записи в шесть строк (обход QA 23.11, 390) */}
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <Avatar
+          name={entry.objectLabel}
+          id={entry.objectId}
+          className="max-sm:row-span-2 max-sm:self-start"
+        />
+        <div className="min-w-0">
+          <p className="truncate type-text font-medium" title={entry.objectLabel}>
+            {entry.objectLabel}
+          </p>
           <p className="type-small text-ink-3">
             {entry.number} · {fmtDay(entry.day)} · {frame} · {crewSummary(entry)}
           </p>
         </div>
-        <StatusChip tone={STATUS_TONE[entry.status]}>{entry.statusLabel}</StatusChip>
+        <span data-entry-status className="justify-self-start sm:justify-self-end">
+          <StatusChip tone={STATUS_TONE[entry.status]}>{entry.statusLabel}</StatusChip>
+        </span>
       </div>
       {entry.status === "clarify" && entry.question ? (
         <div className="flex flex-col gap-2 mono-inset">

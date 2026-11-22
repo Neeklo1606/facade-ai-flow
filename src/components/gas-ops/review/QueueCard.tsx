@@ -22,6 +22,7 @@ import { RemarkChips } from "./remarks";
 import { entryFrame, fmtShortDay, rowLine } from "./rules";
 import { cn } from "@/lib/utils";
 import { sourceLabel, useGasContour } from "@/lib/gas-ops/contour";
+import { showDemoMarks } from "@/lib/cabinet";
 
 export const QueueCard = forwardRef<
   HTMLButtonElement,
@@ -58,9 +59,17 @@ export const QueueCard = forwardRef<
   const { entry } = view;
   // Суммы бригадир не видит (ТЗ, п. 5.6)
   const money = useGasActor().canSeeMoney;
-  const source = sourceLabel(entry.source, useGasContour().kind);
+  const kind = useGasContour().kind;
+  // В кабинете и рабочем контуре метки источника нет: строки там заводят люди заказчика
+  const source = showDemoMarks ? sourceLabel(entry.source, kind) : null;
   // Ждёт проверки при подтверждённой стоимости: ожидаемая доля по минутам, а не вся смета
   const cost = costBreakdown(view);
+  const heading = `${view.brigade?.name ?? "Бригада не указана"} · ${view.object?.label ?? "Объект не указан"}`;
+  const line = rowLine(view);
+  const shortLine = `${fmtShortDay(entry.day)} · ${entryFrame(view) ?? "время не указано"} · ${fmtDuration(entry.minutes)}`;
+  // Телефон, «Проверка»: без дня недели и пробелов у тире, иначе многоточие резало часы
+  // («2 ч 3…», обход QA 23.11, 390). Полная строка в подсказке и в детали записи
+  const phoneLine = `${entry.day.slice(8, 10)}.${entry.day.slice(5, 7)} · ${entryFrame(view)?.replace(" – ", "–") ?? "время не указано"} · ${fmtDuration(entry.minutes)}`;
   const marks =
     fresh || remarks.length ? (
       <span className="flex min-w-0 items-center gap-1">
@@ -113,9 +122,8 @@ export const QueueCard = forwardRef<
             size={36}
             className="max-sm:hidden"
           />
-          <span className="min-w-0 truncate text-body-strong">
-            {view.brigade?.name ?? "Бригада не указана"} ·{" "}
-            {view.object?.label ?? "Объект не указан"}
+          <span className="min-w-0 truncate text-body-strong" title={heading}>
+            {heading}
           </span>
         </span>
         <ChevronDown
@@ -125,10 +133,13 @@ export const QueueCard = forwardRef<
             expanded && "rotate-180",
           )}
         />
-        <span className="col-span-2 flex min-w-0 items-baseline justify-between gap-3 sm:hidden">
-          <span className="min-w-0 truncate text-meta text-text-2 tnum">
-            {fmtShortDay(entry.day)} · {entryFrame(view) ?? "время не указано"} ·{" "}
-            {fmtDuration(entry.minutes)}
+        <span className="col-span-2 flex min-w-0 items-baseline justify-between gap-2 sm:hidden">
+          <span
+            className="min-w-0 truncate text-meta text-text-2 tnum"
+            title={shortLine}
+            data-phone-line
+          >
+            {phoneLine}
           </span>
           {money ? (
             <span
@@ -158,7 +169,8 @@ export const QueueCard = forwardRef<
           <EntryStatusBadge status={entry.status} auto={isAutoAccepted(entry)} />
         ) : null}
         <span className="sr-only">
-          {entry.number}, {source}, {rowLine(view)}
+          {entry.number}, {source ? `${source}, ` : ""}
+          {rowLine(view)}
         </span>
       </button>
     );
@@ -186,10 +198,12 @@ export const QueueCard = forwardRef<
         className="max-sm:hidden"
       />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-body-strong text-text">
-          {view.brigade?.name ?? "Бригада не указана"} · {view.object?.label ?? "Объект не указан"}
+        <span className="block truncate text-body-strong text-text" title={heading}>
+          {heading}
         </span>
-        <span className="flex min-w-0 items-center gap-1.5 text-meta text-text-2 tnum">
+        {/* Телефон (обход QA 23.11): статус и строка времени не делят одну строку. Рядом
+            со статусом «Сб 03.10 · 07:00 – 09:45…» сжималась до 33 px и не читалась */}
+        <span className="flex min-w-0 items-center gap-x-1.5 text-meta text-text-2 tnum max-sm:flex-wrap">
           {showStatus ? (
             <EntryStatusBadge
               status={entry.status}
@@ -197,11 +211,18 @@ export const QueueCard = forwardRef<
               className="shrink-0"
             />
           ) : null}
-          {showStatus ? <span aria-hidden>·</span> : null}
-          <span className="truncate">{rowLine(view)}</span>
+          {showStatus ? (
+            <span aria-hidden className="max-sm:hidden">
+              ·
+            </span>
+          ) : null}
+          <span className="truncate max-sm:basis-full" title={line} data-row-line>
+            {line}
+          </span>
         </span>
         <span className="sr-only">
-          {entry.number}, {source.toLowerCase()}
+          {entry.number}
+          {source ? `, ${source.toLowerCase()}` : ""}
         </span>
       </span>
       {marks ? (
@@ -219,8 +240,10 @@ export const QueueCard = forwardRef<
               : `${cost.expected ? "≈ " : ""}${fmtRub(cost.amountRub)}`}
           </span>
           {showNumber ? (
-            <span className="block text-meta text-text-3 tnum" aria-hidden>
-              {entry.number} · {source}
+            // Телефон: номер и источник только для чтеца (ниже, sr-only), место отдано адресу
+            <span className="block text-meta text-text-3 tnum max-sm:hidden" aria-hidden>
+              {entry.number}
+              {source ? ` · ${source}` : ""}
             </span>
           ) : null}
         </span>

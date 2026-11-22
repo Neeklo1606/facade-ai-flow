@@ -402,7 +402,11 @@ export function PhoneTabBar({
                 <span className="mono-tab-icon">
                   <Icon className="size-5" strokeWidth={active ? 2 : 1.75} aria-hidden />
                 </span>
-                <span className="max-w-full truncate px-1">{item.label}</span>
+                {/* «Документы», «Материалы» на 390 не помещались на 2 px: поля 2 и плотнее буквы,
+                    при самом узком экране полная подпись в подсказке (обход QA 23.11) */}
+                <span className="max-w-full truncate px-0.5 tracking-tight" title={item.label}>
+                  {item.label}
+                </span>
               </Link>
             </li>
           );

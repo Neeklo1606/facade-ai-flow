@@ -34,6 +34,7 @@ import {
   planAccrual,
   sectionForEntry,
   sectionLabel,
+  splitBySections,
   type EntryAccrual,
   type SectionProgress,
 } from "@/domain/gas-ops/section-accrual";
@@ -367,7 +368,11 @@ function applyCost(
   locked: number;
   kept: number;
 } {
-  const recalc = recalcObject(s.entries, objectId, amountRub, (day) => isDayLocked(s.periods, day));
+  // Стоимость делится по разделам (ADR-085): записи начисляет доля раздела, а не минуты
+  // всей сметы. Иначе подтверждённая запись без раздела получила бы долю поверх разделов
+  const recalc = splitBySections(s, objectId)
+    ? { entries: s.entries, changed: [], waiting: 0, locked: 0, confirmedMismatch: [] }
+    : recalcObject(s.entries, objectId, amountRub, (day) => isDayLocked(s.periods, day));
   let stale = 0;
   const reportIssues = s.reportIssues.map((r) => {
     if (r.stale || !r.objectIds.includes(objectId)) return r;
@@ -844,6 +849,15 @@ export function createGasOpsDemo(
         throw new GasOpsError("not-allowed", "Проверку ведёт менеджер.");
       }
       mustBeOpen(snapshot, entry.day);
+      /*
+       * Повторное «Принять» по уже принятой записи (двойное нажатие, второй менеджер, повтор
+       * запроса после обрыва связи) не пересчитывает начисление: иначе доля раздела уже учла
+       * эту запись, шаг выходил нулевым и затирал её начисление, а остаток раздела рос (П6).
+       * Изменить долю принятой записи можно отменой решения или правкой с причиной
+       */
+      if (input.action === "confirm" && entry.status === "confirmed") {
+        throw new GasOpsError("already-reviewed", "Запись уже принята. Обновите экран.");
+      }
       if (input.action !== "confirm" && !input.comment?.trim()) {
         throw new GasOpsError(
           "comment-required",
@@ -2412,6 +2426,8 @@ export function createGasOpsDemo(
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       if (actor?.role === "foreman" && actor.brigadeId !== entry.brigadeId)
         throw new GasOpsError("not-allowed", "Запись другой бригады.");
+      // Ответ меняет предложенную долю: в закрытой неделе он не принимается, как и правка
+      mustBeOpen(snapshot, entry.day);
       if (!entry.sectionKey)
         throw new GasOpsError("no-section", "У записи нет раздела: вопрос не нужен.");
       if (entry.status === "confirmed" || entry.status === "rejected")

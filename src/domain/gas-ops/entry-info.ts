@@ -442,6 +442,22 @@ export function costBreakdown(view: EntryView, confirmedBy: string | null = null
       perHour: perHour,
     };
   }
+  if (view.sectionless && entry.source !== "fact-report") {
+    // Смета объекта делится по разделам (ADR-085): доля всей сметы по минутам здесь была бы
+    // вторым начислением тех же денег поверх начислений разделов
+    return {
+      amountRub: entry.amountRub,
+      expected: false,
+      source: "раздел записи не указан",
+      formula:
+        "Стоимость объекта начисляется по разделам сметы. Запись без раздела сумму не получает: назначьте бригаде раздел на странице объекта.",
+      durationMinutes: entry.minutes,
+      perHour:
+        entry.amountRub !== null && entry.minutes > 0
+          ? Math.round(entry.amountRub / (entry.minutes / 60))
+          : null,
+    };
+  }
   if (view.amountOrigin === "entry" && entry.source === "fact-report") {
     source = `недельный отчёт заказчика${entry.excelRow ? `, строка ${entry.excelRow}` : ""}`;
     formula = "Сумма взята из отчёта заказчика как есть.";

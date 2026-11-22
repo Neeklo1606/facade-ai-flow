@@ -1,5 +1,12 @@
 # HTTPS сертификат Caddy получает сам, если DOMAIN указывает на этот сервер
 {$DOMAIN} {
 	encode zstd gzip
+	# Браузер ходит только по https; остальные заголовки безопасности ставит приложение
+	# (src/lib/security-headers.ts). Заголовок Server не выдаёт версию прокси
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	# x-forwarded-proto: https Caddy передаёт сам: по нему кука сессии получает Secure
 	reverse_proxy app:3000
 }

@@ -94,12 +94,14 @@ import { Route as StatiIndexRouteImport } from './routes/stati.index'
 import { Route as StatiSlugRouteImport } from './routes/stati.$slug'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
+import { Route as ApiGasAccessRouteImport } from './routes/api/gas/access'
 import { Route as ApiGasAssistantRouteImport } from './routes/api/gas/assistant'
 import { Route as ApiGasConnectionsRouteImport } from './routes/api/gas/connections'
 import { Route as ApiGasEstimateFilesRouteImport } from './routes/api/gas/estimate-files'
 import { Route as ApiGasEstimateFolderRouteImport } from './routes/api/gas/estimate-folder'
 import { Route as ApiGasExecDocsRouteImport } from './routes/api/gas/exec-docs'
 import { Route as ApiGasExportRouteImport } from './routes/api/gas/export'
+import { Route as ApiGasMaxCheckRouteImport } from './routes/api/gas/max-check'
 import { Route as ApiGasRfqRouteImport } from './routes/api/gas/rfq'
 import { Route as ApiMaxWebhookRouteImport } from './routes/api/max/webhook'
 import { Route as ApiOfficeConnectionsRouteImport } from './routes/api/office/connections'
@@ -545,6 +547,11 @@ const ApiExportShiftRoute = ApiExportShiftRouteImport.update({
   path: '/api/export/shift',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGasAccessRoute = ApiGasAccessRouteImport.update({
+  id: '/api/gas/access',
+  path: '/api/gas/access',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGasAssistantRoute = ApiGasAssistantRouteImport.update({
   id: '/api/gas/assistant',
   path: '/api/gas/assistant',
@@ -573,6 +580,11 @@ const ApiGasExecDocsRoute = ApiGasExecDocsRouteImport.update({
 const ApiGasExportRoute = ApiGasExportRouteImport.update({
   id: '/api/gas/export',
   path: '/api/gas/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGasMaxCheckRoute = ApiGasMaxCheckRouteImport.update({
+  id: '/api/gas/max-check',
+  path: '/api/gas/max-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGasRfqRoute = ApiGasRfqRouteImport.update({
@@ -756,12 +768,14 @@ export interface FileRoutesByFullPath {
   '/stati/': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/access': typeof ApiGasAccessRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
   '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
   '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
+  '/api/gas/max-check': typeof ApiGasMaxCheckRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
@@ -865,12 +879,14 @@ export interface FileRoutesByTo {
   '/stati': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/access': typeof ApiGasAccessRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
   '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
   '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
+  '/api/gas/max-check': typeof ApiGasMaxCheckRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
@@ -977,12 +993,14 @@ export interface FileRoutesById {
   '/stati/': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/access': typeof ApiGasAccessRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
   '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
   '/api/gas/estimate-folder': typeof ApiGasEstimateFolderRoute
   '/api/gas/exec-docs': typeof ApiGasExecDocsRoute
   '/api/gas/export': typeof ApiGasExportRoute
+  '/api/gas/max-check': typeof ApiGasMaxCheckRoute
   '/api/gas/rfq': typeof ApiGasRfqRoute
   '/api/max/webhook': typeof ApiMaxWebhookRoute
   '/api/office/connections': typeof ApiOfficeConnectionsRoute
@@ -1090,12 +1108,14 @@ export interface FileRouteTypes {
     | '/stati/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/access'
     | '/api/gas/assistant'
     | '/api/gas/connections'
     | '/api/gas/estimate-files'
     | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
+    | '/api/gas/max-check'
     | '/api/gas/rfq'
     | '/api/max/webhook'
     | '/api/office/connections'
@@ -1199,12 +1219,14 @@ export interface FileRouteTypes {
     | '/stati'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/access'
     | '/api/gas/assistant'
     | '/api/gas/connections'
     | '/api/gas/estimate-files'
     | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
+    | '/api/gas/max-check'
     | '/api/gas/rfq'
     | '/api/max/webhook'
     | '/api/office/connections'
@@ -1310,12 +1332,14 @@ export interface FileRouteTypes {
     | '/stati/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/access'
     | '/api/gas/assistant'
     | '/api/gas/connections'
     | '/api/gas/estimate-files'
     | '/api/gas/estimate-folder'
     | '/api/gas/exec-docs'
     | '/api/gas/export'
+    | '/api/gas/max-check'
     | '/api/gas/rfq'
     | '/api/max/webhook'
     | '/api/office/connections'
@@ -1389,12 +1413,14 @@ export interface RootRouteChildren {
   StatiIndexRoute: typeof StatiIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
+  ApiGasAccessRoute: typeof ApiGasAccessRoute
   ApiGasAssistantRoute: typeof ApiGasAssistantRoute
   ApiGasConnectionsRoute: typeof ApiGasConnectionsRoute
   ApiGasEstimateFilesRoute: typeof ApiGasEstimateFilesRoute
   ApiGasEstimateFolderRoute: typeof ApiGasEstimateFolderRoute
   ApiGasExecDocsRoute: typeof ApiGasExecDocsRoute
   ApiGasExportRoute: typeof ApiGasExportRoute
+  ApiGasMaxCheckRoute: typeof ApiGasMaxCheckRoute
   ApiGasRfqRoute: typeof ApiGasRfqRoute
   ApiMaxWebhookRoute: typeof ApiMaxWebhookRoute
   ApiOfficeConnectionsRoute: typeof ApiOfficeConnectionsRoute
@@ -2007,6 +2033,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExportShiftRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gas/access': {
+      id: '/api/gas/access'
+      path: '/api/gas/access'
+      fullPath: '/api/gas/access'
+      preLoaderRoute: typeof ApiGasAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gas/assistant': {
       id: '/api/gas/assistant'
       path: '/api/gas/assistant'
@@ -2047,6 +2080,13 @@ declare module '@tanstack/react-router' {
       path: '/api/gas/export'
       fullPath: '/api/gas/export'
       preLoaderRoute: typeof ApiGasExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gas/max-check': {
+      id: '/api/gas/max-check'
+      path: '/api/gas/max-check'
+      fullPath: '/api/gas/max-check'
+      preLoaderRoute: typeof ApiGasMaxCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/gas/rfq': {
@@ -2324,12 +2364,14 @@ const rootRouteChildren: RootRouteChildren = {
   StatiIndexRoute: StatiIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,
+  ApiGasAccessRoute: ApiGasAccessRoute,
   ApiGasAssistantRoute: ApiGasAssistantRoute,
   ApiGasConnectionsRoute: ApiGasConnectionsRoute,
   ApiGasEstimateFilesRoute: ApiGasEstimateFilesRoute,
   ApiGasEstimateFolderRoute: ApiGasEstimateFolderRoute,
   ApiGasExecDocsRoute: ApiGasExecDocsRoute,
   ApiGasExportRoute: ApiGasExportRoute,
+  ApiGasMaxCheckRoute: ApiGasMaxCheckRoute,
   ApiGasRfqRoute: ApiGasRfqRoute,
   ApiMaxWebhookRoute: ApiMaxWebhookRoute,
   ApiOfficeConnectionsRoute: ApiOfficeConnectionsRoute,

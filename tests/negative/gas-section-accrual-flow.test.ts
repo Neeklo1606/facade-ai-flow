@@ -76,7 +76,7 @@ async function setup() {
     from: "2026-09-28",
     to: null,
   });
-  return { store, manager, object, s3, s7 };
+  return { store, manager, object, s3, s7, versionId: file.versionId! };
 }
 
 const time = (day: string, objectId: string, brigadeId: string, key: string) => ({
@@ -196,6 +196,46 @@ describe("назначения → время → доля → начислен�
     expect((store.now().sectionProgress ?? []).at(-1)?.toBp).toBe(3000);
   });
 
+  test("повторное «Принять» по принятой записи — отказ, начисление и остаток не меняются (П6)", async () => {
+    const { store, manager, object, s3 } = await setup();
+    const f1 = createGasOpsDemo(actingAs(store, "u-foreman-1"), null);
+    const workRub = sectionWorkRub(s3)!;
+    const a = await f1.createEntry(time("2026-09-28", object.id, "brg-1", "d1"));
+    const b = await f1.createEntry(time("2026-09-29", object.id, "brg-1", "d2"));
+    const first = await manager.review({
+      id: a.id,
+      action: "confirm",
+      accrual: { kind: "share", percent: 40 },
+    });
+    const accrued = accruedRub(store.now().entries, object.id, s3.key);
+    expect(accrued).toBe(Math.floor((workRub * 4000) / FULL_BP));
+    expect(first.amountRub).toBe(accrued);
+
+    // Двойное нажатие, второй менеджер или повтор запроса: до исправления начисление
+    // записи затиралось нулём, а остаток раздела рос на ту же сумму
+    await expect(
+      manager.review({ id: a.id, action: "confirm", accrual: { kind: "share", percent: 40 } }),
+    ).rejects.toMatchObject({ code: "already-reviewed" });
+    await expect(manager.review({ id: a.id, action: "confirm" })).rejects.toBeInstanceOf(
+      GasOpsError,
+    );
+    const after = store.now().entries.find((e) => e.id === a.id)!;
+    expect(after.amountRub).toBe(first.amountRub);
+    expect(after.accrual).toEqual(first.accrual);
+    expect(accruedRub(store.now().entries, object.id, s3.key)).toBe(accrued);
+    expect((store.now().sectionProgress ?? []).filter((p) => p.sectionKey === s3.key)).toHaveLength(
+      1,
+    );
+
+    // Раздел завершён следующей записью: сумма по разделу ровно стоимость, не больше
+    await manager.review({ id: b.id, action: "confirm", accrual: { kind: "share", done: true } });
+    expect(accruedRub(store.now().entries, object.id, s3.key)).toBe(workRub);
+    const confirmed = store
+      .now()
+      .entries.filter((e) => e.objectId === object.id && e.status === "confirmed");
+    expect(confirmed.reduce((x, e) => x + (e.amountRub ?? 0), 0)).toBe(workRub);
+  });
+
   test("бригадир не назначает разделы и не меняет режим начисления — 403 на сервере", async () => {
     const { store, object, s3 } = await setup();
     await expect(
@@ -239,6 +279,48 @@ describe("назначения → время → доля → начислен�
         to: null,
       }),
     ).rejects.toBeInstanceOf(GasOpsError);
+  });
+});
+
+describe("запись без раздела на объекте с разделами (ADR-085)", () => {
+  test("доли всей сметы по минутам нет: начислено по объекту не больше стоимости работ", async () => {
+    const { store, manager, object, s3, versionId } = await setup();
+    await manager.reviewEstimateIssues(versionId);
+    const confirmed = await manager.confirmEstimateVersion(versionId);
+    const costRub = confirmed.estimate.amountRub;
+    expect(costRub).toBeGreaterThan(0);
+    const f1 = createGasOpsDemo(actingAs(store, "u-foreman-1"), null);
+    const a = await f1.createEntry(time("2026-09-28", object.id, "brg-1", "l1"));
+    // Бригада 3 без назначения: запись без раздела, менеджер вносит за неё
+    const loose = await manager.createEntry(time("2026-09-28", object.id, "brg-3", "l2"));
+    expect(loose.sectionKey ?? null).toBe(null);
+    await manager.review({ id: a.id, action: "confirm", accrual: { kind: "share", done: true } });
+    const ok = await manager.review({ id: loose.id, action: "confirm" });
+    // Часы приняты, суммы нет: раздел 3 уже начислен целиком
+    expect(ok.status).toBe("confirmed");
+    expect(ok.amountRub).toBe(null);
+    const total = store
+      .now()
+      .entries.filter((e) => e.objectId === object.id && e.status === "confirmed")
+      .reduce((x, e) => x + (e.amountRub ?? 0), 0);
+    expect(total).toBe(sectionWorkRub(s3)!);
+    expect(total).toBeLessThanOrEqual(costRub);
+    // Повторное подтверждение сметы не раздаёт стоимость по минутам записям без суммы
+    await manager.reviewEstimateIssues(versionId);
+    const again = await manager.confirmEstimateVersion(versionId);
+    expect(again.changedEntries).toBe(0);
+    expect(store.now().entries.find((e) => e.id === loose.id)?.amountRub).toBe(null);
+  });
+
+  test("режим «по времени»: запись без раздела по-прежнему получает долю сметы", async () => {
+    const { store, manager, object, versionId } = await setup();
+    await manager.setAccrualMode("time");
+    await manager.reviewEstimateIssues(versionId);
+    await manager.confirmEstimateVersion(versionId);
+    const loose = await manager.createEntry(time("2026-09-28", object.id, "brg-3", "l3"));
+    const ok = await manager.review({ id: loose.id, action: "confirm" });
+    expect(ok.amountRub).toBeGreaterThan(0);
+    void store;
   });
 });
 

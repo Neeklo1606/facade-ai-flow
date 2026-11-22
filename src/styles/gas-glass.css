@@ -426,7 +426,12 @@
     inset 0 -1px 1px var(--glass-edge-shade),
     0 6px 18px rgb(var(--glass-shadow-rgb) / 9%);
 }
-:root[data-glass] .gas-shell .warm-tile[data-variant="inverse"] {
+/*
+ * Инверсная карточка остаётся тёмной. Без этого стекло красило `mono-card-inverse` светлым
+ * фоном при светлом тексте: первая плитка показателей снабжения и ПТО не читалась
+ * (обход QA 23.11, 390)
+ */
+:root[data-glass] .gas-shell :is(.warm-tile[data-variant="inverse"], .mono-card-inverse) {
   border-color: transparent;
   background: var(--inverse);
   color: var(--on-inverse);
@@ -598,6 +603,9 @@
   }
   :root[data-glass] .gas-shell :is(.surface-1, .card-v3, .mono-card, .hero-field, .warm-tile) {
     background: var(--panel-3);
+  }
+  :root[data-glass] .gas-shell :is(.warm-tile[data-variant="inverse"], .mono-card-inverse) {
+    background: var(--inverse);
   }
 }
 

@@ -9,6 +9,7 @@
 import type { ReactNode } from "react";
 import { Check, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hintOf } from "@/lib/node-text";
 import { StatusDot, type EntryStatus } from "./status";
 
 export interface ListRowProps {
@@ -76,6 +77,8 @@ export function ListRow({
             "block text-text",
             compact ? "truncate text-body" : "line-clamp-2 text-heading",
           )}
+          // Обрезанный текст с полной подсказкой (обход QA 23.11)
+          title={hintOf(title)}
         >
           {title}
         </span>
@@ -83,7 +86,11 @@ export function ListRow({
           <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-meta text-text-3">
             {status ? <StatusDot status={status} className="shrink-0 text-text-2" /> : null}
             {status && meta ? <span aria-hidden>·</span> : null}
-            {meta ? <span className="truncate">{meta}</span> : null}
+            {meta ? (
+              <span className="truncate" title={hintOf(meta)}>
+                {meta}
+              </span>
+            ) : null}
           </span>
         ) : null}
         {chips ? <span className="mt-1.5 block">{chips}</span> : null}

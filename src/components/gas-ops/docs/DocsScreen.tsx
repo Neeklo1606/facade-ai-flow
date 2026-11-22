@@ -28,6 +28,8 @@ import {
   type DataColumn,
 } from "@/components/ui/mono";
 import { toast } from "@/lib/toast";
+import { windowsEnabled, useWindows } from "../windows/windows";
+import { ActWindow } from "./ActWindow";
 import { DOC_TONE, DocsGate, ObjectPick, useObjectPick } from "./common";
 
 export function DocsScreen() {
@@ -44,6 +46,7 @@ function Docs() {
   const [objectId, setObjectId] = useObjectPick();
   const { views, metrics } = useDocList(objectId);
   const navigate = useNavigate();
+  const windows = useWindows();
 
   if (!objectId) {
     return (
@@ -128,7 +131,16 @@ function Docs() {
             <StatusChip tone={DOC_TONE[v.doc.status]}>{DOC_STATUS_LABEL[v.doc.status]}</StatusChip>
           )}
           onOpen={(id) => {
-            if (id) void navigate({ to: "/gas/docs/$docId", params: { docId: id } });
+            if (!id) return;
+            // Компьютер: акт в окне поверх списка, как в 1С (ADR-084). Телефон: страница
+            if (windowsEnabled()) {
+              const view = views.find((v) => v.doc.id === id);
+              windows.open({
+                id: `act-${id}`,
+                title: view ? `${view.title} · ${view.kind?.name ?? ""}` : "Акт",
+                render: () => <ActWindow docId={id} />,
+              });
+            } else void navigate({ to: "/gas/docs/$docId", params: { docId: id } });
           }}
           empty={<EmptyState title="Ничего не найдено" text="Смените объект." />}
         />

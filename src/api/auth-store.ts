@@ -112,25 +112,34 @@ export async function createCode(phone: string) {
   return { code };
 }
 
-/** Проверка кода: одна попытка списывается всегда, иначе перебор бесплатен */
+/**
+ * Проверка кода: одна попытка списывается всегда, иначе перебор бесплатен. Списание — первым
+ * и одним запросом: раньше остаток читался до проверки, и сотня одновременных попыток
+ * видела те же три попытки и проверялась вся. Погашение верного кода тоже однократное
+ */
 export async function useCode(phone: string, code: string): Promise<CodeRefusal | "ok"> {
-  const rows = await db().query<{ id: string; code_hash: string; attempts_left: number }>(
-    `select id, code_hash, attempts_left from auth_codes
+  const latest = `select id from auth_codes
        where phone = $1 and used_at is null and expires_at > now()
-       order by created_at desc limit 1`,
+       order by created_at desc limit 1`;
+  const rows = await db().query<{ id: string; code_hash: string; attempts_left: number }>(
+    `update auth_codes set attempts_left = attempts_left - 1
+       where id = (${latest}) and attempts_left > 0
+       returning id, code_hash, attempts_left`,
     [phone],
   );
   const row = rows[0];
-  if (!row) return "expired";
-  if (row.attempts_left <= 0) return "no-attempts";
-  if (row.code_hash !== (await hash(code))) {
-    await db().query(`update auth_codes set attempts_left = attempts_left - 1 where id = $1`, [
-      row.id,
-    ]);
-    return row.attempts_left <= 1 ? "no-attempts" : "wrong";
+  if (!row) {
+    const live = await db().query<{ id: string }>(latest, [phone]);
+    return live[0] ? "no-attempts" : "expired";
   }
-  await db().query(`update auth_codes set used_at = now() where id = $1`, [row.id]);
-  return "ok";
+  if (row.code_hash !== (await hash(code))) {
+    return row.attempts_left <= 0 ? "no-attempts" : "wrong";
+  }
+  const used = await db().query<{ id: string }>(
+    `update auth_codes set used_at = now() where id = $1 and used_at is null returning id`,
+    [row.id],
+  );
+  return used[0] ? "ok" : "expired";
 }
 
 /** Новая сессия сотрудника. Истёкшие чистятся здесь же: отдельного задания заводить не за чем */
@@ -207,17 +216,20 @@ export async function createInvite(input: {
   return token;
 }
 
-/** Принять приглашение: возвращает сотрудника или null, если ссылка гашена или просрочена */
+/**
+ * Принять приглашение: возвращает сотрудника или null, если ссылка гашена, просрочена или уже
+ * принята. Проверка и погашение — один запрос: две одновременные попытки по одной ссылке
+ * не входят обе (раньше выборка и отметка шли раздельно)
+ */
 export async function useInvite(token: string) {
-  const rows = await db().query<{ id: string; employee_id: string }>(
-    `select id::text as id, employee_id::text as employee_id from auth_invites
-       where token_hash = $1 and accepted_at is null and revoked_at is null and expires_at > now()`,
+  const rows = await db().query<{ employee_id: string }>(
+    `update auth_invites set accepted_at = now()
+       where token_hash = $1 and accepted_at is null and revoked_at is null and expires_at > now()
+       returning employee_id::text as employee_id`,
     [await hash(token)],
   );
   const row = rows[0];
-  if (!row) return null;
-  await db().query(`update auth_invites set accepted_at = now() where id = $1::uuid`, [row.id]);
-  return fromDb(row.employee_id);
+  return row ? fromDb(row.employee_id) : null;
 }
 
 /** Состояние приглашений для экрана пользователей */

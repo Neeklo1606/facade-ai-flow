@@ -148,6 +148,12 @@ export const revokeEmployeeFn = createServerFn({ method: "POST" })
 /** Состояние доступа сотрудников для экрана пользователей */
 export const accessStateFn = createServerFn({ method: "GET" }).handler(async () => {
   if (!authAvailable()) return { enabled: false as const, invites: [], lastSeen: [] };
+  // Кто когда входил и кого пригласили — сведения раздела «Права доступа»: без права чтения
+  // раздела ответ пустой, как для любого постороннего (ADR-012, проверка на сервере)
+  const session = await requestSession();
+  if (!session || !canRole(session.role, "access", "read")) {
+    return { enabled: true as const, invites: [], lastSeen: [] };
+  }
   const [invites, lastSeen] = await Promise.all([invitesByEmployee(), lastSeenByEmployee()]);
   return {
     enabled: true as const,

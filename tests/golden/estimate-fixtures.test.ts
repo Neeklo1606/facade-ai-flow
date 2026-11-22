@@ -82,6 +82,24 @@ describe("golden: обезличенные копии смет", () => {
     expect(v.smrKopecks).toBe(v.workKopecks! - v.pressure!.workKopecks);
   });
 
+  test("перевозка в итогах раздела ГРАНД видна отдельно и не прячется в работах молча", async () => {
+    // Копия ГРАНД со строкой «Перевозка» в итогах раздела 1: правило «итог минус материалы»
+    // оставляет её в работах; разбор показывает сумму и строку, решение за руководителем
+    const parsed = await parse("grand-b.xlsx");
+    const v = sectionView(parsed.sections[0]!);
+    expect(v.number).toBe("1");
+    expect(v.transportKopecks).toBe(101031);
+    expect(v.transportRow).toBe(72);
+    expect(v.workNote).toContain("стр. 72");
+    expect(v.workKopecks).toBe(v.totalKopecks - v.materialsKopecks!);
+    // В остальных разделах обеих ГРАНД перевозки нет
+    for (const file of ["grand-a.xlsx", "grand-b.xlsx"]) {
+      const p = await parse(file);
+      const rest = p.sections.map((s) => sectionView(s)).filter((s) => s.transportKopecks !== null);
+      expect(rest.map((s) => s.number)).toEqual(file === "grand-b.xlsx" ? ["1"] : []);
+    }
+  });
+
   test("пустой первый лист «12 граф» пропускается сам", async () => {
     const parsed = await parse("resource-a.xls");
     expect(parsed.sheet).toBe("Ресурсная смета 14 граф");

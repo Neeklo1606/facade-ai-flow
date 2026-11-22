@@ -89,8 +89,12 @@ export function WeekBreakdown({ view }: { view: GasWeekView }) {
               <li key={line.id} className="flex flex-col gap-1.5 py-3 first:pt-0">
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-body-strong">{line.label}</p>
-                    <p className="truncate type-small text-ink-3 tnum">{line.meta}</p>
+                    <p className="truncate text-body-strong" title={line.label}>
+                      {line.label}
+                    </p>
+                    {/* Пояснение переносится: в конце строки стоит ₽/ч, многоточие прятало
+                        цифру на 390 (обход QA 23.11) */}
+                    <p className="type-small text-ink-3 tnum">{line.meta}</p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <span className="text-body-strong tnum">{fmtRub(line.amount)}</span>

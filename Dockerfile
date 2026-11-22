@@ -27,8 +27,12 @@ FROM node:22-slim AS run
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000 \
-    HOST=0.0.0.0
+    HOST=0.0.0.0 \
+    ESTIMATE_FILES_DIR=/data/estimate-files
 COPY --from=build /app/.output ./.output
+# Исходные файлы смет (ADR-086): том compose монтируется сюда. Каталог создаётся в образе
+# с владельцем node, иначе пустой том достаётся root и запись файла падает с EACCES
+RUN mkdir -p /data/estimate-files && chown -R node:node /data
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

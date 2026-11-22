@@ -129,6 +129,11 @@ export interface SectionView {
   pressure: PressureView | null;
   /** СМР раздела без опрессовки: работы минус работы опрессовки */
   smrKopecks: number | null;
+  /** «Перевозка» из итогов раздела: входит в работы по правилу «итог минус материалы» */
+  transportKopecks: number | null;
+  transportRow: number | null;
+  /** Что в стоимости работ требует решения человека; null — нечего */
+  workNote: string | null;
 }
 
 /** Ключ раздела: номер, иначе название — по нему разделы сравниваются между версиями */
@@ -219,6 +224,11 @@ export function sectionView(section: EstimateSection, mode: PressureMode = "payr
     pressure,
     smrKopecks:
       work === null ? null : pressure?.kind === "section" ? 0 : work - (pressure?.workKopecks ?? 0),
+    transportKopecks: section.breakdown?.transport?.kopecks ?? null,
+    transportRow: section.breakdown?.transport?.row ?? null,
+    workNote: section.breakdown?.transport
+      ? `В работы раздела входит перевозка, стр. ${section.breakdown.transport.row}: вычитать ли её, как материалы, решает руководитель`
+      : null,
   };
 }
 
@@ -445,4 +455,77 @@ export function objectSectionsOf(
     .filter((p) => p.objectId === objectId && !keys.has(p.key))
     .map((p) => ({ ...p, removed: true }));
   return [...next, ...gone];
+}
+
+/* ---------------------------------------------------------------- Исходный файл мастера */
+
+/** Часть снимка, которую трогает сохранение исходного файла */
+export interface KeepFileState {
+  estimateFiles?: EstimateFile[];
+  estimateVersions: { id: string; fileId?: string | null; parseStatus: string }[];
+}
+
+/**
+ * Исходный файл версии из мастера «Загрузить смету» (ADR-086): мастер разбирает файл во вкладке,
+ * а на рабочем контуре байты ещё и ложатся в хранилище тома. Опись файла связывается с версией.
+ * Тот же файл второй раз не описывается: версия ссылается на прежнюю опись. Версия, у которой
+ * файл уже есть, не меняется. Чистая функция: null — версии нет
+ */
+export function keepSourceFile<S extends KeepFileState>(
+  snapshot: S,
+  input: {
+    versionId: string;
+    fileId: string;
+    sha256: string;
+    name: string;
+    size: number;
+    storagePath: string;
+    actorId: string;
+    at: string;
+  },
+): { snapshot: S; fileId: string } | null {
+  const version = snapshot.estimateVersions.find((v) => v.id === input.versionId);
+  if (!version) return null;
+  if (version.fileId) return { snapshot, fileId: version.fileId };
+  const files = snapshot.estimateFiles ?? [];
+  const twin = duplicateOf(files, input.sha256);
+  const fileId = twin?.id ?? input.fileId;
+  const status: EstimateFileStatus =
+    version.parseStatus === "unknown-format"
+      ? "unreadable"
+      : version.parseStatus === "parsed"
+        ? "parsed"
+        : "needs-review";
+  const nextFiles: EstimateFile[] = twin
+    ? files.map((f) =>
+        f.id === twin.id
+          ? { ...f, storagePath: f.storagePath ?? input.storagePath, repeats: f.repeats + 1 }
+          : f,
+      )
+    : [
+        {
+          id: fileId,
+          sha256: input.sha256,
+          name: input.name,
+          size: input.size,
+          uploadedBy: input.actorId,
+          uploadedAt: input.at,
+          storagePath: input.storagePath,
+          status,
+          reason: null,
+          versionId: version.id,
+          repeats: 0,
+        },
+        ...files,
+      ];
+  return {
+    fileId,
+    snapshot: {
+      ...snapshot,
+      estimateFiles: nextFiles,
+      estimateVersions: snapshot.estimateVersions.map((v) =>
+        v.id === version.id ? { ...v, fileId } : v,
+      ),
+    },
+  };
 }

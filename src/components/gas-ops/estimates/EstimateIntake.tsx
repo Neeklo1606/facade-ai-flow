@@ -176,7 +176,10 @@ export function EstimateIntake({
                 disabled={!row.version}
                 onClick={() => row.version && setOpenId(row.version.id)}
               >
-                <span className="block truncate text-body">
+                <span
+                  className="block truncate text-body"
+                  title={row.object ? `${row.object.code} · ${row.object.label}` : row.file.name}
+                >
                   {row.object ? `${row.object.code} · ${row.object.label}` : row.file.name}
                 </span>
                 <span className="block text-meta text-text-3">{row.status}</span>
@@ -326,6 +329,7 @@ export function CardBody({
   const navigate = useNavigate();
   const [compare, setCompare] = useState(false);
   const [draft, setDraft] = useState<ObjectDraft | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
   const header = card.version.header;
@@ -345,9 +349,11 @@ export function CardBody({
 
   const create = async () => {
     if (!draft) return;
+    setCreateError(null);
     setBusy(true);
     const result = await intake.createObject(card.version.id, draft, mode);
     setBusy(false);
+    setCreateError(result.ok ? null : result.message);
     if (result.ok) {
       notify(`Объект ${result.value.code} создан с разделами сметы: ${card.sections.length}`);
       setDraft(null);
@@ -519,6 +525,12 @@ export function CardBody({
                   Отмена
                 </Button>
               </div>
+              {/* Ошибка рядом с кнопкой, а не только тостом: «объект уже есть» видно сразу */}
+              {createError ? (
+                <p role="alert" className="text-meta text-down" data-testid="estimate-create-error">
+                  {createError}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -595,6 +607,7 @@ export function CardBody({
                 {s.materialsNote ? (
                   <p className="mt-1 text-meta text-text-3">{s.materialsNote}</p>
                 ) : null}
+                {s.workNote ? <p className="mt-1 text-meta text-warn">{s.workNote}</p> : null}
                 {s.pressure?.needsConfirm ? (
                   <p className="mt-1 text-meta text-warn">
                     Опрессовка посчитана системой ({s.pressure.method}): требует подтверждения

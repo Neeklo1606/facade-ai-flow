@@ -9,6 +9,7 @@
  * Бригадир видит свою панель: «Сегодня», бот, «Мои записи», «Профиль».
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { WindowsProvider } from "../windows/windows";
 import {
   ChevronDown,
   ChevronLeft,
@@ -196,41 +197,44 @@ function GasShellFrame({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="gas-shell min-h-dvh bg-canvas text-ink">
-      <div ref={topRef} className="sticky top-0 z-30">
-        <div className="max-lg:hidden">
-          <GasTopBar />
-        </div>
-        {/* Экран бота на телефоне: шапка чата и есть шапка экрана, одна вместо двух (ADR-048) */}
-        <div className={cn("lg:hidden", botOnly && "hidden")}>
-          <GasPhoneHeader screen={screen} />
-        </div>
-        {network.offline ? <OfflineBar demo={network.simulated} /> : null}
-        {showTestMode({ dataSource, contour: contourKind, cabinet: cabinetOnly }) ? (
-          <TestModeBar />
-        ) : null}
-      </div>
-      <div className="lg:flex">
-        {/* Левое меню только у ролей с меню: бригадир живёт в телефоне (таблица 3.3) */}
-        {field ? null : <GasSideNav pathname={pathname} />}
-        <main
-          id="gas-main"
-          className={cn("gas-content min-w-0 flex-1", botOnly ? "pb-safe" : "pb-inset lg:pb-12")}
-        >
-          {/* Бот на телефоне: шапка чата вместо шапки экрана */}
-          <div className={screen.key === "foreman" ? "max-lg:hidden" : undefined}>
-            <GasScreenHeader screen={screen} />
+    // Окна документов (ADR-084): смена роли закрывает все, у другой роли другие права
+    <WindowsProvider key={actor.role}>
+      <div className="gas-shell min-h-dvh bg-canvas text-ink">
+        <div ref={topRef} className="sticky top-0 z-30">
+          <div className="max-lg:hidden">
+            <GasTopBar />
           </div>
-          <div className="max-lg:pt-2">
-            <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
+          {/* Экран бота на телефоне: шапка чата и есть шапка экрана, одна вместо двух (ADR-048) */}
+          <div className={cn("lg:hidden", botOnly && "hidden")}>
+            <GasPhoneHeader screen={screen} />
           </div>
-        </main>
+          {network.offline ? <OfflineBar demo={network.simulated} /> : null}
+          {showTestMode({ dataSource, contour: contourKind, cabinet: cabinetOnly }) ? (
+            <TestModeBar />
+          ) : null}
+        </div>
+        <div className="lg:flex">
+          {/* Левое меню только у ролей с меню: бригадир живёт в телефоне (таблица 3.3) */}
+          {field ? null : <GasSideNav pathname={pathname} />}
+          <main
+            id="gas-main"
+            className={cn("gas-content min-w-0 flex-1", botOnly ? "pb-safe" : "pb-inset lg:pb-12")}
+          >
+            {/* Бот на телефоне: шапка чата вместо шапки экрана */}
+            <div className={screen.key === "foreman" ? "max-lg:hidden" : undefined}>
+              <GasScreenHeader screen={screen} />
+            </div>
+            <div className="max-lg:pt-2">
+              <ScreenStateGate screen={screen.key}>{children}</ScreenStateGate>
+            </div>
+          </main>
+        </div>
+        {botOnly ? null : <GasBottomNav pathname={pathname} />}
+        {/* Помощник (4.8): у ролей с данными недели; бригадир и старт без него */}
+        {field || screen.key === "start" ? null : <AssistantButton />}
+        <Tour />
       </div>
-      {botOnly ? null : <GasBottomNav pathname={pathname} />}
-      {/* Помощник (4.8): у ролей с данными недели; бригадир и старт без него */}
-      {field || screen.key === "start" ? null : <AssistantButton />}
-      <Tour />
-    </div>
+    </WindowsProvider>
   );
 }
 
@@ -752,12 +756,7 @@ function GasScreenHeader({ screen }: { screen: GasScreen }) {
   const brand = useGasBrand();
   const counts = useGasQueueCounts();
   const canReview = screensFor(actor.role).some((s) => s.key === "moderation");
-  const status = [
-    brand.periodLabel,
-    canReview && counts.pending > 0 ? `${counts.pending} ждут проверки` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const pending = canReview && counts.pending > 0 ? `${counts.pending} ждут проверки` : null;
   return (
     <div className="flex flex-col gap-1 pt-3 pb-4 lg:pt-5 lg:pb-5">
       <nav aria-label="Где вы" className="gas-crumbs max-lg:hidden">
@@ -798,7 +797,23 @@ function GasScreenHeader({ screen }: { screen: GasScreen }) {
         <div id={SCREEN_ACTIONS_ID} className="flex flex-wrap items-center gap-2 empty:hidden" />
       </div>
       <div className="gas-counters-row gas-counters">
-        <p className="gas-counters-default">{status}</p>
+        <p className="gas-counters-default">
+          {brand.periodLabel}
+          {pending ? " · " : null}
+          {/* Первое действие менеджера со старта и любого экрана: число ведёт в «Проверку»
+              (обход QA 23.11, 390: на старте строка была текстом без перехода) */}
+          {pending && screen.key !== "moderation" ? (
+            // Мышь от 32 (desktop-layout.spec.ts), касание от 44 невидимой рамкой touch-target
+            <Link
+              to="/gas/moderation"
+              className="touch-target inline-flex items-center underline underline-offset-2 focus-ring lg:min-h-control-sm"
+            >
+              {pending}
+            </Link>
+          ) : (
+            pending
+          )}
+        </p>
         <div id={SCREEN_COUNTERS_ID} className="gas-counters-custom" />
       </div>
     </div>

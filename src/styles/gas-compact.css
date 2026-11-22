@@ -71,3 +71,298 @@
     line-height: 13px;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Окна документов «как в 1С» (ADR-084): окно с заголовком, командной панелью и формой
+ * «подпись — значение». Поверхности сплошные (как сетка в «Стекле»): поля читаются на любом
+ * фоне. Телефон: окно на весь экран.
+ * ------------------------------------------------------------------ */
+.gas-windows {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.gas-window {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--solid-1, var(--card));
+  color: var(--text);
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    0 24px 64px -12px rgba(20, 12, 8, 0.38);
+}
+.gas-window:not([data-top]) {
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 12px 32px -12px rgba(20, 12, 8, 0.22);
+}
+.gas-window[hidden] {
+  display: none;
+}
+.gas-window[data-max] {
+  inset: 64px 8px 44px 248px;
+}
+.gas-window-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 6px 4px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--solid-2, var(--panel-2));
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.gas-window-head:active {
+  cursor: grabbing;
+}
+.gas-window-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.gas-window-dirty {
+  color: var(--flame);
+}
+.gas-window-tools {
+  display: flex;
+  gap: 2px;
+}
+.gas-window-tool {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--text-2);
+}
+.gas-window-tool:hover {
+  background: var(--solid-3, var(--panel-3));
+  color: var(--text);
+}
+.gas-window-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in oklab, var(--flame) 10%, var(--solid-1, var(--card)));
+}
+.gas-window-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.gas-window-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  touch-action: none;
+  background: linear-gradient(
+    135deg,
+    transparent 50%,
+    var(--line-2) 50%,
+    var(--line-2) 58%,
+    transparent 58%,
+    transparent 70%,
+    var(--line-2) 70%,
+    var(--line-2) 78%,
+    transparent 78%
+  );
+}
+.gas-window-bar {
+  position: fixed;
+  z-index: 39;
+  left: 240px;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding-inline: 12px;
+  border-top: 1px solid var(--line);
+  background: var(--solid-2, var(--panel-2));
+}
+.gas-window-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 260px;
+  height: 32px;
+  padding-inline: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.gas-window-chip:hover {
+  background: var(--solid-3, var(--panel-3));
+}
+.gas-window-chip.is-top {
+  background: var(--solid-1, var(--card));
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--line-2);
+}
+
+/* Форма документа: командная панель, шапка, поля слева, комплектность справа */
+.gas-doc-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--solid-1, var(--card));
+}
+.gas-doc-bar-gap {
+  flex: 1;
+}
+.gas-doc-cmd.mono-btn {
+  min-height: 32px;
+  height: 32px;
+  padding-inline: 14px;
+  font-size: 13px;
+}
+.gas-doc-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 14px 6px;
+}
+.gas-doc-split {
+  display: grid;
+  gap: 16px;
+  padding: 8px 14px 18px;
+}
+.gas-doc-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.gas-doc-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.gas-form-group {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.gas-form-legend {
+  float: left;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--solid-2, var(--panel-2));
+  border-bottom: 1px solid var(--line);
+}
+.gas-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+}
+.gas-form-legend + .gas-form-row {
+  border-top: 0;
+}
+.gas-form-row[data-edited] {
+  background: color-mix(in oklab, var(--flame) 7%, transparent);
+}
+.gas-form-label {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-2);
+}
+.gas-form-input {
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--solid-1, var(--card));
+  font-size: 13px;
+  line-height: 20px;
+  resize: vertical;
+}
+.gas-form-input:hover {
+  border-color: var(--text-3);
+}
+.gas-form-value {
+  font-size: 13px;
+  line-height: 20px;
+}
+.gas-form-source {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-3);
+}
+@media (min-width: 1024px) {
+  .gas-form-row {
+    grid-template-columns: 200px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+  }
+  .gas-form-label {
+    padding-top: 6px;
+  }
+  /* Широкое окно: комплектность и действия справа, как правая панель формы 1С */
+  .gas-window[data-max] .gas-doc-split {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+}
+@container (min-width: 900px) {
+  .gas-doc-split {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
+}
+.gas-window-body {
+  container-type: inline-size;
+}
+@media (max-width: 1023px) {
+  .gas-window,
+  .gas-window[data-max] {
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0;
+  }
+  .gas-window-head {
+    min-height: 52px;
+    cursor: default;
+  }
+  .gas-window-tool {
+    width: 44px;
+    height: 44px;
+  }
+}
