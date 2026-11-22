@@ -9,6 +9,7 @@
  * Модуль серверный: его импортируют `src/server.ts` и серверная функция контура.
  */
 import { serverEnv } from "@/lib/runtime-env";
+import { requestIsHttps } from "@/lib/security-headers";
 
 export const CLIENT_PARAM = "c";
 export const CLIENT_COOKIE = "gaika_client";
@@ -75,7 +76,7 @@ export async function clientLinkGate(request: Request): Promise<Response | null>
   });
   const key = clientLinkKey();
   if (key && same(given, key)) {
-    const secure = clean.protocol === "https:" ? " Secure;" : "";
+    const secure = requestIsHttps(request) ? " Secure;" : "";
     headers.set(
       "set-cookie",
       `${CLIENT_COOKIE}=${await tokenFor(key)}; Path=/; Max-Age=${MAX_AGE}; HttpOnly; SameSite=Lax;${secure}`,

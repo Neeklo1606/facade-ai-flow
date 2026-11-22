@@ -1,4 +1,5 @@
 import { getCookie, getRequest, setCookie } from "@tanstack/react-start/server";
+import { requestIsHttps } from "@/lib/security-headers";
 import { DEFAULT_USER_ID } from "@/api/config";
 import {
   PERSONA_PREFIX,
@@ -64,7 +65,7 @@ export function clearSessionCookie() {
     maxAge: 0,
     httpOnly: true,
     sameSite: "lax",
-    secure: new URL(getRequest().url).protocol === "https:",
+    secure: requestIsHttps(getRequest()),
   });
 }
 
@@ -80,6 +81,6 @@ async function setSessionCookie(value: string) {
     maxAge: SESSION_MAX_AGE,
     httpOnly: true,
     sameSite: "lax",
-    secure: new URL(getRequest().url).protocol === "https:",
+    secure: requestIsHttps(getRequest()),
   });
 }

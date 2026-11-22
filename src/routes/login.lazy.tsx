@@ -35,8 +35,9 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   const done = () => {
-    // Полная перезагрузка: сессия ставится кукой, и данные должны запрашиваться уже с нею
-    window.location.assign(to);
+    // Полная перезагрузка: сессия ставится кукой, и данные должны запрашиваться уже с нею.
+    // replace, а не assign: адрес с ссылкой-приглашением не остаётся в истории вкладки
+    window.location.replace(to);
   };
 
   const request = async () => {

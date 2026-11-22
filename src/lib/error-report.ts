@@ -7,6 +7,7 @@
  */
 
 import { recordError } from "./guide/telemetry";
+import { withoutSecretParams } from "./secret-params";
 
 const ENDPOINT = "/api/client-error";
 /** Больше двадцати сообщений за сессию — это цикл, а не ошибки: дальше молчим */
@@ -15,13 +16,13 @@ const SESSION_LIMIT = 20;
 let sent = 0;
 const seen = new Set<string>();
 
-/** Адрес без ключа доступа: он не должен попадать в лог вместе с отчётом (находка ревью LOW) */
+/**
+ * Адрес без секретов: ключ показа, ссылка-приглашение и личная ссылка заказчика не должны
+ * попадать в лог вместе с отчётом (находка ревью LOW; раньше убирался только `k`)
+ */
 function safeSearch() {
   try {
-    const params = new URLSearchParams(window.location.search);
-    params.delete("k");
-    const rest = params.toString();
-    return rest ? `?${rest}` : "";
+    return withoutSecretParams(window.location.search || "?").replace(/^\?$/, "");
   } catch {
     return "";
   }
