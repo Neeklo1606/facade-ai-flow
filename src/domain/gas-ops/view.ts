@@ -28,6 +28,7 @@ import type {
   WorkObject,
 } from "./model";
 import { crewOn, type CrewMember } from "./crew";
+import { splitBySections } from "./section-accrual";
 import {
   brigadeStatus,
   scheduleObjectIds,
@@ -98,6 +99,11 @@ export interface EntryView {
    * Тогда «нет сметы объекта» не замечание — начисление решает Оксана в блоке доли
    */
   byShare: boolean;
+  /**
+   * Запись без раздела на объекте, стоимость которого делится по разделам (ADR-085): доли
+   * всей сметы по минутам нет, сумма не начисляется, пока у записи нет раздела
+   */
+  sectionless: boolean;
 }
 
 export function actorOf(data: GasData): User | null {
@@ -171,6 +177,7 @@ export function entryView(data: GasData, entry: TimeEntry): EntryView {
       .filter((e) => e.objectId === entry.objectId && e.status !== "rejected")
       .reduce((a, e) => a + e.minutes, 0),
     byShare,
+    sectionless: !byShare && splitBySections(data, entry.objectId),
     history: data.reviews.filter((r) => r.entryId === entry.id),
   };
 }

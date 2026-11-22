@@ -10,15 +10,18 @@ import type { ReviewMode } from "./review-policy";
 import { entryView, type GasData } from "./view";
 import { expectations } from "./week";
 import { allocateByMinutes } from "./work-cost";
+import { splitBySections } from "./section-accrual";
 
 /**
  * Доля стоимости объекта для записи (ADR-053, 3): подтверждённая стоимость распределяется
  * по минутам всех неотклонённых записей объекта. Нет подтверждённой стоимости – null.
+ * Стоимость объекта делится по разделам (ADR-085) – тоже null: начисляет доля раздела.
  */
 export function shareOf(
-  data: Pick<GasData, "estimates" | "entries">,
+  data: Pick<GasData, "estimates" | "entries" | "objectSections" | "reviewSettings">,
   draft: TimeEntry,
 ): number | null {
+  if (splitBySections(data, draft.objectId)) return null;
   const estimate = data.estimates.find(
     (e) => e.objectId === draft.objectId && e.status === "confirmed",
   );

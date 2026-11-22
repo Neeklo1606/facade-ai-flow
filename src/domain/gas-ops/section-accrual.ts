@@ -151,6 +151,25 @@ export function overlapsAssignment(
 
 /* ---------------------------------------------------------------- Деньги раздела */
 
+/**
+ * Стоимость объекта делится по разделам (ADR-085): режим «по доле» и у объекта есть раздел
+ * со стоимостью работ. Тогда запись без раздела доли всей сметы по минутам не получает,
+ * иначе она забрала бы деньги, которые уже начисляются по разделам, и сумма по объекту
+ * превысила бы смету
+ */
+export function splitBySections(
+  data: {
+    objectSections?: readonly Pick<ObjectSection, "objectId" | "workKopecks" | "removed">[];
+    reviewSettings?: { accrualMode?: AccrualMode } | undefined;
+  },
+  objectId: string,
+): boolean {
+  if ((data.reviewSettings?.accrualMode ?? "share") !== "share") return false;
+  return (data.objectSections ?? []).some(
+    (s) => s.objectId === objectId && !s.removed && s.workKopecks !== null,
+  );
+}
+
 /** Стоимость работ раздела без материалов, целые рубли; null — в смете её нет */
 export function sectionWorkRub(section: Pick<ObjectSection, "workKopecks">): number | null {
   return section.workKopecks === null ? null : Math.round(section.workKopecks / 100);
