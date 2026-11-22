@@ -104,11 +104,12 @@ function decodeCookie(value: string) {
 }
 
 /** Ключ пришёл в адресе: запоминаем в cookie и убираем параметр, чтобы ссылка не гуляла дальше */
-export function grantResponse(url: URL, key: string) {
+/** `https` — запрос по https, в том числе за обратным прокси (`requestIsHttps`) */
+export function grantResponse(url: URL, key: string, https = url.protocol === "https:") {
   const clean = new URL(url);
   clean.searchParams.delete(ACCESS_PARAM);
   clean.searchParams.delete(ACCESS_PARAM_ALT);
-  const secure = clean.protocol === "https:" ? " Secure;" : "";
+  const secure = https ? " Secure;" : "";
   return new Response(null, {
     status: 302,
     headers: {

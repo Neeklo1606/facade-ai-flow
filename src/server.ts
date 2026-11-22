@@ -8,6 +8,7 @@ import { authAvailable, sessionEmployee } from "./api/auth-store";
 import { clientLinkGate } from "./lib/client-link";
 import { isIndexablePath } from "./lib/site/paths";
 import { serverEnv } from "./lib/runtime-env";
+import { requestIsHttps, withSecurityHeaders } from "./lib/security-headers";
 
 /** Экран входа: единственный адрес, открытый без сессии в рабочем контуре (ADR-021) */
 const LOGIN_PATH = "/login";
@@ -129,7 +130,7 @@ function accessGate(request: Request, env: unknown): Response | null {
 
   const url = new URL(request.url);
   if (isPublicPath(url.pathname)) return null;
-  if (accessParam(url) === key) return grantResponse(url, key);
+  if (accessParam(url) === key) return grantResponse(url, key, requestIsHttps(request));
   if (hasAccess(request, key)) return null;
 
   return new Response(renderAccessPage(url.origin), {
@@ -144,34 +145,43 @@ function accessGate(request: Request, env: unknown): Response | null {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    try {
-      // Секреты хостинга для серверных функций: ключ подписи сессии (ADR-012)
-      rememberEnv(env);
-      const gate = accessGate(request, env);
-      if (gate) return gate;
-      // Личная ссылка заказчика: ключ в адресе /gas меняется на куку контура (ADR-047)
-      const link = await clientLinkGate(request);
-      if (link) return link;
-      const login = await requireLogin(request);
-      if (login) return login;
-      // Витрина дизайн-системы в production не существует. Путь подменяется несуществующим
-      // до рендера: маршрут не резолвится, а ответ — тот же 404-экран приложения, что и у любого
-      // другого несуществующего адреса (находки ревью BLOCKER-2 и повторного ревью LOW)
-      let incoming = request;
-      const url = new URL(request.url);
-      if (isRemovedInProduction(url.pathname)) {
-        url.pathname = "/__removed";
-        incoming = new Request(url, request);
-      }
-      const handler = await getServerEntry();
-      const response = await handler.fetch(incoming, env, ctx);
-      return withNoIndex(await normalizeCatastrophicSsrResponse(response), url.pathname);
-    } catch (error) {
-      console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
-    }
+    const response = await respond(request, env, ctx);
+    // Заголовки безопасности у каждого ответа: страницы, файлы, переадресации, ошибки
+    return withSecurityHeaders(response, {
+      pathname: new URL(request.url).pathname,
+      working: authAvailable(),
+    });
   },
 };
+
+async function respond(request: Request, env: unknown, ctx: unknown): Promise<Response> {
+  try {
+    // Секреты хостинга для серверных функций: ключ подписи сессии (ADR-012)
+    rememberEnv(env);
+    const gate = accessGate(request, env);
+    if (gate) return gate;
+    // Личная ссылка заказчика: ключ в адресе /gas меняется на куку контура (ADR-047)
+    const link = await clientLinkGate(request);
+    if (link) return link;
+    const login = await requireLogin(request);
+    if (login) return login;
+    // Витрина дизайн-системы в production не существует. Путь подменяется несуществующим
+    // до рендера: маршрут не резолвится, а ответ — тот же 404-экран приложения, что и у любого
+    // другого несуществующего адреса (находки ревью BLOCKER-2 и повторного ревью LOW)
+    let incoming = request;
+    const url = new URL(request.url);
+    if (isRemovedInProduction(url.pathname)) {
+      url.pathname = "/__removed";
+      incoming = new Request(url, request);
+    }
+    const handler = await getServerEntry();
+    const response = await handler.fetch(incoming, env, ctx);
+    return withNoIndex(await normalizeCatastrophicSsrResponse(response), url.pathname);
+  } catch (error) {
+    console.error(error);
+    return new Response(renderErrorPage(), {
+      status: 500,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
+}
