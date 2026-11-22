@@ -143,6 +143,45 @@ export async function estimateFilesResponse(
   } catch {
     return json(400, { reason: "Нужна форма с файлами" });
   }
+
+  // Исходник версии из мастера «Загрузить смету» (ADR-085): байты в хранилище, опись к версии
+  const keep = url.searchParams.get("keep");
+  if (keep) {
+    const file = form.get("files");
+    if (!file || typeof file !== "object" || !("arrayBuffer" in file)) {
+      return json(400, { reason: "Файла нет" });
+    }
+    if (file.size > MAX_ESTIMATE_FILE_BYTES) return json(413, { reason: "Файл больше 20 МБ" });
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const kind = excelKind(bytes.subarray(0, 4));
+    if (!kind) return json(400, { reason: "Нужен файл Excel .xlsx или .xls" });
+    if (!(await gate.store.read()).estimateVersions.some((v) => v.id === keep)) {
+      return json(404, { reason: "Версия сметы не найдена" });
+    }
+    const [{ sha256Hex }, { keepSourceFile }] = await Promise.all([
+      import("@/adapters/gas-ops/estimate-storage"),
+      import("@/domain/gas-ops/estimate-intake"),
+    ]);
+    const sha256 = sha256Hex(bytes);
+    const storagePath = await deps.storage.save(sha256, kind, bytes);
+    let fileId: string | null = null;
+    await gate.store.update((s) => {
+      const kept = keepSourceFile(s, {
+        versionId: keep,
+        fileId: `esf-${sha256.slice(0, 12)}`,
+        sha256,
+        name: file.name || "смета.xlsx",
+        size: bytes.byteLength,
+        storagePath,
+        actorId: gate.userId,
+        at: new Date().toISOString(),
+      });
+      fileId = kept?.fileId ?? null;
+      return kept?.snapshot ?? s;
+    });
+    return json(200, { fileId });
+  }
+
   const files = form
     .getAll("files")
     .filter((f): f is File => typeof f === "object" && f !== null && "arrayBuffer" in f);

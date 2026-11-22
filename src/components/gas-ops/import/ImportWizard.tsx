@@ -34,6 +34,8 @@ export interface WizardState {
   headerRow: number;
   map: Record<string, number | null>;
   fileName: string;
+  /** Выбранный файл: рабочий контур кладёт исходник сметы в хранилище (ADR-085) */
+  file?: File;
 }
 
 export interface WizardResult {
@@ -127,6 +129,7 @@ export function ImportWizard({
       sheets: result.sheets,
       sheetIndex,
       fileName: file.name,
+      file,
       ...detect(tools, grid),
     });
   };
