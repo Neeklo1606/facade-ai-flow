@@ -26,6 +26,7 @@
     "db:gas-init": "bun scripts/gas-init.ts",
     "db:gas-user": "bun scripts/gas-user.ts",
     "check:db": "bun scripts/check-db.ts",
+    "check:server-p8": "bun scripts/check-server-p8.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test": "bun test tests",
     "eval:extract": "bun scripts/eval-extract.ts",
