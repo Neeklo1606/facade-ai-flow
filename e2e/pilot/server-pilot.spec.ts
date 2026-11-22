@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { expect, test, type Browser, type Page } from "@playwright/test";
@@ -206,4 +206,14 @@ test("рабочий контур: вход по ссылкам, пустая к
   await manager.reload();
   await manager.goto("/gas/entries");
   await expect(manager.locator("main")).toContainText(number);
+
+  // П8 (ADR-086): состояние для проверки после перезапуска сервера, scripts/check-server-p8.ts
+  const p8 = process.env["P8_STATE_DIR"];
+  if (p8) {
+    writeFileSync(join(p8, "state.json"), JSON.stringify({ number, address: ADDRESS }));
+    await admin.context().storageState({ path: join(p8, "admin.json") });
+    await manager.context().storageState({ path: join(p8, "manager.json") });
+    await director.context().storageState({ path: join(p8, "director.json") });
+    await foreman.context().storageState({ path: join(p8, "foreman.json") });
+  }
 });

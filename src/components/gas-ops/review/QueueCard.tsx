@@ -22,6 +22,7 @@ import { RemarkChips } from "./remarks";
 import { entryFrame, fmtShortDay, rowLine } from "./rules";
 import { cn } from "@/lib/utils";
 import { sourceLabel, useGasContour } from "@/lib/gas-ops/contour";
+import { showDemoMarks } from "@/lib/cabinet";
 
 export const QueueCard = forwardRef<
   HTMLButtonElement,
@@ -58,7 +59,9 @@ export const QueueCard = forwardRef<
   const { entry } = view;
   // Суммы бригадир не видит (ТЗ, п. 5.6)
   const money = useGasActor().canSeeMoney;
-  const source = sourceLabel(entry.source, useGasContour().kind);
+  const kind = useGasContour().kind;
+  // В кабинете и рабочем контуре метки источника нет: строки там заводят люди заказчика
+  const source = showDemoMarks ? sourceLabel(entry.source, kind) : null;
   // Ждёт проверки при подтверждённой стоимости: ожидаемая доля по минутам, а не вся смета
   const cost = costBreakdown(view);
   const marks =
@@ -158,7 +161,8 @@ export const QueueCard = forwardRef<
           <EntryStatusBadge status={entry.status} auto={isAutoAccepted(entry)} />
         ) : null}
         <span className="sr-only">
-          {entry.number}, {source}, {rowLine(view)}
+          {entry.number}, {source ? `${source}, ` : ""}
+          {rowLine(view)}
         </span>
       </button>
     );
@@ -201,7 +205,8 @@ export const QueueCard = forwardRef<
           <span className="truncate">{rowLine(view)}</span>
         </span>
         <span className="sr-only">
-          {entry.number}, {source.toLowerCase()}
+          {entry.number}
+          {source ? `, ${source.toLowerCase()}` : ""}
         </span>
       </span>
       {marks ? (
@@ -220,7 +225,8 @@ export const QueueCard = forwardRef<
           </span>
           {showNumber ? (
             <span className="block text-meta text-text-3 tnum" aria-hidden>
-              {entry.number} · {source}
+              {entry.number}
+              {source ? ` · ${source}` : ""}
             </span>
           ) : null}
         </span>

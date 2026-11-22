@@ -446,3 +446,76 @@ export function objectSectionsOf(
     .map((p) => ({ ...p, removed: true }));
   return [...next, ...gone];
 }
+
+/* ---------------------------------------------------------------- Исходный файл мастера */
+
+/** Часть снимка, которую трогает сохранение исходного файла */
+export interface KeepFileState {
+  estimateFiles?: EstimateFile[];
+  estimateVersions: { id: string; fileId?: string | null; parseStatus: string }[];
+}
+
+/**
+ * Исходный файл версии из мастера «Загрузить смету» (ADR-086): мастер разбирает файл во вкладке,
+ * а на рабочем контуре байты ещё и ложатся в хранилище тома. Опись файла связывается с версией.
+ * Тот же файл второй раз не описывается: версия ссылается на прежнюю опись. Версия, у которой
+ * файл уже есть, не меняется. Чистая функция: null — версии нет
+ */
+export function keepSourceFile<S extends KeepFileState>(
+  snapshot: S,
+  input: {
+    versionId: string;
+    fileId: string;
+    sha256: string;
+    name: string;
+    size: number;
+    storagePath: string;
+    actorId: string;
+    at: string;
+  },
+): { snapshot: S; fileId: string } | null {
+  const version = snapshot.estimateVersions.find((v) => v.id === input.versionId);
+  if (!version) return null;
+  if (version.fileId) return { snapshot, fileId: version.fileId };
+  const files = snapshot.estimateFiles ?? [];
+  const twin = duplicateOf(files, input.sha256);
+  const fileId = twin?.id ?? input.fileId;
+  const status: EstimateFileStatus =
+    version.parseStatus === "unknown-format"
+      ? "unreadable"
+      : version.parseStatus === "parsed"
+        ? "parsed"
+        : "needs-review";
+  const nextFiles: EstimateFile[] = twin
+    ? files.map((f) =>
+        f.id === twin.id
+          ? { ...f, storagePath: f.storagePath ?? input.storagePath, repeats: f.repeats + 1 }
+          : f,
+      )
+    : [
+        {
+          id: fileId,
+          sha256: input.sha256,
+          name: input.name,
+          size: input.size,
+          uploadedBy: input.actorId,
+          uploadedAt: input.at,
+          storagePath: input.storagePath,
+          status,
+          reason: null,
+          versionId: version.id,
+          repeats: 0,
+        },
+        ...files,
+      ];
+  return {
+    fileId,
+    snapshot: {
+      ...snapshot,
+      estimateFiles: nextFiles,
+      estimateVersions: snapshot.estimateVersions.map((v) =>
+        v.id === version.id ? { ...v, fileId } : v,
+      ),
+    },
+  };
+}

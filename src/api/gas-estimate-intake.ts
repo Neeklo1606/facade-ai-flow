@@ -356,6 +356,40 @@ export async function loadFileSheet(
   }
 }
 
+/**
+ * Исходный файл сметы из мастера «Загрузить смету» (ADR-086). Мастер разбирает файл во
+ * вкладке; на рабочем контуре байты после добавления версии уходят на сервер и ложатся
+ * в хранилище тома, опись связывается с версией. В демо байты не хранятся: ok без запроса.
+ */
+export function useKeepEstimateSource() {
+  const ops = useGasOps();
+  return useCallback(
+    async (
+      versionId: string,
+      file: File,
+    ): Promise<{ ok: true } | { ok: false; reason: string }> => {
+      if (dataSource !== "server") return { ok: true };
+      try {
+        const form = new FormData();
+        form.append("files", file, file.name);
+        const res = await fetch(`/api/gas/estimate-files?keep=${encodeURIComponent(versionId)}`, {
+          method: "POST",
+          body: form,
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { reason?: string };
+          return { ok: false, reason: body.reason ?? `Сервер ответил ${res.status}` };
+        }
+        await ops.snapshot();
+        return { ok: true };
+      } catch {
+        return { ok: false, reason: "Сервер не ответил: нет связи" };
+      }
+    },
+    [ops],
+  );
+}
+
 /** Итоги разбора по шагам для мастера «Загрузить смету» (ADR-080) */
 export type { IntakeCheck };
 

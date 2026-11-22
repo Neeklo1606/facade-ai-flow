@@ -36,6 +36,7 @@ import { ImportWizard, type WizardState } from "@/components/gas-ops/import/Impo
 import { RuleBuilder } from "@/components/gas-ops/estimates/RuleBuilder";
 import { FolderCard } from "@/components/gas-ops/estimates/FolderCard";
 import { EstimateIntake } from "@/components/gas-ops/estimates/EstimateIntake";
+import { useKeepEstimateSource } from "@/api/gas-estimate-intake";
 import { showYandexFolder } from "@/api/config";
 import { useEstimateFolder } from "@/api/gas-folder";
 import { plural } from "@/lib/format";
@@ -68,6 +69,7 @@ function EstimatesPage() {
   const canManageRules = actor.role === "manager" || actor.isAdmin;
   const actions = useGasActions();
   const estimateActions = useGasEstimateActions();
+  const keepSource = useKeepEstimateSource();
   const directory = useGasDirectory();
   const folder = useEstimateFolder();
   const [upload, setUpload] = useState(false);
@@ -413,6 +415,11 @@ function EstimatesPage() {
           if (!added.ok) {
             toast.error(added.message);
             return false;
+          }
+          // Рабочий контур: исходник ложится в хранилище; отказ виден, версия остаётся
+          if (state.file) {
+            const kept = await keepSource(added.value.id, state.file);
+            if (!kept.ok) toast.error(`Исходный файл не сохранён: ${kept.reason}`);
           }
           const suggestion = await suggestEstimateObject(state.fileName, directory.objects);
           setSuggestions((s) => ({ ...s, [added.value.id]: suggestion }));

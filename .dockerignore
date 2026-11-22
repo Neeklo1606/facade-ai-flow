@@ -20,3 +20,7 @@ docs/gaika/screenshots
 .env.*
 !.env.example
 deploy/.env
+# Реальные сметы заказчика, файлы смет и копии базы не попадают ни в один слой образа (ADR-086)
+.local
+data
+backups

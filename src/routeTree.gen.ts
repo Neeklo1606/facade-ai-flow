@@ -94,6 +94,7 @@ import { Route as StatiIndexRouteImport } from './routes/stati.index'
 import { Route as StatiSlugRouteImport } from './routes/stati.$slug'
 import { Route as ApiExportProjectsRouteImport } from './routes/api/export/projects'
 import { Route as ApiExportShiftRouteImport } from './routes/api/export/shift'
+import { Route as ApiGasAccessRouteImport } from './routes/api/gas/access'
 import { Route as ApiGasAssistantRouteImport } from './routes/api/gas/assistant'
 import { Route as ApiGasConnectionsRouteImport } from './routes/api/gas/connections'
 import { Route as ApiGasEstimateFilesRouteImport } from './routes/api/gas/estimate-files'
@@ -545,6 +546,11 @@ const ApiExportShiftRoute = ApiExportShiftRouteImport.update({
   path: '/api/export/shift',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGasAccessRoute = ApiGasAccessRouteImport.update({
+  id: '/api/gas/access',
+  path: '/api/gas/access',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGasAssistantRoute = ApiGasAssistantRouteImport.update({
   id: '/api/gas/assistant',
   path: '/api/gas/assistant',
@@ -756,6 +762,7 @@ export interface FileRoutesByFullPath {
   '/stati/': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/access': typeof ApiGasAccessRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
   '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
@@ -865,6 +872,7 @@ export interface FileRoutesByTo {
   '/stati': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/access': typeof ApiGasAccessRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
   '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
@@ -977,6 +985,7 @@ export interface FileRoutesById {
   '/stati/': typeof StatiIndexRoute
   '/api/export/projects': typeof ApiExportProjectsRoute
   '/api/export/shift': typeof ApiExportShiftRoute
+  '/api/gas/access': typeof ApiGasAccessRoute
   '/api/gas/assistant': typeof ApiGasAssistantRoute
   '/api/gas/connections': typeof ApiGasConnectionsRoute
   '/api/gas/estimate-files': typeof ApiGasEstimateFilesRoute
@@ -1090,6 +1099,7 @@ export interface FileRouteTypes {
     | '/stati/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/access'
     | '/api/gas/assistant'
     | '/api/gas/connections'
     | '/api/gas/estimate-files'
@@ -1199,6 +1209,7 @@ export interface FileRouteTypes {
     | '/stati'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/access'
     | '/api/gas/assistant'
     | '/api/gas/connections'
     | '/api/gas/estimate-files'
@@ -1310,6 +1321,7 @@ export interface FileRouteTypes {
     | '/stati/'
     | '/api/export/projects'
     | '/api/export/shift'
+    | '/api/gas/access'
     | '/api/gas/assistant'
     | '/api/gas/connections'
     | '/api/gas/estimate-files'
@@ -1389,6 +1401,7 @@ export interface RootRouteChildren {
   StatiIndexRoute: typeof StatiIndexRoute
   ApiExportProjectsRoute: typeof ApiExportProjectsRoute
   ApiExportShiftRoute: typeof ApiExportShiftRoute
+  ApiGasAccessRoute: typeof ApiGasAccessRoute
   ApiGasAssistantRoute: typeof ApiGasAssistantRoute
   ApiGasConnectionsRoute: typeof ApiGasConnectionsRoute
   ApiGasEstimateFilesRoute: typeof ApiGasEstimateFilesRoute
@@ -2007,6 +2020,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExportShiftRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gas/access': {
+      id: '/api/gas/access'
+      path: '/api/gas/access'
+      fullPath: '/api/gas/access'
+      preLoaderRoute: typeof ApiGasAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gas/assistant': {
       id: '/api/gas/assistant'
       path: '/api/gas/assistant'
@@ -2324,6 +2344,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatiIndexRoute: StatiIndexRoute,
   ApiExportProjectsRoute: ApiExportProjectsRoute,
   ApiExportShiftRoute: ApiExportShiftRoute,
+  ApiGasAccessRoute: ApiGasAccessRoute,
   ApiGasAssistantRoute: ApiGasAssistantRoute,
   ApiGasConnectionsRoute: ApiGasConnectionsRoute,
   ApiGasEstimateFilesRoute: ApiGasEstimateFilesRoute,

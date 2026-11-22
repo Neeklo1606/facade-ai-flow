@@ -34,8 +34,15 @@ export function cabinetRedirect(pathname: string, enabled: boolean = cabinetOnly
   return "/gas";
 }
 
-/** Метки «Демо», «Пример», сброс и показ: в кабинете их нет */
-export const showDemoMarks = !cabinetOnly;
+/**
+ * Рабочий контур с базой (сборка `--mode server`): строки заводят люди заказчика, а не демо-набор.
+ * Порт помечает созданные строки источником `mock`, поэтому метка «Демо» здесь была бы неправдой
+ * (найдено ночным прогоном 23.11.2026: «Демо-подрядчик» и «Бот · Демо» у живой записи)
+ */
+export const workingContour = import.meta.env.VITE_DATA_SOURCE === "server";
+
+/** Метки «Демо», «Пример», сброс и показ: в кабинете и рабочем контуре их нет */
+export const showDemoMarks = !cabinetOnly && !workingContour;
 
 /**
  * Плашка «Тестовый режим» (ADR-062, решение владельца 3): личная ссылка и кабинет без
