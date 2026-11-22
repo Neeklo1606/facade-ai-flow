@@ -38,6 +38,8 @@ import {
   type SentReminder,
 } from "@/api/gas-assistant";
 import { toast } from "@/lib/toast";
+import { workingContour } from "@/lib/cabinet";
+import { PeopleAccess } from "@/components/gas-ops/admin/PeopleAccess";
 import { cn } from "@/lib/utils";
 
 /**
@@ -124,6 +126,7 @@ function Group({
 const LIST = "surface-1 overflow-hidden [&>li+li]:border-t [&>li+li]:border-line";
 
 function AdminPage() {
+  const actor = useGasActor();
   const connections = useServerConnections();
   const users = useGasUsers();
   const audit = useGasAudit();
@@ -197,6 +200,17 @@ function AdminPage() {
           </table>
         </div>
       </Group>
+
+      {/* Приглашения (ADR-085): только рабочий контур с базой и только администратор */}
+      {workingContour && actor.role === "admin" ? (
+        <Group
+          id="people"
+          title="Люди и вход"
+          note="Ссылка входа на 72 часа, отзыв доступа. Роли проверяет сервер."
+        >
+          <PeopleAccess />
+        </Group>
+      ) : null}
 
       <ExportGroup />
 
