@@ -604,6 +604,7 @@ export function CardBody({
                 {s.materialsNote ? (
                   <p className="mt-1 text-meta text-text-3">{s.materialsNote}</p>
                 ) : null}
+                {s.workNote ? <p className="mt-1 text-meta text-warn">{s.workNote}</p> : null}
                 {s.pressure?.needsConfirm ? (
                   <p className="mt-1 text-meta text-warn">
                     Опрессовка посчитана системой ({s.pressure.method}): требует подтверждения

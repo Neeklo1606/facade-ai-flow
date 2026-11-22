@@ -849,6 +849,15 @@ export function createGasOpsDemo(
         throw new GasOpsError("not-allowed", "Проверку ведёт менеджер.");
       }
       mustBeOpen(snapshot, entry.day);
+      /*
+       * Повторное «Принять» по уже принятой записи (двойное нажатие, второй менеджер, повтор
+       * запроса после обрыва связи) не пересчитывает начисление: иначе доля раздела уже учла
+       * эту запись, шаг выходил нулевым и затирал её начисление, а остаток раздела рос (П6).
+       * Изменить долю принятой записи можно отменой решения или правкой с причиной
+       */
+      if (input.action === "confirm" && entry.status === "confirmed") {
+        throw new GasOpsError("already-reviewed", "Запись уже принята. Обновите экран.");
+      }
       if (input.action !== "confirm" && !input.comment?.trim()) {
         throw new GasOpsError(
           "comment-required",

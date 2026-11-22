@@ -196,6 +196,46 @@ describe("назначения → время → доля → начислен�
     expect((store.now().sectionProgress ?? []).at(-1)?.toBp).toBe(3000);
   });
 
+  test("повторное «Принять» по принятой записи — отказ, начисление и остаток не меняются (П6)", async () => {
+    const { store, manager, object, s3 } = await setup();
+    const f1 = createGasOpsDemo(actingAs(store, "u-foreman-1"), null);
+    const workRub = sectionWorkRub(s3)!;
+    const a = await f1.createEntry(time("2026-09-28", object.id, "brg-1", "d1"));
+    const b = await f1.createEntry(time("2026-09-29", object.id, "brg-1", "d2"));
+    const first = await manager.review({
+      id: a.id,
+      action: "confirm",
+      accrual: { kind: "share", percent: 40 },
+    });
+    const accrued = accruedRub(store.now().entries, object.id, s3.key);
+    expect(accrued).toBe(Math.floor((workRub * 4000) / FULL_BP));
+    expect(first.amountRub).toBe(accrued);
+
+    // Двойное нажатие, второй менеджер или повтор запроса: до исправления начисление
+    // записи затиралось нулём, а остаток раздела рос на ту же сумму
+    await expect(
+      manager.review({ id: a.id, action: "confirm", accrual: { kind: "share", percent: 40 } }),
+    ).rejects.toMatchObject({ code: "already-reviewed" });
+    await expect(manager.review({ id: a.id, action: "confirm" })).rejects.toBeInstanceOf(
+      GasOpsError,
+    );
+    const after = store.now().entries.find((e) => e.id === a.id)!;
+    expect(after.amountRub).toBe(first.amountRub);
+    expect(after.accrual).toEqual(first.accrual);
+    expect(accruedRub(store.now().entries, object.id, s3.key)).toBe(accrued);
+    expect((store.now().sectionProgress ?? []).filter((p) => p.sectionKey === s3.key)).toHaveLength(
+      1,
+    );
+
+    // Раздел завершён следующей записью: сумма по разделу ровно стоимость, не больше
+    await manager.review({ id: b.id, action: "confirm", accrual: { kind: "share", done: true } });
+    expect(accruedRub(store.now().entries, object.id, s3.key)).toBe(workRub);
+    const confirmed = store
+      .now()
+      .entries.filter((e) => e.objectId === object.id && e.status === "confirmed");
+    expect(confirmed.reduce((x, e) => x + (e.amountRub ?? 0), 0)).toBe(workRub);
+  });
+
   test("бригадир не назначает разделы и не меняет режим начисления — 403 на сервере", async () => {
     const { store, object, s3 } = await setup();
     await expect(

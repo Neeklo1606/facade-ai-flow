@@ -377,6 +377,7 @@ function CheckStep({
                       {s.materialsNote ? (
                         <dd className="col-span-2 text-text-3">{s.materialsNote}</dd>
                       ) : null}
+                      {s.workNote ? <dd className="col-span-2 text-warn">{s.workNote}</dd> : null}
                     </dl>
                   ) : null}
                 </li>

@@ -129,6 +129,11 @@ export interface SectionView {
   pressure: PressureView | null;
   /** СМР раздела без опрессовки: работы минус работы опрессовки */
   smrKopecks: number | null;
+  /** «Перевозка» из итогов раздела: входит в работы по правилу «итог минус материалы» */
+  transportKopecks: number | null;
+  transportRow: number | null;
+  /** Что в стоимости работ требует решения человека; null — нечего */
+  workNote: string | null;
 }
 
 /** Ключ раздела: номер, иначе название — по нему разделы сравниваются между версиями */
@@ -219,6 +224,11 @@ export function sectionView(section: EstimateSection, mode: PressureMode = "payr
     pressure,
     smrKopecks:
       work === null ? null : pressure?.kind === "section" ? 0 : work - (pressure?.workKopecks ?? 0),
+    transportKopecks: section.breakdown?.transport?.kopecks ?? null,
+    transportRow: section.breakdown?.transport?.row ?? null,
+    workNote: section.breakdown?.transport
+      ? `В работы раздела входит перевозка, стр. ${section.breakdown.transport.row}: вычитать ли её, как материалы, решает руководитель`
+      : null,
   };
 }
 
