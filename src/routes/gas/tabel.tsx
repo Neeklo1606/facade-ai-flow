@@ -580,7 +580,7 @@ function TabelPage() {
         {ALL_METRICS.filter((m) => actor.canSeeMoney || (m !== "amount" && m !== "rate")).map(
           (m) => (
             <li key={m}>
-              <label className="flex min-h-control-sm cursor-pointer items-center gap-2 text-body">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-body lg:min-h-control-sm">
                 <input
                   type="checkbox"
                   checked={metrics.includes(m)}
@@ -612,7 +612,7 @@ function TabelPage() {
             role="radio"
             aria-checked={order === value}
             onClick={() => setMetricOrder(value)}
-            className={`inline-flex min-h-control-sm items-center rounded-full px-3 text-body focus-ring ${
+            className={`inline-flex min-h-11 items-center rounded-full px-3 text-body focus-ring lg:min-h-control-sm ${
               order === value ? "bg-pill text-pill-text" : "bg-surface-2 text-text"
             }`}
           >

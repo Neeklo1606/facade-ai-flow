@@ -199,15 +199,25 @@ export function WeekScreen() {
           data-testid="week-counters"
           data-tour="week-counters"
         >
-          {counters.join(" · ")} ·{" "}
-          {man.value && !man.reason ? (
-            <span>чел.-ч: {man.value}</span>
-          ) : man.value ? (
-            // Сумма по записям с составом и ссылка на записи без него (ADR-062, F5)
-            <NotCalculated reason={man.reason}>чел.-ч: {man.value}</NotCalculated>
-          ) : (
-            <NotCalculated reason={man.reason}>чел.-ч: не рассчитано</NotCalculated>
-          )}
+          {/* Каждый счётчик своим куском с точкой впереди: при переносе на 390 точка
+              не висит в конце строки (обход QA 23.11) */}
+          {counters.map((text, i) => (
+            <span key={text}>
+              {i ? " · " : ""}
+              {text}
+            </span>
+          ))}
+          <span className="inline-flex flex-wrap items-center gap-x-1">
+            {" · "}
+            {man.value && !man.reason ? (
+              <span>чел.-ч: {man.value}</span>
+            ) : man.value ? (
+              // Сумма по записям с составом и ссылка на записи без него (ADR-062, F5)
+              <NotCalculated reason={man.reason}>чел.-ч: {man.value}</NotCalculated>
+            ) : (
+              <NotCalculated reason={man.reason}>чел.-ч: не рассчитано</NotCalculated>
+            )}
+          </span>
         </p>
       </ScreenCounters>
 

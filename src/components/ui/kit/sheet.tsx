@@ -285,7 +285,7 @@ export function PickerSheet({
                   className="flex min-h-14 w-full items-center gap-3 border-b border-line text-left focus-ring last:border-0"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-body">
+                    <span className="block truncate text-body" title={option.label}>
                       {highlightParts(option.label, query).map((part, i) =>
                         part.hit ? (
                           <mark key={i} className="bg-orange-dim text-text">

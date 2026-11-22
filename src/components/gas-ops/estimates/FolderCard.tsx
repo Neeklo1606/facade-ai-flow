@@ -75,8 +75,10 @@ export function FolderCard({
         <div className="flex min-w-0 items-start gap-3">
           <FolderOpen className="mt-0.5 size-5 shrink-0 text-text-3" aria-hidden />
           <div className="min-w-0">
+            {/* Не «Папка смет»: так же назван блок загрузки выше, на 390 два одинаковых
+                заголовка подряд путали (обход QA 23.11) */}
             <h2 id="estimate-folder" className="text-body-strong">
-              Папка смет
+              Папка на Яндекс Диске
             </h2>
             <p className="text-meta text-text-3 break-words">{where}</p>
             <p
@@ -125,7 +127,9 @@ export function FolderCard({
               data-testid="estimate-folder-file"
             >
               <span className="min-w-0">
-                <span className="block truncate text-body">{row.file.name}</span>
+                <span className="block truncate text-body" title={row.file.name}>
+                  {row.file.name}
+                </span>
                 <span className="block text-meta text-text-3">
                   {sizeText(row.file.size)} · {stateText(row)}
                 </span>

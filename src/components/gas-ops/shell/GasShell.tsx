@@ -756,12 +756,7 @@ function GasScreenHeader({ screen }: { screen: GasScreen }) {
   const brand = useGasBrand();
   const counts = useGasQueueCounts();
   const canReview = screensFor(actor.role).some((s) => s.key === "moderation");
-  const status = [
-    brand.periodLabel,
-    canReview && counts.pending > 0 ? `${counts.pending} ждут проверки` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const pending = canReview && counts.pending > 0 ? `${counts.pending} ждут проверки` : null;
   return (
     <div className="flex flex-col gap-1 pt-3 pb-4 lg:pt-5 lg:pb-5">
       <nav aria-label="Где вы" className="gas-crumbs max-lg:hidden">
@@ -802,7 +797,23 @@ function GasScreenHeader({ screen }: { screen: GasScreen }) {
         <div id={SCREEN_ACTIONS_ID} className="flex flex-wrap items-center gap-2 empty:hidden" />
       </div>
       <div className="gas-counters-row gas-counters">
-        <p className="gas-counters-default">{status}</p>
+        <p className="gas-counters-default">
+          {brand.periodLabel}
+          {pending ? " · " : null}
+          {/* Первое действие менеджера со старта и любого экрана: число ведёт в «Проверку»
+              (обход QA 23.11, 390: на старте строка была текстом без перехода) */}
+          {pending && screen.key !== "moderation" ? (
+            // Мышь от 32 (desktop-layout.spec.ts), касание от 44 невидимой рамкой touch-target
+            <Link
+              to="/gas/moderation"
+              className="touch-target inline-flex items-center underline underline-offset-2 focus-ring lg:min-h-control-sm"
+            >
+              {pending}
+            </Link>
+          ) : (
+            pending
+          )}
+        </p>
         <div id={SCREEN_COUNTERS_ID} className="gas-counters-custom" />
       </div>
     </div>

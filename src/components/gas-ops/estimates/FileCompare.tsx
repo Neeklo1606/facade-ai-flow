@@ -120,7 +120,9 @@ export function FileCompare({
                 )}
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-body">{item.label}</span>
+                  <span className="block truncate text-body" title={item.label}>
+                    {item.label}
+                  </span>
                   <span className="block text-meta text-text-2">
                     {item.row === null ? "нет в файле" : `строка ${item.row}`}
                   </span>

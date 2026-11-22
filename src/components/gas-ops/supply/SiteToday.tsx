@@ -377,7 +377,9 @@ function RequestLine({ request, base }: { request: SiteRequest; base: SupplyBase
           {SUPPLY_STATUS_LABEL[request.status]}
         </StatusChip>
       </div>
-      <p className="truncate type-small text-ink-2">{base.objectLabel(request.objectId)}</p>
+      <p className="truncate type-small text-ink-2" title={base.objectLabel(request.objectId)}>
+        {base.objectLabel(request.objectId)}
+      </p>
       <p className="type-small text-ink-3">
         {request.lines
           .map((l) => `${base.itemName(l.itemId)}: ${fmtQty(l.qty)} ${base.itemUnit(l.itemId)}`)
