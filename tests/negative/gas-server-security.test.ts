@@ -391,6 +391,31 @@ describe("роль видит только свои объекты", () => {
     expect(snap.docs.works.filter((w) => !own.has(w.objectId)).map((w) => w.id)).toEqual([]);
     expect(snap.objects.length).toBeGreaterThan(0);
   });
+
+  test("запись на чужой объект не создаётся: ни бригадиром, ни прорабом", async () => {
+    const full = await store.read();
+    const day = full.week.days[1]!;
+    const foreman = full.users.find((u) => u.id === "u-foreman-1") as User;
+    const foremanAllowed = allowedObjectIdsFor(full, foreman) as Set<string>;
+    const foreign = full.objects.find((o) => !foremanAllowed.has(o.id))!;
+    expect(foreign).toBeDefined();
+    expect(
+      await refusal(() =>
+        as("u-foreman-1", "createEntry", shift(day, foreign.id, "brg-1", "foreign-1")),
+      ),
+    ).toBe("not-allowed");
+    const prorab = full.users.find((u) => u.role === "prorab")!;
+    const own = new Set(prorab.allowedObjectIds as string[]);
+    const outside = full.objects.find((o) => !own.has(o.id));
+    if (outside) {
+      const result = await refusal(() =>
+        as(prorab.id, "createEntry", shift(day, outside.id, "brg-1", "foreign-2")),
+      );
+      expect(result).not.toBeNull();
+    }
+    const after = await store.read();
+    expect(after.entries.filter((e) => e.clientKey?.startsWith("foreign-"))).toEqual([]);
+  });
 });
 
 /* ---------------------------------------------------------------- Закрытая неделя */
