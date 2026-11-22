@@ -87,6 +87,49 @@ test.describe("обход кнопок, 390 @mobile", () => {
     }
   });
 
+  test("«Проверка»: часы записи видны целиком, не «2 ч 3…» @mobile", async ({ page }) => {
+    await open(page, "/gas");
+    await gasRole(page, "Менеджер проверки");
+    await open(page, "/gas/moderation");
+    const lines = page.locator("[data-queue-card] [data-phone-line]");
+    await expect(lines.first()).toBeVisible();
+    const cut = await lines.evaluateAll((spans) =>
+      spans
+        .slice(0, 6)
+        .filter((s) => s.scrollWidth > s.clientWidth + 1)
+        .map((s) => s.textContent),
+    );
+    expect(cut).toEqual([]);
+    // Полная строка с днём недели остаётся в подсказке
+    await expect(lines.first()).toHaveAttribute("title", /^(Пн|Вт|Ср|Чт|Пт|Сб|Вс) \d\d\.\d\d · /);
+  });
+
+  test("старт менеджера: «N ждут проверки» ведёт в «Проверку» @mobile", async ({ page }) => {
+    await open(page, "/gas/objects");
+    await page.getByRole("link", { name: /^\d+ ждут проверки$/ }).click();
+    await expect(page).toHaveURL(/\/gas\/moderation/);
+    // На самой «Проверке» число остаётся текстом: ссылка на текущий экран не нужна
+    await expect(page.getByRole("link", { name: /ждут проверки$/ })).toHaveCount(0);
+  });
+
+  test("«Сметы»: у двух папок разные заголовки @mobile", async ({ page }) => {
+    await open(page, "/gas");
+    await gasRole(page, "Менеджер проверки");
+    await open(page, "/gas/estimates");
+    const headings = await page.locator("main h2").allInnerTexts();
+    const folders = headings.filter((h) => /Папка/.test(h));
+    expect(new Set(folders).size).toBe(folders.length);
+  });
+
+  test("«Неделя»: ₽/ч в строке объекта не обрезан @mobile", async ({ page }) => {
+    await open(page, "/gas");
+    await gasRole(page, "Руководитель");
+    await open(page, "/gas/week");
+    const list = page.getByRole("list", { name: /недели$/ });
+    await expect(list.first()).toBeVisible();
+    expect(await clippedWithoutHint(page)).toEqual([]);
+  });
+
   test("нижняя панель: подписи «Документы» и «Материалы» целиком @mobile", async ({ page }) => {
     await open(page, "/gas");
     await gasRole(page, "ПТО");

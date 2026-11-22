@@ -803,7 +803,11 @@ function GasScreenHeader({ screen }: { screen: GasScreen }) {
           {/* Первое действие менеджера со старта и любого экрана: число ведёт в «Проверку»
               (обход QA 23.11, 390: на старте строка была текстом без перехода) */}
           {pending && screen.key !== "moderation" ? (
-            <Link to="/gas/moderation" className="underline underline-offset-2 focus-ring">
+            // Мышь от 32 (desktop-layout.spec.ts), касание от 44 невидимой рамкой touch-target
+            <Link
+              to="/gas/moderation"
+              className="touch-target inline-flex items-center underline underline-offset-2 focus-ring lg:min-h-control-sm"
+            >
               {pending}
             </Link>
           ) : (

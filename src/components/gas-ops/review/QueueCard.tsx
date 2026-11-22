@@ -64,6 +64,9 @@ export const QueueCard = forwardRef<
   const heading = `${view.brigade?.name ?? "Бригада не указана"} · ${view.object?.label ?? "Объект не указан"}`;
   const line = rowLine(view);
   const shortLine = `${fmtShortDay(entry.day)} · ${entryFrame(view) ?? "время не указано"} · ${fmtDuration(entry.minutes)}`;
+  // Телефон, «Проверка»: без дня недели и пробелов у тире, иначе многоточие резало часы
+  // («2 ч 3…», обход QA 23.11, 390). Полная строка в подсказке и в детали записи
+  const phoneLine = `${entry.day.slice(8, 10)}.${entry.day.slice(5, 7)} · ${entryFrame(view)?.replace(" – ", "–") ?? "время не указано"} · ${fmtDuration(entry.minutes)}`;
   const marks =
     fresh || remarks.length ? (
       <span className="flex min-w-0 items-center gap-1">
@@ -127,9 +130,13 @@ export const QueueCard = forwardRef<
             expanded && "rotate-180",
           )}
         />
-        <span className="col-span-2 flex min-w-0 items-baseline justify-between gap-3 sm:hidden">
-          <span className="min-w-0 truncate text-meta text-text-2 tnum" title={shortLine}>
-            {shortLine}
+        <span className="col-span-2 flex min-w-0 items-baseline justify-between gap-2 sm:hidden">
+          <span
+            className="min-w-0 truncate text-meta text-text-2 tnum"
+            title={shortLine}
+            data-phone-line
+          >
+            {phoneLine}
           </span>
           {money ? (
             <span
