@@ -60,7 +60,7 @@ services:
       AI_MODE: ${AI_MODE:-demo}
       SEO_INDEX: ${SEO_INDEX:-}
       PUBLIC_URL: https://${DOMAIN}
-      # Исходные файлы смет (ADR-085): том estimate-files, в копию входит вместе с базой
+      # Исходные файлы смет (ADR-086): том estimate-files, в копию входит вместе с базой
       ESTIMATE_FILES_DIR: /data/estimate-files
     volumes:
       - estimate-files:/data/estimate-files
@@ -68,7 +68,7 @@ services:
       db:
         condition: service_healthy
 
-  # Резервная копия базы и файлов смет (ADR-085): запускается по cron хоста, см. docs/runbook/docker.md
+  # Резервная копия базы и файлов смет (ADR-086): запускается по cron хоста, см. docs/runbook/docker.md
   #   docker compose --env-file deploy/.env --profile tools run --rm backup
   backup:
     image: postgres:16-alpine

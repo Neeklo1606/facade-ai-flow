@@ -1,5 +1,5 @@
 /**
- * Проверка П8 рабочего контура без Docker (ADR-085): то же, что делает образ, командами.
+ * Проверка П8 рабочего контура без Docker (ADR-086): то же, что делает образ, командами.
  *
  *   NITRO_PRESET=node-server bun run build:server
  *   bun scripts/check-server-p8.ts            # PG_URL=postgres://localhost:5432 P8_PORT=4643

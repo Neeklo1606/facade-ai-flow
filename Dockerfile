@@ -30,7 +30,7 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     ESTIMATE_FILES_DIR=/data/estimate-files
 COPY --from=build /app/.output ./.output
-# Исходные файлы смет (ADR-085): том compose монтируется сюда. Каталог создаётся в образе
+# Исходные файлы смет (ADR-086): том compose монтируется сюда. Каталог создаётся в образе
 # с владельцем node, иначе пустой том достаётся root и запись файла падает с EACCES
 RUN mkdir -p /data/estimate-files && chown -R node:node /data
 USER node

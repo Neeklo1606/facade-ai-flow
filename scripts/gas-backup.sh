@@ -1,5 +1,5 @@
 #!/bin/sh
-# Резервная копия рабочего контура (ADR-085): база PostgreSQL и исходные файлы смет.
+# Резервная копия рабочего контура (ADR-086): база PostgreSQL и исходные файлы смет.
 #
 #   DATABASE_URL=postgres://… ESTIMATE_FILES_DIR=/data/estimate-files BACKUP_DIR=/backups \
 #     sh scripts/gas-backup.sh

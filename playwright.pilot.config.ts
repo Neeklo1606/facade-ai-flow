@@ -6,7 +6,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e/pilot",
-  // П8 (ADR-085): вторая фаза идёт после перезапуска сервера, её зовёт scripts/check-server-p8.ts
+  // П8 (ADR-086): вторая фаза идёт после перезапуска сервера, её зовёт scripts/check-server-p8.ts
   testMatch:
     process.env["P8_PHASE"] === "restart" ? "server-restart.spec.ts" : "server-pilot.spec.ts",
   workers: 1,

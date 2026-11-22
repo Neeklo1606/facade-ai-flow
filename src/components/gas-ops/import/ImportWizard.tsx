@@ -34,7 +34,7 @@ export interface WizardState {
   headerRow: number;
   map: Record<string, number | null>;
   fileName: string;
-  /** Выбранный файл: рабочий контур кладёт исходник сметы в хранилище (ADR-085) */
+  /** Выбранный файл: рабочий контур кладёт исходник сметы в хранилище (ADR-086) */
   file?: File;
 }
 

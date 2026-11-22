@@ -12,7 +12,7 @@ import { keepSourceFile } from "@/domain/gas-ops/estimate-intake";
 import type { GasOpsSnapshot } from "@/ports/gas-ops";
 
 /**
- * Исходный файл из мастера «Загрузить смету» (ADR-085): на рабочем контуре байты ложатся
+ * Исходный файл из мастера «Загрузить смету» (ADR-086): на рабочем контуре байты ложатся
  * в хранилище тома и связываются с версией, а не живут только в разобранном снимке.
  */
 function memory(): GasStore & { now(): GasOpsSnapshot } {
@@ -50,7 +50,7 @@ const keep = (versionId: string, body: Uint8Array = bytes) => {
   });
 };
 
-describe("исходный файл мастера сметы (ADR-085)", () => {
+describe("исходный файл мастера сметы (ADR-086)", () => {
   test("версия мастера получает файл в хранилище, скачивание отдаёт те же байты", async () => {
     const store = memory();
     const version = await wizardVersion(store);

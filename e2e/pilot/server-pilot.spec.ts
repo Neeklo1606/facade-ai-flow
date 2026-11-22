@@ -207,7 +207,7 @@ test("рабочий контур: вход по ссылкам, пустая к
   await manager.goto("/gas/entries");
   await expect(manager.locator("main")).toContainText(number);
 
-  // П8 (ADR-085): состояние для проверки после перезапуска сервера, scripts/check-server-p8.ts
+  // П8 (ADR-086): состояние для проверки после перезапуска сервера, scripts/check-server-p8.ts
   const p8 = process.env["P8_STATE_DIR"];
   if (p8) {
     writeFileSync(join(p8, "state.json"), JSON.stringify({ number, address: ADDRESS }));
