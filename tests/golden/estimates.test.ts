@@ -5,6 +5,7 @@ import { sheetsOfXls, sheetsOfXlsx } from "@/adapters/gas-ops/estimate-file";
 import { parseEstimateWorkbook, type TotalKey } from "@/domain/gas-ops/estimate-parse";
 import { DEFAULT_RULE_TERMS, applyRule } from "@/domain/gas-ops/work-cost";
 import { sectionView } from "@/domain/gas-ops/estimate-intake";
+import type { EstimateAddress } from "@/domain/gas-ops/estimate-labels";
 
 /**
  * Golden-тесты на настоящих сметах заказчика (ADR-062, решение владельца 5). Файлы живут вне
@@ -26,8 +27,24 @@ interface Expected {
     work: number | null;
     pressure: number | null;
   }[];
-  /** ADR-077: номер сметы и строка наименования объекта */
-  header?: { number: string | null; objectRow: number | null };
+  /** ADR-077: номер сметы и строка наименования объекта; дата и адрес — если заданы */
+  header?: {
+    number: string | null;
+    objectRow: number | null;
+    date?: string | null;
+    address?: EstimateAddress | null;
+  };
+  /** Лист и формат: пустой шаблон «12 граф» должен пропускаться */
+  sheet?: string;
+  format?: string;
+  /** Разделы подробно: т/з, вид опрессовки и её строки, перевозка (П1, сверка с exceljs) */
+  sectionsDetail?: {
+    number: string | null;
+    laborHours: number | null;
+    pressureKind: "section" | "lines" | null;
+    pressureRows: number[];
+    transport: number | null;
+  }[];
 }
 
 const dir = process.env["GAS_GOLDEN_DIR"] ?? join(import.meta.dir, "..", "..", ".local", "golden");
@@ -83,6 +100,27 @@ describe("golden: настоящие сметы заказчика", () => {
       if (want.header) {
         expect(parsed.header?.number.value ?? null).toBe(want.header.number);
         expect(parsed.header?.object.row ?? null).toBe(want.header.objectRow);
+        if (want.header.date !== undefined)
+          expect(parsed.header?.date.value ?? null).toBe(want.header.date);
+        if (want.header.address !== undefined)
+          expect(parsed.header?.address.value ?? null).toEqual(want.header.address);
+      }
+      if (want.sheet !== undefined) expect(parsed.sheet).toBe(want.sheet);
+      if (want.format !== undefined)
+        expect(parsed.format).toBe(want.format as typeof parsed.format);
+      if (want.sectionsDetail) {
+        expect(
+          parsed.sections.map((section) => {
+            const v = sectionView(section);
+            return {
+              number: v.number,
+              laborHours: v.laborHours,
+              pressureKind: v.pressure?.kind ?? null,
+              pressureRows: v.pressure?.rows ?? [],
+              transport: v.transportKopecks,
+            };
+          }),
+        ).toEqual(want.sectionsDetail);
       }
     });
   });

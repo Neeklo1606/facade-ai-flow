@@ -78,6 +78,11 @@ export interface SectionBreakdown {
   laborHours: { value: number; row: number } | null;
   /** Раздел целиком — испытания: по названию «Испытания», «Опрессовка» */
   pressureSection: boolean;
+  /**
+   * «Перевозка» в итогах раздела (ГРАНД: перевозка грузов самосвалами). Не материалы и не
+   * работа бригады; правило «итог минус материалы» её не вычитает, решение за владельцем
+   */
+  transport?: { kopecks: number; row: number };
 }
 
 /**

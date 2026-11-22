@@ -87,6 +87,7 @@ interface Open {
   /** Колонка «Мат» строки прямых затрат раздела: подтверждает, что материалов нет */
   directMaterials: { kopecks: number | null; row: number } | null;
   pressure: PressureLine[];
+  transport: { kopecks: number; row: number } | null;
 }
 
 const fresh = (): Open => ({
@@ -95,6 +96,7 @@ const fresh = (): Open => ({
   inBlock: false,
   directMaterials: null,
   pressure: [],
+  transport: null,
 });
 
 const RESOURCE_PART: Record<string, SectionPartKey> = {
@@ -253,6 +255,10 @@ export function withBreakdown(
     }
 
     if (!open.inBlock || amount === null) return;
+    if (l === "перевозка") {
+      if (!open.transport) open.transport = { kopecks: kop(amount), row: rowNumber };
+      return;
+    }
     if (format === "resource") {
       const key = RESOURCE_PART[l];
       if (key && !open.parts[key]) open.parts[key] = { kopecks: kop(amount), row: rowNumber };
@@ -319,6 +325,7 @@ function finish(
     parts,
     laborHours: open.labor,
     pressureSection,
+    ...(open.transport && open.transport.kopecks !== 0 ? { transport: open.transport } : {}),
   };
   return {
     number: sectionNumber(section.title),
