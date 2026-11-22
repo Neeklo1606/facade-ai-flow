@@ -14,6 +14,7 @@ import { retrying, type GasStore } from "@/adapters/gas-ops/store";
 import { gasMethodArgs } from "@/contracts/gas-api";
 import type { Role, User } from "@/domain/gas-ops/model";
 import type { FieldSnapshot } from "@/domain/gas-ops/field";
+import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
 import {
   GAS_OPS_METHODS,
   GasOpsError,
@@ -128,7 +129,15 @@ export function actingAs(store: GasStore, userId: string): GasStore {
 
 /** Поля денег в ответах учёта времени: у ролей без денег они пустые */
 /** accrual — начисление по доле раздела (ADR-078): доля и суммы роли без денег не нужны */
-const MONEY_KEYS = new Set(["amountRub", "revenueInFile", "accruedRub", "totalRub", "accrual"]);
+/** rubPerHour — ставка: лежит и в копии справочников до импорта (`directoryUndo`) */
+const MONEY_KEYS = new Set([
+  "amountRub",
+  "revenueInFile",
+  "accruedRub",
+  "totalRub",
+  "accrual",
+  "rubPerHour",
+]);
 
 /**
  * Причины автопилота о деньгах (ADR-070): доходность, сумма, смета. Роль без денег видит,
@@ -162,17 +171,77 @@ function scrub<T>(value: T): T {
 }
 
 /**
+ * Объекты, которые роль видит (ADR-012, «свои объекты»): бригадиру — объекты его бригады
+ * (записи, назначения, график, разделы), прорабу — его список. null — все объекты
+ */
+function objectScope(user: User, s: GasOpsSnapshot): Set<string> | null {
+  if (user.role === "foreman") {
+    if (!user.brigadeId) return new Set();
+    const allowed = allowedObjectIdsFor(s, user);
+    return allowed === "all" ? null : allowed;
+  }
+  return user.allowedObjectIds === "all" ? null : new Set(user.allowedObjectIds);
+}
+
+/** Строки со ссылкой на объект — только своих объектов; строки без объекта остаются */
+function inScope<T>(list: readonly T[], scope: Set<string> | null): T[] {
+  if (!scope) return [...list];
+  return list.filter((item) => {
+    const id = (item as { objectId?: unknown }).objectId;
+    return typeof id !== "string" || scope.has(id);
+  });
+}
+
+const norm = (v: string) => v.toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ").trim();
+
+/**
  * Снимок для роли без денег. Бригадир видит только записи своей бригады; сметы, ставки,
  * правила стоимости, сданные отчёты и журнал действий не уходят вовсе. Закрытые версии
- * нужны экрану (закрытый день не правится), но без копий записей
+ * нужны экрану (закрытый день не правится), но без копий записей. Объекты, записи,
+ * назначения, график, заявки и документы — только своих объектов
  */
 function snapshotFor(user: User, s: GasOpsSnapshot): GasOpsSnapshot {
   const foreman = user.role === "foreman";
   const own = (brigadeId: string) => !foreman || brigadeId === user.brigadeId;
-  const entries = s.entries.filter((e) => own(e.brigadeId));
+  const scope = objectScope(user, s);
+  const visible = (objectId: string) => !scope || scope.has(objectId);
+  const entries = s.entries.filter((e) => own(e.brigadeId) && (foreman || visible(e.objectId)));
   const ids = new Set(entries.map((e) => e.id));
+  const objects = s.objects.filter((o) => visible(o.id));
+  const brigade = s.brigades.find((b) => b.id === user.brigadeId);
+  const brigadeNames = new Set(brigade ? [norm(brigade.code), norm(brigade.name)] : []);
+  const objectKeys = new Set(objects.flatMap((o) => [norm(o.code), norm(o.label)]));
+  const schedule = s.schedule
+    ? {
+        ...s.schedule,
+        rows: s.schedule.rows.filter((r) =>
+          foreman
+            ? brigadeNames.has(norm(r.brigade))
+            : !scope ||
+              objectKeys.has(norm(r.objectLabel)) ||
+              (r.code !== null && objectKeys.has(norm(r.code))),
+        ),
+      }
+    : s.schedule;
+  const scopedLists = <T extends object>(part: T): T =>
+    Object.fromEntries(
+      Object.entries(part).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? inScope(value, scope) : value,
+      ]),
+    ) as T;
+  // Предложения и приёмки ссылаются на заявку, а не на объект: остаются только своих заявок
+  const scopedSupply = (supply: GasOpsSnapshot["supply"]): GasOpsSnapshot["supply"] => {
+    const requests = new Set(supply.requests.map((r) => r.id));
+    return {
+      ...supply,
+      offers: supply.offers.filter((o) => requests.has(o.requestId)),
+      receipts: supply.receipts.filter((r) => requests.has(r.requestId)),
+    };
+  };
   return scrub({
     ...s,
+    objects,
     entries,
     reviews: s.reviews
       .filter((r) => ids.has(r.entryId))
@@ -182,6 +251,12 @@ function snapshotFor(user: User, s: GasOpsSnapshot): GasOpsSnapshot {
           (c) => c.field !== "Сумма начисления" && c.field !== "Доля раздела",
         ),
       })),
+    frames: s.frames.filter((f) => own(f.brigadeId)),
+    assignments: s.assignments
+      .filter((a) => own(a.brigadeId))
+      .map((a) => ({ ...a, objectIds: a.objectIds.filter(visible) }))
+      .filter((a) => a.objectIds.length > 0),
+    schedule,
     estimates: [],
     estimateVersions: [],
     // Папка смет и разделы с суммами (ADR-077): ролям без денег не отдаются
@@ -189,19 +264,23 @@ function snapshotFor(user: User, s: GasOpsSnapshot): GasOpsSnapshot {
     objectSections: [],
     sectionProgress: [],
     // Бригадир видит только разделы своей бригады: название без сумм лежит в назначении
-    sectionAssignments: (s.sectionAssignments ?? []).filter((a) => own(a.brigadeId)),
+    sectionAssignments: (s.sectionAssignments ?? []).filter(
+      (a) => own(a.brigadeId) && visible(a.objectId),
+    ),
     costRules: [],
     rates: [],
+    // Отмена импорта хранит справочники до импорта, со ставками: роли без денег не нужна
+    directoryUndo: null,
     reportIssues: [],
     finalChecks: [],
     audit: [],
     periods: s.periods.map((p) => ({ ...p, entries: [] })),
     supply: foreman
       ? { ...s.supply, requests: [], offers: [], receipts: [], limits: [] }
-      : s.supply,
+      : scopedSupply(scopedLists(s.supply)),
     docs: foreman
       ? { ...s.docs, works: [], docs: [], files: [], registries: [], journal: [] }
-      : s.docs,
+      : scopedLists(s.docs),
   });
 }
 

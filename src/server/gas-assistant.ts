@@ -29,6 +29,24 @@ export function assistantConfigured(): { available: boolean; model: string | nul
     : { available: false, model: null };
 }
 
+/**
+ * Кто может спрашивать модель. В рабочем контуре (есть база) — только пользователь учёта
+ * времени с живой сессией: иначе адрес становится открытым доступом к платному ключу модели
+ * для любого, кто его знает. Без базы (демонстрация) вход не нужен, работает лимит адреса
+ */
+export async function assistantAccess(
+  store: { read(): Promise<{ users: { id: string }[] }> } | null,
+  userId: () => Promise<string | null>,
+): Promise<{ ok: true } | { ok: false; status: 401 | 403; error: string }> {
+  if (!store) return { ok: true };
+  const id = await userId();
+  if (!id) return { ok: false, status: 401, error: "Войдите, чтобы задать вопрос" };
+  if (!(await store.read()).users.some((u) => u.id === id)) {
+    return { ok: false, status: 403, error: "Вас нет среди пользователей учёта времени" };
+  }
+  return { ok: true };
+}
+
 const hits = new Map<string, number[]>();
 
 /** Не больше PER_MINUTE вопросов в минуту с одного адреса: публичная ссылка показа */

@@ -2412,6 +2412,8 @@ export function createGasOpsDemo(
       const actor = snapshot.users.find((u) => u.id === snapshot.actorId);
       if (actor?.role === "foreman" && actor.brigadeId !== entry.brigadeId)
         throw new GasOpsError("not-allowed", "Запись другой бригады.");
+      // Ответ меняет предложенную долю: в закрытой неделе он не принимается, как и правка
+      mustBeOpen(snapshot, entry.day);
       if (!entry.sectionKey)
         throw new GasOpsError("no-section", "У записи нет раздела: вопрос не нужен.");
       if (entry.status === "confirmed" || entry.status === "rejected")

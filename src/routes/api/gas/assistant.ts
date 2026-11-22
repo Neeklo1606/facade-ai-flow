@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   allowRequest,
+  assistantAccess,
   askClaude,
   assistantConfigured,
   parseAssistantBody,
@@ -24,6 +25,12 @@ export const Route = createFileRoute("/api/gas/assistant")({
         if (!assistantConfigured().available) {
           return json({ error: "Агент не подключён: на сервере нет ключа модели" }, 503);
         }
+        const [{ gasServerStore }, { sessionActorId }] = await Promise.all([
+          import("@/api/gas-server-store"),
+          import("@/api/session"),
+        ]);
+        const access = await assistantAccess(await gasServerStore(), sessionActorId);
+        if (!access.ok) return json({ error: access.error }, access.status);
         const ip =
           request.headers.get("cf-connecting-ip") ??
           request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
