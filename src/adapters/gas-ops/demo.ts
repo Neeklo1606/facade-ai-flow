@@ -34,6 +34,7 @@ import {
   planAccrual,
   sectionForEntry,
   sectionLabel,
+  splitBySections,
   type EntryAccrual,
   type SectionProgress,
 } from "@/domain/gas-ops/section-accrual";
@@ -367,7 +368,11 @@ function applyCost(
   locked: number;
   kept: number;
 } {
-  const recalc = recalcObject(s.entries, objectId, amountRub, (day) => isDayLocked(s.periods, day));
+  // Стоимость делится по разделам (ADR-085): записи начисляет доля раздела, а не минуты
+  // всей сметы. Иначе подтверждённая запись без раздела получила бы долю поверх разделов
+  const recalc = splitBySections(s, objectId)
+    ? { entries: s.entries, changed: [], waiting: 0, locked: 0, confirmedMismatch: [] }
+    : recalcObject(s.entries, objectId, amountRub, (day) => isDayLocked(s.periods, day));
   let stale = 0;
   const reportIssues = s.reportIssues.map((r) => {
     if (r.stale || !r.objectIds.includes(objectId)) return r;
