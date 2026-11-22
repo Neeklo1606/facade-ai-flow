@@ -61,11 +61,33 @@ export const gasUpdateEntryInput = z
   })
   .strict();
 
+/** Решение по разделу при подтверждении (ADR-078): предложенная доля или ручная сумма с причиной */
+export const gasAccrualDecision = z.union([
+  z
+    .object({
+      kind: z.literal("share"),
+      percent: z
+        .union([z.number(), z.string().max(20)])
+        .nullable()
+        .optional(),
+      done: z.boolean().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("manual"),
+      amountRub: z.number().finite(),
+      reason: z.string().max(2000),
+    })
+    .strict(),
+]);
+
 export const gasReviewInput = z
   .object({
     id,
     action: z.enum(["confirm", "reject", "clarify"]),
     comment: z.string().max(2000).optional(),
+    accrual: gasAccrualDecision.optional(),
   })
   .strict();
 

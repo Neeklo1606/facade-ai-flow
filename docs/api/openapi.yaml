@@ -1170,6 +1170,38 @@ components:
         comment:
           type: "string"
           maxLength: 2000
+        accrual:
+          anyOf:
+            - type: "object"
+              properties:
+                kind:
+                  const: "share"
+                percent:
+                  anyOf:
+                    - anyOf:
+                        - type: "number"
+                        - type: "string"
+                          maxLength: 20
+                    - type: "null"
+                done:
+                  type: "boolean"
+              required:
+                - "kind"
+              additionalProperties: false
+            - type: "object"
+              properties:
+                kind:
+                  const: "manual"
+                amountRub:
+                  type: "number"
+                reason:
+                  type: "string"
+                  maxLength: 2000
+              required:
+                - "kind"
+                - "amountRub"
+                - "reason"
+              additionalProperties: false
       required:
         - "action"
       additionalProperties: false

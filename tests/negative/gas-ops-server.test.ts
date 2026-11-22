@@ -316,6 +316,47 @@ describe("серверные функции учёта времени: отве�
     ).toMatchObject({ ok: false, status: 422, code: "comment-required" });
   });
 
+  test("принять с решением по разделу (ADR-078): схема сервера пропускает долю и ручную сумму", async () => {
+    // Найдено ночным прогоном рабочего контура: экран проверки шлёт accrual, схема его резала
+    const store = memory();
+    const [first, second] = store.now().entries.filter((e) => e.status === "pending");
+    const share = await answerGasCall(
+      {
+        method: "review",
+        args: [{ id: first!.id, action: "confirm", accrual: { kind: "share" } }],
+      },
+      "u-manager",
+      store,
+    );
+    expect(share).not.toMatchObject({ status: 400 });
+    const manual = await answerGasCall(
+      {
+        method: "review",
+        args: [
+          {
+            id: second!.id,
+            action: "confirm",
+            accrual: { kind: "manual", amountRub: 1000, reason: "по акту" },
+          },
+        ],
+      },
+      "u-manager",
+      store,
+    );
+    expect(manual).not.toMatchObject({ status: 400 });
+    // Чужие поля по-прежнему отклоняются
+    expect(
+      await answerGasCall(
+        {
+          method: "review",
+          args: [{ id: first!.id, action: "confirm", accrual: { kind: "share", amountRub: 5 } }],
+        },
+        "u-manager",
+        store,
+      ),
+    ).toMatchObject({ ok: false, status: 400 });
+  });
+
   test("клиент порта: отказ с тем же кодом, после действия снимок перечитан", async () => {
     const store = memory();
     const seen: GasOpsSnapshot[] = [];
