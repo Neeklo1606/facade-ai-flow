@@ -1,5 +1,6 @@
 import { completePageHead } from "@/lib/page-head";
-import { useServerConnections } from "@/api/gas-connections";
+import { runMaxCheck, useServerConnections, type MaxCheckView } from "@/api/gas-connections";
+import type { MaxCheckAction } from "@/api/gas-max-check";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
@@ -250,6 +251,7 @@ function AdminPage() {
           {(connections ?? []).map((item) => (
             <li key={item.key}>
               <ListRow title={item.name} meta={item.detail} valueMeta={item.state} compact />
+              {item.key === "max" && item.on ? <MaxCheckRow /> : null}
             </li>
           ))}
           <li className="flex flex-wrap items-center justify-between gap-3 px-row py-row">
@@ -316,6 +318,42 @@ function AdminPage() {
           <p className="text-body text-text-3">Действий в этой вкладке ещё не было</p>
         )}
       </Group>
+    </div>
+  );
+}
+
+/**
+ * Проверка канала MAX (ADR-085): только когда токен и база заданы. «Проверить вебхук»
+ * ничего не меняет в MAX, «Тестовое сообщение мне» уходит только нажавшему
+ */
+function MaxCheckRow() {
+  const [busy, setBusy] = useState<MaxCheckAction | null>(null);
+  const [lines, setLines] = useState<MaxCheckView[]>([]);
+  const run = async (action: MaxCheckAction) => {
+    setBusy(action);
+    setLines(await runMaxCheck(action));
+    setBusy(null);
+  };
+  return (
+    <div className="flex flex-col gap-2 px-row pb-row" data-testid="max-check">
+      <span className="flex flex-wrap gap-2">
+        <Button variant="secondary" disabled={busy !== null} onClick={() => run("check")}>
+          {busy === "check" ? "Проверяю" : "Проверить вебхук"}
+        </Button>
+        <Button variant="secondary" disabled={busy !== null} onClick={() => run("test")}>
+          {busy === "test" ? "Отправляю" : "Тестовое сообщение мне"}
+        </Button>
+      </span>
+      <ul aria-live="polite" aria-label="Результат проверки MAX" className="flex flex-col gap-1">
+        {lines.map((line) => (
+          <li key={line.name} className="text-meta">
+            <span className={line.ok ? "text-text" : "text-danger"}>
+              {line.ok ? "Да" : "Нет"} · {line.name}:
+            </span>{" "}
+            <span className="text-text-2">{line.text}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
