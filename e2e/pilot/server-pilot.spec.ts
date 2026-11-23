@@ -125,7 +125,7 @@ test("рабочий контур: вход по ссылкам, пустая к
   await expect(toast(manager, "График применён: строк 1")).toBeVisible();
 
   await manager.goto("/gas/estimates");
-  await manager.getByRole("button", { name: "Загрузить смету" }).click();
+  await manager.getByRole("button", { name: "Импорт по колонкам" }).click();
   await manager.getByTestId("estimate-file").setInputFiles(estimateFile());
   await manager.getByRole("button", { name: "Всё верно, применить" }).click();
   const parsed = manager.getByTestId("estimate-parsed");

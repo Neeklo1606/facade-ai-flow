@@ -33,6 +33,8 @@ export function EditableAmount({
   kopecks,
   correction,
   canEdit,
+  highlight = false,
+  hint,
 }: {
   versionId: string;
   target: CorrectionTarget;
@@ -41,6 +43,10 @@ export function EditableAmount({
   kopecks: number;
   correction: EstimateCorrection | null;
   canEdit: boolean;
+  /** Строка берётся в расчёт отчёта (ADR-089): подсветка слева */
+  highlight?: boolean;
+  /** Подпись под строкой: роль раздела */
+  hint?: string | undefined;
 }) {
   const actions = useGasEstimateActions();
   const [editing, setEditing] = useState(false);
@@ -74,10 +80,15 @@ export function EditableAmount({
   };
 
   return (
-    <li className="py-2" data-testid="estimate-line">
+    <li
+      className={highlight ? "border-s-4 border-orange bg-accent-bg/40 py-2 ps-2" : "py-2"}
+      data-testid="estimate-line"
+      data-report={highlight || undefined}
+    >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-body text-text-2">{label}</p>
+          {hint ? <p className="text-meta text-text-3">{hint}</p> : null}
           <p className="text-meta text-text-3">строка {row}</p>
         </div>
         <div className="flex flex-col items-end">

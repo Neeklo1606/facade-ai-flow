@@ -26,6 +26,10 @@ import {
 import type { TimeEntry } from "@/domain/gas-ops/model";
 import { objectPath, type PathStep } from "@/domain/gas-ops/estimate-flow";
 import type { AssignSectionInput } from "@/ports/gas-ops";
+import { classifySections, type ClassifiedSection } from "@/domain/gas-ops/estimate-kind";
+
+export { SECTION_ROLE_LABEL } from "@/domain/gas-ops/estimate-kind";
+import { brigadeStatus } from "@/domain/gas-ops/schedule";
 
 export {
   ACCRUAL_MODE_LABEL,
@@ -44,17 +48,25 @@ export type {
   SectionProgress,
 } from "@/domain/gas-ops/section-accrual";
 
-/** Разделы объекта с деньгами и бригадами: карточка объекта */
-export function useObjectSections(objectId: string | null): SectionLedger[] {
+/** Раздел объекта с ролью (ADR-089): идёт ли в отчёт выработки и почему нет */
+export type ObjectSectionRow = SectionLedger & Omit<ClassifiedSection, "key">;
+
+/** Разделы объекта с деньгами, бригадами и ролью: карточка объекта */
+export function useObjectSections(objectId: string | null): ObjectSectionRow[] {
   const s = useGasSnapshot();
   return useMemo(() => {
     if (!s || !objectId) return [];
-    return sectionLedger({
+    const ledger = sectionLedger({
       objectId,
       sections: s.objectSections ?? [],
       entries: s.entries,
       progress: s.sectionProgress ?? [],
       assignments: s.sectionAssignments ?? [],
+    });
+    const roles = classifySections(ledger).sections;
+    return ledger.map((row, i) => {
+      const { role, report, note } = roles[i]!;
+      return { ...row, role, report, note };
     });
   }, [s, objectId]);
 }
@@ -192,14 +204,19 @@ export function useSectionActions() {
 
 /** Бригады и неделя для формы назначения */
 export function useAssignOptions(): {
-  brigades: { id: string; name: string }[];
+  /** away — бригада в отпуске на этой неделе: назначить можно, бот объектов не покажет */
+  brigades: { id: string; name: string; away: boolean }[];
   weekFrom: string;
   weekTo: string;
 } {
   const s = useGasSnapshot();
   return useMemo(
     () => ({
-      brigades: (s?.brigades ?? []).map((b) => ({ id: b.id, name: b.name })),
+      brigades: (s?.brigades ?? []).map((b) => ({
+        id: b.id,
+        name: b.name,
+        away: brigadeStatus(b.id, s.week.from, s.brigadeAvailability ?? []) === "vacation",
+      })),
       weekFrom: s?.week.from ?? "",
       weekTo: s?.week.to ?? "",
     }),

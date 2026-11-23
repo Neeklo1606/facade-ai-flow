@@ -391,6 +391,16 @@ export function useKeepEstimateSource() {
   );
 }
 
+/** Тип сметы и роль раздела (ADR-089): что идёт в отчёт выработки */
+export {
+  ESTIMATE_KIND_HINT,
+  ESTIMATE_KIND_LABEL,
+  SECTION_ROLE_LABEL,
+  classifySections,
+  type EstimateKind,
+  type SectionRole,
+} from "@/domain/gas-ops/estimate-kind";
+
 /** Итоги разбора по шагам для мастера «Загрузить смету» (ADR-080) */
 export type { IntakeCheck };
 

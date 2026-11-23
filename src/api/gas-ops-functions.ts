@@ -19,5 +19,19 @@ export const gasOpsCallFn = createServerFn({ method: "POST" })
    * Ответ строкой JSON: снимок и записи — простые данные, тип ответа у методов разный
    */
   .handler(async ({ data }): Promise<string> =>
-    JSON.stringify(await answerGasCall(data, await sessionActorId(), await gasServerStore())),
+    JSON.stringify(
+      await answerGasCall(
+        data,
+        await sessionActorId(),
+        await gasServerStore(),
+        removeEstimateFiles,
+      ),
+    ),
   );
+
+/** Исходные файлы удалённых смет (ADR-088): с тома, где их хранит папка смет */
+async function removeEstimateFiles(paths: string[]): Promise<void> {
+  const { createEstimateStorage } = await import("@/adapters/gas-ops/estimate-storage");
+  const storage = createEstimateStorage();
+  await Promise.all(paths.map((path) => storage.remove(path)));
+}

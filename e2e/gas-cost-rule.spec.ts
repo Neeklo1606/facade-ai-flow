@@ -22,7 +22,7 @@ const WIDTHS = [
 
 /** Загрузить смету, привязать к ОБ-001 и отметить замечания проверенными */
 async function uploadLinked(page: Page) {
-  await page.getByRole("button", { name: "Загрузить смету" }).click();
+  await page.getByRole("button", { name: "Импорт по колонкам" }).click();
   await page.getByTestId("estimate-file").setInputFiles(xlsx());
   await page.getByRole("button", { name: "Всё верно, применить" }).click();
   const parsed = page.getByTestId("estimate-parsed");

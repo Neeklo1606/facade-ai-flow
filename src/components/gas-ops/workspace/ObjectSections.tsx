@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import {
   PROGRESS_KIND_LABEL,
+  SECTION_ROLE_LABEL,
   fmtShare,
   sectionLabel,
   useAssignOptions,
@@ -14,7 +15,7 @@ import {
   useObjectSections,
   useSectionActions,
   useSectionAssignments,
-  type SectionLedger,
+  type ObjectSectionRow,
 } from "@/api/gas-section-accrual";
 import { fmtRub, useGasActor } from "@/api/gas-ops";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export function ObjectSections({ objectId }: { objectId: string }) {
   const sections = useObjectSections(objectId);
   const actor = useGasActor();
   const manage = actor.role === "manager" || actor.isAdmin;
-  const [assignTo, setAssignTo] = useState<SectionLedger | null>(null);
+  const [assignTo, setAssignTo] = useState<ObjectSectionRow | null>(null);
   if (sections.length === 0)
     return (
       <section id="object-sections" data-testid="object-sections">
@@ -38,23 +39,26 @@ export function ObjectSections({ objectId }: { objectId: string }) {
         </p>
       </section>
     );
-  const total = sections.reduce(
-    (a, s) => ({
-      work: a.work + (s.workRub ?? 0),
-      accrued: a.accrued + s.accruedRub,
-      left: a.left + (s.remainingRub ?? 0),
-    }),
-    { work: 0, accrued: 0, left: 0 },
-  );
+  // Итог — по разделам отчёта (ADR-089): субподряд и чужие работы в выработку не входят
+  const total = sections
+    .filter((s) => s.report || s.accruedRub > 0)
+    .reduce(
+      (a, s) => ({
+        work: a.work + (s.workRub ?? 0),
+        accrued: a.accrued + s.accruedRub,
+        left: a.left + (s.remainingRub ?? 0),
+      }),
+      { work: 0, accrued: 0, left: 0 },
+    );
   return (
     <section id="object-sections" data-testid="object-sections">
       <h3 className="text-meta-strong text-text-2">Разделы сметы</h3>
       <p className="mt-1 text-meta text-text-2 tnum">
-        Работы {fmtRub(total.work)} · начислено {fmtRub(total.accrued)} · остаток{" "}
+        В отчёт: работы {fmtRub(total.work)} · начислено {fmtRub(total.accrued)} · остаток{" "}
         {fmtRub(total.left)}
       </p>
       <ul className="mt-2 flex flex-col gap-2">
-        {sections.map((s) => (
+        {[...sections.filter((s) => s.report), ...sections.filter((s) => !s.report)].map((s) => (
           <SectionRow
             key={s.key}
             objectId={objectId}
@@ -78,7 +82,7 @@ function SectionRow({
   onAssign,
 }: {
   objectId: string;
-  section: SectionLedger;
+  section: ObjectSectionRow;
   manage: boolean;
   onAssign: () => void;
 }) {
@@ -91,10 +95,20 @@ function SectionRow({
       ? "норматива т/з нет: долю вводит менеджер"
       : `${(s.personMinutes / 60).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} из ${s.laborHours.toLocaleString("ru-RU", { maximumFractionDigits: 1 })} чел.-ч`;
   return (
-    <li className="rounded-card border border-line bg-surface p-3" data-testid="section-row">
+    <li
+      className={cn(
+        "rounded-card border border-line bg-surface p-3",
+        s.report ? "border-s-4 border-s-orange" : "opacity-80",
+      )}
+      data-testid="section-row"
+      data-report={s.report}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-body-strong">{sectionLabel(s)}</p>
+          <p className="text-meta text-text-3" data-testid="section-role">
+            {SECTION_ROLE_LABEL[s.role]}
+          </p>
           <p className="mt-0.5 text-meta text-text-2 tnum">
             Доля {fmtShare(s.bp)} · {norm}
             {s.pressure ? " · есть опрессовка" : ""}
@@ -183,7 +197,7 @@ function AssignSection({
   onClose,
 }: {
   objectId: string;
-  section: SectionLedger;
+  section: ObjectSectionRow;
   onClose: () => void;
 }) {
   const options = useAssignOptions();
@@ -234,7 +248,7 @@ function AssignSection({
             <option value="">Выберите бригаду</option>
             {options.brigades.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name}
+                {b.away ? `${b.name} · в отпуске на этой неделе` : b.name}
               </option>
             ))}
           </select>

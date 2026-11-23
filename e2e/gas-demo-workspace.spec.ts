@@ -74,7 +74,7 @@ test("разделы загруженного Excel: назначение бри
   page,
 }) => {
   await open(page, "/gas/estimates");
-  await page.getByRole("button", { name: "Загрузить смету", exact: true }).click();
+  await page.getByRole("button", { name: "Импорт по колонкам", exact: true }).click();
   await page.getByTestId("estimate-file").setInputFiles(file());
   await page.getByRole("button", { name: "Всё верно, применить", exact: true }).click();
   const parsed = page.getByTestId("estimate-parsed");

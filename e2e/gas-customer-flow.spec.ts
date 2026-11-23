@@ -109,7 +109,7 @@ for (const width of WIDTHS) {
 
       // 3. Смета: колонки, примеры, сходимость, привязка и подтверждение
       await open(page, "/gas/estimates");
-      await page.getByRole("button", { name: "Загрузить смету" }).click();
+      await page.getByRole("button", { name: "Импорт по колонкам" }).click();
       await page.getByTestId("estimate-file").setInputFiles(estimateFile());
       await expect(page.getByTestId("columns-auto")).toContainText(
         "Колонки определены автоматически",
