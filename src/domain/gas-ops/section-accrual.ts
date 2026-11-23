@@ -472,3 +472,10 @@ export function sectionLabel(s: Pick<ObjectSection, "number" | "title">): string
   if (!s.number || s.title.toLowerCase().startsWith("раздел")) return s.title;
   return `Раздел ${s.number}. ${s.title}`;
 }
+
+/** Подписи разделов смет для отчёта и Excel: ключ записи → «Раздел 2. Монтаж…» */
+export function reportSections(
+  sections: readonly Pick<ObjectSection, "objectId" | "key" | "number" | "title">[],
+): { objectId: string; key: string; label: string }[] {
+  return sections.map((x) => ({ objectId: x.objectId, key: x.key, label: sectionLabel(x) }));
+}

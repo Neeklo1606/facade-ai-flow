@@ -15,6 +15,7 @@ import { useRef, useState, type DragEvent } from "react";
 import { AlertTriangle, Check, ChevronDown, Upload } from "lucide-react";
 import { useGasActor, useGasObjects } from "@/api/gas-ops";
 import {
+  changedPhrase,
   estimateChecks,
   useEstimateIntake,
   type EstimateCard,
@@ -103,6 +104,13 @@ function EstimateFlow({
   };
 
   const linked = objectId ?? card?.object?.id ?? null;
+  const actor = useGasActor();
+  // Новая версия сметы известного объекта: разделы меняются только после подтверждения
+  const outcome = rows?.[0]?.outcome ?? null;
+  const newVersion =
+    outcome?.kind === "added" && outcome.version !== null && outcome.version > 1
+      ? { version: outcome.version, changed: outcome.changed }
+      : null;
 
   return (
     <AdaptiveSheet
@@ -200,6 +208,31 @@ function EstimateFlow({
                 setStep("brigades");
               }}
             />
+            {card.object && newVersion ? (
+              <div
+                className="flex flex-col gap-1 rounded-card bg-surface-2 p-3 text-meta"
+                data-testid="estimate-flow-new-version"
+              >
+                <p className="text-meta-strong text-text">
+                  Это версия {newVersion.version} сметы объекта
+                  {newVersion.changed ? `: ${changedPhrase(newVersion.changed)}` : ""}
+                </p>
+                <p className="text-text-2">
+                  Разделы и начисления пока идут по прежней версии. Новые разделы появятся у
+                  объекта, когда стоимость подтвердят; начисленное по старым разделам остаётся.
+                </p>
+                {actor.canManageEstimates && versionId ? (
+                  <Link
+                    to="/gas/estimates"
+                    search={{ open: versionId }}
+                    className="text-meta-strong text-accent-text focus-ring"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Подтвердить стоимость версии {newVersion.version}
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
             {card.object ? (
               <Button
                 variant="primary"
@@ -344,7 +377,9 @@ function CheckStep({
                           expanded && "rotate-180",
                         )}
                       />
-                      <span className="truncate text-text">{sectionLabel(s)}</span>
+                      <span className="line-clamp-2 text-text" title={sectionLabel(s)}>
+                        {sectionLabel(s)}
+                      </span>
                     </span>
                     <span className="w-24 text-right text-meta-strong">
                       <span className="sr-only">работы </span>

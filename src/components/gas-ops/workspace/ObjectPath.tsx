@@ -6,7 +6,7 @@
 import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useGasActor } from "@/api/gas-ops";
-import { useObjectPath, type PathStep } from "@/api/gas-section-accrual";
+import { useObjectPath, usePendingEstimateId, type PathStep } from "@/api/gas-section-accrual";
 import { EstimateFlowButton } from "@/components/gas-ops/estimates/EstimateFlow";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,8 @@ export function ObjectPath({ objectId, label }: { objectId: string; label: strin
   const actor = useGasActor();
   const manage = actor.role === "manager" || actor.isAdmin;
   const current = steps.find((s) => s.state === "current") ?? null;
+  // «Подтвердить стоимость» открывает шторку именно этой сметы, а не общий список
+  const pendingId = usePendingEstimateId(objectId);
   if (steps.length === 0) return null;
   return (
     <section
@@ -52,7 +54,12 @@ export function ObjectPath({ objectId, label }: { objectId: string; label: strin
         <span className="flex flex-wrap gap-2">
           {current?.key === "estimate" ? <EstimateFlowButton /> : null}
           {current?.key === "cost" && actor.canManageEstimates ? (
-            <Link to="/gas/estimates" className={actionClass}>
+            <Link
+              to="/gas/estimates"
+              search={pendingId ? { open: pendingId } : {}}
+              className={actionClass}
+              data-testid="object-path-cost"
+            >
               Подтвердить стоимость
             </Link>
           ) : null}

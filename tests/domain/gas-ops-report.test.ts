@@ -222,6 +222,31 @@ describe("аналитическая таблица", () => {
     expect(rows.every((r) => r.brigadeName !== r.entryId)).toBe(true);
   });
 
+  test("раздел сметы подписан названием, а не служебным ключом", () => {
+    const entry = seed.entries.find((e) => e.status === "confirmed")!;
+    const rows = analyticRows({
+      groups: seed.groups,
+      brigades: seed.brigades,
+      employees: seed.employees,
+      objects: seed.objects,
+      days: seed.week.days,
+      entries: [{ ...entry, sectionKey: "n2" }],
+      mode: "confirmed",
+      sections: [{ objectId: entry.objectId, key: "n2", label: "Раздел 2. Монтаж" }],
+    });
+    expect(rows[0]!.sectionLabel).toBe("Раздел 2. Монтаж");
+    const unknown = analyticRows({
+      groups: seed.groups,
+      brigades: seed.brigades,
+      employees: seed.employees,
+      objects: seed.objects,
+      days: seed.week.days,
+      entries: [{ ...entry, sectionKey: "n9" }],
+      mode: "confirmed",
+    });
+    expect(unknown[0]!.sectionLabel).toBe("раздел сметы");
+  });
+
   test("у каждой строки известен источник данных", () => {
     const rows = analyticRows({
       groups: seed.groups,

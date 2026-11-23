@@ -87,8 +87,8 @@ function SectionRow({
   const brigade = useBrigadeName();
   const actions = useSectionActions();
   const norm =
-    s.laborHours === null
-      ? "норматива нет"
+    s.laborHours === null || s.laborHours <= 0
+      ? "норматива т/з нет: долю вводит менеджер"
       : `${(s.personMinutes / 60).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} из ${s.laborHours.toLocaleString("ru-RU", { maximumFractionDigits: 1 })} чел.-ч`;
   return (
     <li className="rounded-card border border-line bg-surface p-3" data-testid="section-row">

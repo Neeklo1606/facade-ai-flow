@@ -4,7 +4,7 @@
  * Экраны и компоненты берут отсюда и готовые цифры, и действия, и подписи. Порт, домен
  * и адаптер ниже этого слоя: когда демо-адаптер сменится на сервер, экраны не изменятся.
  */
-import { sectionLabel } from "@/domain/gas-ops/section-accrual";
+import { reportSections, sectionLabel } from "@/domain/gas-ops/section-accrual";
 import { sheetSyncDemo } from "@/adapters/gas-ops/sheet-sync-demo";
 import {
   factReportSheet,
@@ -848,6 +848,7 @@ export function useWeekExport(): (kind: "approved" | "draft", version?: number) 
           objects: data.objects,
           frames: data.frames,
           periods: data.periods,
+          sections: reportSections(data.objectSections ?? []),
         },
       }),
     [data],

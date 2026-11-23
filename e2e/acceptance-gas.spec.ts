@@ -163,9 +163,13 @@ async function customerPath(page: Page, phone: boolean) {
   // Полоса пути: текущий шаг «Стоимость», Оксана подтверждает смету по правилу компании
   await expect(page.getByTestId("object-path-hint")).toContainText("Стоимость");
   await page.getByRole("link", { name: "Подтвердить стоимость" }).click();
-  await expect(page).toHaveURL(/\/gas\/estimates/);
-  await page.getByTestId("estimate-pending").filter({ hasText: LABEL }).click();
-  await page.getByRole("button", { name: "Подтвердить смету" }).click();
+  // Ссылка открывает шторку именно этой сметы, искать её в списке не нужно
+  await expect(page).toHaveURL(/\/gas\/estimates\?open=/);
+  await page
+    .getByRole("dialog")
+    .filter({ hasText: LABEL })
+    .getByRole("button", { name: "Подтвердить смету" })
+    .click();
   // Всего без НДС 26 869,89 минус материалы 5 988,00 = 20 881,89, целые рубли
   await expect(toast(page, /Смета подтверждена: 20\s882\s₽/)).toBeVisible();
 
