@@ -47,8 +47,9 @@ test("руководитель переходит из бригад к загр�
   await page.goto("/gas/brigades");
   await page.getByRole("link", { name: "Сметы", exact: true }).last().click();
   await expect(page).toHaveURL(/\/gas\/estimates/);
+  // Пошаговый мастер (ADR-089): первый шаг — только выбор файла
   await page.getByRole("button", { name: "Загрузить смету", exact: true }).click();
-  await expect(page.getByTestId("estimate-file")).toBeAttached();
+  await expect(page.getByTestId("estimate-flow-input")).toBeAttached();
 });
 
 test("карточки раскрываются на месте, выбор независим от детали @mobile", async ({ page }) => {

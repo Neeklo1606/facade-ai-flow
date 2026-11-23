@@ -123,14 +123,18 @@ async function customerPath(page: Page, phone: boolean) {
   await expect(checks).toContainText("3 раздела");
   const sections = flow.getByTestId("estimate-section");
   await expect(sections).toHaveCount(3);
-  await expect(sections.nth(1)).toContainText("Монтаж стальных газопроводов");
-  await expect(sections.nth(1)).toContainText(rub(WORK_3));
-  await sections.nth(1).click();
+  // Раздел отчёта (сталь) первым и подсвечен (ADR-089)
+  // В синтетической смете есть земляные работы: подземный газопровод, в отчёт только сталь
+  await expect(flow.getByTestId("estimate-flow-kind")).toHaveAttribute("data-kind", "underground");
+  await expect(sections.nth(0)).toContainText("Монтаж стальных газопроводов");
+  await expect(sections.nth(0)).toContainText(rub(WORK_3));
+  await sections.nth(0).click();
   const table = flow.getByTestId("flow-sections-table");
-  await expect(table).toContainText(/Итог раздела\s*17\s599\s₽ · стр\. 57/);
+  await expect(table).toContainText(/Итого по разделу\s*17\s599\s₽ · стр\. 57/);
   await expect(table).toContainText(/Материалы\s*5\s988\s₽ · стр\. 52/);
-  await expect(table).toContainText("В т. ч. опрессовка");
-  await flow.getByText("Шапка сметы и сверка с файлом").click();
+  await expect(table).toContainText("строки испытаний");
+  await flow.getByTestId("estimate-flow-fix-open").click();
+  await flow.getByText("Шапка сметы: объект, адрес, номер").click();
   const header = flow.getByTestId("estimate-header");
   await expect(header).toContainText(NUMBER);
   await expect(header).toContainText("· строка 6");
@@ -151,10 +155,11 @@ async function customerPath(page: Page, phone: boolean) {
   // П3. Разные разделы разным бригадам
   const rows = flow.getByTestId("flow-section");
   await expect(rows).toHaveCount(3);
-  await rows.nth(1).getByRole("combobox").selectOption({ label: "Бригада 1" });
-  await expect(rows.nth(1)).toContainText("Бригада 1");
-  await rows.nth(0).getByRole("combobox").selectOption({ label: "Бригада 2" });
-  await expect(rows.nth(0)).toContainText("Бригада 2");
+  // Сталь (раздел отчёта) первой строкой — бригаде 1, следующий раздел — бригаде 2
+  await rows.nth(0).getByRole("combobox").selectOption({ label: "Бригада 1" });
+  await expect(rows.nth(0)).toContainText("Бригада 1");
+  await rows.nth(1).getByRole("combobox").selectOption({ label: "Бригада 2" });
+  await expect(rows.nth(1)).toContainText("Бригада 2");
   await expect(flow.getByTestId("flow-brigades-summary")).toContainText("Назначено 2 из 3");
   await flow.getByTestId("flow-open-object").click();
   await expect(page).toHaveURL(/\/gas\/objects\//, { timeout: 15_000 });

@@ -56,7 +56,7 @@ test.describe("мастер импорта 1440", () => {
 
   test("смета: колонка сумм, цены с НДС и без, применить и отменить версию", async ({ page }) => {
     await open(page, "/gas/estimates");
-    await page.getByRole("button", { name: "Загрузить смету" }).click();
+    await page.getByRole("button", { name: "Импорт по колонкам" }).click();
     await page
       .getByTestId("estimate-file")
       .setInputFiles(file("e2e/gas-estimate-file.cli.ts", "estimate"));

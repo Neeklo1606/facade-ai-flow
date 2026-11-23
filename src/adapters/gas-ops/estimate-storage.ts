@@ -3,7 +3,7 @@
  * `ESTIMATE_FILES_DIR`, по умолчанию `./data/estimate-files`. Имя файла — хеш содержимого:
  * один и тот же файл лежит один раз, имя файла заказчика (в нём адрес) на диск не пишется.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join, resolve, sep } from "node:path";
 
@@ -12,6 +12,8 @@ export interface EstimateStorage {
   /** Записать байты; путь относительно корня хранилища */
   save(sha256: string, kind: "xls" | "xlsx", bytes: Uint8Array): Promise<string>;
   read(path: string): Promise<Uint8Array | null>;
+  /** Удалить файл (ADR-088): смета удалена, на файл больше никто не ссылается */
+  remove(path: string): Promise<void>;
 }
 
 export function sha256Hex(bytes: Uint8Array): string {
@@ -44,6 +46,11 @@ export function createEstimateStorage(
       } catch {
         return null;
       }
+    },
+    async remove(path) {
+      const full = inside(path);
+      if (!full) return;
+      await rm(full, { force: true });
     },
   };
 }

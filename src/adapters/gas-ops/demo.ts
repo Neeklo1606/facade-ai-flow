@@ -120,6 +120,17 @@ import {
 } from "@/domain/gas-ops/estimate-intake";
 import { addressKey } from "@/domain/gas-ops/estimate-header";
 import type { ParsedWorkbook } from "@/domain/gas-ops/estimate-labels";
+import {
+  clearWorkingData,
+  countsPhrase,
+  ESTIMATE_BLOCK_TEXT,
+  estimateRemovalBlock,
+  brigadeEntryCount,
+  lockedObjectDays,
+  removeBrigade,
+  removeEstimate,
+  removeObject,
+} from "@/domain/gas-ops/cleanup";
 import { resetState } from "./state";
 import { demoStore, retrying, type GasStore } from "./store";
 
@@ -1165,10 +1176,10 @@ export function createGasOpsDemo(
           "Версия подтверждена: по ней посчитана стоимость. Загрузите новую версию.",
         );
       }
+      // Отмена импорта убирает и файл: иначе тот же файл потом считается «Уже загружена»
       await store.update(
         (s) => ({
-          ...s,
-          estimateVersions: s.estimateVersions.filter((v) => v.id !== id),
+          ...removeEstimate(s, id).snapshot,
           audit: [
             audit(s, {
               actor: s.actorId,
@@ -2570,6 +2581,164 @@ export function createGasOpsDemo(
         snapshot,
       );
       return done(brigade);
+    },
+
+    deleteEstimate: async (versionId) => {
+      const snapshot = await store.read();
+      mustEstimateEditor(snapshot);
+      const block = estimateRemovalBlock(snapshot, versionId);
+      if (block?.kind === "not-found") {
+        throw new GasOpsError("not-found", "Смета не найдена. Обновите экран.");
+      }
+      if (block) throw new GasOpsError("not-allowed", ESTIMATE_BLOCK_TEXT[block.kind]);
+      const version = snapshot.estimateVersions.find((v) => v.id === versionId);
+      const result = removeEstimate(snapshot, versionId);
+      await store.update(
+        (s) => ({
+          ...removeEstimate(s, versionId).snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "estimate.delete",
+              entityId: versionId,
+              detail: `Смета удалена, версия ${version?.version ?? "?"}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(result.counts);
+    },
+
+    deleteObject: async (objectId) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Объекты удаляет менеджер или администратор.");
+      const object = snapshot.objects.find((o) => o.id === objectId);
+      if (!object) throw new GasOpsError("not-found", "Объект не найден. Обновите экран.");
+      const locked = lockedObjectDays(snapshot, objectId, (day) =>
+        isDayLocked(snapshot.periods, day),
+      );
+      if (locked.length > 0) {
+        throw new GasOpsError(
+          "period-closed",
+          "У объекта есть записи закрытой недели. Переоткройте неделю или очистите данные целиком.",
+        );
+      }
+      const result = removeObject(snapshot, objectId);
+      await store.update(
+        (s) => ({
+          ...removeObject(s, objectId).snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "object.delete",
+              entityId: objectId,
+              // Адрес в журнал не пишется: только свой номер объекта
+              detail: `Объект ${object.code} удалён: ${countsPhrase(result.counts)}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(result.counts);
+    },
+
+    updateBrigade: async (input) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Бригаду меняет менеджер или администратор.");
+      const brigade = snapshot.brigades.find((b) => b.id === input.id);
+      if (!brigade) throw new GasOpsError("not-found", "Бригада не найдена. Обновите экран.");
+      const name = input.name.trim();
+      if (!name) throw new GasOpsError("comment-required", "Укажите название бригады.");
+      if (!snapshot.groups.some((g) => g.id === input.groupId)) {
+        throw new GasOpsError("not-found", "Подразделение не найдено в справочнике.");
+      }
+      const taken = snapshot.brigades.find(
+        (b) => b.id !== input.id && normName(b.name) === normName(name),
+      );
+      if (taken) throw new GasOpsError("duplicate", `Бригада «${taken.name}» уже есть.`);
+      const next: Brigade = {
+        ...brigade,
+        name,
+        groupId: input.groupId,
+        phone: input.phone?.trim() || null,
+      };
+      const changes = [
+        brigade.name !== next.name ? `название «${brigade.name}» → «${next.name}»` : null,
+        brigade.groupId !== next.groupId ? "подразделение" : null,
+        brigade.phone !== next.phone ? "телефон" : null,
+      ].filter(Boolean);
+      await store.update(
+        (s) => ({
+          ...s,
+          brigades: s.brigades.map((b) => (b.id === next.id ? next : b)),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "brigade.update",
+              entityId: next.id,
+              detail: `Бригада ${next.code}: ${changes.join(", ") || "без изменений"}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(next);
+    },
+
+    deleteBrigade: async (id) => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Бригаду удаляет менеджер или администратор.");
+      const brigade = snapshot.brigades.find((b) => b.id === id);
+      if (!brigade) throw new GasOpsError("not-found", "Бригада не найдена. Обновите экран.");
+      const entries = brigadeEntryCount(snapshot, id);
+      if (entries > 0) {
+        throw new GasOpsError(
+          "not-allowed",
+          `У бригады ${entries} ${entries === 1 ? "запись" : entries < 5 ? "записи" : "записей"} времени: такую бригаду не удаляют. Удалите объекты с её записями или очистите данные.`,
+        );
+      }
+      await store.update(
+        (s) => ({
+          ...removeBrigade(s, id),
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "brigade.delete",
+              entityId: id,
+              detail: `Бригада «${brigade.name}» (${brigade.code}) удалена`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done({ id });
+    },
+
+    clearData: async () => {
+      const snapshot = await store.read();
+      mustManager(snapshot, "Данные очищает менеджер или администратор.");
+      const result = clearWorkingData(snapshot);
+      await store.update(
+        (s) => ({
+          ...clearWorkingData(s).snapshot,
+          audit: [
+            audit(s, {
+              actor: s.actorId,
+              action: "data.clear",
+              entityId: "all",
+              detail: `Рабочие данные очищены: ${countsPhrase(result.counts)}`,
+            }),
+            ...s.audit,
+          ],
+        }),
+        snapshot,
+      );
+      return done(result.counts);
     },
 
     reset: async () => {

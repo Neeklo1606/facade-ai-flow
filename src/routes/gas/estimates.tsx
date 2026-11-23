@@ -2,7 +2,7 @@ import { completePageHead } from "@/lib/page-head";
 import { DirectoryTabs } from "@/components/gas-ops/directory/DirectoryTabs";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Download, Upload } from "lucide-react";
+import { ArrowRight, Download, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/kit/field";
 import { ListRow } from "@/components/ui/kit/list";
@@ -36,7 +36,8 @@ import { ImportWizard, type WizardState } from "@/components/gas-ops/import/Impo
 import { RuleBuilder } from "@/components/gas-ops/estimates/RuleBuilder";
 import { FolderCard } from "@/components/gas-ops/estimates/FolderCard";
 import { EstimateIntake } from "@/components/gas-ops/estimates/EstimateIntake";
-import { useKeepEstimateSource } from "@/api/gas-estimate-intake";
+import { EstimateFlowButton } from "@/components/gas-ops/estimates/EstimateFlow";
+import { CenterDialog } from "@/components/gas-ops/CenterDialog";
 import { showYandexFolder } from "@/api/config";
 import { useEstimateFolder } from "@/api/gas-folder";
 import { plural } from "@/lib/format";
@@ -44,6 +45,14 @@ import { EditableAmount } from "@/components/gas-ops/estimates/EditableAmount";
 import { FilterChip, FilterRow } from "@/components/gas-ops/filters/FilterChip";
 import { SearchBar } from "@/components/ui/kit/controls";
 import { cn } from "@/lib/utils";
+import { useEstimateRemoval, useGasCleanup } from "@/api/gas-cleanup";
+import {
+  classifySections,
+  ESTIMATE_KIND_LABEL,
+  SECTION_ROLE_LABEL,
+  useKeepEstimateSource,
+} from "@/api/gas-estimate-intake";
+import { DeleteConfirm } from "@/components/gas-ops/cleanup/DeleteConfirm";
 
 /**
  * Стоимость работ и сметы (ADR-053; вид ADR-052). Файл сметы читается в браузере и не уходит
@@ -79,7 +88,6 @@ function EstimatesPage() {
   useEffect(() => setOpenId(openParam ?? null), [openParam]);
   const [suggestions, setSuggestions] = useState<Record<string, string | null>>({});
   const [manual, setManual] = useState(false);
-  const [picker, setPicker] = useState(false);
   const [objectId, setObjectId] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -106,7 +114,6 @@ function EstimatesPage() {
       ? "Сумма числом больше нуля"
       : null;
   const noteError = note.trim() ? null : "Напишите, откуда сумма";
-  const object = directory.objects.find((o) => o.id === objectId) ?? null;
   const opened = versions.find((v) => v.id === openId) ?? null;
   const pending = versions.filter((v) => v.confirmedAt === null);
   const text = query.trim().toLowerCase();
@@ -140,34 +147,37 @@ function EstimatesPage() {
   return (
     <div className="flex flex-col gap-block">
       <DirectoryTabs />
-      <RuleCard
-        formula={formulaOf(companyRule)}
-        status={companyRule.status}
-        revision={companyRule.revision ?? 1}
-        canConfirm={canManageRules}
-        onSetup={() => setBuilder({ objectId: null, versionId: null })}
-        onConfirm={async () => {
-          const result = await estimateActions.confirmRule({
-            objectId: null,
-            terms: companyRule.terms,
-          });
-          if (result.ok) notify("Правило подтверждено для компании и записано в журнал");
-          else toast.error(result.message);
-        }}
-      />
+      {/* Первый шаг — загрузка сметы мастером (ADR-089): одна главная кнопка */}
+      {actor.canManageEstimates ? (
+        <section className="surface-1 flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between lg:p-5">
+          <div className="min-w-0">
+            <h2 className="text-heading">Загрузить смету</h2>
+            <p className="mt-1 text-meta text-text-2">
+              По шагам: файл → проверка значений → объект → бригады → стоимость. Можно вернуться на
+              любой шаг.
+            </p>
+          </div>
+          <EstimateFlowButton className="shrink-0 max-lg:w-full" />
+        </section>
+      ) : null}
 
       <EstimateIntake canUpload={actor.canManageEstimates} onOpenVersion={(id) => setOpenId(id)} />
 
       {actor.canManageEstimates ? (
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => setUpload(true)} iconEnd={<Upload />}>
-            Загрузить смету
-          </Button>
           {canManageRules ? (
-            <Button variant="quiet" onClick={() => setManual(true)}>
+            <Button
+              variant="quiet"
+              onClick={() => setManual(true)}
+              data-testid="estimate-manual-open"
+            >
               Ввести вручную
             </Button>
           ) : null}
+          {/* Старый импорт с выбором листа и колонки: для смет нестандартной формы */}
+          <Button variant="quiet" onClick={() => setUpload(true)} iconEnd={<Upload />}>
+            Импорт по колонкам
+          </Button>
           <Button
             variant="quiet"
             onClick={async () => {
@@ -309,6 +319,23 @@ function EstimatesPage() {
           ))}
         </ul>
       </section>
+
+      {/* Правило стоимости — после смет: к нему приходят, когда смета уже загружена */}
+      <RuleCard
+        formula={formulaOf(companyRule)}
+        status={companyRule.status}
+        revision={companyRule.revision ?? 1}
+        canConfirm={canManageRules}
+        onSetup={() => setBuilder({ objectId: null, versionId: null })}
+        onConfirm={async () => {
+          const result = await estimateActions.confirmRule({
+            objectId: null,
+            terms: companyRule.terms,
+          });
+          if (result.ok) notify("Правило подтверждено для компании и записано в журнал");
+          else toast.error(result.message);
+        }}
+      />
 
       <ImportWizard
         open={upload}
@@ -468,41 +495,52 @@ function EstimatesPage() {
         />
       ) : null}
 
-      <Sheet
+      <CenterDialog
         open={manual}
         onOpenChange={setManual}
-        id="estimate-manual"
+        testId="estimate-manual"
         title="Ручной ввод стоимости"
         description="Для объектов без сметы: котлы и мелкие работы"
-        actions={
+        footer={
           <>
-            <Button variant="primary" className="flex-1" onClick={() => void save()}>
-              Сохранить
-            </Button>
             <Button variant="secondary" onClick={() => setManual(false)}>
               Отмена
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => void save()}
+              data-testid="estimate-manual-save"
+            >
+              Сохранить
             </Button>
           </>
         }
       >
         <div className="flex flex-col gap-block">
-          <div className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1">
             <span className="text-meta text-text-2">Объект</span>
-            <Button
-              variant="secondary"
-              className={cn("justify-start", tried && !objectId && "border-danger text-danger")}
-              onClick={() => setPicker(true)}
+            <select
+              value={objectId ?? ""}
+              onChange={(e) => setObjectId(e.target.value || null)}
+              className={cn(
+                "h-btn w-full rounded-control border border-field-line bg-panel-2 px-3 text-body",
+                tried && !objectId && "border-danger",
+              )}
+              data-testid="estimate-manual-object"
             >
-              <span className="truncate">
-                {object ? `${object.code} · ${object.label}` : "Выберите объект"}
-              </span>
-            </Button>
-            {tried && !objectId ? (
-              <p role="alert" className="text-meta text-danger">
-                Выберите объект
-              </p>
-            ) : null}
-          </div>
+              <option value="">Выберите объект</option>
+              {directory.objects.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.code} · {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {tried && !objectId ? (
+            <p role="alert" className="text-meta text-danger">
+              Выберите объект
+            </p>
+          ) : null}
           <Field
             label="Стоимость работ"
             value={amount}
@@ -526,17 +564,7 @@ function EstimatesPage() {
             неподтверждённые записи объекта и пишется в журнал действий.
           </p>
         </div>
-      </Sheet>
-
-      <PickerSheet
-        open={picker}
-        onOpenChange={setPicker}
-        title="Объект"
-        searchLabel="Адрес или номер"
-        value={objectId}
-        onPick={setObjectId}
-        options={directory.objects.map((o) => ({ value: o.id, label: o.label, meta: o.code }))}
-      />
+      </CenterDialog>
     </div>
   );
 }
@@ -664,12 +692,17 @@ function VersionSheet({
 }) {
   const directory = useGasDirectory();
   const estimateActions = useGasEstimateActions();
+  const cleanup = useGasCleanup();
+  const removal = useEstimateRemoval(version.id);
   const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
   const object = directory.objects.find((o) => o.id === version.objectId) ?? null;
   const suggested =
     !object && suggestion ? (directory.objects.find((o) => o.id === suggestion) ?? null) : null;
   const view = estimateVersionView(version, rule);
+  const roles = classifySections(
+    version.sections.map((x) => ({ key: String(x.row), title: x.title })),
+  );
   const ready = view.ready;
   const confirmed = version.confirmedAt !== null;
   const ownRule = rule.objectId !== null && rule.objectId === version.objectId;
@@ -826,9 +859,13 @@ function VersionSheet({
             <h3 id="estimate-sections" className="text-meta-strong text-text-2">
               Разделы
             </h3>
+            <p className="mt-0.5 text-meta text-text-3" data-testid="estimate-kind">
+              {ESTIMATE_KIND_LABEL[roles.kind]}. Подсвечены разделы, которые идут в отчёт выработки.
+            </p>
             <ul className="mt-1 divide-y divide-line">
-              {version.sections.map((section) => {
+              {version.sections.map((section, i) => {
                 const target = { kind: "section", row: section.row } as const;
+                const role = roles.sections[i]!;
                 return (
                   <EditableAmount
                     key={section.row}
@@ -839,6 +876,8 @@ function VersionSheet({
                     kopecks={section.kopecks}
                     correction={correctionOf(version, target)}
                     canEdit={editable}
+                    highlight={role.report}
+                    hint={role.note ?? SECTION_ROLE_LABEL[role.role]}
                   />
                 );
               })}
@@ -949,6 +988,45 @@ function VersionSheet({
           ) : null}
         </section>
       </div>
+
+      {canManage && removal.reason ? (
+        <p className="mt-section text-meta text-text-3" data-testid="estimate-delete-blocked">
+          {removal.reason}
+        </p>
+      ) : null}
+      {canManage && removal.ok ? (
+        <DeleteConfirm
+          testId="estimate-delete-dialog"
+          trigger={
+            <Button
+              variant="destructive"
+              className="mt-section self-start"
+              data-testid="estimate-delete"
+            >
+              <Trash2 aria-hidden />
+              Удалить смету
+            </Button>
+          }
+          title="Удалить смету?"
+          description={
+            <p>
+              Разбор и загруженный файл удалятся. Тот же файл можно будет загрузить заново. Объекты
+              и записи времени не меняются.
+            </p>
+          }
+          confirmLabel="Удалить смету"
+          onConfirm={async () => {
+            const result = await cleanup.deleteEstimate(version.id);
+            if (!result.ok) {
+              toast.error(result.message);
+              return false;
+            }
+            toast.success("Смета удалена");
+            onClose();
+            return true;
+          }}
+        />
+      ) : null}
 
       <PickerSheet
         open={picker}

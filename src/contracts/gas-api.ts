@@ -126,6 +126,20 @@ export const gasMethodArgs: Record<string, z.ZodTypeAny> = {
   reopenWeek: z.tuple([gasReopenWeekInput]),
   finalCheck: z.tuple([]),
   issueReport: z.tuple([]),
+  deleteEstimate: z.tuple([id]),
+  deleteObject: z.tuple([id]),
+  updateBrigade: z.tuple([
+    z
+      .object({
+        id,
+        name: z.string().min(1).max(200),
+        groupId: id,
+        phone: z.string().max(40).nullable(),
+      })
+      .strict(),
+  ]),
+  deleteBrigade: z.tuple([id]),
+  clearData: z.tuple([]),
 };
 
 /* ---------- Ответы /api/v1 ---------- */

@@ -18,7 +18,7 @@ test.describe("сметы", () => {
   test("файл разбирается в браузере, смета подтверждается по правилу", async ({ page }) => {
     await open(page, "/gas/estimates");
     await expect(page.getByTestId("cost-rule-formula")).toHaveText("Всего без НДС минус материалы");
-    await page.getByRole("button", { name: "Загрузить смету" }).click();
+    await page.getByRole("button", { name: "Импорт по колонкам" }).click();
     await page.getByTestId("estimate-file").setInputFiles(grandXlsx());
     // Мастер импорта (ADR-061, 12): проверка сходимости, затем «Всё верно, применить»
     await expect(page.getByTestId("import-check")).toHaveAttribute("data-level", "ok");

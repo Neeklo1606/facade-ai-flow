@@ -55,6 +55,7 @@ import type { FieldSnapshot } from "@/domain/gas-ops/field";
 import type { Acceptance, PeriodVersion } from "@/domain/gas-ops/week";
 import type { SupplyState } from "@/domain/gas-ops/supply";
 import type { DocsState } from "@/domain/gas-ops/exec-docs";
+import type { CleanupCounts } from "@/domain/gas-ops/cleanup";
 
 /** Недельный график объектов, применённый из файла заказчика (ADR-053, 4) */
 export interface WeekSchedule {
@@ -434,6 +435,24 @@ export interface GasOpsPort {
     estimateNumber: string | null;
     pressureMode?: PressureMode | undefined;
   }): Promise<WorkObject>;
+  /**
+   * Удалить неподтверждённую смету вместе с её файлами (ADR-088): тот же файл можно
+   * загрузить заново. Подтверждённая удаляется только вместе с объектом
+   */
+  deleteEstimate(versionId: string): Promise<CleanupCounts>;
+  /** Удалить объект и всё, что на него ссылается. Записи закрытой недели не удаляются */
+  deleteObject(objectId: string): Promise<CleanupCounts>;
+  /** Изменить бригаду: название (уникально), подразделение, телефон. Код не меняется */
+  updateBrigade(input: {
+    id: string;
+    name: string;
+    groupId: string;
+    phone: string | null;
+  }): Promise<Brigade>;
+  /** Удалить бригаду без записей времени вместе с составом, ставками и назначениями */
+  deleteBrigade(id: string): Promise<{ id: string }>;
+  /** Очистить рабочие данные: справочники и пользователи остаются (ADR-088) */
+  clearData(): Promise<CleanupCounts>;
   /** Вернуть демонстрацию к исходному состоянию */
   reset(): Promise<GasOpsSnapshot>;
 }
@@ -487,6 +506,11 @@ export const GAS_OPS_METHODS = [
   "unassignSection",
   "setSectionDone",
   "setAccrualMode",
+  "deleteEstimate",
+  "deleteObject",
+  "updateBrigade",
+  "deleteBrigade",
+  "clearData",
   "reset",
 ] as const satisfies readonly (keyof GasOpsPort)[];
 

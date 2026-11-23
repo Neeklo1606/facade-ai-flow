@@ -16,6 +16,7 @@ import {
   dotMoney,
 } from "@/components/ui/kit/warm";
 import { EmptyBlock } from "@/components/ui/kit/states";
+import { DeleteObject } from "@/components/gas-ops/cleanup/DeleteObject";
 
 /**
  * Страница объекта (план 20.11.2026, этап 1; дизайн «Тепло»): шапка с адресом, номером сметы
@@ -51,8 +52,10 @@ function ObjectPage() {
     );
 
   const { object } = card;
-  const work = sections.reduce((a, s) => a + (s.workRub ?? 0), 0);
-  const accrued = sections.reduce((a, s) => a + s.accruedRub, 0);
+  // Остаток только по разделам отчёта (ADR-089): субподряд и чужие работы не выработка бригад
+  const counted = sections.filter((s) => s.report || s.accruedRub > 0);
+  const work = counted.reduce((a, s) => a + (s.workRub ?? 0), 0);
+  const accrued = counted.reduce((a, s) => a + s.accruedRub, 0);
   const left = Math.max(0, work - accrued);
   // Название раздела, а не служебный ключ («n2»): так его видит менеджер в смете
   const sectionName = (key: string | null | undefined) => {
@@ -84,9 +87,9 @@ function ObjectPage() {
         <Fact term="Дней в работе" value={String(card.days.length)} />
       </dl>
 
-      {money && sections.length > 0 ? (
+      {money && counted.length > 0 ? (
         <KpiCard
-          title="Остаток по разделам сметы"
+          title="Остаток по разделам отчёта"
           period={`начислено ${fmtRub(accrued)} из ${fmtRub(work)}`}
           progress={
             <SplitProgress
@@ -145,6 +148,8 @@ function ObjectPage() {
           </ul>
         )}
       </section>
+
+      <DeleteObject objectId={object.id} code={object.code} />
     </div>
   );
 }

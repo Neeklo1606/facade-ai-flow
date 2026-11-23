@@ -15,6 +15,7 @@ import { gasMethodArgs } from "@/contracts/gas-api";
 import type { Role, User } from "@/domain/gas-ops/model";
 import type { FieldSnapshot } from "@/domain/gas-ops/field";
 import { allowedObjectIdsFor } from "@/domain/gas-ops/view";
+import { orphanStoragePaths } from "@/domain/gas-ops/cleanup";
 import {
   GAS_OPS_METHODS,
   GasOpsError,
@@ -83,6 +84,13 @@ export const GAS_METHOD_ROLES: Record<GasMethod, readonly Role[]> = {
   unassignSection: OFFICE,
   setSectionDone: TIME,
   setAccrualMode: OFFICE,
+  // Удаление данных (ADR-088): смету — кто её загружает, объект — менеджер и администратор,
+  // очистку всей базы на сервере — только администратор
+  deleteEstimate: ESTIMATES,
+  deleteObject: OFFICE,
+  updateBrigade: OFFICE,
+  deleteBrigade: OFFICE,
+  clearData: ["admin"],
   reset: [],
 };
 
@@ -300,7 +308,17 @@ export interface GasCall {
   userId: string | null;
   method: string;
   args: unknown[];
+  /** Удалить исходные файлы смет с диска (ADR-088); нет — файлы остаются */
+  removeFiles?: ((paths: string[]) => Promise<void>) | undefined;
 }
+
+/** Методы, после которых исходные файлы смет могут остаться без ссылок */
+const REMOVES_FILES: ReadonlySet<GasMethod> = new Set([
+  "discardEstimateVersion",
+  "deleteEstimate",
+  "deleteObject",
+  "clearData",
+]);
 
 const isMethod = (method: string): method is GasMethod => method in GAS_METHOD_ROLES;
 
@@ -332,7 +350,13 @@ async function mustOwnBrigade(
 }
 
 /** Вызов метода порта от имени пользователя сессии с проверкой роли и выборкой ответа */
-export async function callGasMethod({ store, userId, method, args }: GasCall): Promise<unknown> {
+export async function callGasMethod({
+  store,
+  userId,
+  method,
+  args,
+  removeFiles,
+}: GasCall): Promise<unknown> {
   if (!isMethod(method)) throw new GasAccessError(403, "Неизвестное действие.");
   if (!userId) throw new GasAccessError(401, "Войдите, чтобы продолжить.");
   const user = (await store.read()).users.find((u) => u.id === userId);
@@ -343,7 +367,13 @@ export async function callGasMethod({ store, userId, method, args }: GasCall): P
   await mustOwnBrigade(store, user, method, args);
   const port = retrying(createGasOpsDemo(actingAs(store, user.id), null));
   const run = port[method] as (...input: unknown[]) => Promise<unknown>;
+  const before = removeFiles && REMOVES_FILES.has(method) ? await store.read() : null;
   const value = await run.apply(port, args);
+  if (before && removeFiles) {
+    const paths = orphanStoragePaths(before, await store.read());
+    // Файл на диске — копия; не удалился — запись уже ушла, повтор не нужен
+    if (paths.length > 0) await removeFiles(paths).catch(() => undefined);
+  }
   return redactFor(user, method, value);
 }
 
@@ -362,6 +392,7 @@ export async function answerGasCall(
   input: { method: string; args: unknown[] },
   userId: string | null,
   store: GasStore | null,
+  removeFiles?: GasCall["removeFiles"],
 ): Promise<GasCallResult> {
   if (!store) {
     return {
@@ -376,7 +407,7 @@ export async function answerGasCall(
     return { ok: false, status: 400, code: "bad-request", message: "Неверные данные запроса." };
   }
   try {
-    return { ok: true, value: await callGasMethod({ store, userId, ...input }) };
+    return { ok: true, value: await callGasMethod({ store, userId, removeFiles, ...input }) };
   } catch (error) {
     if (error instanceof GasAccessError) {
       return { ok: false, status: error.status, code: "forbidden", message: error.message };

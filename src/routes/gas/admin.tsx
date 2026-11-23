@@ -41,6 +41,7 @@ import {
 import { toast } from "@/lib/toast";
 import { workingContour } from "@/lib/cabinet";
 import { PeopleAccess } from "@/components/gas-ops/admin/PeopleAccess";
+import { ClearData } from "@/components/gas-ops/cleanup/ClearData";
 import { cn } from "@/lib/utils";
 
 /**
@@ -306,6 +307,17 @@ function AdminPage() {
           <DemoClockRow reminder={reminder} send={sendReminders} friday={fridayOf(weekFrom)} />
         </ul>
       </Group>
+
+      {/* Удаление данных (ADR-088): проверка загрузки с нуля и показ заказчику */}
+      {actor.role === "admin" || (!workingContour && actor.role === "manager") ? (
+        <Group
+          id="data"
+          title="Данные"
+          note="Очистка перед проверкой загрузки смет или показом заказчику с нуля."
+        >
+          <ClearData />
+        </Group>
+      ) : null}
 
       <Group title={`Журнал действий · ${audit.length} в этой вкладке`}>
         {audit.length ? (

@@ -43,7 +43,7 @@ for (const width of WIDTHS) {
       const xlsx = join(FILES, `smeta-${width.name}.xlsx`);
       execFileSync("bun", ["run", "e2e/gas-estimate-file.cli.ts", xlsx, "--extras"]);
       await open(page, "/gas/estimates");
-      await page.getByRole("button", { name: "Загрузить смету" }).click();
+      await page.getByRole("button", { name: "Импорт по колонкам" }).click();
       await page.getByTestId("estimate-file").setInputFiles(xlsx);
       await page.getByRole("button", { name: "Всё верно, применить" }).click();
       const parsed = page.getByTestId("estimate-parsed");

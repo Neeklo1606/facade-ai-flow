@@ -24,6 +24,11 @@ import {
 import { entryLine, fmtShortDay } from "@/components/gas-ops/review/rules";
 import { useGasDirectoryImport, useGasEstimateActions, useGasSchedule } from "@/api/gas-estimates";
 import { AssignBrigade } from "@/components/gas-ops/workspace/AssignBrigade";
+import {
+  BrigadeDelete,
+  BrigadeEdit,
+  BrigadeObjects,
+} from "@/components/gas-ops/brigades/BrigadeManage";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -281,6 +286,7 @@ function BrigadesPage() {
             </label>
             {office ? (
               <div className="flex flex-wrap gap-2">
+                <BrigadeEdit brigade={current.brigade} />
                 <AssignBrigade brigadeId={current.brigade.id} />
                 <Button variant="secondary" asChild>
                   <Link to="/gas/directory" search={{ brigade: current.brigade.id }}>
@@ -289,6 +295,7 @@ function BrigadesPage() {
                 </Button>
               </div>
             ) : null}
+            <BrigadeObjects brigadeId={current.brigade.id} manage={office} />
             <div className="grid grid-cols-2 gap-2 [&>div]:p-3">
               <MetricCard label="Начислено" value={fmtRub(current.totals.amountRub)} />
               <MetricCard label="Часы" value={fmtHours(current.totals.minutes / 60)} />
@@ -346,6 +353,9 @@ function BrigadesPage() {
                 ))}
               </ul>
             </section>
+            {office ? (
+              <BrigadeDelete brigade={current.brigade} onDeleted={() => setOpen(null)} />
+            ) : null}
           </div>
         ) : null}
       </AdaptiveSheet>
