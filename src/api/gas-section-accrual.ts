@@ -216,6 +216,20 @@ export function useBrigadeName(): (id: string) => string {
 export type { PathStep };
 
 /** Полоса пути объекта (ADR-080): смета → стоимость → бригады → часы → начисление */
+/** Последняя неподтверждённая версия сметы объекта: «Подтвердить стоимость» открывает её */
+export function usePendingEstimateId(objectId: string | null): string | null {
+  const s = useGasSnapshot();
+  return useMemo(() => {
+    if (!s || !objectId) return null;
+    let best: { id: string; version: number } | null = null;
+    for (const v of s.estimateVersions) {
+      if (v.objectId !== objectId || v.confirmedAt !== null) continue;
+      if (!best || v.version > best.version) best = v;
+    }
+    return best?.id ?? null;
+  }, [s, objectId]);
+}
+
 export function useObjectPath(objectId: string | null): PathStep[] {
   const s = useGasSnapshot();
   const ledger = useObjectSections(objectId);
