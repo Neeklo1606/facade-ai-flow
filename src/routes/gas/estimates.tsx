@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { useEstimateRemoval, useGasCleanup } from "@/api/gas-cleanup";
 import {
   classifySections,
+  workTextOf,
   ESTIMATE_KIND_LABEL,
   SECTION_ROLE_LABEL,
   useKeepEstimateSource,
@@ -702,6 +703,7 @@ function VersionSheet({
   const view = estimateVersionView(version, rule);
   const roles = classifySections(
     version.sections.map((x) => ({ key: String(x.row), title: x.title })),
+    workTextOf(version.header),
   );
   const ready = view.ready;
   const confirmed = version.confirmedAt !== null;

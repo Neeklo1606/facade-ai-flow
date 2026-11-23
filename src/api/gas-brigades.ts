@@ -6,7 +6,12 @@
 import { useCallback, useMemo } from "react";
 import { useGasAction, useGasSnapshot } from "@/lib/gas-ops/use-gas-ops";
 import { brigadeEntryCount } from "@/domain/gas-ops/cleanup";
-import { classifySections, type SectionRole } from "@/domain/gas-ops/estimate-kind";
+import {
+  classifySections,
+  recommendedBrigade,
+  workTextOf,
+  type SectionRole,
+} from "@/domain/gas-ops/estimate-kind";
 import { sectionLabel } from "@/domain/gas-ops/section-accrual";
 import { brigadeStatus } from "@/domain/gas-ops/schedule";
 
@@ -73,6 +78,8 @@ export interface BindableSection {
   report: boolean;
   /** Уже назначен этой бригаде */
   assigned: boolean;
+  /** Земля и П/Э: бригада из тех, кто их выполняет (№ 2 и № 5) */
+  fits: boolean;
 }
 
 /** Объекты, к которым можно привязать бригаду: у которых есть разделы сметы */
@@ -85,7 +92,9 @@ export function useBindableObjects(brigadeId: string | null): {
     const objects = s.objects
       .map((o) => {
         const list = (s.objectSections ?? []).filter((x) => x.objectId === o.id && !x.removed);
-        const roles = classifySections(list).sections;
+        const header = s.estimateVersions.find((v) => v.id === list[0]?.versionId)?.header;
+        const roles = classifySections(list, workTextOf(header)).sections;
+        const brigade = s.brigades.find((b) => b.id === brigadeId);
         return {
           id: o.id,
           code: o.code,
@@ -95,6 +104,8 @@ export function useBindableObjects(brigadeId: string | null): {
             label: sectionLabel(x),
             role: roles[i]!.role,
             report: roles[i]!.report,
+            /** Земля и П/Э: эта бригада из тех, кто их выполняет */
+            fits: brigade ? recommendedBrigade(roles[i]!.role, brigade) : false,
             assigned: (s.sectionAssignments ?? []).some(
               (a) => a.objectId === o.id && a.sectionKey === x.key && a.brigadeId === brigadeId,
             ),

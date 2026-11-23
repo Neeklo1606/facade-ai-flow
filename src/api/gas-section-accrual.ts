@@ -26,7 +26,11 @@ import {
 import type { TimeEntry } from "@/domain/gas-ops/model";
 import { objectPath, type PathStep } from "@/domain/gas-ops/estimate-flow";
 import type { AssignSectionInput } from "@/ports/gas-ops";
-import { classifySections, type ClassifiedSection } from "@/domain/gas-ops/estimate-kind";
+import {
+  classifySections,
+  workTextOf,
+  type ClassifiedSection,
+} from "@/domain/gas-ops/estimate-kind";
 
 export { SECTION_ROLE_LABEL } from "@/domain/gas-ops/estimate-kind";
 import { brigadeStatus } from "@/domain/gas-ops/schedule";
@@ -63,7 +67,12 @@ export function useObjectSections(objectId: string | null): ObjectSectionRow[] {
       progress: s.sectionProgress ?? [],
       assignments: s.sectionAssignments ?? [],
     });
-    const roles = classifySections(ledger).sections;
+    // Вид работ — из шапки версии, по которой написаны разделы объекта (ADR-090)
+    const versionId = (s.objectSections ?? []).find(
+      (x) => x.objectId === objectId && !x.removed,
+    )?.versionId;
+    const header = s.estimateVersions.find((v) => v.id === versionId)?.header;
+    const roles = classifySections(ledger, workTextOf(header)).sections;
     return ledger.map((row, i) => {
       const { role, report, note } = roles[i]!;
       return { ...row, role, report, note };
@@ -205,7 +214,7 @@ export function useSectionActions() {
 /** Бригады и неделя для формы назначения */
 export function useAssignOptions(): {
   /** away — бригада в отпуске на этой неделе: назначить можно, бот объектов не покажет */
-  brigades: { id: string; name: string; away: boolean }[];
+  brigades: { id: string; name: string; code: string; away: boolean }[];
   weekFrom: string;
   weekTo: string;
 } {
@@ -215,6 +224,7 @@ export function useAssignOptions(): {
       brigades: (s?.brigades ?? []).map((b) => ({
         id: b.id,
         name: b.name,
+        code: b.code,
         away: brigadeStatus(b.id, s.week.from, s.brigadeAvailability ?? []) === "vacation",
       })),
       weekFrom: s?.week.from ?? "",

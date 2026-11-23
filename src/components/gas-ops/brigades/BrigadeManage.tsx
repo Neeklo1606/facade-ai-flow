@@ -270,7 +270,13 @@ function BindObject({ brigadeId }: { brigadeId: string }) {
     setObjectId(id);
     const next = objects.find((o) => o.id === id);
     // Разделы отчёта отмечены сразу: их бригада и делает; уже назначенные не повторяем
-    setPicked(new Set(next?.sections.filter((s) => s.report && !s.assigned).map((s) => s.key)));
+    setPicked(
+      new Set(
+        next?.sections
+          .filter((s) => s.report && !s.assigned && (s.role !== "earth-pe" || s.fits))
+          .map((s) => s.key),
+      ),
+    );
   };
 
   const save = async () => {
@@ -387,7 +393,11 @@ function BindObject({ brigadeId }: { brigadeId: string }) {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-body">{s.label}</span>
                       <span className="block text-meta text-text-3">
-                        {s.assigned ? "уже привязан" : SECTION_ROLE_LABEL[s.role]}
+                        {s.assigned
+                          ? "уже привязан"
+                          : s.role === "earth-pe" && !s.fits
+                            ? "Землю и П/Э выполняют бригады № 2 и № 5"
+                            : SECTION_ROLE_LABEL[s.role]}
                       </span>
                     </span>
                   </label>
