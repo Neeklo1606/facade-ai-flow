@@ -17,6 +17,7 @@
  * 4. Набор строк тот же, что на экране при текущих переключателях: режим и «скрыть пустые».
  */
 import { CUSTOMER_DAY_HEADERS } from "@/domain/gas-ops/export-profile";
+import { ENTRY_STATUS_LABEL } from "@/domain/gas-ops/model";
 import {
   gasReportFileName,
   type AnalyticRow,
@@ -245,11 +246,11 @@ export async function buildCustomerWorkbook(payload: ExportPayload): Promise<Uin
       hours: row.minutes / 60,
       amount: row.amountRub ?? "",
       rate: row.revenue ?? "",
-      section: row.sectionKey ?? "",
+      section: row.sectionLabel ?? "",
       smr: row.smrRub ?? "",
       pressure: row.pressureRub ?? "",
       share: row.shareBp === null ? "" : row.shareBp / 100,
-      status: row.status,
+      status: ENTRY_STATUS_LABEL[row.status] ?? row.status,
       source: row.source === "fact-report" ? "факт из отчёта" : "демо",
       checked: row.status === "confirmed" ? "да" : "нет",
     });

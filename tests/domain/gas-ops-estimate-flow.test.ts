@@ -36,6 +36,19 @@ describe("итоги разбора", () => {
     expect(checks[3]!.text).toContain("остальные начисляются вручную");
   });
 
+  test("ноль чел.-ч в разделе — норматива нет, как в начислении (suggestBp)", () => {
+    const checks = intakeChecks({
+      headerFound: 6,
+      headerTotal: 6,
+      sections: [{ materialsKopecks: 0, laborHours: 0 }, full],
+      convergence: { ok: true, diffKopecks: 0 },
+      match: { kind: "new" },
+      matchedLabel: null,
+    });
+    expect(checks[3]!.text).toBe("есть в 1 из 2 разделов: остальные начисляются вручную");
+    expect(checks[3]!.tone).toBe("warn");
+  });
+
   test("новый объект и пустой файл", () => {
     const checks = intakeChecks({
       headerFound: 0,

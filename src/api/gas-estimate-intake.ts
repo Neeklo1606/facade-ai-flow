@@ -38,6 +38,7 @@ export type {
   ObjectDraft,
   ObjectMatch,
 } from "@/domain/gas-ops/estimate-intake";
+export { changedPhrase } from "@/domain/gas-ops/estimate-intake";
 
 export interface UploadRow {
   name: string;

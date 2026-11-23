@@ -381,6 +381,8 @@ export interface AnalyticRow {
   source: DataSource;
   /** Раздел сметы и начисление по доле (ADR-078); null — запись без раздела */
   sectionKey: string | null;
+  /** Подпись раздела для людей («Раздел 2. Монтаж…»), а не служебный ключ */
+  sectionLabel: string | null;
   smrRub: number | null;
   pressureRub: number | null;
   shareBp: number | null;
@@ -410,6 +412,10 @@ export function analyticRows(input: Omit<ReportInput, "frames">): AnalyticRow[] 
       status: e.status,
       source: e.source,
       sectionKey: e.sectionKey ?? null,
+      sectionLabel: e.sectionKey
+        ? (input.sections?.find((x) => x.objectId === e.objectId && x.key === e.sectionKey)
+            ?.label ?? "раздел сметы")
+        : null,
       smrRub: e.accrual ? e.accrual.smrRub : null,
       pressureRub: e.accrual ? e.accrual.pressureRub : null,
       shareBp: e.accrual ? e.accrual.toBp : null,

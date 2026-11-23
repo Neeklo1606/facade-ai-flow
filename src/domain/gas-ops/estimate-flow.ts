@@ -48,7 +48,8 @@ export function sectionsWord(n: number): string {
 export function intakeChecks(input: IntakeCheckInput): IntakeCheck[] {
   const n = input.sections.length;
   const materials = input.sections.filter((s) => s.materialsKopecks !== null).length;
-  const labor = input.sections.filter((s) => s.laborHours !== null).length;
+  // Ноль чел.-ч — норматива нет: начисление тогда просит долю вручную (suggestBp)
+  const labor = input.sections.filter((s) => s.laborHours !== null && s.laborHours > 0).length;
   const checks: IntakeCheck[] = [
     {
       key: "header",

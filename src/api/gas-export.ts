@@ -12,6 +12,7 @@ import {
   type ReportInput,
 } from "@/domain/gas-ops/report";
 import type { PeriodVersion } from "@/domain/gas-ops/week";
+import { reportSections } from "@/domain/gas-ops/section-accrual";
 import type { GasStore } from "@/adapters/gas-ops/store";
 import { gasExportInput } from "@/contracts/gas-api";
 import type { z } from "zod";
@@ -52,6 +53,8 @@ export interface GasExportRequest {
     objects: WorkObject[];
     frames: ReportInput["frames"];
     periods: PeriodVersion[];
+    /** Подписи разделов смет для листа «Записи»; формат заказчика их не использует */
+    sections?: ReportInput["sections"];
   };
 }
 
@@ -91,7 +94,7 @@ export function exportPayloadOf(request: GasExportRequest): ExportPayload {
   } as const;
   return {
     rows: customerFormatRows({ ...base, frames: data.frames ?? [] }),
-    analytic: analyticRows(base),
+    analytic: analyticRows({ ...base, sections: data.sections ?? [] }),
     days: week.days,
     week: { from: week.from, to: week.to },
     mode,
@@ -227,6 +230,7 @@ export async function gasExportFromStore(input: {
       objects: snapshot.objects,
       frames: snapshot.frames,
       periods: snapshot.periods,
+      sections: reportSections(snapshot.objectSections ?? []),
     },
   });
   const file = new Uint8Array(await buildCustomerWorkbook(payload));

@@ -3,7 +3,7 @@ import { ChevronLeft, SearchX } from "lucide-react";
 import { completePageHead } from "@/lib/page-head";
 import { gasTitle } from "@/lib/gas-ops/brand";
 import { fmtDuration, fmtRub, useGasActor, useGasObjects } from "@/api/gas-ops";
-import { useObjectSections } from "@/api/gas-section-accrual";
+import { sectionLabel, useObjectSections } from "@/api/gas-section-accrual";
 import { ObjectSections } from "@/components/gas-ops/workspace/ObjectSections";
 import { ObjectPath } from "@/components/gas-ops/workspace/ObjectPath";
 import { fmtShortDay } from "@/components/gas-ops/review/rules";
@@ -54,6 +54,13 @@ function ObjectPage() {
   const work = sections.reduce((a, s) => a + (s.workRub ?? 0), 0);
   const accrued = sections.reduce((a, s) => a + s.accruedRub, 0);
   const left = Math.max(0, work - accrued);
+  // Название раздела, а не служебный ключ («n2»): так его видит менеджер в смете
+  const sectionName = (key: string | null | undefined) => {
+    if (!key) return "";
+    const section = sections.find((x) => x.key === key);
+    if (!section) return " · раздел сметы";
+    return ` · ${sectionLabel(section)}`;
+  };
   const address = object.address
     ? [object.address.settlement, object.address.street, object.address.house]
         .filter(Boolean)
@@ -124,7 +131,7 @@ function ObjectPage() {
                     </span>
                     <span className="block text-meta text-text-2 tnum">
                       {entry.number} · {fmtDuration(entry.minutes)}
-                      {entry.sectionKey ? ` · раздел ${entry.sectionKey}` : ""}
+                      {sectionName(entry.sectionKey)}
                     </span>
                   </span>
                   {money ? (
