@@ -6,7 +6,7 @@ import { workingContour } from "@/lib/cabinet";
 import { toast } from "@/lib/toast";
 import { DeleteConfirm } from "./DeleteConfirm";
 
-const WORD = "ОЧИСТИТЬ";
+const WORD = "очистить";
 
 /**
  * Раздел «Данные» в «Настройке» (ADR-088): очистить рабочие данные, чтобы проверить загрузку

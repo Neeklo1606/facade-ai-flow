@@ -212,7 +212,7 @@ function EstimateFlow({
           <>
             <Hint>
               Смета относится к объекту. Найденный по номеру или адресу объект предложен первым; нет
-              в списке — создайте из шапки сметы.
+              в списке? Создайте из шапки сметы.
             </Hint>
             <CardBody
               card={card}
@@ -890,14 +890,14 @@ function BrigadesStep({
   const assigned = sections.filter((s) => assignments.some((a) => a.sectionKey === s.key)).length;
   const brigadeOptions = options.brigades.map((b) => (
     <option key={b.id} value={b.id}>
-      {b.away ? `${b.name} — в отпуске на этой неделе` : b.name}
+      {b.away ? `${b.name} · в отпуске на этой неделе` : b.name}
     </option>
   ));
 
   return (
     <>
       <Hint>
-        Раздел отчёта — бригаде, которая его делает: бригадир увидит раздел в форме времени.
+        Каждый раздел отчёта назначьте бригаде, которая его делает: бригадир увидит раздел в форме времени.
         Испытания назначьте той же бригаде, что и сталь: в отчёте это отдельная строка.
       </Hint>
       <p className="text-meta text-text-2" data-testid="flow-brigades-summary">

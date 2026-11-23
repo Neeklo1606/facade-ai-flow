@@ -248,7 +248,7 @@ function AssignSection({
             <option value="">Выберите бригаду</option>
             {options.brigades.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.away ? `${b.name} — в отпуске на этой неделе` : b.name}
+                {b.away ? `${b.name} · в отпуске на этой неделе` : b.name}
               </option>
             ))}
           </select>
