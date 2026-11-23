@@ -34,10 +34,12 @@ async function path(page: Page, phone: boolean) {
   await expect(flow.getByTestId("estimate-flow-kind")).toContainText("Подземный газопровод");
   const sections = flow.getByTestId("estimate-section");
   await expect(sections).toHaveCount(5);
-  await expect(sections.first()).toContainText("стальных");
-  await expect(flow.locator("li[data-report='true']")).toHaveCount(1);
-  await expect(flow).toContainText("в отчёт выработки: 1 из 5");
-  await sections.first().click();
+  // Газ-ввод: земля, П/Э, сталь и испытания в отчёте (ответ заказчика 24.11.2026)
+  await expect(flow.locator("li[data-report='true']")).toHaveCount(4);
+  await expect(flow).toContainText("в отчёт выработки: 4 из 5");
+  await expect(flow.getByTestId("estimate-flow-kind")).toContainText("бригады № 2 и № 5");
+  await expect(sections.nth(3)).toContainText("Испытания · в отчёт отдельным разделом");
+  await sections.nth(2).click();
   await expect(flow).toContainText("СМР = итого − материалы");
   await noOverflow(page, phone);
 
@@ -72,7 +74,8 @@ async function path(page: Page, phone: boolean) {
   // Объект: отчётные разделы первыми и подписаны
   const rows = page.getByTestId("section-row");
   await expect(rows.first()).toHaveAttribute("data-report", "true");
-  await expect(page.getByTestId("object-sections")).toContainText("Другие работы");
+  await expect(page.getByTestId("object-sections")).toContainText("Земля и П/Э");
+  await expect(rows.last()).toHaveAttribute("data-report", "false");
   await noOverflow(page, phone);
 
   // Незаконченная загрузка продолжается с того же шага
@@ -107,7 +110,8 @@ async function path(page: Page, phone: boolean) {
   const bind = page.getByTestId("brigade-bind-dialog");
   await bind.getByTestId("brigade-bind-object").selectOption({ index: 1 });
   await expect(bind.getByRole("checkbox", { name: /стальных/ })).toBeChecked();
-  await expect(bind.getByRole("checkbox", { name: /Земляные/ })).not.toBeChecked();
+  // Бригада 2 выполняет землю и П/Э: земля отмечена сразу
+  await expect(bind.getByRole("checkbox", { name: /Земляные/ })).toBeChecked();
   await noOverflow(page, phone);
   await bind.getByTestId("brigade-bind-save").click();
   await expect(panel.getByTestId("brigade-object")).toHaveCount(1);

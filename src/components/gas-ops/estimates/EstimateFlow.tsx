@@ -18,12 +18,14 @@ import { fmtRub, useGasActor, useGasObjects } from "@/api/gas-ops";
 import {
   changedPhrase,
   classifySections,
+  recommendedBrigade,
+  workTextOf,
   estimateChecks,
-  ESTIMATE_KIND_HINT,
   ESTIMATE_KIND_LABEL,
   SECTION_ROLE_LABEL,
   useEstimateIntake,
   type EstimateCard,
+  type SectionRole,
   type PressureMode,
   type UploadRow,
 } from "@/api/gas-estimate-intake";
@@ -532,7 +534,8 @@ function CheckStep({
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [fixing, setFixing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const { kind, sections: roles } = classifySections(card.sections);
+  const classified = classifySections(card.sections, workTextOf(card.version.header));
+  const { kind, sections: roles } = classified;
   const roleOf = (key: string) => roles.find((r) => r.key === key)!;
   const report = card.sections.filter((s) => roleOf(s.key).report);
   const others = card.sections.filter((s) => !roleOf(s.key).report);
@@ -643,7 +646,7 @@ function CheckStep({
         data-kind={kind}
       >
         <p className="text-body-strong">{ESTIMATE_KIND_LABEL[kind]}</p>
-        <p className="text-meta text-text-2">{ESTIMATE_KIND_HINT[kind]}</p>
+        <p className="text-meta text-text-2">{classified.hint}</p>
       </section>
 
       <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-meta sm:grid-cols-[auto_minmax(0,1fr)]">
@@ -888,11 +891,18 @@ function BrigadesStep({
   };
 
   const assigned = sections.filter((s) => assignments.some((a) => a.sectionKey === s.key)).length;
-  const brigadeOptions = options.brigades.map((b) => (
-    <option key={b.id} value={b.id}>
-      {b.away ? `${b.name} · в отпуске на этой неделе` : b.name}
-    </option>
-  ));
+  /** Бригады списком; для земли и П/Э первыми те, кто их выполняет (№ 2 и № 5) */
+  const brigadeOptions = (role?: SectionRole) =>
+    [...options.brigades]
+      .map((b) => ({ ...b, fits: role ? recommendedBrigade(role, b) : false }))
+      .sort((a, b) => Number(b.fits) - Number(a.fits))
+      .map((b) => (
+        <option key={b.id} value={b.id}>
+          {b.name}
+          {b.fits ? " · выполняет землю и П/Э" : ""}
+          {b.away ? " · в отпуске на этой неделе" : ""}
+        </option>
+      ));
 
   return (
     <>
@@ -919,7 +929,7 @@ function BrigadesStep({
           }
         >
           <option value="">Выберите бригаду</option>
-          {brigadeOptions}
+          {brigadeOptions()}
         </select>
       </label>
       <ul
@@ -977,7 +987,7 @@ function BrigadesStep({
                 onChange={(e) => void assign([s.key], e.target.value)}
               >
                 <option value="">{own.length ? "Добавить бригаду" : "Выберите бригаду"}</option>
-                {brigadeOptions}
+                {brigadeOptions(s.role)}
               </select>
             </li>
           );
@@ -1035,7 +1045,7 @@ function CostStep({
   const [busy, setBusy] = useState(false);
   const version = card.version;
   const confirmed = version.confirmedAt !== null;
-  const { sections: roles } = classifySections(card.sections);
+  const { sections: roles } = classifySections(card.sections, workTextOf(card.version.header));
   const report = card.sections.filter((s) => roles.find((r) => r.key === s.key)?.report);
 
   const confirm = async () => {

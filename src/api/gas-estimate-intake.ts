@@ -393,10 +393,11 @@ export function useKeepEstimateSource() {
 
 /** Тип сметы и роль раздела (ADR-089): что идёт в отчёт выработки */
 export {
-  ESTIMATE_KIND_HINT,
   ESTIMATE_KIND_LABEL,
   SECTION_ROLE_LABEL,
   classifySections,
+  recommendedBrigade,
+  workTextOf,
   type EstimateKind,
   type SectionRole,
 } from "@/domain/gas-ops/estimate-kind";
