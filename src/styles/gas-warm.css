@@ -48,16 +48,16 @@
 
 /* ---------------------------------------------------------------- Светлая тема (основная) */
 :root:root[data-theme="light"][data-skin="gas"] {
-  --rail: #f2f0ed;
-  --canvas: #f2f0ed;
+  --rail: #e8e4df;
+  --canvas: #e8e4df;
   --card: #ffffff;
-  --panel-2: #f5f3f0;
-  --panel-3: #ece8e3;
-  --line: #16161a12;
-  --line-2: #16161a24;
+  --panel-2: #f4f1ed;
+  --panel-3: #e9e4de;
+  --line: #16161a1a;
+  --line-2: #16161a2e;
   --ink: #16161a;
-  --ink-2: #625e5a;
-  --ink-3: #66625d;
+  --ink-2: #4f4b47;
+  --ink-3: #57534e;
   --inverse: #19191e;
   --on-inverse: #ffffff;
   --accent-hover: #2c2c33;

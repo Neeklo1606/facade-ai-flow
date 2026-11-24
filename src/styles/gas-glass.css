@@ -19,11 +19,11 @@
   --card: #fbf5ee;
   --panel-2: #f3e9de;
   --panel-3: #eadccd;
-  --line: #4a312126;
-  --line-2: #4a31213d;
-  --ink: #25201e;
-  --ink-2: #423731;
-  --ink-3: #4b3f38;
+  --line: #4a312133;
+  --line-2: #4a31214a;
+  --ink: #221c1a;
+  --ink-2: #3a302b;
+  --ink-3: #463a33;
   --inverse: #261e1b;
   --on-inverse: #fffaf5;
   --accent-hover: #3a2f2a;
@@ -36,12 +36,13 @@
   --solid-3: #eadccd;
   --glass-pick-ink: #241b17;
   --glass-shadow-rgb: 35 21 14;
-  --mint: #09644f;
+  /* Цвета статусов темнее: держат 4,5:1 и на приглушённом листе вне карточек */
+  --mint: #075a47;
   --sky: #40332d;
-  --lavender: #a43c27;
-  --teal: #8a5a00;
-  --pink: #8e3a5e;
-  --periwinkle: #5c4f86;
+  --lavender: #8e3220;
+  --teal: #6f4800;
+  --pink: #7d3253;
+  --periwinkle: #514477;
   --mint-soft: #09644f1f;
   --sky-soft: #40332d1f;
   --lavender-soft: #a43c271f;
@@ -87,17 +88,21 @@
 
 /* ================================================================ Оболочка: стекло */
 :root[data-glass][data-theme="light"] .gas-shell {
-  --glass-scene: #ab8e76;
+  /*
+   * Сцена и лист приглушены, карточки почти сплошные (просьба владельца 25.11.2026: фон темнее,
+   * подписи читаются тяжело). Текст лежит на светлой карточке, а не на просвечивающей сцене
+   */
+  --glass-scene: #8f7461;
   --glass-rim: rgb(255 253 246 / 52%);
   --glass-edge-light: rgb(255 254 247 / 84%);
   --glass-edge-shade: rgb(57 40 28 / 19%);
-  --glass-gloss: rgb(255 251 242 / 45%);
-  --glass-frame: rgb(247 234 219 / 44%);
-  --glass-rail: rgb(243 228 214 / 70%);
-  --glass-card: rgb(250 242 232 / 62%);
-  --glass-card-light: rgb(255 251 245 / 34%);
-  --glass-inner: rgb(255 250 245 / 42%);
-  --glass-raised: rgb(255 249 243 / 82%);
+  --glass-gloss: rgb(255 251 242 / 30%);
+  --glass-frame: rgb(222 207 191 / 74%);
+  --glass-rail: rgb(240 231 221 / 90%);
+  --glass-card: rgb(252 249 245 / 94%);
+  --glass-card-light: rgb(255 255 255 / 40%);
+  --glass-inner: rgb(244 237 229 / 88%);
+  --glass-raised: rgb(255 252 248 / 96%);
 
   --card: var(--glass-card);
   --panel: var(--glass-card);
@@ -108,7 +113,7 @@
   --surface-3: var(--glass-raised);
   --canvas: transparent;
   /* Оранжевый текст ссылок на стекле темнее: под сценой бывают тёмные участки */
-  --flame-text: #922a0a;
+  --flame-text: #86250a;
 }
 
 :root[data-glass]:not([data-theme="light"]) .gas-shell {
@@ -211,7 +216,7 @@
     0 0,
     0 0;
   background-repeat: no-repeat;
-  filter: blur(2px) saturate(0.9) brightness(0.96);
+  filter: blur(2px) saturate(0.85) brightness(0.8);
 }
 :root[data-glass]:not([data-theme="light"]) .gas-shell::before {
   background-image: var(
@@ -571,10 +576,10 @@
  */
 @media (prefers-reduced-transparency: reduce) {
   :root[data-glass][data-theme="light"] .gas-shell {
-    --glass-frame: rgb(242 230 217 / 80%);
-    --glass-rail: rgb(244 232 220 / 90%);
-    --glass-card: rgb(251 245 238 / 86%);
-    --glass-inner: rgb(255 250 245 / 70%);
+    --glass-frame: rgb(222 207 191 / 90%);
+    --glass-rail: rgb(240 231 221 / 96%);
+    --glass-card: rgb(252 249 245 / 98%);
+    --glass-inner: rgb(244 237 229 / 94%);
   }
   :root[data-glass]:not([data-theme="light"]) .gas-shell {
     --glass-frame: rgb(42 31 29 / 86%);
