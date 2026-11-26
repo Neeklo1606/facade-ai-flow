@@ -90,7 +90,7 @@ test.describe("журнал 1440", () => {
     // Человеко-часы в строке счётчиков «Недели» (ADR-061, 11; 4.6), а не карточкой. В демо-неделе
     // (ADR-062, F5) состав есть у части записей: сумма по ним и число записей без состава
     const man = page.getByTestId("week-counters");
-    await expect(man).toContainText(/\d[\d\s,]* чел\.-ч\s*· в \d+ записях нет состава/);
+    await expect(man).toContainText(/\d[\d\s,]*\s?чел\.-ч\s*· в \d+ записях нет состава/);
     await expect(man).not.toContainText(/· 0 чел\.-ч/);
     await man.getByRole("link", { name: "Показать записи" }).click();
     await expect(page).toHaveURL(/\/gas\/entries\?crew=none/);
