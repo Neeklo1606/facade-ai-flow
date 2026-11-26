@@ -327,7 +327,7 @@ function StepBar({
               type="button"
               disabled={!can}
               onClick={() => onGo(key)}
-              className="flex min-h-9 min-w-0 flex-col gap-1 text-left focus-ring disabled:cursor-default"
+              className="flex min-h-11 min-w-0 flex-col gap-1 text-left focus-ring disabled:cursor-default lg:min-h-9"
             >
               <span
                 aria-hidden
