@@ -83,7 +83,7 @@ for (const width of WIDTHS) {
         .click();
       await page.getByRole("button", { name: "Проверить" }).click();
       await page.getByRole("button", { name: "Отправить" }).click();
-      const heading = page.getByRole("heading", { name: /Запись ГЗ-\d+ принята/ });
+      const heading = page.getByRole("heading", { name: /Запись ГЗ-\d+ отправлена/ });
       await expect(heading).toBeVisible();
       const number = (await heading.textContent())!.match(/ГЗ-\d+/)![0];
       await snap("03-zapis");

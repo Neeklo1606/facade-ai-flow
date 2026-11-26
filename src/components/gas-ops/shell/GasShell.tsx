@@ -231,7 +231,7 @@ function GasShellFrame({ children }: { children: ReactNode }) {
         </div>
         {botOnly ? null : <GasBottomNav pathname={pathname} />}
         {/* Помощник (4.8): у ролей с данными недели; бригадир и старт без него */}
-        {field || screen.key === "start" ? null : <AssistantButton />}
+        {field || screen.key === "start" ? null : <DesktopAssistant />}
         <Tour />
       </div>
     </WindowsProvider>
@@ -820,6 +820,20 @@ function GasScreenHeader({ screen }: { screen: GasScreen }) {
   );
 }
 
+/*
+ * Помощник один на экране (ADR-091): круг справа внизу на компьютере, кнопка в шапке на
+ * телефоне. Рендерится только нужный, а не скрывается классом: иначе две кнопки с одной ролью
+ */
+function DesktopAssistant() {
+  const desktop = useMediaQuery("(min-width: 1024px)", true);
+  return desktop ? <AssistantButton /> : null;
+}
+
+function PhoneAssistant() {
+  const desktop = useMediaQuery("(min-width: 1024px)", true);
+  return desktop ? null : <AssistantButton placement="header" />;
+}
+
 /* ------------------------------------------------------------ Телефон: шапка */
 
 /** Шапка телефона 52 (3.2): знак или «Назад», название экрана, поиск и аватар */
@@ -862,6 +876,8 @@ function GasPhoneHeader({ screen }: { screen: GasScreen }) {
         <Search strokeWidth={1.75} aria-hidden />
       </button>
       <PhoneSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      {/* Помощник в шапке, а не кругом поверх списка (ADR-091); бригадиру и на старте его нет */}
+      {isFieldRole(actor.role) || screen.key === "start" ? null : <PhoneAssistant />}
       <ProfileMenu />
     </header>
   );

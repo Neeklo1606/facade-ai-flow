@@ -259,7 +259,7 @@ function EstimateFlow({
                   <Button
                     variant="primary"
                     size="field"
-                    className="flex-1"
+                    className="@lg:flex-1"
                     iconEnd={<ArrowRight />}
                     data-testid="estimate-flow-object-next"
                     onClick={() => {
@@ -360,14 +360,23 @@ function Hint({ children }: { children: ReactNode }) {
 /** Низ шага: «Назад» и главное действие */
 function Nav({ onBack, next }: { onBack?: (() => void) | undefined; next?: ReactNode }) {
   return (
-    <div className="flex flex-col-reverse gap-2 sm:flex-row">
-      {onBack ? (
-        <Button variant="secondary" size="field" onClick={onBack} data-testid="estimate-flow-back">
-          <ArrowLeft aria-hidden />
-          Назад
-        </Button>
-      ) : null}
-      {next}
+    // Ширину решает панель, а не экран: в шторке 420 на компьютере три кнопки в ряд не
+    // помещались и «Да, всё верно» обрезалась (финальный обход 26.11)
+    <div className="@container">
+      <div className="flex flex-col-reverse gap-2 @lg:flex-row">
+        {onBack ? (
+          <Button
+            variant="secondary"
+            size="field"
+            onClick={onBack}
+            data-testid="estimate-flow-back"
+          >
+            <ArrowLeft aria-hidden />
+            Назад
+          </Button>
+        ) : null}
+        {next}
+      </div>
     </div>
   );
 }
@@ -421,7 +430,7 @@ function FileStep({
             <Button
               variant="primary"
               size="field"
-              className="flex-1"
+              className="@lg:flex-1"
               iconEnd={<ArrowRight />}
               onClick={onContinue}
               data-testid="estimate-flow-continue"
@@ -808,7 +817,7 @@ function CheckStep({
             <Button
               variant="primary"
               size="field"
-              className="flex-1"
+              className="@lg:flex-1"
               loading={busy}
               iconEnd={<ArrowRight />}
               onClick={() => void agree()}
@@ -1011,7 +1020,7 @@ function BrigadesStep({
             <Button
               variant="primary"
               size="field"
-              className="flex-1"
+              className="@lg:flex-1"
               iconEnd={<ArrowRight />}
               onClick={onNext}
               data-testid="flow-brigades-next"

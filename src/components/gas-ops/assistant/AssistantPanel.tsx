@@ -52,7 +52,12 @@ function writeChats(chats: Chat[]) {
 
 const newId = () => `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
-export function AssistantButton() {
+/**
+ * Вход в помощника. На компьютере круглая кнопка в правом нижнем углу. На телефоне кнопка
+ * живёт в шапке рядом с поиском: плавающий круг закрывал суммы в правой колонке списков
+ * «Проверки» и «Табеля» (финальный обход 26.11, ADR-091).
+ */
+export function AssistantButton({ placement = "floating" }: { placement?: "floating" | "header" }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -62,9 +67,17 @@ export function AssistantButton() {
         aria-expanded={open}
         onClick={() => setOpen(true)}
         data-testid="assistant-open"
-        className="fixed right-4 z-40 grid size-[52px] place-items-center rounded-full bg-orange-strong text-on-orange shadow-floating focus-ring press-98 max-lg:bottom-[calc(var(--bottom-inset,0px)+16px)] lg:bottom-6 lg:right-6"
+        className={
+          placement === "header"
+            ? "gas-icon-button size-11 focus-ring"
+            : "fixed right-6 bottom-6 z-40 grid size-[52px] place-items-center rounded-full bg-orange-strong text-on-orange shadow-floating focus-ring press-98"
+        }
       >
-        <Sparkles className="size-6" aria-hidden />
+        <Sparkles
+          className={placement === "header" ? undefined : "size-6"}
+          strokeWidth={1.75}
+          aria-hidden
+        />
       </button>
       {open ? <AssistantPanel onClose={() => setOpen(false)} /> : null}
     </>

@@ -89,7 +89,11 @@ function useTargetRect(step: TourStep | null, ready: boolean): DOMRect | null {
         if (performance.now() - started < FIND_MS) frame = requestAnimationFrame(look);
         return;
       }
-      element.scrollIntoView({ block: "center", inline: "nearest" });
+      // Прокручиваем, только если начало цели не видно: длинная очередь «Проверки» по центру
+      // уезжала вниз, и фильтры с поиском прятались под шапку (финальный обход 26.11)
+      const box = element.getBoundingClientRect();
+      if (box.top < 0 || box.top > window.innerHeight * 0.6)
+        element.scrollIntoView({ block: "center", inline: "nearest" });
       measure();
       if (typeof ResizeObserver !== "undefined") {
         observer = new ResizeObserver(measure);

@@ -475,7 +475,11 @@ export function BrigadeToday() {
       <div className="flex flex-col items-start gap-4">
         <OfflineBadge state={sent.state} sentLabel={SENT_LABEL} />
         <h2 className="type-screen">
-          {sent.state === "server" ? `Запись ${sent.number ?? ""} принята` : "Запись на телефоне"}
+          {/* «Принята» только при автопринятии: «принята» и «ждёт проверки» рядом спорили
+              (финальный обход 26.11) */}
+          {sent.state === "server"
+            ? `Запись ${sent.number ?? ""} ${sent.auto ? "принята" : "отправлена"}`
+            : "Запись на телефоне"}
         </h2>
         <p className="type-text text-ink-2">
           {sent.state === "server"

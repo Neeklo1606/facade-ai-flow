@@ -80,7 +80,7 @@ for (const [name, viewport] of [
       await page.getByRole("button", { name: "Отправить" }).click();
       await expect(page.getByText("Записано", { exact: true })).toBeVisible();
       const heading = await page
-        .getByRole("heading", { name: /Запись ГЗ-\d+ принята/ })
+        .getByRole("heading", { name: /Запись ГЗ-\d+ отправлена/ })
         .textContent();
       const number = /ГЗ-\d+/.exec(heading ?? "")![0];
       // Финансов бригадир не видит нигде

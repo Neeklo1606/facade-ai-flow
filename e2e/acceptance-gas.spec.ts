@@ -209,7 +209,7 @@ async function customerPath(page: Page, phone: boolean) {
   await page.getByRole("button", { name: "Проверить" }).click();
   await page.getByRole("button", { name: "Отправить", exact: true }).click();
   const pendingNumber = /ГЗ-\d{5}/.exec(
-    await page.getByRole("heading", { name: /Запись ГЗ-\d{5} принята/ }).innerText(),
+    await page.getByRole("heading", { name: /Запись ГЗ-\d{5} отправлена/ }).innerText(),
   )![0];
 
   // П4. Бригадир 1: только раздел 3, перерыв вычитается, двойное нажатие без дубля
@@ -226,7 +226,7 @@ async function customerPath(page: Page, phone: boolean) {
   await fillTime(page, { time: "8-17", breakMin: "60" });
   await expect(page.getByText("08:00 – 17:00, перерыв 60 мин")).toBeVisible();
   await page.getByRole("button", { name: "Отправить", exact: true }).dblclick();
-  const sent = page.getByRole("heading", { name: /Запись ГЗ-\d{5} принята/ });
+  const sent = page.getByRole("heading", { name: /Запись ГЗ-\d{5} отправлена/ });
   await expect(sent).toBeVisible();
   const first = /ГЗ-\d{5}/.exec(await sent.innerText())![0];
   await expect(page.getByTestId("section-done")).toBeVisible();
@@ -242,7 +242,7 @@ async function customerPath(page: Page, phone: boolean) {
   await fillTime(page, { day: "Вчера", time: "8-12", breakMin: "0" });
   await page.getByRole("button", { name: "Отправить", exact: true }).click();
   const second = /ГЗ-\d{5}/.exec(
-    await page.getByRole("heading", { name: /Запись ГЗ-\d{5} принята/ }).innerText(),
+    await page.getByRole("heading", { name: /Запись ГЗ-\d{5} отправлена/ }).innerText(),
   )![0];
   await page.getByRole("button", { name: "Готово" }).click();
   await expect(page.locator("main")).not.toContainText("₽");
@@ -288,7 +288,7 @@ async function customerPath(page: Page, phone: boolean) {
   await page.getByRole("button", { name: "Проверить" }).click();
   await page.getByRole("button", { name: "Отправить", exact: true }).click();
   const loose = /ГЗ-\d{5}/.exec(
-    await page.getByRole("heading", { name: /Запись ГЗ-\d{5} принята/ }).innerText(),
+    await page.getByRole("heading", { name: /Запись ГЗ-\d{5} отправлена/ }).innerText(),
   )![0];
   await open(page, "/gas/moderation");
   await page.locator("[data-queue-card]").filter({ hasText: loose }).click();

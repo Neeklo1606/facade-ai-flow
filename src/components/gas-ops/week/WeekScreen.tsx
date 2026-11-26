@@ -84,6 +84,12 @@ const KIND_TITLE: Record<CloseReason["kind"], string> = {
   "over-crew": "Состав больше бригады",
 };
 
+/** Число на плашке вида: для записей в очереди менеджера – записи, для остального – причины */
+function chipCount(kind: CloseReason["kind"], list: CloseReason[]): number {
+  if (kind !== "pending" && kind !== "clarify") return list.length;
+  return list.reduce((sum, r) => sum + Math.max(1, r.entryIds.length), 0);
+}
+
 /** Сколько строк группы видно сразу: длинный список «нет записи» сворачивается */
 const GROUP_PREVIEW = 4;
 /** Объектов в таблице сразу: остальные по кнопке, на телефоне иначе экран в восемь высот */
@@ -210,10 +216,11 @@ export function WeekScreen() {
           <span className="inline-flex flex-wrap items-center gap-x-1">
             {" · "}
             {man.value && !man.reason ? (
-              <span>чел.-ч: {man.value}</span>
+              // Единица уже в значении («124,25 чел.-ч»): без подписи впереди, иначе дважды
+              <span>{man.value}</span>
             ) : man.value ? (
               // Сумма по записям с составом и ссылка на записи без него (ADR-062, F5)
-              <NotCalculated reason={man.reason}>чел.-ч: {man.value}</NotCalculated>
+              <NotCalculated reason={man.reason}>{man.value}</NotCalculated>
             ) : (
               <NotCalculated reason={man.reason}>чел.-ч: не рассчитано</NotCalculated>
             )}
@@ -230,10 +237,15 @@ export function WeekScreen() {
           className="mono-inset flex flex-col gap-3 md:flex-row md:items-center"
         >
           <p className="min-w-0 flex-1 type-text">
-            Неделя готова к закрытию: {view.ready.entries}{" "}
-            {plural(view.ready.entries, "запись", "записи", "записей")}, {view.ready.remarks}{" "}
-            {plural(view.ready.remarks, "замечание", "замечания", "замечаний")}. Черновик файла
-            готов.
+            {/* Пока есть причины, неделя не «готова»: строка спорила с «Закрыть (9 причин)» */}
+            {left.length ? "Пора закрывать неделю" : "Неделя готова к закрытию"}:{" "}
+            {view.ready.entries} {plural(view.ready.entries, "запись", "записи", "записей")},{" "}
+            {view.ready.remarks} {plural(view.ready.remarks, "замечание", "замечания", "замечаний")}
+            .{" "}
+            {left.length
+              ? `Сначала ${plural(left.length, "решите причину", "решите причины", "решите причины")} ниже. `
+              : ""}
+            Черновик файла готов.
           </p>
           <Button
             variant="secondary"
@@ -487,7 +499,9 @@ function Readiness({ total, left }: { total: number; left: readonly CloseReason[
               className="inline-flex min-h-8 items-center gap-1.5 rounded-pill bg-panel-2 px-3 type-small"
             >
               {KIND_TITLE[kind]}
-              <span className="font-semibold tnum">{list.length}</span>
+              {/* Непроверенные и уточнения считаются записями, а не причинами: одна причина
+                  «не проверено» держит 6 записей, и «Не проверено 1» спорило со строкой ниже */}
+              <span className="font-semibold tnum">{chipCount(kind, list)}</span>
             </li>
           ))}
         </ul>
