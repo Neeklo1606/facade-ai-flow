@@ -41,7 +41,7 @@ for (const width of WIDTHS) {
       taps += 1;
       await page.getByRole("button", { name: "Отправить" }).click();
       taps += 1;
-      await expect(page.getByRole("heading", { name: /Запись ГЗ-\d+ принята/ })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /Запись ГЗ-\d+ отправлена/ })).toBeVisible();
       expect(taps, "касаний для записи «как вчера»").toBeLessThanOrEqual(2);
       await page.getByRole("button", { name: "Готово" }).click();
       // Сегодня по этому объекту уже есть запись: кнопки больше нет

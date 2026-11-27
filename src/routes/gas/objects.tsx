@@ -151,7 +151,7 @@ function ObjectsPage() {
       key: "label",
       title: "Адрес",
       cell: (c) => (
-        <span className="block max-w-[360px] truncate" title={c.object.label}>
+        <span className="block max-w-[300px] truncate" title={c.object.label}>
           {c.object.label}
         </span>
       ),
@@ -159,7 +159,17 @@ function ObjectsPage() {
     {
       key: "brigades",
       title: "Бригады",
-      cell: (c) => c.brigades.map((b) => b.name).join(", ") || "–",
+      // Длинный список бригад раздвигал таблицу, и «Даты графика» уходили за край на 1440
+      cell: (c) => {
+        const names = c.brigades.map((b) => b.name).join(", ");
+        return names ? (
+          <span className="block max-w-[200px] truncate" title={names}>
+            {names}
+          </span>
+        ) : (
+          "–"
+        );
+      },
     },
     {
       key: "estimate",

@@ -308,7 +308,7 @@ function InviteDialog({
               {invite.link}
             </p>
             <p className="text-meta text-text-3">
-              После подключения MAX (T7) бот примет этот код и свяжет человека с бригадой.
+              После подключения MAX бот примет этот код и свяжет человека с бригадой.
             </p>
             <Button
               variant="outline"

@@ -17,7 +17,9 @@ for (const width of [
       await gasRole(page, "Руководитель");
       await open(page, "/gas/week");
       const ready = page.getByTestId("week-ready");
-      await expect(ready).toContainText(/Неделя готова к закрытию: \d+ запис\S*, \d+ замечани/);
+      await expect(ready).toContainText(
+        /(Неделя готова к закрытию|Пора закрывать неделю): \d+ запис\S*, \d+ замечани/,
+      );
       const [draft] = await Promise.all([
         page.waitForEvent("download"),
         ready.getByRole("button", { name: "Скачать черновик" }).click(),

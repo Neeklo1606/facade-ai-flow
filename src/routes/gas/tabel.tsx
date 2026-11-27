@@ -1015,6 +1015,9 @@ function PhoneList({
   const pickedIndex = day === null ? -1 : days.indexOf(day);
   return (
     <div className="flex flex-col gap-block">
+      <p className="-mb-2 px-1 text-meta text-text-2">
+        Часы бригад по дням. Нажмите день, чтобы оставить в списке только его.
+      </p>
       <div role="group" aria-label="День недели" className="card-v3 flex gap-1 p-1.5">
         {days.map((d, i) => {
           const on = day === d;
@@ -1041,7 +1044,8 @@ function PhoneList({
                 />
               </span>
               <span className="type-small font-semibold tnum">
-                {dayMinutes[i] ? Math.round(dayMinutes[i]! / 60) : "–"}
+                {/* С единицей: «65» без «ч» читалось как число записей (финальный обход 26.11) */}
+                {dayMinutes[i] ? `${Math.round(dayMinutes[i]! / 60)} ч` : "–"}
               </span>
             </button>
           );

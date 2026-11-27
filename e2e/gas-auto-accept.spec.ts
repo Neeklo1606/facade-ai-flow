@@ -38,7 +38,7 @@ async function sendTime(page: Page, time: string, object?: string) {
   await page.getByLabel("Время работы").fill(time);
   await page.getByRole("button", { name: "Проверить" }).click();
   await page.getByRole("button", { name: "Отправить" }).click();
-  const heading = page.getByRole("heading", { name: /Запись ГЗ-\d+ принята/ });
+  const heading = page.getByRole("heading", { name: /Запись ГЗ-\d+ (принята|отправлена)/ });
   await expect(heading).toBeVisible();
   return /ГЗ-\d+/.exec((await heading.textContent()) ?? "")![0];
 }

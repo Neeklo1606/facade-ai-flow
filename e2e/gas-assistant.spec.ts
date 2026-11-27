@@ -80,12 +80,16 @@ test.describe("помощник 1440", () => {
 test.describe("помощник 390", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("кнопка над нижней панелью, панель во всю ширину", async ({ page }) => {
+  // ADR-091: на телефоне помощник в шапке, плавающий круг закрывал суммы в списках
+  test("кнопка в шапке телефона, панель во всю ширину", async ({ page }) => {
     await open(page, "/gas/moderation");
     const button = page.getByTestId("assistant-open");
-    const nav = await page.getByRole("navigation", { name: "Основные разделы" }).boundingBox();
+    await expect(button).toHaveCount(1);
+    const header = await page.locator(".gas-phone-header").boundingBox();
     const box = await button.boundingBox();
-    expect(box!.y + box!.height).toBeLessThanOrEqual(nav!.y);
+    expect(box!.y).toBeGreaterThanOrEqual(header!.y);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(header!.y + header!.height);
+    expect(Math.round(box!.height)).toBeGreaterThanOrEqual(44);
     await button.click();
     const sheet = await panel(page).boundingBox();
     expect(Math.round(sheet!.width)).toBe(390);
